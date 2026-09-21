@@ -91,6 +91,46 @@ describe('GET / analytics page', () => {
     expect(html).toContain("['oss', 'altinity', 'cloud']")
     expect(html).not.toContain('dithered-bar')
   })
+
+  it('renders the shared site nav (same model as the landing header)', async () => {
+    const env = { CHM_TELEMETRY_DB: {} as D1Database }
+    const res = await worker.fetch(
+      new Request('https://telemetry.chmonitor.dev/'),
+      env,
+      makeCtx()
+    )
+    const html = await res.text()
+    // Both dropdowns, every top-level link, and the CTAs — pointed at the
+    // marketing origin since this page lives on a different subdomain.
+    expect(html).toContain('>Features ')
+    expect(html).toContain('>Resources ')
+    for (const href of [
+      'https://chmonitor.dev/features/ai-agent',
+      'https://chmonitor.dev/cli',
+      'https://chmonitor.dev/features/postgres',
+      'https://chmonitor.dev/customers',
+      'https://chmonitor.dev/license',
+      'https://docs.chmonitor.dev',
+      'https://blog.chmonitor.dev',
+      'https://chmonitor.dev/changelog',
+      'https://chmonitor.dev/brand',
+      'https://github.com/chmonitor/chmonitor',
+      'https://dash.chmonitor.dev',
+    ]) {
+      expect(html).toContain(`href="${href}"`)
+    }
+    // Parity with the landing nav: License (not Pricing) top-level, Beta
+    // badges ride along, drawer flattens all destinations.
+    const header = html.slice(
+      html.indexOf('<header'),
+      html.indexOf('</header>')
+    )
+    expect(header).toContain('>License</a>')
+    expect(header).not.toContain('>Pricing</a>')
+    expect(header).toContain('nav-badge">Beta</span>')
+    const drawer = html.slice(html.indexOf('id="mobile-menu"'))
+    expect(drawer).toContain('href="https://chmonitor.dev/features/peerdb"')
+  })
 })
 
 describe('GET /v1/summary — double WHERE regression (#2466)', () => {

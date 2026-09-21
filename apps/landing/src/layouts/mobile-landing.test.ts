@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { NAV_CTAS } from '@chm/site-nav'
 
 const landing = join(import.meta.dir, '../..')
 const read = (rel: string) => readFileSync(join(landing, rel), 'utf8')
@@ -37,8 +38,10 @@ describe('mobile nav: desktop CTAs must not fight Tailwind', () => {
   test('desktop GitHub + Dashboard CTAs live in .nav-cta-desktop, not as loose .nav-cta > a', () => {
     expect(nav).toContain('class="nav-cta-desktop"')
     const desktop = nav.split('nav-cta-desktop')[1] ?? ''
-    expect(desktop).toContain('dash.chmonitor.dev')
-    expect(desktop).toContain('github.com/chmonitor/chmonitor')
+    expect(desktop).toContain('NAV_CTAS.dashboard.href')
+    expect(desktop).toContain('NAV_CTAS.github.href')
+    expect(NAV_CTAS.dashboard.href).toBe('https://dash.chmonitor.dev')
+    expect(NAV_CTAS.github.href).toBe('https://github.com/chmonitor/chmonitor')
     expect(desktop.indexOf('nav-toggle')).toBeGreaterThan(
       desktop.indexOf('Dashboard')
     )
@@ -47,7 +50,7 @@ describe('mobile nav: desktop CTAs must not fight Tailwind', () => {
   test('Dashboard stays reachable in the drawer', () => {
     expect(nav).toContain('nav-drawer-foot')
     const foot = nav.split('nav-drawer-foot')[1] ?? ''
-    expect(foot).toContain('dash.chmonitor.dev')
+    expect(foot).toContain('NAV_CTAS.dashboard.href')
     expect(foot).toContain('Dashboard')
   })
 

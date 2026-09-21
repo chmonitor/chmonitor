@@ -1,4 +1,17 @@
-/** Public telemetry analytics HTML. Chrome matches the landing site. */
+import {
+  NAV_BRAND,
+  NAV_CTAS,
+  renderNavDrawerLinks,
+  renderNavLinks,
+} from '@chm/site-nav'
+
+/** Origin for on-site paths — this page lives on telemetry.chmonitor.dev, so
+ * nav links point back at the marketing site. */
+const SITE_ORIGIN = 'https://chmonitor.dev'
+
+/** Public telemetry analytics HTML. Chrome matches the landing site — the
+ * header/nav markup is rendered from the shared @chm/site-nav model so it
+ * can't drift from apps/landing Nav.astro. */
 export const TELEMETRY_PAGE = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,6 +62,10 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
     .nav-menu a{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:6px;font-size:14px;font-weight:500;color:var(--fg-soft)}
     .nav-menu a:hover{background:var(--muted);color:var(--fg)}
     .nav-menu a small{font-size:12px;font-weight:400;color:var(--muted-fg)}
+    .nav-menu.nav-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));min-width:560px}
+    .nav-item-label{display:inline-flex;align-items:center;gap:6px}
+    .nav-badge{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--orange);background:color-mix(in srgb,var(--orange) 14%,transparent);line-height:1}
+    .nav-drawer-body a .nav-badge{margin-left:auto}
     .nav-cta{display:flex;align-items:center;gap:10px}
     .nav-cta-desktop{display:flex;align-items:center;gap:10px}
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:var(--radius);font-size:14px;font-weight:500;white-space:nowrap;border:1px solid transparent;cursor:pointer}
@@ -166,39 +183,17 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
 <body>
   <header class="nav">
     <div class="wrap nav-row">
-      <a class="brand" href="https://chmonitor.dev">
+      <a class="brand" href="${SITE_ORIGIN}${NAV_BRAND.href}">
         <span class="mark" aria-hidden="true">
-          <img src="https://chmonitor.dev/brand/logo-chmonitor.svg" alt="" width="22" height="22" />
+          <img src="${SITE_ORIGIN}${NAV_BRAND.logo}" alt="" width="22" height="22" />
         </span>
-        chmonitor
+        ${NAV_BRAND.label}
       </a>
-      <nav class="nav-links">
-        <div class="nav-group">
-          <button type="button" class="nav-trigger">Features <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></button>
-          <div class="nav-menu">
-            <a href="https://chmonitor.dev/features/ai-agent">AI Agent<small>Schema-aware recommendations</small></a>
-            <a href="https://chmonitor.dev/cli">CLI<small>chm doctor, TUI and API</small></a>
-            <a href="https://chmonitor.dev/features/queries">Query monitoring<small>Running, slow, failed &amp; expensive</small></a>
-            <a href="https://chmonitor.dev/features/alerting">Alerting<small>Health checks with webhooks</small></a>
-          </div>
-        </div>
-        <a href="https://chmonitor.dev/customers">Customers</a>
-        <a href="https://chmonitor.dev/pricing">Pricing</a>
-        <a href="https://docs.chmonitor.dev" target="_blank" rel="noopener">Docs</a>
-        <div class="nav-group">
-          <button type="button" class="nav-trigger">Resources <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></button>
-          <div class="nav-menu">
-            <a href="https://blog.chmonitor.dev">Blog<small>Release notes and updates</small></a>
-            <a href="https://chmonitor.dev/changelog">Changelog<small>Full ship log</small></a>
-            <a href="https://docs.chmonitor.dev">Docs<small>Setup and API guides</small></a>
-            <a href="https://telemetry.chmonitor.dev">Telemetry<small>Anonymous adoption stats</small></a>
-          </div>
-        </div>
-      </nav>
+      <nav class="nav-links">${renderNavLinks(SITE_ORIGIN)}</nav>
       <div class="nav-cta">
         <div class="nav-cta-desktop">
-          <a class="btn btn-ghost" href="https://github.com/chmonitor/chmonitor" target="_blank" rel="noopener">Star</a>
-          <a class="btn btn-primary" href="https://dash.chmonitor.dev" target="_blank" rel="noopener">Dashboard</a>
+          <a class="btn btn-ghost" href="${NAV_CTAS.github.href}" target="_blank" rel="noopener">${NAV_CTAS.github.label}</a>
+          <a class="btn btn-primary" href="${NAV_CTAS.dashboard.href}" target="_blank" rel="noopener">${NAV_CTAS.dashboard.label}</a>
         </div>
         <button type="button" class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
           <svg class="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -210,18 +205,10 @@ export const TELEMETRY_PAGE = `<!DOCTYPE html>
   <div class="nav-drawer" id="mobile-menu" data-open="false" aria-hidden="true">
     <div class="nav-drawer-backdrop" data-nav-close></div>
     <nav class="nav-drawer-panel" role="dialog" aria-modal="true" aria-label="Site menu">
-      <div class="nav-drawer-body">
-        <a href="https://chmonitor.dev/features/ai-agent">AI Agent</a>
-        <a href="https://chmonitor.dev/cli">CLI</a>
-        <a href="https://chmonitor.dev/customers">Customers</a>
-        <a href="https://chmonitor.dev/pricing">Pricing</a>
-        <a href="https://docs.chmonitor.dev">Docs</a>
-        <a href="https://blog.chmonitor.dev">Blog</a>
-        <a href="https://chmonitor.dev/changelog">Changelog</a>
-      </div>
+      <div class="nav-drawer-body">${renderNavDrawerLinks(SITE_ORIGIN)}</div>
       <div class="nav-drawer-foot">
-        <a class="btn btn-ghost" href="https://github.com/chmonitor/chmonitor">Star on GitHub</a>
-        <a class="btn btn-primary" href="https://dash.chmonitor.dev">Dashboard</a>
+        <a class="btn btn-ghost" href="${NAV_CTAS.github.href}">${NAV_CTAS.github.drawerLabel}</a>
+        <a class="btn btn-primary" href="${NAV_CTAS.dashboard.href}">${NAV_CTAS.dashboard.label}</a>
       </div>
     </nav>
   </div>

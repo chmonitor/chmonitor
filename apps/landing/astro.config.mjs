@@ -19,6 +19,11 @@ export default defineConfig({
         '@chm/pricing': fileURLToPath(
           new URL('../../packages/pricing/src/index.ts', import.meta.url)
         ),
+        // Shared site header/nav model (also used by the telemetry worker).
+        // Zero-dep pure-data package, same deal as @chm/pricing.
+        '@chm/site-nav': fileURLToPath(
+          new URL('../../packages/site-nav/src/index.ts', import.meta.url)
+        ),
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { FEATURE_MENU } from '@chm/site-nav'
 
 const landing = join(import.meta.dir, '..')
 const read = (rel: string) => readFileSync(join(landing, rel), 'utf8')
@@ -56,8 +57,13 @@ describe('/cli landing page', () => {
   })
 
   test('nav Features menu and footer link to /cli', () => {
-    expect(nav).toContain("to('/cli')")
-    expect(nav).toContain('CLI<span class="nav-badge">Beta</span>')
+    // Items come from @chm/site-nav (shared with the telemetry header); the
+    // CLI entry carries its Beta badge and Nav.astro maps over the menu.
+    const cli = FEATURE_MENU.find((item) => item.label === 'CLI')
+    expect(cli?.href).toBe('/cli')
+    expect(cli?.badge).toBe('Beta')
+    expect(nav).toContain('FEATURE_MENU.map')
+    expect(nav).toContain('nav-badge')
     expect(footer).toContain("to('/cli')")
   })
 
