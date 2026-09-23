@@ -7,6 +7,7 @@
 // Organization+SoftwareApplication schema) — this layout adds a page-specific
 // BreadcrumbList + a distinct per-page SoftwareApplication entity on top.
 import type { UseCase } from '../data/use-cases'
+import { freeOffer } from '../lib/json-ld'
 
 import Base from './Base.astro'
 import Nav from '../components/Nav.astro'
@@ -80,7 +81,7 @@ const softwareJsonLd = {
   description,
   featureList,
   image: new URL(`/og/og-${slug}.png`, Astro.site).toString(),
-  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  offers: freeOffer,
   publisher: { '@id': 'https://chmonitor.dev/#organization' },
 }
 

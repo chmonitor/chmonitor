@@ -6,6 +6,7 @@ import FinalCta from '../components/FinalCta.astro'
 import { btnOutline, btnPrimary } from '../lib/button-classes'
 import CliDemo from '../components/CliDemo.astro'
 import { CLI_DOCS, CLI_INSTALL, features } from '../data/cli'
+import { freeOffer } from '../lib/json-ld'
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString()
 
@@ -33,7 +34,7 @@ const softwareJsonLd = {
     'chmonitor from the terminal. Talks straight to your chmonitor dashboard. Ready for AI Agents.',
   featureList: features.map((f) => f.title),
   image: new URL('/og/og-cli.png', Astro.site).toString(),
-  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  offers: freeOffer,
   publisher: { '@id': 'https://chmonitor.dev/#organization' },
 }
 
