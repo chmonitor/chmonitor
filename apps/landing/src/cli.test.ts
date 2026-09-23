@@ -69,7 +69,7 @@ describe('/cli landing page', () => {
 
   test('OG card is wired', () => {
     expect(page).toContain('image="/og/og-cli.png"')
-    expect(og).toContain("file: 'og-cli.png'")
+    expect(og).toContain("out: 'apps/landing/public/og/og-cli.png'")
     expect(og).toContain('chmonitor from')
   })
 })
