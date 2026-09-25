@@ -38,7 +38,8 @@ The Postgres tools (`run_postgres_select_query`, `get_postgres_metrics`, `list_p
 </Callout>
 
 <Callout type="info" title="PeerDB mirror tool is off by default">
-`get_peerdb_mirror_status` appears only when `CHM_FEATURE_PEERDB_AGENT=true` (and the PeerDB feature itself is not disabled with `CHM_FEATURE_PEERDB_ENABLED=false`). It reads through the same read-only server-side PeerDB proxy as the `/peerdb` pages — fixed endpoints only, credentials stay server-side, mirror configs are stripped — and needs `PEERDB_API_URL` configured (see [Configuration](/guide/ai-agent/configuration)). Per-connection (`?connection=`) PeerDB links are not yet visible to the agent.</Callout>
+`get_peerdb_mirror_status` appears only when `CHM_FEATURE_PEERDB_AGENT=true` (and the PeerDB feature itself is not disabled with `CHM_FEATURE_PEERDB_ENABLED=false`). It reads through the same read-only server-side PeerDB proxy as the `/peerdb` pages — fixed endpoints only, credentials stay server-side, mirror configs are stripped — and needs `PEERDB_API_URL` configured (see [Configuration](/guide/ai-agent/configuration)). Per-connection (`?connection=`) PeerDB links are not yet visible to the agent.
+</Callout>
 
 ### Tool reference
 
