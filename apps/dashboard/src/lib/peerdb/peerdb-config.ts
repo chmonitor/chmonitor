@@ -2,22 +2,29 @@
  * PeerDB connection config + server-side fetch client.
  *
  * PeerDB exposes a REST API (grpc-gateway) on the flow-api service, typically
- * `http://<flow-api-host>:8113/v1/*`. Auth is HTTP Basic with an EMPTY username
- * and `PEERDB_PASSWORD` as the password; when no password is set, the API is
- * open. The Basic header is constructed server-side only and never reaches the
- * browser bundle.
+ * `http://<flow-api-host>:8113/v1/*`. `PEERDB_PASSWORD` is sent as empty-user
+ * HTTP Basic by default, or as a Bearer token when `PEERDB_AUTH_SCHEME=bearer`.
+ * When no password is set, the API is open. The Authorization header is
+ * constructed server-side only and never reaches the browser bundle.
  *
  * This is single-instance (one PeerDB deployment) — unlike ClickHouse's
  * multi-host config — because PeerDB monitoring targets a single flow-api.
  */
 
+import {
+  buildPeerDBAuthHeader,
+  type PeerDBAuthScheme,
+  parsePeerDBAuthScheme,
+} from './peerdb-auth'
 import { debug, error } from '@chm/logger'
 
 export interface PeerDBConfig {
   /** Base URL of the PeerDB flow-api, e.g. http://localhost:8113 */
   baseUrl: string
-  /** UI/API password used as the Basic-auth password (empty username). */
+  /** UI/API secret used as the Basic password or Bearer token. */
   password?: string
+  /** Auth scheme for {@link password}; defaults to Basic when omitted. */
+  authScheme?: PeerDBAuthScheme
 }
 
 /** True when a PeerDB API URL is configured for this deployment. */
@@ -30,17 +37,21 @@ export function getPeerDBConfig(): PeerDBConfig | null {
   const baseUrl = process.env.PEERDB_API_URL?.trim()
   if (!baseUrl) return null
 
+  const password = process.env.PEERDB_PASSWORD?.trim() || undefined
   return {
     baseUrl: baseUrl.replace(/\/+$/, ''),
-    password: process.env.PEERDB_PASSWORD?.trim() || undefined,
+    password,
+    ...(password
+      ? { authScheme: parsePeerDBAuthScheme(process.env.PEERDB_AUTH_SCHEME) }
+      : {}),
   }
 }
 
 function authHeader(config: PeerDBConfig): Record<string, string> {
-  if (!config.password) return {}
-  // PeerDB uses Basic auth with an empty username: base64(":" + password)
-  const token = Buffer.from(`:${config.password}`).toString('base64')
-  return { Authorization: `Basic ${token}` }
+  return buildPeerDBAuthHeader({
+    authScheme: config.authScheme,
+    secret: config.password,
+  })
 }
 
 export class PeerDBError extends Error {

@@ -91,10 +91,12 @@ describe('isPeerDBEnabled', () => {
 describe('getPeerDBConfig', () => {
   let origUrl: string | undefined
   let origPassword: string | undefined
+  let origAuthScheme: string | undefined
 
   beforeEach(() => {
     origUrl = process.env.PEERDB_API_URL
     origPassword = process.env.PEERDB_PASSWORD
+    origAuthScheme = process.env.PEERDB_AUTH_SCHEME
   })
 
   afterEach(() => {
@@ -107,6 +109,11 @@ describe('getPeerDBConfig', () => {
       delete process.env.PEERDB_PASSWORD
     } else {
       process.env.PEERDB_PASSWORD = origPassword
+    }
+    if (origAuthScheme === undefined) {
+      delete process.env.PEERDB_AUTH_SCHEME
+    } else {
+      process.env.PEERDB_AUTH_SCHEME = origAuthScheme
     }
   })
 
@@ -175,6 +182,22 @@ describe('getPeerDBConfig', () => {
 
     const config = getPeerDBConfig()
     expect(config!.password).toBe('trimmed')
+  })
+
+  test('auth scheme defaults to basic when a password is present', () => {
+    process.env.PEERDB_API_URL = 'http://localhost:8113'
+    process.env.PEERDB_PASSWORD = 'secret'
+    delete process.env.PEERDB_AUTH_SCHEME
+
+    expect(getPeerDBConfig()!.authScheme).toBe('basic')
+  })
+
+  test('auth scheme resolves bearer from the environment', () => {
+    process.env.PEERDB_API_URL = 'http://localhost:8113'
+    process.env.PEERDB_PASSWORD = 'token'
+    process.env.PEERDB_AUTH_SCHEME = 'bearer'
+
+    expect(getPeerDBConfig()!.authScheme).toBe('bearer')
   })
 
   test('baseUrl keeps a single trailing non-slash segment intact', () => {
@@ -290,11 +313,13 @@ describe('PeerDBError', () => {
 describe('peerdbFetch', () => {
   let origUrl: string | undefined
   let origPassword: string | undefined
+  let origAuthScheme: string | undefined
   let origFetch: typeof globalThis.fetch
 
   beforeEach(() => {
     origUrl = process.env.PEERDB_API_URL
     origPassword = process.env.PEERDB_PASSWORD
+    origAuthScheme = process.env.PEERDB_AUTH_SCHEME
     origFetch = globalThis.fetch
   })
 
@@ -310,6 +335,11 @@ describe('peerdbFetch', () => {
       delete process.env.PEERDB_PASSWORD
     } else {
       process.env.PEERDB_PASSWORD = origPassword
+    }
+    if (origAuthScheme === undefined) {
+      delete process.env.PEERDB_AUTH_SCHEME
+    } else {
+      process.env.PEERDB_AUTH_SCHEME = origAuthScheme
     }
   })
 
@@ -373,6 +403,7 @@ describe('peerdbFetch', () => {
   test('includes Basic auth header when password is set', async () => {
     process.env.PEERDB_API_URL = 'http://flow-api:8113'
     process.env.PEERDB_PASSWORD = 'secret'
+    delete process.env.PEERDB_AUTH_SCHEME
 
     let capturedHeaders: Record<string, string> = {}
 
@@ -389,6 +420,23 @@ describe('peerdbFetch', () => {
     // PeerDB uses Basic auth with empty username: base64(":" + password)
     const expected = `Basic ${Buffer.from(':secret').toString('base64')}`
     expect(capturedHeaders.Authorization).toBe(expected)
+  })
+
+  test('uses Bearer auth when configured', async () => {
+    process.env.PEERDB_API_URL = 'http://flow-api:8113'
+    process.env.PEERDB_PASSWORD = 'secret-token'
+    process.env.PEERDB_AUTH_SCHEME = 'bearer'
+
+    let capturedHeaders: Record<string, string> = {}
+    globalThis.fetch = mock(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        capturedHeaders = (init?.headers ?? {}) as Record<string, string>
+        return new Response(JSON.stringify({}), { status: 200 })
+      }
+    )
+
+    await peerdbFetch('/v1/bearer-auth-header-check')
+    expect(capturedHeaders.Authorization).toBe('Bearer secret-token')
   })
 
   test('omits Authorization header when no password', async () => {

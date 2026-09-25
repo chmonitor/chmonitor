@@ -152,15 +152,23 @@ validation including a title/text/label secret-leak scan, and a best-effort
 
 The runtime is `lib/peerdb/alert-cycle.ts` — the single orchestrator
 (`runPeerDBAlertCycle`), wired into the health sweep after the ClickHouse
-host loop. Per cycle, `lib/peerdb/alert-collector.ts` collects one
+host loop. The authenticated `GET /api/cron/health-sweep` route bridges the
+`PEERDB_*` Worker bindings before starting that sweep. Scheduled execution
+requires `CRON_SECRET` and an enabled `CHM_HEALTH_SWEEP_ENABLED`; delivery also
+requires `HEALTH_ALERT_ENABLED=true`. Per cycle,
+`lib/peerdb/alert-collector.ts` collects one
 read-only signal per mirror (status, ERROR-level log volume via the shared
 `mirror-logs` contract, slot lag mapped through `sourceName`; max 50
 mirrors, per-mirror failures isolated, never throws), then each firing
-mirror goes through classify → format → validate → a `peerdb-issue` audit
-row written **before** any delivery attempt → deterministic investigation →
-the existing sweep dispatcher (persistent alert-state dedup, maintenance /
-quiet-hours / ACK gates, channel fan-out). `ok` signals only dispatch as
-recoveries when the persistent store shows a previously firing condition.
+mirror goes through classify → format → validate → a best-effort
+`peerdb-issue` audit attempt awaited **before** any delivery attempt →
+deterministic investigation → the existing sweep dispatcher (maintenance /
+quiet-hours / ACK gates, channel fan-out). Persistent alert-state dedup uses
+the `CHM_CLOUD_D1` hydrate/flush store when that binding is available; without
+D1 it remains process-local for the lifetime of the Worker isolate. `ok`
+signals dispatch as recoveries only when the persistent store shows a
+previously firing condition and both the per-mirror status and error-log
+samples were readable.
 PeerDB dedups under `peerdb-mirror-health:<flow>` on pseudo-host `-1`, so
 glob route patterns (`peerdb-*`) match and ClickHouse host keys never
 collide. Delivery defaults to dry-run (audit only); the sweep arms it with
@@ -171,12 +179,10 @@ signal-presence checks, fleet firing/slot-lag context) — the sweep never
 calls an LLM. Model-driven deep dives stay available interactively through
 the `get_peerdb_mirror_status` agent tool (requires `CHM_FEATURE_PEERDB_AGENT`).
 
-Integration note: the metrics/insights lane (PR #3412) introduces its own
-`PeerDBSnapshotReader` collector and the same `bridgePeerDBEnv` Worker-env
-bridge — the alert reader interface is structurally compatible with it
-(adapt `mirrorErrorCount` with
-`async (n) => ({ count: await r.mirrorErrorCount(n), source: 'log-api' })`),
-and whichever lane merges its shared pieces first owns them.
+The metrics/insights lane keeps a structurally compatible
+`PeerDBSnapshotReader` for its own partial-fleet aggregation. The alert runtime
+stays on the deployment-wide env source; per-connection (`?connection=<id>`)
+alert collection remains out of scope.
 
 ## Notes & limitations
 

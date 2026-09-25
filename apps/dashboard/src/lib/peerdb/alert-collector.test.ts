@@ -42,6 +42,7 @@ describe('collectPeerDBSignals', () => {
     const s = out.signals[0]!
     expect(s.flowName).toBe('pg_to_ch')
     expect(s.status).toBe('STATUS_RUNNING')
+    expect(s.statusEndpointAvailable).toBe(true)
     expect(s.lagSec).toBe(45)
     expect(s.recentErrorCount).toBe(2)
     expect(s.errorCountSource).toBe('log-api')
@@ -61,6 +62,7 @@ describe('collectPeerDBSignals', () => {
     )
     expect(out.signals[0]!.errorCountSource).toBe('unavailable')
     expect(out.metrics.hasErrorSample).toBe(false)
+    expect(out.metrics.errored).toBe(1)
   })
 
   test('marks snapshot stalled only when clones are pending', async () => {
@@ -139,6 +141,8 @@ describe('collectPeerDBSignals', () => {
 describe('defaultReader via mocked peerdbFetch', () => {
   const URL = 'http://flow-api:8113'
   let origUrl: string | undefined
+  let origPassword: string | undefined
+  let origAuthScheme: string | undefined
   let origFetch: typeof globalThis.fetch
 
   const responses: Record<string, unknown> = {
@@ -152,16 +156,27 @@ describe('defaultReader via mocked peerdbFetch', () => {
     globalThis.fetch = origFetch
     if (origUrl === undefined) delete process.env.PEERDB_API_URL
     else process.env.PEERDB_API_URL = origUrl
+    if (origPassword === undefined) delete process.env.PEERDB_PASSWORD
+    else process.env.PEERDB_PASSWORD = origPassword
+    if (origAuthScheme === undefined) delete process.env.PEERDB_AUTH_SCHEME
+    else process.env.PEERDB_AUTH_SCHEME = origAuthScheme
   })
 
   test('reads status, shared-contract logs envelope, and slots', async () => {
     origUrl = process.env.PEERDB_API_URL
+    origPassword = process.env.PEERDB_PASSWORD
+    origAuthScheme = process.env.PEERDB_AUTH_SCHEME
     origFetch = globalThis.fetch
     process.env.PEERDB_API_URL = URL
+    process.env.PEERDB_PASSWORD = 'alert-token'
+    process.env.PEERDB_AUTH_SCHEME = 'bearer'
     globalThis.fetch = (async (
       input: RequestInfo | URL,
       init?: RequestInit
     ) => {
+      expect(new Headers(init?.headers).get('authorization')).toBe(
+        'Bearer alert-token'
+      )
       const url = String(input)
       const path = url.slice(URL.length)
       if (path === '/v1/mirrors/status') {
@@ -208,6 +223,7 @@ describe('defaultReader via mocked peerdbFetch', () => {
     expect(out.signals).toHaveLength(1)
     const s = out.signals[0]!
     expect(s.flowName).toBe('alert-cycle-e2e')
+    expect(s.statusEndpointAvailable).toBe(true)
     expect(s.lagSec).toBe(61)
     expect(s.recentErrorCount).toBe(1)
     expect(s.errorCountSource).toBe('log-api')

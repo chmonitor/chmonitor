@@ -35,6 +35,12 @@ export interface PeerDBMirrorSignal {
   flowName: string
   /** Raw `currentFlowState` string (`STATUS_FAILED`, `STATUS_RUNNING`, …). */
   status?: string | null
+  /**
+   * Whether the per-mirror status endpoint returned a usable state. Optional for
+   * callers that provide already-validated signals; the runtime collector sets
+   * it so a failed status read cannot be mistaken for a recovery.
+   */
+  statusEndpointAvailable?: boolean
   /** Latest `errorMessage` from `POST /v1/mirrors/status`, if any. */
   errorMessage?: string | null
   /** CDC lag in seconds (`lagSec`), if reported. */
