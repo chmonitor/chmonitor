@@ -8,11 +8,11 @@
  *  - Connection — a static, always-visible primary block: Host, Model, and
  *    Conversation History. These are the controls that matter most, so they
  *    never collapse.
- *  - Daily AI usage — compact progress meter (cloud-only; renders nothing on
- *    OSS / unlimited plans).
- *  - MCP Servers, Skills, Suggested prompts — collapsible sections (chevron
- *    header, default open) so returning users can fold away what they don't
- *    need without losing any control or entry point.
+ *  - Daily AI usage, MCP Servers, Skills, Suggested prompts — collapsible
+ *    sections (chevron header + count badge). Only Daily AI usage is open on
+ *    arrival, so the rail does not open four stacked panels at once; the rest
+ *    pass `defaultOpen={false}` and fold away until asked for. Every control
+ *    inside stays reachable — collapsing only hides it.
  *
  * On desktop the sidebar is an inline collapsible column; on mobile
  * (< 768px) it slides up as a shadcn Drawer so the chat column stays usable
@@ -32,6 +32,7 @@ import type { Skill } from '@/components/agents/welcome/skills-data'
 import { AiUsagePanel } from './ai-usage-panel'
 import { CollapsibleSidebarSection } from './collapsible-sidebar-section'
 import { ConnectionSummary } from './connection-summary'
+import { SUGGESTED_PROMPTS } from '@/components/agents/welcome/suggested-prompts'
 import { useEffect, useState } from 'react'
 import { AgentMcpPanel } from '@/components/agents/welcome/agent-mcp-panel'
 import { McpConnectAgentDialog } from '@/components/agents/welcome/mcp-connect-agent-dialog'
@@ -50,6 +51,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useAgentSkills } from '@/lib/hooks/use-agent-skills'
+import { mcpServerCounts, useMcpConfig } from '@/lib/hooks/use-mcp-config'
 import { cn } from '@/lib/utils'
 
 interface AgentSettingsSidebarProps {
@@ -76,6 +78,14 @@ export function AgentSettingsSidebar({
     totalSkillCount,
   } = useAgentSkills()
   const topSkills = skills.slice(0, 3)
+  // One instance, shared with `AgentMcpPanel` below: the header badge and the
+  // panel body must read the same enabled/total, and `useMcpConfig`'s toggle
+  // state is per-instance `useState` with no cross-instance broadcast.
+  const mcpConfig = useMcpConfig()
+  const mcpCounts = mcpServerCounts(
+    mcpConfig.customServers,
+    mcpConfig.isServerEnabled
+  )
   const [skillDetail, setSkillDetail] = useState<Skill | null>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [connectOpen, setConnectOpen] = useState(false)
@@ -100,13 +110,21 @@ export function AgentSettingsSidebar({
       {/* DAILY AI USAGE (cloud-only; renders nothing on OSS / unlimited) */}
       <AiUsagePanel />
 
-      {/* MCP SERVERS — no header count badge: `useMcpConfig`'s toggle state is
-          per-hook-instance `useState` (localStorage-backed, no cross-instance
-          broadcast), so a second instance here would go stale against the one
-          inside `AgentMcpPanel`. The panel's own summary row is the source of
-          truth. */}
-      <CollapsibleSidebarSection label="MCP servers" icon={PlugZapIcon}>
-        <AgentMcpPanel />
+      {/* MCP SERVERS */}
+      <CollapsibleSidebarSection
+        label="MCP servers"
+        icon={PlugZapIcon}
+        defaultOpen={false}
+        right={
+          <span className="text-muted-foreground text-[10px] tabular-nums">
+            <span className="text-foreground font-medium">
+              {mcpCounts.active}
+            </span>
+            /{mcpCounts.total} active
+          </span>
+        }
+      >
+        <AgentMcpPanel config={mcpConfig} />
         {/* For users who run their own agent/IDE and want to point it at this
             cluster's MCP endpoint directly. */}
         <button
@@ -131,6 +149,7 @@ export function AgentSettingsSidebar({
       <CollapsibleSidebarSection
         label="Skills"
         icon={SparklesIcon}
+        defaultOpen={false}
         right={
           <span className="text-muted-foreground text-[10px] tabular-nums">
             <span className="text-foreground font-medium">
@@ -193,7 +212,16 @@ export function AgentSettingsSidebar({
       </CollapsibleSidebarSection>
 
       {/* SUGGESTED PROMPTS */}
-      <CollapsibleSidebarSection label="Suggested prompts" icon={LightbulbIcon}>
+      <CollapsibleSidebarSection
+        label="Suggested prompts"
+        icon={LightbulbIcon}
+        defaultOpen={false}
+        right={
+          <span className="text-muted-foreground text-[10px] tabular-nums">
+            {SUGGESTED_PROMPTS.length}
+          </span>
+        }
+      >
         <SuggestedPrompts
           variant="list"
           limit={3}

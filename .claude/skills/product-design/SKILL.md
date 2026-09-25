@@ -203,9 +203,16 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   important controls (host, model) as a static, never-collapsing "primary"
   block of `LabeledRow`s (small uppercase tag left of the control, one shared
   header, no chevron); everything else is a `CollapsibleSidebarSection`
-  (chevron + icon + uppercase label + optional count badge, `ui/collapsible`,
-  defaults OPEN so nothing is hidden on first visit). A read-only status row
-  explains itself via an info-icon `Tooltip`, not a standing paragraph. See
+  (chevron + icon + uppercase label + count badge, `ui/collapsible`). Open ONE
+  section on arrival — pass `defaultOpen={false}` to every section after the
+  first, and treat fold state as plain component state (resets on reload, no
+  persistence). Put the count in the `right` slot, which renders inside the
+  trigger so it survives the folded state. If a count shows in both header and
+  body, derive both from ONE lifted state — a second instance of a
+  `useState`-backed hook goes stale against the first. A data-dependent section
+  keeps its visibility guard AHEAD of the section element, or it renders a
+  header with a dangling chevron and no body. A read-only status row explains
+  itself via an info-icon `Tooltip`, not a standing paragraph. See
   `agent-settings-sidebar.tsx`.
 - **Settings page shape — few tabs, dialogs for the rest:** at most FOUR tabs;
   rarely-visited panels become a `grid gap-2 sm:grid-cols-2` of launcher cards

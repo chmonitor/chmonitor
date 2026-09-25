@@ -196,3 +196,19 @@ export function toMcpServers(
     status: 'unconfigured' as const,
   }))
 }
+
+/**
+ * The `{active}/{total}` pair behind both the sidebar's collapsed header badge
+ * and the panel's summary row, so the two can never disagree. The built-in
+ * `clickhouse-monitor` server is always on and always registered, so it
+ * contributes 1 to both totals.
+ */
+export function mcpServerCounts(
+  customServers: readonly CustomMcpServer[],
+  isServerEnabled: (id: string) => boolean
+): { active: number; total: number } {
+  return {
+    active: customServers.filter((s) => isServerEnabled(s.id)).length + 1,
+    total: customServers.length + 1,
+  }
+}
