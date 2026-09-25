@@ -78,9 +78,9 @@ export function AgentSettingsSidebar({
     totalSkillCount,
   } = useAgentSkills()
   const topSkills = skills.slice(0, 3)
-  // One instance, shared with `AgentMcpPanel` below: the header badge and the
-  // panel body must read the same enabled/total, and `useMcpConfig`'s toggle
-  // state is per-instance `useState` with no cross-instance broadcast.
+  // One instance, shared with `AgentMcpPanel` below, so the header badge and the
+  // panel body render the same enabled/total. The agent runtime reads the same
+  // tab-wide store, so all three agree.
   const mcpConfig = useMcpConfig()
   const mcpCounts = mcpServerCounts(
     mcpConfig.customServers,
