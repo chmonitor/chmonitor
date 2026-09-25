@@ -208,9 +208,8 @@ Deployment) so no combination can silently skip validation.
 {{- if gt (len $url) 2048 }}
 {{- fail (printf "%s %q: url exceeds 2048 chars" $id $t.name) }}
 {{- end }}
-{{- $insecure := $t.allowInsecureHttp | default false }}
-{{- if not (or (hasPrefix "https://" $url) (and $insecure (hasPrefix "http://" $url))) }}
-{{- fail (printf "%s %q: url must start with https:// (got %q) — for plain-http cluster-local relays set allowInsecureHttp: true" $id $t.name $url) }}
+{{- if not (hasPrefix "https://" $url) }}
+{{- fail (printf "%s %q: url must start with https:// (got %q)" $id $t.name $url) }}
 {{- end }}
 {{- end }}
 {{- if and $t.titleTemplate (gt (len ($t.titleTemplate | toString)) 2048) }}

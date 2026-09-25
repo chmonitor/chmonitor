@@ -391,10 +391,8 @@ cron:
 #       # headersSecretFrom:
 #       #   name: chmonitor-alert-secrets
 #       #   key: element-headers-json
-#     # Plain-HTTP endpoints need an explicit opt-in (SSRF/creds in cleartext).
-#     # - name: internal-relay
-#     #   url: "http://relay.monitoring.svc.cluster.local:8080/hook"
-#     #   allowInsecureHttp: true
+#     # Webhook endpoints must use HTTPS; use a TLS-terminating relay for
+#     # cluster-local delivery rather than sending credentials over HTTP.
 alertWebhooks:
   enabled: false
   defaults:
