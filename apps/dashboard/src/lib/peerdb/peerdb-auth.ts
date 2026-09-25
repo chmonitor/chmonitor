@@ -61,8 +61,12 @@ export function buildPeerDBAuthHeader(
   if (config.authScheme === 'bearer') {
     return { Authorization: `Bearer ${secret}` }
   }
-  // basic (default): empty username → base64(":" + password)
-  return { Authorization: `Basic ${btoa(`:${secret}`)}` }
+  // basic (default): empty username → base64(UTF-8(":" + password)).
+  // TextEncoder keeps this Workers-safe while matching Buffer's historical
+  // UTF-8 encoding for non-ASCII passwords.
+  const bytes = new TextEncoder().encode(`:${secret}`)
+  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')
+  return { Authorization: `Basic ${btoa(binary)}` }
 }
 
 /**

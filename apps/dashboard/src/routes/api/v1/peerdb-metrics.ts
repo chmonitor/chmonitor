@@ -17,8 +17,10 @@
  * pages + auto-refresh collapse into one upstream burst. Per-connection
  * (`?connection=<id>`) responses are NEVER cached or served from cache: the
  * cache is keyed without any user identity, so serving a per-connection
- * request from it could leak one user's fleet data to another. Config
- * resolution (including the fail-closed ownership check) always runs first.
+ * request from it could leak one user's fleet data to another. The HTTP
+ * response is also `private, no-store`; the in-memory env cache is the only
+ * cache. Config resolution (including the fail-closed ownership check) always
+ * runs first.
  *
  * Query parameters:
  * - connection (optional): per-user connection id (`?connection=<id>`);
@@ -64,6 +66,15 @@ const FALLBACK_FETCH_TIMEOUT_MS = 10_000
 const FLEET_FANOUT_CAP = 50
 /** In-memory cache TTL: collapse page mount + auto-refresh into one burst. */
 const METRICS_CACHE_TTL_MS = 30_000
+/** Never let a browser or shared HTTP cache retain a fleet snapshot. */
+const METRICS_CACHE_CONTROL = 'private, no-store'
+
+function responseHeaders(requestId: string): Record<string, string> {
+  return {
+    'X-Request-ID': requestId,
+    'Cache-Control': METRICS_CACHE_CONTROL,
+  }
+}
 
 /**
  * Upstream timeout, read lazily per request (not at module scope): on Workers
@@ -181,7 +192,7 @@ async function handleGet(request: Request): Promise<Response> {
       },
       metadata: { queryId: requestId },
     }
-    return Response.json(body, { headers: { 'X-Request-ID': requestId } })
+    return Response.json(body, { headers: responseHeaders(requestId) })
   }
 
   // Env-wide responses are cached (per-connection responses never are — see
@@ -193,7 +204,7 @@ async function handleGet(request: Request): Promise<Response> {
     const cached = metricsCache.get(cacheKey)
     if (cached && Date.now() - cached.at < METRICS_CACHE_TTL_MS) {
       return Response.json(cached.body, {
-        headers: { 'X-Request-ID': requestId },
+        headers: responseHeaders(requestId),
       })
     }
   }
@@ -208,7 +219,7 @@ async function handleGet(request: Request): Promise<Response> {
     }
     return Response.json(body, {
       status,
-      headers: { 'X-Request-ID': requestId },
+      headers: responseHeaders(requestId),
     })
   }
 

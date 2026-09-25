@@ -290,11 +290,15 @@ describe('PeerDBError', () => {
 describe('peerdbFetch', () => {
   let origUrl: string | undefined
   let origPassword: string | undefined
+  let origScheme: string | undefined
+  let origTimeout: string | undefined
   let origFetch: typeof globalThis.fetch
 
   beforeEach(() => {
     origUrl = process.env.PEERDB_API_URL
     origPassword = process.env.PEERDB_PASSWORD
+    origScheme = process.env.PEERDB_AUTH_SCHEME
+    origTimeout = process.env.PEERDB_FETCH_TIMEOUT_MS
     origFetch = globalThis.fetch
   })
 
@@ -310,6 +314,16 @@ describe('peerdbFetch', () => {
       delete process.env.PEERDB_PASSWORD
     } else {
       process.env.PEERDB_PASSWORD = origPassword
+    }
+    if (origScheme === undefined) {
+      delete process.env.PEERDB_AUTH_SCHEME
+    } else {
+      process.env.PEERDB_AUTH_SCHEME = origScheme
+    }
+    if (origTimeout === undefined) {
+      delete process.env.PEERDB_FETCH_TIMEOUT_MS
+    } else {
+      process.env.PEERDB_FETCH_TIMEOUT_MS = origTimeout
     }
   })
 
@@ -389,6 +403,51 @@ describe('peerdbFetch', () => {
     // PeerDB uses Basic auth with empty username: base64(":" + password)
     const expected = `Basic ${Buffer.from(':secret').toString('base64')}`
     expect(capturedHeaders.Authorization).toBe(expected)
+  })
+
+  test('uses Bearer auth when PEERDB_AUTH_SCHEME=bearer', async () => {
+    process.env.PEERDB_API_URL = 'http://flow-api:8113'
+    process.env.PEERDB_PASSWORD = 'token'
+    process.env.PEERDB_AUTH_SCHEME = 'bearer'
+
+    let capturedHeaders: Record<string, string> = {}
+    globalThis.fetch = mock(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        capturedHeaders = (init?.headers ?? {}) as Record<string, string>
+        return new Response(JSON.stringify({}), { status: 200 })
+      }
+    )
+
+    await peerdbFetch('/v1/bearer-auth-check')
+    expect(capturedHeaders.Authorization).toBe('Bearer token')
+  })
+
+  test('reads PEERDB_FETCH_TIMEOUT_MS per request', async () => {
+    process.env.PEERDB_API_URL = 'http://flow-api:8113'
+    delete process.env.PEERDB_PASSWORD
+    delete process.env.PEERDB_AUTH_SCHEME
+    process.env.PEERDB_FETCH_TIMEOUT_MS = '37'
+
+    const originalSetTimeout = globalThis.setTimeout
+    const delays: number[] = []
+    globalThis.setTimeout = ((
+      callback: (...args: unknown[]) => void,
+      ms?: number,
+      ...args: unknown[]
+    ) => {
+      delays.push(Number(ms))
+      return originalSetTimeout(callback, 0, ...args)
+    }) as unknown as typeof globalThis.setTimeout
+    globalThis.fetch = mock(
+      async () => new Response(JSON.stringify({}), { status: 200 })
+    )
+
+    try {
+      await peerdbFetch('/v1/lazy-timeout-check')
+    } finally {
+      globalThis.setTimeout = originalSetTimeout
+    }
+    expect(delays).toContain(37)
   })
 
   test('omits Authorization header when no password', async () => {
