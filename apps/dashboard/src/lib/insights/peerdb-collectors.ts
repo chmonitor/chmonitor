@@ -22,10 +22,12 @@ import type {
   MirrorStatusResponse,
   PeerSlotResponse,
   SlotInfo,
+  SlotLagHistoryResponse,
+  SlotLagPoint,
 } from '../peerdb/types'
 import type { InsightCandidate, InsightSeverity } from './types'
 
-import { summarizePeerDBFleet } from '../peerdb/fleet-metrics'
+import { summarizePeerDBFleet, worstSlotRef } from '../peerdb/fleet-metrics'
 import {
   buildPeerDBAuthHeader,
   envPeerDBConfig,
@@ -36,7 +38,9 @@ import {
   checkMirrorErrors,
   checkPausedMirrors,
   checkSlotLag,
+  checkSlotLagTrend,
   checkSnapshotStalled,
+  checkTerminatedMirrors,
 } from './peerdb-checks'
 
 /**
@@ -54,6 +58,15 @@ export interface PeerDBSnapshotReader {
   mirrorErrorCount(name: string): Promise<number>
   /** Replication slots per source peer name. */
   peerSlots(peer: string): Promise<SlotInfo[]>
+  /**
+   * Lag history for one slot, oldest first (`POST /v1/peers/slots/lag_history`).
+   * Entries are `size` in MiB; a point upstream could not report is `null` (not
+   * `0`) so a hole in the series is not read as a collapse to zero.
+   */
+  peerSlotLagHistory(
+    peer: string,
+    slotName: string | null
+  ): Promise<readonly (number | null)[]>
   /** Source peer names (from `GET /v1/peers/list`). */
   listSourcePeers(): Promise<string[]>
 }
@@ -86,6 +99,7 @@ async function defaultReader(
     mirrorStatus: async () => null,
     mirrorErrorCount: async () => 0,
     peerSlots: async () => [],
+    peerSlotLagHistory: async () => [],
     listSourcePeers: async () => [],
   }
   let config: ResolvedPeerDBConfig | null = null
@@ -129,6 +143,28 @@ async function defaultReader(
           `/v1/peers/slots/${encodeURIComponent(peer)}`
         )
         return Array.isArray(res?.slotData) ? res.slotData : []
+      }, []),
+    peerSlotLagHistory: (peer, slotName) =>
+      safe(async () => {
+        if (!peer || !slotName) return []
+        const res = await fetchFn<SlotLagHistoryResponse>(
+          '/v1/peers/slots/lag_history',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              peerName: peer,
+              slotName,
+              timeSince: '1day',
+            }),
+          }
+        )
+        const points: SlotLagPoint[] = Array.isArray(res?.data) ? res.data : []
+        // Non-numeric sizes stay `null` so `checkSlotLagTrend` drops them rather
+        // than reading a hole in the series as a collapse to 0 MiB.
+        return points.map((p) => {
+          const n = Number(p?.size)
+          return Number.isFinite(n) ? n : null
+        })
       }, []),
     listSourcePeers: () =>
       safe(async () => {
@@ -248,8 +284,25 @@ export async function collectPeerDBInsights(
     if (failed) out.push(failed)
     const paused = checkPausedMirrors(fleet.pausedMirrors)
     if (paused) out.push(paused)
+    const terminated = checkTerminatedMirrors(fleet.terminatedMirrors)
+    if (terminated) out.push(terminated)
     const lag = checkSlotLag(fleet.maxSlotLagMb, fleet.maxSlotLagLabel)
     if (lag) out.push(lag)
+
+    // Lag *divergence* on the same worst slot. Needs one extra allowlisted call
+    // (`lag_history`), scoped to the single worst slot so the sweep cost stays
+    // flat regardless of fleet size. Unreachable history just yields [] and the
+    // check declines — a missing history must never suppress the absolute-lag
+    // card above.
+    const worst = worstSlotRef(slotEntries)
+    if (worst) {
+      const history = await safe(
+        () => r.peerSlotLagHistory(worst.peer, worst.slotName),
+        []
+      )
+      const trend = checkSlotLagTrend(history, worst.label)
+      if (trend) out.push(trend)
+    }
 
     // Per-mirror error volume + snapshot stalls, evaluated concurrently and
     // capped so one noisy fleet cannot flood the panel.

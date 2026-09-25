@@ -18,6 +18,7 @@ function stubReader(
     mirrorStatus: async () => null,
     mirrorErrorCount: async () => 0,
     peerSlots: async () => [],
+    peerSlotLagHistory: async () => [],
     listSourcePeers: async () => [],
     ...overrides,
   }
@@ -60,9 +61,64 @@ describe('collectPeerDBInsights', () => {
         mirrorErrorCount: async () => 12,
       })
     )
-    const err = candidates.find((c) => c.metric === 'peerdb_mirror_errors')
+    // Per-mirror identity rides in the metric, so the fleet dedup keeps it.
+    const err = candidates.find(
+      (c) => c.metric === 'peerdb_mirror_errors:noisy'
+    )
     expect(err?.severity).toBe('critical')
     expect(err?.value).toBe(12)
+  })
+
+  test('terminated mirrors are surfaced, unlike before (#3439)', async () => {
+    const candidates = await collectPeerDBInsights(
+      stubReader({
+        listMirrors: async () => [
+          { name: 'gone', status: 'STATUS_TERMINATED' },
+          { name: 'good', status: 'STATUS_RUNNING' },
+        ],
+      })
+    )
+    const term = candidates.find(
+      (c) => c.metric === 'peerdb_terminated_mirrors'
+    )
+    expect(term?.severity).toBe('warning')
+    expect(term?.value).toBe(1)
+  })
+
+  test('lag divergence fires from history even below the absolute threshold', async () => {
+    const candidates = await collectPeerDBInsights(
+      stubReader({
+        listMirrors: async () => [{ name: 'pg', status: 'STATUS_RUNNING' }],
+        listSourcePeers: async () => ['pg'],
+        // 400 MiB: below SLOT_LAG_WARN_MB (512), so no absolute-lag card…
+        peerSlots: async () => [{ slotName: 's', lagInMb: 400 }],
+        // …but climbing by 200 MiB across the window.
+        peerSlotLagHistory: async () => [200, 260, 330, 400],
+      })
+    )
+    expect(candidates.some((c) => c.metric === 'peerdb_slot_lag_mb')).toBe(
+      false
+    )
+    const trend = candidates.find((c) => c.metric === 'peerdb_slot_lag_trend')
+    expect(trend?.severity).toBe('warning')
+    expect(trend?.value).toBe(200)
+  })
+
+  test('an unreachable lag history does not suppress the absolute-lag card', async () => {
+    const candidates = await collectPeerDBInsights(
+      stubReader({
+        listMirrors: async () => [{ name: 'pg', status: 'STATUS_RUNNING' }],
+        listSourcePeers: async () => ['pg'],
+        peerSlots: async () => [{ slotName: 's', lagInMb: 9000 }],
+        peerSlotLagHistory: async () => {
+          throw new Error('lag_history unavailable')
+        },
+      })
+    )
+    expect(candidates.some((c) => c.metric === 'peerdb_slot_lag_mb')).toBe(true)
+    expect(candidates.some((c) => c.metric === 'peerdb_slot_lag_trend')).toBe(
+      false
+    )
   })
 
   test('snapshot-stall finding from clone summaries', async () => {
@@ -87,7 +143,7 @@ describe('collectPeerDBInsights', () => {
       })
     )
     expect(
-      candidates.find((c) => c.metric === 'peerdb_snapshot_stalled')?.value
+      candidates.find((c) => c.metric === 'peerdb_snapshot_stalled:snap')?.value
     ).toBe(1)
   })
 
