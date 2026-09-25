@@ -185,6 +185,36 @@ POSTGRES_PASSWORD=secret
 POSTGRES_DATABASE=appdb
 ```
 
+## PeerDB mirror tool
+
+Set `CHM_FEATURE_PEERDB_AGENT=true` to expose the agent's read-only PeerDB
+tool (`get_peerdb_mirror_status`). It reads through the same read-only
+server-side proxy as the `/peerdb` pages, so `PEERDB_API_URL` (and
+`PEERDB_PASSWORD` / `PEERDB_AUTH_SCHEME` if your PeerDB API needs auth) must
+already be configured — see [PeerDB](/guide/features/peerdb). Unlike the UI
+section, which appears whenever `PEERDB_API_URL` is set, the agent tool is
+explicitly opt-in so operators can offer PeerDB monitoring without
+advertising it to the model.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_FEATURE_PEERDB_AGENT` | `false` | Master gate. When `true`, `get_peerdb_mirror_status` is added to the agent. Pure env gate (no Clerk) so self-hosted has equal support. Setting `CHM_FEATURE_PEERDB_ENABLED=false` keeps the tool out even when this is `true`. |
+| `PEERDB_API_URL` | — | PeerDB API base URL (already required for the `/peerdb` pages). The tool fail-closes with a not-configured message when unset. |
+
+<Callout type="info" title="Env PeerDB only, for now">
+The agent's PeerDB tool reads the **env-wide** deployment (`PEERDB_API_URL`),
+like the ClickHouse tools read `CLICKHOUSE_*`. Per-connection (`?connection=`)
+PeerDB links managed in the UI are not yet visible to the agent — the same
+limitation the ClickHouse agent tools already have. The model supplies at most
+a mirror name (validated, never a URL); mirror `config` blocks are stripped
+before results reach the model, and mutating PeerDB operations are unreachable.
+</Callout>
+
+```bash
+CHM_FEATURE_PEERDB_AGENT=true
+PEERDB_API_URL=https://peerdb.example.com/api
+```
+
 ### Least-privilege ClickHouse user
 
 The agent's `query` tool (and the [MCP server](/reference/mcp-server)) run

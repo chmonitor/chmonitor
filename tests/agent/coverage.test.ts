@@ -18,6 +18,9 @@ const GATED = new Set([
   'list_postgres_slow_query_patterns',
   'get_postgres_metrics',
   'get_postgres_table_stats',
+  // Env-gated PeerDB tool (CHM_FEATURE_PEERDB_AGENT) — same treatment as the
+  // other opt-in tools: excluded from default-gate golden coverage.
+  'get_peerdb_mirror_status',
 ])
 
 function shippedDefaultTools(): string[] {
