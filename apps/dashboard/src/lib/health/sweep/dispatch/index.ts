@@ -62,6 +62,10 @@ import {
   isQuietHoursGated,
   meetsMinSeverity,
 } from './../suppression'
+import {
+  dispatchCustomWebhookTargets,
+  loadSweepCustomTargets,
+} from './channels/custom-targets'
 import { dispatchEmailChannel } from './channels/email'
 import { dispatchHealthchecksChannel } from './channels/healthchecks'
 import { dispatchNtfyChannel } from './channels/ntfy'
@@ -127,6 +131,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
   // Digest grouping (#2663) — Slack/generic-webhook/Telegram sends buffer here
   // and flush once per tick; see `./digest.ts`.
   const digest = await createDigestPipeline(ctx, counters)
+  const customTargets = await loadSweepCustomTargets()
 
   /**
    * Dedup + dispatch a single finding (base or compound rule) via the shared
@@ -506,6 +511,18 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     )
     if (webhookDelivered) anyDelivered = true
 
+    // Custom webhook targets are an additive fan-out. They share the same
+    // finding payload and suppression/dedup decision, but each target chooses
+    // its own formatter and severity floor.
+    const customDelivered = await dispatchCustomWebhookTargets(finding, {
+      targets: customTargets,
+      payload: webhookPayload,
+      text,
+      globalMinSeverity: settings.minSeverity,
+      severity: deliverSeverity,
+    })
+    if (customDelivered) anyDelivered = true
+
     const pagerDutyDelivered = await dispatchPagerDutyChannel(
       finding,
       pagerDutyTargets
@@ -553,6 +570,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     // feeds the digest layer's commit gate.
     const immediateTargetCount =
       immediateWebhookTargets.length +
+      customTargets.length +
       pagerDutyTargets.length +
       ntfyTargets.length +
       pushoverTargets.length +
