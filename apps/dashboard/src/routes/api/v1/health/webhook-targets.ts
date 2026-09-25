@@ -27,9 +27,11 @@ import {
 } from '@/lib/health/custom-webhook-target-store'
 import {
   buildCustomTargetPreview,
+  isHttpsCustomWebhookUrl,
   normalizeCustomWebhookFormat,
   samplePreviewPayload,
   sanitizeCustomHeaders,
+  sanitizeSecretHeaders,
   validateCustomWebhookDraft,
 } from '@/lib/health/custom-webhook-targets'
 import { postWebhook } from '@/lib/health/sweep/dispatch/webhook-post'
@@ -51,7 +53,7 @@ function isValidTargetId(value: unknown): value is string {
 }
 
 async function checkTargetUrl(url: string): Promise<string | null> {
-  if (!url.startsWith('https://')) {
+  if (!isHttpsCustomWebhookUrl(url)) {
     return 'Target URL must be an HTTPS endpoint'
   }
   if (url.length > 2048) return 'Target URL must be ≤ 2048 characters'
@@ -259,7 +261,12 @@ async function handlePreview(request: Request): Promise<Response> {
 
   if (body.send === true) {
     const result = await postWebhook(url, preview.body, {
-      headers: validated.headers,
+      // Secret Helm headers participate in delivery but never enter `preview`.
+      // Merge last so a public X-* draft value cannot replace a secret value.
+      headers: {
+        ...validated.headers,
+        ...sanitizeSecretHeaders(saved?.secretHeaders),
+      },
       redirect: 'error',
     })
     if (!result.ok) return jsonError('Custom webhook test failed', 502)

@@ -25,8 +25,8 @@
  *   - rendered bodies are capped at `MAX_CUSTOM_WEBHOOK_BODY_BYTES` (64 KiB);
  *     oversize bodies are replaced with a truncated generic-JSON body rather
  *     than dropped silently;
- *   - previews redact the destination URL (host + masked path, query/fragment
- *     stripped) and never include secrets — custom targets carry no secret
+ *   - previews redact the destination URL (scheme + host only; path, query, and
+ *     fragment stripped) and never include secrets — custom targets carry no secret
  *     field at all (the URL carries its own credential by convention, same as
  *     the legacy `webhook` channel).
  */
@@ -142,6 +142,15 @@ export const MAX_CUSTOM_HEADER_NAME_LENGTH = 64
 export const MAX_CUSTOM_HEADER_VALUE_LENGTH = 512
 /** Rendered JSON bodies larger than this are replaced with a truncated body. */
 export const MAX_CUSTOM_WEBHOOK_BODY_BYTES = 64 * 1024
+
+/** Custom targets are HTTPS-only at every boundary: UI, env loader, and send. */
+export function isHttpsCustomWebhookUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
 
 const HEADER_NAME_RE = /^[A-Za-z0-9-]+$/
 /** Case-insensitive exact names that can never be overridden by a target. */
@@ -480,13 +489,11 @@ export function buildCustomTargetBody(
   return { body, adapterId, truncated: false }
 }
 
-/** Redact a destination URL for previews/logs: host + masked first path segment. */
+/** Redact a destination URL for previews/logs: keep only scheme + authority. */
 export function redactWebhookUrl(url: string): string {
   try {
     const parsed = new URL(url)
-    const firstSegment = parsed.pathname.split('/').filter(Boolean)[0]
-    const hint = firstSegment ? `/${firstSegment.slice(0, 8)}••••` : '/••••'
-    return `${parsed.protocol}//${parsed.host}${hint}`
+    return `${parsed.protocol}//${parsed.host}/••••`
   } catch {
     return 'https://••••'
   }

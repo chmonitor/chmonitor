@@ -24,6 +24,7 @@ import { resolveChannelDelivery } from '../../../alert-channel-settings'
 import { listEffectiveCustomWebhookConfig } from '../../../custom-webhook-config'
 import {
   buildCustomTargetBody,
+  isHttpsCustomWebhookUrl,
   redactWebhookUrl,
   sanitizeCustomHeaders,
   sanitizeSecretHeaders,
@@ -87,7 +88,9 @@ export async function dispatchCustomWebhookTargets(
 
     // Send-time SSRF re-validation (save-time validation lives in the API).
     // Skip + audit on failure — never fetch a target that fails the guard.
-    const ssrfError = await validateHostUrl(target.url)
+    const ssrfError = isHttpsCustomWebhookUrl(target.url)
+      ? await validateHostUrl(target.url)
+      : 'Custom webhook target must use HTTPS'
     if (ssrfError) {
       debug(
         `[health-sweep] skipping custom webhook target ${redactWebhookUrl(target.url)}: blocked destination`

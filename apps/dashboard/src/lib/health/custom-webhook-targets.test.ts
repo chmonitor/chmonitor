@@ -1,6 +1,7 @@
 import {
   buildCustomTargetBody,
   buildCustomTargetPreview,
+  isHttpsCustomWebhookUrl,
   normalizeCustomWebhookFormat,
   redactWebhookUrl,
   samplePreviewPayload,
@@ -13,6 +14,16 @@ import { describe, expect, test } from 'bun:test'
 const payload = samplePreviewPayload()
 
 describe('custom webhook target formatting', () => {
+  test('requires HTTPS at every target boundary', () => {
+    expect(isHttpsCustomWebhookUrl('https://hooks.example.test/hook')).toBe(
+      true
+    )
+    expect(isHttpsCustomWebhookUrl('http://hooks.example.test/hook')).toBe(
+      false
+    )
+    expect(isHttpsCustomWebhookUrl('not a url')).toBe(false)
+  })
+
   test('accepts raw-json as the canonical raw format', () => {
     expect(normalizeCustomWebhookFormat('raw-json')).toBe('raw')
     expect(normalizeCustomWebhookFormat('slack')).toBe('slack')
@@ -103,6 +114,6 @@ describe('custom webhook target formatting', () => {
   test('redacts query and fragment from webhook URLs', () => {
     expect(
       redactWebhookUrl('https://example.test/a/secret?token=x#fragment')
-    ).toBe('https://example.test/a••••')
+    ).toBe('https://example.test/••••')
   })
 })

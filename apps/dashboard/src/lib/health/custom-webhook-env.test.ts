@@ -24,8 +24,11 @@ describe('Helm custom webhook environment contract', () => {
       name: 'slack',
       url: 'https://hooks.slack.com/services/T/B/secret',
       format: 'slack',
-      headers: { 'X-Source': 'chmonitor', 'X-Team': 'ops' },
-      secretHeaders: { Authorization: 'Bearer secret' },
+      headers: { 'X-Source': 'chmonitor' },
+      secretHeaders: {
+        Authorization: 'Bearer secret',
+        'X-Team': 'ops',
+      },
     })
   })
 
@@ -40,6 +43,14 @@ describe('Helm custom webhook environment contract', () => {
         HEALTH_ALERT_WEBHOOK_TARGETS: JSON.stringify([
           { name: 'missing-url', urlEnv: 'MISSING_URL' },
         ]),
+      })
+    ).toEqual([])
+    expect(
+      loadEnvCustomWebhookTargets({
+        HEALTH_ALERT_WEBHOOK_TARGETS: JSON.stringify([
+          { name: 'insecure-url', urlEnv: 'INSECURE_URL' },
+        ]),
+        INSECURE_URL: 'http://example.test/hook',
       })
     ).toEqual([])
   })

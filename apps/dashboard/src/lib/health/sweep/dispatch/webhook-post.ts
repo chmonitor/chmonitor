@@ -62,12 +62,15 @@ export async function postWebhook(
       return { ok: false, error: message }
     }
     return { ok: true }
-  } catch (err) {
-    error('[health-sweep] Webhook POST failed', err as Error)
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : String(err),
-    }
+  } catch {
+    // Fetch errors can embed the full destination URL. Webhook URLs commonly
+    // contain bearer credentials, so keep both logs and persisted audit rows
+    // credential-safe instead of returning the raw exception message.
+    error(
+      '[health-sweep] Webhook POST failed',
+      new Error('Webhook request failed')
+    )
+    return { ok: false, error: 'Webhook POST failed' }
   } finally {
     clearTimeout(timeout)
   }

@@ -11,6 +11,7 @@ import type { CustomWebhookTarget } from './custom-webhook-targets'
 
 import {
   isCustomWebhookFormat,
+  isHttpsCustomWebhookUrl,
   normalizeCustomWebhookFormat,
   sanitizeCustomHeaders,
   sanitizeSecretHeaders,
@@ -88,7 +89,7 @@ export function loadEnvCustomWebhookTargets(
     const name = typeof entry.name === 'string' ? entry.name.trim() : ''
     const urlEnv = typeof entry.urlEnv === 'string' ? entry.urlEnv : ''
     const url = urlEnv ? (env[urlEnv] ?? '').trim() : ''
-    if (!name || !url) continue
+    if (!name || !url || !isHttpsCustomWebhookUrl(url)) continue
 
     const format = isCustomWebhookFormat(entry.format)
       ? normalizeCustomWebhookFormat(entry.format)
@@ -108,7 +109,6 @@ export function loadEnvCustomWebhookTargets(
     const secretHeaders = parseSecretHeaders(
       typeof entry.headersEnv === 'string' ? env[entry.headersEnv] : undefined
     )
-    const headers = { ...validated.headers, ...secretHeaders }
     targets.push({
       id: `env:${name}`,
       name,
@@ -118,7 +118,7 @@ export function loadEnvCustomWebhookTargets(
       minSeverity: validated.minSeverity,
       titleTemplate: validated.titleTemplate,
       bodyTemplate: validated.bodyTemplate,
-      headers,
+      headers: validated.headers,
       secretHeaders,
       updatedAt: 0,
     })
