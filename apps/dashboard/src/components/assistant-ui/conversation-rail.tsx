@@ -275,10 +275,10 @@ interface ConversationRailProps {
   onCollapse: () => void
   /**
    * Whether to animate the width/opacity transition. Off for the initial,
-   * breakpoint-driven default (so the small-screen default-closed state snaps
-   * in instantly instead of visibly sliding shut on load); on once the user
-   * has explicitly toggled the rail, so that interaction still slides
-   * smoothly. Defaults to `true` for any other caller.
+   * default-closed state (so the folded rail snaps in instantly on load instead
+   * of visibly sliding shut); on once the user has explicitly toggled the rail,
+   * so that interaction still slides smoothly. Defaults to `true` for any other
+   * caller.
    */
   animate?: boolean
 }
