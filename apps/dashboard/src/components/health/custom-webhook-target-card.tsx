@@ -34,6 +34,14 @@ const FORMAT_OPTIONS: { value: CustomWebhookFormat; label: string }[] = [
   { value: 'slack', label: 'Slack' },
   { value: 'matrix', label: 'Element / Matrix' },
 ]
+const FORMAT_ITEMS = Object.fromEntries(
+  FORMAT_OPTIONS.map((option) => [option.value, option.label])
+)
+const SEVERITY_ITEMS = {
+  inherit: 'Inherit global',
+  warning: 'Warning and above',
+  critical: 'Critical only',
+}
 
 function parseHeaders(value: string): Record<string, string> {
   if (!value.trim()) return {}
@@ -224,6 +232,7 @@ export function CustomWebhookTargetCard({
             Format
           </Label>
           <Select
+            items={FORMAT_ITEMS}
             value={draft.format === 'raw-json' ? 'raw' : draft.format}
             onValueChange={(value) =>
               update('format', value as CustomWebhookFormat)
@@ -250,6 +259,7 @@ export function CustomWebhookTargetCard({
             Minimum severity
           </Label>
           <Select
+            items={SEVERITY_ITEMS}
             value={draft.minSeverity ?? 'inherit'}
             onValueChange={(value) =>
               update(
