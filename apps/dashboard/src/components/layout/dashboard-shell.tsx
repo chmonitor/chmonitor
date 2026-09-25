@@ -58,11 +58,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Breadcrumb />
                 </Suspense>
               </div>
-              {/* scrollbar-hide: stays swipe-scrollable on narrow viewports
-                without a visible scrollbar under the header controls.
-                min-w-0 flex-1 until lg lets extras scroll instead of
-                compressing the title; lg restores intrinsic width. */}
-              <div className="scrollbar-hide w-full min-w-0 overflow-x-auto px-3 pb-2 sm:ml-auto sm:min-w-0 sm:flex-1 sm:px-4 sm:pb-0 lg:flex-none lg:overflow-visible">
+              {/* Keep the identity cluster on the left and every control in one
+                right-aligned group. The explicit two-column flex contract
+                prevents the time/search/icon cluster from drifting into the
+                title row at tablet widths; narrow screens still get a
+                swipeable second row instead of squeezing the breadcrumb. */}
+              <div className="ml-auto flex w-full min-w-0 shrink-0 justify-end overflow-x-auto px-3 pb-2 sm:w-auto sm:px-4 sm:pb-0">
                 <HeaderActions />
               </div>
             </header>
