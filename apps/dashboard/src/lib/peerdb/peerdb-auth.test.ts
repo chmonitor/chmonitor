@@ -25,6 +25,12 @@ describe('buildPeerDBAuthHeader', () => {
     const header = buildPeerDBAuthHeader({ authScheme: 'basic', secret: 'pw' })
     expect(header.Authorization).toBe(`Basic ${btoa(':pw')}`)
   })
+  test('basic encodes non-ASCII credentials as UTF-8', () => {
+    const secret = 'päss🔒'
+    expect(
+      buildPeerDBAuthHeader({ authScheme: 'basic', secret }).Authorization
+    ).toBe(`Basic ${Buffer.from(`:${secret}`).toString('base64')}`)
+  })
   test('default scheme (undefined) is treated as basic', () => {
     const header = buildPeerDBAuthHeader({ secret: 'pw' })
     expect(header.Authorization).toBe(`Basic ${btoa(':pw')}`)

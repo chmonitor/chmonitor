@@ -139,6 +139,8 @@ describe('collectPeerDBSignals', () => {
 describe('defaultReader via mocked peerdbFetch', () => {
   const URL = 'http://flow-api:8113'
   let origUrl: string | undefined
+  let origPassword: string | undefined
+  let origScheme: string | undefined
   let origFetch: typeof globalThis.fetch
 
   const responses: Record<string, unknown> = {
@@ -152,16 +154,27 @@ describe('defaultReader via mocked peerdbFetch', () => {
     globalThis.fetch = origFetch
     if (origUrl === undefined) delete process.env.PEERDB_API_URL
     else process.env.PEERDB_API_URL = origUrl
+    if (origPassword === undefined) delete process.env.PEERDB_PASSWORD
+    else process.env.PEERDB_PASSWORD = origPassword
+    if (origScheme === undefined) delete process.env.PEERDB_AUTH_SCHEME
+    else process.env.PEERDB_AUTH_SCHEME = origScheme
   })
 
   test('reads status, shared-contract logs envelope, and slots', async () => {
     origUrl = process.env.PEERDB_API_URL
+    origPassword = process.env.PEERDB_PASSWORD
+    origScheme = process.env.PEERDB_AUTH_SCHEME
     origFetch = globalThis.fetch
     process.env.PEERDB_API_URL = URL
+    process.env.PEERDB_PASSWORD = 'alert-token'
+    process.env.PEERDB_AUTH_SCHEME = 'bearer'
+    const seenAuth: string[] = []
     globalThis.fetch = (async (
       input: RequestInfo | URL,
       init?: RequestInit
     ) => {
+      const headers = (init?.headers ?? {}) as Record<string, string>
+      seenAuth.push(headers.Authorization ?? '')
       const url = String(input)
       const path = url.slice(URL.length)
       if (path === '/v1/mirrors/status') {
@@ -211,6 +224,8 @@ describe('defaultReader via mocked peerdbFetch', () => {
     expect(s.lagSec).toBe(61)
     expect(s.recentErrorCount).toBe(1)
     expect(s.errorCountSource).toBe('log-api')
+    expect(seenAuth.length).toBeGreaterThan(0)
+    expect(seenAuth.every((auth) => auth === 'Bearer alert-token')).toBe(true)
     expect(s.slotLagMb).toBe(7)
   })
 })
