@@ -1,3 +1,5 @@
+import type { PeerDBFiringClassification } from './alerting'
+
 import {
   auditPeerDBAlert,
   boundStatusText,
@@ -160,7 +162,11 @@ describe('buildPeerDBAlertPayload', () => {
     const signal = { flowName: 'm', status: 'STATUS_FAILED', lagSec: 10 }
     const classification = classifyPeerDBMirror(signal)
     const message = formatPeerDBAlertMessage(signal, classification)
-    const payload = buildPeerDBAlertPayload({ signal, classification, message })
+    const payload = buildPeerDBAlertPayload({
+      signal,
+      classification: classification as PeerDBFiringClassification,
+      message,
+    })
     expect(payload.severity).toBe('critical')
     expect(payload.metric).toBe('peerdb-mirror-health')
     expect(payload.hostLabel).toBe('peerdb:m')
