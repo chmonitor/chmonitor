@@ -1,6 +1,10 @@
 import type { CDCBatch, CloneTableSummary, SlotInfo } from '@/lib/peerdb/types'
 
 import { parseTs, toNumber } from './peerdb-utils'
+import {
+  SLOT_LAG_CRITICAL_MB,
+  SLOT_LAG_WARN_MB,
+} from '@/lib/peerdb/slot-lag-thresholds'
 
 /**
  * Wall-clock duration of a CDC batch in seconds, from start→end timestamps.
