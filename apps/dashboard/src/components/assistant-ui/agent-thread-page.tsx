@@ -37,7 +37,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { useSidebar } from '@/components/ui/sidebar'
-import { useIsLgDown, useIsMobile } from '@/hooks/use-mobile'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { useHostId } from '@/lib/swr/use-host'
 import { useHosts } from '@/lib/swr/use-hosts'
@@ -81,22 +81,19 @@ export function AgentThreadPage() {
 
 function AgentChatLayout() {
   const isMobile = useIsMobile()
-  // Conversation rail: persistent inline column on desktop (open by default so
-  // its width is reserved on first paint, no CLS); a Drawer on mobile. It also
-  // defaults collapsed on tablet-sized (`lg`-down) viewports, where the inline
-  // rail is still used but 280px eats too much of the chat column.
+  // Conversation rail: persistent inline column on desktop; a Drawer on mobile.
+  // It starts folded on every viewport — the thread is the primary surface and
+  // the rail is secondary navigation, so the chat column takes the full width on
+  // first paint. The lazy-loading skeleton already sketches the rail-closed
+  // layout, so nothing shifts when the real page replaces it.
   //
-  // `railOpen` stays `null` ("follow the breakpoint") until the user
-  // explicitly toggles it via the collapse/open button; from then on their
-  // choice sticks for the session even if the breakpoint changes again. This
-  // also means the breakpoint-driven default never re-fires an effect that
-  // could stomp a manual toggle. `ConversationRail`'s `animate` prop only
-  // turns on once the user has taken control, so the automatic default never
-  // *animates* the open/close transition (no visible slide on load) — only a
+  // `railOpen` stays `null` ("no explicit choice yet") until the user toggles it
+  // via the open/collapse button; from then on their choice sticks for the
+  // session. `ConversationRail`'s `animate` prop only turns on once the user has
+  // taken control, so the folded default never *animates* on load — only a
   // deliberate click slides the rail.
-  const isLgDown = useIsLgDown()
   const [railOpen, setRailOpen] = useState<boolean | null>(null)
-  const effectiveRailOpen = railOpen ?? !isLgDown
+  const effectiveRailOpen = railOpen ?? false
   const [mobileConvOpen, setMobileConvOpen] = useState(false)
   // Settings sidebar (open by default on desktop; Drawer on mobile).
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)

@@ -6,9 +6,9 @@
  * dialog: the thread list is now always visible, one click switches threads.
  *
  * This is the single source of truth for rendering saved conversations — the
- * rail, its mobile Drawer, and the welcome-screen recent list all render the
- * same {@link ThreadRow} over {@link useConversationItems} (issue #2809,
- * consolidating `thread-list.tsx` + `recent-threads-rail.tsx` + the dialog).
+ * rail and its mobile Drawer both render the same {@link ThreadRow} over
+ * {@link useConversationItems} (issue #2809, consolidating `thread-list.tsx` +
+ * `recent-threads-rail.tsx` + the dialog).
  *
  * Data comes from assistant-ui's thread-list runtime (`useAuiState` on
  * `s.threads`), so it stays in sync with the persistent adapter (D1 or
@@ -106,16 +106,10 @@ function groupByDate(
 interface ThreadRowProps {
   item: ConversationItem
   onSelect?: () => void
-  /** Show hover archive/delete actions (rail); off for the compact welcome list. */
-  showActions?: boolean
 }
 
-/** One conversation row — shared across the rail and the welcome recent list. */
-export function ThreadRow({
-  item,
-  onSelect,
-  showActions = true,
-}: ThreadRowProps) {
+/** One conversation row in the conversation rail. */
+export function ThreadRow({ item, onSelect }: ThreadRowProps) {
   const aui = useAui()
 
   const select = () => {
@@ -142,24 +136,22 @@ export function ThreadRow({
           </div>
         )}
       </button>
-      {showActions && (
-        <div className="mr-1.5 flex items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-          <TooltipIconButton
-            tooltip="Archive"
-            className="hover:text-foreground text-muted-foreground size-7 p-0"
-            onClick={() => void aui.threads.item({ id: item.id }).archive()}
-          >
-            <ArchiveIcon className="size-4" />
-          </TooltipIconButton>
-          <TooltipIconButton
-            tooltip="Delete"
-            className="hover:text-destructive text-muted-foreground size-7 p-0"
-            onClick={() => void aui.threads.item({ id: item.id }).delete()}
-          >
-            <Trash2Icon className="size-4" />
-          </TooltipIconButton>
-        </div>
-      )}
+      <div className="mr-1.5 flex items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <TooltipIconButton
+          tooltip="Archive"
+          className="hover:text-foreground text-muted-foreground size-7 p-0"
+          onClick={() => void aui.threads.item({ id: item.id }).archive()}
+        >
+          <ArchiveIcon className="size-4" />
+        </TooltipIconButton>
+        <TooltipIconButton
+          tooltip="Delete"
+          className="hover:text-destructive text-muted-foreground size-7 p-0"
+          onClick={() => void aui.threads.item({ id: item.id }).delete()}
+        >
+          <Trash2Icon className="size-4" />
+        </TooltipIconButton>
+      </div>
     </div>
   )
 }
@@ -275,10 +267,10 @@ interface ConversationRailProps {
   onCollapse: () => void
   /**
    * Whether to animate the width/opacity transition. Off for the initial,
-   * breakpoint-driven default (so the small-screen default-closed state snaps
-   * in instantly instead of visibly sliding shut on load); on once the user
-   * has explicitly toggled the rail, so that interaction still slides
-   * smoothly. Defaults to `true` for any other caller.
+   * default-closed state (so the folded rail snaps in instantly on load instead
+   * of visibly sliding shut); on once the user has explicitly toggled the rail,
+   * so that interaction still slides smoothly. Defaults to `true` for any other
+   * caller.
    */
   animate?: boolean
 }
