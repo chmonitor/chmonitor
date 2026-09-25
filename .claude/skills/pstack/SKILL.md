@@ -11,11 +11,13 @@ description: >-
 
 This is a project-local adapter to the pstack method from
 [`michael-denyer/pstack-claude`](https://github.com/michael-denyer/pstack-claude).
-It is not a vendored copy of the upstream plugin. The source and the portable
-skills-only installation boundary are documented in
-[README.md](README.md). The maintained feature map starts at
-[features/README.md](features/README.md), and the inventory and CI matrix are
-in [`docs/knowledge/pstack-validation.md`](../../../docs/knowledge/pstack-validation.md).
+The adapter adds chmonitor's CI-first validation contract and feature map; it
+also has a pinned, supplemental copy of the upstream skills-only tree at
+[`upstream/`](upstream/). The source, loading boundary, and provenance are
+documented in [README.md](README.md) and [`upstream/SOURCE.md`](upstream/SOURCE.md).
+The maintained feature map starts at [features/README.md](features/README.md),
+and the inventory and CI matrix are in
+[`docs/knowledge/pstack-validation.md`](../../../docs/knowledge/pstack-validation.md).
 
 Use this skill as the project rule for validation. The default proof is the
 CI run for the commit under review. Do not infer that a change works because a

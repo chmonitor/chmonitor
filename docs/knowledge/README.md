@@ -62,7 +62,7 @@ Agents discover knowledge in this order:
 | **Development** | [conventions.md](conventions.md) | workflow | Coding conventions, file organization, component patterns |
 | **Design** | [product-design.md](product-design.md) | reference | Design system + UX conventions: OKLCH tokens, dark mode, shadcn rules, ChartCard/Container, EmptyState, graceful errors, ?host routing, file org (source of truth for the `product-design` skill) |
 | **Tools** | [standalone-cli.md](standalone-cli.md) | reference | `chm`/`chmonitor` Rust CLI: live TUI, local `add`/`ls`/`use`, dashboard API, `chm doctor`, channels |
-| **Development** | [pstack-validation.md](pstack-validation.md) | workflow | Project-local pstack adapter, validation inventory, CI-first feature matrix, and evidence rules |
+| **Development** | [pstack-validation.md](pstack-validation.md) | workflow | Project-local pstack adapter, pinned upstream skills subtree, validation inventory, CI-first feature matrix, and evidence rules |
 
 ## Graph Convention
 

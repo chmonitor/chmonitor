@@ -31,9 +31,11 @@ related:
 
 chmonitor uses a project-local pstack adapter at
 `.claude/skills/pstack/` and a feature map under
-`.claude/skills/pstack/features/`. The adapter makes validation a repository
-convention without vendoring the upstream plugin or changing the generated
-end-user agent registry.
+`.claude/skills/pstack/features/`. A pinned, skills-only copy of the upstream
+`plugins/pstack/skills` tree lives under `.claude/skills/pstack/upstream/`
+with its license, notices, and source metadata. The adapter remains the
+chmonitor-specific contract, and the upstream copy is not wired into hooks or
+the generated end-user agent registry.
 
 CI owns dependency installation, lint, type checks, unit tests, builds,
 browser test setup, Rust checks, Helm/Kustomize rendering, and deployment
@@ -48,35 +50,41 @@ inventory and review record.
 ## Upstream pstack research
 
 Researched against [`michael-denyer/pstack-claude`](https://github.com/michael-denyer/pstack-claude)
-on 2026-09-25. The observed upstream `VERSION` was `0.9.44`; upstream `main`
-continues to move.
+on 2026-09-25. The vendored release is upstream `VERSION` `0.9.44`, tag
+`v0.9.44`, commit `9f3a2ca90a3b0f9fda8024f04f8f23df958444ad`.
 
 - The supported portable boundary is
   `plugins/pstack/skills`, not the plugin root.
-- The skills-only install carries skill directories, scripts, portable agent
-  references, and license notices.
+- The vendored copy contains the skill directories, bundled scripts, portable
+  agent references, and upstream license/notice/provenance files.
 - The Claude SessionStart hook, Codex prompt stubs, and Claude native subagent
-  registration are runtime/plugin concerns outside that boundary.
+  registration are runtime/plugin concerns outside that boundary and are not
+  included.
 - OpenCode's shared discovery location is `~/.agents/skills`. The repository's
-  tracked adapter lives under `.claude/skills/pstack` so it is visible with the
-  checkout and stays out of `.agents/skills`, which is scanned for the
-  dashboard's end-user agent skills.
-- The upstream skills CLI install documented by the project is:
+  tracked adapter and vendored copy live under `.claude/skills/pstack`, so the
+  copy stays out of `.agents/skills`, which is scanned for the dashboard's
+  end-user agent skills.
+- The local loading and runtime-adaptation instructions are in
+  `.claude/skills/pstack/upstream/README.md`; the exact source identity and
+  integrity metadata are in `.claude/skills/pstack/upstream/SOURCE.md`.
 
-  ```bash
-  npx skills add https://github.com/michael-denyer/pstack-claude/tree/main/plugins/pstack/skills --skill "*" --agent "*" --yes
-  ```
+The upstream skills CLI install documented by the project is:
 
-This command is project-scoped by default with the current `skills` CLI and
+```bash
+npx skills add https://github.com/michael-denyer/pstack-claude/tree/main/plugins/pstack/skills --skill "*" --agent "*" --yes
+```
+
+That command is project-scoped by default with the current `skills` CLI and
 can write agent-specific project directories such as `.claude/skills/` and
-`.agents/skills/`. It was not run for this repository change. The project does
-not regenerate or edit
-`apps/dashboard/src/lib/ai/agent/skills/registry.ts`.
+`.agents/skills/`. It was not run for this repository change. The vendored copy
+was made with a pinned curl/tar download and file copy. The project does not
+regenerate or edit `apps/dashboard/src/lib/ai/agent/skills/registry.ts`.
 
 ## Existing validation inventory
 
 | Existing source | What it proves | Review result and gap |
 | --- | --- | --- |
+| `.claude/skills/pstack/upstream/` | Pinned upstream pstack skills, bundled references/scripts, license/notice files, and source identity | Supplemental upstream installation. Load explicitly by skill path/name; it has no hooks, plugin registration, or generated-registry wiring and does not replace the chmonitor adapter. |
 | `.cursor/skills/verify-chmonitor/SKILL.md` and `features/` | CLI/TUI identity, doctor, local named connections, snapshots, isolated config, evidence and cleanup | Strong CLI-first recipe. Its dashboard is secondary and its launch helper builds Rust. Keep it for explicit CLI drives; do not use it as the CI matrix. |
 | `.cursor/skills/verify-chmonitor/scripts/launch.sh` | Builds this checkout's `chm` binary and writes identity metadata | Optional and heavy. CI Rust jobs are the default proof. |
 | `.cursor/skills/verify-chmonitor/scripts/doctor.sh` | Binary identity by default; optional HTTP or cluster checks | Useful read-only helper. A failing hosted connectivity row is separate from identity. |
@@ -107,6 +115,9 @@ not regenerate or edit
 
 ## Gaps closed by the project-local adapter
 
+- The upstream skills-only tree is now available in a pinned local subtree,
+  with explicit loading instructions and no Claude-only hook or generated
+  registry wiring.
 - There was no single CI-first feature map spanning dashboard, API/auth,
   PeerDB, webhooks, Helm/GitOps, deployment, and CLI behavior.
 - The current CI has strong structural/unit coverage but no configured live
@@ -138,7 +149,10 @@ not regenerate or edit
 ## Agent handoff
 
 Read `.claude/skills/pstack/SKILL.md` first, then the matching file in
-`.claude/skills/pstack/features/`. Update this note and the feature map when a
-route, workflow, security boundary, or external prerequisite changes. Keep
-product behavior fixes separate from validation-doc drift: a real product
-regression is reported with its evidence, not hidden by changing the map.
+`.claude/skills/pstack/features/`. If an upstream general-purpose skill is
+needed, load its `upstream/skills/<name>/SKILL.md` explicitly and follow the
+runtime boundary in `upstream/README.md`. Update this note and the feature
+map when a route, workflow, security boundary, external prerequisite, or
+pinned upstream release changes. Keep product behavior fixes separate from
+validation-doc drift: a real product regression is reported with its evidence,
+not hidden by changing the map.

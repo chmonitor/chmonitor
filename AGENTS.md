@@ -163,7 +163,9 @@ leak into the agent bundle). Current dev skills:
   `docs/knowledge/cloud-saas-mode.md`.
 - **`pstack`** — project-local CI-first validation router and feature map for
   dashboard, API/auth/security, PeerDB, webhooks, Helm/GitOps, deploy, and
-  CLI work. Backed by `docs/knowledge/pstack-validation.md`.
+  CLI work, plus a pinned upstream skills-only copy under
+  `.claude/skills/pstack/upstream/`. Backed by
+  `docs/knowledge/pstack-validation.md`.
 
 **Auto-improve project skills (standing instruction).** These skills are living
 documents — keep them accurate as the codebase evolves, without being asked:
@@ -207,7 +209,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Development | [component-ci-stability.md](docs/knowledge/component-ci-stability.md) | Cypress component test fragility and fixes |
 | Development | [conventions.md](docs/knowledge/conventions.md) | Coding conventions, file org, component patterns |
 | Tools | [standalone-cli.md](docs/knowledge/standalone-cli.md) | `chm`/`chmonitor` Rust CLI: live TUI, local `add`/`ls`/`use`, dashboard API, `chm doctor`, channels |
-| Development | [pstack-validation.md](docs/knowledge/pstack-validation.md) | Project-local pstack adapter, validation inventory, CI-first feature matrix, and evidence rules |
+| Development | [pstack-validation.md](docs/knowledge/pstack-validation.md) | Project-local pstack adapter, pinned upstream skills subtree, validation inventory, CI-first feature matrix, and evidence rules |
 | Operations | [install-sh-bot-fight.md](docs/knowledge/install-sh-bot-fight.md) | curl install.sh 403 from Bot Fight Mode; GitHub raw workaround; `cf:allow-install-sh` |
 
 ### When to Write to Knowledge vs Memory
