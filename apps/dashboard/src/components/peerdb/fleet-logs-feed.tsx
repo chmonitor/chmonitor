@@ -2,13 +2,18 @@ import type { ListMirrorLogsResponse, MirrorLog } from '@/lib/peerdb/types'
 
 import {
   LOG_LEVEL_META,
-  normalizePdbLogLevel,
   parseTs,
   pdbFmtClock,
   pdbFmtRelative,
 } from './peerdb-utils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AppLink } from '@/components/ui/app-link'
+import {
+  countMirrorLogLevels,
+  extractMirrorLogs,
+  mirrorLogsRequestBody,
+  normalizeLogLevel,
+} from '@/lib/peerdb/mirror-logs'
 import { usePeerDB } from '@/lib/swr'
 
 type Level = 'all' | 'error' | 'warn' | 'info'
@@ -34,10 +39,10 @@ function LogSource({
   onLogs: (mirror: string, logs: MirrorLog[]) => void
 }) {
   const { data } = usePeerDB<ListMirrorLogsResponse>('/mirrors/logs', {
-    body: { flowJobName: mirror, page: 0, numPerPage: 50 },
+    body: mirrorLogsRequestBody(mirror, 'all', { numPerPage: 50 }),
     refreshInterval: 60_000,
   })
-  const errors = data?.errors
+  const errors = data ? extractMirrorLogs(data) : undefined
   const key = errors?.length ?? -1
   // Re-report whenever the returned set changes size (cheap change signal).
   // biome-ignore lint/correctness/useExhaustiveDependencies: errors tracked via key
@@ -78,19 +83,12 @@ export function FleetLogsFeed({ mirrors }: { mirrors: string[] }) {
     )
   }, [sources, byMirror])
 
-  const counts = useMemo(() => {
-    const c: Record<Level, number> = { all: 0, error: 0, warn: 0, info: 0 }
-    for (const l of all) {
-      c.all++
-      c[normalizePdbLogLevel(l.errorType)]++
-    }
-    return c
-  }, [all])
+  const counts = useMemo(() => countMirrorLogLevels(all), [all])
 
   const filtered =
     level === 'all'
       ? all
-      : all.filter((l) => normalizePdbLogLevel(l.errorType) === level)
+      : all.filter((l) => normalizeLogLevel(l.errorType) === level)
   const rows = showAll ? filtered : filtered.slice(0, PAGE)
 
   return (
@@ -136,7 +134,7 @@ export function FleetLogsFeed({ mirrors }: { mirrors: string[] }) {
       ) : (
         <ul className="divide-y divide-border">
           {rows.map((l, i) => {
-            const lvl = normalizePdbLogLevel(l.errorType)
+            const lvl = normalizeLogLevel(l.errorType)
             const meta = LOG_LEVEL_META[lvl]
             return (
               <li

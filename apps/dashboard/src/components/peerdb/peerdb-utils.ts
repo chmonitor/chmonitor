@@ -1,5 +1,7 @@
 import type { DBType, FlowStatus } from '@/lib/peerdb/types'
 
+import { normalizeLogLevel } from '@/lib/peerdb/mirror-logs'
+
 /**
  * PeerDB's `DBType` enum may arrive as a string name (grpc-gateway default) or
  * a numeric ordinal (when read from the catalog). Normalize both to an
@@ -505,14 +507,14 @@ export const LOG_LEVEL_META: Record<string, LogLevelMeta> = {
  * Normalize a PeerDB log `errorType` to a canonical level. PeerDB is not
  * consistent about casing (`ERROR`, `WARNING`, `warn`), so fold to lowercase
  * and collapse the `warning` synonym before matching tabs/colors.
+ *
+ * Single implementation lives in `@/lib/peerdb/mirror-logs` (shared with the
+ * alert lane); this wrapper keeps existing imports working.
  */
 export function normalizePdbLogLevel(
   errorType?: string | null
 ): 'error' | 'warn' | 'info' {
-  const t = (errorType ?? 'info').toLowerCase()
-  if (t.startsWith('err')) return 'error'
-  if (t.startsWith('warn')) return 'warn'
-  return 'info'
+  return normalizeLogLevel(errorType)
 }
 
 /** Relative "Ns ago / Nm ago / Nh ago" from an ISO timestamp. */
