@@ -60,6 +60,22 @@ export function resolveDefaultAgentModel(): string {
   return DEFAULT_AGENT_MODEL
 }
 
+/**
+ * The curated floor: models guaranteed to be offered whenever their provider
+ * is configured, regardless of what discovery returns. Every merge helper
+ * keeps its `base`, so an upstream outage degrades to this list rather than an
+ * empty picker.
+ *
+ * Refreshed 2026-09-26. Context lengths and per-million prices below were read
+ * from OpenRouter's public catalog (`GET /api/v1/models`) on that date, not
+ * hand-recalled; NVIDIA-only entries use the context length published for the
+ * same family because NVIDIA's own catalog carries none. Entries with no
+ * `pricing` have **no published fixed per-token rate** (credit-billed, or a
+ * router whose rate follows the model it picks) — the picker omits cost rather
+ * than showing a wrong `$0`, and `MODEL_PRICING` records that as an explicit
+ * unknown instead of a zero. `MODEL_REGISTRY` / `MODEL_PRICING` / the picker
+ * are asserted consistent by `__tests__/model-registry-consistency.test.ts`.
+ */
 export const MODEL_REGISTRY: readonly ModelEntry[] = [
   // ── Presets (auto-routing via AnyRouter) ──
   {
@@ -74,6 +90,7 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
     id: 'openrouter/free',
     description: 'Auto-router: free tool-capable model',
     contextLength: 200_000,
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
     providers: ['openrouter'],
   },
   {
@@ -83,65 +100,172 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
     providers: ['openrouter'],
   },
 
-  // ── Free-tier (OpenRouter only) ──
-  {
-    id: 'qwen/qwen3-coder:free',
-    description: 'Qwen3 Coder, 1M context',
-    contextLength: 1_048_576,
-    providers: ['openrouter'],
-  },
-  {
-    id: 'z-ai/glm-4.5-air:free',
-    description: 'GLM 4.5 Air',
-    contextLength: 131_072,
-    providers: ['openrouter'],
-  },
+  // ── Free tier (verified $0, tool-capable) ──
   {
     id: 'google/gemma-4-31b-it:free',
-    description: 'Gemma 4 31B IT',
+    description: 'Gemma 4 31B IT (free tier)',
     contextLength: 262_144,
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
+    providers: ['openrouter'],
+  },
+  {
+    id: 'google/gemma-4-26b-a4b-it:free',
+    description: 'Gemma 4 26B IT (free tier)',
+    contextLength: 262_144,
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
+    providers: ['openrouter', 'anyrouter'],
+  },
+  {
+    id: 'nvidia/nemotron-3-super-120b-a12b:free',
+    description: 'Nemotron 3 Super 120B (free tier)',
+    contextLength: 262_144,
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
+    providers: ['openrouter'],
+  },
+  {
+    id: 'qwen/qwen3.8-27b:free',
+    description: 'Qwen 3.8 27B (free tier)',
+    contextLength: 262_144,
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
     providers: ['openrouter'],
   },
 
-  // ── Paid: multi-provider ──
+  // ── Frontier (paid, multi-provider) ──
   {
-    id: 'qwen/qwen3.5-397b-a17b',
-    description: 'Qwen 3.5 397B MoE',
-    contextLength: 131_072,
-    pricing: { inputPerMillion: 0.35, outputPerMillion: 0.4 },
+    id: 'anthropic/claude-opus-5.5',
+    description: 'Claude Opus 5.5',
+    contextLength: 1_000_000,
+    pricing: { inputPerMillion: 4, outputPerMillion: 20 },
+    providers: ['openrouter'],
+  },
+  {
+    id: 'openai/gpt-6-sol',
+    description: 'GPT-6 Sol',
+    contextLength: 1_050_000,
+    pricing: { inputPerMillion: 2, outputPerMillion: 10 },
+    providers: ['openrouter'],
+  },
+  {
+    id: 'x-ai/grok-4.7',
+    description: 'Grok 4.7',
+    contextLength: 500_000,
+    pricing: { inputPerMillion: 1.6, outputPerMillion: 4.8 },
+    providers: ['openrouter', 'anyrouter'],
+  },
+  {
+    id: 'z-ai/glm-5.3',
+    description: 'GLM 5.3',
+    contextLength: 1_310_720,
+    pricing: { inputPerMillion: 1.4, outputPerMillion: 4.4 },
     providers: ['openrouter', 'nvidia', 'anyrouter'],
   },
   {
-    id: 'z-ai/glm-4.7-flash',
-    description: 'GLM 4.7 Flash',
-    contextLength: 131_072,
+    id: 'moonshotai/kimi-k3',
+    description: 'Kimi K3',
+    contextLength: 1_048_576,
+    pricing: { inputPerMillion: 3, outputPerMillion: 15 },
+    providers: ['openrouter', 'anyrouter'],
+  },
+
+  // ── Value picks: long context at a low rate ──
+  {
+    id: 'openai/gpt-6-luna',
+    description: 'GPT-6 Luna, 1M context',
+    contextLength: 1_050_000,
+    pricing: { inputPerMillion: 0.1, outputPerMillion: 0.5 },
+    providers: ['openrouter'],
+  },
+  {
+    id: 'z-ai/glm-5.3-flash',
+    description: 'GLM 5.3 Flash, 1M context',
+    contextLength: 1_310_720,
+    pricing: { inputPerMillion: 0.045, outputPerMillion: 0.14 },
     providers: ['openrouter', 'nvidia', 'anyrouter'],
+  },
+  {
+    id: 'deepseek/deepseek-v4.1-flash',
+    description: 'DeepSeek V4.1 Flash, 1M context',
+    contextLength: 1_048_576,
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.6 },
+    providers: ['openrouter'],
   },
   {
     id: 'google/gemini-3.1-flash-lite',
     description: 'Gemini 3.1 Flash Lite',
-    contextLength: 1_000_000,
+    contextLength: 1_048_576,
     pricing: { inputPerMillion: 0.25, outputPerMillion: 1.5 },
-    providers: ['anyrouter'],
+    providers: ['openrouter', 'anyrouter'],
+  },
+  {
+    id: 'qwen/qwen3.5-397b-a17b',
+    description: 'Qwen 3.5 397B MoE',
+    contextLength: 262_144,
+    pricing: { inputPerMillion: 0.55, outputPerMillion: 3.5 },
+    providers: ['openrouter', 'nvidia', 'anyrouter'],
+  },
+
+  // ── Small / cheap tool-capable ──
+  {
+    id: 'openai/gpt-oss-120b',
+    description: 'GPT-OSS 120B',
+    contextLength: 131_072,
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.6 },
+    providers: ['openrouter', 'nvidia'],
+  },
+  {
+    id: 'openai/gpt-oss-20b',
+    description: 'GPT-OSS 20B, cheapest tool-capable',
+    contextLength: 131_072,
+    pricing: { inputPerMillion: 0.018, outputPerMillion: 0.09 },
+    providers: ['openrouter'],
   },
   {
     id: 'google/gemma-4-26b-a4b-it',
     description: 'Gemma 4 26B IT',
     contextLength: 262_144,
+    pricing: { inputPerMillion: 0.0675, outputPerMillion: 0.225 },
     providers: ['openrouter', 'anyrouter'],
   },
   {
-    id: 'x-ai/grok-4.5',
-    description: 'Grok 4.5',
+    id: 'nvidia/nemotron-3-ultra-550b-a55b',
+    description: 'Nemotron 3 Ultra 550B',
     contextLength: 262_144,
-    pricing: { inputPerMillion: 2.0, outputPerMillion: 10.0 },
-    providers: ['openrouter', 'anyrouter'],
+    pricing: { inputPerMillion: 0.6, outputPerMillion: 2.4 },
+    providers: ['openrouter', 'nvidia', 'anyrouter'],
+  },
+  {
+    id: 'nvidia/nemotron-3-super-120b-a12b',
+    description: 'Nemotron 3 Super 120B',
+    contextLength: 262_144,
+    pricing: { inputPerMillion: 0.08, outputPerMillion: 0.45 },
+    providers: ['openrouter', 'nvidia'],
   },
 
   // ── NVIDIA-only ──
+  // Context lengths are the curated floor: NVIDIA's catalog publishes none, so
+  // these are the values published for the same Nemotron family. Per-token
+  // pricing is omitted because NVIDIA bills against API credits.
   {
     id: 'nvidia/llama-3.1-nemotron-70b-instruct',
     description: 'Nemotron 70B Instruct',
+    contextLength: 131_072,
+    providers: ['nvidia'],
+  },
+  {
+    id: 'nvidia/llama-3.1-nemotron-51b-instruct',
+    description: 'Nemotron 51B Instruct',
+    contextLength: 131_072,
+    providers: ['nvidia'],
+  },
+  {
+    id: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+    description: 'Nemotron Ultra 253B',
+    contextLength: 131_072,
+    providers: ['nvidia'],
+  },
+  {
+    id: 'nvidia/nemotron-4-340b-instruct',
+    description: 'Nemotron 4 340B Instruct',
     contextLength: 131_072,
     providers: ['nvidia'],
   },
@@ -238,6 +362,18 @@ export function getModelRegistry(): ModelEntry[] {
 export function getAllModelOptions(): string[] {
   return MODEL_REGISTRY.flatMap((m) => m.providers.map((p) => `${p}:${m.id}`))
 }
+
+/**
+ * The curated `provider:id` options, as a set — the picker uses it to mark an
+ * entry "built in" versus a discovery-supplied one. It lives here rather than
+ * in the picker component because it is a pure derivation of
+ * {@link getAllModelOptions}: keeping it in the component made the registry
+ * depend on the component's own import graph (`picker → use-agent-model →
+ * registry`), which is a cycle.
+ */
+export const CURATED_MODEL_IDS: ReadonlySet<string> = new Set(
+  getAllModelOptions()
+)
 
 export function isFreeAgentModel(model: string): boolean {
   return model === 'openrouter/free' || model.endsWith(':free')

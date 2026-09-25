@@ -17,6 +17,7 @@ import {
   isInsightWindow,
   sanitizeInsightsSettings,
 } from './settings'
+import { getAllModelOptions } from '@/lib/ai/agent-model-registry'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 describe('prompt styles', () => {
@@ -168,17 +169,24 @@ describe('resolveInsightModel (server-side validation)', () => {
 
   it('accepts a known model when its provider key is configured', () => {
     process.env[KEY] = 'sk-test'
-    expect(resolveInsightModel('openrouter:qwen/qwen3-coder:free')).toBe(
-      'openrouter:qwen/qwen3-coder:free'
+    // Derived from the curated registry, not a hardcoded id: the point of the
+    // case is "known model + key present", which must survive a registry
+    // refresh that drops whichever model happened to be listed here.
+    const known = getAllModelOptions().find((id) =>
+      id.startsWith('openrouter:')
     )
+    expect(known).toBeDefined()
+    expect(resolveInsightModel(known)).toBe(known)
   })
 
   it('rejects a known model when the provider key is missing', () => {
     delete process.env[KEY]
     delete process.env.LLM_API_KEY
-    expect(
-      resolveInsightModel('openrouter:qwen/qwen3-coder:free')
-    ).toBeUndefined()
+    const known = getAllModelOptions().find((id) =>
+      id.startsWith('openrouter:')
+    )
+    expect(known).toBeDefined()
+    expect(resolveInsightModel(known)).toBeUndefined()
   })
 
   it('rejects an unknown model id even with a configured provider', () => {

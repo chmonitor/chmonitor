@@ -13,10 +13,13 @@
  *  - AnyRouter's **top-by-usage** set (public catalog + per-model metrics),
  *  - OpenRouter's **top** set, ranked by curated relevance (their API exposes
  *    no usage ranking — see `openrouter-dynamic-models.ts`),
+ *  - NVIDIA's **top** set, ranked the same way (their catalog publishes no
+ *    usage, recency, or tool-capability signal — see
+ *    `nvidia-dynamic-models.ts`),
  *  - the signed-in workspace's **AnyRouter presets** (`@preset/<slug>`).
  *
- * A successful catalog fetch never implies the provider is configured: both
- * catalogs are public, so `filterByConfiguredProviders` stays the sole
+ * A successful catalog fetch never implies the provider is configured: all
+ * three catalogs are public, so `filterByConfiguredProviders` stays the sole
  * authority on what the picker may offer.
  *
  * Ported from apps/dashboard/app/api/v1/agents/models/route.ts.
@@ -42,6 +45,10 @@ import {
   loadAnyRouterPresetEntries,
   mergeAnyRouterPresets,
 } from '@/lib/ai/anyrouter-presets'
+import {
+  loadNvidiaDynamicModelEntries,
+  mergeNvidiaDynamicModels,
+} from '@/lib/ai/nvidia-dynamic-models'
 import {
   loadOpenRouterDynamicModelEntries,
   mergeOpenRouterDynamicModels,
@@ -247,19 +254,21 @@ async function buildRegistryModels(): Promise<ModelCapability[]> {
 
 /**
  * Build the full models list: static registry (+ OpenRouter enrichment) merged
- * with AnyRouter dynamic top-by-usage when that provider is configured.
- * AnyRouter list/metrics failures are fail-soft — static list still returns.
+ * with each provider's dynamic catalog when that provider is configured.
+ * Every dynamic list/metrics failure is fail-soft — static list still returns.
  */
 async function buildModels(): Promise<ModelCapability[]> {
   const [
     registryModels,
     dynamicAnyRouter,
     dynamicOpenRouter,
+    dynamicNvidia,
     anyRouterPresets,
   ] = await Promise.all([
     buildRegistryModels(),
     loadAnyRouterDynamicModelEntries(),
     loadOpenRouterDynamicModelEntries(),
+    loadNvidiaDynamicModelEntries(),
     loadAnyRouterPresetEntries(),
   ])
 
@@ -272,6 +281,9 @@ async function buildModels(): Promise<ModelCapability[]> {
   }
   if (dynamicOpenRouter.length > 0) {
     models = mergeOpenRouterDynamicModels(models, dynamicOpenRouter)
+  }
+  if (dynamicNvidia.length > 0) {
+    models = mergeNvidiaDynamicModels(models, dynamicNvidia)
   }
   if (anyRouterPresets.length > 0) {
     models = mergeAnyRouterPresets(models, anyRouterPresets)

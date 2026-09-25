@@ -23,7 +23,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { getAllModelOptions } from '@/lib/ai/agent-model-registry'
+import { CURATED_MODEL_IDS } from '@/lib/ai/agent-model-registry'
 import {
   type ModelDisplayInfo,
   useAgentModel,
@@ -32,7 +32,7 @@ import { useAnyRouterToken } from '@/lib/hooks/use-anyrouter-token'
 import { cn } from '@/lib/utils'
 
 /** Set of model IDs that are part of the curated static registry. */
-export const CURATED_MODEL_IDS = new Set(getAllModelOptions())
+export { CURATED_MODEL_IDS }
 
 interface AgentModelPickerProps {
   /** Compact toolbar variant (welcome screen toolbar). */

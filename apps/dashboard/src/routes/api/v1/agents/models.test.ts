@@ -51,6 +51,10 @@ mock.module('@/lib/ai/agent-model-registry', () => ({
     },
   ],
   isFreeAgentModel: () => false,
+  // The dynamic loaders read the curated registry at module load. This stub
+  // must export it too, or importing a real loader against it throws
+  // "Export named 'MODEL_REGISTRY' not found".
+  MODEL_REGISTRY: [],
 }))
 
 mock.module('@/lib/ai/anyrouter-dynamic-models', () => ({
@@ -69,6 +73,28 @@ mock.module('@/lib/ai/openrouter-dynamic-models', () => ({
     return dynamicOpenRouter
   },
   mergeOpenRouterDynamicModels: (base: unknown[], extra: unknown[]) => [
+    ...base,
+    ...extra,
+  ],
+}))
+
+let dynamicNvidia = [
+  {
+    id: 'nvidia:dynamic-nemotron',
+    modelId: 'dynamic-nemotron',
+    provider: 'nvidia',
+    name: 'dynamic-nemotron',
+    available: true,
+  },
+]
+let nvidiaThrows = false
+
+mock.module('@/lib/ai/nvidia-dynamic-models', () => ({
+  loadNvidiaDynamicModelEntries: async () => {
+    if (nvidiaThrows) throw new Error('nvidia down')
+    return dynamicNvidia
+  },
+  mergeNvidiaDynamicModels: (base: unknown[], extra: unknown[]) => [
     ...base,
     ...extra,
   ],
@@ -122,6 +148,16 @@ beforeEach(() => {
       available: true,
     },
   ]
+  nvidiaThrows = false
+  dynamicNvidia = [
+    {
+      id: 'nvidia:dynamic-nemotron',
+      modelId: 'dynamic-nemotron',
+      provider: 'nvidia',
+      name: 'dynamic-nemotron',
+      available: true,
+    },
+  ]
   anyRouterPresets = [
     {
       id: 'anyrouter:@preset/team-default',
@@ -156,6 +192,41 @@ describe('GET /api/v1/agents/models', () => {
     expect(ids).toContain('anyrouter:claude-sonnet')
     expect(ids).toContain('anyrouter:@preset/team-default')
     expect(ids).not.toContain('openrouter:dynamic-model')
+  })
+
+  test('merges NVIDIA discovery, and hides it when NVIDIA is not configured', async () => {
+    // Configured: the dynamic NVIDIA entry reaches the picker.
+    configuredProviders = ['openrouter', 'anyrouter', 'nvidia']
+    const withNvidia = await handleGet(
+      new Request('https://dash.example.com/api/v1/agents/models')
+    )
+    expect(withNvidia.status).toBe(200)
+    const withIds = (
+      (await withNvidia.json()) as { models: Array<{ id: string }> }
+    ).models.map((m) => m.id)
+    expect(withIds).toContain('nvidia:dynamic-nemotron')
+
+    // Unconfigured: never offered, even though the catalog fetch succeeded.
+    configuredProviders = ['openrouter', 'anyrouter']
+    const withoutNvidia = await handleGet(
+      new Request('https://dash.example.com/api/v1/agents/models')
+    )
+    const withoutIds = (
+      (await withoutNvidia.json()) as { models: Array<{ id: string }> }
+    ).models.map((m) => m.id)
+    expect(withoutIds).not.toContain('nvidia:dynamic-nemotron')
+  })
+
+  test('falls back to the static list when the NVIDIA loader throws', async () => {
+    nvidiaThrows = true
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/agents/models')
+    )
+    expect(res.status).toBe(500)
+    const body = (await res.json()) as { models: Array<{ id: string }> }
+    expect(body.models.some((m) => m.id === 'openrouter:gpt-4o-mini')).toBe(
+      true
+    )
   })
 
   test('returns static fallback when OpenRouter dynamic loader throws', async () => {

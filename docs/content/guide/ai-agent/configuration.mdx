@@ -45,6 +45,9 @@ Set the key for each provider you want to use. Only providers with a key configu
 | `ANYROUTER_OAUTH_CLIENT_ID` | AnyRouter | Pin a pre-registered OAuth client for "Sign in with AnyRouter". Optional — the server registers one on first use. |
 | `OPENROUTER_DYNAMIC_MODELS` | OpenRouter | Set to `false` / `0` / `off` to disable live catalog enrichment (curated registry only). On by default when `OPENROUTER_API_KEY` is set. |
 | `OPENROUTER_TOP_MODELS_N` | OpenRouter | Max dynamically ranked models to add to the picker (default `12`, max `32`). |
+| `NVIDIA_DYNAMIC_MODELS` | NVIDIA NIM | Set to `false` / `0` / `off` / `no` to disable live catalog enrichment (curated registry only). On by default when `NVIDIA_API_KEY` is set. |
+| `NVIDIA_TOP_MODELS_N` | NVIDIA NIM | Max dynamically ranked models to add to the picker (default `8`, max `32`). |
+| `NVIDIA_MODELS_API` | NVIDIA NIM | Override the catalog URL (defaults to `{NVIDIA_API_BASE}/models`). |
 
 ### OpenRouter dynamic models (relevance ranking)
 
@@ -58,6 +61,33 @@ openrouter.ai are not public. The ranking is therefore a deterministic
 *relevance* score (curated-registry membership, well-known model authors, free
 variants, context size, recency), not measured usage. Models without tool
 calling are excluded, since the agent cannot use them.
+
+### NVIDIA dynamic models (relevance ranking)
+
+When `NVIDIA_API_KEY` is set, `GET /api/v1/agents/models` also loads NVIDIA's
+public catalog (`GET {NVIDIA_API_BASE}/models`) and appends a bounded set of
+models on top of the curated registry, so a deployment that configured only
+`NVIDIA_API_KEY` sees a populated, current list instead of one hardcoded entry.
+
+The NIM catalog is **much thinner than OpenRouter's**, which shapes what can be
+done with it:
+
+- It publishes **no tool-capability metadata**, so entries cannot be filtered on
+  tool support the way OpenRouter's are. Instead, provably non-chat categories
+  (embedding models, safety guards, CLIP/video encoders, reward models, base
+  fill-in-the-middle code models) are dropped by name, and the remainder is
+  ranked by the same *relevance* idea: curated-registry membership, an
+  agentic id marker (`instruct`, `chat`, `reason`, `nemotron`, …), known model
+  authors, and context size when a proxying catalog reports it.
+- It publishes **no context length** and **no pricing**, so dynamic entries use a
+  documented default context size and the picker omits cost rather than showing a
+  wrong `$0`. NVIDIA bills against API credits, not per-token.
+- Every entry's `created` timestamp is a constant, so it carries no recency
+  signal and is not used for ranking.
+
+The same fail-soft, floor-preserving rules apply: an upstream outage degrades to
+the curated registry rather than an empty picker, and a successful catalog fetch
+never implies the provider is configured.
 
 ### AnyRouter presets
 

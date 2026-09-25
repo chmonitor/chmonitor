@@ -28,9 +28,30 @@ describe('AnyRouter model registry', () => {
 
     expect(DEFAULT_AGENT_MODEL).toBe('anyrouter:google/gemma-4-26b-a4b-it')
     expect(options).toContain('openrouter:openrouter/free')
-    expect(options).toContain('anyrouter:z-ai/glm-4.7-flash')
+    // Pinned to a model that is actually in the curated floor, not a literal
+    // id — a refresh may swap which GLM generation is current. The
+    // registry/pricing/picker agreement is asserted in
+    // `__tests__/model-registry-consistency.test.ts`.
+    const anyrouterGlm = MODEL_REGISTRY.filter(
+      (m) => m.id.startsWith('z-ai/') && m.providers.includes('anyrouter')
+    )
+    expect(anyrouterGlm.length).toBeGreaterThan(0)
+    for (const m of anyrouterGlm) {
+      expect(options).toContain(`anyrouter:${m.id}`)
+    }
     expect(options).toContain('anyrouter:google/gemini-3.1-flash-lite')
     expect(options).toContain('anyrouter:google/gemma-4-26b-a4b-it')
+  })
+
+  test('every curated free-tier model is reachable through its provider', () => {
+    const options = getAllModelOptions()
+    const freeEntries = MODEL_REGISTRY.filter((m) => m.id.endsWith(':free'))
+    expect(freeEntries.length).toBeGreaterThan(0)
+    for (const entry of freeEntries) {
+      for (const provider of entry.providers) {
+        expect(options).toContain(`${provider}:${entry.id}`)
+      }
+    }
   })
 })
 

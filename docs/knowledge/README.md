@@ -46,6 +46,7 @@ Agents discover knowledge in this order:
 | **Specs** | [commercial-license.md](commercial-license.md) | spec | Self-hosted host-count licenses (yearly/lifetime), honor system, optional `CHM_LICENSE_KEY` (Polar checkout id) on telemetry ping; customers wall; Polar SaaS is secondary |
 | **Specs** | [ai-insights.md](ai-insights.md) | spec | AI Insights engine: collect→enrich→persist (pluggable InsightsStore: clickhouse default / d1 / postgres / agentstate / memory), cron + manual generation, stable-key dismissal, overview panel |
 | **Specs** | [agent-eval.md](agent-eval.md) | spec | Live promptfoo eval vs /api/v1/agent; AnyRouter llm-rubric; PR path filter |
+| **Specs** | [agent-model-discovery.md](agent-model-discovery.md) | spec | Model picker list: curated-registry floor + fail-soft discovery; per-catalog quirks; null-rate vs $0; registry/pricing/picker consistency test |
 | **Specs** | [cloud-saas-mode.md](cloud-saas-mode.md) | spec | One codebase, two products: cloud-mode flag (fail-closed to OSS), read-only demo hosts for anon, welcome/setup onboarding, per-user D1 connections, connection-error classifier |
 | **Specs** | [mcp-server.md](mcp-server.md) | reference | MCP server at /api/mcp: tools, setup, security |
 | **Specs** | [mcp-clerk-oauth.md](mcp-clerk-oauth.md) | reference | MCP endpoint auth postures (open / HMAC API key / Clerk OAuth); either credential accepted when both set; REST token verification runs in both Worker and Next.js runtimes |
