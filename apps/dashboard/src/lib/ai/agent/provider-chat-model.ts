@@ -29,7 +29,12 @@ export const DEFAULT_APP_VERSION = '0.2.0'
 function getOpenRouterFreeFallbackModel(): string {
   return (
     process.env.OPENROUTER_FREE_FALLBACK_MODEL?.trim() ||
-    'qwen/qwen3-coder:free'
+    // Tool-capable free tier, verified present in OpenRouter's live catalog
+    // (2026-09-26). The previous default, `qwen/qwen3-coder:free`, was
+    // delisted upstream, so every `openrouter/free` request on a deployment
+    // that had not set the override failed at the provider. Re-verify against
+    // /api/v1/models before changing this again.
+    'google/gemma-4-31b-it:free'
   )
 }
 
