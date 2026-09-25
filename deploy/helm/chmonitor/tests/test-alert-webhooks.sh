@@ -27,4 +27,10 @@ if helm template test "$chart_dir" -f "$values" \
   exit 1
 fi
 
+if helm template test "$chart_dir" -f "$values" \
+  --set alertWebhooks.targets[1].url=http://insecure.example/hook >/dev/null 2>&1; then
+  echo 'plain HTTP custom webhook unexpectedly rendered' >&2
+  exit 1
+fi
+
 echo 'custom alert webhook Helm render passed'
