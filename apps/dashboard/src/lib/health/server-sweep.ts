@@ -182,6 +182,8 @@ async function runPeerDBInsightSweep(): Promise<number> {
   }
 }
 
+export { runPeerDBInsightSweep as __runPeerDBInsightSweepForTests }
+
 /**
  * PeerDB alert sweep (issue #3413).
  *
