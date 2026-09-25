@@ -138,6 +138,20 @@ access = "authenticated"
   }}
 />
 
+## Issue alerting (read-only)
+
+Mirror health can enter the alert lifecycle without any PeerDB mutation:
+`lib/peerdb/alerting.ts` classifies each mirror's read-only signals
+(`MirrorStatusResponse`, mirror logs, slot lag) into `ok` / `warning` /
+`error`, formats a bounded human-readable message on the shared
+`AlertPayload` contract, validates it, writes a best-effort `alert_events`
+audit row, runs a read-only agent investigation (metrics + message check,
+`send`/`hold` verdict), and only then evaluates the delivery gate. Delivery
+requires `dryRun: false`, a passing validation, a `send` verdict, and an
+unseen hour-bucketed dedup key (`peerdb:<flow>:<severity>:<bucket>`); anything
+else holds. An `unavailable` error count is rendered as "error count
+unavailable", never as "0 errors".
+
 ## Notes & limitations
 
 <Callout type="info" title="Read-only by design">
