@@ -25,19 +25,36 @@ export interface WebhookResult {
  * blocks, or the generic `{ text, content }` wrapper) — this function only owns
  * transport (timeout + non-OK handling), so the URL → shape decision stays pure
  * and unit-testable. Server-side, no CORS proxy needed.
+ *
+ * `init.headers` carries caller-supplied extra headers (custom webhook targets'
+ * sanitized `X-*` headers, feat #3414). `Content-Type: application/json` is
+ * always set by the transport and cannot be overridden.
  */
 export async function postWebhook(
   url: string,
-  body: unknown
+  body: unknown,
+  init?: {
+    headers?: Record<string, string>
+    /** Custom targets disable redirects; legacy callers keep fetch's default. */
+    redirect?: RequestRedirect
+  }
 ): Promise<WebhookResult> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 10_000)
   try {
+    const serialized = JSON.stringify(body)
+    if (new TextEncoder().encode(serialized).byteLength > 256 * 1024) {
+      return { ok: false, error: 'Webhook payload exceeds the 256 KiB limit' }
+    }
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      // `Content-Type` is transport-owned and applied LAST so a caller header
+      // can never override it (custom-target validation already rejects it,
+      // this is defense-in-depth).
+      headers: { ...(init?.headers ?? {}), 'Content-Type': 'application/json' },
+      body: serialized,
       signal: controller.signal,
+      redirect: init?.redirect,
     })
     if (!res.ok) {
       const message = `Webhook returned status ${res.status}`

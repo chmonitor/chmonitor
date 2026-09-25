@@ -61,6 +61,29 @@ wrangler secret put CRON_SECRET
 wrangler secret put HEALTH_ALERT_WEBHOOK_URL
 ```
 
+## Custom formats and multiple targets
+
+For more control, open **Health settings → Alerts → Custom webhook targets**. Each target can select:
+
+- **Raw JSON** — the normalized alert payload for a generic receiver.
+- **Slack** — escaped Slack blocks.
+- **Element / Matrix** — an `m.notice` event with escaped HTML.
+- **Auto** — preserve the legacy URL-based format detection.
+
+The form supports bounded `{{severity}}`, `{{title}}`, `{{label}}`, `{{host}}`,
+`{{value}}`, and `{{timestamp}}` templates plus safe `X-*` headers. **Preview**
+uses the same server-side formatter as delivery and masks the destination URL;
+**Send test** is an explicit write-gated request. Target URLs are credentials:
+they are never returned to the browser, and authorization headers belong in a
+Kubernetes Secret or another server-side secret source.
+
+On Kubernetes, the Helm chart can declare the same targets under
+`alertWebhooks.targets` for GitOps-managed deployments. Use `urlFrom` and
+`headersSecretFrom` with an existing Secret; do not commit token-bearing URLs in
+`values.yaml`, a ConfigMap, or `extraEnv`. D1/UI configuration is owner-scoped
+and takes precedence over a Helm target with the same name; deleting the D1 row
+returns to the Helm declaration.
+
 ## 3. Test it
 
 ```bash
