@@ -1,10 +1,14 @@
+import type { MetricAlertSignals } from '@/lib/health/alert-capability'
 import type { ComputedCheck, HealthStatus } from '@/lib/health/health-status'
 import type { Thresholds } from '@/lib/health/thresholds-storage'
 import type { HealthCardVariant } from './health-card-shell'
 import type { HealthCheckDef } from './health-checks'
+import type { AlertRuleStoreAvailability } from './use-alert-signals'
 
+import { AlertConfiguredBadge } from './alert-configured-badge'
 import { HealthCardShell } from './health-card-shell'
 import { HealthDetailDialog } from './health-detail-dialog'
+import { NO_ALERT_SIGNALS } from './use-alert-signals'
 import { useState } from 'react'
 
 // Re-exported for modules that import the status union from here.
@@ -22,6 +26,10 @@ interface HealthCardProps {
   clickhouseVersion?: string
   /** Expanded card (issues) or dense row (healthy) — decided by the grid. */
   variant?: HealthCardVariant
+  /** Already-alerting state for this check, resolved upstream (#3437). */
+  signals?: MetricAlertSignals
+  /** Whether the D1-backed named-alert store can be written here (#3437). */
+  availability?: AlertRuleStoreAvailability
 }
 
 /**
@@ -37,6 +45,8 @@ export function HealthCard({
   spark,
   clickhouseVersion,
   variant,
+  signals = NO_ALERT_SIGNALS,
+  availability = 'unknown',
 }: HealthCardProps) {
   const [detailOpen, setDetailOpen] = useState(false)
   const { status, value, label, displayValue, row } = computed
@@ -54,6 +64,7 @@ export function HealthCard({
         hostId={hostId}
         onExpand={() => setDetailOpen(true)}
         variant={variant}
+        badge={<AlertConfiguredBadge signals={signals} />}
       />
 
       <HealthDetailDialog
@@ -67,6 +78,8 @@ export function HealthCard({
         thresholds={thresholds}
         row={row}
         clickhouseVersion={clickhouseVersion}
+        signals={signals}
+        availability={availability}
       />
     </>
   )

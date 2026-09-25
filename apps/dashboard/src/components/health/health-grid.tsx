@@ -10,6 +10,7 @@ import { HealthCard } from './health-card'
 import { HEALTH_CHECKS } from './health-checks'
 import { HealthSummaryBanner } from './health-summary-banner'
 import { RunningMutationsCard, StuckMutationsCard } from './mutations-cards'
+import { signalsForCheck, useAlertSignals } from './use-alert-signals'
 import { EMPTY_STATE, useHealthChecks } from './use-health-checks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -34,13 +35,19 @@ import {
   loadHistory,
   saveHistory,
 } from '@/lib/health/history-storage'
-import { loadThresholds } from '@/lib/health/thresholds-storage'
+import {
+  loadThresholds,
+  type ThresholdsMap,
+} from '@/lib/health/thresholds-storage'
 import { useHostId } from '@/lib/swr'
 import { track } from '@/lib/telemetry'
 import { cn } from '@/lib/utils'
 
 const STUCK_MUTATIONS_CHART = 'summary-stuck-mutations'
 const RUNNING_MUTATIONS_CHART = 'summary-used-by-mutations'
+
+/** Stable module-level identity, so `useMemo` is not re-run every render. */
+const EMPTY_THRESHOLDS: ThresholdsMap = {}
 
 type Filter = 'all' | 'issues' | 'healthy'
 
@@ -68,9 +75,9 @@ function formatAgo(deltaMs: number): string {
 
 export function HealthGrid() {
   const hostId = useHostId()
-  const [overrides, setOverrides] = useState<
-    Record<string, { warning: number; critical: number }>
-  >({})
+  // `null` = localStorage not read yet, which is what lets the alert-signal
+  // hook tell "no thresholds tuned" from "we have not looked yet" (#3437).
+  const [overrides, setOverrides] = useState<ThresholdsMap | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [history, setHistory] = useState<HistoryMap>(() => loadHistory())
 
@@ -100,6 +107,20 @@ export function HealthGrid() {
     []
   )
 
+  // "Already alerting" state for every check, resolved once for the whole page
+  // rather than per card (#3437). `itemIds` is the same stable-id list the
+  // history keys and alert checkIds use.
+  const itemIds = useMemo(
+    () => [
+      ...HEALTH_CHECKS.map((c) => c.id),
+      'stuck-mutations',
+      'running-mutations',
+    ],
+    []
+  )
+  const { signalsByCheck, availability: alertStoreAvailability } =
+    useAlertSignals(itemIds, overrides)
+
   const { results, isLoading, isValidating, dataUpdatedAt } = useHealthChecks(
     chartNames,
     hostId
@@ -110,9 +131,10 @@ export function HealthGrid() {
   const items = useMemo<GridItem[]>(() => {
     const list: GridItem[] = []
     let order = 0
+    const tuned = overrides ?? EMPTY_THRESHOLDS
 
     for (const check of HEALTH_CHECKS) {
-      const thresholds = overrides[check.id] ?? check.defaults
+      const thresholds = tuned[check.id] ?? check.defaults
       const result = results[check.chartName] ?? EMPTY_STATE
       const computed = computeCheckStatus(check, thresholds, result, isLoading)
       list.push({
@@ -135,6 +157,8 @@ export function HealthGrid() {
             spark={spark}
             clickhouseVersion={result.clickhouseVersion}
             variant={variant}
+            signals={signalsForCheck(signalsByCheck, check.id)}
+            availability={alertStoreAvailability}
           />
         ),
       })
@@ -162,6 +186,8 @@ export function HealthGrid() {
           spark={spark}
           clickhouseVersion={results[STUCK_MUTATIONS_CHART]?.clickhouseVersion}
           variant={variant}
+          signals={signalsForCheck(signalsByCheck, 'stuck-mutations')}
+          availability={alertStoreAvailability}
         />
       ),
     })
@@ -190,12 +216,21 @@ export function HealthGrid() {
             results[RUNNING_MUTATIONS_CHART]?.clickhouseVersion
           }
           variant={variant}
+          signals={signalsForCheck(signalsByCheck, 'running-mutations')}
+          availability={alertStoreAvailability}
         />
       ),
     })
 
     return list
-  }, [results, overrides, isLoading, hostId])
+  }, [
+    results,
+    overrides,
+    isLoading,
+    hostId,
+    signalsByCheck,
+    alertStoreAvailability,
+  ])
 
   // Keep the latest items reachable from refresh-gated effects without
   // re-running them on every render.

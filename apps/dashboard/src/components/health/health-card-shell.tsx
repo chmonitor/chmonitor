@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { ArrowUpRight, ChevronRight } from 'lucide-react'
 
+import type { ReactNode } from 'react'
 import type { HealthStatus } from '@/lib/health/health-status'
 import type { RelatedLink } from './health-checks'
 
@@ -88,6 +89,12 @@ export interface HealthCardShellProps {
    * checks, so they recede instead of competing with real problems.
    */
   variant?: HealthCardVariant
+  /**
+   * Optional marker rendered next to the severity pill (card) or the title
+   * (row) — used for the "already alerting" badge (#3437). Omit it and the
+   * layout is unchanged, so a check with no alert looks exactly as before.
+   */
+  badge?: ReactNode
 }
 
 /**
@@ -139,6 +146,7 @@ function HealthCheckRow({
   sublabel,
   spark,
   onExpand,
+  badge,
 }: HealthCardShellProps) {
   const series = toSeries(spark)
 
@@ -169,6 +177,7 @@ function HealthCheckRow({
       >
         {title}
       </span>
+      {badge}
       <span
         className="hidden min-w-0 flex-1 truncate text-xs text-muted-foreground sm:block"
         title={sublabel}
@@ -211,6 +220,7 @@ function HealthCheckCard({
   links,
   hostId,
   onExpand,
+  badge,
 }: HealthCardShellProps) {
   const series = toSeries(spark)
   const withHost = (href: string) =>
@@ -247,8 +257,9 @@ function HealthCheckCard({
             {title}
           </span>
         </div>
-        <div className="flex flex-none items-center pt-0.5">
+        <div className="flex flex-none items-center gap-1.5 pt-0.5">
           <IssuePill status={status} />
+          {badge}
         </div>
       </div>
 

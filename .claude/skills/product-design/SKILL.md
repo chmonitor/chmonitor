@@ -17,7 +17,8 @@ description: >-
   "command palette", "cmd k", "search dialog", "ttl partitions",
   "header title", "768", "truncate Overview", "essential sidebar",
   "more pages", "keep in sidebar", "hover add", "group heading",
-  "customize dialog".
+  "customize dialog", "configure alert", "already alerting",
+  "alert settings", "health detail dialog", "alert threshold", "badge".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -235,6 +236,28 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
 - **Numeric threshold input:** `components/health/threshold-field.tsx` — severity
   dot + label, `−`/`+` steppers around a centered `tabular-nums` input, step
   derived from magnitude. Clamp `critical ≥ warning` on change, not at save.
+- **Act on the thing you are looking at:** a card reporting a problem must let
+  you act on *that* problem. The health detail dialog owns a **Configure alert**
+  footer action (`components/health/configure-alert-form.tsx`) pre-filled with
+  the check id, the value on screen, and the *effective* thresholds
+  (`overrides[id] ?? defaults`) — never make the user re-pick the metric.
+  Keep the three concepts separate: **thresholds** = localStorage + browser
+  dispatcher, never disabled for want of a DB; **named alert** = D1
+  `custom_alert_rules` + cron sweep, disabled *with a reason* when the store
+  can't be written; **channel** = delivery only. Availability is tri-state
+  (`unknown | available | unavailable`) and `unknown` must render DISABLED — an
+  unresolved 501 probe is not permission to write. Never gate on
+  `metadataDb.available` (it counts `DATABASE_URL`, but every alert store is
+  D1-only) and never invent a second signal; see
+  `docs/knowledge/metadata-db-optional-config.md`.
+- **"Already alerting" indicator:** `components/health/alert-configured-badge.tsx`
+  — one amber `BellRing` badge, titled with why. Resolved once for the whole
+  page by `components/health/use-alert-signals.ts` over the pure
+  `lib/health/alert-capability.ts`, cheapest source first: a tuned
+  `health-thresholds` key (**localStorage, so it works with NO metadata DB**), a
+  custom rule matched through the **explicit** `CHECK_CATALOG_METRIC` table (never
+  name similarity), then an `alert_state` row keyed by the `checkId`. Different
+  signal from severity ("watched?" not "bad?"), so it doesn't double-encode.
 - **Permission-backed toggles:** a switch gated on a browser permission must
   reflect the LIVE permission, not just the stored preference. Use
   `lib/health/use-notification-permission.ts` (effect-only — the app prerenders;
