@@ -165,6 +165,68 @@ describe('runPeerDBAlertCycle', () => {
     expect(t.order[0]).toBe('audit:peerdb-predelivery')
   })
 
+  test('unavailable error logs do not clear a persisted incident', async () => {
+    alertStateStore.set(KEY('cycle-recover-errors'), {
+      severity: 'critical',
+      updatedAt: Date.now() - 1000,
+      notifiedAt: Date.now() - 1000,
+    })
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor([
+        {
+          name: 'cycle-recover-errors',
+          status: 'STATUS_RUNNING',
+          errorSource: 'unavailable',
+        },
+      ]),
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+    })
+
+    expect(res.dispatched).toBe(0)
+    expect(res.audited).toBe(1)
+    expect(t.audits[0]!.decisionKind).toBe(
+      'peerdb-hold:recovery-data-unavailable'
+    )
+    expect(alertStateStore.get(KEY('cycle-recover-errors'))?.severity).toBe(
+      'critical'
+    )
+  })
+
+  test('an unreadable status endpoint does not clear a persisted incident', async () => {
+    alertStateStore.set(KEY('cycle-recover-status'), {
+      severity: 'warning',
+      updatedAt: Date.now() - 1000,
+      notifiedAt: Date.now() - 1000,
+    })
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: {
+        listMirrors: async () => [
+          { name: 'cycle-recover-status', status: 'STATUS_RUNNING' },
+        ],
+        mirrorStatus: async () => null,
+        mirrorErrorCount: async () => ({ count: 0, source: 'log-api' }),
+        peerSlots: async () => [],
+        listSourcePeers: async () => [],
+      },
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+    })
+
+    expect(res.dispatched).toBe(0)
+    expect(res.audited).toBe(1)
+    expect(t.audits[0]!.decisionKind).toBe(
+      'peerdb-hold:recovery-data-unavailable'
+    )
+    expect(alertStateStore.get(KEY('cycle-recover-status'))?.severity).toBe(
+      'warning'
+    )
+  })
+
   test('warning maps to warning dispatch with reason-chosen thresholds', async () => {
     const t = tape()
     const res = await runPeerDBAlertCycle({
