@@ -1,0 +1,25 @@
+clickhouse:
+  host: https://clickhouse.example.com:8443
+  user: default
+  password: test-password
+alertWebhooks:
+  enabled: true
+  defaults:
+    format: raw
+    minSeverity: warning
+  targets:
+    - name: slack
+      format: slack
+      urlFrom:
+        name: alert-secrets
+        key: slack-url
+    - name: matrix
+      format: matrix
+      minSeverity: critical
+      url: https://matrix.example.com/room/secret
+      headers:
+        - name: X-Source
+          value: chmonitor
+      headersSecretFrom:
+        name: alert-secrets
+        key: matrix-headers

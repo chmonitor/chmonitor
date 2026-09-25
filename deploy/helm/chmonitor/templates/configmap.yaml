@@ -4,6 +4,9 @@ metadata:
   name: {{ include "chmonitor.fullname" . }}
   labels:
     {{- include "chmonitor.labels" . | nindent 4 }}
+{{- if .Values.alertWebhooks.enabled }}
+{{ include "chmonitor.alertWebhooks.validate" . }}
+{{- end }}
 data:
   CLICKHOUSE_HOST: {{ .Values.clickhouse.host | quote }}
   CLICKHOUSE_USER: {{ .Values.clickhouse.user | quote }}
@@ -15,4 +18,7 @@ data:
   {{- end }}
   {{- if .Values.auth.clerk.publishableKey }}
   CHM_CLERK_PUBLISHABLE_KEY: {{ .Values.auth.clerk.publishableKey | quote }}
+  {{- end }}
+  {{- if .Values.alertWebhooks.enabled }}
+  HEALTH_ALERT_WEBHOOK_TARGETS: {{ include "chmonitor.alertWebhooks.targetsJson" . | quote }}
   {{- end }}
