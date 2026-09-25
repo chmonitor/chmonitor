@@ -341,7 +341,72 @@ cron:
       cpu: 100m
       memory: 64Mi
 
+# Custom alert webhook targets (GitOps-declared, issue #3414).
+#
+# Each entry declares ONE outbound webhook destination for health-alert
+# findings. The chart renders them into the HEALTH_ALERT_WEBHOOK_TARGETS env
+# contract: non-secret fields as JSON in the ConfigMap, URL/secret headers as
+# Secret-backed env vars (never in the ConfigMap). Disabled by default, so
+# Docker/OSS behavior is unchanged unless you opt in.
+#
+# Precedence (see chart README "Custom alert webhooks"): D1-persisted targets
+# saved via the UI/API merge with these BY NAME and win per-field, except
+# secret references which always resolve from the deployment environment.
+# The legacy global HEALTH_ALERT_WEBHOOK_URL keeps working unchanged.
+#
+# alertWebhooks:
+#   enabled: true
+#   # Defaults applied to targets that omit the field.
+#   defaults:
+#     format: auto        # auto | raw | slack | matrix
+#     minSeverity: warning # warning | critical
+#   targets:
+#     # Non-secret endpoint: inline URL is stored in the chart-managed Secret
+#     # (key HEALTH_ALERT_WEBHOOK_TARGET_0_URL), never in the ConfigMap.
+#     - name: team-alerts
+#       enabled: true
+#       format: slack
+#       minSeverity: warning
+#       url: "https://hooks.slack.com/services/T000/B000/XXXX"
+#       # Optional safe customization (allowlisted {{variables}} only,
+#       # enforced by the app at save/send time; length-bounded here).
+#       titleTemplate: "[{{severity}}] {{title}}"
+#       textTemplate: "{{label}} on {{host}}"
+#       # Optional plaintext headers: X-* names only, max 8, values ≤1024
+#       # chars. NEVER put credentials here — use headersSecret* below.
+#       headers:
+#         - name: X-Source
+#           value: chmonitor
+#     # Token-bearing URL (Slack/Matrix webhook URLs ARE credentials): reference
+#     # a pre-existing Secret (ESO/Vault/Sealed Secrets) instead of inlining.
+#     - name: element-notices
+#       format: matrix
+#       minSeverity: critical
+#       urlFrom:
+#         name: chmonitor-alert-secrets   # must contain key: matrix-webhook-url
+#         key: matrix-webhook-url
+#       # Optional secret headers as a JSON object string, e.g.
+#       # '{"Authorization":"Bearer ..."}'. Inline JSON goes to the
+#       # chart-managed Secret; headersSecretFrom references an external one.
+#       # headersSecretFrom:
+#       #   name: chmonitor-alert-secrets
+#       #   key: element-headers-json
+#     # Plain-HTTP endpoints need an explicit opt-in (SSRF/creds in cleartext).
+#     # - name: internal-relay
+#     #   url: "http://relay.monitoring.svc.cluster.local:8080/hook"
+#     #   allowInsecureHttp: true
+alertWebhooks:
+  enabled: false
+  defaults:
+    format: auto
+    minSeverity: warning
+  targets: []
+
 # Extra env (canonical CHM_* names from apps/dashboard/.env.example).
+# SECURITY: prefer non-secret values here. For credentials, use valueFrom
+# secretKeyRef entries pointing at a pre-existing Secret — never commit
+# plaintext secrets in a values file (same rule as alertWebhooks above:
+# token-bearing URLs and auth headers belong in Secret references).
 # extraEnv:
 #   - name: CLICKHOUSE_NAME
 #     value: "prod"

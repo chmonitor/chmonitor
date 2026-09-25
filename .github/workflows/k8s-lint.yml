@@ -60,6 +60,9 @@ jobs:
                 -kubernetes-version "$K8S_VERSION" \
                 -schema-location default
 
+      - name: custom alert webhook render
+        run: deploy/helm/chmonitor/tests/test-alert-webhooks.sh
+
   kustomize:
     name: kustomize kubeconform
     runs-on: ubuntu-latest

@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "title": "chmonitor chart values",
+  "type": "object",
+  "properties": {
+    "alertWebhooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "defaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "format": {
+              "type": "string",
+              "enum": ["auto", "raw", "slack", "matrix"]
+            },
+            "minSeverity": {
+              "type": "string",
+              "enum": ["warning", "critical"]
+            }
+          }
+        },
+        "targets": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "enabled": { "type": "boolean" },
+              "format": {
+                "type": "string",
+                "enum": ["auto", "raw", "slack", "matrix"]
+              },
+              "minSeverity": {
+                "type": "string",
+                "enum": ["warning", "critical"]
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048,
+                "description": "Inline webhook URL. Stored in the chart-managed Secret, never in the ConfigMap. For token-bearing URLs prefer urlFrom."
+              },
+              "allowInsecureHttp": {
+                "type": "boolean",
+                "description": "Opt-in for plain-http:// URLs. Default false: URLs must be https://."
+              },
+              "urlFrom": {
+                "$ref": "#/definitions/secretRef"
+              },
+              "titleTemplate": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "textTemplate": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "headers": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "value"],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "maxLength": 65,
+                      "pattern": "^X-[A-Za-z0-9-]{1,63}$"
+                    },
+                    "value": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                }
+              },
+              "headersSecret": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 8192,
+                "description": "Inline JSON object of secret headers. Stored in the chart-managed Secret."
+              },
+              "headersSecretFrom": {
+                "$ref": "#/definitions/secretRef"
+              }
+            }
+          }
+        }
+      }
+    },
+    "extraEnv": {
+      "type": "array",
+      "description": "Non-secret env only. For credentials use valueFrom.secretKeyRef entries — never commit plaintext secrets in values files."
+    }
+  },
+  "definitions": {
+    "secretRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "key"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "key": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

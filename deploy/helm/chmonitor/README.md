@@ -63,6 +63,39 @@ helm uninstall my-chm
 
 See [`values.yaml`](./values.yaml) for the full list.
 
+## Custom alert webhooks (GitOps)
+
+The optional `alertWebhooks` block declares read-only alert destinations for the health sweep. It is disabled by default and is independent of the legacy `HEALTH_ALERT_WEBHOOK_URL` setting.
+
+```yaml
+alertWebhooks:
+  enabled: true
+  defaults:
+    format: slack
+    minSeverity: warning
+  targets:
+    - name: team-slack
+      format: slack
+      urlFrom:
+        name: chmonitor-alert-secrets
+        key: slack-webhook-url
+    - name: element-room
+      format: matrix
+      minSeverity: critical
+      urlFrom:
+        name: chmonitor-alert-secrets
+        key: matrix-webhook-url
+      headersSecretFrom:
+        name: chmonitor-alert-secrets
+        key: matrix-headers
+```
+
+Supported formats are `auto`, `raw`, `slack`, and `matrix`. Non-secret target metadata is rendered into the `HEALTH_ALERT_WEBHOOK_TARGETS` ConfigMap. URLs and secret headers are always mounted with `secretKeyRef`; do not put token-bearing URLs in ConfigMap values, `extraEnv`, or committed GitOps files. Prefer External Secrets, Sealed Secrets, or your cluster's secret manager for `urlFrom` and `headersSecretFrom`.
+
+D1/UI configuration is owner-scoped and takes precedence over a Helm target with the same name. Deleting a D1 row resets that name to the Helm declaration. A disabled D1 row suppresses the Helm target until reset. Deploy-time schema and helper validation reject unknown formats, duplicate names, invalid URLs, oversized templates, and unsafe headers; the app repeats URL/SSRF and payload validation at send time.
+
+The chart includes a values checksum for declarative changes. Rotating an externally managed Secret may require a normal pod rollout, as with other externally managed Secret references.
+
 ## ClickHouse user requirements
 
 Prefer a **dedicated read-only user** with `SELECT` / `SHOW` (and usually

@@ -15,6 +15,7 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/alert-webhooks: {{ .Values.alertWebhooks | toJson | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -164,6 +165,41 @@ spec:
                 secretKeyRef:
                   name: {{ include "chmonitor.cronSecretName" . }}
                   key: CRON_SECRET
+            {{- end }}
+            {{- if .Values.alertWebhooks.enabled }}
+            - name: HEALTH_ALERT_WEBHOOK_TARGETS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "chmonitor.fullname" . }}
+                  key: HEALTH_ALERT_WEBHOOK_TARGETS
+            {{- range $i, $target := .Values.alertWebhooks.targets }}
+            {{- if $target.url }}
+            - name: HEALTH_ALERT_WEBHOOK_TARGET_{{ $i }}_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "chmonitor.fullname" $ }}
+                  key: HEALTH_ALERT_WEBHOOK_TARGET_{{ $i }}_URL
+            {{- else if $target.urlFrom }}
+            - name: HEALTH_ALERT_WEBHOOK_TARGET_{{ $i }}_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $target.urlFrom.name }}
+                  key: {{ $target.urlFrom.key }}
+            {{- end }}
+            {{- if $target.headersSecret }}
+            - name: HEALTH_ALERT_WEBHOOK_TARGET_{{ $i }}_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "chmonitor.fullname" $ }}
+                  key: HEALTH_ALERT_WEBHOOK_TARGET_{{ $i }}_HEADERS
+            {{- else if $target.headersSecretFrom }}
+            - name: HEALTH_ALERT_WEBHOOK_TARGET_{{ $i }}_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $target.headersSecretFrom.name }}
+                  key: {{ $target.headersSecretFrom.key }}
+            {{- end }}
+            {{- end }}
             {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
