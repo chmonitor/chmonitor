@@ -191,6 +191,13 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   opened from an "Add channel" button in the section header — not a permanent
   inline tile grid. See `components/health/channel-card.tsx` +
   `alert-channels-panel.tsx` (`/alert-settings`).
+- **Custom alert target editor:** keep the list/controller and the editable
+  target form as separate focused components (`custom-webhook-targets-panel.tsx`
+  + `custom-webhook-target-card.tsx`). Render configured D1 targets as compact
+  selectors/cards, read-only Helm targets as a short status list, and use
+  `EmptyState` only when neither exists. Previews are deterministic sample
+  payloads rendered by the server formatter; never display a raw credential URL
+  or a live target response in the browser.
 - **Compact rail sidebar (primary block + collapsible groups):** a narrow
   (~320px) settings rail (e.g. `/agents` right-hand sidebar) keeps its 1-3 most
   important controls (host, model) as a static, never-collapsing "primary"
