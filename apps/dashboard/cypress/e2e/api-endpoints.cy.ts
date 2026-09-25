@@ -27,10 +27,11 @@ describe('Public API endpoints', () => {
   })
 
   it('GET /api/timezone returns timezone info', () => {
-    // Returns 200 with timezone when ClickHouse is reachable, 500 when not.
+    // Returns 401 when auth is enforced, 200 with timezone when ClickHouse is
+    // reachable, and 500 when no usable ClickHouse connection is available.
     cy.request({ url: '/api/timezone', failOnStatusCode: false }).then(
       (res) => {
-        expect([200, 500]).to.include(res.status)
+        expect([200, 401, 500]).to.include(res.status)
       }
     )
   })
