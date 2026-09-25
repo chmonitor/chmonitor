@@ -202,6 +202,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Design | [product-design.md](docs/knowledge/product-design.md) | Design system + UX conventions: OKLCH tokens, shadcn rules, ChartCard/Container, EmptyState, graceful errors, ?host routing, file org (source of truth for the `product-design` skill) |
 | Specs | [ai-insights.md](docs/knowledge/ai-insights.md) | AI Insights engine: collect→enrich→persist (findings store), cron + manual generation, stable-key dismissal, overview panel |
 | Specs | [agent-eval.md](docs/knowledge/agent-eval.md) | Live promptfoo eval vs /api/v1/agent; AnyRouter llm-rubric; PR path filter |
+| Specs | [metadata-db-optional-config.md](docs/knowledge/metadata-db-optional-config.md) | Metadata-DB-optional config: audit of D1-gated alert/settings stores, ENV + ConfigMap path for a DB-free deploy, precedence rule, read-only vs writable boundary, and the `CHM_CONFIG_FILE` dead-config finding |
 | Specs | [mcp-server.md](docs/knowledge/mcp-server.md) | MCP server at /api/mcp: tools, setup, security |
 | Specs | [agentstate-conversation-store.md](docs/knowledge/agentstate-conversation-store.md) | AgentState conversation backend: store priority, per-user external_id/tag isolation, append-only upsert, AI enrichment, backend/follow-ups routes |
 | Specs | [query-config-format.md](docs/knowledge/query-config-format.md) | QueryConfig type, versioned SQL, BackgroundBar |
