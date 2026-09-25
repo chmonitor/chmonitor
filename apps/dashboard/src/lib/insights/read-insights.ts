@@ -42,9 +42,11 @@ function deriveAction(
     case 'peerdb_failed_mirrors':
     case 'peerdb_paused_mirrors':
     case 'peerdb_mirror_errors':
+    case 'peerdb_terminated_mirrors':
     case 'peerdb_snapshot_stalled':
       return { label: 'View mirrors', href: '/peerdb' }
     case 'peerdb_slot_lag_mb':
+    case 'peerdb_slot_lag_trend':
       return { label: 'View peers', href: '/peerdb/peers' }
     case 'parts_pressure':
       return { label: 'View merges', href: '/merges' }
@@ -53,6 +55,14 @@ function deriveAction(
     case 'failed_dictionaries':
       return { label: 'View dictionaries', href: '/dictionaries' }
     default:
+      // A per-mirror PeerDB card keys on its flow slug
+      // (`peerdb_mirror_errors:<slug>`), so match the family by prefix — the
+      // store is scalar-only and the exact suffix is not enumerable here.
+      if (metric.startsWith('peerdb_')) {
+        return metric.includes('slot_lag')
+          ? { label: 'View peers', href: '/peerdb/peers' }
+          : { label: 'View mirrors', href: '/peerdb' }
+      }
       if (category === 'storage')
         return { label: 'View tables', href: '/tables' }
       // Schema-optimization suggestions use a dynamic per-recommendation metric

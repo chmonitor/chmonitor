@@ -10,9 +10,16 @@ import { HealthCard } from './health-card'
 import { HEALTH_CHECKS } from './health-checks'
 import { HealthSummaryBanner } from './health-summary-banner'
 import { RunningMutationsCard, StuckMutationsCard } from './mutations-cards'
+import {
+  PEERDB_HEALTH_DEFS,
+  PEERDB_HEALTH_IDS,
+  PeerDBHealthCard,
+  peerDBHeadlineValue,
+} from './peerdb-cards'
 import { signalsForCheck, useAlertSignals } from './use-alert-signals'
 import { EMPTY_STATE, useHealthChecks } from './use-health-checks'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { usePeerDBMetrics } from '@/components/peerdb/use-peerdb-metrics'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   alertStatusKey,
@@ -25,8 +32,10 @@ import {
 } from '@/lib/health/alert-dispatcher'
 import {
   computeCheckStatus,
+  computePeerDBHealth,
   computeRunningMutations,
   computeStuckMutations,
+  type PeerDBHealthSource,
   SEVERITY_RANK,
 } from '@/lib/health/health-status'
 import {
@@ -115,11 +124,27 @@ export function HealthGrid() {
       ...HEALTH_CHECKS.map((c) => c.id),
       'stuck-mutations',
       'running-mutations',
+      ...PEERDB_HEALTH_IDS,
     ],
     []
   )
   const { signalsByCheck, availability: alertStoreAvailability } =
     useAlertSignals(itemIds, overrides)
+
+  // PeerDB is a bespoke health group (#3439): it arrives over PeerDB REST, not
+  // through the ClickHouse chart registry, so it has its own hook and its own
+  // `computeX`. `configured: false` means `PEERDB_API_URL` is unset — the whole
+  // group is then ABSENT rather than a row of green zeros for a product this
+  // deployment does not run.
+  const peerDB = usePeerDBMetrics()
+  const peerDBConfigured = peerDB.data?.configured === true
+  const peerDBSource: PeerDBHealthSource = peerDB.isPending
+    ? { kind: 'loading' }
+    : peerDB.error
+      ? { kind: 'error', message: peerDB.error.message }
+      : peerDB.data
+        ? { kind: 'data', metrics: peerDB.data.metrics }
+        : { kind: 'loading' }
 
   const { results, isLoading, isValidating, dataUpdatedAt } = useHealthChecks(
     chartNames,
@@ -222,6 +247,38 @@ export function HealthGrid() {
       ),
     })
 
+    // PeerDB group — omitted entirely when PeerDB is not configured (#3439).
+    // One grid item per card, so each sorts, counts, and filters on its own:
+    // a climbing slot lag promotes its own card even while the fleet is green.
+    if (peerDBConfigured) {
+      const peerDBStatus = computePeerDBHealth(peerDBSource).status
+      for (const def of PEERDB_HEALTH_DEFS) {
+        list.push({
+          id: def.id,
+          status: peerDBStatus,
+          sparkValue: peerDBHeadlineValue(def.id, peerDBSource),
+          order: order++,
+          alert: {
+            title: def.title,
+            value: peerDBHeadlineValue(def.id, peerDBSource),
+            label: def.title,
+          },
+          render: (spark, variant) => (
+            <PeerDBHealthCard
+              key={def.id}
+              def={def}
+              hostId={hostId}
+              source={peerDBSource}
+              spark={spark}
+              variant={variant}
+              signals={signalsForCheck(signalsByCheck, def.id)}
+              availability={alertStoreAvailability}
+            />
+          ),
+        })
+      }
+    }
+
     return list
   }, [
     results,
@@ -230,6 +287,8 @@ export function HealthGrid() {
     hostId,
     signalsByCheck,
     alertStoreAvailability,
+    peerDBConfigured,
+    peerDBSource,
   ])
 
   // Keep the latest items reachable from refresh-gated effects without

@@ -14,7 +14,13 @@ import { formatRelativeTime } from '@/lib/utils/format-relative-time'
 
 interface InsightCardProps {
   insight: InsightCardData
-  hostId: number
+  /**
+   * ClickHouse host the deep-link should carry as `?host=`. Omit it for a
+   * finding that has no ClickHouse host at all (PeerDB findings belong to the
+   * env-wide PeerDB deployment, not to a host in the host list) — the link then
+   * carries no `?host=` rather than a fabricated one.
+   */
+  hostId?: number
   onDismiss: (insight: InsightCardData) => void
   className?: string
   /**
@@ -41,7 +47,8 @@ export function InsightCard({
     : Number.NaN
   const hasGeneratedAt = Number.isFinite(generatedMs)
 
-  const linkParams = linkSearch ?? { host: hostId }
+  const linkParams =
+    linkSearch ?? (hostId === undefined ? {} : { host: hostId })
   const action = insight.action
   const actionHref = action?.href
     ? buildUrl(action.href, linkParams)

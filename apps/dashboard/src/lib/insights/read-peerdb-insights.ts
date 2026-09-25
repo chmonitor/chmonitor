@@ -29,14 +29,22 @@ function derivePeerDBAction(
   metric: string,
   category: string
 ): InsightAction | undefined {
-  switch (metric) {
-    case 'peerdb_failed_mirrors':
-    case 'peerdb_paused_mirrors':
-    case 'peerdb_mirror_errors':
-    case 'peerdb_snapshot_stalled':
-      return { label: 'View mirrors', href: '/peerdb' }
-    case 'peerdb_slot_lag_mb':
+  switch (true) {
+    // Slot-lag family, absolute or diverging — the peer page owns the history.
+    case metric === 'peerdb_slot_lag_mb':
+    case metric === 'peerdb_slot_lag_trend':
       return { label: 'View peers', href: '/peerdb/peers' }
+    // Per-mirror cards carry the flow slug in the metric, so match on the
+    // prefix rather than enumerating every suffix.
+    case metric.startsWith('peerdb_mirror_errors:'):
+    case metric.startsWith('peerdb_snapshot_stalled:'):
+      return { label: 'View mirrors', href: '/peerdb' }
+    case metric === 'peerdb_failed_mirrors':
+    case metric === 'peerdb_paused_mirrors':
+    case metric === 'peerdb_mirror_errors':
+    case metric === 'peerdb_terminated_mirrors':
+    case metric === 'peerdb_snapshot_stalled':
+      return { label: 'View mirrors', href: '/peerdb' }
     default:
       if (category === 'performance' || category === 'reliability')
         return { label: 'View mirrors', href: '/peerdb' }

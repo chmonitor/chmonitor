@@ -36,6 +36,7 @@ import { MirrorMetricsProbe } from '@/components/peerdb/mirror-metrics-probe'
 import { MirrorRow } from '@/components/peerdb/mirror-row'
 import { PeerGraph } from '@/components/peerdb/peer-graph'
 import { EAGER_METRICS_LIMIT } from '@/components/peerdb/peerdb-derive'
+import { PeerDBInsightsPanel } from '@/components/peerdb/peerdb-insights-panel'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
 import {
   DESIGN_STATUS_META,
@@ -486,6 +487,9 @@ function PeerDBMirrorsPage() {
           )}
         </div>
       </div>
+
+      <PeerDBInsightsPanel className="mb-4" />
+
       <p className="mb-4 text-[12.5px] text-muted-foreground">
         Replication mirrors with live status, rows-synced trend, and routing
         topology. Data sourced from{' '}

@@ -13,8 +13,13 @@
 import type { HealthCheckDef } from '@/components/health/health-checks'
 import type { HealthCheckState } from '@/components/health/use-health-checks'
 import type { Thresholds } from '@/lib/health/thresholds-storage'
+import type { PeerDBFleetMetrics } from '@/lib/peerdb/fleet-metrics'
 
 import { classifyValue } from '@/lib/alerting/rule-registry'
+import {
+  SLOT_LAG_CRITICAL_MB,
+  SLOT_LAG_WARN_MB,
+} from '@/lib/peerdb/slot-lag-thresholds'
 
 export type HealthStatus = 'ok' | 'warning' | 'critical' | 'loading' | 'error'
 
@@ -203,4 +208,79 @@ export function computeRunningMutations(
   }
 
   return { status, value, label }
+}
+
+/** How the PeerDB health items reach the grid (see `health-grid.tsx`). */
+export type PeerDBHealthSource =
+  | { kind: 'loading' }
+  | { kind: 'error'; message: string }
+  | { kind: 'data'; metrics: PeerDBFleetMetrics }
+
+/**
+ * PeerDB fleet health, computed from the already-fetched
+ * `GET /api/v1/peerdb-metrics` summary rather than from a chart-registry query.
+ *
+ * This is the **bespoke-item** pattern, the same one `computeStuckMutations`
+ * uses: the `/health` pipeline resolves every standard check through the
+ * ClickHouse chart registry and executes `queryDef.sql` against a ClickHouse
+ * host, which a PeerDB gRPC-gateway REST source cannot satisfy. Forcing PeerDB
+ * through it would break the layering boundary depcruise enforces.
+ *
+ * The slot-lag thresholds are the shared `lib/peerdb/slot-lag-thresholds`, so
+ * the Health card and the `/peerdb` slot-health table agree on what "lagging"
+ * means. Every field is defensive — a partial PeerDB payload (some sub-fetch
+ * failed) must never read as a healthy fleet, so a missing number is `0` only
+ * when the collection genuinely is empty.
+ */
+export function computePeerDBHealth(
+  source: PeerDBHealthSource
+): ComputedMutations {
+  if (source.kind === 'loading') {
+    return { status: 'loading', value: 0, label: 'Loading…' }
+  }
+  if (source.kind === 'error') {
+    return { status: 'error', value: 0, label: 'Unavailable' }
+  }
+
+  const m = source.metrics
+  const failed = m.failedMirrors.length
+  const paused = m.pausedMirrors.length
+  const terminated = m.terminatedMirrors.length
+  const lag = m.maxSlotLagMb
+
+  const label =
+    `${m.totalMirrors} mirrors · ` +
+    `${failed} failed · ${paused} paused · ${terminated} terminated · ` +
+    `worst slot lag ${lag === null ? '—' : `${Math.round(lag).toLocaleString()} MiB`}`
+
+  if (m.totalMirrors === 0) {
+    return { status: 'ok', value: 0, label: 'No PeerDB mirrors' }
+  }
+
+  // Take the worst of the three independent conditions; each is "higher is
+  // worse" and non-negative, so classifyValue is the right tool for all three.
+  const worst = (v: number, warning: number, critical: number) =>
+    classifyValue(v, { warning, critical })
+  const failedStatus = worst(failed, 1, 3)
+  const terminatedStatus = worst(terminated, 1, 5)
+  const lagStatus =
+    lag === null
+      ? ('ok' as HealthStatus)
+      : classifyValue(lag, {
+          warning: SLOT_LAG_WARN_MB,
+          critical: SLOT_LAG_CRITICAL_MB,
+        })
+
+  const status = [
+    failedStatus,
+    terminatedStatus,
+    lagStatus,
+  ].reduce<HealthStatus>(
+    (worstSoFar, s) =>
+      SEVERITY_RANK[s] < SEVERITY_RANK[worstSoFar] ? s : worstSoFar,
+    'ok'
+  )
+
+  // The headline value is the count an operator acts on first.
+  return { status, value: failed + terminated, label }
 }
