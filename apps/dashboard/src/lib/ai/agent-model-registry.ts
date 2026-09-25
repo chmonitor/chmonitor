@@ -60,6 +60,18 @@ export function resolveDefaultAgentModel(): string {
   return DEFAULT_AGENT_MODEL
 }
 
+/**
+ * Curated model floor. Every id, context length and price below was verified
+ * against the provider's own public catalog (see each section header) — the
+ * registry is the list the picker falls back to when discovery is disabled or
+ * an upstream call fails, so a plausible-but-nonexistent entry is worse than a
+ * shorter list: the user selects it and the request fails at the provider.
+ *
+ * `pricing` is the per-million rate of the **first listed provider**. For
+ * models served by more than one provider the rates differ slightly; the
+ * second provider's live rate is always available from that provider's own
+ * catalog (or from the dynamic loader) and is not duplicated here.
+ */
 export const MODEL_REGISTRY: readonly ModelEntry[] = [
   // ── Presets (auto-routing via AnyRouter) ──
   {
@@ -69,7 +81,16 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
     providers: ['anyrouter'],
   },
 
-  // ── OpenRouter auto-routers ──
+  // ── Auto-routers ──
+  // Cost is variable (the router picks the upstream model per request), so no
+  // price is recorded for these — OpenRouter reports an explicit -1 sentinel
+  // and AnyRouter quotes its router rate.
+  {
+    id: 'anyrouter:auto',
+    description: 'Auto-router: top tool-capable model by usage',
+    contextLength: 1_000_000,
+    providers: ['anyrouter'],
+  },
   {
     id: 'openrouter/free',
     description: 'Auto-router: free tool-capable model',
@@ -83,62 +104,104 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
     providers: ['openrouter'],
   },
 
-  // ── Free-tier (OpenRouter only) ──
-  {
-    id: 'qwen/qwen3-coder:free',
-    description: 'Qwen3 Coder, 1M context',
-    contextLength: 1_048_576,
-    providers: ['openrouter'],
-  },
-  {
-    id: 'z-ai/glm-4.5-air:free',
-    description: 'GLM 4.5 Air',
-    contextLength: 131_072,
-    providers: ['openrouter'],
-  },
+  // ── Free tier (verified tool-capable on OpenRouter, 2026-09-26) ──
   {
     id: 'google/gemma-4-31b-it:free',
     description: 'Gemma 4 31B IT',
     contextLength: 262_144,
     providers: ['openrouter'],
   },
+  {
+    id: 'google/gemma-4-26b-a4b-it:free',
+    description: 'Gemma 4 26B IT, free',
+    contextLength: 262_144,
+    providers: ['openrouter'],
+  },
+  {
+    id: 'qwen/qwen3.8-27b:free',
+    description: 'Qwen3.8 27B, free',
+    contextLength: 262_144,
+    providers: ['openrouter'],
+  },
+  {
+    id: 'nvidia/nemotron-3-super-120b-a12b:free',
+    description: 'Nemotron 3 Super 120B, free',
+    contextLength: 262_144,
+    providers: ['openrouter'],
+  },
 
-  // ── Paid: multi-provider ──
-  {
-    id: 'qwen/qwen3.5-397b-a17b',
-    description: 'Qwen 3.5 397B MoE',
-    contextLength: 131_072,
-    pricing: { inputPerMillion: 0.35, outputPerMillion: 0.4 },
-    providers: ['openrouter', 'nvidia', 'anyrouter'],
-  },
-  {
-    id: 'z-ai/glm-4.7-flash',
-    description: 'GLM 4.7 Flash',
-    contextLength: 131_072,
-    providers: ['openrouter', 'nvidia', 'anyrouter'],
-  },
-  {
-    id: 'google/gemini-3.1-flash-lite',
-    description: 'Gemini 3.1 Flash Lite',
-    contextLength: 1_000_000,
-    pricing: { inputPerMillion: 0.25, outputPerMillion: 1.5 },
-    providers: ['anyrouter'],
-  },
+  // ── Paid: OpenRouter + AnyRouter ──
   {
     id: 'google/gemma-4-26b-a4b-it',
     description: 'Gemma 4 26B IT',
     contextLength: 262_144,
+    pricing: { inputPerMillion: 0.0675, outputPerMillion: 0.225 },
     providers: ['openrouter', 'anyrouter'],
+  },
+  {
+    id: 'z-ai/glm-4.7-flash',
+    description: 'GLM 4.7 Flash',
+    contextLength: 200_000,
+    pricing: { inputPerMillion: 0.0605, outputPerMillion: 0.4 },
+    providers: ['openrouter', 'anyrouter'],
+  },
+  {
+    id: 'z-ai/glm-5.3-flash',
+    description: 'GLM 5.3 Flash',
+    contextLength: 1_310_720,
+    pricing: { inputPerMillion: 0.045, outputPerMillion: 0.14 },
+    providers: ['openrouter', 'anyrouter'],
+  },
+  {
+    id: 'moonshotai/kimi-k3',
+    description: 'Kimi K3',
+    contextLength: 1_048_576,
+    pricing: { inputPerMillion: 3.0, outputPerMillion: 15.0 },
+    providers: ['openrouter', 'anyrouter'],
+  },
+  {
+    id: 'qwen/qwen3.5-397b-a17b',
+    description: 'Qwen 3.5 397B MoE',
+    contextLength: 262_144,
+    pricing: { inputPerMillion: 0.55, outputPerMillion: 3.5 },
+    providers: ['openrouter'],
+  },
+  {
+    id: 'google/gemini-3.1-flash-lite',
+    description: 'Gemini 3.1 Flash Lite',
+    contextLength: 1_048_576,
+    pricing: { inputPerMillion: 0.25, outputPerMillion: 1.5 },
+    providers: ['openrouter'],
   },
   {
     id: 'x-ai/grok-4.5',
     description: 'Grok 4.5',
-    contextLength: 262_144,
-    pricing: { inputPerMillion: 2.0, outputPerMillion: 10.0 },
-    providers: ['openrouter', 'anyrouter'],
+    contextLength: 500_000,
+    pricing: { inputPerMillion: 2.0, outputPerMillion: 6.0 },
+    providers: ['openrouter'],
+  },
+  {
+    id: 'x-ai/grok-4.7',
+    description: 'Grok 4.7',
+    contextLength: 500_000,
+    pricing: { inputPerMillion: 1.6, outputPerMillion: 4.8 },
+    providers: ['anyrouter'],
   },
 
-  // ── NVIDIA-only ──
+  // ── NVIDIA NIM only (own key — the NIM catalog publishes no rates, so no
+  //    price is recorded and the picker shows no cost for these) ──
+  {
+    id: 'nvidia/nemotron-3-super-120b-a12b',
+    description: 'Nemotron 3 Super 120B',
+    contextLength: 262_144,
+    providers: ['nvidia'],
+  },
+  {
+    id: 'nvidia/nemotron-3-ultra-550b-a55b',
+    description: 'Nemotron 3 Ultra 550B',
+    contextLength: 1_000_000,
+    providers: ['nvidia'],
+  },
   {
     id: 'nvidia/llama-3.1-nemotron-70b-instruct',
     description: 'Nemotron 70B Instruct',

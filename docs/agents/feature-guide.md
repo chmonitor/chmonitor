@@ -25,8 +25,9 @@ LLM_MODEL=openrouter/free
 
 | Provider | Base URL | Models |
 |----------|----------|--------|
-| **OpenRouter** (Free tier) | `https://openrouter.ai/api/v1` | `openrouter/free` (default auto-router), `z-ai/glm-4.5-air:free`, `qwen/qwen3-coder:free`, `meta-llama/llama-3.3-70b-instruct:free` |
-| **AnyRouter** | `https://anyrouter.dev/api/v1` | `z-ai/glm-4.7-flash`, `google/gemini-3.1-flash-lite`, `google/gemma-4-26b-a4b-it` |
+| **OpenRouter** (Free tier) | `https://openrouter.ai/api/v1` | `openrouter/free` (default auto-router), `google/gemma-4-31b-it:free`, `google/gemma-4-26b-a4b-it:free`, `qwen/qwen3.8-27b:free` |
+| **AnyRouter** | `https://anyrouter.dev/api/v1` | `anyrouter:auto`, `z-ai/glm-4.7-flash`, `google/gemma-4-26b-a4b-it` |
+| **NVIDIA NIM** | `https://integrate.api.nvidia.com/v1` | `nvidia/nemotron-3-super-120b-a12b`, `nvidia/nemotron-3-ultra-550b-a55b`, `nvidia/llama-3.1-nemotron-70b-instruct` |
 | Anthropic | `https://api.anthropic.com` | `claude-3-5-sonnet-20241022`, `claude-3-opus-20240229` |
 | OpenAI | `https://api.openai.com` | `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo` |
 | Azure OpenAI | `https://your-resource.openai.azure.com` | `gpt-4` |

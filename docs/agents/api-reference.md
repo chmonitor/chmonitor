@@ -52,25 +52,31 @@ LLM_MODEL=openrouter/free
 
 ### Model Options
 
-All free OpenRouter options listed below support tool use (required by the agent).
+All free OpenRouter options listed below support tool use (required by the
+agent) and were verified against the live catalog on 2026-09-26. Free model
+rosters turn over quickly — the picker is populated from the provider catalog
+at runtime, so treat this table as a starting point rather than a guarantee.
 
 | Model | Provider | Cost | Notes |
 |-------|----------|------|-------|
 | `openrouter/free` | OpenRouter | Free | Default auto-router to a working free tool-capable model |
-| `anyrouter:z-ai/glm-4.7-flash` | AnyRouter | Paid | Fast tool-capable model |
-| `anyrouter:google/gemini-3.1-flash-lite` | AnyRouter | Paid | 1M context, tool-capable |
-| `anyrouter:google/gemma-4-26b-a4b-it` | AnyRouter | Paid | 262K context, tool-capable |
 | `openrouter/auto` | OpenRouter | Paid | Auto-routes to best available model |
-| `z-ai/glm-4.5-air:free` | OpenRouter | Free | Reliable free, tool-capable |
-| `openai/gpt-oss-120b:free` | OpenRouter | Free | OpenAI 120B open-source |
-| `openai/gpt-oss-20b:free` | OpenRouter | Free | OpenAI 20B open-source |
-| `qwen/qwen3-coder:free` | OpenRouter | Free | 1M context window |
-| `qwen/qwen3-next-80b-a3b-instruct:free` | OpenRouter | Free | 262K context |
-| `meta-llama/llama-3.3-70b-instruct:free` | OpenRouter | Free | Meta 70B instruct |
-| `google/gemma-4-31b-it:free` | OpenRouter | Free | Google 31B instruct |
-| `arcee-ai/trinity-large-preview:free` | OpenRouter | Free | Arcee preview |
+| `anyrouter:auto` | AnyRouter | Paid | Auto-router to the top tool-capable model by usage |
+| `anyrouter:z-ai/glm-4.7-flash` | AnyRouter | Paid | Fast tool-capable model |
+| `anyrouter:google/gemma-4-26b-a4b-it` | AnyRouter | Paid | 262K context, tool-capable |
+| `openrouter:google/gemini-3.1-flash-lite` | OpenRouter | Paid | 1M context, tool-capable |
+| `google/gemma-4-31b-it:free` | OpenRouter | Free | 262K context, tool-capable |
+| `google/gemma-4-26b-a4b-it:free` | OpenRouter | Free | 262K context, tool-capable |
+| `qwen/qwen3.8-27b:free` | OpenRouter | Free | 262K context, tool-capable |
+| `thinkingmachines/inkling:free` | OpenRouter | Free | 1M context, tool-capable |
+| `poolside/laguna-s-2.1:free` | OpenRouter | Free | 262K context, tool-capable |
+| `nvidia/nemotron-3-super-120b-a12b:free` | OpenRouter | Free | 262K context, tool-capable |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | OpenRouter | Free | 1M context, tool-capable |
 | `gpt-4o-mini` | OpenAI | Paid | Best quality |
 | `anthropic/claude-3-haiku` | Anthropic | Paid | Fast & accurate |
+
+NVIDIA NIM (`NVIDIA_API_KEY`) serves its own hosted catalog; the deployment
+bills NVIDIA directly, so no per-token cost is shown for those models.
 
 ## Agent Factory
 
