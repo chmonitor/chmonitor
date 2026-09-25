@@ -172,6 +172,10 @@ function parsePricePerMillion(
   const pair = readPricePerToken(pricing)
   if (!pair) return undefined
   if (pair.prompt === 0 && pair.completion === 0) return undefined // free → omit
+  // Auto-routers (e.g. `openrouter/auto`) quote -1 per token as a sentinel for
+  // "varies with the selected upstream model" — not a negative price. Omit
+  // rather than render a bogus negative cost.
+  if (pair.prompt < 0 || pair.completion < 0) return undefined
   return {
     inputPerMillion: pair.prompt * 1_000_000,
     outputPerMillion: pair.completion * 1_000_000,

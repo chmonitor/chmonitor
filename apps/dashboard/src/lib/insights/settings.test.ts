@@ -10,6 +10,7 @@ import {
   promptSystemFor,
   resolvePromptStyle,
 } from './prompts'
+import { getModelRegistry } from '../ai/agent-model-registry'
 import { resolveInsightModel } from './resolve-model'
 import {
   DEFAULT_INSIGHTS_SETTINGS,
@@ -149,6 +150,18 @@ describe('generateParamsFromSettings', () => {
 
 describe('resolveInsightModel (server-side validation)', () => {
   const KEY = 'OPENROUTER_API_KEY'
+  // Read from the registry rather than hard-coding a literal: a model id is
+  // only "known" while the curated floor still carries it, and OpenRouter
+  // delists models — a pinned id made this test fail the moment the floor was
+  // corrected against the provider's live catalog. Skips the auto-routers
+  // (`openrouter/free`, `openrouter/auto`), which resolve at request time
+  // rather than naming a concrete model.
+  const KNOWN_OPENROUTER_MODEL = getModelRegistry().find(
+    (entry) =>
+      (entry.providers ?? []).includes('openrouter') &&
+      !/^openrouter\//.test(entry.id)
+  )?.id
+  if (!KNOWN_OPENROUTER_MODEL) throw new Error('no OpenRouter model in registry')
   let prev: string | undefined
 
   beforeEach(() => {
@@ -168,14 +181,24 @@ describe('resolveInsightModel (server-side validation)', () => {
 
   it('accepts a known model when its provider key is configured', () => {
     process.env[KEY] = 'sk-test'
-    expect(resolveInsightModel('openrouter:qwen/qwen3-coder:free')).toBe(
-      'openrouter:qwen/qwen3-coder:free'
+    expect(resolveInsightModel(`openrouter:${KNOWN_OPENROUTER_MODEL}`)).toBe(
+      `openrouter:${KNOWN_OPENROUTER_MODEL}`
     )
   })
 
   it('rejects a known model when the provider key is missing', () => {
     delete process.env[KEY]
     delete process.env.LLM_API_KEY
+    expect(
+      resolveInsightModel(`openrouter:${KNOWN_OPENROUTER_MODEL}`)
+    ).toBeUndefined()
+  })
+
+  it('rejects a model the registry no longer carries', () => {
+    // A model can be delisted upstream while it is still hard-coded here. It
+    // must resolve to the deployment default rather than being accepted and
+    // then failing at the provider.
+    process.env[KEY] = 'sk-test'
     expect(
       resolveInsightModel('openrouter:qwen/qwen3-coder:free')
     ).toBeUndefined()

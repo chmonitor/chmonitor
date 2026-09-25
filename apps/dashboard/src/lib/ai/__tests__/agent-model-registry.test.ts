@@ -303,10 +303,15 @@ describe('getAllModelOptions', () => {
 
   test('multi-provider entries produce multiple options', () => {
     const options = getAllModelOptions()
-    // qwen/qwen3.5-397b-a17b has openrouter, nvidia, anyrouter
+    // Gemma 4 26B IT is listed by both the OpenRouter and the AnyRouter
+    // catalog, so it yields one option per provider.
+    expect(options).toContain('openrouter:google/gemma-4-26b-a4b-it')
+    expect(options).toContain('anyrouter:google/gemma-4-26b-a4b-it')
+    // Qwen 3.5 397B is OpenRouter-only — it is in neither the NVIDIA NIM nor
+    // the AnyRouter catalog, so no other provider may claim it.
     expect(options).toContain('openrouter:qwen/qwen3.5-397b-a17b')
-    expect(options).toContain('nvidia:qwen/qwen3.5-397b-a17b')
-    expect(options).toContain('anyrouter:qwen/qwen3.5-397b-a17b')
+    expect(options).not.toContain('nvidia:qwen/qwen3.5-397b-a17b')
+    expect(options).not.toContain('anyrouter:qwen/qwen3.5-397b-a17b')
   })
 
   test('does NOT include extra models from LLM_EXTRA_MODELS (uses MODEL_REGISTRY only)', () => {

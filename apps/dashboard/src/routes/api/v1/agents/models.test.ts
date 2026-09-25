@@ -74,6 +74,28 @@ mock.module('@/lib/ai/openrouter-dynamic-models', () => ({
   ],
 }))
 
+let dynamicNvidia = [
+  {
+    id: 'nvidia:nvidia/nemotron-3-super-120b-a12b',
+    modelId: 'nvidia/nemotron-3-super-120b-a12b',
+    provider: 'nvidia',
+    name: 'nvidia/nemotron-3-super-120b-a12b',
+    available: true,
+  },
+]
+let nvidiaThrows = false
+
+mock.module('@/lib/ai/nvidia-dynamic-models', () => ({
+  loadNvidiaDynamicModelEntries: async () => {
+    if (nvidiaThrows) throw new Error('nvidia down')
+    return dynamicNvidia
+  },
+  mergeNvidiaDynamicModels: (base: unknown[], extra: unknown[]) => [
+    ...base,
+    ...extra,
+  ],
+}))
+
 mock.module('@/lib/ai/anyrouter-presets', () => ({
   loadAnyRouterPresetEntries: async () => anyRouterPresets,
   mergeAnyRouterPresets: (base: unknown[], extra: unknown[]) => [
@@ -104,6 +126,16 @@ beforeEach(() => {
   authorizeAgentApiRequest = mock(async (_request: Request) => null)
   configuredProviders = ['openrouter', 'anyrouter']
   openRouterThrows = false
+  nvidiaThrows = false
+  dynamicNvidia = [
+    {
+      id: 'nvidia:nvidia/nemotron-3-super-120b-a12b',
+      modelId: 'nvidia/nemotron-3-super-120b-a12b',
+      provider: 'nvidia',
+      name: 'nvidia/nemotron-3-super-120b-a12b',
+      available: true,
+    },
+  ]
   dynamicAnyRouter = [
     {
       id: 'anyrouter:claude-sonnet',
@@ -214,5 +246,69 @@ describe('GET /api/v1/agents/models', () => {
     expect(body.models.some((m) => m.id === 'openrouter:dynamic-model')).toBe(
       true
     )
+  })
+
+  test('includes nvidia dynamic entries when loader succeeds', async () => {
+    configuredProviders = ['openrouter', 'anyrouter', 'nvidia']
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/agents/models')
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { models: Array<{ id: string }> }
+    expect(
+      body.models.some(
+        (m) => m.id === 'nvidia:nvidia/nemotron-3-super-120b-a12b'
+      )
+    ).toBe(true)
+  })
+
+  test('a nvidia-only deployment sees nvidia models and no others', async () => {
+    configuredProviders = ['nvidia']
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/agents/models')
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      models: Array<{ id: string; provider: string }>
+      configuredProviders: string[]
+    }
+    expect(body.configuredProviders).toEqual(['nvidia'])
+    // Non-empty, or the provider filter would have emptied the picker and
+    // `every` would still pass vacuously.
+    expect(body.models.length).toBeGreaterThan(0)
+    expect(body.models.every((m) => m.provider === 'nvidia')).toBe(true)
+    expect(
+      body.models.some(
+        (m) => m.id === 'nvidia:nvidia/nemotron-3-super-120b-a12b'
+      )
+    ).toBe(true)
+    // The openrouter registry entry must not leak to an unconfigured provider.
+    expect(body.models.some((m) => m.id === 'nvidia:gpt-4o-mini')).toBe(false)
+  })
+
+  test('returns the curated registry when every dynamic loader is empty', async () => {
+    // Acceptance criterion: with all discovery endpoints unreachable the picker
+    // still lists the curated floor rather than an empty catalog.
+    dynamicAnyRouter = []
+    dynamicOpenRouter = []
+    dynamicNvidia = []
+    anyRouterPresets = []
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/agents/models')
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { models: Array<{ id: string }> }
+    expect(body.models.map((m) => m.id)).toContain('openrouter:gpt-4o-mini')
+  })
+
+  test('returns the curated registry when the nvidia loader throws', async () => {
+    nvidiaThrows = true
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/agents/models')
+    )
+    // The 500 path still returns the static registry floor.
+    expect(res.status).toBe(500)
+    const body = (await res.json()) as { models: Array<{ id: string }> }
+    expect(body.models.map((m) => m.id)).toContain('openrouter:gpt-4o-mini')
   })
 })

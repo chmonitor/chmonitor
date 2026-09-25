@@ -29,7 +29,10 @@ describe('AnyRouter model registry', () => {
     expect(DEFAULT_AGENT_MODEL).toBe('anyrouter:google/gemma-4-26b-a4b-it')
     expect(options).toContain('openrouter:openrouter/free')
     expect(options).toContain('anyrouter:z-ai/glm-4.7-flash')
-    expect(options).toContain('anyrouter:google/gemini-3.1-flash-lite')
+    // Gemini 3.1 Flash Lite is OpenRouter-only — it is absent from the
+    // AnyRouter catalog, so it must not be offered under `anyrouter:`.
+    expect(options).toContain('openrouter:google/gemini-3.1-flash-lite')
+    expect(options).not.toContain('anyrouter:google/gemini-3.1-flash-lite')
     expect(options).toContain('anyrouter:google/gemma-4-26b-a4b-it')
   })
 })
