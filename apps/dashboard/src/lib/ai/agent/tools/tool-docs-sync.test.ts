@@ -29,12 +29,14 @@ import { join } from 'node:path'
 
 const originalControlToolsEnv = process.env.AGENT_ENABLE_CONTROL_TOOLS
 const originalPostgresEnv = process.env.CHM_FEATURE_POSTGRES_SOURCE
+const originalPeerDBAgentEnv = process.env.CHM_FEATURE_PEERDB_AGENT
 // createAllTools reads these env vars at call time (not import time), so they
-// must be set before calling it below — see tools/index.ts. Enabling both the
-// control-tool and Postgres gates makes every gated tool present, so the docs
-// / prompt sync assertions below cover them too.
+// must be set before calling it below — see tools/index.ts. Enabling the
+// control-tool, Postgres, and PeerDB gates makes every gated tool present, so
+// the docs / prompt sync assertions below cover them too.
 process.env.AGENT_ENABLE_CONTROL_TOOLS = 'true'
 process.env.CHM_FEATURE_POSTGRES_SOURCE = 'true'
+process.env.CHM_FEATURE_PEERDB_AGENT = 'true'
 
 afterAll(() => {
   if (originalControlToolsEnv === undefined) {
@@ -46,6 +48,11 @@ afterAll(() => {
     delete process.env.CHM_FEATURE_POSTGRES_SOURCE
   } else {
     process.env.CHM_FEATURE_POSTGRES_SOURCE = originalPostgresEnv
+  }
+  if (originalPeerDBAgentEnv === undefined) {
+    delete process.env.CHM_FEATURE_PEERDB_AGENT
+  } else {
+    process.env.CHM_FEATURE_PEERDB_AGENT = originalPeerDBAgentEnv
   }
 })
 
@@ -95,11 +102,12 @@ const MCP_SERVER_TOOL_NAMES = [
 ] as const
 
 describe('AI agent tool docs stay in sync with the code', () => {
-  test('createAllTools(0, true) exposes 30 default + 3 control + 4 Postgres tools', () => {
-    // Loud guard: if this drops below 37, AGENT_ENABLE_CONTROL_TOOLS or
-    // CHM_FEATURE_POSTGRES_SOURCE was not honored above and the gated-tool
-    // assertions below would silently never run.
-    expect(toolNames.length).toBe(37)
+  test('createAllTools(0, true) exposes 30 default + 3 control + 4 Postgres + 1 PeerDB tools', () => {
+    // Loud guard: if this drops below 38, AGENT_ENABLE_CONTROL_TOOLS,
+    // CHM_FEATURE_POSTGRES_SOURCE, or CHM_FEATURE_PEERDB_AGENT was not
+    // honored above and the gated-tool assertions below would silently
+    // never run.
+    expect(toolNames.length).toBe(38)
   })
 
   test('every agent tool is documented in ai-agent/capabilities.mdx', () => {

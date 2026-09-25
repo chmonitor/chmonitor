@@ -15,6 +15,7 @@ import { createHealthTools } from './health-tools'
 import { createInsightTools } from './insight-tools'
 import { createMergeTools } from './merge-tools'
 import { createMvDesignerTools } from './mv-designer-tools'
+import { createPeerDBTools } from './peerdb-tools'
 import { createPlanTools } from './plan-tools'
 import { createPostgresHealthTools } from './postgres-health-tools'
 import { createPostgresQueryTools } from './postgres-query-tools'
@@ -54,6 +55,7 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Postgres (cross-source, env-gated): run_postgres_select_query,
  *    get_postgres_metrics, list_postgres_slow_query_patterns,
  *    get_postgres_table_stats
+ *  - PeerDB (env-gated): get_peerdb_mirror_status
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
   const enableControlTools = process.env.AGENT_ENABLE_CONTROL_TOOLS === 'true'
@@ -61,6 +63,13 @@ export function createAllTools(hostId: number, includeControlTools = false) {
   // source engine is enabled — a pure env gate, no Clerk, so OSS has equal
   // support. Server reads the canonical CHM_* name (VITE_* is the client mirror).
   const enablePostgresTools = process.env.CHM_FEATURE_POSTGRES_SOURCE === 'true'
+  // PeerDB mirror-status tool — explicit opt-in (a URL-presence gate would
+  // silently advertise PeerDB reads to the model on every deployment whose
+  // operator only wanted the UI section). Execution still fail-closes when
+  // PEERDB_API_URL is unset. No Clerk involvement, so OSS has equal support.
+  const enablePeerDBTools =
+    process.env.CHM_FEATURE_PEERDB_AGENT === 'true' &&
+    process.env.CHM_FEATURE_PEERDB_ENABLED !== 'false'
 
   return {
     // Schema & exploration
@@ -124,5 +133,9 @@ export function createAllTools(hostId: number, includeControlTools = false) {
           ...createPostgresTableTools(),
         }
       : {}),
+
+    // PeerDB mirror status — off unless CHM_FEATURE_PEERDB_AGENT=true (and
+    // the PeerDB feature itself is not disabled). Read-only fleet + detail.
+    ...(enablePeerDBTools ? createPeerDBTools() : {}),
   }
 }
