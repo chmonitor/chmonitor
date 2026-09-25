@@ -37,7 +37,11 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { error, warn } from '@chm/logger'
-import { bridgeClickHouseEnv, bridgePostgresEnv } from '@/lib/api/server-env'
+import {
+  bridgeClickHouseEnv,
+  bridgePeerDBEnv,
+  bridgePostgresEnv,
+} from '@/lib/api/server-env'
 import { authorizeCronRequest } from '@/lib/cron/authorize-cron'
 import { runHealthSweep } from '@/lib/health/server-sweep'
 import { isHealthSweepEnabled } from '@/lib/health/sweep-schedule'
@@ -76,9 +80,11 @@ async function handler(request: Request): Promise<Response> {
   // Copy CLICKHOUSE_* from the Worker binding onto process.env so
   // getClickHouseConfigs() (inside runHealthSweep) can resolve hosts. Also
   // bridge the POSTGRES_* lists + feature flag so the sweep's env-gated Postgres
-  // insight loop can resolve its sources.
+  // insight loop can resolve its sources, and the PEERDB_* config so the
+  // PeerDB insight sweep's env gate + snapshot reader see them.
   bridgeClickHouseEnv(env as Record<string, string | undefined>)
   bridgePostgresEnv(env as Record<string, string | undefined>)
+  bridgePeerDBEnv(env as Record<string, string | undefined>)
 
   try {
     const summary = await runHealthSweep()
