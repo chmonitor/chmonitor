@@ -82,8 +82,8 @@ export function bridgePostgresEnv(bindings: ClickHouseBindings): void {
 }
 
 /**
- * Env keys the PeerDB insight path reads from `process.env`: the flow-api base
- * URL plus auth, cache, and timeout tunables consumed by
+ * Env keys the PeerDB alert/insight path reads from `process.env`: the
+ * flow-api base URL plus auth, cache, and timeout tunables consumed by
  * `lib/peerdb/peerdb-config` (`getPeerDBConfig`, `peerdbFetch`). Same bridging
  * need as ClickHouse/Postgres — on Workers the canonical source is the `env`
  * binding, so these must be copied onto `process.env` before the PeerDB
