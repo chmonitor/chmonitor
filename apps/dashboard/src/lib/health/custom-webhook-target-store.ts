@@ -27,6 +27,7 @@ import type { CustomWebhookFormat } from './custom-webhook-targets'
 import {
   isCustomWebhookFormat,
   normalizeCustomWebhookFormat,
+  sanitizeCustomHeaders,
 } from './custom-webhook-targets'
 import { ErrorLogger } from '@chm/logger'
 import { getPlatformBindings } from '@chm/platform'
@@ -87,7 +88,7 @@ function parseHeaders(raw: string | null): Record<string, string> {
     for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
       if (typeof v === 'string') out[k] = v
     }
-    return out
+    return sanitizeCustomHeaders(out).headers
   } catch {
     return {}
   }

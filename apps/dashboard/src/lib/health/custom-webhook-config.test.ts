@@ -17,7 +17,10 @@ describe('custom webhook public config', () => {
       minSeverity: null,
       titleTemplate: '',
       bodyTemplate: '',
-      headers: { 'X-Source': 'chmonitor' },
+      headers: {
+        'X-Source': 'chmonitor',
+        Authorization: 'Bearer should-not-be-public',
+      },
       secretHeaders: {
         Authorization: 'Bearer matrix-secret',
         'X-Internal-Token': 'header-secret',
@@ -32,6 +35,7 @@ describe('custom webhook public config', () => {
     expect(publicTarget).not.toHaveProperty('url')
     expect(JSON.stringify(publicTarget)).not.toContain('matrix-secret')
     expect(JSON.stringify(publicTarget)).not.toContain('header-secret')
+    expect(JSON.stringify(publicTarget)).not.toContain('should-not-be-public')
     expect(JSON.stringify(publicTarget)).not.toContain('secret-room')
   })
 })

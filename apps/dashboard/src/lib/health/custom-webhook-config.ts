@@ -16,7 +16,10 @@ import {
   isCustomWebhookStoreConfigured,
   listCustomWebhookTargets,
 } from './custom-webhook-target-store'
-import { redactWebhookUrl } from './custom-webhook-targets'
+import {
+  redactWebhookUrl,
+  sanitizeCustomHeaders,
+} from './custom-webhook-targets'
 
 export interface EffectiveCustomWebhookTarget extends CustomWebhookTarget {
   source: 'd1' | 'helm'
@@ -79,7 +82,7 @@ export function toPublicCustomWebhookTarget(
     minSeverity: target.minSeverity,
     titleTemplate: target.titleTemplate,
     bodyTemplate: target.bodyTemplate,
-    headers: target.headers,
+    headers: sanitizeCustomHeaders(target.headers).headers,
     updatedAt: target.updatedAt,
     urlConfigured: Boolean(target.url),
     urlMasked: redactWebhookUrl(target.url),
