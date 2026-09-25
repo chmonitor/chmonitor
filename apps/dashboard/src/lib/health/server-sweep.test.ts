@@ -463,6 +463,10 @@ const ENV_KEYS = [
   'HEALTH_ALERT_DIGEST_MINUTES',
   'HEALTH_HYSTERESIS_BREACHES',
   'HEALTH_HYSTERESIS_CLEARS',
+  // Keep the PeerDB cycle out of this host-sweep plumbing suite. CI may
+  // configure a real flow-api globally; without an explicit reset its
+  // collector calls would appear as extra fetches in every legacy route test.
+  'PEERDB_API_URL',
 ] as const
 const savedEnv: Record<string, string | undefined> = {}
 
@@ -483,6 +487,7 @@ beforeEach(() => {
   delete process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY
   delete process.env.HEALTH_ALERT_HEALTHCHECKS_URL
   delete process.env.HEALTH_ALERT_DIGEST_MINUTES
+  delete process.env.PEERDB_API_URL
 
   alertStateStore.clear()
   fakeDb = makeFakeD1()
