@@ -46,6 +46,7 @@ describe('CustomWebhookTargetCard', () => {
     const onPreview = mock(async () => ({
       success: true,
       preview: {
+        format: 'slack',
         adapterId: 'slack',
         redactedUrl: 'https://hooks.slack.com/••••',
         headers: {},
