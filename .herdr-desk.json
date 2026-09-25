@@ -6,10 +6,10 @@
       "id": "desk:github-issues",
       "playbook": "github-issues",
       "agentName": "chm-desk",
-      "kind": "grok",
+      "kind": "opencode",
       "maxChildren": 5,
-      "schedule": "0 7 * * *",
-      "extra": "Required CI: `unit-tests` and `dashboard`. Arm `gh pr merge --auto --squash` and babysit. Do not wait on `e2e-test`, `e2e-test-tsr`, or `component-test`. Never auto-merge release-please PRs. Children may open PRs. Manager does not implement on `main`. State is local; do not commit `.herdr-desk/runs/`."
+      "schedule": "*/30 * * * *",
+      "extra": "Required CI: `unit-tests` and `dashboard`. Arm `gh pr merge --auto --squash` and babysit. Do not wait on `e2e-test`, `e2e-test-tsr`, or `component-test`. Never auto-merge release-please PRs. Children must use the OpenCode v2 runtime (`opencode2`, equivalent to the local `opencode` v2 binary) with model `opencode/space-bunny-free`; confirm the model before editing. Do not run heavy local Node/build/test tasks: rely on CI for lint, typecheck, tests, and builds. Children may open PRs. Manager does not implement on `main`. State is local; do not commit `.herdr-desk/runs/`."
     }
   ]
 }
