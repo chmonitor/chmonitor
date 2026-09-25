@@ -13,16 +13,17 @@
  * prefix so a finding reads unambiguously wherever it surfaces. Actions
  * deep-link to the existing `/peerdb` pages.
  *
- * Slot-lag thresholds intentionally reuse the fleet UI's `SLOT_LAG_WARN_MB` /
- * `SLOT_LAG_CRITICAL_MB` (see `components/peerdb/peerdb-derive`) so the
- * insights panel and the slot-health table agree on what "lagging" means.
+ * Slot-lag thresholds come from the shared `lib/peerdb/slot-lag-thresholds`
+ * (the same source as the fleet UI's `slotHealth`) so the insights panel and
+ * the slot-health table agree on what "lagging" means.
  */
 
 import type { InsightCandidate } from './types'
 
-/** Reuse the fleet UI's slot-lag thresholds (single source of truth lives here). */
-export const PEERDB_SLOT_LAG_WARN_MB = 512
-export const PEERDB_SLOT_LAG_CRITICAL_MB = 2048
+import {
+  SLOT_LAG_CRITICAL_MB,
+  SLOT_LAG_WARN_MB,
+} from '../peerdb/slot-lag-thresholds'
 
 /** Mirror-error log count that escalates from warning to critical. */
 export const PEERDB_MIRROR_ERRORS_CRIT = 10
@@ -81,10 +82,10 @@ export function checkSlotLag(
 ): InsightCandidate | null {
   if (!Number.isFinite(maxLagMb as number)) return null
   const lag = maxLagMb as number
-  if (lag < PEERDB_SLOT_LAG_WARN_MB) return null
+  if (lag < SLOT_LAG_WARN_MB) return null
   const where = label ? ` (${label})` : ''
   return {
-    severity: lag >= PEERDB_SLOT_LAG_CRITICAL_MB ? 'critical' : 'warning',
+    severity: lag >= SLOT_LAG_CRITICAL_MB ? 'critical' : 'warning',
     category: 'performance',
     metric: 'peerdb_slot_lag_mb',
     title: 'PeerDB: replication slot lag is growing',

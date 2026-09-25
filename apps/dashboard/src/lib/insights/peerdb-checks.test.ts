@@ -5,14 +5,16 @@
  */
 
 import {
+  SLOT_LAG_CRITICAL_MB,
+  SLOT_LAG_WARN_MB,
+} from '../peerdb/slot-lag-thresholds'
+import {
   checkFailedMirrors,
   checkMirrorErrors,
   checkPausedMirrors,
   checkSlotLag,
   checkSnapshotStalled,
   PEERDB_MIRROR_ERRORS_CRIT,
-  PEERDB_SLOT_LAG_CRITICAL_MB,
-  PEERDB_SLOT_LAG_WARN_MB,
 } from './peerdb-checks'
 import { describe, expect, test } from 'bun:test'
 
@@ -52,23 +54,21 @@ describe('checkPausedMirrors', () => {
 
 describe('checkSlotLag', () => {
   test('null below the warn threshold', () => {
-    expect(checkSlotLag(PEERDB_SLOT_LAG_WARN_MB - 1, null)).toBeNull()
+    expect(checkSlotLag(SLOT_LAG_WARN_MB - 1, null)).toBeNull()
   })
   test('null when lag is unknown', () => {
     expect(checkSlotLag(null, null)).toBeNull()
     expect(checkSlotLag(Number.NaN, null)).toBeNull()
   })
   test('warning at the warn threshold', () => {
-    const c = checkSlotLag(PEERDB_SLOT_LAG_WARN_MB, 'pg/slot')
+    const c = checkSlotLag(SLOT_LAG_WARN_MB, 'pg/slot')
     expect(c?.severity).toBe('warning')
     expect(c?.metric).toBe('peerdb_slot_lag_mb')
     expect(c?.action?.href).toBe('/peerdb/peers')
     expect(c?.detail).toContain('pg/slot')
   })
   test('critical at/above the critical threshold', () => {
-    expect(checkSlotLag(PEERDB_SLOT_LAG_CRITICAL_MB, null)?.severity).toBe(
-      'critical'
-    )
+    expect(checkSlotLag(SLOT_LAG_CRITICAL_MB, null)?.severity).toBe('critical')
   })
 })
 

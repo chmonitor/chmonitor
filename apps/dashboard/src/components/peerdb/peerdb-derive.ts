@@ -68,9 +68,13 @@ export function shouldEagerLoadMetrics(
 
 export type SlotHealth = 'ok' | 'warn' | 'critical'
 
-/** Lag thresholds (MiB) for replication-slot health classification. */
-export const SLOT_LAG_WARN_MB = 512
-export const SLOT_LAG_CRITICAL_MB = 2048
+// Lag thresholds live in `lib/peerdb/slot-lag-thresholds` (the single source
+// shared with the insights classifiers); re-exported here so existing
+// `./peerdb-derive` consumers keep working unchanged.
+export {
+  SLOT_LAG_CRITICAL_MB,
+  SLOT_LAG_WARN_MB,
+} from '@/lib/peerdb/slot-lag-thresholds'
 
 /**
  * Classify a replication slot's health from its lag and WAL status.

@@ -112,3 +112,104 @@ describe('collectPeerDBInsights', () => {
     expect(await collectPeerDBInsights(hostile)).toEqual([])
   })
 })
+
+describe('collectPeerDBInsights default reader (env config + auth parity)', () => {
+  const SAVED_API_URL = process.env.PEERDB_API_URL
+  const SAVED_PASSWORD = process.env.PEERDB_PASSWORD
+  const SAVED_SCHEME = process.env.PEERDB_AUTH_SCHEME
+  const realFetch = globalThis.fetch
+
+  let seenAuth: (string | null)[]
+  let fetchCalls: number
+
+  function mockUpstream() {
+    seenAuth = []
+    fetchCalls = 0
+    globalThis.fetch = (async (url: unknown, init?: { headers?: unknown }) => {
+      fetchCalls += 1
+      const headers = (init?.headers ?? {}) as Record<string, string>
+      seenAuth.push(headers.Authorization ?? null)
+      const u = String(url)
+      if (u.endsWith('/v1/mirrors/list')) {
+        return Response.json({
+          mirrors: [{ name: 'm', status: 'STATUS_FAILED', isCdc: true }],
+        })
+      }
+      if (u.endsWith('/v1/peers/list'))
+        return Response.json({ sourceItems: [] })
+      if (u.endsWith('/v1/mirrors/status')) {
+        return Response.json({ currentFlowState: 'STATUS_FAILED' })
+      }
+      if (u.includes('/v1/mirrors/total_rows_synced/')) {
+        return Response.json({ totalRowsSynced: 1 })
+      }
+      return Response.json({ errors: [] })
+    }) as typeof fetch
+  }
+
+  function restoreEnv() {
+    if (SAVED_API_URL === undefined) delete process.env.PEERDB_API_URL
+    else process.env.PEERDB_API_URL = SAVED_API_URL
+    if (SAVED_PASSWORD === undefined) delete process.env.PEERDB_PASSWORD
+    else process.env.PEERDB_PASSWORD = SAVED_PASSWORD
+    if (SAVED_SCHEME === undefined) delete process.env.PEERDB_AUTH_SCHEME
+    else process.env.PEERDB_AUTH_SCHEME = SAVED_SCHEME
+    globalThis.fetch = realFetch
+  }
+
+  test('unconfigured PeerDB collects nothing and never fetches', async () => {
+    delete process.env.PEERDB_API_URL
+    mockUpstream()
+    try {
+      expect(await collectPeerDBInsights()).toEqual([])
+      expect(fetchCalls).toBe(0)
+    } finally {
+      restoreEnv()
+    }
+  })
+
+  test('basic (default) sends empty-user Basic auth', async () => {
+    process.env.PEERDB_API_URL = 'http://peerdb:8113'
+    process.env.PEERDB_PASSWORD = 's3cret'
+    delete process.env.PEERDB_AUTH_SCHEME
+    mockUpstream()
+    try {
+      const out = await collectPeerDBInsights()
+      expect(
+        out.find((c) => c.metric === 'peerdb_failed_mirrors')
+      ).toBeDefined()
+      expect(fetchCalls).toBeGreaterThan(0)
+      expect(seenAuth[0]).toBe(`Basic ${btoa(':s3cret')}`)
+    } finally {
+      restoreEnv()
+    }
+  })
+
+  test('bearer deployments collect with a Bearer header (parity)', async () => {
+    process.env.PEERDB_API_URL = 'http://peerdb:8113'
+    process.env.PEERDB_PASSWORD = 'tok-123'
+    process.env.PEERDB_AUTH_SCHEME = 'bearer'
+    mockUpstream()
+    try {
+      const out = await collectPeerDBInsights()
+      expect(
+        out.find((c) => c.metric === 'peerdb_failed_mirrors')
+      ).toBeDefined()
+      expect(seenAuth[0]).toBe('Bearer tok-123')
+    } finally {
+      restoreEnv()
+    }
+  })
+
+  test('unreachable flow-api degrades to [] without throwing', async () => {
+    process.env.PEERDB_API_URL = 'http://127.0.0.1:9'
+    delete process.env.PEERDB_PASSWORD
+    delete process.env.PEERDB_AUTH_SCHEME
+    globalThis.fetch = realFetch
+    try {
+      expect(await collectPeerDBInsights()).toEqual([])
+    } finally {
+      restoreEnv()
+    }
+  })
+})

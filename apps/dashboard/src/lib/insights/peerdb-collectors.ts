@@ -27,6 +27,11 @@ import type { InsightCandidate, InsightSeverity } from './types'
 
 import { summarizePeerDBFleet } from '../peerdb/fleet-metrics'
 import {
+  buildPeerDBAuthHeader,
+  envPeerDBConfig,
+  type ResolvedPeerDBConfig,
+} from '../peerdb/peerdb-auth'
+import {
   checkFailedMirrors,
   checkMirrorErrors,
   checkPausedMirrors,
@@ -66,18 +71,16 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 
 /**
  * Default env-configured reader. Gate: returns null reads when
- * `PEERDB_API_URL` is unset. The `peerdb-config` import is dynamic so a
- * runtime without node built-ins (Workers `Buffer`) degrades to empty reads
- * instead of failing module evaluation.
+ * `PEERDB_API_URL` is unset. Built on the Workers-safe `envPeerDBConfig` /
+ * `buildPeerDBAuthHeader` path (the same config + auth the proxy routes use),
+ * so `basic` AND `bearer` deployments collect identically — and so this module
+ * stays statically importable in runtimes without node built-ins (no `Buffer`,
+ * no module-scope `process.env` reads). Upstream timeout is read lazily per
+ * call so a bridged `PEERDB_FETCH_TIMEOUT_MS` always applies.
  */
-async function defaultReader(): Promise<PeerDBSnapshotReader> {
-  const mod = await import('../peerdb/peerdb-config').catch(() => null)
-  const getConfig = mod?.getPeerDBConfig as
-    | (() => { baseUrl: string } | null)
-    | undefined
-  const fetchFn = mod?.peerdbFetch as
-    | (<T>(path: string, init?: RequestInit) => Promise<T>)
-    | undefined
+async function defaultReader(
+  bindings: Record<string, string | undefined> = defaultBindings()
+): Promise<PeerDBSnapshotReader> {
   const unconfigured: PeerDBSnapshotReader = {
     listMirrors: async () => [],
     mirrorStatus: async () => null,
@@ -85,14 +88,16 @@ async function defaultReader(): Promise<PeerDBSnapshotReader> {
     peerSlots: async () => [],
     listSourcePeers: async () => [],
   }
-  if (!getConfig || !fetchFn) return unconfigured
-  let configured = false
+  let config: ResolvedPeerDBConfig | null = null
   try {
-    configured = getConfig() !== null
+    config = envPeerDBConfig(bindings)
   } catch {
     return unconfigured
   }
-  if (!configured) return unconfigured
+  if (!config) return unconfigured
+
+  const fetchFn = <T>(path: string, init?: RequestInit): Promise<T> =>
+    peerDBFetch<T>(config as ResolvedPeerDBConfig, path, bindings, init)
 
   return {
     listMirrors: () =>
@@ -134,6 +139,62 @@ async function defaultReader(): Promise<PeerDBSnapshotReader> {
         ]
         return [...new Set(names.filter((n) => typeof n === 'string' && n))]
       }, []),
+  }
+}
+
+/**
+ * Bindings for the default reader. Prefers an explicit argument (tests, and
+ * callers holding Worker bindings); falls back to `process.env` on node —
+ * which is also where `bridgePeerDBEnv` copies Worker bindings, so both
+ * runtimes resolve identically. Never throws.
+ */
+function defaultBindings(): Record<string, string | undefined> {
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      return { ...process.env }
+    }
+  } catch {
+    // ignore — fall through to empty
+  }
+  return {}
+}
+
+/** Lazily-read upstream timeout (see the route's `resolveFetchTimeoutMs`). */
+function resolveTimeoutMs(
+  bindings: Record<string, string | undefined>
+): number {
+  const raw = (bindings.PEERDB_FETCH_TIMEOUT_MS ?? '').trim()
+  if (!raw) return 10_000
+  const parsed = Math.floor(Number(raw))
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 10_000
+}
+
+async function peerDBFetch<T>(
+  config: ResolvedPeerDBConfig,
+  path: string,
+  bindings: Record<string, string | undefined>,
+  init?: RequestInit
+): Promise<T> {
+  const timeoutMs = resolveTimeoutMs(bindings)
+  const url = `${config.baseUrl}${path.startsWith('/') ? path : `/${path}`}`
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...init?.headers,
+        ...buildPeerDBAuthHeader(config),
+      },
+    })
+    if (!response.ok) {
+      throw new Error(`PeerDB API error ${response.status}`)
+    }
+    return (await response.json()) as T
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
