@@ -257,7 +257,11 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   current page) stays fully readable at 768 — do not ellipsize it; the title
   cluster is `shrink-0`, parent crumbs wait until `lg`, Search is icon-only
   below `lg` (the Search… field is desktop), and the refresh countdown label
-  plus header action gap stay compact until `lg`. Docs article Copy Markdown / Open
+  plus header action gap stay compact until `lg`. The header itself is a
+  two-region flex contract: `HeaderIdentity` stays `shrink-0` on the left, while
+  `HeaderActionRegion` is `ml-auto`, full-width on phones, and `sm:flex-1` with
+  `min-w-0`/`overflow-x-auto` so controls remain right-aligned and swipeable
+  instead of compressing the title. Docs article Copy Markdown / Open
   are 44px below `md` (not header search/menu). Agent FAB must not cover
   heatmap "Avg / active day" (`pb-16` + last-card `pr-16`; landscape FAB at
   `top-16`).

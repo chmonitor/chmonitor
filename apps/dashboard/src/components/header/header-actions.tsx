@@ -43,7 +43,10 @@ export const HeaderActions = function HeaderActions({
   }
 
   return (
-    <div className="flex w-full min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:w-auto lg:gap-3">
+    <div
+      data-testid="dashboard-header-action-controls"
+      className="flex w-full min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-1 sm:w-auto lg:gap-3"
+    >
       {showTimeControls ? (
         <>
           <GlobalTimeRangePicker />
