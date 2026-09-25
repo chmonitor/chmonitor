@@ -138,6 +138,9 @@ export const D1_UPSERT_WEBHOOK_TARGET_SQL = `INSERT INTO ${TABLE}
      headers_json = excluded.headers_json,
      updated_at = excluded.updated_at`
 
+/** Delete one target by composite owner/id key. Exported for the SQL round-trip test. */
+export const D1_DELETE_WEBHOOK_TARGET_SQL = `DELETE FROM ${TABLE} WHERE owner_id = ?1 AND id = ?2`
+
 /**
  * List every custom target for an owner, best-effort. Returns `[]` when D1
  * isn't configured (self-hosted/OSS default) or on any store error — NEVER
@@ -225,7 +228,7 @@ export async function deleteCustomWebhookTarget(
     const db = getDb()
     if (!db) return false
     const res = await db
-      .prepare(`DELETE FROM ${TABLE} WHERE owner_id = ?1 AND id = ?2`)
+      .prepare(D1_DELETE_WEBHOOK_TARGET_SQL)
       .bind(ownerId, id)
       .run()
     return (res.meta?.changes ?? 0) > 0

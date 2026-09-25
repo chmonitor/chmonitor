@@ -5,8 +5,11 @@ mock.module('@chm/platform', () => ({
   getPlatformBindings: () => ({ getD1Database: () => undefined }),
 }))
 
-const { D1_LIST_WEBHOOK_TARGETS_SQL, D1_UPSERT_WEBHOOK_TARGET_SQL } =
-  await import('./custom-webhook-target-store')
+const {
+  D1_DELETE_WEBHOOK_TARGET_SQL,
+  D1_LIST_WEBHOOK_TARGETS_SQL,
+  D1_UPSERT_WEBHOOK_TARGET_SQL,
+} = await import('./custom-webhook-target-store')
 
 function seed() {
   const db = new Database(':memory:')
@@ -96,5 +99,17 @@ describe('alert_webhook_targets — owner-scoped URL-preserving upsert', () => {
       (db.query(D1_LIST_WEBHOOK_TARGETS_SQL).get('owner-a') as { url: string })
         .url
     ).toBe('https://a.example.test/hook')
+
+    db.query(D1_DELETE_WEBHOOK_TARGET_SQL).run(
+      'owner-a',
+      'cwt_1234567890abcdef123456'
+    )
+    expect(db.query(D1_LIST_WEBHOOK_TARGETS_SQL).all('owner-b')).toHaveLength(1)
+
+    db.query(D1_DELETE_WEBHOOK_TARGET_SQL).run(
+      'owner-b',
+      'cwt_1234567890abcdef123456'
+    )
+    expect(db.query(D1_LIST_WEBHOOK_TARGETS_SQL).all('owner-b')).toHaveLength(0)
   })
 })

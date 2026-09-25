@@ -44,6 +44,12 @@ function parseHeaders(value: string): Record<string, string> {
   return parsed as Record<string, string>
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : describeError(error) || 'Unknown error'
+}
+
 function draftFromTarget(target: CustomWebhookTargetPublic | null) {
   return {
     name: target?.name ?? '',
@@ -111,8 +117,7 @@ export function CustomWebhookTargetCard({
     try {
       await onRemove()
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : describeError(error)
+      const message = errorMessage(error)
       setInlineError(message)
       toast.error('Failed to reset target', { description: message })
     }
@@ -130,8 +135,7 @@ export function CustomWebhookTargetCard({
       setPreview(result.preview)
       if (action === 'send') toast.success('Custom webhook test sent')
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : describeError(error)
+      const message = errorMessage(error)
       setInlineError(message)
       toast.error(
         action === 'save' ? 'Failed to save target' : 'Webhook action failed',

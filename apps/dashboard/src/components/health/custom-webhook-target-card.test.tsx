@@ -47,7 +47,7 @@ describe('CustomWebhookTargetCard', () => {
       success: true,
       preview: {
         adapterId: 'slack',
-        redactedUrl: 'https://hooks.slack.com/services/T••••',
+        redactedUrl: 'https://hooks.slack.com/••••',
         headers: {},
         body: { text: 'CRITICAL' },
         bodyJson: '{"text":"CRITICAL"}',
@@ -69,7 +69,7 @@ describe('CustomWebhookTargetCard', () => {
             headers: {},
             updatedAt: Date.now(),
             urlConfigured: true,
-            urlMasked: 'https://hooks.slack.com/services/T••••',
+            urlMasked: 'https://hooks.slack.com/••••',
             source: 'd1',
             editable: true,
           }}

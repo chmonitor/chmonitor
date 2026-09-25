@@ -189,16 +189,11 @@ export function CustomWebhookTargetsPanel() {
               icon={<Webhook className="size-5" strokeWidth={1.5} />}
               title="No custom webhook targets"
               description="Add a target for raw JSON, Slack, or Element/Matrix alerts, or configure one through Helm."
-              action={
-                <Button
-                  size="sm"
-                  onClick={() => setCreating(true)}
-                  disabled={storage === 'unavailable'}
-                >
-                  <Plus className="size-3.5" strokeWidth={1.5} />
-                  Add target
-                </Button>
-              }
+              action={{
+                label: 'Add target',
+                onClick: () => setCreating(true),
+                icon: <Plus className="size-3.5" strokeWidth={1.5} />,
+              }}
             />
           </div>
         )}
