@@ -32,9 +32,8 @@ function isAutoRouter(id: string): boolean {
  * third party, so no per-token rate exists to record.
  */
 function isOwnKey(id: string): boolean {
-  return MODEL_REGISTRY.find((e) => e.id === id)?.providers.every(
-    (p) => p === 'nvidia'
-  )
+  const entry = MODEL_REGISTRY.find((e) => e.id === id)
+  return entry !== undefined && entry.providers.every((p) => p === 'nvidia')
 }
 
 /** A workspace preset is a routing alias, not a model — its cost varies. */
