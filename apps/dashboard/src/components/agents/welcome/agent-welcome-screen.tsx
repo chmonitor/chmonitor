@@ -4,8 +4,8 @@
  * AgentWelcomeScreen — chat-first welcome screen for the AI Agent page.
  *
  * Centred layout: sparkle icon + dynamic greeting, composer (assistant-ui
- * suggestion-friendly), skills capability grid, and a recent threads strip.
- * Replaces the old `ThreadWelcome` empty-state inside `thread.tsx`.
+ * suggestion-friendly), and a skills capability grid. Replaces the old
+ * `ThreadWelcome` empty-state inside `thread.tsx`.
  *
  * The composer itself is still rendered by `thread.tsx` (so we don't
  * duplicate runtime wiring); this component is the surrounding shell.
@@ -13,7 +13,6 @@
 
 import type { ReactNode } from 'react'
 
-import { RecentThreadsRail } from '@/components/agents/welcome/recent-threads-rail'
 import { SuggestedPrompts } from '@/components/agents/welcome/suggested-prompts-view'
 import { AgentGreetingIllustration } from '@/components/illustrations/agent-greeting-illustration'
 import { useAgentGreeting } from '@/lib/hooks/use-agent-greeting'
@@ -69,9 +68,6 @@ export function AgentWelcomeScreen({
 
       {/* Suggested questions — example-prompt tile grid (issue #2800) */}
       <SuggestedPrompts variant="grid" onPickPrompt={onPickPrompt} limit={6} />
-
-      {/* Recent threads */}
-      <RecentThreadsRail />
 
       {/* Footer status */}
       <div className="text-muted-foreground mt-4 flex items-center justify-center gap-2 text-center text-[11px] tracking-[0.02em]">
