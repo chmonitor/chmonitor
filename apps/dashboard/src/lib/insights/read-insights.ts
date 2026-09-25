@@ -39,6 +39,13 @@ function deriveAction(
       return { label: 'View replicas', href: '/replicas' }
     case 'stuck_mutations':
       return { label: 'View mutations', href: '/mutations' }
+    case 'peerdb_failed_mirrors':
+    case 'peerdb_paused_mirrors':
+    case 'peerdb_mirror_errors':
+    case 'peerdb_snapshot_stalled':
+      return { label: 'View mirrors', href: '/peerdb' }
+    case 'peerdb_slot_lag_mb':
+      return { label: 'View peers', href: '/peerdb/peers' }
     case 'parts_pressure':
       return { label: 'View merges', href: '/merges' }
     case 'longest_running_query':

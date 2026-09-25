@@ -357,6 +357,14 @@ mock.module('@/lib/insights/generate-postgres-insights', () => ({
   generatePostgresInsights: async () => [],
 }))
 
+// Same boundary rationale for the PeerDB sweep: the real module imports the
+// (mocked, export-stripped) generate-insights module for its throttle const,
+// so stub PeerDB generation here and cover the real orchestrator in its own
+// collector/generate tests.
+mock.module('@/lib/insights/generate-peerdb-insights', () => ({
+  generatePeerDBInsights: async () => [],
+}))
+
 // --- maintenance windows stub ------------------------------------------------
 // Mocked at the module boundary (like generate-insights above) rather than
 // routed through the shared fake D1: the sweep only depends on

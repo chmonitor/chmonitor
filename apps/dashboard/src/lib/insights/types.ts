@@ -168,11 +168,11 @@ export const INSIGHT_SOURCES = ['ai-insight', 'advisor'] as const
 
 /**
  * Engine an insight belongs to, threaded into {@link insightKey} so a Postgres
- * finding never collides with a ClickHouse one that happens to share a
- * category/metric/title. Absent = ClickHouse (the historical default) so every
- * existing key stays byte-identical.
+ * or PeerDB finding never collides with a ClickHouse one that happens to share
+ * a category/metric/title. Absent = ClickHouse (the historical default) so
+ * every existing key stays byte-identical.
  */
-export type InsightEngine = 'clickhouse' | 'postgres'
+export type InsightEngine = 'clickhouse' | 'postgres' | 'peerdb'
 
 /**
  * Reserved store-host offset that partitions Postgres insight findings away from
@@ -200,18 +200,41 @@ export function pgInsightStoreHostId(pgHostId: number): number {
 }
 
 /**
+ * Reserved store-host offset that partitions PeerDB insight findings away from
+ * both ClickHouse host ids AND the Postgres partition above. PeerDB is a single
+ * deployment (one flow-api), so only host key `OFFSET + 0` is used today; the
+ * offset still keeps the door open for per-connection sources later without a
+ * migration.
+ */
+export const PEERDB_INSIGHT_STORE_HOST_OFFSET = 2_000_000
+
+/**
+ * Map a PeerDB source id (today always `0` — single flow-api deployment) to
+ * the reserved numeric host key the {@link InsightsStore} persists it under.
+ */
+export function peerdbInsightStoreHostId(sourceId = 0): number {
+  return PEERDB_INSIGHT_STORE_HOST_OFFSET + sourceId
+}
+
+/**
  * Build the stable dismissal key for an insight.
  *
  * ClickHouse (default): `host:category:metric:title` — unchanged, so existing
- * dismissals keep working. Postgres: `pg:pgHostId:category:metric:title`, a
- * readable, engine-prefixed key that can never alias a ClickHouse key.
+ * dismissals keep working. Postgres: `pg:pgHostId:category:metric:title`;
+ * PeerDB: `peerdb:sourceId:category:metric:title` — readable, engine-prefixed
+ * keys that can never alias a ClickHouse key.
  */
 export function insightKey(
   hostId: number,
   candidate: Pick<InsightCandidate, 'category' | 'metric' | 'title'>,
   engine: InsightEngine = 'clickhouse'
 ): string {
-  const host = engine === 'postgres' ? `pg:${hostId}` : `${hostId}`
+  const host =
+    engine === 'postgres'
+      ? `pg:${hostId}`
+      : engine === 'peerdb'
+        ? `peerdb:${hostId}`
+        : `${hostId}`
   return `${host}:${candidate.category}:${candidate.metric ?? ''}:${candidate.title}`
 }
 

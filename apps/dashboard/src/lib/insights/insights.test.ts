@@ -9,7 +9,9 @@ import {
 } from './dismissed-insights'
 import {
   insightKey,
+  PEERDB_INSIGHT_STORE_HOST_OFFSET,
   POSTGRES_INSIGHT_STORE_HOST_OFFSET,
+  peerdbInsightStoreHostId,
   pgInsightStoreHostId,
 } from './types'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
@@ -116,6 +118,34 @@ describe('Postgres insight namespacing', () => {
     expect(pgInsightStoreHostId(5)).toBe(POSTGRES_INSIGHT_STORE_HOST_OFFSET + 5)
     expect(pgInsightStoreHostId(0)).toBeGreaterThan(1000) // > any realistic CH host
     expect(pgInsightStoreHostId(0)).toBeGreaterThan(0) // never negative (D1 space)
+  })
+})
+
+describe('PeerDB insight namespacing', () => {
+  test('peerdb keys are engine-prefixed and readable', () => {
+    const cand = {
+      category: 'reliability',
+      metric: 'peerdb_failed_mirrors',
+      title: 'X',
+    }
+    expect(insightKey(0, cand, 'peerdb')).toBe(
+      'peerdb:0:reliability:peerdb_failed_mirrors:X'
+    )
+  })
+
+  test('a peerdb key never collides with clickhouse/postgres keys', () => {
+    const cand = { category: 'reliability', metric: 'm', title: 't' }
+    const peerdb = insightKey(0, cand, 'peerdb')
+    expect(peerdb).not.toBe(insightKey(0, cand, 'clickhouse'))
+    expect(peerdb).not.toBe(insightKey(0, cand, 'postgres'))
+  })
+
+  test('store host offset partitions peerdb away from CH + postgres id spaces', () => {
+    expect(peerdbInsightStoreHostId(0)).toBe(PEERDB_INSIGHT_STORE_HOST_OFFSET)
+    expect(peerdbInsightStoreHostId(0)).toBeGreaterThan(
+      POSTGRES_INSIGHT_STORE_HOST_OFFSET
+    )
+    expect(peerdbInsightStoreHostId(0)).toBeGreaterThan(0)
   })
 })
 

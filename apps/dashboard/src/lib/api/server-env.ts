@@ -80,3 +80,35 @@ export function bridgePostgresEnv(bindings: ClickHouseBindings): void {
     }
   }
 }
+
+/**
+ * Env keys the PeerDB insight path reads from `process.env`: the flow-api base
+ * URL plus auth, cache, and timeout tunables consumed by
+ * `lib/peerdb/peerdb-config` (`getPeerDBConfig`, `peerdbFetch`). Same bridging
+ * need as ClickHouse/Postgres — on Workers the canonical source is the `env`
+ * binding, so these must be copied onto `process.env` before the PeerDB
+ * collectors run. Idempotent and cheap; never clobbers local dev vars.
+ */
+const PEERDB_ENV_KEYS = [
+  'PEERDB_API_URL',
+  'PEERDB_PASSWORD',
+  'PEERDB_AUTH_SCHEME',
+  'PEERDB_CACHE_TTL_MS',
+  'PEERDB_CACHE_MAX_ENTRIES',
+  'PEERDB_FETCH_TIMEOUT_MS',
+] as const
+
+/**
+ * Copy the `PEERDB_*` config from the Worker `env` binding onto `process.env`
+ * so the env-based PeerDB snapshot reader (`peerdb-collectors.ts`) and the
+ * sweep gate see them.
+ */
+export function bridgePeerDBEnv(bindings: ClickHouseBindings): void {
+  if (typeof process === 'undefined' || !process.env) return
+  for (const key of PEERDB_ENV_KEYS) {
+    const value = bindings[key]
+    if (value != null && value !== '' && process.env[key] == null) {
+      process.env[key] = value
+    }
+  }
+}

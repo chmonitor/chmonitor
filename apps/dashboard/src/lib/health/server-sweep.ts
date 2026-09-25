@@ -7,6 +7,7 @@ import { resolveSweepContext } from './sweep/resolve-config'
 import { runHostSweep } from './sweep/run-host'
 import { debug } from '@chm/logger'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
+import { generatePeerDBInsights } from '@/lib/insights/generate-peerdb-insights'
 import { generatePostgresInsights } from '@/lib/insights/generate-postgres-insights'
 
 // Register pluggable alert rules into the global ruleRegistry once at module
@@ -103,6 +104,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   }
 
   insightsGenerated += await runPostgresInsightSweep()
+  insightsGenerated += await runPeerDBInsightSweep()
 
   // Flush all buffered groupable deliveries (#2663): send one combined message
   // per target that received >1 finding, then commit + count each deferred
@@ -135,6 +137,35 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     insightsGenerated,
     hosts,
     findings,
+  }
+}
+
+/**
+ * PeerDB AI insights (cross-source, env-gated). Runs AFTER the Postgres sweep
+ * on the dedicated PeerDB collector path (NOT the SQL-rule sweep — PeerDB has
+ * no `AlertRuleDef.sql`; its health comes from the read-only flow-api). Gated
+ * on `PEERDB_API_URL` being set AND the flow-api being readable: unconfigured
+ * or unreachable PeerDB contributes 0 insights. Fully isolated — a PeerDB
+ * failure can never break the ClickHouse/Postgres sweeps. Per-connection
+ * (`?connection=<id>`) sweep is out of v1; this covers the env-wide deployment
+ * only.
+ */
+async function runPeerDBInsightSweep(): Promise<number> {
+  try {
+    const { getPeerDBConfig } = await import('@/lib/peerdb/peerdb-config')
+    if (getPeerDBConfig() === null) return 0
+  } catch {
+    return 0
+  }
+  try {
+    const peerdbInsights = await generatePeerDBInsights()
+    return peerdbInsights.length
+  } catch (err) {
+    debug(
+      '[health-sweep] peerdb insight generation failed',
+      err instanceof Error ? err.message : String(err)
+    )
+    return 0
   }
 }
 
