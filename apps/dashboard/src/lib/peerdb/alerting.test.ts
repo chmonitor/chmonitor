@@ -1,10 +1,12 @@
 import {
   auditPeerDBAlert,
+  boundStatusText,
   buildPeerDBAlertPayload,
   classifyPeerDBMirror,
   formatPeerDBAlertMessage,
   investigatePeerDBAlert,
   peerDBDedupKey,
+  peerDBPayloadValue,
   shouldDeliverPeerDBAlert,
   validatePeerDBAlertMessage,
 } from './alerting'
@@ -297,5 +299,65 @@ describe('shouldDeliverPeerDBAlert', () => {
     expect(peerDBDedupKey({ flowName: 'M', severity: 'error', now })).toBe(
       peerDBDedupKey({ flowName: 'm', severity: 'error', now })
     )
+  })
+})
+
+describe('boundStatusText', () => {
+  test('passes STATUS_* enum spellings through', () => {
+    expect(boundStatusText('STATUS_FAILED')).toBe('STATUS_FAILED')
+  })
+
+  test('falls back for empty, junk, or over-long input', () => {
+    expect(boundStatusText(null)).toBe('status unknown')
+    expect(boundStatusText('  ')).toBe('status unknown')
+    expect(boundStatusText('something broke; DROP TABLE x')).toBe(
+      'status unknown'
+    )
+    expect(boundStatusText(`STATUS_${'A'.repeat(50)}`)).toBe('status unknown')
+  })
+})
+
+describe('validatePeerDBAlertMessage secret scan', () => {
+  test('flags leakage in the label too, not just title/text', () => {
+    const v = validatePeerDBAlertMessage({
+      title: '[WARNING] PeerDB mirror m',
+      text: '[WARNING] PeerDB mirror m — lag 5m',
+      label: 'api_token=abc123',
+    })
+    expect(v.ok).toBe(false)
+    expect(v.issues).toContain('possible-secret-leak')
+  })
+})
+
+describe('peerDBPayloadValue', () => {
+  test('lag-fired alert carries lag seconds against lag thresholds', () => {
+    const signal = { flowName: 'm', status: 'STATUS_RUNNING', lagSec: 600 }
+    const v = peerDBPayloadValue(signal, classifyPeerDBMirror(signal))
+    expect(v.value).toBe(600)
+    expect(v.warnThreshold).toBe(300)
+    expect(v.critThreshold).toBe(1800)
+  })
+
+  test('error-count firing carries the count against count thresholds', () => {
+    const signal = { flowName: 'm', recentErrorCount: 7 }
+    const v = peerDBPayloadValue(signal, classifyPeerDBMirror(signal))
+    expect(v.value).toBe(7)
+    expect(v.warnThreshold).toBe(1)
+    expect(v.critThreshold).toBe(5)
+  })
+
+  test('slot-lag firing carries slot MB against slot thresholds', () => {
+    const signal = { flowName: 'm', slotLagMb: 3000 }
+    const v = peerDBPayloadValue(signal, classifyPeerDBMirror(signal))
+    expect(v.value).toBe(3000)
+    expect(v.warnThreshold).toBe(512)
+    expect(v.critThreshold).toBe(2048)
+  })
+
+  test('status firing without a count falls back to 1 against count thresholds', () => {
+    const signal = { flowName: 'm', status: 'STATUS_FAILED' }
+    const v = peerDBPayloadValue(signal, classifyPeerDBMirror(signal))
+    expect(v.value).toBe(1)
+    expect(v.critThreshold).toBe(5)
   })
 })

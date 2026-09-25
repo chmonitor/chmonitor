@@ -142,17 +142,41 @@ access = "authenticated"
 
 ## Issue alerting (read-only)
 
-Mirror health can enter the alert lifecycle without any PeerDB mutation:
-`lib/peerdb/alerting.ts` classifies each mirror's read-only signals
-(`MirrorStatusResponse`, mirror logs, slot lag) into `ok` / `warning` /
-`error`, formats a bounded human-readable message on the shared
-`AlertPayload` contract, validates it, writes a best-effort `alert_events`
-audit row, runs a read-only agent investigation (metrics + message check,
-`send`/`hold` verdict), and only then evaluates the delivery gate. Delivery
-requires `dryRun: false`, a passing validation, a `send` verdict, and an
-unseen hour-bucketed dedup key (`peerdb:<flow>:<severity>:<bucket>`); anything
-else holds. An `unavailable` error count is rendered as "error count
-unavailable", never as "0 errors".
+Mirror health can enter the alert lifecycle without any PeerDB mutation.
+`lib/peerdb/alerting.ts` holds the pure core: per-mirror classification into
+`ok` / `warning` / `error`, bounded human-readable messages on the shared
+`AlertPayload` contract (payload value/thresholds chosen by firing reason),
+validation including a title/text/label secret-leak scan, and a best-effort
+`alert_events` audit writer. An `unavailable` error count is rendered as
+"error count unavailable", never as "0 errors".
+
+The runtime is `lib/peerdb/alert-cycle.ts` — the single orchestrator
+(`runPeerDBAlertCycle`), wired into the health sweep after the ClickHouse
+host loop. Per cycle, `lib/peerdb/alert-collector.ts` collects one
+read-only signal per mirror (status, ERROR-level log volume via the shared
+`mirror-logs` contract, slot lag mapped through `sourceName`; max 50
+mirrors, per-mirror failures isolated, never throws), then each firing
+mirror goes through classify → format → validate → a `peerdb-issue` audit
+row written **before** any delivery attempt → deterministic investigation →
+the existing sweep dispatcher (persistent alert-state dedup, maintenance /
+quiet-hours / ACK gates, channel fan-out). `ok` signals only dispatch as
+recoveries when the persistent store shows a previously firing condition.
+PeerDB dedups under `peerdb-mirror-health:<flow>` on pseudo-host `-1`, so
+glob route patterns (`peerdb-*`) match and ClickHouse host keys never
+collide. Delivery defaults to dry-run (audit only); the sweep arms it with
+`dryRun: false`. A PeerDB failure can never break the ClickHouse sweep.
+
+Pre-send investigation is deterministic by design (message revalidation,
+signal-presence checks, fleet firing/slot-lag context) — the sweep never
+calls an LLM. Model-driven deep dives stay available interactively through
+the `get_peerdb_mirror_status` agent tool (requires `CHM_FEATURE_PEERDB_AGENT`).
+
+Integration note: the metrics/insights lane (PR #3412) introduces its own
+`PeerDBSnapshotReader` collector and the same `bridgePeerDBEnv` Worker-env
+bridge — the alert reader interface is structurally compatible with it
+(adapt `mirrorErrorCount` with
+`async (n) => ({ count: await r.mirrorErrorCount(n), source: 'log-api' })`),
+and whichever lane merges its shared pieces first owns them.
 
 ## Notes & limitations
 

@@ -1,3 +1,4 @@
+import type { DispatchFindingParams } from './sweep/dispatch'
 import type { SweepFinding, SweepHostSummary } from './sweep/run-host'
 
 import { flushAlertState } from './alert-state-persist'
@@ -106,6 +107,18 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   insightsGenerated += await runPostgresInsightSweep()
   insightsGenerated += await runPeerDBInsightSweep()
 
+  // PeerDB alert cycle (#3413): read-only mirror collection → classify →
+  // format → validate → audit → deterministic investigation → the SAME
+  // dispatcher (persistent dedup, suppression gates, channel fan-out) as the
+  // host loop above. Findings join the sweep summary; dispatch reuses the
+  // in-pass digest buckets flushed below.
+  const peerdbResult = await runPeerDBAlertSweep(
+    dispatchFinding,
+    ctx.alertingEnabled
+  )
+  findings.push(...peerdbResult.findings)
+  hosts.push(peerdbResult.summary)
+
   // Flush all buffered groupable deliveries (#2663): send one combined message
   // per target that received >1 finding, then commit + count each deferred
   // finding. Runs after every host so grouping spans the whole pass.
@@ -166,6 +179,76 @@ async function runPeerDBInsightSweep(): Promise<number> {
       err instanceof Error ? err.message : String(err)
     )
     return 0
+  }
+}
+
+/**
+ * PeerDB alert sweep (issue #3413).
+ *
+ * Runs AFTER the ClickHouse host loop on the dedicated read-only PeerDB
+ * collector path (PeerDB has no `AlertRuleDef.sql`; its health comes from the
+ * flow-api). Gated on `PEERDB_API_URL` being set: unconfigured PeerDB
+ * contributes zero findings and zero dispatches. Fully isolated — a PeerDB
+ * failure (unreachable flow-api, malformed payloads, or any bug in the alert
+ * cycle itself) can never break the ClickHouse/Postgres sweeps: every failure
+ * mode degrades to counters.
+ *
+ * Delivery (`dispatch`) is only passed when the sweep's master alerting
+ * switch is on; otherwise the cycle evaluates + audits dry-run and the
+ * findings still surface in the summary.
+ */
+async function runPeerDBAlertSweep(
+  dispatchFinding: (params: DispatchFindingParams) => Promise<void>,
+  alertingEnabled: boolean
+): Promise<{ findings: SweepFinding[]; summary: SweepHostSummary }> {
+  const empty = (): {
+    findings: SweepFinding[]
+    summary: SweepHostSummary
+  } => ({
+    findings: [],
+    summary: {
+      hostId: -1,
+      hostName: 'peerdb',
+      checksRun: 0,
+      findings: 0,
+      errored: 0,
+      skipped: 0,
+    },
+  })
+  try {
+    const { getPeerDBConfig } = await import('@/lib/peerdb/peerdb-config')
+    if (getPeerDBConfig() === null) return empty()
+  } catch {
+    return empty()
+  }
+  try {
+    const { runPeerDBAlertCycle } = await import('@/lib/peerdb/alert-cycle')
+    const cycle = await runPeerDBAlertCycle({
+      // Real delivery: the sweep dispatcher (persistent dedup via the
+      // hydrated alert-state store, suppression gates, channel fan-out).
+      // `dryRun: false` is what arms it — the default (true) only audits.
+      dispatch: alertingEnabled ? dispatchFinding : undefined,
+      dryRun: !alertingEnabled,
+    })
+    return {
+      findings: cycle.findings,
+      summary: {
+        hostId: -1,
+        hostName: 'peerdb',
+        checksRun: cycle.mirrorsChecked,
+        findings: cycle.findings.length,
+        errored: cycle.errored,
+        skipped: 0,
+      },
+    }
+  } catch (err) {
+    debug(
+      '[health-sweep] peerdb alert cycle failed',
+      err instanceof Error ? err.message : String(err)
+    )
+    const out = empty()
+    out.summary.errored = 1
+    return out
   }
 }
 

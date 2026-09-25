@@ -91,6 +91,13 @@ export interface PeerDBClassification {
   reasons: string[]
 }
 
+/** A firing classification — the only kind that may notify (M5). */
+export interface PeerDBFiringClassification {
+  severity: 'warning' | 'error'
+  /** Machine-readable reason codes, most severe first. */
+  reasons: string[]
+}
+
 function finiteOrNull(v: number | null | undefined): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null
 }
@@ -185,6 +192,17 @@ function sanitizeFlowName(name: string): string {
   return trimmed ? trimmed.slice(0, 120) : '(unnamed mirror)'
 }
 
+/**
+ * Bound the raw upstream status string (L1). Only `STATUS_*` enum spellings
+ * pass through (capped at 40 chars); anything else — including an empty or
+ * junk value — renders as `status unknown` so unbounded upstream text can
+ * never flow into labels, titles, or dedup keys.
+ */
+export function boundStatusText(status: string | null | undefined): string {
+  const trimmed = status?.trim() ?? ''
+  return /^STATUS_[A-Z_]{1,40}$/.test(trimmed) ? trimmed : 'status unknown'
+}
+
 function sanitizeErrorSnippet(raw: string | null | undefined): string | null {
   if (!raw) return null
   const oneLine = raw.trim().replace(/\s+/g, ' ')
@@ -213,7 +231,7 @@ export function formatPeerDBAlertMessage(
 ): PeerDBAlertMessage {
   const flow = sanitizeFlowName(signal.flowName)
   const severity = classification.severity.toUpperCase()
-  const status = signal.status?.trim() || 'status unknown'
+  const status = boundStatusText(signal.status)
   const lag = formatLag(finiteOrNull(signal.lagSec))
   const snippet = sanitizeErrorSnippet(signal.errorMessage)
 
@@ -272,35 +290,122 @@ export function validatePeerDBAlertMessage(
   }
   const leak =
     /(password|passwd|secret|api[_-]?token|authorization|bearer\s+[a-z0-9])/i
-  if (leak.test(message.text) || leak.test(message.title)) {
+  if (
+    leak.test(message.text) ||
+    leak.test(message.title) ||
+    leak.test(message.label)
+  ) {
     issues.push('possible-secret-leak')
   }
   return { ok: issues.length === 0, issues }
+}
+
+export interface PeerDBPayloadValue {
+  /** Numeric value carried into dispatch payloads / history rows. */
+  value: number | null
+  warnThreshold: number
+  critThreshold: number
+}
+
+/**
+ * Choose the payload value + thresholds by firing reason (M4), so a
+ * lag-fired alert carries lag seconds against lag thresholds (not an
+ * unrelated error count). Precedence follows classification order: explicit
+ * error-count reasons first, then slot lag, CDC lag, snapshot stall,
+ * status/error-message presence, and finally the `ok` fallback.
+ */
+export function peerDBPayloadValue(
+  signal: PeerDBMirrorSignal,
+  classification: PeerDBClassification,
+  thresholds: PeerDBAlertThresholds = DEFAULT_PEERDB_ALERT_THRESHOLDS
+): PeerDBPayloadValue {
+  const reasons = classification.reasons
+  const count =
+    typeof signal.recentErrorCount === 'number' &&
+    Number.isFinite(signal.recentErrorCount)
+      ? Math.floor(signal.recentErrorCount)
+      : null
+  if (
+    reasons.includes('error-count-error') ||
+    reasons.includes('error-count-warning')
+  ) {
+    return {
+      value: count,
+      warnThreshold: thresholds.errorWarnCount,
+      critThreshold: thresholds.errorErrorCount,
+    }
+  }
+  const slotLag = finiteOrNull(signal.slotLagMb)
+  if (
+    reasons.includes('slot-lag-error') ||
+    reasons.includes('slot-lag-warning')
+  ) {
+    return {
+      value: slotLag,
+      warnThreshold: thresholds.slotLagWarnMb,
+      critThreshold: thresholds.slotLagErrorMb,
+    }
+  }
+  const lag = finiteOrNull(signal.lagSec)
+  if (
+    reasons.includes('cdc-lag-error') ||
+    reasons.includes('cdc-lag-warning')
+  ) {
+    return {
+      value: lag,
+      warnThreshold: thresholds.lagWarnSec,
+      critThreshold: thresholds.lagErrorSec,
+    }
+  }
+  if (reasons.includes('snapshot-stalled')) {
+    return { value: 1, warnThreshold: 1, critThreshold: 2 }
+  }
+  if (
+    reasons.some(
+      (r) => r === 'error-message-present' || r.startsWith('status:')
+    )
+  ) {
+    return {
+      value: count ?? 1,
+      warnThreshold: thresholds.errorWarnCount,
+      critThreshold: thresholds.errorErrorCount,
+    }
+  }
+  return {
+    value: count ?? 0,
+    warnThreshold: thresholds.errorWarnCount,
+    critThreshold: thresholds.errorErrorCount,
+  }
 }
 
 /**
  * Map a classified + formatted mirror alert onto the shared channel-agnostic
  * `AlertPayload` so existing notification adapters (Slack/Discord/PagerDuty/
  * generic JSON) can render it without PeerDB-specific code. `error` maps to
- * `critical`; `ok` maps to `warning`-floor callers simply skip (documented on
- * the delivery gate — `ok` findings never notify).
+ * `critical`. Only firing classifications are accepted (M5) — `ok` has no
+ * meaningful adapter severity and must never notify; recovery travels the
+ * dispatch path (`severity: 'ok'` into `dispatchFinding`), not a payload.
  */
 export function buildPeerDBAlertPayload(params: {
   signal: PeerDBMirrorSignal
-  classification: PeerDBClassification
+  classification: PeerDBFiringClassification
   message: PeerDBAlertMessage
   hostId?: number
   timestamp?: string
 }): AlertPayload {
+  const { value, warnThreshold, critThreshold } = peerDBPayloadValue(
+    params.signal,
+    params.classification
+  )
   return {
     severity:
       params.classification.severity === 'error' ? 'critical' : 'warning',
     hostLabel: `peerdb:${sanitizeFlowName(params.signal.flowName)}`,
     hostId: params.hostId ?? 0,
     metric: 'peerdb-mirror-health',
-    value: finiteOrNull(params.signal.lagSec),
-    warnThreshold: DEFAULT_PEERDB_ALERT_THRESHOLDS.lagWarnSec,
-    critThreshold: DEFAULT_PEERDB_ALERT_THRESHOLDS.lagErrorSec,
+    value,
+    warnThreshold,
+    critThreshold,
     title: params.message.title,
     label: params.message.label,
     timestamp: params.timestamp ?? new Date().toISOString(),
@@ -477,6 +582,12 @@ export interface PeerDBDeliveryDecision {
  * `dryRun === false`, validation ok, investigation verdict `send`, severity
  * above `ok`, and a dedup key not already seen. Pure — the caller owns the
  * `seen` set (in-memory or persistent) and the actual transport.
+ *
+ * NOTE (M2): the runtime cycle (`./alert-cycle`) does NOT rely on this
+ * in-memory set for delivery decisions — it delegates dedup to the
+ * persistent `alertStateStore` via the sweep dispatch path (D1
+ * hydrate/flush, restart-safe). The `seen` set here remains a process-local
+ * fallback for standalone/dry-run use only.
  */
 export function shouldDeliverPeerDBAlert(params: {
   severity: PeerDBAlertSeverity

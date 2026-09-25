@@ -81,7 +81,7 @@ async function handler(request: Request): Promise<Response> {
   // getClickHouseConfigs() (inside runHealthSweep) can resolve hosts. Also
   // bridge the POSTGRES_* lists + feature flag so the sweep's env-gated Postgres
   // insight loop can resolve its sources, and the PEERDB_* config so the
-  // PeerDB insight sweep's env gate + snapshot reader see them.
+  // PeerDB insight/alert sweep env gate + snapshot reader see them.
   bridgeClickHouseEnv(env as Record<string, string | undefined>)
   bridgePostgresEnv(env as Record<string, string | undefined>)
   bridgePeerDBEnv(env as Record<string, string | undefined>)
