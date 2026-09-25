@@ -39,7 +39,8 @@ import { createVisualizationTools } from './visualization-tools'
  *    get_failed_queries, explain_query, estimate_query_cost,
  *    list_slow_query_patterns
  *  - Health: get_metrics, get_disk_usage
- *  - Storage: get_table_parts, estimate_mutation_impact
+ *  - Storage: get_table_parts, estimate_mutation_impact,
+ *    forecast_disk_capacity, suggest_ttl_adjustment
  *  - Replication: get_replication_status
  *  - Merges: get_merge_status
  *  - Planning: update_plan
@@ -48,14 +49,14 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Visualization: query_and_visualize
  *  - Insights: explain_anomaly_score
  *  - Reports: generate_cluster_report
- *  - Advisor: get_optimization_recommendations
+ *  - Advisor: get_optimization_recommendations, get_tuning_suggestions
  *  - Advisor: recommend_materialized_view
  *  - Dashboards: suggest_dashboard
  *  - Control (destructive, env-gated): kill_query, optimize_table, kill_mutation
  *  - Postgres (cross-source, env-gated): run_postgres_select_query,
  *    get_postgres_metrics, list_postgres_slow_query_patterns,
  *    get_postgres_table_stats
- *  - PeerDB (env-gated): get_peerdb_mirror_status
+ *  - PeerDB (env-gated): get_peerdb_mirror_status, get_peerdb_metrics
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
   const enableControlTools = process.env.AGENT_ENABLE_CONTROL_TOOLS === 'true'
@@ -134,8 +135,10 @@ export function createAllTools(hostId: number, includeControlTools = false) {
         }
       : {}),
 
-    // PeerDB mirror status — off unless CHM_FEATURE_PEERDB_AGENT=true (and
-    // the PeerDB feature itself is not disabled). Read-only fleet + detail.
+    // PeerDB mirror status + metrics — off unless
+    // CHM_FEATURE_PEERDB_AGENT=true (and the PeerDB feature itself is not
+    // disabled). Read-only: fleet/detail status, slot lag, CDC throughput,
+    // snapshot progress, per-peer stats, fleet aggregates.
     ...(enablePeerDBTools ? createPeerDBTools() : {}),
   }
 }

@@ -16,7 +16,7 @@ Use \`query\` only after a primitive, a skill, or \`get_table_schema\`.
 **Loop:** **update_plan** (only for 3+ step investigations — do not call every turn) · **load_skill** · **find_reference_query** · **ask_user** · **query_and_visualize**
 **Control (env-gated, off by default):** **kill_query** · **optimize_table** · **kill_mutation**. If they are not available, do not claim you ran them.
 **Postgres (env-gated):** **run_postgres_select_query** · **get_postgres_metrics** · **list_postgres_slow_query_patterns** · **get_postgres_table_stats**. These take \`pgHostId\`, not ClickHouse \`hostId\`.
-**PeerDB (env-gated):** **get_peerdb_mirror_status**. Omit \`mirrorName\` for the worst-first fleet overview; pass it for one mirror's detail.
+**PeerDB (env-gated):** **get_peerdb_mirror_status** · **get_peerdb_metrics**. Omit \`mirrorName\` for the worst-first fleet overview; pass it for one mirror's detail. Use **get_peerdb_metrics** for slot lag, CDC rows-synced throughput, snapshot progress, and fleet aggregates (pick a \`metric\`).
 `
 
 export const CLICKHOUSE_AGENT_INSTRUCTIONS = `You are the ClickHouse ops assistant in this monitoring dashboard. Recommend only. Never claim you KILL / OPTIMIZE / ALTER'd anything.

@@ -6,8 +6,9 @@
  * path: a fixed allowlist of read-only PeerDB REST paths (the same subset the
  * view-only UI proxy at `api/v1/peerdb/$.ts` forwards), with the
  * `PEERDB_PASSWORD` credential attached as an Authorization header and never
- * returned. Mirror names are the only model-controlled input and are
- * validated + encoded into a single path segment.
+ * returned. Mirror, peer, and slot names are the only model-controlled input
+ * and are validated (+ encoded, for the ones that reach a URL) into a single
+ * path segment or request body.
  *
  * Workers-safe: imports only the pure `peerdb-auth` module (no node
  * built-ins, `btoa`-based header). Env is read from `process.env` at call
@@ -57,6 +58,43 @@ export function assertValidMirrorName(name: string): void {
   if (/[/?#\s\x00-\x1f\x7f]/.test(name)) {
     throw new Error(
       'mirrorName must be a plain mirror identifier (no slashes, query/fragment delimiters, whitespace, or control characters)'
+    )
+  }
+}
+
+/**
+ * Validate a model-supplied *peer* name for safe interpolation into a single
+ * upstream path segment. Same contract as {@link assertValidMirrorName} —
+ * peer names are operator-chosen identifiers, so anything that could escape the
+ * segment (slashes, query/fragment delimiters, control chars) is rejected
+ * rather than encoded-and-hoped-for.
+ */
+export function assertValidPeerName(name: string): void {
+  if (typeof name !== 'string' || name.length === 0 || name.length > 256) {
+    throw new Error('peerName must be a non-empty string up to 256 chars')
+  }
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — reject control chars
+  if (/[/?#\s\x00-\x1f\x7f]/.test(name)) {
+    throw new Error(
+      'peerName must be a plain peer identifier (no slashes, query/fragment delimiters, whitespace, or control characters)'
+    )
+  }
+}
+
+/**
+ * Validate a model-supplied replication-slot name. Slot names only ever travel
+ * in a POST *body* (lag history), never in a URL, so this is the length bound
+ * plus the same delimiter rejection — kept as its own function so the error the
+ * model sees names the field it actually got wrong.
+ */
+export function assertValidSlotName(name: string): void {
+  if (typeof name !== 'string' || name.length === 0 || name.length > 256) {
+    throw new Error('slotName must be a non-empty string up to 256 chars')
+  }
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — reject control chars
+  if (/[/?#\s\x00-\x1f\x7f]/.test(name)) {
+    throw new Error(
+      'slotName must be a plain slot identifier (no slashes, query/fragment delimiters, whitespace, or control characters)'
     )
   }
 }

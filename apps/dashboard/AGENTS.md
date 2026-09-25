@@ -124,7 +124,7 @@ runner; prompts in `prompts/`; the skill registry/loader in `skills/` (the
 skills themselves live at repo-root `.agents/skills/`); MCP glue in `mcp/`.
 
 Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 21
-tool modules exposing 38 tools total (30 by default; the 3 destructive
+tool modules exposing 39 tools total (30 by default; the 3 destructive
 `control-tools` are gated off unless `AGENT_ENABLE_CONTROL_TOOLS=true`, the 4
 cross-source `postgres-*-tools` are gated off unless
 `CHM_FEATURE_POSTGRES_SOURCE=true`, and the PeerDB `peerdb-tools` module is
@@ -152,7 +152,7 @@ gated off unless `CHM_FEATURE_PEERDB_AGENT=true`):
 | `postgres-query-tools` (gated) | `run_postgres_select_query`, `list_postgres_slow_query_patterns` |
 | `postgres-health-tools` (gated) | `get_postgres_metrics` |
 | `postgres-table-tools` (gated) | `get_postgres_table_stats` |
-| `peerdb-tools` (gated) | `get_peerdb_mirror_status` |
+| `peerdb-tools` (gated) | `get_peerdb_mirror_status`, `get_peerdb_metrics` |
 
 `helpers.ts` and `sql-analysis.ts` are shared helpers, not tool modules. The
 design is a deliberately lean set of primitives — anything not covered is done
