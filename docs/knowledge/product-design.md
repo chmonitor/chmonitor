@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-09-15
+updated: 2026-09-25
 tags:
   - design-system
   - ui
@@ -695,12 +695,17 @@ would clip it.
   `DateRangeSelector` dropdown chips stay `min-h-11 min-w-11` until `sm`.
   **Header page title** (breadcrumb current page) stays fully readable at
   768. Do not `truncate` it — the title cluster is `shrink-0` so sibling
-  chrome cannot squeeze "Overview" into "Over…". Parent crumbs hide until
-  `lg` (overlay-sidebar breakpoint). Header Search is icon-only below `lg`;
-  the 160px Search… field is desktop-only. Refresh countdown text and the
-  header action gap stay compact until `lg`. Docs article **Copy Markdown** /
-  **Open** (`[data-article-actions]`, below `md`) are the same 44px floor;
-  docs header search/menu is a separate control (`#nd-nav` / `#nd-subnav`).
+  chrome cannot squeeze "Overview" into "Over…". The header is a two-region
+  flex contract: `HeaderIdentity` stays intrinsic-width on the left, while
+  `HeaderActionRegion` is `ml-auto`, full-width/basis-full on phones, and
+  `sm:flex-1` with `min-w-0`/`overflow-x-auto` so the controls remain
+  right-aligned and swipeable instead of compressing the title. Parent crumbs
+  hide until `lg` (overlay-sidebar breakpoint). Header Search is icon-only
+  below `lg`; the 160px Search… field is desktop-only. Refresh countdown text
+  and the header action gap stay compact until `lg`. Docs article **Copy
+  Markdown** / **Open** (`[data-article-actions]`, below `md`) are the same
+  44px floor; docs header search/menu is a separate control (`#nd-nav` /
+  `#nd-subnav`).
 
 ## UX conventions
 

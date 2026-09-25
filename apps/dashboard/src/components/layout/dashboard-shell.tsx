@@ -3,14 +3,13 @@ import { ResizableSidebarProvider } from './resizable-sidebar-provider'
 import { Suspense } from 'react'
 import { GlobalAssistantModal } from '@/components/assistant-ui/global-assistant-modal'
 import { KeyboardShortcuts } from '@/components/controls/keyboard-shortcuts'
+import { HeaderActionRegion } from '@/components/header/header-action-region'
 import { HeaderActions } from '@/components/header/header-actions'
-import { Breadcrumb } from '@/components/navigation/breadcrumb'
+import { HeaderIdentity } from '@/components/header/header-identity'
 import { SettingsDialogProvider } from '@/components/settings/settings-dialog-provider'
 import { DynamicTitle } from '@/components/status/dynamic-title'
 import { NetworkStatusBanner } from '@/components/status/network-status-banner'
-import { Separator } from '@/components/ui/separator'
-import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SidebarInset } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
 import { WhatsNewProvider } from '@/components/whats-new/whats-new-provider'
 
@@ -47,24 +46,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <AppSidebar />
           <SidebarInset className="min-w-0 overflow-hidden">
             <header className="relative z-10 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 transition-[width,height] ease-linear sm:h-16 sm:flex-nowrap sm:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sm:group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-12">
-              {/* shrink-0: the page title must not be the flex leftover that
-                ellipsizes to "Over…" when tablet chrome (day switcher + 44px
-                utilities) shares this nowrap row. Below sm the header wraps
-                and the title already has a full row. */}
-              <div className="flex shrink-0 items-center gap-2 px-3 pt-2 sm:px-4 sm:pt-0">
-                <SidebarTrigger className="-ml-1 size-11 lg:size-7" />
-                <Separator orientation="vertical" className="h-4" />
-                <Suspense fallback={<Skeleton className="h-4 w-32" />}>
-                  <Breadcrumb />
-                </Suspense>
-              </div>
-              {/* scrollbar-hide: stays swipe-scrollable on narrow viewports
-                without a visible scrollbar under the header controls.
-                min-w-0 flex-1 until lg lets extras scroll instead of
-                compressing the title; lg restores intrinsic width. */}
-              <div className="scrollbar-hide w-full min-w-0 overflow-x-auto px-3 pb-2 sm:ml-auto sm:min-w-0 sm:flex-1 sm:px-4 sm:pb-0 lg:flex-none lg:overflow-visible">
+              <HeaderIdentity />
+              <HeaderActionRegion>
                 <HeaderActions />
-              </div>
+              </HeaderActionRegion>
             </header>
             <div
               id="main-content"

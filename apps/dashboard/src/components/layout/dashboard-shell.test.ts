@@ -1,6 +1,6 @@
 /**
- * At 768 the header is one nowrap row. The title cluster must not be the
- * flex leftover (`min-w-0 flex-1` + truncate → "Over…").
+ * The dashboard shell delegates the responsive header contract to two focused
+ * regions instead of rebuilding the title/action flex relationship inline.
  */
 
 import { describe, expect, test } from 'bun:test'
@@ -8,23 +8,41 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const src = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), './dashboard-shell.tsx'),
+const componentDir = dirname(fileURLToPath(import.meta.url))
+const shellSrc = readFileSync(
+  join(componentDir, './dashboard-shell.tsx'),
+  'utf8'
+)
+const identitySrc = readFileSync(
+  join(componentDir, '../header/header-identity.tsx'),
+  'utf8'
+)
+const actionsSrc = readFileSync(
+  join(componentDir, '../header/header-actions.tsx'),
   'utf8'
 )
 
-describe('dashboard header title cluster', () => {
-  test('does not shrink so Overview stays readable at 768', () => {
-    expect(src).toContain(
-      'className="flex shrink-0 items-center gap-2 px-3 pt-2 sm:px-4 sm:pt-0"'
-    )
-    expect(src).not.toContain(
-      'flex min-w-0 flex-1 items-center gap-2 px-3 pt-2'
-    )
+describe('dashboard header composition', () => {
+  test('uses focused identity and action regions', () => {
+    expect(shellSrc).toContain('<HeaderIdentity />')
+    expect(shellSrc).toContain('<HeaderActionRegion>')
+    expect(shellSrc).toContain('<HeaderActions />')
+    expect(shellSrc).not.toContain('<Breadcrumb />')
   })
 
-  test('header actions can scroll instead of compressing the title', () => {
-    expect(src).toContain('sm:flex-1')
-    expect(src).toContain('lg:flex-none lg:overflow-visible')
+  test('keeps the page identity intrinsic-width and readable', () => {
+    expect(identitySrc).toContain(
+      'className="flex shrink-0 items-center gap-2 px-3 pt-2 sm:px-4 sm:pt-0"'
+    )
+    expect(identitySrc).not.toContain('flex min-w-0 flex-1')
+  })
+
+  test('keeps the action controls right-aligned and bounded', () => {
+    expect(actionsSrc).toContain(
+      'data-testid="dashboard-header-action-controls"'
+    )
+    expect(actionsSrc).toContain('justify-end')
+    expect(actionsSrc).toContain('max-w-full')
+    expect(actionsSrc).not.toContain('sm:ml-auto')
   })
 })
