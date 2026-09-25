@@ -147,7 +147,7 @@ export function CustomWebhookTargetsPanel() {
       {editableTargets.length > 0 && !creating && (
         <div
           className="flex flex-wrap gap-2"
-          role="tablist"
+          role="group"
           aria-label="Saved custom webhooks"
         >
           {editableTargets.map((target) => (
@@ -156,6 +156,7 @@ export function CustomWebhookTargetsPanel() {
               type="button"
               variant={selected?.id === target.id ? 'secondary' : 'outline'}
               size="sm"
+              aria-pressed={selected?.id === target.id}
               onClick={() => {
                 setCreating(false)
                 setSelectedId(target.id)
