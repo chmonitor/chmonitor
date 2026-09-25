@@ -5,6 +5,28 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.6](https://github.com/chmonitor/chmonitor/compare/v0.3.5...v0.3.6) (2026-09-25)
+
+
+### ✨ Features
+
+* **agent:** read-only PeerDB mirror-status tool ([#3411](https://github.com/chmonitor/chmonitor/issues/3411)) ([5ab290a](https://github.com/chmonitor/chmonitor/commit/5ab290a54fdf7465e764dc90ad1cd57882c977e8))
+* **alerts:** add customizable webhook targets ([#3418](https://github.com/chmonitor/chmonitor/issues/3418)) ([b30b862](https://github.com/chmonitor/chmonitor/commit/b30b862bd4837dca037f7d2b22f036af31774766))
+* **alerts:** configure custom webhooks via Helm ([#3419](https://github.com/chmonitor/chmonitor/issues/3419)) ([b3dcbd4](https://github.com/chmonitor/chmonitor/commit/b3dcbd49ca576a93a39fce8cae11346be38db923)), closes [#3414](https://github.com/chmonitor/chmonitor/issues/3414)
+* **peerdb:** issue alerting — classify, format, validate, audit, investigate before delivery ([#3408](https://github.com/chmonitor/chmonitor/issues/3408)) ([f668f22](https://github.com/chmonitor/chmonitor/commit/f668f22c7c3c4e8e8303d40afd2eb54f8d85e7fb))
+* **peerdb:** read-only fleet metrics and AI insights support ([#3412](https://github.com/chmonitor/chmonitor/issues/3412)) ([a9d4a47](https://github.com/chmonitor/chmonitor/commit/a9d4a478fd831750a343213e8f888ddc43186173)), closes [#3410](https://github.com/chmonitor/chmonitor/issues/3410)
+* **peerdb:** runtime alert cycle — collector, orchestrator, sweep dispatch wiring ([#3415](https://github.com/chmonitor/chmonitor/issues/3415)) ([d4e57c1](https://github.com/chmonitor/chmonitor/commit/d4e57c1726c93aacee5fb8df46934bbb2026e698))
+
+
+### 🐛 Bug Fixes
+
+* **dashboard:** keep header controls right-aligned ([#3417](https://github.com/chmonitor/chmonitor/issues/3417)) ([9a1f842](https://github.com/chmonitor/chmonitor/commit/9a1f84295a3c405060ac743f6367b69b0ab0a243))
+* **landing:** valid Product JSON-LD for merchant listings ([#3402](https://github.com/chmonitor/chmonitor/issues/3402)) ([d9e91d7](https://github.com/chmonitor/chmonitor/commit/d9e91d703ff556ca77737231764fa09876428a1f))
+* **peerdb:** close auth and cache isolation gaps ([#3425](https://github.com/chmonitor/chmonitor/issues/3425)) ([19240b7](https://github.com/chmonitor/chmonitor/commit/19240b723af31509bb399091960a5465d35709d6))
+* **peerdb:** preserve alert auth and recovery state ([#3426](https://github.com/chmonitor/chmonitor/issues/3426)) ([1f1b306](https://github.com/chmonitor/chmonitor/commit/1f1b306be9cd33e06733a5c7965e5252b24b2748))
+* **peerdb:** secure metrics cache and auth parity ([#3420](https://github.com/chmonitor/chmonitor/issues/3420)) ([0cec85c](https://github.com/chmonitor/chmonitor/commit/0cec85cf8a7eb8e1b106b33fe2e2f451e70f2a04))
+* **peerdb:** send uppercase log level and normalize mirror-log shapes ([#3409](https://github.com/chmonitor/chmonitor/issues/3409)) ([968d26d](https://github.com/chmonitor/chmonitor/commit/968d26d445e510f715e9098029aa6e4f5543b3c1))
+
 ## [0.3.5](https://github.com/chmonitor/chmonitor/compare/v0.3.4...v0.3.5) (2026-09-21)
 
 
