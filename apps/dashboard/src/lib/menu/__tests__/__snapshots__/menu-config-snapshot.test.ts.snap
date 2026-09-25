@@ -84,7 +84,7 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "depth": 1,
     "href": "/health",
     "section": undefined,
-    "title": "Health",
+    "title": "Health and Alert",
   },
   {
     "depth": 1,

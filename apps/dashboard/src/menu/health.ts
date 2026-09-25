@@ -19,10 +19,13 @@ export const healthItems: MenuItem[] = [
     permission: { feature: 'health' },
     items: [
       {
-        title: 'Health',
+        // Named "Health and Alert" to disambiguate from the sibling "Health
+        // Settings" entry. The page header already reads "Health Summary".
+        title: 'Health and Alert',
         href: '/health',
         description:
           'Real-time health indicators for your ClickHouse cluster with active alerts',
+        keywords: ['health summary', 'alerts', 'status', 'health checks'],
         icon: HeartPulseIcon,
       },
       {
