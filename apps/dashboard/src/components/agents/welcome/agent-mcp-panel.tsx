@@ -22,10 +22,10 @@
  * library, see the "MCP Servers" tab on the Agent Settings page
  * (`/agents/settings?tab=mcp`).
  *
- * `config` is passed in rather than self-instantiated: the sidebar's collapsed
- * header badge renders the same enabled/total count, and `useMcpConfig`'s
- * state is per-instance `useState` (localStorage-backed, no cross-instance
- * broadcast), so a second instance would go stale against this one.
+ * `config` is passed in rather than self-instantiated so the panel body and the
+ * sidebar's collapsed header badge render from one instance. The agent runtime
+ * reads the same tab-wide store through its own `useMcpConfig()`, so its
+ * effective server set tracks these toggles too.
  */
 
 import { PlusIcon, Trash2Icon, WrenchIcon } from 'lucide-react'

@@ -208,12 +208,13 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   first, and treat fold state as plain component state (resets on reload, no
   persistence). Put the count in the `right` slot, which renders inside the
   trigger so it survives the folded state. If a count shows in both header and
-  body, derive both from ONE lifted state — a second instance of a
-  `useState`-backed hook goes stale against the first. A data-dependent section
-  keeps its visibility guard AHEAD of the section element, or it renders a
-  header with a dangling chevron and no body. A read-only status row explains
-  itself via an info-icon `Tooltip`, not a standing paragraph. See
-  `agent-settings-sidebar.tsx`.
+  body, derive both from ONE source — never let two independent stores feed one
+  number; either lift the state to the common parent, or back the hook with a
+  shared store (`useMcpConfig` uses a module-level store + `useSyncExternalStore`).
+  A data-dependent section keeps its visibility guard AHEAD of the section
+  element, or it renders a header with a dangling chevron and no body. A
+  read-only status row explains itself via an info-icon `Tooltip`, not a
+  standing paragraph. See `agent-settings-sidebar.tsx`.
 - **Settings page shape — few tabs, dialogs for the rest:** at most FOUR tabs;
   rarely-visited panels become a `grid gap-2 sm:grid-cols-2` of launcher cards
   (icon tile + title + one-line description + `ChevronRight`) that open the

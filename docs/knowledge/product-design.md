@@ -610,10 +610,13 @@ of stacking every section with equal, always-expanded weight:
 - **Every collapsible section carries its count in the `right` slot.** The slot
   renders *inside* the trigger, so the badge stays visible while folded — that
   is the whole reason a collapsed section is still worth showing. When a count
-  appears in both the header and the body, derive both from ONE source: a
+  appears in both the header and the body, derive both from ONE source. A
   per-instance `useState` hook has no cross-instance broadcast, so a second
-  instance of the same hook goes stale against the first. Lift the state to the
-  common parent and pass it down rather than calling the hook twice.
+  instance of the same hook goes stale against the first: either lift the state
+  to the common parent and pass it down, or back the hook with a shared store.
+  What is forbidden is two independent stores feeding one number. (`useMcpConfig`
+  is the reference: a module-level store read via `useSyncExternalStore`, which
+  also keeps the agent runtime in step with the panel's toggles.)
 - **A data-dependent section keeps its visibility guard ahead of the section
   element**, not inside the body — otherwise OSS / unlimited plans render a
   header with a chevron and no body under it. `AiUsagePanel` returns `null`

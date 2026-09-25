@@ -5,20 +5,30 @@
  *   - Enabled/disabled state per server (toggle state)
  *   - User-added custom servers
  *
- * Persists everything to localStorage so the configuration survives page
- * reloads — mirrors the `useToolConfig` pattern used for individual MCP tools.
- * The built-in `clickhouse-monitor` server is provided by the caller and is
- * never stored here; only user overrides (toggles + custom servers) live in
+ * One config lives in a module-level store per tab and is read through
+ * `useSyncExternalStore`, so every consumer in the tab — the settings panel the
+ * user edits and the agent runtime that decides which servers to connect to —
+ * reads the same value and a toggle reaches the next agent request without a
+ * reload. A `storage` listener alone would not do: it only fires in *other*
+ * tabs, and both of those consumers are in this one.
+ *
+ * The store persists to localStorage so the configuration survives page reloads
+ * — mirrors the `useToolConfig` pattern used for individual MCP tools. The
+ * built-in `clickhouse-monitor` server is provided by the caller and is never
+ * stored here; only user overrides (toggles + custom servers) live in
  * localStorage.
+ *
+ * Same external-store shape as the other module-level snapshot stores
+ * (`lib/traffic/traffic-settings.ts`, `lib/menu/favorites-store.ts`).
  */
 
 'use client'
 
 import type { McpServer } from '@/components/agents/welcome/mcp-types'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
-const MCP_CONFIG_STORAGE_KEY = 'clickhouse-monitor-mcp-config'
+export const MCP_CONFIG_STORAGE_KEY = 'clickhouse-monitor-mcp-config'
 
 /** Custom server fields the user supplies when registering a new server. */
 export interface CustomMcpServer {
@@ -121,6 +131,46 @@ function writeStorage(config: McpConfigStorage): void {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Tab-wide store — the single source both the settings panel and the agent
+// runtime read, so a toggle made in one reaches the other without a reload.
+// ---------------------------------------------------------------------------
+
+/** Same-tab subscribers to re-render on change. */
+const listeners = new Set<() => void>()
+
+/**
+ * Cached snapshot, `undefined` until first read so localStorage is touched
+ * after hydration rather than at import. Replaced only on write:
+ * `useSyncExternalStore` compares snapshots by reference, so building a fresh
+ * object per call would re-render forever.
+ */
+let snapshot: McpConfigStorage | undefined
+
+function getSnapshot(): McpConfigStorage {
+  snapshot ??= readStorage()
+  return snapshot
+}
+
+/** SSR has no localStorage; render empty, then pick up the stored config. */
+function getServerSnapshot(): McpConfigStorage {
+  return EMPTY
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+/** Commit a config: cache it, persist it, then notify this tab's consumers. */
+function setSnapshot(next: McpConfigStorage): void {
+  snapshot = next
+  writeStorage(next)
+  for (const listener of listeners) listener()
+}
+
 export interface UseMcpConfigResult {
   /** Server ids the user has disabled. */
   disabledServers: readonly string[]
@@ -139,36 +189,30 @@ export interface UseMcpConfigResult {
 /**
  * Hook for managing MCP server configuration.
  *
- * By default all servers are enabled. Toggle state and custom servers persist
- * in localStorage so the configuration is restored on reload.
+ * By default all servers are enabled. Every caller in the tab reads the same
+ * store, so the panel's list and the agent's effective server set cannot
+ * disagree. Toggle state and custom servers persist in localStorage so the
+ * configuration is restored on reload.
  */
 export function useMcpConfig(): UseMcpConfigResult {
-  const [config, setConfig] = useState<McpConfigStorage>(() => readStorage())
-
-  // Sync to localStorage whenever the config changes.
-  useEffect(() => {
-    writeStorage(config)
-  }, [config])
+  const config = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   const isServerEnabled = (id: string) => !config.disabled.includes(id)
 
+  // Every write reads the live snapshot rather than a captured `config`, so
+  // two changes landing in one tick compose instead of overwriting each other.
   const setServerEnabled = (id: string, enabled: boolean) => {
-    setConfig((prev) => withServerEnabled(prev, id, enabled))
+    setSnapshot(withServerEnabled(getSnapshot(), id, enabled))
   }
 
   const addServer = (server: Omit<CustomMcpServer, 'id'>): CustomMcpServer => {
-    // Generate the id up front so we can return it, then apply a functional
-    // update so concurrent adds don't clobber each other via stale state.
-    const created = createCustomServer(server)
-    setConfig((prev) => ({
-      ...prev,
-      customServers: [...prev.customServers, created],
-    }))
+    const { config: next, created } = withAddedServer(getSnapshot(), server)
+    setSnapshot(next)
     return created
   }
 
   const removeServer = (id: string) => {
-    setConfig((prev) => withRemovedServer(prev, id))
+    setSnapshot(withRemovedServer(getSnapshot(), id))
   }
 
   return {
