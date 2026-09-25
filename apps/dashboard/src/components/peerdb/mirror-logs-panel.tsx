@@ -1,19 +1,24 @@
-import type { ListMirrorLogsResponse } from '@/lib/peerdb/types'
+import type { ListMirrorLogsResponse, MirrorLog } from '@/lib/peerdb/types'
 
 import {
   LOG_LEVEL_META,
-  normalizePdbLogLevel,
   parseTs,
   pdbFmtClock,
   pdbFmtRelative,
 } from './peerdb-utils'
 import { useState } from 'react'
+import {
+  countMirrorLogLevels,
+  extractMirrorLogs,
+  mirrorLogsRequestBody,
+  normalizeLogLevel,
+} from '@/lib/peerdb/mirror-logs'
 import { usePeerDB } from '@/lib/swr'
 
 type Level = 'all' | 'error' | 'warn' | 'info'
 const LEVELS: Level[] = ['all', 'error', 'warn', 'info']
 
-const sortByNewest = (list: ListMirrorLogsResponse['errors'] = []) =>
+const sortByNewest = (list: MirrorLog[] = []) =>
   [...list].sort(
     (a, b) =>
       (parseTs(b.errorTimestamp) ?? 0) - (parseTs(a.errorTimestamp) ?? 0)
@@ -29,34 +34,22 @@ export function MirrorLogsPanel({ flowJobName }: { flowJobName: string }) {
   // numPerPage cap), so the level tabs aren't limited to whatever happened to
   // be in the first page of all logs. The `all` selection reuses this request.
   const countsReq = usePeerDB<ListMirrorLogsResponse>('/mirrors/logs', {
-    body: { flowJobName, page: 0, numPerPage: 100 },
+    body: mirrorLogsRequestBody(flowJobName, 'all', { numPerPage: 100 }),
     refreshInterval: 60_000,
   })
   const listReq = usePeerDB<ListMirrorLogsResponse>('/mirrors/logs', {
-    body: {
-      flowJobName,
-      page: 0,
-      numPerPage: 100,
-      ...(level === 'all' ? {} : { level }),
-    },
+    body: mirrorLogsRequestBody(flowJobName, level, { numPerPage: 100 }),
     refreshInterval: 60_000,
   })
 
-  const counts = (() => {
-    const c: Record<Level, number> = { all: 0, error: 0, warn: 0, info: 0 }
-    for (const l of countsReq.data?.errors ?? []) {
-      c.all++
-      c[normalizePdbLogLevel(l.errorType)]++
-    }
-    return c
-  })()
+  const counts = countMirrorLogLevels(extractMirrorLogs(countsReq.data))
 
   const filtered = (() => {
-    const sorted = sortByNewest(listReq.data?.errors)
+    const sorted = sortByNewest(extractMirrorLogs(listReq.data))
     // Client-side filter as a safety net for upstreams that ignore `level`.
     return level === 'all'
       ? sorted
-      : sorted.filter((l) => normalizePdbLogLevel(l.errorType) === level)
+      : sorted.filter((l) => normalizeLogLevel(l.errorType) === level)
   })()
   const rows = showAll ? filtered : filtered.slice(0, 6)
 
@@ -99,7 +92,7 @@ export function MirrorLogsPanel({ flowJobName }: { flowJobName: string }) {
       ) : (
         <ul className="divide-y divide-border">
           {rows.map((l, i) => {
-            const lvl = normalizePdbLogLevel(l.errorType)
+            const lvl = normalizeLogLevel(l.errorType)
             const meta = LOG_LEVEL_META[lvl]
             return (
               <li

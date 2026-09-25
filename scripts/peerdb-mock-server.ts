@@ -504,7 +504,11 @@ function peerInfo(name: string) {
   }
 }
 
-/** Varied-level mirror logs (info heartbeats + warns + errors). */
+/**
+ * Varied-level mirror logs (info heartbeats + warns + errors). `errorType`
+ * uses the uppercase enum (INFO/WARN/ERROR) like production PeerDB; the UI
+ * normalizes casing client-side.
+ */
 function mirrorLogs(m: MirrorFixture) {
   const now = Date.now()
   const errors: {
@@ -525,37 +529,37 @@ function mirrorLogs(m: MirrorFixture) {
     })
 
   if (m.status === 'STATUS_FAILED' && m.errorMessage) {
-    push('error', m.errorMessage, 2)
+    push('ERROR', m.errorMessage, 2)
     push(
-      'error',
+      'ERROR',
       'failed to push batch to ClickHouse: code 252, Too many parts (300)',
       6
     )
-    push('warn', 'destination ingest throughput dropped below 1k rows/s', 14)
-    push('warn', 'WAL slot growth +812 MiB in last 30m', 38)
+    push('WARN', 'destination ingest throughput dropped below 1k rows/s', 14)
+    push('WARN', 'WAL slot growth +812 MiB in last 30m', 38)
   } else if (m.status === 'STATUS_PAUSED') {
     push(
-      'info',
+      'INFO',
       'mirror paused by alice@duet via state-change (maintenance window)',
       22
     )
   } else if (!m.isCdc) {
     push(
-      'info',
+      'INFO',
       `partition completed in 41.2s · ${pdbN(m.rowsPerSec * 60)} rows`,
       33
     )
-    push('info', 'starting next partition batch', 35)
+    push('INFO', 'starting next partition batch', 35)
   } else {
     push(
-      'info',
+      'INFO',
       `sync flow committed ${m.rowsPerSec * 8} rows · batch_id=${14000 + (id % 999)}`,
       4
     )
-    push('info', `normalize flow committed ${m.rowsPerSec} rows`, 32)
+    push('INFO', `normalize flow committed ${m.rowsPerSec} rows`, 32)
     if (m.lagSec && m.lagSec > 5)
       push(
-        'warn',
+        'WARN',
         `replication lag exceeded threshold (${m.lagSec}s > 5.0s)`,
         25
       )
@@ -740,10 +744,13 @@ async function handle(req: Request): Promise<Response> {
       const m = mirror(flowJobName)
       if (!m) return json({ errors: [], total: 0, page: 0 })
       const logs = mirrorLogs(m)
+      // Strict like production PeerDB: `level` is matched case-sensitively
+      // against the uppercase enum (ALL/INFO/WARN/ERROR). A lowercase value
+      // matches nothing — this is what made the UI error count always 0.
       const level = typeof body.level === 'string' ? body.level : ''
-      if (level && level !== 'all') {
+      if (level && level !== 'ALL') {
         const errors = logs.errors.filter(
-          (e) => (e.errorType ?? 'info') === level
+          (e) => (e.errorType ?? 'INFO') === level
         )
         return json({ errors, total: errors.length, page: 0 })
       }

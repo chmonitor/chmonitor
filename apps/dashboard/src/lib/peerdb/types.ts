@@ -165,7 +165,7 @@ export interface MirrorStatusResponse {
   lagSec?: number | null
 }
 
-/** One mirror error/log entry (`POST /v1/mirrors/logs`). */
+/** One mirror error/log entry (`POST /v1/mirrors/logs`), canonical camelCase shape. */
 export interface MirrorLog {
   id?: string | number
   flowName?: string
@@ -174,8 +174,37 @@ export interface MirrorLog {
   errorTimestamp?: string | number
 }
 
+/**
+ * A log entry as received over the wire: camelCase via grpc-gateway or
+ * snake_case via UI mode, plus common `level`/`message`/`timestamp` aliases.
+ * Always pass raw entries through `normalizeMirrorLog` (lib/peerdb/mirror-logs)
+ * before consuming them as {@link MirrorLog}.
+ */
+export interface RawMirrorLog {
+  id?: string | number
+  flowName?: string
+  flow_name?: string
+  flow?: string
+  mirrorName?: string
+  errorMessage?: string
+  error_message?: string
+  message?: string
+  msg?: string
+  errorType?: string
+  error_type?: string
+  level?: string
+  severity?: string
+  errorTimestamp?: string | number
+  error_timestamp?: string | number
+  timestamp?: string | number
+  time?: string | number
+}
+
 export interface ListMirrorLogsResponse {
-  errors?: MirrorLog[]
+  /** Documented envelope; aliases `logs` / `data` accepted via `extractMirrorLogs`. */
+  errors?: RawMirrorLog[]
+  logs?: RawMirrorLog[]
+  data?: RawMirrorLog[]
   total?: number
   page?: number
 }

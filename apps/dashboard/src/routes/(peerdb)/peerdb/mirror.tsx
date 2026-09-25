@@ -41,6 +41,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatReadableQuantity } from '@/lib/format-readable'
+import {
+  extractMirrorLogs,
+  mirrorLogsRequestBody,
+} from '@/lib/peerdb/mirror-logs'
 import { usePeerDB } from '@/lib/swr'
 
 export const Route = createFileRoute('/(peerdb)/peerdb/mirror')({
@@ -100,7 +104,7 @@ function MirrorDetailContent() {
   )
   const logs = usePeerDB<ListMirrorLogsResponse>(
     enabled ? '/mirrors/logs' : null,
-    { body: { flowJobName: name, level: 'error', page: 0, numPerPage: 20 } }
+    { body: mirrorLogsRequestBody(name, 'error', { numPerPage: 20 }) }
   )
   // Authoritative cumulative rows synced (GET /v1/mirrors/total_rows_synced).
   const totalSynced = usePeerDB<TotalRowsSyncedResponse>(
@@ -131,7 +135,7 @@ function MirrorDetailContent() {
   const partitions = qrep?.partitions ?? []
   const partStats = jobPartitionAnalytics(partitions)
   const tables = tableCounts.data?.tablesData ?? []
-  const errors = logs.data?.errors ?? []
+  const errors = extractMirrorLogs(logs.data)
   const batches = batchesReq.data?.cdcBatches ?? cdc?.cdcBatches ?? []
   // Prefer the authoritative total_rows_synced endpoint; fall back to the CDC
   // status counter (older PeerDB / not-yet-loaded).
