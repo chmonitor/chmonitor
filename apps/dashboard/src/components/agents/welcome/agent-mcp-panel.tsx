@@ -21,6 +21,11 @@
  * per-user servers that PERSIST server-side (D1) with auth + a template
  * library, see the "MCP Servers" tab on the Agent Settings page
  * (`/agents/settings?tab=mcp`).
+ *
+ * `config` is passed in rather than self-instantiated: the sidebar's collapsed
+ * header badge renders the same enabled/total count, and `useMcpConfig`'s
+ * state is per-instance `useState` (localStorage-backed, no cross-instance
+ * broadcast), so a second instance would go stale against this one.
  */
 
 import { PlusIcon, Trash2Icon, WrenchIcon } from 'lucide-react'
@@ -36,7 +41,11 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { toMcpServers, useMcpConfig } from '@/lib/hooks/use-mcp-config'
+import {
+  mcpServerCounts,
+  toMcpServers,
+  type UseMcpConfigResult,
+} from '@/lib/hooks/use-mcp-config'
 import { useMcpProbe } from '@/lib/swr/use-mcp-probe'
 import { useMcpServerInfo } from '@/lib/swr/use-mcp-server-info'
 
@@ -207,7 +216,7 @@ function CustomMcpServerRow({
 // Panel root
 // ---------------------------------------------------------------------------
 
-export function AgentMcpPanel() {
+export function AgentMcpPanel({ config }: { config: UseMcpConfigResult }) {
   const { data, isLoading, error } = useMcpServerInfo()
   const {
     customServers,
@@ -215,7 +224,7 @@ export function AgentMcpPanel() {
     setServerEnabled,
     addServer,
     removeServer,
-  } = useMcpConfig()
+  } = config
   const [addServerOpen, setAddServerOpen] = useState(false)
   const [selectedServer, setSelectedServer] = useState<McpServer | null>(null)
 
@@ -255,7 +264,10 @@ export function AgentMcpPanel() {
 
   const panelStatus =
     builtinStatus === 'connected' ? 'configured' : 'unconfigured'
-  const activeCount = servers.filter((s) => s.enabled).length
+  const { active: activeCount, total: serverCount } = mcpServerCounts(
+    customServers,
+    isServerEnabled
+  )
 
   return (
     <div className="flex flex-col gap-2">
@@ -272,7 +284,7 @@ export function AgentMcpPanel() {
       <div className="text-muted-foreground flex items-center justify-between text-[10.5px]">
         <span>
           <span className="text-foreground font-medium">{activeCount}</span>/
-          {servers.length} active
+          {serverCount} active
         </span>
         {panelStatus === 'configured' ? (
           <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">

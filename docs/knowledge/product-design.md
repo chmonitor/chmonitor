@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-09-25
+updated: 2026-09-26
 tags:
   - design-system
   - ui
@@ -598,9 +598,26 @@ of stacking every section with equal, always-expanded weight:
   + `text-[10.5px] font-semibold tracking-wider uppercase` label + optional
   right-aligned count badge, built on `ui/collapsible` (Base UI, controlled
   `open`/`onOpenChange`, no animation needed — `CollapsibleContent` renders
-  directly, matching `agent-data-sources.tsx`). Defaults to **open** so first
-  visits show everything; collapsing only hides a section, it never removes a
-  control or entry point.
+  directly, matching `agent-data-sources.tsx`). Collapsing only hides a section,
+  it never removes a control or entry point.
+- **Open one section, not all of them.** The primitive defaults to **open**,
+  but a rail with N sections passes `defaultOpen={false}` to every section
+  after the first, so arrival shows the top section expanded and the rest
+  folded. Four panels open at once push the actual controls off the bottom of a
+  320px rail and read as clutter; the user opens what they want. Fold state is
+  plain component state and **resets on reload** — do not add persistence for
+  it, and do not read `defaultOpen` as a "first visit" preference.
+- **Every collapsible section carries its count in the `right` slot.** The slot
+  renders *inside* the trigger, so the badge stays visible while folded — that
+  is the whole reason a collapsed section is still worth showing. When a count
+  appears in both the header and the body, derive both from ONE source: a
+  per-instance `useState` hook has no cross-instance broadcast, so a second
+  instance of the same hook goes stale against the first. Lift the state to the
+  common parent and pass it down rather than calling the hook twice.
+- **A data-dependent section keeps its visibility guard ahead of the section
+  element**, not inside the body — otherwise OSS / unlimited plans render a
+  header with a chevron and no body under it. `AiUsagePanel` returns `null`
+  before its `CollapsibleSidebarSection` for exactly this reason.
 - A bounded list inside a collapsible section (e.g. the first 3 of N skills)
   still ends in a "View all (N)" button/dialog rather than rendering the full
   list — the collapsible fold is for the section, not a substitute for

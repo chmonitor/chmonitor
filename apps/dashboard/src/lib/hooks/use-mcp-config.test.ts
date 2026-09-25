@@ -2,6 +2,7 @@ import type { McpConfigStorage } from './use-mcp-config'
 
 import {
   createCustomServer,
+  mcpServerCounts,
   toMcpServers,
   withAddedServer,
   withRemovedServer,
@@ -111,5 +112,24 @@ describe('toMcpServers', () => {
         status: 'unconfigured',
       },
     ])
+  })
+})
+
+describe('mcpServerCounts', () => {
+  const enabled = () => true
+
+  test('counts the built-in server even with no custom servers', () => {
+    expect(mcpServerCounts([], enabled)).toEqual({ active: 1, total: 1 })
+  })
+
+  test('a disabled custom server leaves the total but not the active', () => {
+    const customServers = [
+      { id: 'on', name: 'on', endpoint: 'a' },
+      { id: 'off', name: 'off', endpoint: 'b' },
+    ]
+    expect(mcpServerCounts(customServers, (id) => id !== 'off')).toEqual({
+      active: 2,
+      total: 3,
+    })
   })
 })
