@@ -45,6 +45,8 @@ Set the key for each provider you want to use. Only providers with a key configu
 | `ANYROUTER_OAUTH_CLIENT_ID` | AnyRouter | Pin a pre-registered OAuth client for "Sign in with AnyRouter". Optional — the server registers one on first use. |
 | `OPENROUTER_DYNAMIC_MODELS` | OpenRouter | Set to `false` / `0` / `off` to disable live catalog enrichment (curated registry only). On by default when `OPENROUTER_API_KEY` is set. |
 | `OPENROUTER_TOP_MODELS_N` | OpenRouter | Max dynamically ranked models to add to the picker (default `12`, max `32`). |
+| `NVIDIA_DYNAMIC_MODELS` | NVIDIA NIM | Set to `false` / `0` / `off` to disable live catalog enrichment (curated registry only). On by default when `NVIDIA_API_KEY` is set. |
+| `NVIDIA_TOP_MODELS_N` | NVIDIA NIM | Max catalog models to add to the picker (default `12`, max `32`). |
 
 ### OpenRouter dynamic models (relevance ranking)
 
@@ -58,6 +60,23 @@ openrouter.ai are not public. The ranking is therefore a deterministic
 *relevance* score (curated-registry membership, well-known model authors, free
 variants, context size, recency), not measured usage. Models without tool
 calling are excluded, since the agent cannot use them.
+
+### NVIDIA dynamic models (curated allowlist)
+
+When `NVIDIA_API_KEY` is set, `GET /api/v1/agents/models` also loads NVIDIA's
+public NIM catalog (`GET {NVIDIA_API_BASE}/models`) and appends a bounded set
+of hosted models on top of the curated registry.
+
+That catalog is much thinner than the other two: it returns ids only — no
+pricing, no context length, and no tool-calling flags. So the picker
+
+- gates eligibility on a **curated allowlist** of NIM-hosted models verified to
+  drive the agent tool loop (the agent cannot use a model that does not),
+- reports a single default context size rather than a per-model claim, and
+- shows **no cost**, because you bill NVIDIA directly on your own key.
+
+The curated registry remains the floor, so an upstream outage degrades to the
+static list rather than an empty picker.
 
 ### AnyRouter presets
 
