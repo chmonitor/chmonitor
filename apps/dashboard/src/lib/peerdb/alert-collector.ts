@@ -180,6 +180,7 @@ export interface PeerDBSignalCollection {
   /** Collection stats feeding the deterministic investigation step. */
   metrics: PeerDBInvestigationMetrics & {
     mirrorsChecked: number
+    /** Mirrors missing a usable status state or error-log sample. */
     errored: number
   }
   /** Worst slot lag observed fleet-wide, MiB (null when unknown). */
@@ -235,8 +236,13 @@ export async function collectPeerDBSignals(
           }),
         ])
         if (st) statuses.set(name, st)
-        else errored++
         errorCounts.set(name, ec)
+        if (
+          typeof st?.currentFlowState !== 'string' ||
+          ec.source === 'unavailable'
+        ) {
+          errored++
+        }
       })
     )
 
@@ -287,6 +293,7 @@ export async function collectPeerDBSignals(
       return {
         flowName: m.name,
         status: st?.currentFlowState ?? m.status ?? null,
+        statusEndpointAvailable: typeof st?.currentFlowState === 'string',
         errorMessage: st?.errorMessage ?? null,
         lagSec: toNum(st?.lagSec),
         rowsSynced: toNum(

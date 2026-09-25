@@ -3,44 +3,58 @@
  *
  * PeerDB exposes a REST API (grpc-gateway) on the flow-api service, typically
  * `http://<flow-api-host>:8113/v1/*`. Auth is HTTP Basic with an EMPTY username
- * and `PEERDB_PASSWORD` as the password; when no password is set, the API is
- * open. The Basic header is constructed server-side only and never reaches the
- * browser bundle.
+ * by default, or Bearer when `PEERDB_AUTH_SCHEME=bearer`; when no password is
+ * set, the API is open. The Authorization header is constructed server-side
+ * only and never reaches the browser bundle.
  *
  * This is single-instance (one PeerDB deployment) — unlike ClickHouse's
  * multi-host config — because PeerDB monitoring targets a single flow-api.
  */
 
+import {
+  buildPeerDBAuthHeader,
+  envPeerDBConfig,
+  type ResolvedPeerDBConfig,
+} from './peerdb-auth'
 import { debug, error } from '@chm/logger'
 
 export interface PeerDBConfig {
   /** Base URL of the PeerDB flow-api, e.g. http://localhost:8113 */
   baseUrl: string
-  /** UI/API password used as the Basic-auth password (empty username). */
+  /** UI/API secret (Basic password or Bearer token) for the legacy config shape. */
   password?: string
+}
+
+function envBindings(): Record<string, string | undefined> {
+  if (typeof process === 'undefined' || !process.env) return {}
+  return process.env as Record<string, string | undefined>
+}
+
+/** Resolve the current env config without baking Worker bindings at module load. */
+function currentConfig(): ResolvedPeerDBConfig | null {
+  try {
+    return envPeerDBConfig(envBindings())
+  } catch {
+    return null
+  }
 }
 
 /** True when a PeerDB API URL is configured for this deployment. */
 export function isPeerDBEnabled(): boolean {
-  return Boolean(process.env.PEERDB_API_URL?.trim())
+  return currentConfig() !== null
 }
 
-/** Read PeerDB config from env, or null when not configured. */
+/**
+ * Legacy env config shape used by the gate and older callers. Fetch code uses
+ * `currentConfig()` directly so the auth scheme is not lost.
+ */
 export function getPeerDBConfig(): PeerDBConfig | null {
-  const baseUrl = process.env.PEERDB_API_URL?.trim()
-  if (!baseUrl) return null
-
+  const config = currentConfig()
+  if (!config) return null
   return {
-    baseUrl: baseUrl.replace(/\/+$/, ''),
-    password: process.env.PEERDB_PASSWORD?.trim() || undefined,
+    baseUrl: config.baseUrl,
+    password: config.secret,
   }
-}
-
-function authHeader(config: PeerDBConfig): Record<string, string> {
-  if (!config.password) return {}
-  // PeerDB uses Basic auth with an empty username: base64(":" + password)
-  const token = Buffer.from(`:${config.password}`).toString('base64')
-  return { Authorization: `Basic ${token}` }
 }
 
 export class PeerDBError extends Error {
@@ -54,7 +68,7 @@ export class PeerDBError extends Error {
 }
 
 export function readNonNegativeIntEnv(name: string, fallback: number): number {
-  const raw = process.env[name]?.trim()
+  const raw = envBindings()[name]?.trim()
   if (!raw) return fallback
 
   const parsed = Number(raw)
@@ -77,10 +91,6 @@ export function readNonNegativeIntEnv(name: string, fallback: number): number {
  * reads for a few seconds collapses bursts and refresh cycles into one upstream
  * call. TTL is tunable via PEERDB_CACHE_TTL_MS (default 10s; 0 disables).
  */
-const CACHE_TTL_MS = readNonNegativeIntEnv('PEERDB_CACHE_TTL_MS', 10_000)
-const CACHE_MAX_ENTRIES = readNonNegativeIntEnv('PEERDB_CACHE_MAX_ENTRIES', 500)
-const FETCH_TIMEOUT_MS =
-  readNonNegativeIntEnv('PEERDB_FETCH_TIMEOUT_MS', 10_000) || 10_000
 const responseCache = new Map<string, { at: number; value: unknown }>()
 
 /**
@@ -88,11 +98,11 @@ const responseCache = new Map<string, { at: number; value: unknown }>()
  * cannot grow without limit in a long-running server process. Map preserves
  * insertion order, so the first keys are the oldest writes.
  */
-function pruneCache(now: number): void {
+function pruneCache(now: number, ttlMs: number, maxEntries: number): void {
   for (const [k, v] of responseCache) {
-    if (now - v.at >= CACHE_TTL_MS) responseCache.delete(k)
+    if (now - v.at >= ttlMs) responseCache.delete(k)
   }
-  while (responseCache.size > CACHE_MAX_ENTRIES) {
+  while (responseCache.size > maxEntries) {
     const oldest = responseCache.keys().next().value
     if (oldest === undefined) break
     responseCache.delete(oldest)
@@ -103,16 +113,20 @@ export async function peerdbFetch<T = unknown>(
   path: string,
   init?: RequestInit
 ): Promise<T> {
-  const config = getPeerDBConfig()
+  const config = currentConfig()
   if (!config) {
     throw new PeerDBError('PeerDB is not configured on this deployment', 503)
   }
 
+  const cacheTtlMs = readNonNegativeIntEnv('PEERDB_CACHE_TTL_MS', 10_000)
+  const cacheMaxEntries = readNonNegativeIntEnv('PEERDB_CACHE_MAX_ENTRIES', 500)
+  const fetchTimeoutMs =
+    readNonNegativeIntEnv('PEERDB_FETCH_TIMEOUT_MS', 10_000) || 10_000
   const method = init?.method ?? 'GET'
   const cacheKey = `${method} ${path} ${typeof init?.body === 'string' ? init.body : ''}`
-  if (CACHE_TTL_MS > 0) {
+  if (cacheTtlMs > 0) {
     const hit = responseCache.get(cacheKey)
-    if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+    if (hit && Date.now() - hit.at < cacheTtlMs) {
       return hit.value as T
     }
   }
@@ -121,7 +135,7 @@ export async function peerdbFetch<T = unknown>(
   debug('[PeerDB] fetch', { method, url })
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs)
 
   let response: Response
   try {
@@ -131,7 +145,7 @@ export async function peerdbFetch<T = unknown>(
       headers: {
         'Content-Type': 'application/json',
         ...init?.headers,
-        ...authHeader(config),
+        ...buildPeerDBAuthHeader(config),
       },
     })
   } catch (err) {
@@ -140,7 +154,7 @@ export async function peerdbFetch<T = unknown>(
     // Keep the upstream host out of the client-facing message; log it above.
     throw new PeerDBError(
       aborted
-        ? `PeerDB request timed out after ${FETCH_TIMEOUT_MS}ms`
+        ? `PeerDB request timed out after ${fetchTimeoutMs}ms`
         : `Failed to reach PeerDB: ${
             err instanceof Error ? err.message : 'unknown error'
           }`,
@@ -165,10 +179,10 @@ export async function peerdbFetch<T = unknown>(
   }
 
   const value = (await response.json()) as T
-  if (CACHE_TTL_MS > 0) {
+  if (cacheTtlMs > 0) {
     const now = Date.now()
     responseCache.set(cacheKey, { at: now, value })
-    pruneCache(now)
+    pruneCache(now, cacheTtlMs, cacheMaxEntries)
   }
   return value
 }

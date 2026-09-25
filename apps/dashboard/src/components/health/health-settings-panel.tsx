@@ -18,6 +18,7 @@ import { AdvancedSettingsPanel } from './advanced-settings-panel'
 import { AlertChannelsPanel } from './alert-channels-panel'
 import { AlertStateCard } from './alert-state-card'
 import { AlertTemplateDialog } from './alert-template-dialog'
+import { CustomWebhookTargetsPanel } from './custom-webhook-targets-panel'
 import { HEALTH_CHECKS } from './health-checks'
 import { RecentAlertsCard } from './recent-alerts-card'
 import { ServerChannelConfigPanel } from './server-channel-config-panel'
@@ -289,6 +290,10 @@ export function HealthSettingsPanel({
             <Separator />
 
             <ServerChannelConfigPanel />
+
+            <Separator />
+
+            <CustomWebhookTargetsPanel />
 
             <Separator />
 

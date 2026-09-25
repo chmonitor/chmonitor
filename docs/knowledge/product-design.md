@@ -562,6 +562,23 @@ implemented by `components/health/channel-card.tsx`:
   `action`), NOT as a permanent inline tile grid — a settings page shows what IS
   set up. The dialog renders the same `AddChannelTile`s.
 
+### Custom alert target editor
+
+The custom webhook surface follows the same configured-first rule while keeping
+its form logic small and testable:
+
+- `custom-webhook-targets-panel.tsx` owns the target list, storage status, and
+  selection; `custom-webhook-target-card.tsx` owns one target draft, preview,
+  save, reset, and send-test interaction. Do not grow a single settings form
+  that owns every target's state.
+- D1 targets are editable cards/selectors; Helm/GitOps targets are read-only
+  status rows. If neither source has a target, use `EmptyState` rather than
+  rendering an empty form wall.
+- Preview and send-test are explicit actions. The preview is a deterministic
+  sample payload formatted by the same server-side formatter as delivery; the
+  browser receives only a redacted destination hint, never a raw webhook URL
+  or secret header.
+
 ### Compact rail sidebar: static primary block + collapsible groups
 
 A narrow (≈320px) settings rail attached to a full-height surface (e.g. the

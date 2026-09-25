@@ -16,7 +16,8 @@
  * Persistent dedup (M2): the cycle never keeps its own in-memory `seen` set
  * for delivery decisions. It peeks the shared `alertStateStore` (pure read)
  * only to decide whether an `ok` signal is a potential recovery worth
- * auditing; the actual notify/suppress decision — including cooldown,
+ * auditing. A partial status/log read is held rather than treated as proof of
+ * recovery; the actual notify/suppress decision — including cooldown,
  * hysteresis, and restart survival via D1 hydrate/flush — lives in the
  * existing `evaluateAlert` path inside `dispatchFinding`. Multi-instance
  * semantics are therefore identical to the ClickHouse sweep: hydrate at tick
@@ -234,10 +235,10 @@ function runDeterministicPeerDBInvestigation(
  * breaking the caller's sweep.
  *
  * Audit-before-delivery is structural: for every mirror that will attempt
- * delivery, a `peerdb-issue` audit row is written BEFORE `dispatch` is
- * invoked; held/dry-run evaluations get their own audited row with the
- * reason. There is no exported path that reaches `dispatch` without passing
- * through the audit step in this function.
+ * delivery, a best-effort `peerdb-issue` audit call is awaited BEFORE
+ * `dispatch` is invoked. Held/dry-run evaluations get their own audited row
+ * with the reason. There is no exported path that reaches `dispatch` without
+ * passing through the audit step in this function.
  */
 export async function runPeerDBAlertCycle(
   opts: PeerDBCycleOptions = {}
@@ -315,6 +316,36 @@ export async function runPeerDBAlertCycle(
           const key = `${PEERDB_ALERT_HOST_ID}:${ruleId}`
           const prev = alertStateStore.get(key)
           if (!prev || prev.severity === 'ok') continue
+
+          // A partial read is not evidence of recovery. In particular, do not
+          // clear a persisted incident when the status endpoint failed or the
+          // error-log sample is unavailable: either can hide the condition that
+          // caused the original firing state. Other available signals may still
+          // classify as firing above; this guard applies only to the ok/recovery
+          // branch.
+          if (
+            signal.statusEndpointAvailable === false ||
+            signal.errorCountSource === 'unavailable'
+          ) {
+            const missing = [
+              signal.statusEndpointAvailable === false ? 'status' : null,
+              signal.errorCountSource === 'unavailable' ? 'error-count' : null,
+            ]
+              .filter((part): part is string => part !== null)
+              .join(',')
+            await audit({
+              flowName: signal.flowName,
+              severity: classification.severity,
+              decisionKind: 'peerdb-hold:recovery-data-unavailable',
+              delivered: false,
+              error: `recovery held: missing ${missing}`,
+              channel: 'peerdb',
+              value,
+              hostId: PEERDB_ALERT_HOST_ID,
+            }).catch(() => {})
+            result.audited++
+            continue
+          }
         }
 
         const investigation = runDeterministicPeerDBInvestigation({
@@ -361,8 +392,8 @@ export async function runPeerDBAlertCycle(
           continue
         }
 
-        // AUDIT-BEFORE-DELIVERY: this row is written before `dispatch` is
-        // invoked on every path that reaches delivery. The dispatch path
+        // AUDIT-BEFORE-DELIVERY: this best-effort audit call is awaited before
+        // `dispatch` on every path that reaches delivery. The dispatch path
         // then writes its own per-channel outcome rows.
         await audit({
           flowName: signal.flowName,
