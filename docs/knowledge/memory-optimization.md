@@ -3,7 +3,7 @@ id: memory-optimization
 title: Memory Optimization
 type: reference
 status: active
-updated: 2026-05-13
+updated: 2026-09-27
 tags:
   - performance
   - memory
@@ -21,7 +21,8 @@ Comprehensive memory optimizations reducing overall footprint by 50-70%.
 ## Key Optimizations
 
 ### 1. Connection Pooling
-- **File**: `lib/clickhouse.ts`
+- **File**: `packages/clickhouse-client/src/index.ts` (pooling in
+  `packages/clickhouse-client/src/clickhouse/connection-pool.ts`)
 - Reuses ClickHouse client instances via connection pool
 - Access stats: `getConnectionPoolStats()`
 
@@ -31,7 +32,7 @@ Comprehensive memory optimizations reducing overall footprint by 50-70%.
 - Add `useMemo` when adding new expensive table operations
 
 ### 3. Production Logger
-- **File**: `lib/logger.ts`
+- **File**: `packages/logger/src/index.ts`
 - Conditional logging (development only by default)
 - Replace `console.log()` with `debug()`, `log()`, `error()`, `warn()`
 - Enable debug: `DEBUG=true` environment variable
@@ -42,12 +43,12 @@ Comprehensive memory optimizations reducing overall footprint by 50-70%.
 - Collect categories during data reduction instead of after
 
 ### 5. Cache Memory Limits
-- **File**: `lib/table-existence-cache.ts`
+- **File**: `packages/clickhouse-client/src/table-existence-cache.ts`
 - Hard limit: 1MB maximum cache size
 - Max entries: 500
 
 ### 6. Memory Monitoring
-- **Files**: `lib/memory-monitor.ts`, `app/api/health/route.ts`
+- **File**: `apps/dashboard/src/routes/api/health.ts`
 - Health endpoint: `GET /api/health`
 
 ## Performance Targets

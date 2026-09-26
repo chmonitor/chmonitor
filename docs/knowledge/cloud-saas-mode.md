@@ -81,7 +81,7 @@ fail-open: a zero-match allowlist (typo) passes through ALL hosts rather than
 black out the demo (empty host list = 503). The host `id` (index into
 `CLICKHOUSE_HOST`) is preserved so `?host=<id>` routing keeps resolving.
 Implemented in `lib/cloud/demo-hosts.ts` (`filterToDemoHosts`), applied at
-`api/v1/hosts.ts` (the shown list) and `lib/api/clickhouse-config.ts`
+`routes/api/v1/hosts.ts` (the shown list) and `lib/api/clickhouse-config.ts`
 (`getClickHouseConfigsFromEnv` → live status / health / notifications).
 
 **The demo host MUST resolve through public DNS.** Cloudflare Workers resolve

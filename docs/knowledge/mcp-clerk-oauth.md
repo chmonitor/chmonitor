@@ -3,7 +3,7 @@ id: mcp-clerk-oauth
 title: MCP Clerk OAuth
 type: reference
 status: active
-updated: 2026-06-03
+updated: 2026-09-27
 tags:
   - mcp
   - auth
@@ -55,10 +55,11 @@ registration.
 4. Client retries `/api/mcp` with `Authorization: Bearer <token>`; we verify it
    via the REST call and serve the MCP request.
 
-The `.well-known` metadata is served by the dashboard app
-(`app/.well-known/oauth-protected-resource/route.ts`) and, for standalone use,
-by the Worker. In Cloudflare prod `dash.chmonitor.dev/.well-known/*` routes to
-the dashboard worker (same origin as `/api/mcp`).
+The `.well-known` metadata is served by the dashboard app — the
+`/.well-known/oauth-protected-resource` branch in its middleware,
+`apps/dashboard/src/start.ts` — and, for standalone use, by the Worker. In
+Cloudflare prod `dash.chmonitor.dev/.well-known/*` routes to the dashboard worker
+(same origin as `/api/mcp`).
 
 ## Setup
 
@@ -73,8 +74,8 @@ the dashboard worker (same origin as `/api/mcp`).
 
 ## Gotchas
 
-- `.well-known/*` must stay public — `middleware.ts` already passes through any
-  path that is not `/api/v1/*` or `/__clerk/*`.
+- `.well-known/*` must stay public — `apps/dashboard/src/start.ts` already
+  passes through any path that is not `/api/v1/*` or `/__clerk/*`.
 - The Worker does not need the publishable key (it only verifies tokens); it
   emits the `WWW-Authenticate` header using the request origin, so discovery
   still points at the dashboard-served metadata on the same host.

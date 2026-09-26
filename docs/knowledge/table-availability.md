@@ -3,7 +3,7 @@ id: table-availability
 title: Table Availability, Sidebar Muting & Permission/Version Errors
 type: spec
 status: active
-updated: 2026-05-31
+updated: 2026-09-27
 tags:
   - menu
   - error-handling
@@ -27,7 +27,7 @@ exist on the current host.
 
 - **API**: `GET /api/v1/table-availability?hostId=<n>` →
   `{ data: { available: Record<string, boolean> } }`. Route at
-  `app/api/v1/table-availability/route.ts` (fail-soft, `hostId` validated,
+  `src/routes/api/v1/table-availability.ts` (fail-soft, `hostId` validated,
   per-table feature authorization).
 - **Hooks** (`components/menu/hooks/use-table-availability.ts`):
   - `useTableAvailability(hostId)` — one batched SWR request shared by **all**

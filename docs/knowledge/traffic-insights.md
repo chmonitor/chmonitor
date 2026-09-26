@@ -3,7 +3,7 @@ id: traffic-insights
 title: Traffic / ingestion page — builders, smart detection, measurement model
 type: spec
 status: active
-updated: 2026-07-16
+updated: 2026-09-27
 tags:
   - traffic
   - ingestion
@@ -122,7 +122,8 @@ the ClickHouse side directly.
 
 `system.part_log` is off by default on some distributions. Every `part_log`
 builder carries `optional: true` + `tableCheck: 'system.part_log'`, so the
-table-validator (`lib/table-validator.ts` + `lib/table-existence-cache.ts`)
+table-validator (`packages/clickhouse-client/src/table-validator.ts` +
+`packages/clickhouse-client/src/table-existence-cache.ts`)
 short-circuits to an informative empty state instead of erroring. The KPI strip,
 the two query_log charts, and the overall compression ratio keep working with
 only `query_log` + `parts` (both on by default). Enabling `part_log` (a

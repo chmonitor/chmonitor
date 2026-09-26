@@ -281,7 +281,7 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   skeleton/error/empty; `ChartCard` (`components/cards/chart-card.tsx`) provides
   title, SQL view, `CardToolbar` metadata (queryTime/rowsRead/data sizes), stale
   indicator, retry, optional date-range + log-scale. Fetch with `useChartData`
-  (`lib/swr/use-chart-data.ts`). Card styles centralised in
+  (`lib/query/use-chart-data.ts`). Card styles centralised in
   `components/charts/chart-card-styles.ts`.
 - **Anomaly overlay (Statistics Insights):** the `AreaChart` primitive takes an
   opt-in `anomalyOverlay: { category }` prop (`types/charts.ts`). When set, it
