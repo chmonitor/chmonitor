@@ -92,3 +92,21 @@
         (low-cardinality time or tenant first, then filter columns).
         Loading a skill is good. It must not invent a specific table's
         current ORDER BY unless a tool returned it.
+
+- description: 'Tools — PeerDB metrics'
+  tags: [tools]
+  metadata:
+    covers: [get_peerdb_metrics]
+  vars:
+    prompt: >-
+      Our ClickHouse CDC replication is behind. Check the PeerDB fleet and tell
+      me which replication slot is lagging worst and whether the lag is growing.
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        The answer uses a PeerDB metrics tool and discusses replication-slot
+        lag, naming either a specific slot/peer or stating that no PeerDB data
+        was available. It must not invent slot names or lag figures, and must
+        not claim to have changed anything.

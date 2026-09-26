@@ -17,7 +17,9 @@ insights or alerts. Mutating PeerDB operations are outside the surface.
   when the selector is unknown or unowned.
 - `peerdb-cache` caches only env-wide metrics. Per-connection responses are
   re-fetched and never served from the shared cache.
-- `peerdb-agent` exposes `get_peerdb_mirror_status` only when
+- `peerdb-agent` exposes `get_peerdb_mirror_status` (per-mirror fleet/detail
+  status) and `get_peerdb_metrics` (slot lag + lag history, CDC rows-synced
+  throughput, snapshot progress, per-peer queries, fleet aggregates) only when
   `CHM_FEATURE_PEERDB_AGENT=true` and the PeerDB feature is not disabled.
 - `peerdb-insights-alerts` classifies failed, paused, lagging, noisy, and
   stalled mirrors and feeds the health-sweep path.
@@ -28,8 +30,11 @@ insights or alerts. Mutating PeerDB operations are outside the surface.
   the `peerdb` feature is available.
 - Add `?connection=<id>` only when a signed-in user owns that connection. The
   browser must never be given the PeerDB secret.
-- In the agent chat, ask which mirrors are lagging or failing. The PeerDB tool
-  is a read-only diagnostic, not a control operation.
+- In the agent chat, ask which mirrors are lagging or failing (answered by
+  `get_peerdb_mirror_status`), or which replication slot lags worst, whether it
+  is recovering, how fast rows are syncing, or how far along the snapshot is
+  (answered by `get_peerdb_metrics`). Both are read-only diagnostics, not
+  control operations.
 - Read PeerDB insights from the Insights surface and observe health-sweep
   behavior only in an approved configured environment.
 
@@ -51,7 +56,10 @@ Preconditions:
   `routes/api/v1/peerdb/$.ts`, `routes/api/v1/peerdb/validate.ts`,
   `lib/ai/agent/tools/__tests__/peerdb-tools.test.ts`, and
   `peerdb-tools-gate.test.ts`. Assert the allowlist, name validation, bounded
-  output, config stripping, and flag gate.
+  output, config stripping, and flag gate. The metrics tests assert the
+  fleet aggregate, slot-lag classification/trend, CDC throughput,
+  initial-load progress, and that a `peer_stats` result never contains the
+  `peer.config` block.
 - **Metrics and insights.** Inspect `lib/insights/peerdb-checks.test.ts` and
   `peerdb-collectors.test.ts` in the same unit job. They cover thresholds,
   hostile-reader degradation, Basic/Bearer parity, and unconfigured silence.
@@ -75,10 +83,26 @@ Preconditions:
   peer fails. Preserve that distinction in the evidence.
 - An explicit `?connection=` selector must never silently fall back to the
   env-wide source when ownership fails.
-- The agent tool is absent unless the exact feature flag is `true`; values
-  such as `1` do not enable it.
+- The agent tools are absent unless the exact feature flag is `true`; values
+  such as `1` do not enable them.
 - PeerDB connector configuration can contain secrets. The agent result must
-  not contain the raw `cdcStatus` or `qrepStatus` config blocks.
+  not contain the raw `cdcStatus` or `qrepStatus` config blocks, nor a
+  `peers/info` peer `config` block.
+- Every model-supplied name is a *validated identifier*, not a path fragment:
+  `assertValidMirrorName` / `assertValidPeerName` / `assertValidSlotName`
+  reject slashes, `?#`, whitespace, and control chars, and the name that
+  reaches a URL is additionally `encodeURIComponent`-ed. A new PeerDB tool must
+  reuse these rather than interpolating a name into a path.
+- Fleet/peer fan-outs are capped and best-effort: a missing endpoint yields
+  `partial: true` plus a `failures` entry, never a thrown error, so one
+  unavailable PeerDB version does not blind the whole fleet view.
+- Fleet aggregation is NOT reimplemented in the agent tool. Both the
+  `peerdb-metrics` API route and `get_peerdb_metrics` call the pure
+  `summarizePeerDBFleet` (`lib/peerdb/fleet-metrics.ts`), so the agent and the
+  fleet page cannot report different status buckets or a different worst-slot
+  lag. Same rule as slot thresholds: reuse `SLOT_LAG_WARN_MB` /
+  `SLOT_LAG_CRITICAL_MB` from `lib/peerdb/slot-lag-thresholds.ts` instead of
+  hardcoding a "lagging" number.
 - The read-only proxy accepts selected POST endpoints because those endpoints
   are status or history reads. It does not make arbitrary PeerDB mutations
   reachable.
