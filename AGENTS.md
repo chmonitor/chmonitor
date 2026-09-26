@@ -36,12 +36,101 @@ dismiss). Do NOT dismiss a human reviewer's changes-requested, and never dismiss
 to skip an unaddressed finding. To avoid the gate entirely, prefer
 `request_changes_workflow: false` in CodeRabbit config so it only comments.
 
+## Issue → research → PR
+
+Every change starts as an **issue**, becomes **clear** through research, and
+lands as a **PR**. Skipping a step is allowed; skipping silently is not.
+
+1. **Issue.** One problem, one issue. State the observable symptom and the
+   evidence (a log line, a `rg -n` hit, a failing check, a screenshot). No
+   "improve X" or "add Y" without a symptom someone can recognise.
+2. **Research — make it clear before addressing it.** Before writing any code,
+   the issue must answer:
+   - **Where** — the exact files/functions, named, with the line you start at.
+   - **What** — the expected behaviour after the change, in one sentence a
+     reviewer could disagree with.
+   - **Verify** — the check that proves it. A test name, a CI check, a curl
+     command with its expected output. If there is no verify path, that is the
+     finding: the issue is not ready.
+   - **Not already done** — searched open issues, open PRs, and `git log`.
+   Write this into the issue body (or `research-<n>.md` in the desk run dir when
+   the right output is a note, not a diff). Only then is it addressable.
+3. **PR.** Branch `fix/<short>` or `feat/<short>`, one concern per PR, no
+   drive-by renames, no drive-by formatting, no dependency bumps riding along.
+   Description states the issue it closes, the verify path, and the blast
+   radius. Arm auto-merge and babysit it.
+
+**Research-only is a valid outcome.** A vague issue, a product decision, or a
+finding whose right output is knowledge gets `research-<n>.md` and stops. Do not
+open a weak PR to look productive, and do not guess a product decision at 02:00.
+
+`needs-design` is a hard stop for every agent, desk included. It means a human
+owes a decision; implementing it anyway is how a repo gets a rewrite nobody
+asked for.
+
 ## Scheduled desk (herdr-desk plugin)
 
-Config only: `.herdr-desk.json` (`tasks[].playbook`, id `desk:…`,
-`schedule` is a cron string). The Herdr plugin
-(`herdr plugin install duyet/herdr-desk`) picks this workspace up
-automatically. Do not put scheduler/spawn logic in this repo.
+Config only: `.herdr-desk.json`. The Herdr plugin
+(`herdr plugin install duyet/herdr-desk`) picks this workspace up automatically.
+Do not put scheduler/spawn logic in this repo.
+
+Four jobs, deliberately staggered so two never start in the same minute:
+
+| Job | Cron | Playbook | Owns |
+|---|---|---|---|
+| `desk:github-issues` | `0,30 * * * *` | bundled `github-issues` | triage, research, dispatch children |
+| `local:babysit` | `10,40 * * * *` | `docs/herdr-desk/babysit-prs.md` | red required CI, review replies, auto-merge, worktree cleanup |
+| `local:prod` | `20,50 * * * *` | `docs/herdr-desk/prod-watch.md` | live-deploy verification, agent probe, usage, revert on regression |
+| `local:improve` | `17 2 * * *` | `docs/herdr-desk/improve.md` | desk health, doc/skill drift, dead code, slowdowns |
+
+Each task has its own `agentName` (`chm-desk`, `chm-babysit`, `chm-prod`,
+`chm-improve`) and therefore its own long-lived manager session and worktree.
+Two jobs sharing an `agentName` race for one session — that bug cost a run on
+2026-09-26 when `herdr-desk/.herdr-desk.json` still said `"name": "chmonitor"`.
+
+**Check the desk before trusting it.** A desk that fails silently looks exactly
+like a desk with nothing to do:
+
+```sh
+herdr plugin action invoke herdr-desk.status   # `Fails` column must be `-`
+bun src/cli.ts status                          # or from a herdr-desk checkout
+herdr plugin action invoke herdr-desk.last     # today's changes.md
+```
+
+`Fails` counts consecutive failed fires. A non-empty value is a broken job:
+read the error in `herdr plugin action invoke herdr-desk.history` and fix it
+before trusting any output from that job. `Next: -` means the cron can never
+match — a config bug. (A stale `LATEST` *directory* used to kill every fire
+permanently; fixed in herdr-desk #15.)
+
+**Auto-deployment** is not a job: `.github/workflows/cloudflare.yml` deploys the
+dashboard on every push to `main` and runs `verify-deploy.ts` in the same
+workflow. `local:prod` is the second pair of eyes — it catches a deploy that was
+green in CI and is still broken in production. It may open a revert PR; it may
+run `wrangler rollback` only when `CLOUDFLARE_API_TOKEN` **and**
+`CHM_ALLOW_INSTANT_ROLLBACK=1` are both set, and only when service is down now —
+and it must still open the revert PR afterwards so `main` and production
+converge.
+
+## Worktree hygiene
+
+The desk grows worktrees, so the desk owns not leaving them behind.
+
+- **Never remove a worktree with uncommitted work.** Commit it to its own
+  branch first (a local `wip(...)` commit is fine) so it cannot be lost.
+- **Prove a branch landed before deleting it.** Squash merges change the sha,
+  so `git branch --merged main` is not evidence:
+
+  ```sh
+  git diff <branch> origin/main -- $(git diff --name-only \
+    $(git merge-base origin/main <branch>) <branch>)   # empty = landed
+  ```
+
+  A branch can show `ahead 4` and be fully merged — that is squash, not work.
+- One worktree per issue, one branch per child, one PR per child. Re-prompt a
+  child that is already working an issue instead of starting a second one.
+- `~/.herdr/worktrees/chmonitor/*` — the `desk-*` ones belong to live managers.
+  Do not touch them; they are reused across ticks on purpose.
 
 ## Project Overview
 
@@ -166,6 +255,14 @@ leak into the agent bundle). Current dev skills:
   CLI work, plus a pinned upstream skills-only copy under
   `.claude/skills/pstack/upstream/`. Backed by
   `docs/knowledge/pstack-validation.md`.
+- **`verify-production`** — how to prove the *deployed* product works (not just
+  that the Worker answers): the `verify-deploy.ts` contract, what each health
+  endpoint does and does not prove, agent/guest-model probes, usage and quota
+  watch, and the restore-service order (revert PR first; `wrangler rollback` only
+  as an opt-in emergency). Use it after any deploy, when triaging "no data" or
+  "the agent does not answer", and before any rollback. It replaced the stale
+  `.claude/skills/verify-deploy.md`, which pointed at the deleted
+  `apps/dashboard-tsr/` path. Backs the `local:prod` desk job.
 
 **Auto-improve project skills (standing instruction).** These skills are living
 documents — keep them accurate as the codebase evolves, without being asked:
@@ -195,7 +292,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Architecture | [memory-optimization.md](docs/knowledge/memory-optimization.md) | Pooling, memoization, cache limits, monitoring |
 | Operations | [deployment.md](docs/knowledge/deployment.md) | Docker + Cloudflare Workers dual deployment |
 | Operations | [core-memory.md](docs/knowledge/core-memory.md) | Automation memory: code-smell scans, dead-code rules |
-| Operations | [issue-desk.md](docs/knowledge/issue-desk.md) | Scheduled desk: `.herdr-desk.json` only; CLI is ~/project/herdr-desk |
+| Operations | [issue-desk.md](docs/knowledge/issue-desk.md) | Desk jobs: triage / babysit / prod / improve, repo-owned playbooks, the EISDIR outage that silenced 24 fires, worktree rules |
 | Operations | [secret-rotation.md](docs/knowledge/secret-rotation.md) | Redeploy after `wrangler secret put` |
 | Operations | [k8s-health-probes.md](docs/knowledge/k8s-health-probes.md) | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image CrashLoop incident; non-helm manifest + migration prompt |
 | Specs | [cloud-saas-mode.md](docs/knowledge/cloud-saas-mode.md) | One codebase, two products: cloud-mode flag, demo hosts for anon, welcome/setup, per-user D1 connections, connection-error classifier |

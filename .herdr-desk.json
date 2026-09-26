@@ -4,12 +4,45 @@
   "tasks": [
     {
       "id": "desk:github-issues",
+      "label": "Triage issues and PRs",
       "playbook": "github-issues",
       "agentName": "chm-desk",
       "kind": "opencode",
-      "maxChildren": 5,
-      "schedule": "*/30 * * * *",
-      "extra": "Required CI: `unit-tests` and `dashboard`. Arm `gh pr merge --auto --squash` and babysit. Do not wait on `e2e-test`, `e2e-test-tsr`, or `component-test`. Never auto-merge release-please PRs. Children must use the OpenCode v2 runtime (`opencode2`, equivalent to the local `opencode` v2 binary) with model `opencode/space-bunny-free`; confirm the model before editing. Do not run heavy local Node/build/test tasks: rely on CI for lint, typecheck, tests, and builds. Children may open PRs. Manager does not implement on `main`. State is local; do not commit `.herdr-desk/runs/`."
+      "maxChildren": 3,
+      "schedule": "0,30 * * * *",
+      "describe": "Triage issues/PRs; research first; one child worktree per item",
+      "extra": "Required CI: `unit-tests` and `dashboard`. Arm `gh pr merge --auto --squash` and babysit. Do not wait on `e2e-test`, `e2e-test-tsr`, or `component-test`. Never auto-merge release-please PRs. Children must use the OpenCode v2 runtime (`opencode2`, equivalent to the local `opencode` v2 binary) with model `opencode/space-bunny-free`; confirm the model before editing. Do not run heavy local Node/build/test tasks: rely on CI for lint, typecheck, tests, and builds. Children may open PRs. Manager does not implement on `main`.\n\nResearch before you address: an issue is not ready to implement until you have read the code it names, written the expected behaviour and the verify path into the issue, and confirmed it is not a duplicate or already fixed. If the right output is a decision rather than a diff, write `research-<n>.md` in the run dir and stop. `needs-design` is a hard stop — do not implement it.\n\nNever leave a worktree with uncommitted work: commit it on its own branch (local `wip(...)` is fine) before the run ends, and remove a worktree only after proving its branch landed (`git diff <branch> origin/main -- <touched files>` is empty).\n\nState is local; do not commit `.herdr-desk/runs/`."
+    },
+    {
+      "id": "local:babysit",
+      "label": "Babysit PRs",
+      "playbook": "docs/herdr-desk/babysit-prs.md",
+      "agentName": "chm-babysit",
+      "kind": "opencode",
+      "maxChildren": 2,
+      "schedule": "10,40 * * * *",
+      "describe": "Fix red required CI, answer review, arm auto-merge, clean worktrees"
+    },
+    {
+      "id": "local:improve",
+      "label": "Self improvement",
+      "playbook": "docs/herdr-desk/improve.md",
+      "agentName": "chm-improve",
+      "kind": "opencode",
+      "maxChildren": 2,
+      "schedule": "17 2 * * *",
+      "describe": "One theme per night: desk health, doc/skill drift, dead code, slowdowns"
+    },
+    {
+      "id": "local:prod",
+      "label": "Production watch",
+      "playbook": "docs/herdr-desk/prod-watch.md",
+      "agentName": "chm-prod",
+      "kind": "opencode",
+      "maxChildren": 1,
+      "schedule": "20,50 * * * *",
+      "describe": "Verify the live deploy, probe the agent, watch usage, revert on regression",
+      "extra": "Read-only by default. You may verify, probe, and file issues. You may open a revert PR. You may run `wrangler rollback` only when `CLOUDFLARE_API_TOKEN` and `CHM_ALLOW_INSTANT_ROLLBACK=1` are both in the environment, and only when service is down now — and you must still open the revert PR afterwards so `main` and production converge. Never print a secret, token, cookie, or user id. Never change a model default or a quota as a drive-by; file it."
     }
   ]
 }
