@@ -35,6 +35,7 @@ Script contract, gotchas, and the assertion list: `scripts/verify-deploy.ts`
 | `GET /api/health` (anon) | the Worker is up | which version is deployed |
 | `GET /api/health` (authed) | `gitSha` + `buildTimestamp` | that the UI renders |
 | `GET /overview?host=0` | the shell serves and the entry bundle is referenced | that data loads |
+| `GET /api/v1/host-status?hostId=0` (anon) | **the edge can reach ClickHouse and the Worker can query it** | — (the best anonymous signal there is) |
 | `GET /api/v1/agents/config-check` (anon) | the agent has keys and a base URL | that any model id routes |
 | `GET /api/v1/agents/models` (anon) | the registry resolves to a list | that a specific id still routes upstream |
 | `POST /api/v1/auth/api-key` → `GET /api/v1/menu-counts?hostId=H` | the worker reaches ClickHouse | anything about the agent |
@@ -44,6 +45,40 @@ Anonymous `/api/health` returns `{status, timestamp}` only. Deployment metadata
 is deliberately withheld from anonymous callers (#1768), so **you cannot compare
 `gitSha` to `origin/main` without a token.** With `CHM_API_KEY_SECRET` in the
 env, `verify-deploy.ts` does the authenticated call for you.
+
+## `--skip-auth` passing does not mean ClickHouse is reachable
+
+This is the trap, and it cost a full day of a broken guest experience before
+anyone noticed. The authenticated half of `verify-deploy.ts` is the only check
+that proves the Worker can *query* ClickHouse, and it needs
+`CHM_API_KEY_SECRET`. Without it, run the compensating check:
+
+```sh
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  'https://dash.chmonitor.dev/api/v1/host-status?hostId=0'
+curl -sS https://dash.chmonitor.dev/api/healthz | head -c 400
+```
+
+- **500 with `{"error":"error code: 1016"}`** — Cloudflare cannot resolve the
+  origin domain. The signature of a ClickHouse host that only resolves on a
+  tailnet: a `*.ts.net` MagicDNS name has **no public DNS record**, so it answers
+  from a tailnet-connected box and nowhere else. Workers resolve through public
+  DNS, so the edge gets 1016 while the host itself is alive and healthy.
+- **503 with `hosts[0].status: "down"`** — the Worker is up; upstream is not.
+  `/api/healthz` returns 503 for the *whole deployment* when one host is down, so
+  read it as a host signal, not a Worker signal.
+
+In cloud mode the env host list *is* the public demo
+(`docs/knowledge/cloud-saas-mode.md`) and an anonymous visitor is shown nothing
+else — so one unreachable demo host means every guest data read fails while
+`/api/health`, `/overview`, the Clerk-key check and the agent gateway all stay
+green. Check `cloudMode.mismatch` in the `healthz` payload to rule out a
+build/runtime split-brain.
+
+If you are fixing the host: note that `filterToDemoHosts`
+(`lib/cloud/demo-hosts.ts`) **fails open** — an allowlist matching zero hosts
+shows *all* env hosts rather than emptying the demo — so renaming allowlist
+entries neither breaks nor fixes this. Fix the host, then reconcile the names.
 
 ## Run it
 
@@ -65,6 +100,10 @@ Flags: `--base-url <url>` (default `https://dash.chmonitor.dev`), `--hosts 0,1`,
 `--json`, `--skip-auth`. Exit `0` = all pass, `1` = failures, `2` = harness
 error. The secret lives in `apps/dashboard/.env.local` and the GitHub secret of
 the same name — source it into the env, never print it.
+
+**When `--skip-auth` is all you can run** (the secret is unset locally), add the
+`host-status` probe below. Four green unauthenticated checks and a broken guest
+product is a combination that actually happens.
 
 ## Agent and guest-model probes
 

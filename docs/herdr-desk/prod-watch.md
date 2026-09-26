@@ -19,10 +19,25 @@ curl -sS -o /dev/null -w '%{http_code}\n' https://dash.chmonitor.dev/overview?ho
 
 Anonymous `/api/health` returns `{status, timestamp}` only — deployment metadata
 is withheld from anonymous callers (#1768), so `gitSha` and `buildTimestamp` need
-a token. `verify-deploy.ts` fetches them when `CHM_API_KEY_SECRET` is set. If
-`gitSha` is older than the newest commit on `origin/main`, the dashboard deploy
-has not landed — that is a deploy failure, not a health failure; check the
-`Deploy to Cloudflare Workers` run for `main`.
+a token. **`CHM_API_KEY_SECRET` is empty in `apps/dashboard/.env.local`, so
+treat the authenticated half as unavailable** and use these two instead:
+
+```sh
+# deploy freshness, answering the same question without a token
+gh run list --branch main --limit 5 \
+  --json workflowName,conclusion,headSha -q \
+  '.[] | select(.workflowName=="Deploy to Cloudflare Workers")'
+
+# the compensating data check — see §2a
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  'https://dash.chmonitor.dev/api/v1/host-status?hostId=0'
+```
+
+A green deploy run whose `headSha` matches `origin/main` means the deploy that
+should have run, ran. That is strong but indirect: **a run-list check is not a
+health check.** If `gitSha` is older than the newest commit on `origin/main`, the
+dashboard deploy has not landed — check the `Deploy to Cloudflare Workers` run
+for `main`.
 
 ## 2. Full verification
 
@@ -40,6 +55,33 @@ bun scripts/verify-deploy.ts --hosts 0
 This is the same script CI runs, so a failure here with a green CI is the
 signal worth escalating. Never print the secret; source it from
 `apps/dashboard/.env.local` if it is there.
+
+### 2a. The compensating check — do not skip it
+
+`--skip-auth` passing **does not mean ClickHouse is reachable.** The
+authenticated half (`--hosts 0`) is the only check that proves the Worker can
+*query* ClickHouse, and it needs `CHM_API_KEY_SECRET`. When that secret is
+absent, one probe stands in for it, and it is the single most valuable anonymous
+signal in this whole playbook:
+
+```sh
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  'https://dash.chmonitor.dev/api/v1/host-status?hostId=0'
+curl -sS https://dash.chmonitor.dev/api/healthz | head -c 400
+```
+
+- **200 / `ok:true`** — the edge can reach the host and the Worker can query it.
+- **500 with `error code: 1016`** — Cloudflare cannot resolve the origin domain.
+  This is the exact signature of a ClickHouse host that only resolves on a
+  tailnet (a `*.ts.net` MagicDNS name has no public DNS record), which takes
+  down every guest data read while `/api/health` stays green.
+- **503 with `hosts[0].status: "down"`** — the Worker is up; upstream is not.
+
+`/api/healthz` returns 503 for the whole deployment when a single host is down,
+so treat it as a host signal, not a Worker signal. In cloud mode the env host
+list *is* the public demo, so one unreachable demo host means the entire
+anonymous experience is broken while every liveness probe passes. That is the
+blind spot this job exists to cover.
 
 ## 3. The paid features actually work
 
