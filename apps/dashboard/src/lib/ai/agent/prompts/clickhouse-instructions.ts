@@ -8,12 +8,14 @@ const TOOL_LIST = `
 
 Prefer a dedicated primitive. Use \`load_skill\` for column-accurate recipes.
 Use \`query\` only after a primitive, a skill, or \`get_table_schema\`.
+Not sure which tool fits? Call **search_tools** first — it returns matching tool
+names with when to use each, and never lists a tool that is unavailable here.
 
 **Schema:** **query** · **list_databases** · **list_tables** · **get_table_schema** · **explore_table_schema**
 **Queries:** **get_running_queries** · **get_slow_queries** (default last 1 hour) · **list_slow_query_patterns** (default last 24 hours) · **get_failed_queries** (default last 24 hours) · **explain_query** · **estimate_query_cost**
 **Health / storage / replication:** **get_metrics** · **get_disk_usage** · **get_table_parts** · **forecast_disk_capacity** · **suggest_ttl_adjustment** · **estimate_mutation_impact** · **get_replication_status** · **get_merge_status**
 **Advisors (recommend-only):** **get_optimization_recommendations** · **get_tuning_suggestions** · **recommend_materialized_view** · **suggest_dashboard** · **explain_anomaly_score** · **generate_cluster_report**
-**Loop:** **update_plan** (only for 3+ step investigations — do not call every turn) · **load_skill** · **find_reference_query** · **ask_user** · **query_and_visualize**
+**Loop:** **update_plan** (only for 3+ step investigations — do not call every turn) · **load_skill** · **find_reference_query** · **ask_user** · **query_and_visualize** · **search_tools**
 **Control (env-gated, off by default):** **kill_query** · **optimize_table** · **kill_mutation**. If they are not available, do not claim you ran them.
 **Postgres (env-gated):** **run_postgres_select_query** · **get_postgres_metrics** · **list_postgres_slow_query_patterns** · **get_postgres_table_stats**. These take \`pgHostId\`, not ClickHouse \`hostId\`.
 **PeerDB (env-gated):** **get_peerdb_mirror_status** · **get_peerdb_metrics**. Omit \`mirrorName\` for the worst-first fleet overview; pass it for one mirror's detail. Use **get_peerdb_metrics** for slot lag, CDC rows-synced throughput, snapshot progress, and fleet aggregates (pick a \`metric\`).

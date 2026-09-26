@@ -78,15 +78,25 @@ describe('ClickHouse agent system prompt — behavior', () => {
     expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain('system.replication_queue')
     expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain('get_replication_status')
   })
+
+  test('routes unknown-capability questions to search_tools, not to query SQL', () => {
+    // The point of the tool: the model should look for a primitive it was not
+    // sure about instead of hand-writing SQL or claiming a gap.
+    expect(PROMPT_FLAT).toContain('Not sure which tool fits?')
+    expect(PROMPT_FLAT).toContain('Call search_tools first')
+    expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain('search_tools')
+  })
 })
 
 describe('ClickHouse agent system prompt — every tool is named', () => {
+  // PeerDB is deliberately not enabled here: the prompt names every tool
+  // regardless of gate, but the count only covers what this file turns on.
   test('every default-gate tool name appears in the prompt', async () => {
     delete process.env.AGENT_ENABLE_CONTROL_TOOLS
     delete process.env.CHM_FEATURE_POSTGRES_SOURCE
     const { createAllTools } = await import('../../tools/index')
     const toolNames = Object.keys(createAllTools(0, false))
-    expect(toolNames.length).toBe(30)
+    expect(toolNames.length).toBe(31)
     for (const name of toolNames) {
       expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(name)
     }
@@ -97,7 +107,7 @@ describe('ClickHouse agent system prompt — every tool is named', () => {
     process.env.CHM_FEATURE_POSTGRES_SOURCE = 'true'
     const { createAllTools } = await import('../../tools/index')
     const toolNames = Object.keys(createAllTools(0, true))
-    expect(toolNames.length).toBe(37)
+    expect(toolNames.length).toBe(38)
     for (const name of toolNames) {
       expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(name)
     }

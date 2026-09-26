@@ -11,27 +11,40 @@
  * failure rather than a hole. `skills-tool-names.test.ts` is the sibling
  * anti-drift test for the other direction: backticked tool names in skill
  * prose.
+ *
+ * Env is saved/restored around every test rather than flipped at module scope:
+ * `bun test --isolate` gives each file its own module registry but they share
+ * one `process.env`, so a module-scope flip leaks into the other tool test
+ * files in the same run and fails their gate assertions.
  */
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
-const originalControlToolsEnv = process.env.AGENT_ENABLE_CONTROL_TOOLS
-const originalPostgresEnv = process.env.CHM_FEATURE_POSTGRES_SOURCE
-const originalPeerDBAgentEnv = process.env.CHM_FEATURE_PEERDB_AGENT
+const GATE_KEYS = [
+  'AGENT_ENABLE_CONTROL_TOOLS',
+  'CHM_FEATURE_POSTGRES_SOURCE',
+  'CHM_FEATURE_PEERDB_AGENT',
+] as const
 
-// Every gate on, so the assertions below cover the gated tools too.
-process.env.AGENT_ENABLE_CONTROL_TOOLS = 'true'
-process.env.CHM_FEATURE_POSTGRES_SOURCE = 'true'
-process.env.CHM_FEATURE_PEERDB_AGENT = 'true'
+// Env is captured per test, not at module scope. `bun test --isolate` gives
+// each FILE its own module registry but they share one `process.env`, so
+// leaving the gates flipped at module scope leaks into every other tool test
+// file in the same run (and fails their gate assertions).
+const savedEnv: Record<string, string | undefined> = {}
 
-afterAll(() => {
-  for (const [key, value] of [
-    ['AGENT_ENABLE_CONTROL_TOOLS', originalControlToolsEnv],
-    ['CHM_FEATURE_POSTGRES_SOURCE', originalPostgresEnv],
-    ['CHM_FEATURE_PEERDB_AGENT', originalPeerDBAgentEnv],
-  ] as const) {
+beforeEach(() => {
+  for (const key of GATE_KEYS) {
+    if (!(key in savedEnv)) savedEnv[key] = process.env[key]
+    // Every gate on, so the assertions below cover the gated tools too.
+    process.env[key] = 'true'
+  }
+})
+
+afterEach(() => {
+  for (const [key, value] of Object.entries(savedEnv)) {
     if (value === undefined) delete process.env[key]
     else process.env[key] = value
   }
+  for (const key of Object.keys(savedEnv)) delete savedEnv[key]
 })
 
 const { createAllTools } = await import('../index')
@@ -44,8 +57,17 @@ const {
   toolCategories,
 } = await import('../catalog')
 
-const toolNames = Object.keys(createAllTools(0, true)).sort()
-const catalogNames = catalogToolNames().sort()
+/**
+ * Recomputed per test: `createAllTools` reads the env gates at call time, so
+ * this must run after `beforeEach` turns them on, not at module scope.
+ */
+let toolNames: string[] = []
+let catalogNames: string[] = []
+
+beforeEach(() => {
+  toolNames = Object.keys(createAllTools(0, true)).sort()
+  catalogNames = catalogToolNames().sort()
+})
 
 describe('TOOL_CATALOG and createAllTools agree', () => {
   test('every registered tool has a catalog entry', () => {

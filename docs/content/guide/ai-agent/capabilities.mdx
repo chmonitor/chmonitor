@@ -1,10 +1,10 @@
 ---
 title: Capabilities
-description: Full reference for the agent's 30+ tools, 18 expert skills, plan-and-verify mode, and worked example questions.
+description: Full reference for the agent's 31+ tools, 18 expert skills, plan-and-verify mode, and worked example questions.
 icon: Sparkles
 ---
 
-The agent exposes a small set of **powerful primitives** (30 tools, plus 3 env-gated control tools, 4 env-gated cross-source Postgres tools, and 2 env-gated PeerDB tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe. You never call tools directly — the agent picks and chains them automatically.
+The agent exposes a small set of **powerful primitives** (31 tools, plus 3 env-gated control tools, 4 env-gated cross-source Postgres tools, and 2 env-gated PeerDB tools). Anything without a dedicated tool is done by writing SQL with the `query` tool, guided by a **skill** recipe — or by asking `search_tools` which tool fits. You never call tools directly — the agent picks and chains them automatically.
 
 ## Tools
 
@@ -16,6 +16,7 @@ The agent exposes a small set of **powerful primitives** (30 tools, plus 3 env-g
 | Capacity planning | Disk-full forecast, TTL/retention advice, mutation impact dry-run (all recommend-only) | `forecast_disk_capacity`, `suggest_ttl_adjustment`, `estimate_mutation_impact` |
 | Aggregation advisor | Design MV/projection DDL from frequent aggregation queries, with a size estimate (recommend-only) | `recommend_materialized_view` |
 | Plan & verify | A visible, adaptive step-by-step plan | `update_plan` |
+| Tool discovery | Find the right tool by describing what you want, when the tool name is not obvious | `search_tools` |
 | Knowledge & interaction | Load expert guides; ask the user | `load_skill`, `ask_user` |
 | Charts & visualization | Run SQL and return an interactive chart | `query_and_visualize` |
 | Insights | Explain a statistical anomaly baseline and z-score | `explain_anomaly_score` |
@@ -28,7 +29,7 @@ The agent exposes a small set of **powerful primitives** (30 tools, plus 3 env-g
 | PeerDB mirrors (env-gated) | Worst-first fleet status plus per-mirror detail (rows synced, table counts, batches, errors) from the read-only PeerDB proxy | `get_peerdb_mirror_status` |
 | PeerDB metrics (env-gated) | Replication-slot lag and its history, CDC rows-synced throughput, snapshot/initial-load progress, per-peer queries, and fleet aggregates | `get_peerdb_metrics` |
 
-Everything else (expensive-query rankings, query patterns, anomalies, table-design advice, settings, logs, replication queue, ZooKeeper, users…) is done with `query` plus the relevant skill recipe — so the agent keeps full reach with a much smaller, more reliable tool surface.
+Everything else (expensive-query rankings, query patterns, anomalies, table-design advice, settings, logs, replication queue, ZooKeeper, users…) is done with `query` plus the relevant skill recipe — so the agent keeps full reach with a much smaller, more reliable tool surface. Not sure which primitive covers a request? Ask `search_tools`; it returns the matching tool names with when to use each, and only tools that are actually available in the conversation.
 
 <Callout type="warn" title="Control tools are off by default">
 Control tools (`kill_query`, `kill_mutation`, `optimize_table`) are disabled unless `AGENT_ENABLE_CONTROL_TOOLS=true`. The agent always confirms before using them.
@@ -67,6 +68,7 @@ The Postgres tools (`run_postgres_select_query`, `get_postgres_metrics`, `list_p
 | `get_replication_status` | Per-table replication delay, queue size, and replica counts. | Reads `system.replicas`. |
 | `get_merge_status` | Currently running merges with progress and elapsed time. | Reads `system.merges`. |
 | `update_plan` | Create or update a step-by-step workflow plan for a 3+ step investigation. Skip it for one-tool answers. | Rendered as a live checklist in the UI. |
+| `search_tools` | Find the agent tool that fits a task when the name is not obvious: pass a plain-language `query` (e.g. "recommend a skip index", "which slot is lagging") and get back the matching tool names with a one-line summary, a category, and the live tool description. Omit `query` to list the core tools; pass `category` to narrow, or `includeCore: false` to see only the discoverable long tail. | Always available — it is itself a core tool, because discovery is useless if it has to be discovered. Read-only and does no I/O: it only reads the in-process tool catalog. **It never advertises a tool that is not callable in the current conversation** — a gated-off tool (destructive control actions, cross-source Postgres, PeerDB) is reported under `unavailable_due_to_gates` instead of being offered, so the agent never tries to call a tool that does not exist. Results are capped (default 15) with a `truncated` flag + note. |
 | `load_skill` | Load an expert guide (skill) with SQL recipes for a specific domain. | |
 | `find_reference_query` | Search the dashboard's built-in library of 100+ vetted, version-aware monitoring queries and return the closest matches (name, description, SQL). | Read-only, deterministic keyword-overlap lookup over the built-in `QueryConfig` catalog — executes nothing. Meant to be used before hand-writing `system.*` SQL. |
 | `ask_user` | Ask the user a question to gather information before proceeding. | |
