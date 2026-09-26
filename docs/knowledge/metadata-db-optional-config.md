@@ -2,7 +2,7 @@
 id: metadata-db-optional-config
 type: spec
 status: draft
-updated: 2026-09-26
+updated: 2026-09-27
 related:
   - cloud-saas-mode
   - deployment
@@ -150,11 +150,11 @@ Owner scoping: `lib/health/alert-routing-auth.ts` — `SINGLE_TENANT_OWNER_ID = 
 
 | Site | Line |
 |---|---|
-| `api/v1/health/alert-config.ts` PUT | `:186-191` |
-| `api/v1/health/routes.ts` POST × 5 provider branches | `:195-200, 238-243, 282-287, 323-328, 364-369` |
-| `api/v1/health/custom-rules` | via `CustomRuleStoreError('NOT_CONFIGURED')` |
-| `api/v1/webhooks/subscriptions.ts` | `:46-52, 70-76` |
-| `api/v1/health/routes.ts` DELETE | `:389-392` → `404` (**not** 501) — silent |
+| `routes/api/v1/health/alert-config.ts` PUT | `:186-191` |
+| `routes/api/v1/health/routes.ts` POST × 5 provider branches | `:195-200, 238-243, 282-287, 323-328, 364-369` |
+| `routes/api/v1/health/custom-rules` | via `CustomRuleStoreError('NOT_CONFIGURED')` |
+| `routes/api/v1/webhooks/subscriptions.ts` | `:46-52, 70-76` |
+| `routes/api/v1/health/routes.ts` DELETE | `:389-392` → `404` (**not** 501) — silent |
 
 **Type B — `200` + empty list (silent degradation):**
 
@@ -210,9 +210,9 @@ mount example in the K8s guide:
 | `docs/content/operate/advanced/feature-permissions.mdx` | 38, 42, 44, 133 |
 | `docs/content/reference/configuration.mdx` | 17, 25 |
 | `docs/content/reference/environment-variables.mdx` | 220 |
-| `docs/content/deploy/k8s.md` | 261, 268 |
-| `docs/content/deploy/docker.md` | 130 |
-| `docs/content/deploy/self-host.md` | 93 |
+| `docs/content/operate/deploy/k8s.mdx` | 261, 268 |
+| `docs/content/operate/deploy/docker.mdx` | 130 |
+| `docs/content/operate/deploy/self-host.mdx` | 93 |
 | `docs/content/guide/features.mdx` | 136 |
 | `docs/content/guide/features/*.mdx` (16 pages) | one `# CHM_CONFIG_FILE (TOML)` section each |
 | `apps/docs/src/content/docs/**` (generated mirror) | 24 more |
@@ -466,7 +466,7 @@ means.
 
 > `docs/content/reference/environment-variables.mdx` (new vars; the
 > `CHM_CONFIG_FILE` row at `:220`), `docs/content/reference/configuration.mdx`,
-> `docs/content/deploy/k8s.md` (ConfigMap end-to-end), `deploy/helm/**`
+> `docs/content/operate/deploy/k8s.mdx` (ConfigMap end-to-end), `deploy/helm/**`
 > (`values.yaml`, `README`), `apps/dashboard/.env.example`.
 >
 > Lead with the **read-only/writable boundary** table. An operator must learn

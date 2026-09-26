@@ -3,7 +3,7 @@ id: static-site-architecture
 title: Dashboard Architecture
 type: decision
 status: active
-updated: 2026-09-03
+updated: 2026-09-27
 tags:
   - architecture
   - tanstack-start
@@ -66,7 +66,7 @@ All data fetching requires a `hostId` extracted from the `?host=` param. Environ
 
 - `src/routes/(dashboard)/` — all dashboard page routes
 - `src/routes/api/` — API route handlers
-- `src/lib/clickhouse.ts` — ClickHouse client (hostId required)
+- `packages/clickhouse-client/src/index.ts` — ClickHouse client (hostId required)
 - `apps/dashboard/src/routes/__root.tsx` — root layout
 
 ## How to Apply

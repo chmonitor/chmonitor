@@ -3,7 +3,7 @@ id: query-config-format
 title: QueryConfig Format
 type: spec
 status: active
-updated: 2026-05-13
+updated: 2026-09-27
 tags:
   - query-config
   - clickhouse
@@ -76,5 +76,7 @@ export const backupsConfig: QueryConfig = {
 ## See Also
 
 - `.claude/skills/clickhouse-query-config.md` — Claude skill guidance
-- `lib/table-validator.ts` — validates table existence before queries
-- `lib/table-existence-cache.ts` — caches validation results (5-min TTL)
+- `packages/clickhouse-client/src/table-validator.ts` — validates table
+  existence before queries
+- `packages/clickhouse-client/src/table-existence-cache.ts` — caches validation
+  results (5-min TTL)

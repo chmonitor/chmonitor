@@ -3,7 +3,7 @@ id: cluster-topology
 title: Cluster Topology Visualization
 type: spec
 status: active
-updated: 2026-08-12
+updated: 2026-09-27
 tags:
   - cluster-topology
   - svg
@@ -51,7 +51,7 @@ unmodified — split for maintainability only, not a public-API change.
 | `components/cluster-topology/inspector.tsx` | Right-hand detail panel (per-node / cluster overview). |
 | `components/cluster-topology/use-topology.ts` | SWR hook → `/api/v1/cluster-topology`. |
 | `components/cluster-topology/__tests__/{model,geometry}.test.ts` | Lock the pure-logic **invariants** (see below). |
-| `app/api/v1/cluster-topology/route.ts` | Server route: assembles the layout-free `TopologyData`. |
+| `src/routes/api/v1/cluster-topology.ts` | Server route: assembles the layout-free `TopologyData`. |
 
 ## Layout pipeline (pure, deterministic)
 
