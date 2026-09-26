@@ -1,11 +1,15 @@
 import { GitMerge, Wrench } from 'lucide-react'
 
+import type { MetricAlertSignals } from '@/lib/health/alert-capability'
 import type { ComputedMutations } from '@/lib/health/health-status'
 import type { HealthCardVariant } from './health-card-shell'
 import type { HealthCheckDef, RelatedLink } from './health-checks'
+import type { AlertRuleStoreAvailability } from './use-alert-signals'
 
+import { AlertConfiguredBadge } from './alert-configured-badge'
 import { HealthCardShell } from './health-card-shell'
 import { HealthDetailDialog } from './health-detail-dialog'
+import { NO_ALERT_SIGNALS } from './use-alert-signals'
 import { useState } from 'react'
 
 interface MutationsCardProps {
@@ -18,6 +22,10 @@ interface MutationsCardProps {
   clickhouseVersion?: string
   /** Expanded card (issues) or dense row (healthy) — decided by the grid. */
   variant?: HealthCardVariant
+  /** Already-alerting state for this check, resolved upstream (#3437). */
+  signals?: MetricAlertSignals
+  /** Whether the D1-backed named-alert store can be written here (#3437). */
+  availability?: AlertRuleStoreAvailability
 }
 
 const MUTATIONS_LINKS: readonly RelatedLink[] = [
@@ -95,6 +103,8 @@ function MutationsCard({
   spark,
   clickhouseVersion,
   variant,
+  signals = NO_ALERT_SIGNALS,
+  availability = 'unknown',
 }: MutationsCardProps & { def: HealthCheckDef }) {
   const [detailOpen, setDetailOpen] = useState(false)
 
@@ -111,6 +121,7 @@ function MutationsCard({
         hostId={hostId}
         onExpand={() => setDetailOpen(true)}
         variant={variant}
+        badge={<AlertConfiguredBadge signals={signals} />}
       />
 
       <HealthDetailDialog
@@ -123,6 +134,8 @@ function MutationsCard({
         label={computed.label}
         thresholds={def.defaults}
         clickhouseVersion={clickhouseVersion}
+        signals={signals}
+        availability={availability}
       />
     </>
   )

@@ -173,6 +173,28 @@ describe('Health group (inbound events nest, #3134)', () => {
     expect(health?.permission).toEqual({ feature: 'health' })
     expect(health?.section).toBe('main')
   })
+
+  test('the /health child is titled "Health and Alert", not "Health" (#3436)', () => {
+    // "Health" + "Health Settings" read as the same page. The /health page
+    // header is "Health Summary"; only the nav label changed.
+    expect(health?.items?.map((item) => item.title)).toEqual([
+      'Health and Alert',
+      'Health Settings',
+      'Alert Settings',
+      'Inbound Events',
+    ])
+    const healthAndAlert = health?.items?.find(
+      (item) => item.href === '/health'
+    )
+    // Route + ?host= routing unchanged; keywords so Cmd+K finds it by intent.
+    expect(healthAndAlert?.href).toBe('/health')
+    expect(healthAndAlert?.keywords).toEqual([
+      'health summary',
+      'alerts',
+      'status',
+      'health checks',
+    ])
+  })
 })
 
 describe('Tools group (interactive utilities)', () => {

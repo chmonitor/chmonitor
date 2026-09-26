@@ -57,6 +57,7 @@ import {
   peerDBPayloadValue,
   validatePeerDBAlertMessage,
 } from './alerting'
+import { peerDBFlowSlug } from './flow-slug'
 import { debug } from '@chm/logger'
 import { alertStateStore } from '@/lib/health/alert-state-store'
 
@@ -77,13 +78,7 @@ export const PEERDB_CYCLE_MAX_MIRRORS = 50
  * keys stay small and glob route patterns (`peerdb-mirror-health*`) match.
  */
 export function peerDBRuleIdForFlow(flowName: string): string {
-  const slug = flowName
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 64)
-  return `${PEERDB_ALERT_RULE_ID}:${slug || 'unnamed'}`
+  return `${PEERDB_ALERT_RULE_ID}:${peerDBFlowSlug(flowName)}`
 }
 
 /** Dispatch function shape — the sweep's `dispatchFinding` satisfies this. */

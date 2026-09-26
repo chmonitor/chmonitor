@@ -66,16 +66,19 @@ const CATEGORY_CHARTS: Record<string, readonly string[]> = {
  * Resolve the explanatory chart keys for an insight finding.
  *
  * Returns up to {@link MAX_CHARTS} chart-registry keys, or `[]` when the finding
- * has no sensible chart (narrative-only, unknown category, or a Postgres `pg_*`
- * metric — the registry only has ClickHouse charts).
+ * has no sensible chart (narrative-only, unknown category, or a non-ClickHouse
+ * finding — a Postgres `pg_*` or PeerDB `peerdb_*` metric, since the registry
+ * holds only ClickHouse charts).
  */
 export function insightChartNames(
   insight: Pick<InsightCandidate, 'category' | 'metric'>
 ): string[] {
   const metric = insight.metric?.trim()
 
-  // Postgres findings have no ClickHouse chart to explain them.
-  if (metric?.startsWith('pg_')) return []
+  // Non-ClickHouse engines have no chart here to explain them. Without this the
+  // `peerdb_` metric would fall through to CATEGORY_CHARTS and render unrelated
+  // ClickHouse query charts underneath a PeerDB finding.
+  if (metric?.startsWith('pg_') || metric?.startsWith('peerdb_')) return []
 
   const byMetric = metric ? METRIC_CHARTS[metric] : undefined
   const charts = byMetric ?? CATEGORY_CHARTS[insight.category] ?? []

@@ -1,10 +1,15 @@
-import { ExternalLink, Sparkles } from 'lucide-react'
+import { BellRing, ExternalLink, Sparkles } from 'lucide-react'
 
+import type { MetricAlertSignals } from '@/lib/health/alert-capability'
 import type { AuditPromptInput } from '@/lib/health/audit-prompt'
 import type { HealthCheckDef } from './health-checks'
+import type { AlertRuleStoreAvailability } from './use-alert-signals'
 
+import { AlertConfiguredBadge } from './alert-configured-badge'
+import { ConfigureAlertForm } from './configure-alert-form'
 import { HealthAuditPromptDialog } from './health-audit-prompt-dialog'
 import { HealthDetailRows } from './health-detail-rows'
+import { NO_ALERT_SIGNALS } from './use-alert-signals'
 import { useState } from 'react'
 import { AppLink } from '@/components/ui/app-link'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +37,10 @@ interface HealthDetailDialogProps {
   thresholds: { warning: number; critical: number }
   row?: Record<string, unknown>
   clickhouseVersion?: string
+  /** Already-alerting state for this check, resolved by the grid (#3437). */
+  signals?: MetricAlertSignals
+  /** Whether the D1-backed named-alert store can be written here (#3437). */
+  availability?: AlertRuleStoreAvailability
 }
 
 function StatusBadge({
@@ -67,8 +76,11 @@ export function HealthDetailDialog({
   thresholds,
   row,
   clickhouseVersion,
+  signals = NO_ALERT_SIGNALS,
+  availability = 'unknown',
 }: HealthDetailDialogProps) {
   const [promptOpen, setPromptOpen] = useState(false)
+  const [configureOpen, setConfigureOpen] = useState(false)
 
   const promptInput: AuditPromptInput = {
     check,
@@ -99,6 +111,7 @@ export function HealthDetailDialog({
             <div className="flex items-center gap-2">
               <DialogTitle>{check.title}</DialogTitle>
               <StatusBadge status={status} />
+              <AlertConfiguredBadge signals={signals} />
             </div>
             {check.description && (
               <DialogDescription>{check.description}</DialogDescription>
@@ -107,6 +120,16 @@ export function HealthDetailDialog({
 
           <ScrollArea className="min-w-0 max-h-[60vh] pr-3">
             <div className="flex flex-col gap-4">
+              {configureOpen && (
+                <ConfigureAlertForm
+                  check={check}
+                  value={value}
+                  thresholds={thresholds}
+                  signals={signals}
+                  availability={availability}
+                />
+              )}
+
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <div className="rounded-md border p-3">
                   <div className="text-xs text-muted-foreground">
@@ -276,6 +299,14 @@ export function HealthDetailDialog({
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Close
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setConfigureOpen((v) => !v)}
+              aria-expanded={configureOpen}
+            >
+              <BellRing className="mr-2 size-4" />
+              {configureOpen ? 'Hide alert setup' : 'Configure alert'}
             </Button>
             <Button onClick={() => setPromptOpen(true)}>
               <Sparkles className="mr-2 size-4" />

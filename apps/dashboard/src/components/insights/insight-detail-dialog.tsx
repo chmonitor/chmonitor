@@ -39,7 +39,13 @@ import { formatRelativeTime } from '@/lib/utils/format-relative-time'
 
 interface InsightDetailDialogProps {
   insight: InsightCardData
-  hostId: number
+  /**
+   * ClickHouse host the deep-link carries as `?host=`. Omit it for a finding
+   * with no ClickHouse host (PeerDB findings belong to the env-wide PeerDB
+   * deployment) — the link then carries no `?host=` rather than a fabricated
+   * one. Mirrors `InsightCard`.
+   */
+  hostId?: number
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Reuse the caller's per-user dismissal. When omitted, no dismiss button. */
@@ -72,7 +78,8 @@ export function InsightDetailDialog({
     : Number.NaN
   const hasGeneratedAt = Number.isFinite(generatedMs)
 
-  const linkParams = linkSearch ?? { host: hostId }
+  const linkParams =
+    linkSearch ?? (hostId === undefined ? {} : { host: hostId })
   const action = insight.action
   const actionHref = action?.href
     ? buildUrl(action.href, linkParams)

@@ -18,6 +18,24 @@ describe('insightChartNames', () => {
     ).toEqual(['memory-usage'])
   })
 
+  test('non-ClickHouse engines never get a ClickHouse chart (#3439)', () => {
+    // Every one of these has a CATEGORY_CHARTS entry, so without the prefix
+    // guard a PeerDB/Postgres finding would render unrelated ClickHouse charts.
+    for (const metric of [
+      'pg_long_running_queries',
+      'peerdb_slot_lag_mb',
+      'peerdb_slot_lag_trend',
+      'peerdb_failed_mirrors',
+      'peerdb_terminated_mirrors',
+      // Per-mirror cards key on their flow slug.
+      'peerdb_mirror_errors:pg_to_ch',
+      'peerdb_snapshot_stalled:pg_to_ch',
+    ]) {
+      expect(insightChartNames({ category: 'reliability', metric })).toEqual([])
+      expect(insightChartNames({ category: 'performance', metric })).toEqual([])
+    }
+  })
+
   test('metric mapping wins over category fallback', () => {
     // error_rate lives under an anomaly finding but has its own chart set,
     // which must take precedence over the generic anomaly fallback.

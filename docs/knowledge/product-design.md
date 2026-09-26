@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-09-26
+updated: 2026-09-27
 tags:
   - design-system
   - ui
@@ -642,6 +642,59 @@ unchanged panel inside a `Dialog`. `/alert-settings` collapsed ten tabs into
 `LEGACY_TAB_MAP` from every retired `?tab=` id to `{ tab, advancedSection? }`,
 so an old link lands on the right tab with the right dialog already open
 (`health-settings-panel.tsx`).
+
+### Act on the thing you are looking at (health detail dialog)
+
+A card that reports a problem must let you act on *that* problem without
+re-deriving its identity. The health detail dialog therefore carries its own
+**Configure alert** footer action, opening
+`components/health/configure-alert-form.tsx` pre-filled with the check id, the
+value already on screen, and the **effective** thresholds
+(`overrides[check.id] ?? check.defaults`, which the dialog already receives).
+Never re-ask the user to pick the metric or re-type the thresholds.
+
+The form keeps three concepts separate, because the settings page has been
+conflating them:
+
+| Control | Medium | Evaluated by | Needs a DB? |
+|---|---|---|---|
+| **Thresholds** | localStorage `health-thresholds` | the browser dispatcher | no |
+| **Named alert** | D1 `custom_alert_rules` | the cron sweep | yes |
+| **Channel** | localStorage or D1, per channel | both | depends |
+
+Rules that follow from the table:
+
+- The threshold action is **never** disabled for lack of a database — that is
+  the whole self-hosted path.
+- The named-alert action is disabled **with a reason** when the store cannot be
+  written, never a silent no-op. Availability is tri-state
+  (`unknown | available | unavailable`, `components/health/use-alert-signals.ts`)
+  and `unknown` must render as *disabled*, not as *enabled*: a 501 probe that has
+  not resolved yet is not permission to write.
+- `metadataDb.available` from `GET /api/v1/config` is **not** a valid gate for
+  this. It counts `DATABASE_URL`/`POSTGRES_URL`, but every alert store is
+  D1-only, so a Postgres-only deploy reads `available === true` and then gets a
+  501 on write. Reuse the store's own `NOT_CONFIGURED` (HTTP 501) answer, as
+  `RuleBuilderPanel` does, and re-point at the per-feature capability when
+  #3440 lands. Do not add a second, subtly different signal.
+
+**Already-alerting indicator** (`alert-configured-badge.tsx`, rendered on the
+card header, the dense row, and the dialog title): one amber `BellRing` badge,
+titled with *why*. It resolves from three sources, cheapest first, via
+`lib/health/alert-capability.ts` (pure + unit-tested):
+
+1. a key present in the `health-thresholds` map — **localStorage, so the badge
+   still works with no metadata database at all**;
+2. a custom rule bound to the catalog metric that measures the same quantity —
+   matched through an **explicit** `CHECK_CATALOG_METRIC` table, never by name
+   similarity (two look-alike checks deliberately have no entry because their
+   SQL differs);
+3. an `alert_state` row keyed by this exact `checkId`.
+
+This is a *different* signal from severity — the badge answers "is this
+watched?", not "is it bad?" — so it does not violate the one-signal-per-element
+rule above. The grid resolves all three sources **once for the page** and passes
+the result down as data; cards stay presentational.
 
 ### Presets before forms
 
