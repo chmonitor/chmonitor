@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-08-20
+updated: 2026-09-27
 tags:
   - saas
   - cloud
@@ -83,6 +83,40 @@ black out the demo (empty host list = 503). The host `id` (index into
 Implemented in `lib/cloud/demo-hosts.ts` (`filterToDemoHosts`), applied at
 `api/v1/hosts.ts` (the shown list) and `lib/api/clickhouse-config.ts`
 (`getClickHouseConfigsFromEnv` → live status / health / notifications).
+
+**The demo host MUST resolve through public DNS.** Cloudflare Workers resolve
+origin hostnames over public DNS only, so a tailnet-only name works from your
+laptop and fails at the edge with Cloudflare error **1016**. A `*.ts.net`
+MagicDNS name is exactly that: it answers on a tailnet-connected box and has no
+public record anywhere else.
+
+The failure is invisible to every liveness probe. `/api/health`,
+`/overview?host=0`, the inlined-Clerk-key check and the agent gateway all stay
+green, because the Worker itself is fine — it just cannot dial the origin. What
+breaks is every guest data read, and in cloud mode the demo *is* the whole
+anonymous product. Observed 2026-09-27 as #3449.
+
+Two checks catch it, both anonymous:
+
+```sh
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  'https://dash.chmonitor.dev/api/v1/host-status?hostId=0'   # 500 + "error code: 1016"
+curl -sS 'https://dash.chmonitor.dev/api/healthz'             # 503, hosts[0].status "down"
+```
+
+`/api/healthz` reports 503 for the **whole deployment** when a single host is
+down, so read it as a host signal, not a Worker signal. The
+`local:prod` desk job runs both every 30 minutes, and
+`.claude/skills/verify-production/SKILL.md` is the full write-up. Note that
+`verify-deploy.ts --skip-auth` alone does **not** prove the Worker can query
+ClickHouse — only the authenticated half does.
+
+Fixing it is a secret change, not code: give the demo public ingress (Tailscale
+Funnel, a reverse proxy) or point `CLICKHOUSE_HOST` at an already-public
+ClickHouse. Do **not** try to fix it with the allowlist: `filterToDemoHosts`
+fails open, so renaming entries neither breaks nor fixes the demo (see above).
+The public ClickHouse Playground is *not* a drop-in — it denies `SELECT` on the
+`system.*` tables the operational pages read.
 
 ## CLI auth discovery
 
