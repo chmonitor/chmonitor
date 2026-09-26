@@ -144,6 +144,16 @@ jobs:
         if: ${{ inputs.job-type == 'lint' }}
         run: pnpm exec turbo run lint
 
+      # `turbo run lint` only covers packages that define a `lint` script, and
+      # today none of them do — so this step passed over ~2900 dashboard files.
+      # The pre-push hook runs `biome check` (lint + format + assist), which is
+      # the gate that actually matters; run the same command here so CI and the
+      # hook cannot disagree. Without it, format/import-order drift lands on
+      # main through any green PR and then blocks every later push.
+      - name: Biome check
+        if: ${{ inputs.job-type == 'lint' }}
+        run: pnpm run check
+
       # === App Build ===
       - name: Build App
         if: ${{ inputs.job-type == 'build' }}

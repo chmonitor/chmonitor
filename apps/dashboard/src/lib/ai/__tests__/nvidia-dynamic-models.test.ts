@@ -59,9 +59,9 @@ afterEach(() => {
 
 describe('isNvidiaToolCapable', () => {
   test('true for a curated allowlist id', () => {
-    expect(
-      isNvidiaToolCapable({ id: NVIDIA_TOOL_CAPABLE_MODEL_IDS[0] })
-    ).toBe(true)
+    expect(isNvidiaToolCapable({ id: NVIDIA_TOOL_CAPABLE_MODEL_IDS[0] })).toBe(
+      true
+    )
   })
 
   test('false for a catalog model outside the allowlist', () => {
@@ -134,9 +134,7 @@ describe('mergeNvidiaDynamicModels', () => {
   const base = [{ id: 'nvidia:curated-a' }, { id: 'nvidia:curated-b' }]
 
   test('keeps every curated entry', () => {
-    const merged = mergeNvidiaDynamicModels(base, [
-      { id: 'nvidia:dynamic-1' },
-    ])
+    const merged = mergeNvidiaDynamicModels(base, [{ id: 'nvidia:dynamic-1' }])
     expect(merged.map((m) => m.id)).toEqual([
       'nvidia:curated-a',
       'nvidia:curated-b',

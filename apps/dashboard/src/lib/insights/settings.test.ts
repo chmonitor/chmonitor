@@ -3,6 +3,7 @@
  * resolution. Pure logic — no ClickHouse, no LLM.
  */
 
+import { getModelRegistry } from '../ai/agent-model-registry'
 import {
   DEFAULT_PROMPT_STYLE,
   INSIGHT_PROMPT_STYLES,
@@ -10,7 +11,6 @@ import {
   promptSystemFor,
   resolvePromptStyle,
 } from './prompts'
-import { getModelRegistry } from '../ai/agent-model-registry'
 import { resolveInsightModel } from './resolve-model'
 import {
   DEFAULT_INSIGHTS_SETTINGS,
@@ -161,7 +161,8 @@ describe('resolveInsightModel (server-side validation)', () => {
       (entry.providers ?? []).includes('openrouter') &&
       !/^openrouter\//.test(entry.id)
   )?.id
-  if (!KNOWN_OPENROUTER_MODEL) throw new Error('no OpenRouter model in registry')
+  if (!KNOWN_OPENROUTER_MODEL)
+    throw new Error('no OpenRouter model in registry')
   let prev: string | undefined
 
   beforeEach(() => {

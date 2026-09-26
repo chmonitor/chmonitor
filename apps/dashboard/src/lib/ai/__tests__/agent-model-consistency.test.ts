@@ -9,7 +9,6 @@
  */
 
 import { describe, expect, test } from 'bun:test'
-
 import { MODEL_PRICING } from '@/lib/ai/agent/analytics'
 import {
   getAllModelOptions,

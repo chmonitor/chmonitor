@@ -321,9 +321,7 @@ export async function buildNvidiaDynamicModels(
     expiresAt: now + NVIDIA_DYNAMIC_CACHE_TTL_MS,
   }
 
-  return rankNvidiaModels(catalog, { limit: topN }).map(
-    rankedToAgentModelEntry
-  )
+  return rankNvidiaModels(catalog, { limit: topN }).map(rankedToAgentModelEntry)
 }
 
 /**

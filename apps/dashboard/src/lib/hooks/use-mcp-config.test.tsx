@@ -16,8 +16,6 @@
 
 import type { McpConfigStorage, UseMcpConfigResult } from './use-mcp-config'
 
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { GlobalRegistrator } from '@happy-dom/global-registrator'
 import {
   createCustomServer,
   MCP_CONFIG_STORAGE_KEY,
@@ -28,6 +26,8 @@ import {
   withRemovedServer,
   withServerEnabled,
 } from './use-mcp-config'
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { GlobalRegistrator } from '@happy-dom/global-registrator'
 
 beforeAll(() => {
   GlobalRegistrator.register()
