@@ -30,8 +30,15 @@ describe('catalogMetricForCheck', () => {
   })
 
   test('every mapped key really exists in METRIC_CATALOG', () => {
-    for (const [checkId, metric] of Object.entries(CHECK_CATALOG_METRIC)) {
-      expect(`${checkId} -> ${metric}`).toBe(`${checkId} -> ${metric}`)
+    // `CHECK_CATALOG_METRIC` is an open `Partial<Record<string, MetricKey>>`, so
+    // a raw lookup is typed `MetricKey | undefined`. Go through
+    // `catalogMetricForCheck`, which reports a missing metric as `null`: a key
+    // that is present in the map but unmapped has to fail here, not slip past.
+    for (const checkId of Object.keys(CHECK_CATALOG_METRIC)) {
+      const metric = catalogMetricForCheck(checkId)
+      if (metric === null) {
+        throw new Error(`CHECK_CATALOG_METRIC["${checkId}"] has no metric`)
+      }
       expect(Object.hasOwn(METRIC_CATALOG, metric)).toBe(true)
     }
   })

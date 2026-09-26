@@ -161,6 +161,9 @@ describe('collectPeerDBInsights', () => {
       peerSlots: async () => {
         throw new Error('boom')
       },
+      peerSlotLagHistory: async () => {
+        throw new Error('boom')
+      },
       listSourcePeers: async () => {
         throw new Error('boom')
       },
