@@ -781,8 +781,8 @@ The application includes a robust table validation system to handle optional Cli
 
 **Key Components**:
 
-- `lib/table-validator.ts` - Validates table existence before queries
-- `lib/table-existence-cache.ts` - Caches validation results (5-minute TTL)
+- `packages/clickhouse-client/src/table-validator.ts` - Validates table existence before queries
+- `packages/clickhouse-client/src/table-existence-cache.ts` - Caches validation results (5-minute TTL)
 - `lib/error-utils.ts` - Provides user-friendly error messages
 
 **Usage Pattern**:
@@ -916,16 +916,16 @@ export function YourChart({ hostId, interval }: YourChartProps) {
 ## Important Files
 
 ### Core Application
-- `next.config.ts` - Next.js configuration (standalone output mode)
-- `app/layout.tsx` - Root layout with SWR provider and Suspense
-- `app/page.tsx` - Root redirect to `/overview?host=0`
-- `components/header-client.tsx` - Client-side header with host selector
+- `apps/dashboard/vite.config.ts` - Vite + TanStack Start build config (Cloudflare Workers / Node dual target)
+- `apps/dashboard/src/routes/__root.tsx` - Root route: app shell, providers, `HeadContent`/`Scripts`
+- `apps/dashboard/src/routes/index.tsx` - Root redirect to `/overview?host=0`
+- `apps/dashboard/src/components/host/host-switcher.tsx` - Header host selector
 
 ### Data Layer
-- `lib/clickhouse.ts` - ClickHouse client and `fetchData` (hostId required)
+- `packages/clickhouse-client/src/index.ts` - ClickHouse client and `fetchData` (hostId required)
 - `lib/swr/use-host.ts` - Extract hostId from query params
-- `lib/swr/use-chart-data.ts` - SWR hook for chart data
-- `lib/swr/use-table-data.ts` - SWR hook for table data
+- `apps/dashboard/src/lib/query/use-chart-data.ts` - TanStack Query hook for chart data
+- `apps/dashboard/src/lib/query/use-table-data.ts` - TanStack Query hook for table data
 - `lib/api/chart-registry.ts` - Chart query registry
 - `lib/query-config/index.ts` - Centralized query configurations
 
