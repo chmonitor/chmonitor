@@ -1,0 +1,279 @@
+---
+import {
+  DEFAULT_SPONSOR_TIER,
+  sponsorCheckoutAction,
+  sponsorHref,
+  SPONSOR_TIERS,
+  sponsorTier,
+} from '../data/sponsors'
+import { btnOutline, btnPrimary } from '../lib/button-classes'
+
+/**
+ * The sponsorship offer: one row per tier with two ways in.
+ *
+ *   Pick          → straight to Polar, nothing collected. One click, no form.
+ *   Add my details → fills the form below and jumps to it.
+ *
+ * The form GET-submits to the checkout route itself, so the fields reach Polar
+ * with or without JavaScript; the script only keeps the amount input, the tier
+ * radios, and the button label in sync, and blocks an obviously bad email
+ * before Polar sees it.
+ *
+ * Used on both /license#sponsor and /sponsors — one implementation, so the two
+ * surfaces can never disagree about a price.
+ */
+const defaultTier = sponsorTier(DEFAULT_SPONSOR_TIER)
+const action = sponsorCheckoutAction()
+const amountLabel = (usd: number) => `$${usd.toLocaleString('en-US')}`
+---
+
+<ul class="tiers">
+  {
+    SPONSOR_TIERS.map((tier) => (
+      <li class="tier" data-tier={tier.id}>
+        <div class="tier-head">
+          <span class="amt">${tier.amountUsd.toLocaleString('en-US')}</span>
+          <span class="tier-name">{tier.label}</span>
+          {tier.highlight && <span class="tier-badge">Most chosen</span>}
+        </div>
+        <p class="tier-pitch">{tier.pitch}</p>
+        <div class="tier-cta">
+          <a
+            class={btnOutline}
+            href={sponsorHref(tier.amountUsd)}
+            data-cta={`sponsor-pick-${tier.id}`}
+          >
+            Pick ${tier.amountUsd.toLocaleString('en-US')}
+          </a>
+          <button
+            type="button"
+            class={tier.highlight ? btnPrimary : btnOutline}
+            data-add-details={tier.id}
+            data-amount={tier.amountUsd}
+            data-cta={`sponsor-details-${tier.id}`}
+          >
+            Add my details
+          </button>
+        </div>
+      </li>
+    ))
+  }
+</ul>
+
+<form
+  class="details"
+  id="sponsor-details"
+  method="get"
+  action={action}
+  data-default-tier={defaultTier.id}
+>
+  <p class="details-lede">
+    <strong>Add your details</strong> and we forward them to Polar with the
+    payment, so your Polar account carries them and we can put you on the wall
+    without a follow-up email. Pick a tier or type any amount.
+  </p>
+
+  <div class="tier-radios" role="radiogroup" aria-label="Sponsorship tier">
+    {
+      SPONSOR_TIERS.map((tier) => (
+        <label class="radio" data-radio-tier={tier.id}>
+          <input
+            type="radio"
+            name="tier"
+            value={tier.id}
+            checked={tier.id === defaultTier.id}
+          />
+          <span>${tier.amountUsd.toLocaleString('en-US')}</span>
+        </label>
+      ))
+    }
+    <label class="radio radio-custom">
+      <span class="sr-only">Custom amount in US dollars</span>
+      <span class="radio-prefix" aria-hidden="true">$</span>
+      <input
+        class="amount"
+        type="number"
+        name="amount"
+        min="1"
+        step="1"
+        inputmode="decimal"
+        placeholder="Other"
+        aria-label="Custom amount in US dollars"
+        data-custom-amount
+      />
+    </label>
+  </div>
+
+  <div class="fields">
+    <label>
+      Name
+      <input
+        type="text"
+        name="name"
+        maxlength="120"
+        placeholder="Acme Analytics"
+        autocomplete="organization"
+      />
+    </label>
+    <label>
+      Website
+      <input
+        type="url"
+        name="website"
+        maxlength="200"
+        placeholder="https://acme.example"
+        autocomplete="url"
+      />
+    </label>
+    <label>
+      Email
+      <input
+        type="email"
+        name="email"
+        maxlength="200"
+        placeholder="ops@acme.example"
+        autocomplete="email"
+      />
+    </label>
+    <label>
+      Logo URL <span class="opt">optional</span>
+      <input
+        type="url"
+        name="logo"
+        maxlength="300"
+        placeholder="https://acme.example/logo.svg"
+        autocomplete="off"
+      />
+    </label>
+  </div>
+
+  <button
+    class={btnPrimary}
+    type="submit"
+    data-label="Sponsor {amount} and continue to Polar"
+    data-cta="sponsor-submit"
+  >
+    Sponsor {amountLabel(defaultTier.amountUsd)} and continue to Polar
+  </button>
+  <p class="hint">
+    We publish the name and website link. The email goes to Polar for the
+    receipt and is never rendered on the site. Prefer a PO or a wire? Email
+    instead.
+  </p>
+</form>
+
+<script is:inline define:vars={{ tiers: SPONSOR_TIERS.map((t) => ({ id: t.id, amountUsd: t.amountUsd })) }}>
+  ;(function () {
+    var form = document.getElementById('sponsor-details')
+    if (!form) return
+    var amount = form.querySelector('[data-custom-amount]')
+    var submit = form.querySelector('[type=submit]')
+    // The server-rendered label carries the default price; the template below
+    // is what the script re-renders so the amount can never contradict it.
+    var base = submit ? submit.getAttribute('data-label') || '' : ''
+
+    function price() {
+      var custom = amount && String(amount.value || '').trim()
+      if (custom) {
+        var n = Number(custom)
+        if (Number.isFinite(n) && n > 0) return n
+        return null
+      }
+      var checked = form.querySelector('input[name=tier]:checked')
+      var found = checked && tiers.filter(function (t) { return t.id === checked.value })[0]
+      return found ? found.amountUsd : null
+    }
+
+    function label() {
+      var p = price()
+      if (!submit || !base) return
+      submit.textContent = base.replace(
+        '{amount}',
+        p ? '$' + p.toLocaleString('en-US') : '—'
+      )
+    }
+
+    // A custom amount wins over the tier radios, and vice versa: exactly one
+    // source of truth for the price, in both directions.
+    if (amount) {
+      amount.addEventListener('input', function () {
+        if (String(amount.value || '').trim()) {
+          form.querySelectorAll('input[name=tier]').forEach(function (r) {
+            r.checked = false
+          })
+        }
+        label()
+      })
+    }
+    form.querySelectorAll('input[name=tier]').forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        if (radio.checked && amount) amount.value = ''
+        label()
+      })
+    })
+
+    document.querySelectorAll('[data-add-details]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var tier = btn.getAttribute('data-add-details')
+        var radio = form.querySelector('input[name=tier][value="' + tier + '"]')
+        if (radio) {
+          radio.checked = true
+          if (amount) amount.value = ''
+        }
+        label()
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        var first = form.querySelector('input[name=name]')
+        if (first) first.focus({ preventScroll: true })
+      })
+    })
+
+    // Blocks an obviously bad email before Polar sees it. Everything else is
+    // optional, and a blank form still works — it is just a pick.
+    form.addEventListener('submit', function (e) {
+      if (!price()) {
+        e.preventDefault()
+        if (amount) amount.focus()
+        return
+      }
+      var email = form.querySelector('input[name=email]')
+      if (email && String(email.value || '').trim() && !email.checkValidity()) {
+        e.preventDefault()
+        email.focus()
+      }
+    })
+
+    label()
+  })()
+</script>
+
+<style>
+  .tiers{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+  .tier{display:grid;gap:6px;padding:16px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);text-align:left}
+  .tier-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tier .amt{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .tier-name{font-weight:700;font-size:15px;letter-spacing:-.01em}
+  .tier-badge{font-size:10.5px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:2px 7px;background:var(--muted, rgba(127,127,127,.1));color:var(--muted-fg)}
+  .tier-pitch{margin:0;font-size:13.5px;color:var(--muted-fg);line-height:1.5}
+  .tier-cta{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .tier-cta > *{flex:1 1 10rem}
+
+  .details{margin-top:18px;padding:18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg_soft, rgba(127,127,127,.04))}
+  .details-lede{margin:0 0 14px;font-size:13.5px;line-height:1.55;color:var(--muted-fg)}
+  .details-lede strong{color:var(--fg)}
+  .tier-radios{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:14px}
+  .radio{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);font-size:14px;font-weight:600;cursor:pointer}
+  .radio:has(input:checked){border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+  .radio input{margin:0;accent-color:var(--brand)}
+  .radio-prefix{color:var(--muted-fg);font-weight:600}
+  .radio-custom{gap:2px;padding:0 10px}
+  .radio-custom .amount{width:5.5rem;min-height:38px;border:0;background:transparent;font:inherit;font-weight:600;outline:none}
+  .fields{display:grid;gap:12px;grid-template-columns:1fr}
+  @media (min-width:560px){.fields{grid-template-columns:1fr 1fr}}
+  .fields label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600}
+  .fields input{font:inherit;font-weight:400;min-height:42px;padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg)}
+  .fields .opt{font-weight:400;color:var(--muted-fg)}
+  .details > [type=submit]{width:100%;margin-top:14px}
+  @media (min-width:560px){.details > [type=submit]{width:auto}}
+  .hint{margin:10px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted-fg)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+</style>

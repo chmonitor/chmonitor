@@ -22,10 +22,13 @@ related:
 checkout is self-host licenses: landing `polarCheckoutHref` →
 `GET https://hooks.chmonitor.dev/checkout/license`. Sponsor tiers ($59/$99/$199)
 and the custom amount hit
-`GET https://hooks.chmonitor.dev/checkout/donate?amount=<USD>` (Polar
-pay-what-you-want, amount converted to cents) — the route keeps the `donate`
-name, the surface is called Sponsor. Listing requests post to
-`POST /sponsors/register`. Polar product IDs
+`GET https://hooks.chmonitor.dev/checkout/sponsor?amount=<USD>` (Polar
+pay-what-you-want, amount converted to cents). **Polar is the record for
+sponsor details**: the offer form forwards name/website/email/logo with the
+checkout, which Polar stores on the customer account (`customer_email`,
+`customer_name`, `customer_metadata`) and on the order (`metadata`). The
+rendered listing is still the committed seed
+`apps/landing/src/data/sponsors.ts` — the landing site is static. Polar product IDs
 (`CHM_POLAR_LICENSE_*`, `CHM_POLAR_DONATE_PRODUCT`, `CHM_POLAR_SERVER`) live in
 `apps/cloud-hooks/.env.production`. `apps/dashboard` is a ClickHouse monitor:
 no `/billing` UI, no Polar checkout/portal routes, no Polar product IDs in

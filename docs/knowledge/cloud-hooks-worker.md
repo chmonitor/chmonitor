@@ -259,18 +259,21 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   — Polar **requires** the `{CHECKOUT_ID}` placeholder and 422s without it.
   302 to `checkout.url`. 400 bad sku/term, 501 missing token or
   `CHM_POLAR_LICENSE_*`, 502 `{error, status}` on Polar failure (never throws).
-- `donate-checkout.ts` — `GET /checkout/donate?amount=N` (USD dollars; optional
-  `cents=` is Polar-native). Pay-what-you-want product
-  `CHM_POLAR_DONATE_PRODUCT` from `polar-setup.ts` (`chmonitor Donate`,
-  `amount_type: custom`). Polar `POST /v1/checkouts/` `amount` is **cents**.
-  400 bad amount, 501 missing token or product id (do not invent a UUID),
-  502 `{error, status}` on Polar failure. Success URL
-  `/license?donated=1&checkout_id={CHECKOUT_ID}`. The user-facing name is
-  **Sponsor** (tiers $59/$99/$199 on `/license#sponsor` + `/sponsors`); the
-  route, the env key, and the Polar product keep the `donate` name because the
-  product id is committed in `.env.production`. Renaming the key needs a
-  `polar-setup.ts` run with `POLAR_ACCESS_TOKEN` — do not rename it in a
-  rename-only PR, it 501s the checkout until the new id is committed.
+- `sponsor-checkout.ts` — `GET /checkout/sponsor?amount=59&tier=&name=&website=&email=&logo=`.
+  One-off sponsorship on the Polar pay-what-you-want product
+  `CHM_POLAR_DONATE_PRODUCT` (from `polar-setup.ts`, `chmonitor Donate`,
+  `amount_type: custom`; the key is legacy, the surface is Sponsor). Amount is
+  USD dollars, Polar's `amount` is **cents**; optional `cents=` is Polar-native
+  and wins. `tier` alone resolves the price from `@chm/pricing`; `amount` wins
+  over `tier`, so a custom amount typed next to a checked tier is honoured.
+  The sponsor's own details are forwarded so **Polar stores them on the
+  customer account**: `customer_email` + `customer_name` pre-fill the checkout,
+  `customer_metadata` (tier, website, logo) is copied to the created customer;
+  the same values in `metadata` are copied to the order and are what we read
+  back to build the listing. A malformed detail field is dropped, never a 400 —
+  the payment must not fail on a typo. 400 bad amount/tier, 501 missing token
+  or product id (do not invent a UUID), 502 `{error, status}` on Polar failure.
+  Success URL `/sponsors?sponsored=1&checkout_id={CHECKOUT_ID}`.
 - `license-lookup.ts` — `GET /licenses/lookup?q=` honor-system order check
   (Polar checkout id — this is `CHM_LICENSE_KEY` on the dashboard — then
   customer by email / id / query). 404 JSON if none. Cloud-hooks does not
@@ -279,17 +282,8 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `{company, website, sku, term, list_public, checkout_id?}` to
   `CHM_HOOKS_KV` `license-reg:v1:{uuid}`; `GET /licenses/public` returns
   opt-in rows for `/customers`.
-- `sponsor-register.ts` — `POST /sponsors/register` persists
-  `{name, website, email, tier, checkout_id?, logo?}` to `CHM_HOOKS_KV`
-  `sponsor-reg:v1:{uuid}`. 400 missing name / non-http(s) website / bad email /
-  unknown `tier` (validated against `@chm/pricing` `SPONSOR_TIER_IDS`, the same
-  list the landing page renders), 429 after 5/hour per IP, 501 without KV, 204
-  CORS preflight. The response is `{ok, id}` only — the sponsor's email is never
-  echoed. Landing is static, so the **rendered** listing is the committed seed
-  `apps/landing/src/data/sponsors.ts`; this endpoint only records the request.
 - `index.ts` — `fetch` router (`/webhooks/polar`, `/webhooks/clerk`,
-  `/checkout/license`, `/checkout/donate`, `/licenses/*`, `/sponsors/register`,
-  `/healthz`) +
+  `/checkout/license`, `/checkout/sponsor`, `/licenses/*`, `/healthz`) +
   `scheduled` (daily cron → digest, weekly cron → weekly report, everything else
   → the ops sweep: probes, `runExceptions`, `runIssues`). `resolveGitHub(env,
   label)` centralizes credential checks, repo parsing, and token minting for the
@@ -337,10 +331,10 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `CHM_POLAR_LICENSE_*` + `CHM_POLAR_DONATE_PRODUCT` + `CHM_POLAR_SERVER` come from
   `apps/cloud-hooks/.env.production` (deploy-worker overlays app env on
   dashboard env; locally `bun scripts/deploy-worker.ts cloud-hooks`).
-  Required for `GET /checkout/license` and `GET /checkout/donate`. Also used so
-  license webhook products skip the Cloud plan path. Donate product is created
-  by `apps/dashboard/scripts/polar-setup.ts` when `POLAR_ACCESS_TOKEN` is set;
-  until then `/checkout/donate` returns 501.
+  Required for `GET /checkout/license` and `GET /checkout/sponsor`. Also used so
+  license webhook products skip the Cloud plan path. The sponsor (legacy
+  `donate`) product is created by `apps/dashboard/scripts/polar-setup.ts` when
+  `POLAR_ACCESS_TOKEN` is set; until then `/checkout/sponsor` returns 501.
 - **Exception-scan config** (non-secret, injected at deploy via `--var`, all
   optional with defaults): `CF_ACCOUNT_ID` (required to query — from
   `CLOUDFLARE_ACCOUNT_ID`), `GITHUB_REPOSITORY` (default `chmonitor/chmonitor`),

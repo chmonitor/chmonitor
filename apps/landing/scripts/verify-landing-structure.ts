@@ -265,42 +265,79 @@ try {
   failed = true
 }
 
-// The hero sponsor slot and /sponsors: both render the open-slot design until
-// the first sponsor lands, so the gate checks the placeholder, not a logo.
-if (!html.includes('data-sponsor-slot')) {
+// The hero sponsor slot lists the committed sponsors and always keeps the open
+// tile, so the gate checks both: a real sponsor link and the invitation.
+const heroSlot = (() => {
+  const start = html.indexOf('data-sponsor-slot')
+  return start === -1 ? '' : html.slice(start, start + 4000)
+})()
+if (!heroSlot) {
   console.error('MISSING sponsor slot in the homepage hero')
   failed = true
-} else if (!html.includes('data-sponsor-placeholder')) {
-  console.error(
-    'MISSING open-slot placeholder in the homepage hero sponsor slot'
-  )
+} else if (!heroSlot.includes('rel="noopener sponsored"')) {
+  console.error('MISSING rel="sponsored" sponsor link in the hero slot')
   failed = true
-} else if (!html.includes('href="/license#sponsor"')) {
-  console.error('MISSING hero "Become a sponsor" link to /license#sponsor')
+} else if (!heroSlot.includes('data-sponsor-placeholder')) {
+  console.error('MISSING open tile in the homepage hero sponsor slot')
+  failed = true
+} else if (!heroSlot.includes('href="/license#sponsor"')) {
+  console.error('MISSING hero open-tile link to /license#sponsor')
   failed = true
 } else {
-  console.log('OK: homepage hero carries the sponsor slot')
+  console.log('OK: homepage hero carries the sponsor slot + open tile')
+}
+
+// The offer is one shared component rendered on two pages. Assert the two things
+// that silently break it: the pick-only link, and the details form that
+// forwards to Polar.
+const OFFER_REQUIRED = [
+  ['pick-only checkout link', '/checkout/sponsor?amount='],
+  [
+    'details form action',
+    'action="https://hooks.chmonitor.dev/checkout/sponsor"',
+  ],
+  ['add-my-details button', 'data-add-details='],
+  ['sponsor name field', 'name="name"'],
+  ['sponsor website field', 'name="website"'],
+  ['sponsor email field', 'name="email"'],
+  ['$59 tier', '$59'],
+  ['$99 tier', '$99'],
+  ['$199 tier', '$199'],
+] as const
+
+let sponsorLicenseHtml = ''
+try {
+  sponsorLicenseHtml = readFileSync(
+    join(process.cwd(), 'dist/license/index.html'),
+    'utf8'
+  )
+} catch {
+  console.error('MISSING dist/license/index.html — run build first')
+  failed = true
 }
 
 const distSponsors = join(process.cwd(), 'dist/sponsors/index.html')
 try {
   const sponsorsHtml = readFileSync(distSponsors, 'utf8')
   const missing = [
-    ['sponsor claim form', 'name="email"'],
-    ['sponsor website field', 'name="website"'],
-    ['sponsor name field', 'name="name"'],
-    ['open-slot design', 'data-sponsor-open-slot'],
-    ['$59 tier', '$59'],
-    ['$99 tier', '$99'],
-    ['$199 tier', '$199'],
+    ...OFFER_REQUIRED.filter(
+      ([, needle]) => !sponsorsHtml.includes(needle)
+    ).map(([label]) => [`${label} on /sponsors`] as const),
+    ...OFFER_REQUIRED.filter(
+      ([, needle]) => !sponsorLicenseHtml.includes(needle)
+    ).map(([label]) => [`${label} on /license`] as const),
+    ['open tile', 'data-sponsor-open-slot'] as const,
   ].filter(([, needle]) => !sponsorsHtml.includes(needle))
   if (missing.length > 0) {
     for (const [label] of missing) {
-      console.error(`MISSING ${label} in dist/sponsors/index.html`)
+      console.error(`MISSING ${label}`)
     }
     failed = true
+  } else if (!sponsorsHtml.includes('rel="noopener sponsored"')) {
+    console.error('MISSING rel="sponsored" sponsor link on /sponsors')
+    failed = true
   } else {
-    console.log('OK: dist/sponsors/index.html has tiers + listing form')
+    console.log('OK: /license and /sponsors share the sponsor offer')
   }
 } catch {
   console.error('MISSING dist/sponsors/index.html — run build first')

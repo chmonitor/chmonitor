@@ -95,8 +95,10 @@ export interface Env {
   CHM_POLAR_LICENSE_UNLIMITED_YEARLY?: string
   CHM_POLAR_LICENSE_UNLIMITED_LIFETIME?: string
   /**
-   * Polar pay-what-you-want donate product id. From polar-setup.ts
-   * (`chmonitor Donate`). Unset → GET /checkout/donate returns 501.
+   * Polar pay-what-you-want product id behind the **Sponsor** offer. The key
+   * keeps the `donate` name: from polar-setup.ts (`chmonitor Donate`), and its
+   * id is committed in apps/cloud-hooks/.env.production, so renaming it needs a
+   * setup run. Unset → GET /checkout/sponsor returns 501.
    */
   CHM_POLAR_DONATE_PRODUCT?: string
 

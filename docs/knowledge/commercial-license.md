@@ -67,14 +67,27 @@ $499 / $1,349 (3 hosts), Unlimited $999 / $2,999.
 One-off tiers in `packages/pricing/src/sponsors.ts`: **supporter $59** (name +
 website on `/sponsors`), **backer $99** (+ logo under the homepage hero),
 **partner $199** (larger hero slot, optional note). Not a license: no features,
-no support window, no key. Checkout reuses the Polar pay-what-you-want product
-(`GET /checkout/donate?amount=`, `CHM_POLAR_DONATE_PRODUCT`) — the wire name is
-legacy, the surface is Sponsor. The listing is a **committed seed**
-(`apps/landing/src/data/sponsors.ts`, empty until the first confirmed sponsor)
-because the landing site is static; `POST /sponsors/register` records the
-request in `CHM_HOOKS_KV`. Publish the **name and website link only** — the
-email stays in KV. With no sponsor, the hero slot and `/sponsors` render the
-open-slot design; that empty state is intentional, not a gap.
+no support window, no key.
+
+Checkout is `GET /checkout/sponsor?amount=…` on the Polar pay-what-you-want
+product (`CHM_POLAR_DONATE_PRODUCT` — the key is legacy, the surface is
+Sponsor; only the product id is pinned, never rename it in a rename-only PR).
+Two paths into it, both in `SponsorOffer.astro` (shared by `/license#sponsor`
+and `/sponsors`, so the two surfaces cannot disagree on a price):
+
+- **Pick** — one hop, nothing collected.
+- **Add my details** — the form collects name, website, email, and logo URL and
+  GET-submits straight to the checkout route, which forwards them to Polar.
+  Polar stores them on the **customer account** (`customer_email`,
+  `customer_name`, `customer_metadata`) and on the order (`metadata`). Polar is
+  the record; there is no sponsor KV table. `success_url` returns the sponsor to
+  `/sponsors?sponsored=1&checkout_id=…`, which shows a confirmation.
+
+The rendered listing is a **committed seed** (`apps/landing/src/data/sponsors.ts`)
+because the landing site is static — add the row after the payment lands. Publish
+the **name and website link only**; the email lives in Polar. The hero slot and
+the wall keep a compact "+ your logo" open tile next to the real sponsors, so the
+invitation survives the first sponsor.
 
 ## Surfaces
 
@@ -99,5 +112,9 @@ open-slot design; that empty state is intentional, not a gap.
 - Auto-list a company without `listPublic: true`.
 - Auto-list a sponsor without a confirmed row in
   `apps/landing/src/data/sponsors.ts`, or publish a sponsor's email address.
+- Add a second store for sponsor details (a KV table, a mailto inbox) — Polar
+  already holds them, and two sources of truth drift.
+- Render two different prices on `/license` and `/sponsors`; both render
+  `SponsorOffer.astro` for exactly that reason.
 - Rename `CHM_POLAR_DONATE_PRODUCT` in a rename-only PR — the live product id is
   committed; 501 the sponsor checkout until a `polar-setup.ts` run lands.
