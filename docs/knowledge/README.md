@@ -46,6 +46,7 @@ Agents discover knowledge in this order:
 | **Specs** | [commercial-license.md](commercial-license.md) | spec | Self-hosted host-count licenses (yearly/lifetime), honor system, optional `CHM_LICENSE_KEY` (Polar checkout id) on telemetry ping; customers wall; Polar SaaS is secondary |
 | **Specs** | [ai-insights.md](ai-insights.md) | spec | AI Insights engine: collect→enrich→persist (pluggable InsightsStore: clickhouse default / d1 / postgres / agentstate / memory), cron + manual generation, stable-key dismissal, overview panel |
 | **Specs** | [agent-eval.md](agent-eval.md) | spec | Live promptfoo eval vs /api/v1/agent; AnyRouter llm-rubric; PR path filter |
+| **Specs** | [agent-tool-catalog.md](agent-tool-catalog.md) | spec | Agent tool catalog side table, core set, `search_tools` gate contract, the five anti-drift tests, measured schema cost |
 | **Specs** | [cloud-saas-mode.md](cloud-saas-mode.md) | spec | One codebase, two products: cloud-mode flag (fail-closed to OSS), read-only demo hosts for anon, welcome/setup onboarding, per-user D1 connections, connection-error classifier |
 | **Specs** | [metadata-db-optional-config.md](metadata-db-optional-config.md) | spec | Audit of everything gated behind the metadata DB (10 of 12 alert stores are D1-only); ENV + ConfigMap path so a DB-free K8s deploy can still configure alerts; precedence rule; read-only vs writable boundary; `CHM_CONFIG_FILE` is documented in 45 places but implemented nowhere |
 | **Specs** | [mcp-server.md](mcp-server.md) | reference | MCP server at /api/mcp: tools, setup, security |
