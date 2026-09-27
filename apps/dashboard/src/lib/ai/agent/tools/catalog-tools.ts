@@ -35,11 +35,25 @@ import {
 import { capResultRows, truncationNote } from './helpers'
 import { dynamicTool } from 'ai'
 
-/** A tool the model can actually call this request, with its live description. */
+/**
+ * A tool the model can actually call this request, with its live description.
+ */
 export interface AvailableTool {
   name: string
   description: string
 }
+
+/**
+ * The tool map this tool searches, described only as far as it is read.
+ *
+ * The AI SDK types `description` as `string | ((options: { context }) => string)`
+ * so a tool can vary its blurb per call. `search_tools` has no request context
+ * to resolve that with, so the bound stays generic over the tool shape and the
+ * resolver form is narrowed away at the one place the description is used.
+ * Typing this as `{ description?: string }` would reject every real `dynamicTool`
+ * and force a cast at the call site.
+ */
+export type SearchableTools = Record<string, { description?: unknown }>
 
 /**
  * Hard cap on the query string, matching the zod `.max()` on the input schema.
@@ -115,7 +129,7 @@ export interface SearchToolsResult {
  * advertise an unregistered tool.
  */
 export function createSearchTools(
-  available: Record<string, { description?: string }>
+  available: SearchableTools
 ): { search_tools: ReturnType<typeof dynamicTool> } {
   // `search_tools` is attached after the map it searches is built, so it is not
   // in `available`; add its own name so it is not reported as gated off.
@@ -199,14 +213,19 @@ export function createSearchTools(
           category: category ?? null,
           callable_tool_count: registered.size,
           matched: ranked.length,
-          results: results.map((entry) => ({
-            name: entry.name,
-            category: entry.category,
-            summary: entry.summary,
-            description: available[entry.name]?.description ?? '',
-            core: entry.core,
-            score: scoreEntry(entry, queryTerms),
-          })),
+          results: results.map((entry) => {
+            const live = available[entry.name]?.description
+            return {
+              name: entry.name,
+              category: entry.category,
+              summary: entry.summary,
+              // A resolver-form description needs a request context we do not
+              // have; the catalog summary already carries the routing help.
+              description: typeof live === 'string' ? live : entry.summary,
+              core: entry.core,
+              score: scoreEntry(entry, queryTerms),
+            }
+          }),
           unavailable_due_to_gates: unavailable,
           truncated,
           categories: toolCategories(),
