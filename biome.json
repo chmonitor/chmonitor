@@ -130,7 +130,8 @@
       "!.agents",
       "!.claude",
       "!.cursor",
-      "!.omo"
+      "!.omo",
+      "!.herdr"
     ]
   }
 }
