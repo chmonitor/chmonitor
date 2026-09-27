@@ -4,9 +4,11 @@
  */
 
 import { loadLatestChangelogVersion } from '../src/data/changelog-features'
+import { sponsorHref } from '../src/data/sponsors'
 import { getLatestBlogPost } from '../src/lib/latest-blog-post'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { SPONSOR_TIERS } from '@chm/pricing'
 
 const distIndex = join(process.cwd(), 'dist/index.html')
 const html = readFileSync(distIndex, 'utf8')
@@ -247,18 +249,17 @@ try {
   } else if (!licenseHtml.includes('id="sponsor"')) {
     console.error('MISSING sponsor section in dist/license/index.html')
     failed = true
-  } else if (
-    !licenseHtml.includes('$59') ||
-    !licenseHtml.includes('$99') ||
-    !licenseHtml.includes('$199')
-  ) {
-    console.error('MISSING sponsor tier chips in dist/license/index.html')
-    failed = true
   } else if (licenseHtml.includes('id="donate"')) {
     console.error('STALE donate section in dist/license/index.html')
     failed = true
   } else {
-    console.log('OK: dist/license/index.html has License cards + sponsor tiers')
+    // The sponsor tier amounts are asserted per-tier further down, from
+    // SPONSOR_TIERS, against both this page and /sponsors. They used to be
+    // hardcoded here too, which is how the two lists drifted: this one was
+    // still missing the $19 rung that OFFER_REQUIRED had picked up.
+    console.log(
+      'OK: dist/license/index.html has License cards + sponsor section'
+    )
   }
 } catch {
   console.error('MISSING dist/license/index.html — run build first')
@@ -302,6 +303,36 @@ if (!heroSlot) {
   console.log('OK: homepage hero carries the sponsor row + tracked link')
 }
 
+// The tier expectations come from SPONSOR_TIERS and sponsorHref, never a
+// hand-written amount list. Two reasons the old `$NN` needles were not good
+// enough:
+//
+//   1. Two lists of them existed and drifted — this file carried one for
+//      /license and another for /sponsors, and the first missed the $19 rung.
+//   2. `"$199".includes("$19")` is true, so the bare `$19` needle was satisfied
+//      by the $199 chip. That assertion could never fail, which means the $19
+//      tier has never actually been verified by the build.
+//
+// So each tier is pinned by its exact CTA id and by the checkout href
+// sponsorHref() builds for its amount. Both are quoted or delimited in the
+// rendered HTML, so no tier can satisfy another's assertion, and a repriced
+// rung fails loudly instead of silently.
+const SPONSOR_TIER_REQUIRED = SPONSOR_TIERS.flatMap(
+  (tier) =>
+    [
+      [
+        `$${tier.amountUsd} ${tier.label} pick CTA`,
+        `data-cta="sponsor-pick-${tier.id}"`,
+      ],
+      [
+        `$${tier.amountUsd} ${tier.label} checkout href`,
+        // Wrapped in the attribute quotes on purpose: bare, `amount=19` is a
+        // substring of `amount=199` and the assertion goes vacuous again.
+        `href="${sponsorHref(tier.amountUsd)}"`,
+      ],
+    ] as const
+)
+
 // The offer is one shared component rendered on two pages. Assert the two things
 // that silently break it: the pick-only link, and the details form that
 // forwards to Polar.
@@ -317,10 +348,7 @@ const OFFER_REQUIRED = [
   ['sponsor name field', 'name="name"'],
   ['sponsor website field', 'name="website"'],
   ['sponsor email field', 'name="email"'],
-  ['$19 tier', '$19'],
-  ['$59 tier', '$59'],
-  ['$99 tier', '$99'],
-  ['$199 tier', '$199'],
+  ...SPONSOR_TIER_REQUIRED,
 ] as const
 
 let sponsorLicenseHtml = ''
@@ -337,17 +365,27 @@ try {
 const distSponsors = join(process.cwd(), 'dist/sponsors/index.html')
 try {
   const sponsorsHtml = readFileSync(distSponsors, 'utf8')
+  // Label the misses per page, and do NOT re-filter the labelled list. The old
+  // shape mapped each miss to a 1-element array and then ran a final
+  // `.filter(([, needle]) => !sponsorsHtml.includes(needle))` over everything,
+  // so every /license entry was re-tested against the /sponsors page with
+  // `needle === undefined` — which coerces to the string "undefined" and
+  // matches the sponsors bundle. The whole /license half was dropped every
+  // time, and the check still printed "OK: /license and /sponsors share the
+  // sponsor offer". It asserted one page and claimed two.
+  const missOn = (pageHtml: string, page: string) =>
+    OFFER_REQUIRED.filter(([, needle]) => !pageHtml.includes(needle)).map(
+      ([label]) => `${label} on ${page}`
+    )
   const missing = [
-    ...OFFER_REQUIRED.filter(
-      ([, needle]) => !sponsorsHtml.includes(needle)
-    ).map(([label]) => [`${label} on /sponsors`] as const),
-    ...OFFER_REQUIRED.filter(
-      ([, needle]) => !sponsorLicenseHtml.includes(needle)
-    ).map(([label]) => [`${label} on /license`] as const),
-    ['open tile', 'data-sponsor-open-slot'] as const,
-  ].filter(([, needle]) => !sponsorsHtml.includes(needle))
+    ...missOn(sponsorsHtml, '/sponsors'),
+    ...missOn(sponsorLicenseHtml, '/license'),
+    ...(sponsorsHtml.includes('data-sponsor-open-slot')
+      ? []
+      : ['open tile on /sponsors']),
+  ]
   if (missing.length > 0) {
-    for (const [label] of missing) {
+    for (const label of missing) {
       console.error(`MISSING ${label}`)
     }
     failed = true
