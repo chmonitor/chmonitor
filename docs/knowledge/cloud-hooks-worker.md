@@ -1,6 +1,7 @@
 ---
 id: cloud-hooks-worker
 type: spec
+status: active
 related: [billing-checkout-flow, cloud-saas-mode, bug-handler-email-worker, deployment]
 tags:
   [

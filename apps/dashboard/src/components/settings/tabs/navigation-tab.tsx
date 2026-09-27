@@ -47,8 +47,8 @@ export function NavigationTab({
         </SettingsRow>
         <p className="text-xs text-muted-foreground">
           {settings.dimUnavailablePages
-            ? 'Pages whose system table is missing stay in the menu, grayed out (example: Backups).'
-            : 'Pages whose system table is missing are removed from the menu entirely.'}
+            ? 'Unavailable pages stay in the menu, grayed out (example: Backups).'
+            : 'Pages that cannot run on this host are removed from the menu (example: Traffic without system.query_log). Pages you can still turn on — like Scheduled Reports with no metadata database — stay grayed out.'}
         </p>
       </div>
     </TabsContent>

@@ -3,7 +3,7 @@ id: knowledge-index
 title: Knowledge Graph Index
 type: index
 status: active
-updated: 2026-09-25
+updated: 2026-09-27
 tags:
   - knowledge-graph
   - index
@@ -39,10 +39,11 @@ Agents discover knowledge in this order:
 | **Operations** | [github-repo-metadata.md](github-repo-metadata.md) | workflow | Canonical GitHub repo description + topics; banned nextjs/vercel; re-check on stack/positioning change |
 | **Operations** | [k8s-health-probes.md](k8s-health-probes.md) | reference | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image incident; non-helm manifest + migration prompt |
 | **Operations** | [workers-cache.md](workers-cache.md) | reference | Cloudflare Workers Cache: `[cache] enabled` per-worker; docs pages set `public, max-age=300, swr=86400` via start.ts middleware; landing/blog assets-only; dashboard/telemetry/mcp enabled-but-uncached (per-user/authed) |
+| **Operations** | [cloud-hooks-worker.md](cloud-hooks-worker.md) | spec | `apps/cloud-hooks` standalone Worker (hooks.chmonitor.dev): license/sponsor checkout, Polar + Clerk webhooks, Telegram, crons |
 | **Operations** | [release-automation.md](release-automation.md) | workflow | release-please + release.yml: hidden refactor, Unreleased Highlights, What's new airgap snapshot, landing /changelog skips recap |
 | **Operations** | [observability-sentry.md](observability-sentry.md) | spec | Sentry error tracking (OSS + Cloud): @sentry/react (browser) + @sentry/cloudflare (Worker, per-request middleware); DSN-gated off-by-default; source-map upload via SENTRY_AUTH_TOKEN |
 | **Operations** | [bug-handler-email-worker.md](bug-handler-email-worker.md) | spec | apps/bug-handler: Cloudflare Email Worker turning inbound Sentry alert emails (bug@chmonitor.dev) into agent-friendly GitHub issues; fully env-configurable (address/repo/labels/assignees/token), own CI job |
-| **Operations** | [billing-checkout-flow.md](billing-checkout-flow.md) | workflow | Money path: checkout→Polar→webhook (signature auth, monotonic guard)→D1→plan resolution; self-heals missed webhooks via Polar reconcile write-through; recovery runbook; OSS fails open to Free |
+| **Operations** | [billing-checkout-flow.md](billing-checkout-flow.md) | workflow | Money path: license/sponsor checkout→Polar→webhook (signature auth, monotonic guard)→D1→plan resolution; self-heals missed webhooks via Polar reconcile write-through; recovery runbook; OSS fails open to Free. The Cloud **seat** checkout sections are marked HISTORICAL (removed in #3051) |
 | **Specs** | [commercial-license.md](commercial-license.md) | spec | Self-hosted host-count licenses (yearly/lifetime), honor system, optional `CHM_LICENSE_KEY` (Polar checkout id) on telemetry ping; customers wall; Polar SaaS is secondary |
 | **Specs** | [ai-insights.md](ai-insights.md) | spec | AI Insights engine: collect→enrich→persist (pluggable InsightsStore: clickhouse default / d1 / postgres / agentstate / memory), cron + manual generation, stable-key dismissal, overview panel |
 | **Specs** | [agent-eval.md](agent-eval.md) | spec | Live promptfoo eval vs /api/v1/agent; AnyRouter llm-rubric; PR path filter |
@@ -56,6 +57,9 @@ Agents discover knowledge in this order:
 | **Specs** | [agent-conversation-storage.md](agent-conversation-storage.md) | spec | Runtime-selected agent chat persistence backends and fallback rules |
 | **Specs** | [agentstate-conversation-store.md](agentstate-conversation-store.md) | spec | AgentState backend: resolveStore priority, external_id/tag isolation, append-only upsert, AI enrichment, backend/follow-ups routes |
 | **Specs** | [query-config-format.md](query-config-format.md) | spec | QueryConfig type format, versioned SQL, BackgroundBar columns |
+| **Specs** | [chart-config-format.md](chart-config-format.md) | spec | Declarative chart config: the serializable subset of the chart factory, and what stays TS-only |
+| **Specs** | [traffic-insights.md](traffic-insights.md) | spec | `/traffic` ingestion page: builders, smart traffic detection, measurement model; `part_log` is optional so the page degrades to an empty state |
+| **Specs** | [postgres-source.md](postgres-source.md) | spec | Postgres as a monitored source alongside ClickHouse: what it adds and where it fits |
 | **Specs** | [declarative-config-catalog.md](declarative-config-catalog.md) | spec | Serializable query-config catalog: CHM_CONFIG_SOURCE flag, schema→loader→catalog pipeline, rowStyle/permission/clickhouseSettings, what stays TS-only (expandable) and why |
 | **Specs** | [og-images.md](og-images.md) | spec | OG/social images: dune-plate compositor (`scripts/og-builder.ts`), centered title, logo top-left or bottom-right |
 | **Specs** | [cluster-topology.md](cluster-topology.md) | spec | Cluster topology SVG: layout pipeline, constant contracts, OKLCH gotcha, shared component, verification harness |

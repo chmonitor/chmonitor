@@ -3,7 +3,7 @@ id: ai-insights
 title: AI Insights Engine
 type: spec
 status: active
-updated: 2026-08-12
+updated: 2026-09-27
 tags:
   - insights
   - findings
@@ -11,6 +11,7 @@ tags:
   - ai
   - dismissal
   - postgres
+  - peerdb
 related:
   - mcp-server
   - query-config-format
@@ -43,9 +44,11 @@ is fragmented", "replication is lagging" — generated and **cached server-side*
 
 - **Collectors** run read-only ClickHouse queries (anomaly recent-vs-baseline,
   storage fragmentation/compression, readonly replicas, replication lag),
-  porting the SQL/severity heuristics from the agent's `anomaly-tools.ts` /
-  `insights-tools.ts`. They **never throw** — any failure yields `[]` so the
-  feature degrades on read-only clusters or missing system tables.
+  porting the SQL/severity heuristics from the agent's
+  `lib/ai/agent/tools/insight-tools.ts` (the same file as `explain_anomaly_score`
+  — there is no separate `anomaly-tools.ts`). They **never throw** — any failure
+  yields `[]` so the feature degrades on read-only clusters or missing system
+  tables.
 - **Schema-optimization collector** (`collectSchemaOptimizations` in
   `collectors.ts`, category `optimization`) reuses the query advisor's
   `analyzeQuery` (`lib/ai/advisor/recommendation-engine.ts`) — the same engine
@@ -249,6 +252,174 @@ the ClickHouse pipeline with Postgres-specific modules:
   unified with the UI's per-user D1 `?pg=` connections (an existing open
   follow-up in [postgres-source.md](postgres-source.md)).
 
+## PeerDB insights (env-wide, gated)
+
+PeerDB is the third insights source (issue #3439, PR #3448), gated by the
+PeerDB env config — `PEERDB_API_URL` unset ⇒ zero diff, the same fail-closed
+shape as `CHM_FEATURE_POSTGRES_SOURCE` for Postgres. It mirrors the ClickHouse
+and Postgres pipelines with PeerDB-specific modules. It is the sibling of the
+**Postgres insights** section above, on the same engine-dimension footing (see
+[postgres-source.md](postgres-source.md)):
+
+| Stage | Module |
+|-------|--------|
+| Collect (read-only PeerDB REST) | `src/lib/insights/peerdb-collectors.ts` (`collectPeerDBInsights`) |
+| Pure classifiers | `src/lib/insights/peerdb-checks.ts` |
+| Orchestrate + persist | `src/lib/insights/generate-peerdb-insights.ts` (`generatePeerDBInsights`) |
+| Read + de-dupe | `src/lib/insights/read-peerdb-insights.ts` (`readPeerDBInsights`) |
+
+- **Collectors read REST, not SQL.** The ClickHouse alert sweep is
+  SQL-rule-centric, so PeerDB gets a dedicated collector path instead of a fake
+  `AlertRuleDef.sql`. `PeerDBSnapshotReader` is the injectable snapshot source;
+  the default reads the env-configured flow-api through the same
+  `envPeerDBConfig` / `buildPeerDBAuthHeader` path the `/api/v1/peerdb/*` proxy
+  uses, so `basic` AND `bearer` deployments collect identically.
+  `collectPeerDBInsights` fans out per mirror, bounded by
+  `PEERDB_SWEEP_MAX_MIRRORS` (50), caps per-mirror findings at 5 so a
+  fleet-wide outage surfaces the fleet card plus a sample, and de-dupes on
+  `${category}:${metric}` like `collectInsights`. Collectors **never throw** —
+  unconfigured or unreachable PeerDB, or one failed upstream call, yields `[]`
+  (or a partial snapshot), so a PeerDB failure can never break the sweep around
+  it.
+- **Checks** (each a pure fn in `peerdb-checks.ts`, unit-tested in
+  `peerdb-checks.test.ts` and driven end-to-end with a stub reader in
+  `peerdb-collectors.test.ts`): failed mirrors (`peerdb_failed_mirrors`,
+  critical), paused mirrors (`peerdb_paused_mirrors`, info), terminated mirrors
+  (`peerdb_terminated_mirrors`, warning), absolute worst-slot lag
+  (`peerdb_slot_lag_mb`), lag **divergence** across the history window
+  (`peerdb_slot_lag_trend`), per-mirror error volume
+  (`peerdb_mirror_errors:<slug>`), and per-mirror snapshot stalls
+  (`peerdb_snapshot_stalled:<slug>`). Findings **reuse the existing categories**
+  (`reliability` / `performance`) with `peerdb_`-prefixed metrics and
+  `"PeerDB:"-prefixed` titles — so the board's `CATEGORY_META` and filters work
+  unchanged, exactly as the Postgres findings reuse `pg_`-prefixed metrics.
+  Slot-lag thresholds are imported from the shared
+  `lib/peerdb/slot-lag-thresholds.ts` (the same source as the fleet UI's
+  `slotHealth`), so the insights panel and the `/peerdb` slot-health table cannot
+  disagree about what "lagging" means.
+- **Namespacing decision (no migration).** Same shape as the Postgres reserved
+  offset, one band higher: `peerdbInsightStoreHostId(sourceId) =
+  PEERDB_INSIGHT_STORE_HOST_OFFSET (2_000_000) + sourceId` (`types.ts`). PeerDB
+  findings are recorded under that host key, so a ClickHouse or Postgres read
+  can never return them, and every existing ClickHouse key stays byte-identical.
+  `PEERDB_SOURCE_ID = 0` (`read-peerdb-insights.ts`) — PeerDB is a single
+  flow-api deployment, so v1 has exactly one source; the offset still leaves the
+  door open for per-connection sources without a migration. The **dismissal key**
+  is separately engine-prefixed: `insightKey(sourceId, …, 'peerdb')` →
+  `peerdb:<id>:<category>:<metric>:<title>`. Covered by `insights.test.ts`.
+- **Throttle + cron**: `generatePeerDBInsights` applies the same
+  `INSIGHTS_MIN_REGEN_INTERVAL_MS` floor as the other two generators (skip and
+  return the stored set unless `force`), then collect → enrich (the shared
+  `enrichInsights` LLM path) → record. `runPeerDBInsightSweep`
+  (`src/lib/health/server-sweep.ts`) calls it after the ClickHouse and Postgres
+  loops, gated on `getPeerDBConfig() !== null` and wrapped so a failure only
+  logs — an unconfigured or unreachable PeerDB contributes 0 insights.
+- **Manual + read**: `GET/POST /api/v1/insights/peerdb` — read and generate
+  collapsed onto ONE route, with no `?pg=`-style source parameter (one
+  deployment). Fail-graceful: with PeerDB unconfigured it answers 200 with an
+  empty, `unavailable`-flagged payload rather than an error, so a UI probe
+  degrades to "nothing to show". POST self-enforces the same write gate as the
+  ClickHouse generate route.
+
+### PeerDB findings are page-local (deliberate, not an omission)
+
+**Decision: PeerDB findings render on `/peerdb` only. The global strip, board,
+and popover stay ClickHouse-engine only.**
+
+- `PeerDBInsightsPanel` (`components/peerdb/peerdb-insights-panel.tsx`) is
+  mounted at the top of `/peerdb` (`routes/(peerdb)/peerdb/index.tsx`) and
+  reads `usePeerDBInsights` (`lib/query/use-peerdb-insights.ts`). It renders
+  nothing at all until there is an insight (or one is generating), and nothing
+  when PeerDB is unconfigured — the `/peerdb` page's own not-configured state
+  already says that, so an empty box there is noise. Deliberately minimal: no
+  filter tabs, no settings gear, no board.
+- The three shared surfaces (`insights-strip.tsx` / `insights-panel.tsx` /
+  `insights-popover.tsx`) all take `useInsights(hostId)`, which reads
+  `/api/v1/insights` and resolves against a **ClickHouse `hostId`**. A PeerDB
+  finding has no ClickHouse host: it lives under `peerdbInsightStoreHostId(0)`
+  and belongs to the env-wide PeerDB deployment, not to any entry in the host
+  list. Folding it into the global surfaces would put it under a `?host=`
+  dimension that does not apply, and `/insights` would try to explain it with
+  charts (see the `insightChartNames` guard in **Gotchas**). On `/peerdb` the
+  routing dimension *is* the PeerDB connection, so the card lands where the
+  operator already is.
+- That is also why the panel reuses the shared `InsightCard` and
+  `severity-meta` (styling parity with the ClickHouse board) but not the
+  board's chart layer.
+- The Postgres panel follows the same page-local rule on
+  `/postgres/queries`; PeerDB is the second instance of that pattern, not a
+  new one.
+
+### Two action-derivation switches (keep both in sync)
+
+The findings store keeps scalars only, so the card **action is re-derived on
+read** — it is never persisted. That makes a metric's action link a function of
+the read path, not of the collector, and an unmatched metric **silently loses its
+link after a reload**: the card renders correctly in the immediate `generate()`
+response (which still carries the in-memory `action`) and comes back link-less
+from the store on the next read.
+
+A `peerdb_` metric is therefore covered by **two** derivations, and they must
+agree:
+
+- `derivePeerDBAction` (`read-peerdb-insights.ts`) is the one that is
+  load-bearing: it is the read path `readPeerDBInsights` — and so every PeerDB
+  card — actually travels. A new PeerDB metric with no case here renders fine on
+  first generation and loses its link on the next read.
+- `deriveAction` (`read-insights.ts`) carries the whole `peerdb_` family too
+  (exact cases for the fleet-wide + slot-lag metrics, plus a
+  `startsWith('peerdb_')` fallback in its `default`), so the two switches cannot
+  disagree about what a `peerdb_` metric links to. Note it is a private
+  function and PeerDB rows live under the reserved store host key, so today no
+  production read reaches those cases — they are the guard, not the mechanism.
+  Keep them in sync anyway; a metric added to one switch and not the other is the
+  exact drift this rule exists to prevent.
+- Both match per-mirror metrics by **prefix**, not by enumerating suffixes: a
+  per-mirror metric is `peerdb_mirror_errors:<flow-slug>` and the store no
+  longer knows the flow list. Actions deep-link to the existing `/peerdb` and
+  `/peerdb/peers` pages, not new routes.
+- The same discipline applies to a future source: it brings its own
+  `derive*Action` read-path switch, and the metric belongs in the
+  host-scoped one as well.
+
+### Identity determinism (applies to PeerDB too)
+
+Stable identity is load-bearing for **every** source, not just the
+schema-optimization collector above: the dismissal key embeds `metric` and
+`title`, so a run-varying value in either re-keys the card on the next sweep
+and resurrects the user's dismissal. `checkPartsPressure`
+(`operational-checks.ts`, `parts_pressure`) is the ClickHouse precedent;
+PeerDB makes it sharper because the interesting value *is* a count or a MiB
+reading.
+
+- Fleet-wide PeerDB cards use a **count-free** title (`PeerDB: mirrors are
+  failing`, not `PeerDB: 3 mirrors failed`) and carry the number in `value` /
+  `detail`.
+- Per-mirror cards put the flow slug in the **metric**
+  (`peerdb_mirror_errors:<slug>`) so each mirror gets its own card and its own
+  stable dismissal, with the flow name in the title and the count in `value`.
+- Proved by `peerdb-checks.test.ts` →
+  `describe('identity determinism (the dismissal survives regeneration)')`: the
+  key holds while the count changes, the failing title is exactly
+  `'PeerDB: mirrors are failing'` and carries no digit, every card title is
+  count-free and `"PeerDB: "`-prefixed (per-mirror ones excepted only for the
+  flow name), and two mirrors produce two distinct metrics so both keep their own
+  dismissal.
+
+### Health Summary (same issue, sibling surface)
+
+`#3439` also gave `/health` a PeerDB group. `PEERDB_HEALTH_DEFS`
+(`components/health/peerdb-cards.tsx`) declares three items — `peerdb-fleet`,
+`peerdb-slot-lag`, `peerdb-mirror-failures` — and `computePeerDBHealth`
+(`lib/health/health-status.ts`) supplies the status for all three from one
+snapshot (the worst of failed / terminated / slot-lag), so a climbing slot lag
+can promote its own card while the fleet card stays green.
+`health-grid.tsx` appends the group only when `peerDBConfigured` (`PEERDB_API_URL`
+set); otherwise the whole group is **absent**, not a row of green zeros for a
+product this deployment does not run. The data arrives over PeerDB REST via
+`usePeerDBMetrics`, not through the ClickHouse chart registry, so the group
+carries its own `computeX` and an empty `chartName` rather than a fake SQL rule.
+
 ## Generation triggers
 
 - **Cron**: `runHealthSweep()` (`src/lib/health/server-sweep.ts`) calls
@@ -317,7 +488,9 @@ validated server-side** — omitting them reproduces the original behavior.
 ## UI
 
 Two tailored surfaces share the same `useInsights` hook (so counts + dismissals
-stay in sync) and the same card + severity styling:
+stay in sync) and the same card + severity styling. Both are
+**ClickHouse-engine-scoped** — the other sources are deliberately page-local, and
+documented in their own sections above (see **PeerDB findings are page-local**):
 
 - `src/components/insights/insights-strip.tsx` — **overview `/overview` strip**:
   every active insight in a **single horizontally-scrollable row** with the
@@ -348,13 +521,31 @@ stay in sync) and the same card + severity styling:
 ## Gotchas
 
 - The findings table stores only scalars — the card **action is re-derived** from
-  `metric`/`category` on read (`deriveAction` in `read-insights.ts`), so rich
-  per-table prompts only appear in the immediate `generate()` response.
+  `metric`/`category` on read, so rich per-table prompts only appear in the
+  immediate `generate()` response. **Each source re-derives the action on its
+  own read path** — `deriveAction` (`read-insights.ts`) for ClickHouse,
+  `derivePeerDBAction` (`read-peerdb-insights.ts`) for PeerDB — so a new metric
+  with no case in the right switch silently loses its link after a reload. See
+  **Two action-derivation switches** above.
+- **`insightChartNames` short-circuits non-ClickHouse metrics.**
+  `lib/insights/insight-charts.ts` returns `[]` for a `pg_`- or
+  `peerdb_`-prefixed metric:
+  the chart registry holds only ClickHouse charts, so without the prefix guard a
+  `peerdb_` finding would fall through to `CATEGORY_CHARTS` and render unrelated
+  ClickHouse query charts underneath a PeerDB card.
+  `lib/insights/insight-charts.test.ts`
+  (`'non-ClickHouse engines never get a ClickHouse chart (#3439)'`) locks it in —
+  a new non-ClickHouse source must be added to **both** the guard and that test
+  list.
 - Health-sweep findings are **not** written to the findings table (only webhook
   dispatch), so reading `source='ai-insight'` returns exactly engine output.
 - Tests: `src/lib/insights/insights.test.ts` (pure key + dismissal logic; shims
-  `window`/`localStorage`). Run with `bun test src/lib/insights`. Note the
-  operational classifiers are tested in `operational-checks.test.ts` (pure, no
+  `window`/`localStorage`), plus the per-source suites —
+  `operational-checks.test.ts`, `postgres-checks.test.ts`, `peerdb-checks.test.ts`
+  (pure classifiers, no I/O), `peerdb-collectors.test.ts` (stub
+  `PeerDBSnapshotReader`), and `insight-charts.test.ts` (same dir). Run with
+  `bun test src/lib/insights`. Note the operational classifiers are tested in
+  `operational-checks.test.ts` (pure, no
   I/O) rather than `collectors.test.ts`, which is poisoned in the full-suite run
   by a process-global `mock.module('./collectors')` in
   `generate-insights.throttle.test.ts` (pre-existing; those 6 collector tests

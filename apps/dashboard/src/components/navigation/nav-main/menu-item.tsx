@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react'
 
 import type { HTMLAttributes, ReactNode, Ref } from 'react'
 import type { MenuItem as MenuItemType } from '@/components/menu/types'
+import type { UnavailableResolution } from '@/lib/menu/unavailable-visibility'
 import type { MenuItemActiveState, MenuItemProps } from './types'
 
 import { AddButton, SubAddButton } from './add-button'
@@ -10,14 +11,25 @@ import { GroupCustomizeButton } from './group-customize-dialog'
 import { HideButton, SubHideButton } from './hide-button'
 import { PinButton, SubPinButton } from './pin-button'
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
+import {
+  useGroupVisibility,
+  useUnavailableVisibility,
+} from '@/components/menu/hooks/use-unavailable-visibility'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
-import { useUserSettings } from '@/lib/hooks/use-user-settings'
 import { hiddenSiblingLeaves } from '@/lib/menu/hidden-siblings'
-import { useMetadataDbSatisfied } from '@/lib/menu/metadata-db'
+import { unavailableReasonText } from '@/lib/menu/unavailable-visibility'
 import { useMenuWorkspaceCatalog } from '@/lib/menu/use-menu-workspace'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
+
+/** Rail tooltip for one row: the title, plus the reason when it is dimmed. */
+function unavailableTooltip(
+  title: string,
+  resolution: UnavailableResolution
+): string {
+  const reason = unavailableReasonText(resolution)
+  return reason ? `${title} (${reason})` : title
+}
 
 /**
  * Badges hide on hover/focus so they never stack on the pin in the same
@@ -107,38 +119,28 @@ const SingleMenuItem = function SingleMenuItem({
 }) {
   const closeMobileSidebar = useCloseMobileSidebar()
   const hostId = useHostId()
-  const { available: tableAvailable } = useIsTableAvailable(
-    item.tableCheck,
-    hostId
-  )
-  const dbSatisfied = useMetadataDbSatisfied(item)
-  const available = tableAvailable && dbSatisfied
-  const { settings } = useUserSettings()
+  const resolution = useUnavailableVisibility(item, hostId)
   const hasBadge = Boolean(item.isNew || item.countKey)
   const { catalog, hiddenHrefs } = useMenuWorkspaceCatalog()
   const hasAdd =
     Boolean(item.href) &&
     hiddenSiblingLeaves(catalog, item.href, hiddenHrefs).length > 0
 
-  // When the page's backing table is missing, either dim it (default) or hide
-  // it entirely per the user's Navigation setting. A missing metadata database
-  // only ever dims — the surface stays discoverable in OSS.
-  if (!tableAvailable && !settings.dimUnavailablePages) {
+  // Hide or dim per the one availability policy (#3463). A `tableCheck` page
+  // whose backing table is missing can never work here, so under the default
+  // Hide setting it leaves the rail entirely; a config-gated page is only dimmed
+  // unless the item opts in. It stays routable by URL and explains itself there.
+  if (resolution.visibility === 'hidden') {
     return null
   }
+  const available = resolution.visibility === 'available'
 
   return (
     <SidebarMenuItem {...liProps}>
       {leadingAction}
       <SidebarMenuButton
         isActive={isActive}
-        tooltip={
-          available
-            ? item.title
-            : dbSatisfied
-              ? `${item.title} (System table not found on this host)`
-              : `${item.title} (Requires a metadata database — configure D1 or Postgres)`
-        }
+        tooltip={unavailableTooltip(item.title, resolution)}
         className={cn(
           'h-11 min-h-11 cursor-pointer lg:h-8 lg:min-h-8',
           available ? '' : 'opacity-50 text-muted-foreground/50'
@@ -208,22 +210,18 @@ const SubMenuItem = function SubMenuItem({
   siblingHrefs: string[]
   closeMobileSidebar: () => void
 }) {
-  const { available: tableAvailable } = useIsTableAvailable(
-    subItem.tableCheck,
-    hostId
-  )
-  const dbSatisfied = useMetadataDbSatisfied(subItem)
-  const available = tableAvailable && dbSatisfied
-  const { settings } = useUserSettings()
+  const resolution = useUnavailableVisibility(subItem, hostId)
   const hasBadge = Boolean(subItem.isNew || subItem.countKey)
   const { catalog, hiddenHrefs } = useMenuWorkspaceCatalog()
   const hasAdd =
     Boolean(subItem.href) &&
     hiddenSiblingLeaves(catalog, subItem.href, hiddenHrefs).length > 0
 
-  if (!tableAvailable && !settings.dimUnavailablePages) {
+  // Same policy as the leaf path above and the collapsed flyout (#3463).
+  if (resolution.visibility === 'hidden') {
     return null
   }
+  const available = resolution.visibility === 'available'
 
   return (
     <SidebarMenuSubItem>
@@ -306,7 +304,8 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   const closeMobileSidebar = useCloseMobileSidebar()
   const hostId = useHostId()
   const isCollapsed = state === 'collapsed'
-  const siblingHrefs = item.items?.map((child) => child.href) ?? []
+  const { resolution, visibleChildren } = useGroupVisibility(item, hostId)
+  const siblingHrefs = visibleChildren.map((child) => child.href)
   const activeChildHref = item.items?.find(
     (child) => child.href && isMenuItemActive(child.href, pathname)
   )?.href
@@ -316,6 +315,14 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   useEffect(() => {
     if (activeChildHref) setOpen(true)
   }, [activeChildHref])
+
+  // AHEAD of the section element, in both sidebar states: a group whose own
+  // page is unavailable, or whose every child is, must not render a heading
+  // with a dangling chevron and an empty body. Same rule the product-design
+  // skill records for data-dependent sections.
+  if (resolution.visibility === 'hidden' || visibleChildren.length === 0) {
+    return null
+  }
 
   // When collapsed, use Popover submenu
   // Note: Badges stay inline with button content for collapsed state
@@ -394,7 +401,7 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
       )}
       <CollapsibleContent>
         <SidebarMenuSub className="ml-2.5 gap-0 py-0 pl-1.5">
-          {item.items?.map((subItem) => (
+          {visibleChildren.map((subItem) => (
             <SubMenuItem
               key={subItem.href}
               subItem={subItem}

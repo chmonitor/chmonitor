@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-09-27
+updated: 2026-09-28
 tags:
   - design-system
   - ui
@@ -409,6 +409,61 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   Tools → SQL) — do not flatten those groups to Chat / SQL leaves.
   Settings → Navigation has **Show all** (applies Full) when the preset
   is not Full.
+
+- **Unavailable pages — two classes, one policy (#3463).** A nav row that is
+  not fully available resolves through ONE pure function,
+  `resolveUnavailable` (`lib/menu/unavailable-visibility.ts`), reached from the
+  hooks in `components/menu/hooks/use-unavailable-visibility.ts`. Never
+  re-derive it at a render site — the expanded rail's leaf path
+  (`nav-main/menu-item.tsx`), its sub-item path, the collapsed flyout
+  (`nav-main/collapsed-submenu.tsx`), and ⌘K (`usePaletteMenuItems`) all call
+  it, so the surfaces cannot disagree. Two classes, and they are not the same
+  call:
+  - **Structurally impossible** — the item declares `tableCheck` and the
+    backing system table is missing/unreadable on this host. It can NEVER work
+    here, so under the default it leaves the rail. (`/traffic` on the cloud
+    demo, whose read-only user cannot read `system.query_log`.)
+  - **Not configured, but enableable** — the item declares
+    `requiresMetadataDb` and the deployment has no D1/Postgres. The operator
+    can turn it on, so hiding it would delete the discovery path for a feature
+    that ships in the box. It DIMS. (`/report-settings` → Scheduled Reports.)
+  `hideWhenUnavailable: true|false` on a `MenuItem` overrides the class in both
+  directions — the opt-in for class 2, the escape hatch for class 1. Do not set
+  it redundantly: `tableCheck` already implies hide.
+  The verdict is `available | dimmed | hidden`, and the signals behind it travel
+  with it, so the tooltip copy (`unavailableReasonText`) also has one home.
+  - **Default is Hide** (`dimUnavailablePages: false` in
+    `DEFAULT_USER_SETTINGS`) so a clean rail is out of the box. Settings →
+    Navigation → *Unavailable pages* still offers Dim, and a stored `true`
+    survives the flip (`mergeUserSettings` spreads stored over defaults) — the
+    change moves the out-of-the-box state, not anyone's choice.
+  - **Never hide from an unsettled map.** `useTableAvailability` is fail-open
+    (a table is available unless the map says `false`), and `resolveUnavailable`
+    pins that at the decision site via `availabilityLoading`. Reversing it
+    would be worse: the common case is a host where everything IS available, so
+    hiding-while-loading makes every such page flash in and out on every mount,
+    versus one settled removal for the few that genuinely cannot run.
+  - **A group whose every child is hidden renders NO parent row.** The guard in
+    `CollapsibleMenuItem` sits AHEAD of the collapsed/expanded branch, so both
+    states are covered — same rule as a data-dependent section elsewhere in the
+    app: no heading with a dangling chevron and an empty body.
+  - **Hidden-because-unavailable ≠ hidden-by-the-user.** The page stays
+    routable by direct URL and the charts explain themselves. It does **not**
+    get the *Keep in sidebar* chip (`keep-in-sidebar.tsx` gates on the user's
+    `hiddenMenuHrefs`, which availability never touches) — the user did not hide
+    it and there is nothing to restore.
+  - **⌘K indexes them apart.** Workspace-hidden pages stay indexed with a
+    Hidden hint (the user chose that, and ⌘K + *Keep in sidebar* is the way
+    back). Availability-hidden pages are dropped: nobody chose it, it is not
+    reversible from the palette, and landing there only produces "System table
+    not found on this host". Dimmed (config-gated) pages stay indexed — they
+    work once configured. `filterUnavailableVisibility` drops the empty parents
+    the same way `filterCloudOnly` / `filterHiddenMenuHrefs` do.
+  - **Blast radius worth remembering:** Merges, Metrics, Logs, System, and
+    Operations are 100% `tableCheck`-gated, so a host missing all of those
+    tables loses all five groups from the rail. That is correct (those pages
+    have nothing to show) but it is why the default flip needs the Dim escape
+    hatch, not a hard-coded removal.
 
 - **Alerts in the sidebar (#3291):** there is no standing Alerts catalog
   item. `revealAlertsWhenActive` injects an Alerts leaf (href
@@ -977,8 +1032,10 @@ items stay engine-gated and are not moved here.
 
 ⌘K (`components/controls/command-palette.tsx`) indexes the **full**
 permission/engine/cloud-allowed catalog (`usePaletteMenuItems` /
-`getAllowedMenuItems`). Workspace `hiddenMenuHrefs` does **not** filter
-⌘K — hidden rows stay listed with a muted Hidden hint. Selecting a
+`getAllowedMenuItems`), minus the pages this host cannot run. Workspace
+`hiddenMenuHrefs` does **not** filter ⌘K — hidden rows stay listed with a
+muted Hidden hint; **availability-hidden rows are filtered out** (both rules,
+and why they differ, under "Unavailable pages" above). Selecting a
 hidden page navigates and does not auto-unhide; the header shows
 **Keep in sidebar** (and Pin) on that page. Search still matches
 sidebar title, document `<title>` (`lib/page-title.ts` +

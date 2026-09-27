@@ -18,7 +18,10 @@ description: >-
   "header title", "768", "truncate Overview", "essential sidebar",
   "more pages", "keep in sidebar", "hover add", "group heading",
   "customize dialog", "configure alert", "already alerting",
-  "alert settings", "health detail dialog", "alert threshold", "badge".
+  "alert settings", "health detail dialog", "alert threshold", "badge",
+  "unavailable pages", "dim unavailable", "hide unavailable",
+  "hideWhenUnavailable", "tableCheck", "requiresMetadataDb",
+  "dead row", "greyed page", "collapsed flyout".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -496,6 +499,22 @@ indexed with a Hidden hint and do not auto-unhide. Landing on a hidden
 page shows Keep in sidebar. Settings > Navigation
 tree match the **active host engine** (`useActiveHostEngine` —
 default source engine, Postgres pages when `?pg=` is active).
+**Unavailable pages** (Settings → Navigation → *Unavailable pages*)
+default to **Hide**, not Dim. Two classes, ONE decision
+(`resolveUnavailable`, `lib/menu/unavailable-visibility.ts`): a
+`tableCheck` page whose backing table is missing can never work on this
+host, so it leaves the rail; a `requiresMetadataDb` page (any config
+gate) is only dimmed, because the operator can still turn it on —
+`hideWhenUnavailable` on the `MenuItem` overrides either way. Never
+re-derive the rule at a render site: the rail leaf, the rail sub-item,
+the collapsed flyout, and ⌘K all call the one policy, so they cannot
+disagree. A group whose every child is hidden renders no parent row
+(guard AHEAD of the section element, in both sidebar states). Never hide
+from an unsettled availability map — that would make every available page
+flash in and out on each mount. Availability-hidden ≠ user-hidden: no
+*Keep in sidebar* chip, and ⌘K drops the row while it still indexes
+**user**-hidden ones with a Hidden hint. Full detail:
+`docs/knowledge/product-design.md`.
 Timezone uses `timezone-combobox.tsx`
 (search + browser zone on top). Palette is a card picker with mini bars, not
 a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
@@ -517,6 +536,10 @@ is a full-width control under the hide-count line. Full detail:
 1. `src/routes/(dashboard)/my-page.tsx` (`'use client'`, uses `useHostId()`).
 2. Add a `QueryConfig` in `src/lib/query-config/` if it needs data.
 3. Register in `src/menu/` (with feature gate / `tableCheck` if optional).
+   `tableCheck` means the page is HIDDEN from the rail when the table is
+   missing; a config-only gate (`requiresMetadataDb`) means it is dimmed so
+   it stays discoverable. Do not add `hideWhenUnavailable` unless you mean
+   to override that (see *Unavailable pages* above).
    Add the tab title in `lib/page-title.ts` (`ROUTE_TITLE_MAP`) when it
    differs from title-casing the last URL segment — ⌘K searches that
    `<title>` as well as the sidebar label.

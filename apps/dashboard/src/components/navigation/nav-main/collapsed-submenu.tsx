@@ -2,9 +2,9 @@ import type { MenuItem as MenuItemType } from '@/components/menu/types'
 
 import { lazy, Suspense, useState } from 'react'
 import { ClientOnly } from '@/components/layout/client-only'
-import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availability'
+import { useUnavailableVisibility } from '@/components/menu/hooks/use-unavailable-visibility'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
-import { useMetadataDbSatisfied } from '@/lib/menu/metadata-db'
+import { unavailableReasonText } from '@/lib/menu/unavailable-visibility'
 import { useHostId } from '@/lib/swr'
 
 const NewBadge = lazy(() =>
@@ -35,8 +35,8 @@ interface CollapsedSubmenuProps {
 }
 
 /**
- * CollapsedSubMenuItem - Renders a single sub-item in the collapsed popover
- * with async table-availability visual muting.
+ * CollapsedSubMenuItem - Renders a single sub-item in the collapsed popover,
+ * with the same hide-or-dim decision the expanded rail makes.
  */
 const CollapsedSubMenuItem = function CollapsedSubMenuItem({
   subItem,
@@ -55,29 +55,25 @@ const CollapsedSubMenuItem = function CollapsedSubMenuItem({
   setOpenMobile: (open: boolean) => void
   setOpen: (open: boolean) => void
 }) {
-  const { available: tableAvailable } = useIsTableAvailable(
-    subItem.tableCheck,
-    hostId
-  )
-  const dbSatisfied = useMetadataDbSatisfied(subItem)
-  const available = tableAvailable && dbSatisfied
+  const resolution = useUnavailableVisibility(subItem, hostId)
   const isActive = isMenuItemActiveAmongSiblings(
     subItem.href,
     siblingHrefs,
     pathname
   )
 
+  // The expanded rail already drops these rows, so the flyout must too —
+  // two surfaces disagreeing is worse than either behaviour (#3463).
+  if (resolution.visibility === 'hidden') {
+    return null
+  }
+  const available = resolution.visibility === 'available'
+
   return (
     <HostPrefixedLink
       href={subItem.href}
       className={available ? '' : 'opacity-50'}
-      title={
-        available
-          ? undefined
-          : dbSatisfied
-            ? 'System table not found on this host'
-            : 'Requires a metadata database — configure D1 or Postgres'
-      }
+      title={unavailableReasonText(resolution) ?? undefined}
       onClick={() => {
         setOpen(false)
         if (isMobile) {
