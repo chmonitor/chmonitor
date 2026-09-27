@@ -75,6 +75,13 @@ next-env.d.ts
 .herdr-desk/runs/*/
 !.herdr-desk/runs/.gitkeep
 
+# In-repo agent worktrees. A worktree is a full checkout, so it carries its own
+# root biome.json and .git/ — Biome exits with a configuration error when it
+# finds a nested root config, which fails `biome check` for the whole repo.
+# These belong at ~/.herdr/worktrees/<repo>/; this is the safety net for the
+# window where one is created here.
+.herdr/
+
 # IDE
 .idea
 .vscode

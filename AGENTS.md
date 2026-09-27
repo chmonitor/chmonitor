@@ -444,7 +444,9 @@ skill (`.agents/skills/*/SKILL.md`), or an agent env var, update
 
 ## Architecture
 
-> **NOTE:** `apps/dashboard` is now the TanStack Start app (v0.3+). The Next.js migration is complete. For the app internals, see `apps/dashboard/AGENTS.md` or `docs/PRD.md` §10.2. The Next.js-era subsections below are kept as historical reference and no longer apply.
+> **NOTE:** `apps/dashboard` is now the TanStack Start app (v0.3+). The Next.js migration is complete. For the app internals, see `apps/dashboard/AGENTS.md` or `docs/PRD.md` §10.2.
+>
+> **Where the historical reference ends:** the Next.js-era material runs from `### Legacy: Next.js Static Site Architecture` down to and including `#### SWR Data Fetching Pattern`. Everything after that heading — `#### Data Table System` onward, including all of `### Development Conventions`, `## Common Tasks`, and `## Important Files` — is current and describes the TanStack Start app. The `#### SWR Data Fetching Pattern` heading is a leftover name; the hooks it once documented are now TanStack Query.
 
 ### Core Technologies (TanStack Start, current)
 
@@ -650,7 +652,7 @@ The project uses custom chart components with consistent patterns:
 
 #### Graceful Error Handling Pattern
 
-Charts use graceful error handling during SWR revalidation to preserve user experience:
+Charts use graceful error handling during a background refetch to preserve user experience:
 
 - **Initial load errors**: Show full `ChartError` component with retry button
 - **Revalidation errors**: Keep showing existing data with subtle amber indicator
@@ -716,28 +718,41 @@ export function InfoBadge({ className, ...props }) {
 
 #### File Organization
 
-- Server components use `.tsx` without "use client"
-- Client components explicitly use "use client" directive
-- Page components are in `app/[...]/page.tsx`
-- Layout components are in `app/[...]/layout.tsx`
-- Config files are named `config.ts` within route directories
+Vite ships one client bundle, so there is **no server/client component split**
+and **no `"use client"` directive** — not one file under
+`apps/dashboard/src/routes/` declares one.
+
+- **Pages** are `apps/dashboard/src/routes/(dashboard)/<name>.tsx`, each
+  exporting a `Route` via `createFileRoute('/(dashboard)/<name>')`
+- **API routes** are `apps/dashboard/src/routes/api/<name>.ts`, with a
+  `server.handlers` block (`GET` / `POST`) on the same `createFileRoute` call
+- **The app shell** is `apps/dashboard/src/routes/__root.tsx` (providers,
+  `HeadContent`, `Scripts`). It replaces the old `app/layout.tsx`; there is no
+  `page.tsx` / `layout.tsx` / route `config.ts` convention any more.
+- **Query configs** live in `apps/dashboard/src/lib/query-config/`, typed by
+  `apps/dashboard/src/types/query-config.ts`
+- **Navigation** is `apps/dashboard/src/menu.ts`, composed from
+  `apps/dashboard/src/menu/<section>.ts`
+- **UI** is `apps/dashboard/src/components/` — there is no repo-root
+  `components/`, `app/`, or `lib/` directory
 
 #### Component Patterns
 
-- Use Server Components by default
-- Client components for interactivity (context, state management)
+- Plain React function components — there is no "server by default" split to opt out of
+- `useState` / `useEffect` / context for interactivity
 - Compound components for complex UI (e.g., data tables)
 - Custom hooks for shared logic
-- **Hooks at deepest consumer**: Use hooks (like `useHostId`, `useSWR`) at the component that actually needs the data, NOT at parent levels. Avoid prop drilling through intermediate components. Example: `CountBadge` calls `useHostId()` internally rather than receiving `hostId` as a prop from `NavMain → MenuGroup → MenuItem`.
+- **Hooks at deepest consumer**: Use hooks (like `useHostId`, `useChartData`) at the component that actually needs the data, NOT at parent levels. Avoid prop drilling through intermediate components. Example: `CountBadge` calls `useHostId()` internally rather than receiving `hostId` as a prop from `NavMain → MenuGroup → MenuItem`.
+- Keep route files thin — assemble UI in `apps/dashboard/src/components/`, not inline in `routes/`
 
 #### Query Patterns
 
 - All queries include `QUERY_COMMENT` for identification
-- Use `fetchData` function for consistent error handling and logging
+- App code calls `fetchDataWithHost` (`apps/dashboard/src/lib/clickhouse-helpers.ts`), which normalizes `hostId` and delegates to `fetchData` from `@chm/clickhouse-client`
 - Query parameters are properly sanitized through `query_params`
-- **CRITICAL**: `fetchData` now requires `hostId` parameter (not optional)
-- Client components use SWR hooks for data fetching
-- Server components can use API routes for data fetching
+- **CRITICAL**: `hostId` is required for every query (not optional)
+- Browser reads go through TanStack Query hooks: `apps/dashboard/src/lib/query/` for chart/table data, `apps/dashboard/src/lib/swr/` for hosts/config. **The directory `lib/swr/` is a leftover name — the library is TanStack Query, not SWR; there is no `swr` dependency.**
+- Server route handlers under `apps/dashboard/src/routes/api/` call `fetchDataWithHost` directly, no hook involved
 
 #### ClickHouse Version Compatibility
 
@@ -827,84 +842,107 @@ See `apps/dashboard/.env.example` and `docs/content/reference/environment-variab
 
 ## Common Tasks
 
-### Adding a New Static Route
+### Adding a New Route
 
-1. Create directory in `app/` (e.g., `app/your-route/`)
-2. Create `page.tsx` as client component using `useHostId()`
-3. Add `QueryConfig` to `lib/query-config/` if needed
-4. Add menu item to `menu.ts` with href `/your-route`
-5. Use SWR hooks for data fetching
+1. Add `apps/dashboard/src/routes/(dashboard)/your-route.tsx` exporting a
+   `Route` via `createFileRoute('/(dashboard)/your-route')`
+2. For a standard table view, add a `QueryConfig` to
+   `apps/dashboard/src/lib/query-config/<domain>/` and register it in
+   `apps/dashboard/src/lib/query-config/index.ts`
+3. Render `<PageLayout queryConfig={...} />` inside
+   `<Suspense fallback={<PageSkeleton />}>` — the page component itself needs
+   no `useHostId()`; the layout and its charts read `hostId` from the `?host=0`
+   search param
+4. Add the OG head with `pageOgHead('your-route')` (add the slug to `OG_PAGES`
+   in `apps/dashboard/src/lib/og.ts`)
+5. Add a menu item in the matching `apps/dashboard/src/menu/<section>.ts`
 
-**Template:**
-```typescript
-// app/your-route/page.tsx
-'use client'
+**Template** (mirrors `apps/dashboard/src/routes/(dashboard)/merges.tsx`):
+```tsx
+// apps/dashboard/src/routes/(dashboard)/your-route.tsx
+import { createFileRoute } from '@tanstack/react-router'
 
 import { Suspense } from 'react'
-import { RelatedCharts, Table } from '@/components'
-import { ChartSkeleton, TableSkeleton } from '@/components/skeletons'
-import { useHostId } from '@/lib/swr'
-import { yourConfig } from '@/lib/query-config'
+import { PageLayout } from '@/components/layout/query-page'
+import { PageSkeleton } from '@/components/skeletons'
+import { pageOgHead } from '@/lib/og'
+import { yourConfig } from '@/lib/query-config/your-domain/your-config'
 
-export default function YourRoutePage() {
-  const hostId = useHostId()
-
+function YourRoutePage() {
   return (
-    <div className="flex flex-col gap-4">
-      <Suspense fallback={<ChartSkeleton />}>
-        <RelatedCharts relatedCharts={yourConfig.relatedCharts} hostId={hostId} />
-      </Suspense>
-      <Suspense fallback={<TableSkeleton />}>
-        <Table title="Your Data" queryConfig={yourConfig} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<PageSkeleton />}>
+      <PageLayout queryConfig={yourConfig} />
+    </Suspense>
   )
 }
+
+export const Route = createFileRoute('/(dashboard)/your-route')({
+  component: YourRoutePage,
+  head: () => pageOgHead('your-route'),
+})
 ```
 
 ### Adding a New Chart Component
 
-1. Create component in `components/charts/your-chart.tsx`
-2. Define SQL query in `lib/query-config/` if not exists
-3. Use SWR `useChartData` hook with `hostId` prop
+1. Create the component under `apps/dashboard/src/components/charts/` (or its
+   domain subfolder)
+2. Define the SQL in `apps/dashboard/src/lib/query-config/` if it doesn't exist
+3. Read data with the TanStack Query `useChartData` hook from `@/lib/swr`,
+   passing `chartName` (not `name`) plus `hostId` and a `refreshInterval`
 4. Handle loading, error, and empty states
-5. Export and use in pages or related charts
+5. Export and register it where the page's chart strip is assembled
 
-**Template:**
-```typescript
-// components/charts/your-chart.tsx
-'use client'
+**Template** (mirrors `apps/dashboard/src/components/charts/summary-used-by-mutations.tsx`):
+```tsx
+// apps/dashboard/src/components/charts/your-chart.tsx
+import type { ChartProps } from '@/components/charts/chart-props'
 
-import { useChartData } from '@/lib/swr/use-chart-data'
+import { ChartCard } from '@/components/cards/chart-card'
+import { ChartEmpty } from '@/components/charts/chart-empty'
+import { ChartError } from '@/components/charts/chart-error'
 import { ChartSkeleton } from '@/components/skeletons'
-import { ChartError } from '@/components/error-alert'
+import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
 
-interface YourChartProps {
-  hostId: number
-  interval?: number
-}
-
-export function YourChart({ hostId, interval }: YourChartProps) {
-  const { data, error, isLoading } = useChartData({
-    name: 'your-chart-name',
+export const ChartYourName = function ChartYourName({
+  title,
+  className,
+  hostId,
+}: ChartProps) {
+  const { data, isLoading, error, mutate, sql } = useChartData<{
+    your_count: number
+  }>({
+    chartName: 'your-chart-name',
     hostId,
-    interval,
+    refreshInterval: REFRESH_INTERVAL.MEDIUM_30S,
   })
 
-  if (isLoading) return <ChartSkeleton />
-  if (error) return <ChartError error={error} />
-  if (!data || data.length === 0) return <div>No data available</div>
+  if (isLoading) return <ChartSkeleton title={title} className={className} />
+  if (error)
+    return (
+      <ChartError
+        error={error}
+        title={title}
+        onRetry={mutate}
+        className={className}
+      />
+    )
 
-  // Render your chart using data
-  return <div>{/* Chart rendering */}</div>
+  const rows = Array.isArray(data) ? data : []
+  if (rows.length === 0) return <ChartEmpty title={title} className={className} />
+
+  return (
+    <ChartCard title={title} sql={sql} data={rows} className={className}>
+      {/* Chart rendering */}
+    </ChartCard>
+  )
 }
 ```
 
 ### Modifying Data Tables
 
-- Column formatters are in `components/data-table/cells/`
-- Sorting functions are in `components/data-table/sorting-fns.ts`
-- Actions are defined in `components/data-table/cells/actions/`
+- Column formatters are in `apps/dashboard/src/components/data-table/cells/`
+- Sorting functions are in `apps/dashboard/src/components/data-table/sorting-fns.ts`
+- Actions are defined in `apps/dashboard/src/components/data-table/cells/actions/`
 
 ### Working with ClickHouse Queries
 
@@ -940,6 +978,11 @@ export function YourChart({ hostId, interval }: YourChartProps) {
 
 ## Migration Notes
 
+The subsections below record the **v0.2 (Dec 2024) Next.js-era** migration.
+Their `app/`, SWR, and Next.js build-mode references are history — for current
+state read `## Architecture` above, `apps/dashboard/AGENTS.md`, and the
+**Deployment** section under `## Commands`.
+
 ### Completed (Dec 2024)
 - Migrated from dynamic `app/[host]/*` routes to static routes with `?host=` query parameter
 - All 32 chart components converted to use SWR with `hostId` prop
@@ -947,13 +990,17 @@ export function YourChart({ hostId, interval }: YourChartProps) {
 - Query configs centralized in `lib/query-config/`
 
 ### Breaking Changes
-- URL structure changed: `/0/overview` → `/overview?host=0`
-- `fetchData()` now requires `hostId` parameter (was optional)
-- All data fetching moved to client-side via SWR
+- URL structure changed: `/0/overview` → `/overview?host=0` (still current)
+- `fetchData()` now requires `hostId` parameter (was optional) — still current
+- All data fetching moved to client-side via SWR — **superseded**: server-state
+  is TanStack Query today, and API route handlers fetch server-side
 
 ### Deployment
-- Build mode: `output: 'standalone'` (hybrid static + API)
+- Build mode: `output: 'standalone'` (hybrid static + API) — **superseded**: that
+  was the Next.js `output` key. There is no OpenNext and no standalone build;
+  the Vite build emits a native Workers bundle.
 - Deploy to Cloudflare Workers: `npx wrangler login` then `pnpm run cf:deploy`
+  — still current, see **Deployment** under `## Commands`
 
 ## AI Agents
 
