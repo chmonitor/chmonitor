@@ -123,6 +123,27 @@ Details: [Editions](https://docs.chmonitor.dev/operate/advanced/editions).
 
 ---
 
+## Sponsors
+
+Self-hosting is free under GPL-3.0. Sponsorship is not a license — it buys no
+features, no support window, and no key. It funds the free build, and it earns a
+listing.
+
+| Tier | One-off | You get |
+|---|---|---|
+| Supporter | $19 | Your name on the sponsors page |
+| Backer | $59 | Your name and a link to your site on the sponsors page |
+| Hero | $99 | Your logo and link under the homepage hero, plus the sponsors page |
+| Partner | $199 | A larger hero slot, plus a short line about you on the sponsors page |
+
+Want to support the free build? **[Start sponsoring](https://chmonitor.dev/license#sponsor)** —
+from $19 one-off, or $99 to put your logo under the homepage hero.
+
+The wall: [chmonitor.dev/sponsors](https://chmonitor.dev/sponsors). A commercial
+license is a separate thing: [Editions](https://docs.chmonitor.dev/operate/advanced/editions).
+
+---
+
 ## Screenshots
 
 <picture>

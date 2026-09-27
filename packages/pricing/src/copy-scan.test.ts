@@ -1,8 +1,10 @@
+import { SPONSOR_TIERS } from './sponsors'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = join(import.meta.dir, '../../..')
+const readme = readFileSync(join(root, 'README.md'), 'utf8')
 
 const userFacing = [
   'apps/landing/src/data/licenses.ts',
@@ -48,5 +50,36 @@ describe('user-facing license copy', () => {
       expect(text.toLowerCase()).toMatch(/honor|trust you/)
       expect(text.toLowerCase()).toContain('opt')
     }
+  })
+})
+
+describe('the README sponsor table', () => {
+  test('every tier is listed with its real amount and its real pitch', () => {
+    // The README is hand-written, the tiers are the source of truth. Pin the
+    // whole row, not just the price: a renamed tier or a reworded pitch is the
+    // drift a reader would actually see on GitHub.
+    for (const tier of SPONSOR_TIERS) {
+      expect(readme, tier.id).toContain(
+        `| ${tier.label} | $${tier.amountUsd} |`
+      )
+      expect(readme, tier.id).toContain(tier.pitch.replace(/\.$/, ''))
+    }
+    expect(readme).not.toMatch(/\bPolar\b/)
+  })
+
+  test('the hero slot threshold is stated, so the price cannot drift quietly', () => {
+    // The table is pinned row by row, but the prose also names the threshold —
+    // a rung that moves the hero flag must move that sentence too.
+    const hero = SPONSOR_TIERS.find((tier) => tier.hero)
+    expect(hero).toBeDefined()
+    expect(readme).toContain(
+      `or $${hero?.amountUsd} to put your logo under the homepage hero`
+    )
+  })
+
+  test('it links to the offer and the wall, like the homepage hero does', () => {
+    expect(readme).toContain('https://chmonitor.dev/license#sponsor')
+    expect(readme).toContain('https://chmonitor.dev/sponsors')
+    expect(readme).toContain('Start sponsoring')
   })
 })
