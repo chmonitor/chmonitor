@@ -2,7 +2,7 @@
 id: metadata-db-optional-config
 type: spec
 status: draft
-updated: 2026-09-27
+updated: 2026-09-28
 related:
   - cloud-saas-mode
   - deployment
@@ -57,17 +57,20 @@ one place — `routes/api/v1/config.ts:220-231`:
 
 Returned as `metadataDb: { available }` (`:245`), cached 5 minutes.
 
-Client side — `lib/menu/metadata-db.ts` (34 lines, the whole module):
+Client side — `lib/menu/metadata-db.ts` (the whole module):
 
-| Export | Line | Behaviour |
-|---|---|---|
-| `metadataDbSatisfied(item, config)` | `:20-26` | **Fail-open**: an absent `metadataDb` block counts as satisfied |
-| `useMetadataDbSatisfied(item)` | `:29-34` | React wrapper |
+| Export | Behaviour |
+|---|---|
+| `metadataDbSatisfied(item, config)` | **Fail-open**: an absent `metadataDb` block counts as satisfied |
 
-Consumed in `nav-main/menu-item.tsx:114, :138-140, :215` and
-`nav-main/collapsed-submenu.tsx:62`, where a `requiresMetadataDb: true` item is
-dimmed to `opacity-50` with the tooltip *"Requires a metadata database — configure
-D1 or Postgres"*.
+Consumed through `resolveUnavailable` (`lib/menu/unavailable-visibility.ts`),
+which the nav surfaces reach via `useUnavailableVisibility` /
+`useGroupVisibility` (`components/menu/hooks/use-unavailable-visibility.ts`).
+A `requiresMetadataDb: true` item is **dimmed**, never hidden, so the operator
+can still find the feature they are about to enable — the tooltip is *"Requires
+a metadata database — configure D1 or Postgres"* and the flyout sets it as the
+row `title`. (Hidden is only reachable via an explicit per-item
+`hideWhenUnavailable: true`, which nothing sets today — see #3463.)
 
 ---
 
@@ -165,7 +168,8 @@ custom webhook targets (env fallback) · webhook subscriptions ·
 timers reset on every worker restart (`alert-state-persist.ts:108-191`).
 
 **Type C — menu dimming:** `requiresMetadataDb: true` → "Scheduled Reports"
-only (`menu/insights.ts:56`).
+only (`menu/insights.ts`), and it dims rather than hides so the OSS discovery
+path survives (#3463).
 
 **Type D — works with no DB (must not regress):**
 

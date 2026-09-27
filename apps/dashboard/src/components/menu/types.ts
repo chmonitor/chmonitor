@@ -38,11 +38,27 @@ export interface MenuItem {
   /**
    * Page needs the deployment's metadata database (D1 or Postgres) to persist
    * its state (e.g. report subscriptions). When none is configured the item is
-   * dimmed — same treatment as a missing `tableCheck` table — never hidden, so
-   * the OSS UX surface stays intact. Resolved via `config.metadataDb.available`
-   * from `/api/v1/config` (see lib/menu/metadata-db.ts).
+   * dimmed — same treatment as a missing `tableCheck` table — so the operator
+   * can still FIND the feature they are about to enable. Resolved via
+   * `config.metadataDb.available` from `/api/v1/config` (see
+   * lib/menu/metadata-db.ts).
    */
   requiresMetadataDb?: boolean
+  /**
+   * Per-item opt-in for the Hide half of Settings → Navigation → *Unavailable
+   * pages* (issue #3463). Two classes of unavailability:
+   *
+   * - `tableCheck` present — the page can NEVER work on this host, so the
+   *   default is to hide the row. No flag needed.
+   * - only `requiresMetadataDb` (or another config gate) — not configured yet,
+   *   but the operator can turn it on, so the default is to dim and keep the
+   *   discovery path. Set `hideWhenUnavailable: true` to hide it anyway.
+   *
+   * Overrides both directions: `false` keeps a `tableCheck` page dimmed instead
+   * of hidden. Resolution lives in `lib/menu/unavailable-visibility.ts`; every
+   * nav surface goes through it.
+   */
+  hideWhenUnavailable?: boolean
   /**
    * Cloud (SaaS)-only surface — hidden in self-host / OSS. Set on items that
    * make sense only in the cloud product (e.g. Billing, Organization). Filtered

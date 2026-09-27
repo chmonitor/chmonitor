@@ -34,6 +34,10 @@ export const insightsItems: MenuItem[] = [
           'Data flowing into the cluster: rows, bytes and insert queries over time',
         icon: ArrowDownToLineIcon,
         isNew: true,
+        // `tableCheck` alone already makes this a hide-when-unavailable item
+        // (#3463) — no `hideWhenUnavailable` needed. Asserted by
+        // menu-config-invariants.test.ts so a future gate swap cannot silently
+        // turn it into a dead greyed row.
         tableCheck: 'system.query_log',
       },
       {
@@ -52,7 +56,9 @@ export const insightsItems: MenuItem[] = [
         icon: CalendarClockIcon,
         isNew: true,
         // Subscriptions persist in the metadata DB (report-subscription-store);
-        // dimmed when the deployment has no D1/Postgres configured.
+        // dimmed when the deployment has no D1/Postgres configured. Config-gated
+        // items stay DISCOVERABLE by design (#3463) — a self-hoster who adds D1
+        // later should still find the page — so no `hideWhenUnavailable` here.
         requiresMetadataDb: true,
       },
     ],
