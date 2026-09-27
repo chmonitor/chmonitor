@@ -58,16 +58,28 @@ Do not silently change these without updating landing `/pricing`, docs
 
 Self-host infra teams will not pay $29–99/mo to *us* to host a dashboard they
 can run in Docker. They will pay a commercial license for invoice / support /
-“we sponsor the project”. Launch ladder sits below Cloud Pro ($290/yr) and far
-below pganalyze / Datadog. Three SKUs only: Personal (free self-host), Team
+“we sponsor the project”. The ladder is priced below a managed-service
+subscription and far below the vendors in that category, which is the point:
+the buyer already owns the infrastructure, so the comparison is not
+like-for-like. Three SKUs only: Personal (free self-host), Team
 $499 / $1,349 (3 hosts), Unlimited $999 / $2,999.
+
+The license buys paper, not features — an invoice and named vendor, priority
+email support for the paid term, and an opt-in listing. Same binary as the free
+build.
 
 ## Sponsorship (separate from licensing)
 
-One-off tiers in `packages/pricing/src/sponsors.ts`: **supporter $59** (name +
-website on `/sponsors`), **backer $99** (+ logo under the homepage hero),
-**partner $199** (larger hero slot, optional note). Not a license: no features,
-no support window, no key.
+One-off tiers in `packages/pricing/src/sponsors.ts`, in ladder order:
+**Supporter $19** (name on `/sponsors`), **Backer $59** (name + website link),
+**Hero $99** (logo + link under the homepage hero; `DEFAULT_SPONSOR_TIER`, so it
+is the one the page preselects), **Partner $199** (larger hero slot, optional
+note). Not a license: no features, no support window, no key.
+
+Read the amounts and pitches off `SPONSOR_TIERS`, not off this paragraph. The
+rung names and prices have already moved once — $19 was added, and the tier
+this note used to call `backer` is now `hero` — so a stale copy here is how a
+reader ends up attributing a perk to the wrong tier.
 
 Checkout is `GET /checkout/sponsor?amount=…` on the Polar pay-what-you-want
 product `chmonitor Sponsor` (`CHM_POLAR_SPONSOR_PRODUCT`), renamed in place from
