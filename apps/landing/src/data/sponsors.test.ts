@@ -1,5 +1,6 @@
 import {
   heroSponsors,
+  isSponsorEmailAcceptable,
   SPONSOR_CONTACT_EMAIL,
   SPONSOR_PAGE_HREF,
   SPONSOR_TIERS,
@@ -86,6 +87,16 @@ describe('sponsor checkout forwards the details to Polar', () => {
     expect(read('../cloud-hooks/src/sponsor-checkout.ts')).toContain(
       "SPONSOR_PRODUCT_ENV_KEY = 'CHM_POLAR_DONATE_PRODUCT'"
     )
+  })
+
+  test('the form refuses a placeholder email before Polar sees it', () => {
+    // Polar 422s these; the form must not be the thing that finds out.
+    expect(isSponsorEmailAcceptable('you@example.com')).toBe(false)
+    expect(isSponsorEmailAcceptable('ops@acme.com')).toBe(true)
+    const src = read('src/components/SponsorOffer.astro')
+    expect(src).toContain('isSponsorEmailAcceptable')
+    expect(src).toContain('data-email-error')
+    expect(src).toMatch(/cannot send a receipt/i)
   })
 
   test('the details form GET-submits to the checkout route itself', () => {

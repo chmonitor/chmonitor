@@ -9,13 +9,19 @@
 import { LICENSE_HOOKS_ORIGIN, salesEmail } from './licenses'
 import {
   DEFAULT_SPONSOR_TIER,
+  isSponsorEmailAcceptable,
   SPONSOR_TIERS,
   type SponsorTier,
   type SponsorTierId,
   sponsorTier,
 } from '@chm/pricing'
 
-export { DEFAULT_SPONSOR_TIER, SPONSOR_TIERS, sponsorTier }
+export {
+  DEFAULT_SPONSOR_TIER,
+  isSponsorEmailAcceptable,
+  SPONSOR_TIERS,
+  sponsorTier,
+}
 export type { SponsorTier, SponsorTierId }
 
 export const SPONSOR_PAGE_HREF = 'https://chmonitor.dev/sponsors'
