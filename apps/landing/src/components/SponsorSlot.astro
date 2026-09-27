@@ -1,72 +1,73 @@
 ---
-import {
-  heroSponsors,
-  SPONSOR_TIERS,
-  sponsorTier,
-} from '../data/sponsors'
-import { DEFAULT_SPONSOR_TIER } from '@chm/pricing'
+import { heroSponsors, SPONSOR_TIERS, sponsorTier } from '../data/sponsors'
 
-/** Tiers that earn the hero slot. The cheapest one sets the advertised price. */
-const heroFrom = sponsorTier(
-  SPONSOR_TIERS.find((tier) => tier.hero)?.id ?? DEFAULT_SPONSOR_TIER
-)
+/** The tier that earns the slot — the price belongs on the offer, not here. */
+const heroFrom = sponsorTier(SPONSOR_TIERS.find((tier) => tier.hero)?.id ?? 'hero')
 const sponsors = heroSponsors()
 ---
-{/* Sponsor line at the foot of the hero, under the feature list. The open slot
-    is a compact dashed tile — the same footprint a real logo would take — so
-    the invitation reads as part of the row rather than a card competing with
-    it. */}
-<div class="mt-12 border-t border-border pt-7 sm:mt-14" data-sponsor-slot>
-  <p class="text-center text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-    Sponsored by
+{/* Sponsor line at the foot of the hero, under the feature list. No boxes: the
+    marks sit straight on the page background like any other logo row, and the
+    invitation is a line of text below it. A bordered tile around a name reads
+    as a missing image; this reads as a logo wall. */}
+<div class="mt-12 border-t border-border pt-8 sm:mt-14" data-sponsor-slot>
+  <p class="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+    Featured sponsors
   </p>
 
-  <ul class="mt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-    {
-      sponsors.map((s) => (
-        <li>
-          <a
-            class="flex h-11 w-28 items-center justify-center rounded-lg border border-[var(--hairline-strong)] px-2 transition-colors hover:bg-[var(--surface-strong)]"
-            href={s.website}
-            target="_blank"
-            rel="noopener sponsored"
-            title={s.name}
-          >
-            {s.logo ? (
-              <img
-                src={s.logo}
-                alt={s.name}
-                height="28"
-                loading="lazy"
-                decoding="async"
-                class="h-7 w-auto"
-              />
-            ) : (
-              <span class="text-sm font-semibold tracking-tight text-foreground">
-                {s.name}
+  {
+    sponsors.length > 0 && (
+      <ul class="mt-6 flex list-none flex-wrap items-start justify-center gap-x-14 gap-y-6">
+        {sponsors.map((s) => (
+          <li>
+            <a
+              class="group flex flex-col items-center gap-2.5"
+              href={s.website}
+              target="_blank"
+              rel="noopener sponsored"
+              title={s.name}
+            >
+              {s.logo ? (
+                <img
+                  src={s.logo}
+                  data-src-light={s.logo}
+                  data-src-dark={s.logoDark ?? s.logo}
+                  alt={s.name}
+                  height="44"
+                  loading="lazy"
+                  decoding="async"
+                  class="h-9 w-auto opacity-85 transition-opacity group-hover:opacity-100 sm:h-11"
+                />
+              ) : (
+                <span class="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+                  {s.name}
+                </span>
+              )}
+              <span class="text-center">
+                {s.logo && (
+                  <span class="block text-[15px] font-semibold tracking-tight text-foreground">
+                    {s.name}
+                  </span>
+                )}
+                {s.tagline && (
+                  <span class="mt-0.5 block text-[13px] text-muted-foreground">
+                    {s.tagline}
+                  </span>
+                )}
               </span>
-            )}
-          </a>
-        </li>
-      ))
-    }
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
 
-    {/* The open slot. Same box as a sponsor logo, dashed, and a link. */}
-    <li>
-      <a
-        class="flex h-11 w-28 flex-col items-center justify-center rounded-lg border border-dashed border-[var(--hairline-strong)] px-2 text-center transition-colors hover:bg-[var(--surface-strong)]"
-        href="/license#sponsor"
-        data-sponsor-placeholder
-        data-cta="hero-become-sponsor"
-        title={`Sponsor slot open — $${heroFrom.amountUsd} one-off puts your logo here`}
-      >
-        <span class="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-          + your logo
-        </span>
-        <span class="text-[10px] text-muted-foreground opacity-75">
-          ${heroFrom.amountUsd}
-        </span>
-      </a>
-    </li>
-  </ul>
+  <p class="mt-6 text-center text-sm text-muted-foreground">
+    Want to support the free build? <a
+      class="font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-[var(--brand)]"
+      href="/license#sponsor"
+      data-sponsor-placeholder
+      data-cta="hero-become-sponsor"
+      title={`Sponsor slot open — $${heroFrom.amountUsd} one-off puts your logo here`}
+    >Start sponsoring</a>
+  </p>
 </div>

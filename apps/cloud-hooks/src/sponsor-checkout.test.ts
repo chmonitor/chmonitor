@@ -64,18 +64,19 @@ describe('parseSponsorAmount', () => {
   })
 
   test('a bare tier resolves its own price from @chm/pricing', () => {
-    expect(parseSponsorAmount(new URL('https://x/s?tier=supporter'))).toEqual({
-      cents: 5900,
-      tier: 'supporter',
-    })
-    expect(parseSponsorAmount(new URL('https://x/s?tier=backer'))).toEqual({
-      cents: 9900,
-      tier: 'backer',
-    })
-    expect(parseSponsorAmount(new URL('https://x/s?tier=partner'))).toEqual({
-      cents: 19900,
-      tier: 'partner',
-    })
+    // The ladder, asserted against the shared catalog rather than hard-coded,
+    // so a price change lands here too.
+    for (const [tier, usd] of [
+      ['supporter', 19],
+      ['backer', 59],
+      ['hero', 99],
+      ['partner', 199],
+    ] as const) {
+      expect(parseSponsorAmount(new URL(`https://x/s?tier=${tier}`))).toEqual({
+        cents: usd * 100,
+        tier,
+      })
+    }
   })
 
   test('amount wins over tier, so a custom amount next to a tier is honoured', () => {
@@ -173,15 +174,15 @@ describe('parseSponsorDetails', () => {
 })
 
 describe('GET /checkout/sponsor', () => {
-  test('302 to Polar with cents and the {CHECKOUT_ID} success_url', async () => {
+  test('302 with cents and the {CHECKOUT_ID} success_url', async () => {
     const fetchImpl = polarMock((body) => {
       expect(body.products).toEqual(['prod_sponsor'])
-      expect(body.amount).toBe(5900)
+      expect(body.amount).toBe(1900)
       expect(body.success_url).toBe(
         'https://chmonitor.dev/sponsors?sponsored=1&checkout_id={CHECKOUT_ID}'
       )
     })
-    const res = await handleSponsorCheckout(req('amount=59'), env, {
+    const res = await handleSponsorCheckout(req('amount=19'), env, {
       fetchImpl,
     })
     expect(res.status).toBe(302)
@@ -281,14 +282,14 @@ describe('GET /checkout/sponsor', () => {
   })
 
   test('501 when token or the Polar product id is missing', async () => {
-    const noToken = await handleSponsorCheckout(req('amount=59'), {
+    const noToken = await handleSponsorCheckout(req('amount=19'), {
       ...env,
       POLAR_ACCESS_TOKEN: undefined,
     })
     expect(noToken.status).toBe(501)
     expect(await noToken.json()).toEqual({ error: 'billing is not enabled' })
 
-    const noProduct = await handleSponsorCheckout(req('amount=59'), {
+    const noProduct = await handleSponsorCheckout(req('amount=19'), {
       POLAR_ACCESS_TOKEN: 'x',
     })
     expect(noProduct.status).toBe(501)
@@ -298,7 +299,7 @@ describe('GET /checkout/sponsor', () => {
   })
 
   test('502 JSON when Polar rejects — never throws', async () => {
-    const res = await handleSponsorCheckout(req('amount=59'), env, {
+    const res = await handleSponsorCheckout(req('amount=19'), env, {
       fetchImpl: mock(
         async () => new Response('{"detail":"bad"}', { status: 422 })
       ),
@@ -310,11 +311,11 @@ describe('GET /checkout/sponsor', () => {
   test('router wires GET /checkout/sponsor and rejects POST', async () => {
     const bad = await worker.fetch(req('amount=nope'), env)
     expect(bad.status).toBe(400)
-    const post = await worker.fetch(req('amount=59', 'POST'), env)
+    const post = await worker.fetch(req('amount=19', 'POST'), env)
     expect(post.status).toBe(405)
     // The old donate route is gone: the surface is Sponsor end to end.
     const old = await worker.fetch(
-      new Request('https://hooks.chmonitor.dev/checkout/donate?amount=59'),
+      new Request('https://hooks.chmonitor.dev/checkout/donate?amount=19'),
       env
     )
     expect(old.status).toBe(404)

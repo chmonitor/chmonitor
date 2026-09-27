@@ -278,13 +278,16 @@ if (!heroSlot) {
   console.error('MISSING rel="sponsored" sponsor link in the hero slot')
   failed = true
 } else if (!heroSlot.includes('data-sponsor-placeholder')) {
-  console.error('MISSING open tile in the homepage hero sponsor slot')
+  console.error('MISSING the open-slot invitation in the hero sponsor row')
+  failed = true
+} else if (!heroSlot.includes('Start sponsoring')) {
+  console.error('MISSING "Start sponsoring" invitation in the hero sponsor row')
   failed = true
 } else if (!heroSlot.includes('href="/license#sponsor"')) {
-  console.error('MISSING hero open-tile link to /license#sponsor')
+  console.error('MISSING hero sponsor link to /license#sponsor')
   failed = true
 } else {
-  console.log('OK: homepage hero carries the sponsor slot + open tile')
+  console.log('OK: homepage hero carries the sponsor row + invitation')
 }
 
 // The offer is one shared component rendered on two pages. Assert the two things
@@ -297,9 +300,12 @@ const OFFER_REQUIRED = [
     'action="https://hooks.chmonitor.dev/checkout/sponsor"',
   ],
   ['add-my-details button', 'data-add-details='],
+  ['plan group', 'Pick the plan'],
+  ['information group', 'Information'],
   ['sponsor name field', 'name="name"'],
   ['sponsor website field', 'name="website"'],
   ['sponsor email field', 'name="email"'],
+  ['$19 tier', '$19'],
   ['$59 tier', '$59'],
   ['$99 tier', '$99'],
   ['$199 tier', '$199'],
@@ -338,6 +344,41 @@ try {
     failed = true
   } else {
     console.log('OK: /license and /sponsors share the sponsor offer')
+  }
+  /* The provider is an implementation detail of the sponsor offer, so it must
+     not appear in the sponsor copy. Scoped to the sponsor surfaces on purpose:
+     the license FAQ tells operators to look for "the Polar checkout id" in
+     their receipt, and that instruction is still actionable. Run on the BUILT
+     html, not the source, so it also covers copy from data modules. */
+  const sponsorSection = (() => {
+    const start = sponsorLicenseHtml.indexOf('id="sponsor"')
+    if (start === -1) return ''
+    const end = sponsorLicenseHtml.indexOf('<section', start + 10)
+    return sponsorLicenseHtml.slice(start, end === -1 ? undefined : end)
+  })()
+  const heroSponsorRow = (() => {
+    const start = html.indexOf('data-sponsor-slot')
+    if (start === -1) return ''
+    const end = html.indexOf('</section>', start)
+    return html.slice(start, end === -1 ? undefined : end)
+  })()
+  for (const [label, chunk] of [
+    ['the hero sponsor row', heroSponsorRow],
+    ['the /license sponsor section', sponsorSection],
+    ['the /sponsors page', sponsorsHtml],
+  ] as const) {
+    if (!chunk) {
+      console.error(`MISSING ${label} to scan for the payment provider`)
+      failed = true
+    } else if (/Polar/i.test(chunk)) {
+      console.error(
+        `FORBIDDEN payment provider named in ${label} — speak in our own voice`
+      )
+      failed = true
+    }
+  }
+  if (heroSponsorRow && sponsorSection && sponsorsHtml) {
+    console.log('OK: no payment provider named in the sponsor copy')
   }
 } catch {
   console.error('MISSING dist/sponsors/index.html — run build first')

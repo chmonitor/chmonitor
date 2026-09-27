@@ -27,7 +27,7 @@ export const STATIC_PAGES: ListedPage[] = [
     path: '/sponsors',
     title: 'Sponsors',
     description:
-      'Sponsor chmonitor: one-off $59, $99, or $199 for a listing and a logo under the homepage hero.',
+      'Sponsor chmonitor: one-off $19, $59, $99, or $199 for a listing and a logo under the homepage hero.',
   },
   {
     path: '/changelog',
