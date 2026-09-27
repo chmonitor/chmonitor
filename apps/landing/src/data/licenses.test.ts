@@ -3,9 +3,6 @@ import {
   bossPitch,
   bossPitchPaste,
   buyHref,
-  DONATE_AMOUNTS_USD,
-  donateCheckoutAction,
-  donateHref,
   invoiceMailto,
   LICENSE_PAGE_HREF,
   PRICING_PAGE_HREF,
@@ -180,50 +177,21 @@ describe('static pages exist', () => {
   })
 })
 
-describe('donate chips go to Polar via hooks, not GitHub Sponsors', () => {
-  test('amounts are $10, $100, $1,000 Polar donate checkouts in USD dollars', () => {
-    expect([...DONATE_AMOUNTS_USD]).toEqual([10, 100, 1000])
-    expect(donateCheckoutAction()).toBe(
-      'https://hooks.chmonitor.dev/checkout/donate'
-    )
-    for (const amount of DONATE_AMOUNTS_USD) {
-      const href = donateHref(amount)
-      expect(href).toBe(
-        `https://hooks.chmonitor.dev/checkout/donate?amount=${amount}`
-      )
-      expect(href).not.toContain('github.com/sponsors')
-    }
+describe('the license page hands sponsorship off to the sponsor modules', () => {
+  test('the donate helpers are gone from the license data module', async () => {
+    const mod = await import('./licenses')
+    expect('DONATE_AMOUNTS_USD' in mod).toBe(false)
+    expect('donateHref' in mod).toBe(false)
+    expect('donateCheckoutAction' in mod).toBe(false)
   })
 
-  test('cloud-hooks Polar donate product id is a Polar UUID from polar-setup', () => {
-    const env = readFileSync(
-      join(landingRoot, '../cloud-hooks/.env.production'),
-      'utf8'
-    )
-    const example = readFileSync(
-      join(landingRoot, '../cloud-hooks/.env.example'),
-      'utf8'
-    )
-    expect(env).toContain('CHM_POLAR_LICENSE_TEAM_YEARLY')
-    expect(env).toMatch(/^CHM_POLAR_DONATE_PRODUCT=[a-f0-9-]{36}$/m)
-    expect(example).toContain('CHM_POLAR_DONATE_PRODUCT')
-  })
-
-  test('license page lists chips plus a custom amount form below the plan cards', () => {
+  test('the sponsor section is where the old donate section was', async () => {
     const src = readFileSync(
       join(landingRoot, 'src/pages/license.astro'),
       'utf8'
     )
-    expect(src.indexOf('<Pricing compact={true} />')).toBeLessThan(
-      src.indexOf('id="donate"')
-    )
-    expect(src).toContain('DONATE_AMOUNTS_USD')
-    expect(src).toContain('donateHref')
-    expect(src).toContain('donateCheckoutAction')
-    expect(src).toContain('name="amount"')
-    expect(src).toContain('donate-custom')
-    expect(src).toMatch(/logo and website/i)
-    expect(src).toMatch(/main page/i)
+    expect(src).toContain('id="sponsor"')
+    expect(src).not.toContain('id="donate"')
     expect(src).not.toContain('github.com/sponsors')
   })
 })

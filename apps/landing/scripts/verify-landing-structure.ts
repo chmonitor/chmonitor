@@ -244,21 +244,66 @@ try {
   if (!licenseHtml.includes('id="license"')) {
     console.error('MISSING license section in dist/license/index.html')
     failed = true
-  } else if (!licenseHtml.includes('id="donate"')) {
-    console.error('MISSING donate section in dist/license/index.html')
+  } else if (!licenseHtml.includes('id="sponsor"')) {
+    console.error('MISSING sponsor section in dist/license/index.html')
     failed = true
   } else if (
-    !licenseHtml.includes('$10') ||
-    !licenseHtml.includes('$100') ||
-    !licenseHtml.includes('$1,000')
+    !licenseHtml.includes('$59') ||
+    !licenseHtml.includes('$99') ||
+    !licenseHtml.includes('$199')
   ) {
-    console.error('MISSING donate amount chips in dist/license/index.html')
+    console.error('MISSING sponsor tier chips in dist/license/index.html')
+    failed = true
+  } else if (licenseHtml.includes('id="donate"')) {
+    console.error('STALE donate section in dist/license/index.html')
     failed = true
   } else {
-    console.log('OK: dist/license/index.html has License cards + donate chips')
+    console.log('OK: dist/license/index.html has License cards + sponsor tiers')
   }
 } catch {
   console.error('MISSING dist/license/index.html — run build first')
+  failed = true
+}
+
+// The hero sponsor slot and /sponsors: both render the open-slot design until
+// the first sponsor lands, so the gate checks the placeholder, not a logo.
+if (!html.includes('data-sponsor-slot')) {
+  console.error('MISSING sponsor slot in the homepage hero')
+  failed = true
+} else if (!html.includes('data-sponsor-placeholder')) {
+  console.error(
+    'MISSING open-slot placeholder in the homepage hero sponsor slot'
+  )
+  failed = true
+} else if (!html.includes('href="/license#sponsor"')) {
+  console.error('MISSING hero "Become a sponsor" link to /license#sponsor')
+  failed = true
+} else {
+  console.log('OK: homepage hero carries the sponsor slot')
+}
+
+const distSponsors = join(process.cwd(), 'dist/sponsors/index.html')
+try {
+  const sponsorsHtml = readFileSync(distSponsors, 'utf8')
+  const missing = [
+    ['sponsor claim form', 'name="email"'],
+    ['sponsor website field', 'name="website"'],
+    ['sponsor name field', 'name="name"'],
+    ['open-slot design', 'data-sponsor-open-slot'],
+    ['$59 tier', '$59'],
+    ['$99 tier', '$99'],
+    ['$199 tier', '$199'],
+  ].filter(([, needle]) => !sponsorsHtml.includes(needle))
+  if (missing.length > 0) {
+    for (const [label] of missing) {
+      console.error(`MISSING ${label} in dist/sponsors/index.html`)
+    }
+    failed = true
+  } else {
+    console.log('OK: dist/sponsors/index.html has tiers + listing form')
+  }
+} catch {
+  console.error('MISSING dist/sponsors/index.html — run build first')
   failed = true
 }
 

@@ -1,0 +1,325 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import Footer from '../components/Footer.astro'
+import FinalCta from '../components/FinalCta.astro'
+import {
+  DEFAULT_SPONSOR_TIER,
+  SPONSOR_CONTACT_EMAIL,
+  SPONSOR_TIERS,
+  sponsorCheckoutAction,
+  sponsorHref,
+  sponsorMailto,
+  sponsorRegisterApiHref,
+  sponsorTier,
+  sponsors,
+} from '../data/sponsors'
+import { btnOutline, btnPrimary } from '../lib/button-classes'
+
+const defaultTier = sponsorTier(DEFAULT_SPONSOR_TIER)
+const registerApi = sponsorRegisterApiHref()
+const checkoutAction = sponsorCheckoutAction()
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+    { '@type': 'ListItem', position: 2, name: 'Sponsors', item: canonical },
+  ],
+}
+---
+<Base
+  title="chmonitor Sponsors — fund the free build"
+  description="Sponsor chmonitor. One-off $59, $99, or $199 puts your name on the sponsors page, and $99 or more puts your logo under the homepage hero."
+  image="/og/og-pricing.png"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
+  <Nav />
+  <main id="top">
+    <section class="band" style="padding-bottom:0">
+      <div class="wrap">
+        <div class="sec-head price-head" style="text-align:center">
+          <span class="eyebrow">Sponsors</span>
+          <h1>Who pays for the free build</h1>
+          <p>
+            chmonitor is GPL-3.0 and free to self-host. Sponsorship is not a
+            license and buys no features — it is what keeps the releases coming,
+            and it earns the logo under the homepage hero and this page.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap">
+        <h2 class="sec-h">Tiers</h2>
+        <div class="tier-grid">
+          {SPONSOR_TIERS.map((tier) => (
+            <article
+              class:list={['tier', tier.highlight && 'is-featured']}
+              data-tier={tier.id}
+            >
+              <div class="tier-top">
+                <span class="tier-name">{tier.label}</span>
+                {tier.highlight && <span class="tier-badge">Most chosen</span>}
+              </div>
+              <p class="tier-price">
+                <span class="amt">${tier.amountUsd.toLocaleString('en-US')}</span>
+                <small>one-off</small>
+              </p>
+              <p class="tier-pitch">{tier.pitch}</p>
+              <a
+                class:list={[tier.highlight ? btnPrimary : btnOutline, 'tier-cta']}
+                href={sponsorHref(tier.amountUsd)}
+                data-cta={`sponsor-${tier.id}`}
+              >
+                Sponsor ${tier.amountUsd.toLocaleString('en-US')}
+              </a>
+            </article>
+          ))}
+        </div>
+        <p class="tier-custom">
+          Other amount? <a href={checkoutAction} data-cta="sponsor-custom-link">Start a custom checkout</a>, or email <a href={`mailto:${SPONSOR_CONTACT_EMAIL}`}>{SPONSOR_CONTACT_EMAIL}</a> for a PO.
+        </p>
+      </div>
+    </section>
+
+    <section id="the-wall" class="band">
+      <div class="wrap">
+        <h2 class="sec-h">Sponsor wall</h2>
+        {
+          sponsors.length === 0 ? (
+            /* The empty design is the pitch: it shows the shape of the slot
+               your logo would take, next to the price that buys it. */
+            <div class="open-slot" data-sponsor-open-slot>
+              <span
+                class="slot-logo"
+                aria-hidden="true"
+              >
+                Your logo
+              </span>
+              <div>
+                <strong>No sponsors yet — the wall is empty.</strong>
+                <p>
+                  The first {`$${defaultTier.amountUsd}`} sponsor takes the hero
+                  slot. The next three get their name here. Listing is
+                  opt-in-by-request: we add your name and website only after you
+                  confirm.
+                </p>
+              </div>
+              <a class={btnPrimary} href={sponsorHref(defaultTier.amountUsd)} data-cta="sponsor-open-slot">
+                Claim the first slot
+              </a>
+            </div>
+          ) : (
+            <ul class="sponsor-grid">
+              {sponsors.map((s) => (
+                <li class="sponsor" data-sponsor-tier={s.tier}>
+                  <a href={s.website} target="_blank" rel="noopener sponsored" class="sponsor-link">
+                    {s.logo ? (
+                      <img src={s.logo} alt={s.name} height="40" loading="lazy" decoding="async" class="h-10 w-auto" />
+                    ) : (
+                      <strong>{s.name}</strong>
+                    )}
+                  </a>
+                  <p class="sponsor-meta">
+                    {sponsorTier(s.tier).label} · since {s.since}
+                  </p>
+                  {s.note && <p class="sponsor-note">{s.note}</p>}
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </div>
+    </section>
+
+    <section id="claim" class="band">
+      <div class="wrap">
+        <div class="claim">
+          <h2 class="sec-h">Tell us where to put your name</h2>
+          <p class="claim-lede">
+            Paid already, or paying by PO? Send the three things we publish —
+            your name, your website, and where the logo file is. We add the row
+            and reply with the live link.
+          </p>
+
+          <form class="claim-form" id="sponsor-form" method="get" action={`mailto:${SPONSOR_CONTACT_EMAIL}`} data-register-api={registerApi} novalidate>
+            <div class="done" id="claim-done" hidden>
+              <strong>Got it.</strong>
+              <span>We emailed you a confirmation. The listing goes live with the next landing build.</span>
+            </div>
+
+            <label>
+              Name
+              <input type="text" name="name" required maxlength="120" placeholder="Acme Analytics" autocomplete="organization" />
+            </label>
+            <label>
+              Website
+              <input type="url" name="website" required maxlength="200" placeholder="https://acme.example" autocomplete="url" />
+            </label>
+            <label>
+              Email
+              <input type="email" name="email" required maxlength="200" placeholder="ops@acme.example" autocomplete="email" />
+            </label>
+            <label>
+              Tier
+              <select name="tier" id="sponsor-tier">
+                {SPONSOR_TIERS.map((tier) => (
+                  <option value={tier.id} selected={tier.id === defaultTier.id}>
+                    {tier.label} — ${tier.amountUsd.toLocaleString('en-US')}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Polar checkout id (optional)
+              <input type="text" name="checkout_id" maxlength="80" placeholder="from your receipt" autocomplete="off" />
+            </label>
+            <button class={btnPrimary} type="submit" id="sponsor-send">
+              Send
+            </button>
+            <p class="hint" id="claim-hint">
+              We publish the name and website link. The email stays with us for
+              the receipt and the listing — it is never rendered on the site.
+            </p>
+          </form>
+
+          <p class="alt">
+            <a class={btnOutline} href={sponsorMailto(defaultTier.id)}>Email instead</a>
+            <a class={btnOutline} href="/license">Compare with a license</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <FinalCta />
+  </main>
+  <Footer />
+
+  <script is:inline define:vars={{ tierIds: SPONSOR_TIERS.map((t) => t.id) }}>
+    ;(function () {
+      var form = document.getElementById('sponsor-form')
+      if (!form) return
+      var done = document.getElementById('claim-done')
+      var hint = document.getElementById('claim-hint')
+      var known = tierIds
+
+      function fail(message) {
+        if (!hint) return
+        hint.textContent = message
+        hint.dataset.state = 'error'
+      }
+
+      function mailtoFallback(name, website, email, tier, checkoutId) {
+        var lines = [
+          'chmonitor sponsorship listing (honor system).',
+          '',
+          'Name: ' + name,
+          'Website: ' + website,
+          'Email: ' + email,
+          'Tier: ' + tier,
+        ]
+        if (checkoutId) lines.push('Polar checkout id: ' + checkoutId)
+        var subject = encodeURIComponent('chmonitor sponsor listing — ' + name)
+        window.location.href =
+          'mailto:hello@chmonitor.dev?subject=' + subject + '&body=' + encodeURIComponent(lines.join('\n'))
+      }
+
+      /* With JS, POST to the hooks Worker. Without it, the form falls back to
+         its mailto: action — so a sponsor is never stuck on a dead button. */
+      form.addEventListener('submit', function (e) {
+        e.preventDefault()
+        /* namedItem, not form.name — `name` is an HTMLFormElement IDL
+           attribute, so form.name is the form's own name, not the input. */
+        var field = function (n) {
+          return form.elements.namedItem(n)
+        }
+        var nameEl = field('name')
+        var websiteEl = field('website')
+        var emailEl = field('email')
+        var tierEl = field('tier')
+        var checkoutEl = field('checkout_id')
+        var name = nameEl ? String(nameEl.value || '').trim() : ''
+        var website = websiteEl ? String(websiteEl.value || '').trim() : ''
+        var email = emailEl ? String(emailEl.value || '').trim() : ''
+        var tier = tierEl ? tierEl.value : known[0]
+        var checkoutId = checkoutEl ? String(checkoutEl.value || '').trim() : ''
+        if (!name || !website || !email) {
+          fail('Name, website, and email are all required.')
+          return
+        }
+        if (known.indexOf(tier) === -1) tier = known[0]
+        var api = form.getAttribute('data-register-api')
+        if (!api) {
+          mailtoFallback(name, website, email, tier, checkoutId)
+          return
+        }
+        var payload = { name: name, website: website, email: email, tier: tier }
+        if (checkoutId) payload.checkout_id = checkoutId
+        fetch(api, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function (res) {
+            if (!res.ok) return res.json().then(function (body) { throw new Error((body && body.error) || 'register failed') })
+            form.hidden = true
+            if (done) done.hidden = false
+          })
+          .catch(function (err) {
+            /* A failed POST must never lose the listing: fall back to email
+               rather than silently dropping what someone typed. */
+            mailtoFallback(name, website, email, tier, checkoutId)
+            fail('Could not reach the register endpoint (' + err.message + '). Opening your email client instead.')
+          })
+      })
+    })()
+  </script>
+
+  <style>
+    .price-head h1{font-size:clamp(1.75rem,6vw,2.5rem);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px;text-wrap:balance}
+    .price-head p{margin-inline:auto;font-size:clamp(14px,3.5vw,17px)}
+    .sec-h{font-size:clamp(1.25rem,3vw,1.5rem);letter-spacing:-.02em;font-weight:700;margin:0 0 20px;text-align:center}
+    .tier-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+    .tier{display:flex;flex-direction:column;gap:8px;padding:22px 20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
+    .tier.is-featured{border-color:color-mix(in oklch, var(--brand) 40%, var(--border))}
+    .tier-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .tier-name{font-weight:700;font-size:17px;letter-spacing:-.02em}
+    .tier-badge{font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:2px 8px;background:var(--muted, rgba(127,127,127,.1))}
+    .tier-price .amt{font-size:34px;font-weight:800;letter-spacing:-.04em}
+    .tier-price small{font-size:13px;color:var(--muted-fg);margin-left:6px}
+    .tier-pitch{font-size:14px;color:var(--muted-fg);line-height:1.55;flex:1}
+    .tier-cta{margin-top:6px;width:100%}
+    .tier-custom{margin-top:18px;text-align:center;font-size:13px;color:var(--muted-fg)}
+    .tier-custom a{color:var(--orange);text-decoration:underline;text-underline-offset:3px}
+
+    .open-slot{display:flex;flex-direction:column;align-items:flex-start;gap:16px;max-width:760px;margin:0 auto;padding:24px 20px;border:1px dashed var(--border);border-radius:var(--radius);background:var(--card)}
+    .slot-logo{display:flex;align-items:center;justify-content:center;width:160px;height:72px;border:1px dashed var(--border);border-radius:10px;background:var(--muted, rgba(127,127,127,.08));color:var(--muted-fg);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+    .open-slot strong{display:block;font-size:16px}
+    .open-slot p{margin-top:6px;font-size:14px;color:var(--muted-fg);line-height:1.6;text-wrap:pretty}
+    .sponsor-grid{list-style:none;padding:0;margin:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+    .sponsor{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);padding:18px}
+    .sponsor-link{display:inline-flex;align-items:center;min-height:40px;color:inherit;text-decoration:none}
+    .sponsor strong{font-size:16px}
+    .sponsor-meta{margin-top:6px;font-size:12px;color:var(--muted-fg)}
+    .sponsor-note{margin-top:8px;font-size:13px;color:var(--muted-fg)}
+
+    .claim{max-width:640px;margin:0 auto}
+    .claim-lede{font-size:15px;color:var(--muted-fg);line-height:1.65;text-wrap:pretty}
+    .claim-form{display:flex;flex-direction:column;gap:14px;margin-top:20px}
+    .claim-form label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600}
+    .claim-form input,.claim-form select{font:inherit;font-weight:400;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);min-height:44px}
+    .hint{font-size:12.5px;color:var(--muted-fg);line-height:1.55}
+    .hint[data-state='error']{color:var(--orange)}
+    .done{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
+    .done[hidden]{display:none !important}
+    .alt{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+
+    @media (min-width:720px){
+      .open-slot{flex-direction:row;align-items:center}
+    }
+  </style>
+</Base>

@@ -4,14 +4,12 @@ import Nav from '../components/Nav.astro'
 import Pricing from '../components/Pricing.astro'
 import FinalCta from '../components/FinalCta.astro'
 import Footer from '../components/Footer.astro'
+import { bossPitch, bossPitchPaste, licenseFaqs } from '../data/licenses'
 import {
-  bossPitch,
-  bossPitchPaste,
-  DONATE_AMOUNTS_USD,
-  donateCheckoutAction,
-  donateHref,
-  licenseFaqs,
-} from '../data/licenses'
+  SPONSOR_TIERS,
+  sponsorCheckoutAction,
+  sponsorHref,
+} from '../data/sponsors'
 import { pricingFaqs } from '../data/pricing'
 import { btnOutline, btnPrimary } from '../lib/button-classes'
 
@@ -38,7 +36,7 @@ const breadcrumbJsonLd = {
 ---
 <Base
   title="chmonitor License — Self-hosted licenses (yearly & lifetime)"
-  description="Self-host chmonitor free under GPL-3.0. Buy an optional commercial license sized by host count — yearly or lifetime. No DRM. Hosted cloud is optional."
+  description="Self-host chmonitor free under GPL-3.0. Buy an optional commercial license sized by host count — yearly or lifetime — or sponsor the free build from $59. No DRM. Hosted cloud is optional."
   image="/og/og-pricing.png"
 >
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
@@ -59,32 +57,37 @@ const breadcrumbJsonLd = {
     <!-- Plan cards (shared section, compact: no duplicate header) -->
     <Pricing compact={true} />
 
-    <!-- Donate CTA below the plan cards. Polar PWYW via hooks /checkout/donate. -->
-    <section id="donate" class="band donate-band">
+    <!-- Sponsor tiers below the plan cards. Polar PWYW via hooks
+        /checkout/donate — the wire path predates the Sponsor rename; the
+        product is the same one-off amount checkout. -->
+    <section id="sponsor" class="band sponsor-band">
       <div class="wrap">
-        <div class="donate-card reveal">
-          <div class="donate-ico" aria-hidden="true">
+        <div class="sponsor-card reveal">
+          <div class="sponsor-ico" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.07L12 19.17l8.78-8.78a5.5 5.5 0 0 0 0-7.79z"/></svg>
           </div>
-          <h2>Donate</h2>
-          <p>A one-off $10, $100, or $1,000 is a thank-you for the free OSS build. Include your company logo and website — we show them on the main page.</p>
-          <div class="donate-chips" role="group" aria-label="Donate amount">
-            {DONATE_AMOUNTS_USD.map((amount) => (
-              <a
-                class:list={[amount === 100 ? btnPrimary : btnOutline, 'donate-chip']}
-                href={donateHref(amount)}
-                data-cta={`donate-${amount}`}
-              >
-                ${amount.toLocaleString('en-US')}
-              </a>
+          <h2>Sponsor</h2>
+          <p>A one-off amount that keeps the free GPL-3.0 build moving. No license key, no DRM, no feature unlock. In return we publish your name and website on the <a href="/sponsors">sponsors page</a>, and from $99 your logo under the homepage hero.</p>
+          <ul class="sponsor-tiers" aria-label="Sponsorship tiers">
+            {SPONSOR_TIERS.map((tier) => (
+              <li class="sponsor-tier">
+                <a
+                  class:list={[tier.highlight ? btnPrimary : btnOutline, 'sponsor-chip']}
+                  href={sponsorHref(tier.amountUsd)}
+                  data-cta={`sponsor-${tier.id}`}
+                >
+                  ${tier.amountUsd.toLocaleString('en-US')}
+                </a>
+                <span class="sponsor-tier-pitch">{tier.pitch}</span>
+              </li>
             ))}
-          </div>
-          <form class="donate-custom" method="get" action={donateCheckoutAction()} data-cta="donate-custom">
-            <label class="donate-custom-label">
+          </ul>
+          <form class="sponsor-custom" method="get" action={sponsorCheckoutAction()} data-cta="sponsor-custom">
+            <label class="sponsor-custom-label">
               <span class="sr-only">Custom amount in US dollars</span>
-              <span class="donate-prefix" aria-hidden="true">$</span>
+              <span class="sponsor-prefix" aria-hidden="true">$</span>
               <input
-                class="donate-input"
+                class="sponsor-input"
                 type="number"
                 name="amount"
                 min="1"
@@ -95,8 +98,11 @@ const breadcrumbJsonLd = {
                 aria-label="Custom amount in US dollars"
               />
             </label>
-            <button class={btnOutline} type="submit">Donate</button>
+            <button class={btnOutline} type="submit">Sponsor</button>
           </form>
+          <p class="sponsor-foot">
+            Already paid? <a href="/sponsors#claim">Send your name, website, and logo</a> and we add the listing.
+          </p>
         </div>
       </div>
     </section>
@@ -231,20 +237,24 @@ const breadcrumbJsonLd = {
     .pfaq-item[open] summary svg{transform:rotate(180deg)}
     .pfaq-a{padding:0 18px 18px;font-size:14px;line-height:1.6;color:var(--muted-fg);text-wrap:pretty}
 
-    /* Donate band — sits between the plan cards and the boss pitch. A softened
+    /* Sponsor band — sits between the plan cards and the boss pitch. A softened
        mono surface that reads as a "thank you" aside, not a paid plan. */
-    .donate-band{padding:28px 0 24px}
-    .donate-card{max-width:720px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid var(--border);border-style:dashed;border-radius:var(--radius);background:var(--card);padding:28px 20px}
-    .donate-ico{display:flex;align-items:center;justify-content:center;size:40px;border-radius:999px;background:var(--bg_soft, rgba(127,127,127,.06));margin-bottom:10px}
-    .donate-ico svg{width:22;height:22;color:var(--muted-fg);opacity:.85}
-    .donate-card h2{font-size:clamp(1.25rem,2.6vw,1.5rem);margin:6px 0 4px}
-    .donate-card p{margin:0 auto 0;max-width:48ch;font-size:clamp(14px,2.6vw,15px);color:var(--muted-fg);line-height:1.55}
-    .donate-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px}
-    .donate-chip{min-width:5.5rem;min-height:44px}
-    .donate-custom{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:12px}
-    .donate-custom-label{display:flex;align-items:center;min-height:44px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);padding:0 12px;gap:2px}
-    .donate-prefix{color:var(--muted-fg);font-weight:600}
-    .donate-input{width:7rem;min-height:42px;border:0;background:transparent;font-size:15px;font-weight:600;outline:none}
+    .sponsor-band{padding:28px 0 24px}
+    .sponsor-card{max-width:720px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid var(--border);border-style:dashed;border-radius:var(--radius);background:var(--card);padding:28px 20px}
+    .sponsor-ico{display:flex;align-items:center;justify-content:center;size:40px;border-radius:999px;background:var(--bg_soft, rgba(127,127,127,.06));margin-bottom:10px}
+    .sponsor-ico svg{width:22;height:22;color:var(--muted-fg);opacity:.85}
+    .sponsor-card h2{font-size:clamp(1.25rem,2.6vw,1.5rem);margin:6px 0 4px}
+    .sponsor-card p{margin:0 auto 0;max-width:48ch;font-size:clamp(14px,2.6vw,15px);color:var(--muted-fg);line-height:1.55}
+    .sponsor-card p a{color:var(--orange);text-decoration:underline;text-underline-offset:3px}
+    .sponsor-tiers{list-style:none;padding:0;margin:16px 0 0;width:100%;display:flex;flex-direction:column;gap:10px}
+    .sponsor-tier{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 10px}
+    .sponsor-chip{min-width:5.5rem;min-height:44px}
+    .sponsor-tier-pitch{font-size:13px;color:var(--muted-fg);text-align:left;max-width:34ch}
+    .sponsor-custom{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:14px}
+    .sponsor-custom-label{display:flex;align-items:center;min-height:44px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);padding:0 12px;gap:2px}
+    .sponsor-prefix{color:var(--muted-fg);font-weight:600}
+    .sponsor-input{width:7rem;min-height:42px;border:0;background:transparent;font-size:15px;font-weight:600;outline:none}
+    .sponsor-foot{margin-top:12px !important;font-size:13px}
 
     @media (max-width:640px){
       .price-intro.band{padding-top:48px}
@@ -254,7 +264,7 @@ const breadcrumbJsonLd = {
       .pfaq{margin-top:24px;gap:8px}
       .pfaq-item summary{padding:14px 14px;font-size:14px}
       .pfaq-a{padding:0 14px 14px;font-size:13.5px}
-      .donate-card{padding:22px 16px}
+      .sponsor-card{padding:22px 16px}
     }
   </style>
 </Base>

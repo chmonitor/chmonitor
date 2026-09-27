@@ -29,6 +29,12 @@ const dashboardRoot = join(here, '..')
 const repoRoot = join(dashboardRoot, '../..')
 const DASH_ENV_LOCAL = join(dashboardRoot, '.env.local')
 const HOOKS_ENV = join(repoRoot, 'apps/cloud-hooks/.env.production')
+// The customer-facing name for this product is **Sponsor** (tiers $59/$99/$199
+// on chmonitor.dev/license#sponsors). The Polar product name and env key keep
+// `donate` on purpose: the live product id is committed in
+// apps/cloud-hooks/.env.production, and this script reuses products by name —
+// renaming here would CREATE a duplicate product and swap the committed id on
+// the next run. Rename it as a deliberate migration with POLAR_ACCESS_TOKEN.
 const DONATE_PRODUCT_NAME = 'chmonitor Donate'
 const DONATE_ENV_KEY = 'CHM_POLAR_DONATE_PRODUCT'
 
