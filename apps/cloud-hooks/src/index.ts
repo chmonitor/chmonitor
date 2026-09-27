@@ -5,11 +5,10 @@
  *   POST /webhooks/polar  → validate signature → shared billing core → Telegram
  *   POST /webhooks/clerk  → verify Svix signature → Clerk lifecycle → Telegram
  *   GET  /checkout/license → Polar self-host license checkout (302)
- *   GET  /checkout/donate  → Polar PWYW donate checkout (302, amount in USD)
+ *   GET  /checkout/sponsor → Polar PWYW sponsor checkout (302, amount in USD)
  *   GET  /licenses/lookup  → honor-system Polar checkout/customer lookup
  *   POST /licenses/register → persist company + website in KV
  *   GET  /licenses/public   → opt-in customers wall rows
- *   POST /sponsors/register → persist a sponsor listing request in KV
  *   GET  /healthz         → 200 liveness shell (static, no deps)
  *
  * Scheduled (wrangler.toml [triggers] crons):
@@ -29,7 +28,6 @@ import { collectActivation } from './activation'
 import { detectAnomaly, fetchDailySeries, formatAnomaly } from './anomaly'
 import { fetchClerkMetrics, WEEK_SECONDS } from './clerk-metrics'
 import { handleClerkWebhook } from './clerk-webhook'
-import { handleDonateCheckout } from './donate-checkout'
 import { parseRepo, runExceptionScan } from './exceptions'
 import { resolveGitHubAuth } from './github-app'
 import { fetchIssueStats, runIssueWatch } from './issues'
@@ -39,7 +37,7 @@ import { handleLicensePublic, handleLicenseRegister } from './license-register'
 import { logError, logInfo } from './log'
 import { fetchWorkerExceptions } from './observability'
 import { readProbeSnapshot, runProbes } from './probes'
-import { handleSponsorRegister } from './sponsor-register'
+import { handleSponsorCheckout } from './sponsor-checkout'
 import { collectSummary, formatDigest } from './summary'
 import { Notifier } from './telegram'
 import { collectUsage, utcDay } from './usage'
@@ -351,8 +349,8 @@ export default {
       })
     }
 
-    if (url.pathname === '/checkout/donate') {
-      return handleDonateCheckout(request, env)
+    if (url.pathname === '/checkout/sponsor') {
+      return handleSponsorCheckout(request, env)
     }
 
     if (url.pathname === '/licenses/lookup') {
@@ -365,10 +363,6 @@ export default {
 
     if (url.pathname === '/licenses/public') {
       return handleLicensePublic(request, env)
-    }
-
-    if (url.pathname === '/sponsors/register') {
-      return handleSponsorRegister(request, env)
     }
 
     return new Response('Not Found', { status: 404 })

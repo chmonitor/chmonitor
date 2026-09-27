@@ -7,7 +7,6 @@ import {
   sponsorCheckoutAction,
   sponsorHref,
   sponsorMailto,
-  sponsorRegisterApiHref,
   sponsors,
 } from './sponsors'
 import { describe, expect, test } from 'bun:test'
@@ -44,24 +43,36 @@ describe('sponsorship tiers', () => {
   })
 })
 
-describe('sponsor checkout goes to Polar via hooks, not GitHub Sponsors', () => {
-  test('each tier is a USD checkout on the hooks Worker', () => {
+describe('sponsor checkout forwards the details to Polar', () => {
+  test('pick-only is one hop to the hooks Worker with just the amount', () => {
     expect(sponsorCheckoutAction()).toBe(
-      'https://hooks.chmonitor.dev/checkout/donate'
+      'https://hooks.chmonitor.dev/checkout/sponsor'
     )
     for (const tier of SPONSOR_TIERS) {
       const href = sponsorHref(tier.amountUsd)
       expect(href).toBe(
-        `https://hooks.chmonitor.dev/checkout/donate?amount=${tier.amountUsd}`
+        `https://hooks.chmonitor.dev/checkout/sponsor?amount=${tier.amountUsd}`
       )
       expect(href).not.toContain('github.com/sponsors')
     }
   })
 
-  test('sponsor register posts to the hooks Worker listing endpoint', () => {
-    expect(sponsorRegisterApiHref()).toBe(
-      'https://hooks.chmonitor.dev/sponsors/register'
-    )
+  test('the details path carries name, website, email, and logo', () => {
+    const href = sponsorHref(99, {
+      tier: 'backer',
+      name: 'Acme Analytics',
+      website: 'https://acme.example',
+      email: 'ops@acme.example',
+      logo: 'https://acme.example/logo.svg',
+    })
+    const url = new URL(href)
+    expect(url.pathname).toBe('/checkout/sponsor')
+    expect(url.searchParams.get('amount')).toBe('99')
+    expect(url.searchParams.get('tier')).toBe('backer')
+    expect(url.searchParams.get('name')).toBe('Acme Analytics')
+    expect(url.searchParams.get('website')).toBe('https://acme.example')
+    expect(url.searchParams.get('email')).toBe('ops@acme.example')
+    expect(url.searchParams.get('logo')).toBe('https://acme.example/logo.svg')
   })
 
   test('the Polar product id is still the committed donate product', () => {
@@ -70,6 +81,18 @@ describe('sponsor checkout goes to Polar via hooks, not GitHub Sponsors', () => 
       'utf8'
     )
     expect(env).toMatch(/^CHM_POLAR_DONATE_PRODUCT=[a-f0-9-]{36}$/m)
+    // The route and the module are renamed; the product id key is not, because
+    // it is committed. Assert the rename did not touch the committed key.
+    expect(read('../cloud-hooks/src/sponsor-checkout.ts')).toContain(
+      "SPONSOR_PRODUCT_ENV_KEY = 'CHM_POLAR_DONATE_PRODUCT'"
+    )
+  })
+
+  test('the details form GET-submits to the checkout route itself', () => {
+    const src = read('src/components/SponsorOffer.astro')
+    expect(src).toContain('action={action}')
+    expect(src).toContain('sponsorCheckoutAction()')
+    expect(src).toContain('method="get"')
   })
 
   test('mailto fallback carries the tier price and the fields we publish', () => {
@@ -83,13 +106,78 @@ describe('sponsor checkout goes to Polar via hooks, not GitHub Sponsors', () => 
   })
 })
 
-describe('no sponsor yet renders the open-slot design, not a gap', () => {
-  test('the seed is empty, so the hero slot shows the placeholder', () => {
-    expect(sponsors).toEqual([])
-    expect(heroSponsors()).toEqual([])
+describe('the offer has a pick button and a submit button', () => {
+  const src = read('src/components/SponsorOffer.astro')
+
+  test('every tier offers Pick (direct) and Add my details (the form)', () => {
+    expect(src).toContain('sponsorHref(tier.amountUsd)')
+    expect(src).toContain('data-add-details={tier.id}')
+    expect(src).toMatch(/data-cta=\{`sponsor-pick-\$\{tier\.id\}`\}/)
+    expect(src).toMatch(/data-cta=\{`sponsor-details-\$\{tier\.id\}`\}/)
   })
 
-  test('heroSponsors keeps hero tiers and drops the $59 supporter tier', () => {
+  test('the form collects name, website, email, and logo, then submits', () => {
+    expect(src).toContain('name="name"')
+    expect(src).toContain('name="website"')
+    expect(src).toContain('name="email"')
+    expect(src).toContain('name="logo"')
+    expect(src).toContain('name="tier"')
+    expect(src).toContain('name="amount"')
+    expect(src).toContain('data-cta="sponsor-submit"')
+  })
+
+  test('the amount shown on submit is derived, never hard-coded per tier', () => {
+    expect(src).toMatch(/data-label="Sponsor \{amount\} and continue to Polar"/)
+    expect(src).toContain('amountLabel(defaultTier.amountUsd)')
+    expect(src).toContain('input[name=tier]:checked')
+  })
+
+  test('both surfaces share the one offer component', () => {
+    expect(read('src/pages/license.astro')).toContain('<SponsorOffer />')
+    expect(read('src/pages/sponsors.astro')).toContain('<SponsorOffer />')
+  })
+})
+
+describe('the hero slot lists sponsors and keeps the open slot small', () => {
+  const src = read('src/components/SponsorSlot.astro')
+
+  test('AnyRouter is the first sponsor, linked to anyrouter.dev', () => {
+    expect(sponsors).toHaveLength(1)
+    const [first] = sponsors
+    expect(first.name).toBe('AnyRouter')
+    expect(first.website).toBe('https://anyrouter.dev')
+    expect(first.tier).toBe('backer')
+    expect(first.since).toMatch(/^\d{4}-\d{2}$/)
+    // A hero sponsor must actually earn the hero slot.
+    expect(heroSponsors().map((s) => s.name)).toEqual(['AnyRouter'])
+  })
+
+  test('the open slot stays a compact tile, not a card with a paragraph', () => {
+    expect(src).toContain('data-sponsor-slot')
+    expect(src).toContain('data-sponsor-placeholder')
+    expect(src).toContain('+ your logo')
+    expect(src).toContain('href="/license#sponsor"')
+    // The old long-form copy is gone; the tile carries the price in a <span>.
+    expect(src).not.toMatch(/Sponsor slot open<\/p>/)
+    expect(src).not.toContain('one-off puts your logo and link right here')
+    expect(src).toContain('heroFrom.amountUsd')
+    // Same footprint as a sponsor logo, so the row stays a row.
+    expect(src).toContain('h-11 w-28')
+  })
+
+  test('sponsor links are rel=sponsored so SEO follows the link', () => {
+    expect(src).toContain('rel="noopener sponsored"')
+  })
+
+  test('Hero renders the sponsor slot under the feature list', () => {
+    const hero = read('src/components/Hero.astro')
+    expect(hero).toContain("import SponsorSlot from './SponsorSlot.astro'")
+    expect(hero.indexOf('data-hero-features')).toBeLessThan(
+      hero.indexOf('<SponsorSlot />')
+    )
+  })
+
+  test('heroSponsors still drops a $59 supporter from the hero', () => {
     const rows: Sponsor[] = [
       {
         name: 'Supporter Co',
@@ -100,62 +188,35 @@ describe('no sponsor yet renders the open-slot design, not a gap', () => {
       {
         name: 'Backer Co',
         website: 'https://backer.example',
-        logo: '/sponsors/backer.svg',
         tier: 'backer',
         since: '2026-09',
       },
     ]
     expect(heroSponsors(rows).map((s) => s.name)).toEqual(['Backer Co'])
   })
-
-  test('the hero slot carries the placeholder, the price, and the sponsor link', () => {
-    const src = read('src/components/SponsorSlot.astro')
-    expect(src).toContain('data-sponsor-slot')
-    expect(src).toContain('data-sponsor-placeholder')
-    expect(src).toContain('Your logo')
-    expect(src).toContain('Sponsor slot open')
-    expect(src).toContain('heroFrom.amountUsd')
-    expect(src).toContain('href="/license#sponsor"')
-    expect(src).toContain('heroSponsors()')
-    // The filled state must survive the empty one: rel=sponsored on the link.
-    expect(src).toContain('rel="noopener sponsored"')
-  })
-
-  test('Hero renders the sponsor slot under the feature list', () => {
-    const src = read('src/components/Hero.astro')
-    expect(src).toContain("import SponsorSlot from './SponsorSlot.astro'")
-    expect(src).toContain('<SponsorSlot />')
-    expect(src.indexOf('data-hero-features')).toBeLessThan(
-      src.indexOf('<SponsorSlot />')
-    )
-  })
 })
 
 describe('/sponsors listing page', () => {
   test('the page exists and the sitemap lists it', () => {
     expect(existsSync(join(landingRoot, 'src/pages/sponsors.astro'))).toBe(true)
-    const siteUrls = read('src/lib/site-urls.ts')
-    expect(siteUrls).toContain("path: '/sponsors'")
+    expect(read('src/lib/site-urls.ts')).toContain("path: '/sponsors'")
   })
 
-  test('every tier is offered with its own Polar checkout link', () => {
+  test('the wall lists sponsors and keeps an open tile', () => {
     const src = read('src/pages/sponsors.astro')
-    expect(src).toContain('SPONSOR_TIERS.map')
-    expect(src).toContain('sponsorHref(tier.amountUsd)')
+    expect(src).toContain('sponsors.map')
     expect(src).toContain('data-sponsor-open-slot')
+    expect(src).toContain('+ your logo')
   })
 
-  test('the claim form asks for name, website, and email', () => {
+  test('Polar sends the sponsor back to a paid confirmation', () => {
     const src = read('src/pages/sponsors.astro')
-    expect(src).toContain('name="name" required')
-    expect(src).toContain('name="website" required')
-    expect(src).toContain('name="email" required')
-    expect(src).toContain('name="tier"')
-    expect(src).toContain('sponsorRegisterApiHref')
-    // A failed POST must fall back to email rather than dropping the listing.
-    expect(src).toContain('mailtoFallback')
-    // The email is collected but never published.
-    expect(src).toMatch(/never rendered on the site/i)
+    expect(src).toContain("get('sponsored') !== '1'")
+    expect(src).toMatch(/Payment received/)
+    // The success URL the Worker builds must land here.
+    expect(read('../cloud-hooks/src/sponsor-checkout.ts')).toContain(
+      '/sponsors?sponsored=1&checkout_id={CHECKOUT_ID}'
+    )
   })
 
   test('the footer links the sponsors page', () => {
@@ -174,23 +235,15 @@ describe('the license page sells sponsorship, not donations', () => {
     expect(src).toContain('id="sponsor"')
     expect(src).not.toContain('id="donate"')
     expect(src).toContain('<h2>Sponsor</h2>')
-    expect(src).toContain('>Sponsor</button>')
     expect(src).not.toMatch(/>Donate</)
   })
 
-  test('chips are the three tiers, each with what it gets', () => {
-    expect(src).toContain('SPONSOR_TIERS.map')
-    expect(src).toContain('sponsorHref(tier.amountUsd)')
-    expect(src).toContain('sponsor-tier-pitch')
+  test('the section hosts the shared offer and the PO escape hatch', () => {
     expect(src.indexOf('<Pricing compact={true} />')).toBeLessThan(
       src.indexOf('id="sponsor"')
     )
-  })
-
-  test('the copy promises the hero logo and points at the sponsors page', () => {
-    expect(src).toMatch(/logo under the homepage hero/i)
-    expect(src).toMatch(/sponsors page/i)
-    expect(src).toContain('href="/sponsors#claim"')
-    expect(src).toContain('name="amount"')
+    expect(src).toContain('<SponsorOffer />')
+    expect(src).toContain('sponsorMailto()')
+    expect(src).toMatch(/logo under the homepage hero|PO or a wire/i)
   })
 })

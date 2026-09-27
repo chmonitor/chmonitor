@@ -6,11 +6,11 @@ import FinalCta from '../components/FinalCta.astro'
 import Footer from '../components/Footer.astro'
 import { bossPitch, bossPitchPaste, licenseFaqs } from '../data/licenses'
 import {
-  SPONSOR_TIERS,
-  sponsorCheckoutAction,
-  sponsorHref,
+  SPONSOR_CONTACT_EMAIL,
+  sponsorMailto,
 } from '../data/sponsors'
 import { pricingFaqs } from '../data/pricing'
+import SponsorOffer from '../components/SponsorOffer.astro'
 import { btnOutline, btnPrimary } from '../lib/button-classes'
 
 const allFaqs = [...licenseFaqs, ...pricingFaqs]
@@ -57,9 +57,10 @@ const breadcrumbJsonLd = {
     <!-- Plan cards (shared section, compact: no duplicate header) -->
     <Pricing compact={true} />
 
-    <!-- Sponsor tiers below the plan cards. Polar PWYW via hooks
-        /checkout/donate — the wire path predates the Sponsor rename; the
-        product is the same one-off amount checkout. -->
+    <!-- Sponsor offer below the plan cards. The shared component renders the
+        tiers and the details form on /sponsors too, so the two cannot disagree.
+        The form GET-submits to hooks /checkout/sponsor, which forwards the
+        details to Polar. -->
     <section id="sponsor" class="band sponsor-band">
       <div class="wrap">
         <div class="sponsor-card reveal">
@@ -67,41 +68,10 @@ const breadcrumbJsonLd = {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.07L12 19.17l8.78-8.78a5.5 5.5 0 0 0 0-7.79z"/></svg>
           </div>
           <h2>Sponsor</h2>
-          <p>A one-off amount that keeps the free GPL-3.0 build moving. No license key, no DRM, no feature unlock. In return we publish your name and website on the <a href="/sponsors">sponsors page</a>, and from $99 your logo under the homepage hero.</p>
-          <ul class="sponsor-tiers" aria-label="Sponsorship tiers">
-            {SPONSOR_TIERS.map((tier) => (
-              <li class="sponsor-tier">
-                <a
-                  class:list={[tier.highlight ? btnPrimary : btnOutline, 'sponsor-chip']}
-                  href={sponsorHref(tier.amountUsd)}
-                  data-cta={`sponsor-${tier.id}`}
-                >
-                  ${tier.amountUsd.toLocaleString('en-US')}
-                </a>
-                <span class="sponsor-tier-pitch">{tier.pitch}</span>
-              </li>
-            ))}
-          </ul>
-          <form class="sponsor-custom" method="get" action={sponsorCheckoutAction()} data-cta="sponsor-custom">
-            <label class="sponsor-custom-label">
-              <span class="sr-only">Custom amount in US dollars</span>
-              <span class="sponsor-prefix" aria-hidden="true">$</span>
-              <input
-                class="sponsor-input"
-                type="number"
-                name="amount"
-                min="1"
-                step="1"
-                inputmode="decimal"
-                required
-                placeholder="Other"
-                aria-label="Custom amount in US dollars"
-              />
-            </label>
-            <button class={btnOutline} type="submit">Sponsor</button>
-          </form>
+          <p>A one-off amount that keeps the free GPL-3.0 build moving. No license key, no DRM, no feature unlock. Pick an amount and pay, or add your details and we forward them to Polar so your account carries them and we can list you.</p>
+          <SponsorOffer />
           <p class="sponsor-foot">
-            Already paid? <a href="/sponsors#claim">Send your name, website, and logo</a> and we add the listing.
+            Prefer a PO or a wire? <a href={sponsorMailto()}>Email {SPONSOR_CONTACT_EMAIL}</a> and we will invoice you.
           </p>
         </div>
       </div>
@@ -246,15 +216,7 @@ const breadcrumbJsonLd = {
     .sponsor-card h2{font-size:clamp(1.25rem,2.6vw,1.5rem);margin:6px 0 4px}
     .sponsor-card p{margin:0 auto 0;max-width:48ch;font-size:clamp(14px,2.6vw,15px);color:var(--muted-fg);line-height:1.55}
     .sponsor-card p a{color:var(--orange);text-decoration:underline;text-underline-offset:3px}
-    .sponsor-tiers{list-style:none;padding:0;margin:16px 0 0;width:100%;display:flex;flex-direction:column;gap:10px}
-    .sponsor-tier{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 10px}
-    .sponsor-chip{min-width:5.5rem;min-height:44px}
-    .sponsor-tier-pitch{font-size:13px;color:var(--muted-fg);text-align:left;max-width:34ch}
-    .sponsor-custom{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:14px}
-    .sponsor-custom-label{display:flex;align-items:center;min-height:44px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);padding:0 12px;gap:2px}
-    .sponsor-prefix{color:var(--muted-fg);font-weight:600}
-    .sponsor-input{width:7rem;min-height:42px;border:0;background:transparent;font-size:15px;font-weight:600;outline:none}
-    .sponsor-foot{margin-top:12px !important;font-size:13px}
+    .sponsor-foot{margin-top:14px;font-size:13px}
 
     @media (max-width:640px){
       .price-intro.band{padding-top:48px}

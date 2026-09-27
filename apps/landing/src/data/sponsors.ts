@@ -1,13 +1,9 @@
 /**
  * Sponsors: who funds the free OSS build, and what each tier gets.
  *
- * The seed is empty on purpose. The hero slot and /sponsors both render an
- * open-slot design in that state — a dashed logo placeholder plus the price and
- * a link to the sponsor page — so "no sponsor yet" is a designed state, not a
- * gap someone has to notice.
- *
  * Add a row after the payment lands and the sponsor confirms the listing: their
- * name, website link, and logo are the deliverable.
+ * name, website link, and (optionally) a logo in `public/sponsors/`. The row is
+ * the deliverable — the hero slot and /sponsors both render from it.
  */
 
 import { LICENSE_HOOKS_ORIGIN, salesEmail } from './licenses'
@@ -31,7 +27,7 @@ export interface Sponsor {
   name: string
   /** Public site, linked from the hero slot and the sponsors page. */
   website: string
-  /** Optional logo in public/ — SVG or PNG. The name is the fallback. */
+  /** Optional logo in public/sponsors/ — SVG or PNG. The name is the fallback. */
   logo?: string
   tier: SponsorTierId
   /** YYYY-MM, the month the sponsorship started. */
@@ -41,8 +37,15 @@ export interface Sponsor {
 }
 
 export const sponsors: Sponsor[] = [
-  // Empty until the first confirmed sponsor. The hero slot and /sponsors render
-  // their open-slot designs off this.
+  {
+    name: 'AnyRouter',
+    website: 'https://anyrouter.dev',
+    // Backer = the hero logo slot. No logo file committed yet, so the hero
+    // renders the name as the wordmark; drop one in public/sponsors/ and set
+    // `logo` to swap it in.
+    tier: 'backer',
+    since: '2026-09',
+  },
 ]
 
 /** Sponsors whose tier earns the logo slot under the hero. */
@@ -51,33 +54,55 @@ export function heroSponsors(rows: Sponsor[] = sponsors): Sponsor[] {
 }
 
 /**
- * Sponsor checkout. The amount is USD dollars; the hooks Worker converts to
- * Polar cents.
- *
- * The wire path is still `/checkout/donate` and the Polar product is still
- * `CHM_POLAR_DONATE_PRODUCT`: that var carries a live product id committed in
- * apps/cloud-hooks/.env.production, and renaming it needs a `polar-setup.ts`
- * run with POLAR_ACCESS_TOKEN. The user-facing name is Sponsor. Do not invent a
- * product UUID here.
+ * Sponsor details we collect in our UI and forward to Polar, which stores them
+ * on the customer account (`customer_email` / `customer_name` /
+ * `customer_metadata`) and on the order (`metadata`).
  */
-export const SPONSOR_CHECKOUT_PATH = '/checkout/donate'
-export const SPONSOR_REGISTER_PATH = '/sponsors/register'
+export interface SponsorCheckoutInfo {
+  tier?: SponsorTierId
+  name?: string
+  website?: string
+  email?: string
+  logo?: string
+}
 
-export function sponsorHref(amountUsd: number): string {
+/**
+ * Sponsor checkout on the hooks Worker. Amount is USD dollars; the Worker
+ * resolves `tier` when no amount is given and converts to Polar cents.
+ *
+ * The Polar product is still `CHM_POLAR_DONATE_PRODUCT` — the name predates
+ * the Sponsor rename and that id is committed in
+ * apps/cloud-hooks/.env.production. Do not invent a product UUID here.
+ */
+export const SPONSOR_CHECKOUT_PATH = '/checkout/sponsor'
+
+/**
+ * `amount` only = the "Pick" path: straight to Polar, nothing collected.
+ * With `info` = the details path, forwarded so Polar stores them on the
+ * sponsor's account and we can build the listing from the order.
+ */
+export function sponsorHref(
+  amountUsd: number,
+  info?: SponsorCheckoutInfo
+): string {
   const params = new URLSearchParams({ amount: String(amountUsd) })
+  if (info?.tier) params.set('tier', info.tier)
+  if (info?.name) params.set('name', info.name)
+  if (info?.website) params.set('website', info.website)
+  if (info?.email) params.set('email', info.email)
+  if (info?.logo) params.set('logo', info.logo)
   return `${LICENSE_HOOKS_ORIGIN}${SPONSOR_CHECKOUT_PATH}?${params}`
 }
 
-/** Form action for the custom-amount input. */
+/**
+ * Form action for the details form. It GET-submits straight to the checkout
+ * route, so the same fields reach Polar with or without JavaScript.
+ */
 export function sponsorCheckoutAction(): string {
   return `${LICENSE_HOOKS_ORIGIN}${SPONSOR_CHECKOUT_PATH}`
 }
 
-export function sponsorRegisterApiHref(): string {
-  return `${LICENSE_HOOKS_ORIGIN}${SPONSOR_REGISTER_PATH}`
-}
-
-/** Fallback when the hooks Worker is down, and for PO-style asks. */
+/** Fallback for a PO, a wire transfer, or a checkout that already happened. */
 export function sponsorMailto(
   tierId: SponsorTierId = DEFAULT_SPONSOR_TIER
 ): string {
