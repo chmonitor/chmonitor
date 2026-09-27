@@ -3,7 +3,7 @@ id: ai-insights
 title: AI Insights Engine
 type: spec
 status: active
-updated: 2026-09-27
+updated: 2026-09-28
 tags:
   - insights
   - findings
@@ -350,7 +350,7 @@ and popover stay ClickHouse-engine only.**
   `/postgres/queries`; PeerDB is the second instance of that pattern, not a
   new one.
 
-### Two action-derivation switches (keep both in sync)
+### Two action-derivation switches
 
 The findings store keeps scalars only, so the card **action is re-derived on
 read** — it is never persisted. That makes a metric's action link a function of
@@ -359,28 +359,26 @@ link after a reload**: the card renders correctly in the immediate `generate()`
 response (which still carries the in-memory `action`) and comes back link-less
 from the store on the next read.
 
-A `peerdb_` metric is therefore covered by **two** derivations, and they must
-agree:
+There are two switches because there are two read paths, and **a metric belongs
+to the switch its own source is read by — and only that one**:
 
-- `derivePeerDBAction` (`read-peerdb-insights.ts`) is the one that is
-  load-bearing: it is the read path `readPeerDBInsights` — and so every PeerDB
-  card — actually travels. A new PeerDB metric with no case here renders fine on
-  first generation and loses its link on the next read.
-- `deriveAction` (`read-insights.ts`) carries the whole `peerdb_` family too
-  (exact cases for the fleet-wide + slot-lag metrics, plus a
-  `startsWith('peerdb_')` fallback in its `default`), so the two switches cannot
-  disagree about what a `peerdb_` metric links to. Note it is a private
-  function and PeerDB rows live under the reserved store host key, so today no
-  production read reaches those cases — they are the guard, not the mechanism.
-  Keep them in sync anyway; a metric added to one switch and not the other is the
-  exact drift this rule exists to prevent.
-- Both match per-mirror metrics by **prefix**, not by enumerating suffixes: a
+- `deriveAction` (`read-insights.ts`) is the read path for **ClickHouse** metrics.
+  It is private, has one call site in `toCard`, and `readInsights` reads by a
+  real `hostId` — so a `peerdb_` metric can never reach it.
+- `derivePeerDBAction` (`read-peerdb-insights.ts`) is the **only** switch a new
+  **PeerDB** metric needs. It is the read path `readPeerDBInsights` — and so
+  every PeerDB card — actually travels, so a new PeerDB metric with no case here
+  renders fine on first generation and loses its link on the next read. It
+  matches per-mirror metrics by **prefix**, not by enumerating suffixes: a
   per-mirror metric is `peerdb_mirror_errors:<flow-slug>` and the store no
   longer knows the flow list. Actions deep-link to the existing `/peerdb` and
   `/peerdb/peers` pages, not new routes.
+- A `peerdb_` case in `deriveAction` is dead code, not a guard. PeerDB rows are
+  persisted under `peerdbInsightStoreHostId()` and read back only by
+  `readPeerDBInsights`, so no `peerdb_` branch in `deriveAction` can ever fire
+  (#3474).
 - The same discipline applies to a future source: it brings its own
-  `derive*Action` read-path switch, and the metric belongs in the
-  host-scoped one as well.
+  `derive*Action` read-path switch, and its own metrics go there.
 
 ### Identity determinism (applies to PeerDB too)
 
