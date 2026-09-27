@@ -9,6 +9,7 @@
 
 import { createAdvisorTools } from './advisor-tools'
 import { createAskUserTools } from './ask-user-tools'
+import { createSearchTools } from './catalog-tools'
 import { createControlTools } from './control-tools'
 import { createDashboardTools } from './dashboard-tools'
 import { createHealthTools } from './health-tools'
@@ -31,6 +32,13 @@ import { createVisualizationTools } from './visualization-tools'
 
 /**
  * Create all agent tools for a given host.
+ *
+ * **This docblock is documentation, not the source of truth.** The per-tool
+ * inventory lives in `./catalog.ts` (`TOOL_CATALOG`), which
+ * `__tests__/tool-catalog.test.ts` checks against `createAllTools()` on every
+ * run. An earlier version of this comment was hand-maintained and had already
+ * drifted, so the grouping below is kept deliberately coarse. To answer "which
+ * tools exist", read the catalog or call `search_tools` — not this list.
  *
  * Lean primitive set:
  *  - Schema & exploration: query, list_databases, list_tables,
@@ -57,6 +65,7 @@ import { createVisualizationTools } from './visualization-tools'
  *    get_postgres_metrics, list_postgres_slow_query_patterns,
  *    get_postgres_table_stats
  *  - PeerDB (env-gated): get_peerdb_mirror_status, get_peerdb_metrics
+ *  - Discovery (always): search_tools
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
   const enableControlTools = process.env.AGENT_ENABLE_CONTROL_TOOLS === 'true'
@@ -72,7 +81,7 @@ export function createAllTools(hostId: number, includeControlTools = false) {
     process.env.CHM_FEATURE_PEERDB_AGENT === 'true' &&
     process.env.CHM_FEATURE_PEERDB_ENABLED !== 'false'
 
-  return {
+  const tools = {
     // Schema & exploration
     ...createSchemaTools(hostId),
 
@@ -141,4 +150,10 @@ export function createAllTools(hostId: number, includeControlTools = false) {
     // snapshot progress, per-peer stats, fleet aggregates.
     ...(enablePeerDBTools ? createPeerDBTools() : {}),
   }
+
+  // `search_tools` is added LAST, and bound to the map built above, so it can
+  // only ever advertise a tool that is actually registered this request — the
+  // Postgres / PeerDB / control gates are inherited rather than re-checked.
+  // It is not a gate: the whole tool set is still sent (see catalog.ts).
+  return { ...tools, ...createSearchTools(tools) }
 }

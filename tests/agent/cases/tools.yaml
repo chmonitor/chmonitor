@@ -110,3 +110,20 @@
         lag, naming either a specific slot/peer or stating that no PeerDB data
         was available. It must not invent slot names or lag figures, and must
         not claim to have changed anything.
+
+- description: 'Tools — search_tools discovers a tool on demand'
+  tags: [tools]
+  metadata:
+    covers: [search_tools]
+  vars:
+    prompt: >-
+      You can do something with the storage of this cluster that I have not
+      asked you about yet. What is it, and how do I look it up?
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        The answer describes a real tool this deployment can run (part or disk
+        forecasting, TTL suggestions, mutation-impact estimation) and does not
+        invent a capability that no tool provides.
