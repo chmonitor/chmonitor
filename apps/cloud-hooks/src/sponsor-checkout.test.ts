@@ -113,26 +113,47 @@ describe('parseSponsorDetails', () => {
     expect(
       parseSponsorDetails(
         new URL(
-          'https://x/s?name=Acme&website=https://acme.example&email=ops@acme.example&logo=https://acme.example/logo.svg'
+          'https://x/s?name=Acme&website=https://acme.com&email=ops@acme.com&logo=https://acme.com/logo.svg'
         )
       )
     ).toEqual({
       name: 'Acme',
-      website: 'https://acme.example',
-      email: 'ops@acme.example',
-      logo: 'https://acme.example/logo.svg',
+      website: 'https://acme.com',
+      email: 'ops@acme.com',
+      logo: 'https://acme.com/logo.svg',
     })
   })
 
-  test('a bad website, logo, or email is dropped, not rejected', () => {
+  test('a bad website or logo is dropped, never rejected', () => {
     // The payment must never fail because a detail field was malformed.
     expect(
       parseSponsorDetails(
         new URL(
-          'https://x/s?name=Acme&website=javascript:alert(1)&email=nope&logo=not-a-url'
+          'https://x/s?name=Acme&website=javascript:alert(1)&logo=not-a-url'
         )
       )
     ).toEqual({ name: 'Acme' })
+  })
+
+  test('an unusable email is rejected, because Polar 422s the checkout', () => {
+    // Observed in production: Polar refuses to attach a customer to a
+    // placeholder domain and 422s, which used to surface as a bare 502.
+    for (const email of [
+      'nope',
+      'you@example.com',
+      'you@probe.example',
+      'a@acme.invalid',
+      'a@localhost',
+    ]) {
+      const url = new URL(`https://x/s?email=${encodeURIComponent(email)}`)
+      expect(parseSponsorDetails(url), email).toMatchObject({
+        error: expect.stringMatching(/deliverable/i),
+      })
+    }
+    for (const email of ['ops@acme.com', 'hello@chmonitor.dev']) {
+      const url = new URL(`https://x/s?email=${encodeURIComponent(email)}`)
+      expect(parseSponsorDetails(url), email).toMatchObject({ email })
+    }
   })
 
   test('angle brackets are stripped and values are length-capped', () => {
@@ -173,25 +194,25 @@ describe('GET /checkout/sponsor', () => {
   test('forwards the details to the Polar customer AND the order', async () => {
     const fetchImpl = polarMock((body) => {
       // Account: pre-fills the checkout and lands on the Polar customer.
-      expect(body.customer_email).toBe('ops@acme.example')
+      expect(body.customer_email).toBe('ops@acme.com')
       expect(body.customer_name).toBe('Acme')
       expect(body.customer_metadata).toEqual({
         sponsorship: 'backer',
-        website: 'https://acme.example',
-        logo: 'https://acme.example/logo.svg',
+        website: 'https://acme.com',
+        logo: 'https://acme.com/logo.svg',
       })
       // Order: what we read back to build the listing.
       expect(body.metadata).toEqual({
         kind: 'sponsor',
         tier: 'backer',
         name: 'Acme',
-        website: 'https://acme.example',
-        logo: 'https://acme.example/logo.svg',
+        website: 'https://acme.com',
+        logo: 'https://acme.com/logo.svg',
       })
     })
     const res = await handleSponsorCheckout(
       req(
-        'tier=backer&name=Acme&website=https%3A%2F%2Facme.example&email=ops%40acme.example&logo=https%3A%2F%2Facme.example%2Flogo.svg'
+        'tier=backer&name=Acme&website=https%3A%2F%2Facme.com&email=ops%40acme.com&logo=https%3A%2F%2Facme.com%2Flogo.svg'
       ),
       env,
       { fetchImpl }
@@ -216,6 +237,47 @@ describe('GET /checkout/sponsor', () => {
   test('400 on a missing or invalid amount', async () => {
     expect((await handleSponsorCheckout(req(''), env)).status).toBe(400)
     expect((await handleSponsorCheckout(req('amount=0'), env)).status).toBe(400)
+  })
+
+  test('400 on a placeholder email, before Polar is called at all', async () => {
+    const fetchImpl = polarMock()
+    const res = await handleSponsorCheckout(
+      req('amount=99&email=you%40example.com'),
+      env,
+      { fetchImpl }
+    )
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({
+      error: 'email must be a real, deliverable address',
+    })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  test("Polar's 422 on a customer becomes a 400, not a gateway error", async () => {
+    const res = await handleSponsorCheckout(
+      req('amount=99&email=ops%40acme.com'),
+      env,
+      {
+        fetchImpl: mock(
+          async () => new Response('{"detail":"bad"}', { status: 422 })
+        ),
+      }
+    )
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({
+      error: 'polar_rejected_email',
+      status: 422,
+    })
+  })
+
+  test('a Polar 422 with no email is still a 502', async () => {
+    const res = await handleSponsorCheckout(req('amount=99'), env, {
+      fetchImpl: mock(
+        async () => new Response('{"detail":"bad"}', { status: 422 })
+      ),
+    })
+    expect(res.status).toBe(502)
+    expect(await res.json()).toEqual({ error: 'polar_error', status: 422 })
   })
 
   test('501 when token or the Polar product id is missing', async () => {

@@ -1,4 +1,5 @@
 ---
+import { isSponsorEmailAcceptable } from '../data/sponsors'
 import {
   DEFAULT_SPONSOR_TIER,
   sponsorCheckoutAction,
@@ -131,9 +132,11 @@ const amountLabel = (usd: number) => `$${usd.toLocaleString('en-US')}`
         type="email"
         name="email"
         maxlength="200"
-        placeholder="ops@acme.example"
+        placeholder="ops@acme.com"
         autocomplete="email"
+        aria-describedby="sponsor-email-error"
       />
+      <span class="err" id="sponsor-email-error" data-email-error hidden></span>
     </label>
     <label>
       Logo URL <span class="opt">optional</span>
@@ -227,19 +230,51 @@ const amountLabel = (usd: number) => `$${usd.toLocaleString('en-US')}`
       })
     })
 
-    // Blocks an obviously bad email before Polar sees it. Everything else is
-    // optional, and a blank form still works — it is just a pick.
+    /* Blocks an unusable email before Polar sees it. Polar 422s the whole
+       checkout when it cannot attach a customer to the address, so a
+       placeholder domain would otherwise land the sponsor on a gateway error
+       instead of a message. Everything else stays optional: a blank form is
+       still just a pick. */
+    var emailEl = form.querySelector('input[name=email]')
+    var emailErr = form.querySelector('[data-email-error]')
+    function showEmailError(message) {
+      if (!emailErr) return
+      emailErr.textContent = message || ''
+      emailErr.hidden = !message
+    }
+    if (emailEl) {
+      emailEl.addEventListener('input', function () {
+        if (String(emailEl.value || '').trim()) showEmailError('')
+      })
+    }
     form.addEventListener('submit', function (e) {
       if (!price()) {
         e.preventDefault()
+        showEmailError('')
         if (amount) amount.focus()
         return
       }
-      var email = form.querySelector('input[name=email]')
-      if (email && String(email.value || '').trim() && !email.checkValidity()) {
-        e.preventDefault()
-        email.focus()
+      if (!emailEl) return
+      var value = String(emailEl.value || '').trim()
+      if (!value) {
+        showEmailError('')
+        return
       }
+      if (!emailEl.checkValidity()) {
+        e.preventDefault()
+        showEmailError('That does not look like an email address.')
+        emailEl.focus()
+        return
+      }
+      if (!acceptable(value)) {
+        e.preventDefault()
+        showEmailError(
+          'Polar cannot send a receipt to that domain — use the address you actually read.'
+        )
+        emailEl.focus()
+        return
+      }
+      showEmailError('')
     })
 
     label()
@@ -272,6 +307,8 @@ const amountLabel = (usd: number) => `$${usd.toLocaleString('en-US')}`
   .fields label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600}
   .fields input{font:inherit;font-weight:400;min-height:42px;padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg)}
   .fields .opt{font-weight:400;color:var(--muted-fg)}
+  .fields .err{font-weight:500;color:var(--orange)}
+  .fields .err[hidden]{display:none}
   .details > [type=submit]{width:100%;margin-top:14px}
   @media (min-width:560px){.details > [type=submit]{width:auto}}
   .hint{margin:10px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted-fg)}

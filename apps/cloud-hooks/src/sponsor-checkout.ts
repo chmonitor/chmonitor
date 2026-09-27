@@ -31,7 +31,11 @@ import {
   successOrigin,
 } from './license-http'
 import { logError } from './log'
-import { isSponsorTier, sponsorTier } from '@chm/pricing'
+import {
+  isSponsorEmailAcceptable,
+  isSponsorTier,
+  sponsorTier,
+} from '@chm/pricing'
 
 /** Polar USD custom-price minimum (50 cents). */
 export const SPONSOR_MIN_CENTS = 50
@@ -122,18 +126,28 @@ function cap(value: string | null, max: number): string {
 }
 
 /**
- * Read the sponsor details off the query. Nothing here 400s: a malformed
- * website or a mistyped email must not block the payment — Polar collects and
- * verifies the billing identity anyway, and a bad value is simply not stored.
+ * Read the sponsor details off the query.
+ *
+ * Website and logo are best-effort: a malformed one is dropped, never a 400, so
+ * a typo cannot block a payment. The email is different — Polar 422s the whole
+ * checkout when it cannot attach a customer to the address, so an unusable one
+ * is rejected here, with a message the caller can show.
  */
-export function parseSponsorDetails(url: URL): SponsorDetails {
+export function parseSponsorDetails(
+  url: URL
+): SponsorDetails | { error: string } {
   const out: SponsorDetails = {}
   const name = cap(url.searchParams.get('name'), 120)
   if (name) out.name = name
   const website = cap(url.searchParams.get('website'), 200)
   if (/^https?:\/\/[^\s]+$/.test(website)) out.website = website
   const email = cap(url.searchParams.get('email'), 200)
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) out.email = email
+  if (email) {
+    if (!isSponsorEmailAcceptable(email)) {
+      return { error: 'email must be a real, deliverable address' }
+    }
+    out.email = email
+  }
   const logo = cap(url.searchParams.get('logo'), 300)
   if (/^https?:\/\/[^\s]+$/.test(logo)) out.logo = logo
   return out
@@ -152,6 +166,9 @@ export async function handleSponsorCheckout(
     return jsonResponse(request, { error: parsed.error }, 400)
   }
   const details = parseSponsorDetails(url)
+  if ('error' in details) {
+    return jsonResponse(request, { error: details.error }, 400)
+  }
 
   const token = env.POLAR_ACCESS_TOKEN
   if (!token) {
@@ -202,6 +219,16 @@ export async function handleSponsorCheckout(
       deps.fetchImpl ?? fetch
     )
     if (!polar.ok) {
+      // Polar 422s when it cannot attach the customer to the address (an
+      // undeliverable domain we did not predict). That is the sponsor's input,
+      // not our gateway, so it is not a 502.
+      if (polar.status === 422 && details.email) {
+        return jsonResponse(
+          request,
+          { error: 'polar_rejected_email', status: 422 },
+          400
+        )
+      }
       return jsonResponse(
         request,
         { error: 'polar_error', status: polar.status },

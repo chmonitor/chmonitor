@@ -63,6 +63,33 @@ export function isSponsorTier(value: string): value is SponsorTierId {
   return SPONSOR_TIER_IDS.some((id) => id === value)
 }
 
+/**
+ * Domains that are syntactically valid but can never receive mail. Polar
+ * 422s the whole checkout when it cannot attach a customer to one of these, so
+ * a sponsor who types `you@example.com` would land on a gateway error instead
+ * of a message. Fail before Polar instead — in the form and in the Worker.
+ */
+const RESERVED_EMAIL_DOMAINS = new Set([
+  'example.com',
+  'example.org',
+  'example.net',
+  'example',
+  'invalid',
+  'localhost',
+  'test',
+])
+
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export function isSponsorEmailAcceptable(email: string): boolean {
+  const value = email.trim().toLowerCase()
+  if (!EMAIL_SHAPE.test(value)) return false
+  const domain = value.slice(value.lastIndexOf('@') + 1)
+  if (RESERVED_EMAIL_DOMAINS.has(domain)) return false
+  const tld = domain.slice(domain.lastIndexOf('.') + 1)
+  return !RESERVED_EMAIL_DOMAINS.has(tld)
+}
+
 export function sponsorTier(id: SponsorTierId): SponsorTier {
   // Callers pass a SponsorTierId, so a miss can only be a bad cast from
   // unvalidated input. Floor it on the first tier instead of undefined.
