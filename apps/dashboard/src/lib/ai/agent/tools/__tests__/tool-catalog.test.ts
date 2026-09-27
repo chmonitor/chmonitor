@@ -17,6 +17,8 @@
  * one `process.env`, so a module-scope flip leaks into the other tool test
  * files in the same run and fails their gate assertions.
  */
+import type { ToolCategory } from '../catalog'
+
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
 const GATE_KEYS = [
@@ -132,7 +134,7 @@ describe('catalog entry shape', () => {
   test('every gated tool carries the category that matches its gate', () => {
     // A tool that is env-gated must not be filed under a category the prompt
     // presents as always available.
-    const gated: Record<string, string> = {
+    const gated: Record<string, ToolCategory> = {
       kill_query: 'control',
       kill_mutation: 'control',
       optimize_table: 'control',

@@ -128,9 +128,9 @@ export interface SearchToolsResult {
  * `available` is the caller's post-gate tool map, so the result can never
  * advertise an unregistered tool.
  */
-export function createSearchTools(
-  available: SearchableTools
-): { search_tools: ReturnType<typeof dynamicTool> } {
+export function createSearchTools(available: SearchableTools): {
+  search_tools: ReturnType<typeof dynamicTool>
+} {
   // `search_tools` is attached after the map it searches is built, so it is not
   // in `available`; add its own name so it is not reported as gated off.
   const registered = new Set([...Object.keys(available), 'search_tools'])
