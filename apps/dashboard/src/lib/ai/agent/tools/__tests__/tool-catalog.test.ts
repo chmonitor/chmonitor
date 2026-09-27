@@ -122,9 +122,8 @@ describe('catalog entry shape', () => {
       'peerdb',
       'discovery',
     ])
-    for (const [name, entry] of Object.entries(TOOL_CATALOG)) {
+    for (const entry of Object.values(TOOL_CATALOG)) {
       expect(declared.has(entry.category)).toBe(true)
-      if (!declared.has(entry.category)) break
     }
     // Every tool the agent ships should be discoverable by category too.
     expect(toolCategories().length).toBeGreaterThan(1)
