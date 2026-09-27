@@ -1121,7 +1121,7 @@ jobs:
             esac
             key="${line%%=*}"
             case "$key" in
-              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*|CHM_POLAR_DONATE_*)
+              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*|CHM_POLAR_SPONSOR_*)
                 extra_vars+=(--var "${key}:${line#*=}")
                 ;;
             esac
@@ -1142,7 +1142,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         # Same Polar vars as preview: cloud-hooks .env.production, including
-        # CHM_POLAR_DONATE_* (required for GET /checkout/donate).
+        # CHM_POLAR_SPONSOR_* (required for GET /checkout/sponsor).
         run: |
           set -euo pipefail
           extra_vars=()
@@ -1152,7 +1152,7 @@ jobs:
             esac
             key="${line%%=*}"
             case "$key" in
-              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*|CHM_POLAR_DONATE_*)
+              CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*|CHM_POLAR_SPONSOR_*)
                 extra_vars+=(--var "${key}:${line#*=}")
                 ;;
             esac

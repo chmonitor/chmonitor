@@ -261,8 +261,10 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `CHM_POLAR_LICENSE_*`, 502 `{error, status}` on Polar failure (never throws).
 - `sponsor-checkout.ts` — `GET /checkout/sponsor?amount=59&tier=&name=&website=&email=&logo=`.
   One-off sponsorship on the Polar pay-what-you-want product
-  `CHM_POLAR_DONATE_PRODUCT` (from `polar-setup.ts`, `chmonitor Donate`,
-  `amount_type: custom`; the key is legacy, the surface is Sponsor). Amount is
+  `CHM_POLAR_SPONSOR_PRODUCT` (from `polar-setup.ts`, `chmonitor Sponsor`,
+  `amount_type: custom`). Renamed in place from `chmonitor Donate` /
+  `CHM_POLAR_DONATE_PRODUCT` on 2026-09-27 — same product id, so the checkout
+  was never at risk. Amount is
   USD dollars, Polar's `amount` is **cents**; optional `cents=` is Polar-native
   and wins. `tier` alone resolves the price from `@chm/pricing`; `amount` wins
   over `tier`, so a custom amount typed next to a checked tier is honoured.
@@ -328,13 +330,22 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   PAT with `issues:write`, repo secret `CLOUD_HOOKS_GITHUB_TOKEN`) and
   `CF_OBSERVABILITY_API_TOKEN`
   (token scope **Account → Workers Observability → Read**).
-  `CHM_POLAR_LICENSE_*` + `CHM_POLAR_DONATE_PRODUCT` + `CHM_POLAR_SERVER` come from
+  `CHM_POLAR_LICENSE_*` + `CHM_POLAR_SPONSOR_PRODUCT` + `CHM_POLAR_SERVER` come from
   `apps/cloud-hooks/.env.production` (deploy-worker overlays app env on
   dashboard env; locally `bun scripts/deploy-worker.ts cloud-hooks`).
   Required for `GET /checkout/license` and `GET /checkout/sponsor`. Also used so
-  license webhook products skip the Cloud plan path. The sponsor (legacy
-  `donate`) product is created by `apps/dashboard/scripts/polar-setup.ts` when
-  `POLAR_ACCESS_TOKEN` is set; until then `/checkout/sponsor` returns 501.
+  license webhook products skip the Cloud plan path. The sponsor product is
+  created by `apps/dashboard/scripts/polar-setup.ts` when `POLAR_ACCESS_TOKEN` is
+  set; until then `/checkout/sponsor` returns 501.
+
+  **Renaming a Polar product is a two-sided change.** The env key in
+  `.env.production`, `env.ts`, `sponsor-checkout.ts`, `deploy.config.ts`, and the
+  `CHM_POLAR_*` grep in `.github/workflows/cloudflare.yml` must all move
+  together — the workflow's grep is what passes the var to the Worker, and a
+  missed glob 501s the checkout with no test failure. Rename the product **in
+  place** (`PATCH /v1/products/{id}`) so the id never changes, then move the key
+  in one commit; `polar-setup.ts` matches products by name, so its constant must
+  change in that same commit or the next run creates a duplicate.
 - **Exception-scan config** (non-secret, injected at deploy via `--var`, all
   optional with defaults): `CF_ACCOUNT_ID` (required to query — from
   `CLOUDFLARE_ACCOUNT_ID`), `GITHUB_REPOSITORY` (default `chmonitor/chmonitor`),

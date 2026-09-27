@@ -124,9 +124,10 @@ export interface SponsorCheckoutInfo {
  * Sponsor checkout on the hooks Worker. Amount is USD dollars; the Worker
  * resolves `tier` when no amount is given and converts to Polar cents.
  *
- * The Polar product is still `CHM_POLAR_DONATE_PRODUCT` — the name predates
- * the Sponsor rename and that id is committed in
- * apps/cloud-hooks/.env.production. Do not invent a product UUID here.
+ * The Polar product is `chmonitor Sponsor`
+ * (`CHM_POLAR_SPONSOR_PRODUCT`), renamed in place from `chmonitor Donate`, so
+ * the id in apps/cloud-hooks/.env.production never changed. Do not invent a
+ * product UUID here.
  */
 export const SPONSOR_CHECKOUT_PATH = '/checkout/sponsor'
 

@@ -29,7 +29,7 @@ checkout, which Polar stores on the customer account (`customer_email`,
 `customer_name`, `customer_metadata`) and on the order (`metadata`). The
 rendered listing is still the committed seed
 `apps/landing/src/data/sponsors.ts` — the landing site is static. Polar product IDs
-(`CHM_POLAR_LICENSE_*`, `CHM_POLAR_DONATE_PRODUCT`, `CHM_POLAR_SERVER`) live in
+(`CHM_POLAR_LICENSE_*`, `CHM_POLAR_SPONSOR_PRODUCT`, `CHM_POLAR_SERVER`) live in
 `apps/cloud-hooks/.env.production`. `apps/dashboard` is a ClickHouse monitor:
 no `/billing` UI, no Polar checkout/portal routes, no Polar product IDs in
 dashboard env. Polar Cloud Free/Pro/Max products are archived.

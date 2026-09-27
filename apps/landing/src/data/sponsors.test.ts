@@ -88,16 +88,50 @@ describe('sponsor checkout forwards the details to Polar', () => {
     expect(url.searchParams.get('logo')).toBe('https://acme.example/logo.svg')
   })
 
-  test('the Polar product id is still the committed donate product', () => {
+  test('the committed product id is the one the Worker reads', () => {
+    // The product was renamed in place, so the id is unchanged from the old
+    // `donate` key — but the key name must agree with the Worker, or the
+    // checkout 501s the moment the var stops being passed at deploy.
     const env = readFileSync(
       join(landingRoot, '../cloud-hooks/.env.production'),
       'utf8'
     )
-    expect(env).toMatch(/^CHM_POLAR_DONATE_PRODUCT=[a-f0-9-]{36}$/m)
-    // The route and the module are renamed; the product id key is not, because
-    // it is committed. Assert the rename did not touch the committed key.
+    expect(env).toMatch(/^CHM_POLAR_SPONSOR_PRODUCT=[a-f0-9-]{36}$/m)
+    expect(env).not.toContain('CHM_POLAR_DONATE_PRODUCT')
     expect(read('../cloud-hooks/src/sponsor-checkout.ts')).toContain(
-      "SPONSOR_PRODUCT_ENV_KEY = 'CHM_POLAR_DONATE_PRODUCT'"
+      "SPONSOR_PRODUCT_ENV_KEY = 'CHM_POLAR_SPONSOR_PRODUCT'"
+    )
+    // The deploy passes it as a var; if the glob misses, the Worker has no
+    // product and every sponsor checkout 501s in production.
+    const config = read('../cloud-hooks/deploy.config.ts')
+    expect(config).toContain("'CHM_POLAR_SPONSOR_*'")
+    expect(config).not.toContain('CHM_POLAR_DONATE_*')
+    const workflow = read('../../.github/workflows/cloudflare.yml')
+    expect(workflow).toContain(
+      'CHM_POLAR_SERVER|CHM_POLAR_LICENSE_*|CHM_POLAR_SPONSOR_*)'
+    )
+    expect(workflow).not.toContain('CHM_POLAR_DONATE_*')
+  })
+
+  test('polar-setup reuses the sponsor product by name, not the old one', () => {
+    // Products are matched by name, so a stale name here would create a
+    // duplicate and swap the committed id on the next setup run.
+    const setup = read('../dashboard/scripts/polar-setup.ts')
+    expect(setup).toContain("const SPONSOR_PRODUCT_NAME = 'chmonitor Sponsor'")
+    expect(setup).toContain(
+      "const SPONSOR_ENV_KEY = 'CHM_POLAR_SPONSOR_PRODUCT'"
+    )
+    // The invariant is that no CODE uses the old name. Comments may still
+    // mention it — that is the rename's history, not a stale reference.
+    const code = setup.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+    expect(code).not.toContain('chmonitor Donate')
+    expect(code).not.toContain('CHM_POLAR_DONATE')
+    // A leftover reference to the deleted const would be a ReferenceError that
+    // kills the whole run, and the identifier is not a key so a grep misses it.
+    expect(code).not.toMatch(/DONATE_\w+/)
+    // The sponsor product must never be archived as a leftover Cloud SKU.
+    expect(setup).toContain(
+      'if (product.name === SPONSOR_PRODUCT_NAME) continue'
     )
   })
 

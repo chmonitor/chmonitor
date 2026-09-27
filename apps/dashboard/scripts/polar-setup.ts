@@ -29,14 +29,16 @@ const dashboardRoot = join(here, '..')
 const repoRoot = join(dashboardRoot, '../..')
 const DASH_ENV_LOCAL = join(dashboardRoot, '.env.local')
 const HOOKS_ENV = join(repoRoot, 'apps/cloud-hooks/.env.production')
-// The customer-facing name for this product is **Sponsor** (tiers $59/$99/$199
-// on chmonitor.dev/license#sponsors). The Polar product name and env key keep
-// `donate` on purpose: the live product id is committed in
-// apps/cloud-hooks/.env.production, and this script reuses products by name —
-// renaming here would CREATE a duplicate product and swap the committed id on
-// the next run. Rename it as a deliberate migration with POLAR_ACCESS_TOKEN.
-const DONATE_PRODUCT_NAME = 'chmonitor Donate'
-const DONATE_ENV_KEY = 'CHM_POLAR_DONATE_PRODUCT'
+// The one-off **Sponsor** product behind /license#sponsor and /sponsors
+// ($19/$59/$99/$199 tiers, any custom amount). Renamed from `chmonitor Donate`
+// in place, so the product id is unchanged and the value in
+// apps/cloud-hooks/.env.production is the same one.
+//
+// This name is load-bearing: products are matched by name, so a stale value
+// here would CREATE a duplicate product and swap the committed id on the next
+// run. If you ever rename the product in Polar, change this in the same commit.
+const SPONSOR_PRODUCT_NAME = 'chmonitor Sponsor'
+const SPONSOR_ENV_KEY = 'CHM_POLAR_SPONSOR_PRODUCT'
 
 function loadEnvFile(path: string): void {
   if (!existsSync(path)) return
@@ -123,7 +125,7 @@ async function archiveOldCloudProducts(
 ): Promise<void> {
   for (const product of products) {
     if (isLicenseProductName(product.name)) continue
-    if (product.name === DONATE_PRODUCT_NAME) continue
+    if (product.name === SPONSOR_PRODUCT_NAME) continue
     const known = OLD_CLOUD_PRODUCT_NAMES.has(product.name)
     const looksCloud = /^chmonitor (Free|Pro|Max|Fleet|Enterprise)\b/.test(
       product.name
@@ -173,18 +175,18 @@ async function ensureLicenseProduct(
   return { envKey, id: created.id }
 }
 
-async function ensureDonateProduct(
+async function ensureSponsorProduct(
   existing: Map<string, string>
 ): Promise<{ envKey: string; id: string }> {
-  const found = existing.get(DONATE_PRODUCT_NAME)
+  const found = existing.get(SPONSOR_PRODUCT_NAME)
   if (found) {
-    console.log(`= reuse  ${DONATE_PRODUCT_NAME} → ${found}`)
-    return { envKey: DONATE_ENV_KEY, id: found }
+    console.log(`= reuse  ${SPONSOR_PRODUCT_NAME} → ${found}`)
+    return { envKey: SPONSOR_ENV_KEY, id: found }
   }
   const created = await polar.products.create({
-    name: DONATE_PRODUCT_NAME,
+    name: SPONSOR_PRODUCT_NAME,
     description:
-      'One-off donation to keep the chmonitor OSS build moving. Pay what you want.',
+      'One-off sponsorship to keep the free GPL-3.0 build moving. $19, $59, $99, or $199 — your name on the sponsors page, and your logo under the homepage hero from $99. Pay what you want.',
     prices: [
       {
         amountType: 'custom',
@@ -194,8 +196,8 @@ async function ensureDonateProduct(
       },
     ],
   })
-  console.log(`+ create ${DONATE_PRODUCT_NAME} → ${created.id}`)
-  return { envKey: DONATE_ENV_KEY, id: created.id }
+  console.log(`+ create ${SPONSOR_PRODUCT_NAME} → ${created.id}`)
+  return { envKey: SPONSOR_ENV_KEY, id: created.id }
 }
 
 async function main() {
@@ -215,14 +217,14 @@ async function main() {
       lines.push(`${envKey}=${id}`)
     }
   }
-  const donate = await ensureDonateProduct(existing)
-  lines.push(`${donate.envKey}=${donate.id}`)
+  const sponsor = await ensureSponsorProduct(existing)
+  lines.push(`${sponsor.envKey}=${sponsor.id}`)
   console.log('\n# Paste into apps/cloud-hooks/.env.production:')
   console.log(lines.join('\n'))
 
   const polarLines = lines.filter(
     (l) =>
-      l.startsWith('CHM_POLAR_LICENSE_') || l.startsWith('CHM_POLAR_DONATE_')
+      l.startsWith('CHM_POLAR_LICENSE_') || l.startsWith('CHM_POLAR_SPONSOR_')
   )
   if (polarLines.length) upsertEnvLocal(HOOKS_ENV, polarLines)
 }
@@ -242,7 +244,7 @@ function upsertEnvLocal(path: string, lines: string[]): void {
   while (kept.length && kept[kept.length - 1] === '') kept.pop()
   const block = [
     '',
-    '# Self-host Polar licenses + donate (from scripts/polar-setup.ts)',
+    '# Self-host Polar licenses + sponsor (from scripts/polar-setup.ts)',
     ...incoming.values(),
     '',
   ]

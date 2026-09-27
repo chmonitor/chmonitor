@@ -54,7 +54,7 @@
 # (never crashes).
 #
 # License + donate product mapping (non-secret, set via CI `--var`):
-#   CHM_POLAR_SERVER, CHM_POLAR_LICENSE_<SKU>_<TERM>, CHM_POLAR_DONATE_PRODUCT
+#   CHM_POLAR_SERVER, CHM_POLAR_LICENSE_<SKU>_<TERM>, CHM_POLAR_SPONSOR_PRODUCT
 # Used by GET /checkout/license and GET /checkout/donate (Polar POST
 # /v1/checkouts/). Donate is pay-what-you-want; `amount` query is USD dollars
 # (converted to Polar cents). Polar's success_url MUST include `{CHECKOUT_ID}`.

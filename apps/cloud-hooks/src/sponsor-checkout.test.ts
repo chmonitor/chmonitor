@@ -13,7 +13,7 @@ import { describe, expect, mock, test } from 'bun:test'
 const env: Env = {
   POLAR_ACCESS_TOKEN: 'polar_test',
   CHM_POLAR_SERVER: 'sandbox',
-  CHM_POLAR_DONATE_PRODUCT: 'prod_sponsor',
+  CHM_POLAR_SPONSOR_PRODUCT: 'prod_sponsor',
 }
 
 function req(query: string, method = 'GET'): Request {
