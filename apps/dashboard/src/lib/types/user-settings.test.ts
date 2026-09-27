@@ -87,4 +87,17 @@ describe('mergeUserSettings', () => {
     expect(DEFAULT_USER_SETTINGS.byteUnit).toBe('binary')
     expect(DEFAULT_USER_SETTINGS.numberFormat).toBe('abbreviated')
   })
+
+  test('a clean profile HIDES unavailable pages, so the rail starts clean (#3463)', () => {
+    expect(DEFAULT_USER_SETTINGS.dimUnavailablePages).toBe(false)
+  })
+
+  test('an explicit stored Dim survives the default flip', () => {
+    // The flip only moves the out-of-the-box state. A user who already picked
+    // Dim keeps every greyed row.
+    expect(
+      mergeUserSettings({ dimUnavailablePages: true }).dimUnavailablePages
+    ).toBe(true)
+    expect(mergeUserSettings({}).dimUnavailablePages).toBe(false)
+  })
 })

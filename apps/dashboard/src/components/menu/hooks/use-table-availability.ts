@@ -58,6 +58,30 @@ export function useTableAvailability(hostId: number): {
 }
 
 /**
+ * Resolve one `tableCheck` against the batched availability map.
+ *
+ * Fail-open by contract: a table is available unless the map EXPLICITLY reports
+ * `false`. Callers that also need the loading state must gate their decision on
+ * it themselves (see `lib/menu/unavailable-visibility.ts`) so the one-sided
+ * fail-open default here is never mistaken for a settled answer.
+ *
+ * Pure, so a group can resolve all of its children from one map read instead of
+ * one hook call per child.
+ *
+ * @param available - The host's availability map
+ * @param tableCheck - The table name or array of table names to check
+ */
+export function tableCheckAvailable(
+  available: Record<string, boolean>,
+  tableCheck: string | string[] | undefined
+): boolean {
+  if (!tableCheck) return true
+
+  const tables = Array.isArray(tableCheck) ? tableCheck : [tableCheck]
+  return tables.every((table) => available[table] !== false)
+}
+
+/**
  * Selects a single table's availability status by key from the batched map.
  *
  * Backed by {@link useTableAvailability}, so every component reuses the one shared
@@ -76,13 +100,8 @@ export function useIsTableAvailable(
     return { available: true, isLoading: false }
   }
 
-  const tables = Array.isArray(tableCheck) ? tableCheck : [tableCheck]
-
-  // Treat as available unless explicitly reported as false in the map (fail-open)
-  const isAvailable = tables.every((table) => available[table] !== false)
-
   return {
-    available: isAvailable,
+    available: tableCheckAvailable(available, tableCheck),
     isLoading,
   }
 }

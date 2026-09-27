@@ -23,6 +23,23 @@ import { readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { menuItemPaletteValue } from '@/components/controls/command-palette-utils'
+import {
+  resolveUnavailable,
+  type UnavailableState,
+} from '@/lib/menu/unavailable-visibility'
+
+/** A settled host under the shipped default (Hide), at the demo's permissions. */
+function unavailableState(
+  overrides: Partial<UnavailableState>
+): UnavailableState {
+  return {
+    tableAvailable: true,
+    metadataDbSatisfied: true,
+    availabilityLoading: false,
+    dimUnavailablePages: false,
+    ...overrides,
+  }
+}
 
 interface FlatItem {
   item: MenuItem
@@ -264,6 +281,56 @@ describe('Tools group (interactive utilities)', () => {
     expect(hrefsOf('System')).not.toContain('/schema-diff')
     expect(hrefsOf('System')).not.toContain('/settings-diff')
     expect(hrefsOf('System')).not.toContain('/ttl-partition-health')
+  })
+})
+
+describe('Insights group availability policy (#3463)', () => {
+  // The two classes must not be confused. Traffic's backing table is missing on
+  // some hosts → the page can NEVER work there → it leaves the rail. Scheduled
+  // Reports only needs a metadata DB the operator can configure → it stays
+  // greyed so a self-hoster who adds D1 later can still find it.
+  const insights = menuItemsConfig.find((item) => item.title === 'Insights')
+  const child = (href: string) =>
+    insights?.items?.find((item) => item.href === href)
+
+  const hiddenOnDemoHost = (item: MenuItem) =>
+    resolveUnavailable(
+      item,
+      unavailableState({ tableAvailable: false, metadataDbSatisfied: false })
+    ).visibility
+
+  test('Traffic declares tableCheck and therefore HIDES by default', () => {
+    const traffic = child('/traffic')
+    expect(traffic?.tableCheck).toBe('system.query_log')
+    expect(traffic?.hideWhenUnavailable).toBeUndefined()
+    expect(hiddenOnDemoHost(traffic!)).toBe('hidden')
+  })
+
+  test('Scheduled Reports is config-gated and therefore DIMS by default', () => {
+    const reports = child('/report-settings')
+    expect(reports?.requiresMetadataDb).toBe(true)
+    expect(reports?.tableCheck).toBeUndefined()
+    expect(reports?.hideWhenUnavailable).toBeUndefined()
+    expect(hiddenOnDemoHost(reports!)).toBe('dimmed')
+  })
+
+  test('an item can opt in to hiding its config gate', () => {
+    const optIn = {
+      requiresMetadataDb: true,
+      hideWhenUnavailable: true,
+    }
+    expect(
+      resolveUnavailable(
+        optIn,
+        unavailableState({ tableAvailable: true, metadataDbSatisfied: false })
+      ).visibility
+    ).toBe('hidden')
+  })
+
+  test('Insights and Insights Settings survive, so the group is never empty', () => {
+    expect(child('/insights')?.tableCheck).toBeUndefined()
+    expect(child('/insights-settings')?.tableCheck).toBeUndefined()
+    expect(insights?.items?.length).toBe(4)
   })
 })
 
