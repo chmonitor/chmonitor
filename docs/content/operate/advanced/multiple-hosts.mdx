@@ -61,7 +61,7 @@ CLICKHOUSE_PASSWORD=prod_pass,staging_pass
 
 ### Docker
 
-Replace `vX.Y.Z` with the release tag you want to run.
+Replace `X.Y.Z` with the image tag you want to run.
 
 <Tabs items={['Same credentials', 'Different credentials']}>
 <Tab value="Same credentials">
@@ -73,7 +73,7 @@ docker run -d \
   -e CLICKHOUSE_PASSWORD='' \
   -p 3000:3000 \
   --name chmonitor \
-  ghcr.io/chmonitor/chmonitor:vX.Y.Z
+  ghcr.io/chmonitor/chmonitor:X.Y.Z
 ```
 </Tab>
 <Tab value="Different credentials">
@@ -85,7 +85,7 @@ docker run -d \
   -e CLICKHOUSE_PASSWORD='password1,password2' \
   -p 3000:3000 \
   --name chmonitor \
-  ghcr.io/chmonitor/chmonitor:vX.Y.Z
+  ghcr.io/chmonitor/chmonitor:X.Y.Z
 ```
 </Tab>
 </Tabs>

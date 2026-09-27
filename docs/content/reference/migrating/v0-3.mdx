@@ -38,7 +38,7 @@ Browser variables must be set **at build time** (in your CI build step or build 
 ### Pull the new image
 
 ```bash
-docker pull ghcr.io/chmonitor/chmonitor:v0.3.0
+docker pull ghcr.io/chmonitor/chmonitor:0.3
 ```
 </Step>
 <Step>
@@ -74,7 +74,7 @@ docker run -d \
   -e CLERK_SECRET_KEY=sk_live_... \
   -p 3000:3000 \
   --name chmonitor \
-  ghcr.io/chmonitor/chmonitor:v0.3.0
+  ghcr.io/chmonitor/chmonitor:0.3
 ```
 </Step>
 <Step>

@@ -133,7 +133,7 @@ docker run -d \
   -e CHM_CONFIG_FILE='/etc/clickhouse-monitor/config.toml' \
   -v "$PWD/config.toml:/etc/clickhouse-monitor/config.toml:ro" \
   -p 3000:3000 \
-  ghcr.io/chmonitor/chmonitor:vX.Y.Z
+  ghcr.io/chmonitor/chmonitor:X.Y.Z
 ```
 </Tab>
 <Tab value="Env-only">
@@ -145,7 +145,7 @@ docker run -d \
   -e CHM_FEATURE_AGENT_ACCESS='authenticated' \
   -e CHM_FEATURE_SETTINGS_ENABLED='false' \
   -p 3000:3000 \
-  ghcr.io/chmonitor/chmonitor:vX.Y.Z
+  ghcr.io/chmonitor/chmonitor:X.Y.Z
 ```
 </Tab>
 </Tabs>
