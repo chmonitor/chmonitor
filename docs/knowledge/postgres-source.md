@@ -1,6 +1,7 @@
 ---
 id: postgres-source
 type: spec
+status: active
 related:
   - cloud-saas-mode
   - billing-checkout-flow
