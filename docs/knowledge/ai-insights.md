@@ -44,9 +44,11 @@ is fragmented", "replication is lagging" — generated and **cached server-side*
 
 - **Collectors** run read-only ClickHouse queries (anomaly recent-vs-baseline,
   storage fragmentation/compression, readonly replicas, replication lag),
-  porting the SQL/severity heuristics from the agent's `anomaly-tools.ts` /
-  `insights-tools.ts`. They **never throw** — any failure yields `[]` so the
-  feature degrades on read-only clusters or missing system tables.
+  porting the SQL/severity heuristics from the agent's
+  `lib/ai/agent/tools/insight-tools.ts` (the same file as `explain_anomaly_score`
+  — there is no separate `anomaly-tools.ts`). They **never throw** — any failure
+  yields `[]` so the feature degrades on read-only clusters or missing system
+  tables.
 - **Schema-optimization collector** (`collectSchemaOptimizations` in
   `collectors.ts`, category `optimization`) reuses the query advisor's
   `analyzeQuery` (`lib/ai/advisor/recommendation-engine.ts`) — the same engine
