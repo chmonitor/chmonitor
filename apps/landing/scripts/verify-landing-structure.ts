@@ -286,8 +286,20 @@ if (!heroSlot) {
 } else if (!heroSlot.includes('href="/license#sponsor"')) {
   console.error('MISSING hero sponsor link to /license#sponsor')
   failed = true
+} else if (
+  !heroSlot.includes('rel="noopener sponsored"') ||
+  !heroSlot.includes('ref=anyrouter') ||
+  !heroSlot.includes('utm_source=chmonitor') ||
+  !heroSlot.includes('utm_medium=sponsor') ||
+  !heroSlot.includes('utm_campaign=homepage-hero') ||
+  !heroSlot.includes('utm_content=hero')
+) {
+  // The hero link is the one place a sponsor click is measured. If a param goes
+  // missing, the numbers are silently wrong — fail the build instead.
+  console.error('MISSING ref/utm params on the homepage hero sponsor link')
+  failed = true
 } else {
-  console.log('OK: homepage hero carries the sponsor row + invitation')
+  console.log('OK: homepage hero carries the sponsor row + tracked link')
 }
 
 // The offer is one shared component rendered on two pages. Assert the two things

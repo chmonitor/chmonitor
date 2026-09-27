@@ -6,6 +6,7 @@ import {
   type Sponsor,
   sponsorCheckoutAction,
   sponsorHref,
+  sponsorLink,
   sponsors,
 } from './sponsors'
 import { describe, expect, test } from 'bun:test'
@@ -184,6 +185,104 @@ describe('the offer has a pick button and a submit button', () => {
   test('both surfaces share the one offer component', () => {
     expect(read('src/pages/license.astro')).toContain('<SponsorOffer />')
     expect(read('src/pages/sponsors.astro')).toContain('<SponsorOffer />')
+  })
+})
+
+describe('sponsor links carry ref and utm params', () => {
+  const [anyrouter] = sponsors
+
+  test('adds ref plus the four utm params', () => {
+    const url = new URL(sponsorLink(anyrouter, 'homepage-hero'))
+    expect(url.origin + url.pathname).toBe('https://anyrouter.dev/')
+    expect(url.searchParams.get('ref')).toBe('anyrouter')
+    expect(url.searchParams.get('utm_source')).toBe('chmonitor')
+    expect(url.searchParams.get('utm_medium')).toBe('sponsor')
+    expect(url.searchParams.get('utm_campaign')).toBe('homepage-hero')
+    // The tier travels with the click, so a sponsor sees what their money bought.
+    expect(url.searchParams.get('utm_content')).toBe('hero')
+  })
+
+  test('ref falls back to a slug of the name', () => {
+    const url = new URL(
+      sponsorLink(
+        {
+          name: 'Acme Data Labs',
+          website: 'https://acme.example',
+          tier: 'supporter',
+          since: '2026-09',
+        },
+        'sponsors-wall'
+      )
+    )
+    expect(url.searchParams.get('ref')).toBe('acme-data-labs')
+  })
+
+  test('the campaign names the surface, so the hero and the wall are separable', () => {
+    const hero = new URL(sponsorLink(anyrouter, 'homepage-hero'))
+    const wall = new URL(sponsorLink(anyrouter, 'sponsors-wall'))
+    expect(hero.searchParams.get('utm_campaign')).toBe('homepage-hero')
+    expect(wall.searchParams.get('utm_campaign')).toBe('sponsors-wall')
+    // Everything else is identical, or the numbers will not add up.
+    for (const key of ['ref', 'utm_source', 'utm_medium', 'utm_content']) {
+      expect(hero.searchParams.get(key)).toBe(wall.searchParams.get(key))
+    }
+  })
+
+  test("never overwrites the sponsor's own tracking", () => {
+    // Their ref is their campaign key and their utm_source is their referral.
+    const url = new URL(
+      sponsorLink(
+        {
+          name: 'Acme',
+          website:
+            'https://acme.example/?ref=their-spring-promo&utm_source=newsletter',
+          ref: 'ignored',
+          tier: 'backer',
+          since: '2026-09',
+        },
+        'homepage-hero'
+      )
+    )
+    expect(url.searchParams.get('ref')).toBe('their-spring-promo')
+    expect(url.searchParams.get('utm_source')).toBe('newsletter')
+    // Ours still fills the gaps.
+    expect(url.searchParams.get('utm_medium')).toBe('sponsor')
+    expect(url.searchParams.get('utm_campaign')).toBe('homepage-hero')
+    expect(url.searchParams.get('utm_content')).toBe('backer')
+  })
+
+  test('preserves the sponsor path and hash, and survives a bad url', () => {
+    const withPath = new URL(
+      sponsorLink(
+        {
+          name: 'Acme',
+          website: 'https://acme.example/pricing?utm_medium=cpc',
+          tier: 'supporter',
+          since: '2026-09',
+        },
+        'homepage-hero'
+      )
+    )
+    expect(withPath.pathname).toBe('/pricing')
+    expect(withPath.searchParams.get('utm_medium')).toBe('cpc')
+
+    // A malformed seed must not take the page down at build time.
+    const bad: Sponsor = {
+      name: 'Broken',
+      website: 'not a url',
+      tier: 'supporter',
+      since: '2026-09',
+    }
+    expect(sponsorLink(bad, 'homepage-hero')).toBe('not a url')
+  })
+
+  test('both surfaces use the helper, not the raw website', () => {
+    expect(read('src/components/SponsorSlot.astro')).toContain(
+      "sponsorLink(s, 'homepage-hero')"
+    )
+    expect(read('src/pages/sponsors.astro')).toContain(
+      "sponsorLink(s, 'sponsors-wall')"
+    )
   })
 })
 

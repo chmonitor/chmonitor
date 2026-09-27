@@ -7,6 +7,7 @@ import SponsorOffer from '../components/SponsorOffer.astro'
 import {
   SPONSOR_CONTACT_EMAIL,
   SPONSOR_TIERS,
+  sponsorLink,
   sponsorTier,
   sponsors,
 } from '../data/sponsors'
@@ -64,7 +65,7 @@ const breadcrumbJsonLd = {
               <li class="tile" data-sponsor-tier={s.tier}>
                 <a
                   class="group"
-                  href={s.website}
+                  href={sponsorLink(s, 'sponsors-wall')}
                   target="_blank"
                   rel="noopener sponsored"
                   title={s.name}
