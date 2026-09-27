@@ -123,12 +123,21 @@ Built on the **Vercel AI SDK** (not LangGraph). `clickhouse-agent.ts` is the
 runner; prompts in `prompts/`; the skill registry/loader in `skills/` (the
 skills themselves live at repo-root `.agents/skills/`); MCP glue in `mcp/`.
 
-Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 21
-tool modules exposing 39 tools total (30 by default; the 3 destructive
+Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 22
+tool modules exposing 40 tools total (31 by default; the 3 destructive
 `control-tools` are gated off unless `AGENT_ENABLE_CONTROL_TOOLS=true`, the 4
 cross-source `postgres-*-tools` are gated off unless
 `CHM_FEATURE_POSTGRES_SOURCE=true`, and the PeerDB `peerdb-tools` module is
-gated off unless `CHM_FEATURE_PEERDB_AGENT=true`):
+gated off unless `CHM_FEATURE_PEERDB_AGENT=true`).
+
+**`tools/catalog.ts` is the per-tool source of truth**, not the `index.ts`
+docblock: `TOOL_CATALOG` holds each tool's `category`, a routing `summary`,
+search `keywords`, and its `core` marker. Descriptions are read off the live tool
+definition at call time, so there is one source per fact.
+`__tests__/tool-catalog.test.ts` fails when a tool has no catalog entry or an
+entry has no tool, and asserts the core/long-tail partition. When you add a
+tool, add its catalog row in the same change and update the tool-count assertion
+in `__tests__/tool-docs-sync.test.ts`.
 
 | Module | Tools |
 |--------|-------|
@@ -139,6 +148,7 @@ gated off unless `CHM_FEATURE_PEERDB_AGENT=true`):
 | `replication-tools` | `get_replication_status` |
 | `merge-tools` | `get_merge_status` |
 | `plan-tools` | `update_plan` |
+| `catalog-tools` | `search_tools` (always available; bound to the post-gate tool map so it never advertises a tool that is not callable) |
 | `skill-tools` | `load_skill` |
 | `reference-query-tools` | `find_reference_query` |
 | `ask-user-tools` | `ask_user` |
@@ -154,9 +164,12 @@ gated off unless `CHM_FEATURE_PEERDB_AGENT=true`):
 | `postgres-table-tools` (gated) | `get_postgres_table_stats` |
 | `peerdb-tools` (gated) | `get_peerdb_mirror_status`, `get_peerdb_metrics` |
 
-`helpers.ts` and `sql-analysis.ts` are shared helpers, not tool modules. The
+`helpers.ts` and `sql-analysis.ts` are shared helpers, not tool modules. `catalog.ts`
+is the declarative tool catalog (no `createXTools()` factory) that
+`catalog-tools.ts` reads. The
 design is a deliberately lean set of primitives — anything not covered is done
-with the `query` tool plus a `load_skill` recipe. **Keep the user-facing docs at
+with the `query` tool plus a `load_skill` recipe, or found first with
+`search_tools`. **Keep the user-facing docs at
 `../../docs/content/guide/ai-agent.mdx` in sync** whenever you add/rename/remove
 a tool, skill, or agent env var.
 

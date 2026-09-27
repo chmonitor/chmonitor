@@ -150,13 +150,26 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     'get_running_queries',
     'query',
     'Queries executing right now, ordered by elapsed time.',
-    ['running', 'in flight', 'currently executing', 'long query', 'active queries']
+    [
+      'running',
+      'in flight',
+      'currently executing',
+      'long query',
+      'active queries',
+    ]
   ),
   get_slow_queries: e(
     'get_slow_queries',
     'query',
     'Slowest completed queries in a time window (default last hour), ranked per execution. Use list_slow_query_patterns instead for "which query shape is expensive overall".',
-    ['slow query', 'slowest', 'query log', 'latency', 'took long', 'performance']
+    [
+      'slow query',
+      'slowest',
+      'query log',
+      'latency',
+      'took long',
+      'performance',
+    ]
   ),
   get_failed_queries: e(
     'get_failed_queries',
@@ -168,7 +181,14 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     'list_slow_query_patterns',
     'query',
     'Normalized slow-query patterns from system.query_log grouped by query hash: calls, duration percentiles, CPU, memory, bytes, cache hit ratio.',
-    ['patterns', 'normalized', 'query shapes', 'which query shape', 'aggregate cost', 'grouped']
+    [
+      'patterns',
+      'normalized',
+      'query shapes',
+      'which query shape',
+      'aggregate cost',
+      'grouped',
+    ]
   ),
   explain_query: e(
     'explain_query',
@@ -180,7 +200,14 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     'estimate_query_cost',
     'query',
     'Pre-flight cost of a query (rows scanned, bytes read, peak memory, wall time) from EXPLAIN alone, without running it.',
-    ['estimate', 'cost', 'how expensive', 'before running', 'dry run', 'predict']
+    [
+      'estimate',
+      'cost',
+      'how expensive',
+      'before running',
+      'dry run',
+      'predict',
+    ]
   ),
 
   // ── Health ──
@@ -188,7 +215,15 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     'get_metrics',
     'health',
     'Server health: version, uptime, active connections, memory. The first call on an unfamiliar host.',
-    ['health', 'uptime', 'version', 'cpu', 'memory', 'connections', 'server status'],
+    [
+      'health',
+      'uptime',
+      'version',
+      'cpu',
+      'memory',
+      'connections',
+      'server status',
+    ],
     true
   ),
   get_disk_usage: e(
@@ -233,7 +268,13 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     'forecast_disk_capacity',
     'capacity',
     'Project when disks run out of free space from recent write growth, plus the top contributing tables.',
-    ['forecast', 'when will disk fill', 'capacity planning', 'runway', 'projection']
+    [
+      'forecast',
+      'when will disk fill',
+      'capacity planning',
+      'runway',
+      'projection',
+    ]
   ),
   suggest_ttl_adjustment: e(
     'suggest_ttl_adjustment',
@@ -247,13 +288,28 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     'get_optimization_recommendations',
     'advisor',
     'Ranked skip-index, projection, partition-key, and PREWHERE recommendations for one slow query, with DDL and estimated savings.',
-    ['optimize', 'recommendations', 'skip index', 'projection', 'prewhere', 'make faster']
+    [
+      'optimize',
+      'recommendations',
+      'skip index',
+      'projection',
+      'prewhere',
+      'make faster',
+    ]
   ),
   get_tuning_suggestions: e(
     'get_tuning_suggestions',
     'advisor',
     'Ranked schema and settings lint for a database or table: needless Nullable, oversized ints, codecs, LowCardinality, TTL/PARTITION BY bloat, risky server settings.',
-    ['tuning', 'lint', 'settings', 'nullable', 'lowcardinality', 'codec', 'schema review']
+    [
+      'tuning',
+      'lint',
+      'settings',
+      'nullable',
+      'lowcardinality',
+      'codec',
+      'schema review',
+    ]
   ),
   recommend_materialized_view: e(
     'recommend_materialized_view',
@@ -290,7 +346,13 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     'find_reference_query',
     'knowledge',
     'Search the dashboard library of 100+ vetted, version-aware monitoring queries and return the closest matches with their SQL.',
-    ['reference query', 'known query', 'template', 'library', 'catalog of queries'],
+    [
+      'reference query',
+      'known query',
+      'template',
+      'library',
+      'catalog of queries',
+    ],
     true
   ),
 
@@ -367,7 +429,13 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     'get_postgres_table_stats',
     'postgres',
     'Per-table Postgres health: worst dead-tuple bloat and unused indexes, with last vacuum/analyze times.',
-    ['postgres bloat', 'dead tuples', 'unused index', 'pg vacuum', 'pg table stats']
+    [
+      'postgres bloat',
+      'dead tuples',
+      'unused index',
+      'pg vacuum',
+      'pg table stats',
+    ]
   ),
 
   // ── PeerDB (env-gated) ──
@@ -375,7 +443,13 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     'get_peerdb_mirror_status',
     'peerdb',
     'PeerDB mirror state: no arguments for a worst-first fleet overview, or one mirrorName for its rows-synced total, per-table counts, batches, and errors.',
-    ['peerdb', 'mirror', 'replication lag', 'which mirrors failing', 'cdc status']
+    [
+      'peerdb',
+      'mirror',
+      'replication lag',
+      'which mirrors failing',
+      'cdc status',
+    ]
   ),
   get_peerdb_metrics: e(
     'get_peerdb_metrics',
@@ -421,5 +495,7 @@ export function longTailToolNames(): string[] {
 
 /** Every distinct category present in the catalog, sorted for stable output. */
 export function toolCategories(): ToolCategory[] {
-  return [...new Set(catalogToolNames().map((n) => TOOL_CATALOG[n].category))].sort()
+  return [
+    ...new Set(catalogToolNames().map((n) => TOOL_CATALOG[n].category)),
+  ].sort()
 }

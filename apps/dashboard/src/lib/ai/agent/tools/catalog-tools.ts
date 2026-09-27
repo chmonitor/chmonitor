@@ -27,9 +27,9 @@ import { z } from 'zod'
 
 import {
   catalogToolNames,
-  type ToolCatalogEntry,
   TOOL_CATALOG,
   TOOL_SEARCH_RESULT_LIMIT,
+  type ToolCatalogEntry,
   toolCategories,
 } from './catalog'
 import { capResultRows, truncationNote } from './helpers'
@@ -40,6 +40,14 @@ export interface AvailableTool {
   name: string
   description: string
 }
+
+/**
+ * Hard cap on the query string, matching the zod `.max()` on the input schema.
+ * The AI SDK validates `inputSchema` before `execute` in a real run, but
+ * `execute` is also reachable directly (tests, custom callers), so the bound is
+ * re-applied here rather than assumed.
+ */
+const MAX_QUERY_CHARS = 200
 
 /**
  * Tokenize a natural-language query into lowercase term fragments. Splits on
@@ -109,7 +117,9 @@ export interface SearchToolsResult {
 export function createSearchTools(
   available: Record<string, { description?: string }>
 ): { search_tools: ReturnType<typeof dynamicTool> } {
-  const registered = new Set(Object.keys(available))
+  // `search_tools` is attached after the map it searches is built, so it is not
+  // in `available`; add its own name so it is not reported as gated off.
+  const registered = new Set([...Object.keys(available), 'search_tools'])
 
   return {
     search_tools: dynamicTool({
@@ -118,7 +128,7 @@ export function createSearchTools(
       inputSchema: z.object({
         query: z
           .string()
-          .max(200)
+          .max(MAX_QUERY_CHARS)
           .describe(
             'What you want to do, in plain language (e.g. "which replication slot is lagging", "recommend a skip index", "chart query volume per hour"). Omit to list the core tools and the available categories.'
           ),
@@ -145,11 +155,9 @@ export function createSearchTools(
           category?: string
           includeCore?: boolean
         }
-        const trimmed = query.trim()
+        const trimmed = query.trim().slice(0, MAX_QUERY_CHARS)
         const queryTerms = terms(trimmed)
-        const unavailable = catalogToolNames().filter(
-          (n) => !registered.has(n)
-        )
+        const unavailable = catalogToolNames().filter((n) => !registered.has(n))
 
         const candidates = catalogToolNames()
           .map((name) => TOOL_CATALOG[name])
@@ -158,13 +166,20 @@ export function createSearchTools(
           .filter((entry) => includeCore || !entry.core)
           .filter((entry) => !category || entry.category === category)
 
-        // No query and no category: return the core set in catalog order, which
-        // is the useful answer to "what can I do?".
+        // No query: the useful answer to a bare "what can I do?" is the core
+        // set in catalog order, not the whole catalog. A `category` or an
+        // explicit `includeCore: false` is already a filter, so those pass the
+        // candidate list through instead of forcing the core set.
         const ranked =
           queryTerms.length === 0
-            ? candidates
+            ? includeCore && !category
+              ? candidates.filter((entry) => entry.core)
+              : candidates
             : candidates
-                .map((entry) => ({ entry, score: scoreEntry(entry, queryTerms) }))
+                .map((entry) => ({
+                  entry,
+                  score: scoreEntry(entry, queryTerms),
+                }))
                 .filter((r) => r.score > 0)
                 .sort(
                   (a, b) =>
