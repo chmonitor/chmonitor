@@ -1,13 +1,11 @@
 import {
   heroSponsors,
   isSponsorEmailAcceptable,
-  SPONSOR_CONTACT_EMAIL,
   SPONSOR_PAGE_HREF,
   SPONSOR_TIERS,
   type Sponsor,
   sponsorCheckoutAction,
   sponsorHref,
-  sponsorMailto,
   sponsors,
 } from './sponsors'
 import { describe, expect, test } from 'bun:test'
@@ -18,11 +16,14 @@ const landingRoot = join(import.meta.dir, '../..')
 const read = (rel: string) => readFileSync(join(landingRoot, rel), 'utf8')
 
 describe('sponsorship tiers', () => {
-  test('three one-off tiers at $59, $99, $199, ascending', () => {
-    expect(SPONSOR_TIERS.map((tier) => tier.amountUsd)).toEqual([59, 99, 199])
+  test('four one-off tiers at $19, $59, $99, $199, ascending', () => {
+    expect(SPONSOR_TIERS.map((tier) => tier.amountUsd)).toEqual([
+      19, 59, 99, 199,
+    ])
     expect(SPONSOR_TIERS.map((tier) => tier.id)).toEqual([
       'supporter',
       'backer',
+      'hero',
       'partner',
     ])
     for (const tier of SPONSOR_TIERS) {
@@ -36,11 +37,21 @@ describe('sponsorship tiers', () => {
     expect(highlighted[0].hero).toBe(true)
   })
 
-  test('the hero slot is earned at $99 and up, not at $59', () => {
+  test('the hero slot is earned at $99 and up, not below', () => {
     const byId = Object.fromEntries(SPONSOR_TIERS.map((t) => [t.id, t]))
     expect(byId.supporter.hero).toBe(false)
-    expect(byId.backer.hero).toBe(true)
+    expect(byId.backer.hero).toBe(false)
+    expect(byId.hero.hero).toBe(true)
     expect(byId.partner.hero).toBe(true)
+  })
+
+  test('the ladder escalates: each rung adds something', () => {
+    // $19 is the name alone; $59 adds the link; $99 adds the hero mark. A card
+    // should never have to say what it does NOT get.
+    expect(SPONSOR_TIERS[0].pitch).toBe('Your name on the sponsors page.')
+    expect(SPONSOR_TIERS[1].pitch).toMatch(/link/i)
+    expect(SPONSOR_TIERS[2].pitch).toMatch(/hero/i)
+    expect(SPONSOR_TIERS[3].pitch).toMatch(/larger|short line/i)
   })
 })
 
@@ -105,16 +116,6 @@ describe('sponsor checkout forwards the details to Polar', () => {
     expect(src).toContain('sponsorCheckoutAction()')
     expect(src).toContain('method="get"')
   })
-
-  test('mailto fallback carries the tier price and the fields we publish', () => {
-    const href = sponsorMailto('partner')
-    expect(href.startsWith(`mailto:${SPONSOR_CONTACT_EMAIL}?`)).toBe(true)
-    const decoded = decodeURIComponent(href)
-    expect(decoded).toContain('$199')
-    expect(decoded).toContain('Name:')
-    expect(decoded).toContain('Website:')
-    expect(decoded).toContain('Logo URL (optional):')
-  })
 })
 
 describe('the offer has a pick button and a submit button', () => {
@@ -137,10 +138,47 @@ describe('the offer has a pick button and a submit button', () => {
     expect(src).toContain('data-cta="sponsor-submit"')
   })
 
+  test('the card grid absorbs a new rung without a CSS change', () => {
+    expect(src).toMatch(/grid-template-columns:repeat\(auto-fit,minmax/)
+  })
+
   test('the amount shown on submit is derived, never hard-coded per tier', () => {
-    expect(src).toMatch(/data-label="Sponsor \{amount\} and continue to Polar"/)
+    expect(src).toMatch(
+      /data-label="Sponsor \{amount\} and continue to payment"/
+    )
     expect(src).toContain('amountLabel(defaultTier.amountUsd)')
     expect(src).toContain('input[name=tier]:checked')
+  })
+
+  test('the form is two labelled groups: the plan, then the information', () => {
+    expect(src).toContain('Pick the plan')
+    expect(src).toContain('Information')
+    expect(src).toContain('(Optional)')
+    expect(src).toContain('aria-labelledby="sponsor-plan-label"')
+    expect(src).toContain('aria-labelledby="sponsor-info-label"')
+  })
+
+  test('the card is full width and the form is left-aligned', () => {
+    expect(src).toMatch(/grid-template-columns:repeat\(auto-fit,minmax/)
+    expect(src).toContain('text-align:left')
+    // The license card is a centered column flex: without an explicit width the
+    // auto-fit grid would collapse to its content width instead of filling it.
+    expect(src).toMatch(/\.tiers\{[^}]*width:100%/)
+    expect(src).toMatch(/\.details\{[^}]*width:100%/)
+    expect(src).toMatch(/\.details\{[^}]*border-top/)
+    // One level of card: the form is a hairline, not another box.
+    expect(src).not.toMatch(/\.details\{[^}]*border:1px/)
+  })
+
+  test('no visible string in the offer names the payment provider', () => {
+    // Strip the frontmatter, comments, and the inline script: the provider is
+    // an implementation detail, and the copy speaks in our own voice.
+    const markup = src
+      .replace(/---[\s\S]*?\n---/, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<style>[\s\S]*?<\/style>/g, '')
+      .replace(/<script[\s\S]*?<\/script>/g, '')
+    expect(markup).not.toMatch(/Polar/i)
   })
 
   test('both surfaces share the one offer component', () => {
@@ -149,35 +187,50 @@ describe('the offer has a pick button and a submit button', () => {
   })
 })
 
-describe('the hero slot lists sponsors and keeps the open slot small', () => {
+describe('the hero slot is a logo row, not a row of boxes', () => {
   const src = read('src/components/SponsorSlot.astro')
 
-  test('AnyRouter is the first sponsor, linked to anyrouter.dev', () => {
+  test('AnyRouter is the first sponsor, with its real mark in both themes', () => {
     expect(sponsors).toHaveLength(1)
     const [first] = sponsors
     expect(first.name).toBe('AnyRouter')
     expect(first.website).toBe('https://anyrouter.dev')
-    expect(first.tier).toBe('backer')
+    expect(first.tier).toBe('hero')
     expect(first.since).toMatch(/^\d{4}-\d{2}$/)
-    // A hero sponsor must actually earn the hero slot.
+    // A single-colour mark is invisible on the wrong theme, so both files are
+    // committed and the layout swaps them.
+    expect(first.logo).toBe('/sponsors/anyrouter.svg')
+    expect(first.logoDark).toBe('/sponsors/anyrouter-dark.svg')
+    for (const rel of [first.logo, first.logoDark]) {
+      const file = join(landingRoot, 'public', rel)
+      expect(existsSync(file), rel).toBe(true)
+      expect(readFileSync(file, 'utf8')).toMatch(/^<svg/)
+    }
     expect(heroSponsors().map((s) => s.name)).toEqual(['AnyRouter'])
   })
 
-  test('the open slot stays a compact tile, not a card with a paragraph', () => {
-    expect(src).toContain('data-sponsor-slot')
-    expect(src).toContain('data-sponsor-placeholder')
-    expect(src).toContain('+ your logo')
-    expect(src).toContain('href="/license#sponsor"')
-    // The old long-form copy is gone; the tile carries the price in a <span>.
-    expect(src).not.toMatch(/Sponsor slot open<\/p>/)
-    expect(src).not.toContain('one-off puts your logo and link right here')
-    expect(src).toContain('heroFrom.amountUsd')
-    // Same footprint as a sponsor logo, so the row stays a row.
-    expect(src).toContain('h-11 w-28')
+  test('the marks sit on the page background — no bordered tiles', () => {
+    expect(src).toContain('Featured sponsors')
+    expect(src).toContain('list-none')
+    expect(src).not.toContain('border-dashed')
+    expect(src).not.toMatch(/h-11 w-28/)
   })
 
-  test('sponsor links are rel=sponsored so SEO follows the link', () => {
+  test('the open slot is a line of text, and it hides the price', () => {
+    expect(src).toContain('Want to support the free build?')
+    expect(src).toContain('Start sponsoring')
+    expect(src).toContain('data-sponsor-placeholder')
+    expect(src).toContain('href="/license#sponsor"')
+    // The price belongs on the offer, not on the logo row.
+    expect(src).not.toMatch(/\{\s*heroFrom\.amountUsd\s*\}\s*<\/span>/)
+    // It stays in the title, for the hover.
+    expect(src).toContain('heroFrom.amountUsd')
+  })
+
+  test('sponsor links are rel=sponsored and theme-aware', () => {
     expect(src).toContain('rel="noopener sponsored"')
+    expect(src).toContain('data-src-light={s.logo}')
+    expect(src).toContain('data-src-dark={s.logoDark ?? s.logo}')
   })
 
   test('Hero renders the sponsor slot under the feature list', () => {
@@ -188,7 +241,7 @@ describe('the hero slot lists sponsors and keeps the open slot small', () => {
     )
   })
 
-  test('heroSponsors still drops a $59 supporter from the hero', () => {
+  test('heroSponsors still drops a supporter from the hero', () => {
     const rows: Sponsor[] = [
       {
         name: 'Supporter Co',
@@ -202,8 +255,14 @@ describe('the hero slot lists sponsors and keeps the open slot small', () => {
         tier: 'backer',
         since: '2026-09',
       },
+      {
+        name: 'Hero Co',
+        website: 'https://hero.example',
+        tier: 'hero',
+        since: '2026-09',
+      },
     ]
-    expect(heroSponsors(rows).map((s) => s.name)).toEqual(['Backer Co'])
+    expect(heroSponsors(rows).map((s) => s.name)).toEqual(['Hero Co'])
   })
 })
 
@@ -217,7 +276,9 @@ describe('/sponsors listing page', () => {
     const src = read('src/pages/sponsors.astro')
     expect(src).toContain('sponsors.map')
     expect(src).toContain('data-sponsor-open-slot')
-    expect(src).toContain('+ your logo')
+    expect(src).toContain('Your logo')
+    // Same treatment as the hero: no boxes, ring on hover.
+    expect(src).not.toContain('tile-open{border-style:dashed}')
   })
 
   test('Polar sends the sponsor back to a paid confirmation', () => {
@@ -249,12 +310,16 @@ describe('the license page sells sponsorship, not donations', () => {
     expect(src).not.toMatch(/>Donate</)
   })
 
-  test('the section hosts the shared offer and the PO escape hatch', () => {
+  test('the section is the shared offer, full width, with no invoice CTA', () => {
     expect(src.indexOf('<Pricing compact={true} />')).toBeLessThan(
       src.indexOf('id="sponsor"')
     )
     expect(src).toContain('<SponsorOffer />')
-    expect(src).toContain('sponsorMailto()')
-    expect(src).toMatch(/logo under the homepage hero|PO or a wire/i)
+    // The email is a support contact only: no PO or wire line on the card.
+    expect(src).not.toMatch(/\bPO\b|\bwire\b|\binvoice\b/i)
+    expect(src).not.toContain('SPONSOR_CONTACT_EMAIL')
+    // Full width, and no box wrapped around the offer.
+    expect(src).not.toMatch(/\.sponsor-card\{[^}]*max-width/)
+    expect(src).not.toMatch(/\.sponsor-card\{[^}]*border:/)
   })
 })

@@ -6,13 +6,11 @@ import FinalCta from '../components/FinalCta.astro'
 import SponsorOffer from '../components/SponsorOffer.astro'
 import {
   SPONSOR_CONTACT_EMAIL,
-  sponsorMailto,
+  SPONSOR_TIERS,
   sponsorTier,
   sponsors,
 } from '../data/sponsors'
 import { btnOutline } from '../lib/button-classes'
-
-const heroFrom = sponsorTier('backer')
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString()
 const breadcrumbJsonLd = {
@@ -26,7 +24,7 @@ const breadcrumbJsonLd = {
 ---
 <Base
   title="chmonitor Sponsors — fund the free build"
-  description="Sponsor chmonitor. One-off $59, $99, or $199 puts your name on the sponsors page, and $99 or more puts your logo under the homepage hero."
+  description="Sponsor chmonitor. One-off $19, $59, $99, or $199 puts your name on the sponsors page, and $99 or more puts your logo under the homepage hero."
   image="/og/og-pricing.png"
 >
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
@@ -51,7 +49,6 @@ const breadcrumbJsonLd = {
         <div class="offer reveal">
           <SponsorOffer />
           <p class="alt">
-            <a class={btnOutline} href={sponsorMailto()}>Invoice or PO by email</a>
             <a class={btnOutline} href="/license">Compare with a license</a>
           </p>
         </div>
@@ -66,6 +63,7 @@ const breadcrumbJsonLd = {
             sponsors.map((s) => (
               <li class="tile" data-sponsor-tier={s.tier}>
                 <a
+                  class="group"
                   href={s.website}
                   target="_blank"
                   rel="noopener sponsored"
@@ -74,38 +72,42 @@ const breadcrumbJsonLd = {
                   {s.logo ? (
                     <img
                       src={s.logo}
+                      data-src-light={s.logo}
+                      data-src-dark={s.logoDark ?? s.logo}
                       alt={s.name}
-                      height="28"
+                      height="40"
                       loading="lazy"
                       decoding="async"
-                      class="h-7 w-auto"
+                      class="h-9 w-auto opacity-85 transition-opacity group-hover:opacity-100"
                     />
                   ) : (
                     <strong>{s.name}</strong>
                   )}
+                  <span class="name">{s.name}</span>
+                  {s.tagline && <span class="tagline">{s.tagline}</span>}
+                  <span class="meta">
+                    {sponsorTier(s.tier).label} · since {s.since}
+                  </span>
                 </a>
-                <span class="meta">
-                  {sponsorTier(s.tier).label} · since {s.since}
-                </span>
-                {s.note && <span class="note">{s.note}</span>}
               </li>
             ))
           }
-          {/* The next slot, same footprint as a filled tile. */}
+          {/* The next slot: the same empty footprint a mark would fill. */}
           <li class="tile tile-open">
-            <a
-              href="#offer"
-              data-sponsor-open-slot
-              title={`Sponsor slot open — $${heroFrom.amountUsd} one-off`}
-            >
-              <span>+ your logo</span>
-              <span class="meta">${heroFrom.amountUsd} · sponsor the free build</span>
+            <a href="#offer" data-sponsor-open-slot title="Sponsor slot open">
+              <span class="open-mark" aria-hidden="true">+</span>
+              <span class="name">Your logo</span>
+              <span class="meta">${
+                SPONSOR_TIERS.length > 0
+                  ? `from $${SPONSOR_TIERS[0].amountUsd}`
+                  : ''
+              }</span>
             </a>
           </li>
         </ul>
         <p class="wall-note">
           Listing is by request: we add your name and website after you confirm,
-          never before. Questions: <a href={`mailto:${SPONSOR_CONTACT_EMAIL}`}>{SPONSOR_CONTACT_EMAIL}</a>.
+          never before. Support: <a href={`mailto:${SPONSOR_CONTACT_EMAIL}`}>{SPONSOR_CONTACT_EMAIL}</a>.
         </p>
       </div>
     </section>
@@ -114,22 +116,22 @@ const breadcrumbJsonLd = {
   </main>
   <Footer />
 
-  {/* Paid? Polar sends the sponsor to /sponsors?sponsored=1&checkout_id=… .
+  {/* Paid? The provider returns the sponsor to /sponsors?sponsored=1&checkout_id=… .
       The page is static, so the confirmation is read from the URL here. */}
   <script is:inline>
     ;(function () {
       if (new URLSearchParams(window.location.search).get('sponsored') !== '1')
         return
-      var lede = document.querySelector('#offer .details-lede')
+      var lede = document.querySelector('#offer .hint')
       if (!lede) return
       var done = document.createElement('p')
       done.className = 'paid'
       done.setAttribute('role', 'status')
       done.textContent =
-        'Payment received — thank you. We add your listing from the details Polar is holding, and you will see your logo here and under the homepage hero.'
+        'Payment received — thank you. We add your listing from the details that came with the payment, and you will see your logo here and under the homepage hero.'
       lede.parentNode.insertBefore(done, lede.nextSibling)
       lede.textContent =
-        'Your details went to Polar with the payment, so we already have them. Nothing else to fill in.'
+        'Your details came with the payment, so we already have them. Nothing else to fill in.'
     })()
   </script>
 
@@ -137,19 +139,20 @@ const breadcrumbJsonLd = {
     .price-head h1{font-size:clamp(1.75rem,6vw,2.5rem);line-height:1.1;letter-spacing:-.025em;font-weight:700;margin-top:14px;text-wrap:balance}
     .price-head p{margin-inline:auto;font-size:clamp(14px,3.5vw,17px)}
     .sec-h{font-size:clamp(1.25rem,3vw,1.5rem);letter-spacing:-.02em;font-weight:700;margin:0 0 20px;text-align:center}
-    .offer{max-width:640px;margin:0 auto}
+    .offer{width:100%}
     .alt{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;justify-content:center}
     .paid{margin:0 0 14px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);font-size:13.5px;line-height:1.55}
 
-    .wall{list-style:none;padding:0;margin:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
-    .tile{display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:74px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);text-align:center;align-items:center}
-    .tile > a{display:flex;flex-direction:column;align-items:center;gap:2px;color:inherit;text-decoration:none;width:100%}
-    .tile strong{font-size:16px;letter-spacing:-.01em}
-    .tile .meta{font-size:11.5px;color:var(--muted-fg)}
-    .tile .note{font-size:12.5px;color:var(--muted-fg)}
-    .tile-open{border-style:dashed}
-    .tile-open span:first-child{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-fg)}
-    .tile-open a:hover{color:var(--orange)}
+    /* Borderless, like the hero logo row: a hairline ring only on the open
+       tile, so the wall reads as marks and not as a table of cards. */
+    .wall{list-style:none;padding:0;margin:0;display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));text-align:center}
+    .tile > a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 12px;border:1px solid transparent;border-radius:var(--radius);color:inherit;text-decoration:none;transition:border-color .15s ease,background-color .15s ease}
+    .tile > a:hover{border-color:var(--border);background:var(--card)}
+    .tile strong{font-size:18px;letter-spacing:-.01em}
+    .tile .name{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--fg)}
+    .tile .tagline{font-size:12.5px;color:var(--muted-fg)}
+    .tile .meta{margin-top:3px;font-size:11.5px;color:var(--muted-fg)}
+    .tile .open-mark{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px dashed var(--border);border-radius:8px;font-size:20px;line-height:1;color:var(--muted-fg)}
     .wall-note{margin-top:16px;text-align:center;font-size:13px;color:var(--muted-fg)}
     .wall-note a{color:var(--orange);text-decoration:underline;text-underline-offset:3px}
   </style>

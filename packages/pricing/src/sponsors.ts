@@ -2,16 +2,25 @@
  * Sponsorship tiers — one-off amounts, not a subscription.
  *
  * A sponsorship is not a license: it buys no features, no support window, and
- * no key. It funds the free GPL-3.0 build, and it earns a listing — the name
- * and website on the sponsors page, and the logo under the homepage hero from
- * $99 up.
+ * no key. It funds the free GPL-3.0 build, and it earns a listing — a rung at
+ * each level, from the name alone up to the logo under the homepage hero.
+ *
+ * The ladder is strictly escalating: every tier includes the one below it, so a
+ * card never has to explain what it does NOT get. Add a rung at either end and
+ * the layout absorbs it (the cards are an auto-fit grid, not a fixed column
+ * count) and the hero slot follows the `hero` flag.
  *
  * Shared by the landing page (which renders the tiers) and cloud-hooks (which
- * validates `tier` on POST /sponsors/register), so the API can never accept a
- * tier the page does not offer.
+ * resolves `tier` to a price on GET /checkout/sponsor), so the page and the
+ * charge can never disagree.
  */
 
-export const SPONSOR_TIER_IDS = ['supporter', 'backer', 'partner'] as const
+export const SPONSOR_TIER_IDS = [
+  'supporter',
+  'backer',
+  'hero',
+  'partner',
+] as const
 export type SponsorTierId = (typeof SPONSOR_TIER_IDS)[number]
 
 export interface SponsorTier {
@@ -30,16 +39,24 @@ export interface SponsorTier {
 export const SPONSOR_TIERS: readonly SponsorTier[] = [
   {
     id: 'supporter',
-    amountUsd: 59,
+    amountUsd: 19,
     label: 'Supporter',
+    hero: false,
+    highlight: false,
+    pitch: 'Your name on the sponsors page.',
+  },
+  {
+    id: 'backer',
+    amountUsd: 59,
+    label: 'Backer',
     hero: false,
     highlight: false,
     pitch: 'Your name and a link to your site on the sponsors page.',
   },
   {
-    id: 'backer',
+    id: 'hero',
     amountUsd: 99,
-    label: 'Backer',
+    label: 'Hero',
     hero: true,
     highlight: true,
     pitch:
@@ -57,7 +74,7 @@ export const SPONSOR_TIERS: readonly SponsorTier[] = [
 ]
 
 /** The tier the page preselects: the recommended one, not the cheapest. */
-export const DEFAULT_SPONSOR_TIER: SponsorTierId = 'backer'
+export const DEFAULT_SPONSOR_TIER: SponsorTierId = 'hero'
 
 export function isSponsorTier(value: string): value is SponsorTierId {
   return SPONSOR_TIER_IDS.some((id) => id === value)

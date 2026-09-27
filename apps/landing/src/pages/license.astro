@@ -5,10 +5,6 @@ import Pricing from '../components/Pricing.astro'
 import FinalCta from '../components/FinalCta.astro'
 import Footer from '../components/Footer.astro'
 import { bossPitch, bossPitchPaste, licenseFaqs } from '../data/licenses'
-import {
-  SPONSOR_CONTACT_EMAIL,
-  sponsorMailto,
-} from '../data/sponsors'
 import { pricingFaqs } from '../data/pricing'
 import SponsorOffer from '../components/SponsorOffer.astro'
 import { btnOutline, btnPrimary } from '../lib/button-classes'
@@ -36,7 +32,7 @@ const breadcrumbJsonLd = {
 ---
 <Base
   title="chmonitor License — Self-hosted licenses (yearly & lifetime)"
-  description="Self-host chmonitor free under GPL-3.0. Buy an optional commercial license sized by host count — yearly or lifetime — or sponsor the free build from $59. No DRM. Hosted cloud is optional."
+  description="Self-host chmonitor free under GPL-3.0. Buy an optional commercial license sized by host count — yearly or lifetime — or sponsor the free build from $19. No DRM. Hosted cloud is optional."
   image="/og/og-pricing.png"
 >
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} is:inline />
@@ -60,7 +56,7 @@ const breadcrumbJsonLd = {
     <!-- Sponsor offer below the plan cards. The shared component renders the
         tiers and the details form on /sponsors too, so the two cannot disagree.
         The form GET-submits to hooks /checkout/sponsor, which forwards the
-        details to Polar. -->
+        details to the payment provider. -->
     <section id="sponsor" class="band sponsor-band">
       <div class="wrap">
         <div class="sponsor-card reveal">
@@ -68,11 +64,8 @@ const breadcrumbJsonLd = {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.07L12 19.17l8.78-8.78a5.5 5.5 0 0 0 0-7.79z"/></svg>
           </div>
           <h2>Sponsor</h2>
-          <p>A one-off amount that keeps the free GPL-3.0 build moving. No license key, no DRM, no feature unlock. Pick an amount and pay, or add your details and we forward them to Polar so your account carries them and we can list you.</p>
+          <p>A one-off amount that keeps the free GPL-3.0 build moving. No license key, no DRM, no feature unlock. Pick an amount and pay, or add your details and we list you on the sponsors page.</p>
           <SponsorOffer />
-          <p class="sponsor-foot">
-            Prefer a PO or a wire? <a href={sponsorMailto()}>Email {SPONSOR_CONTACT_EMAIL}</a> and we will invoice you.
-          </p>
         </div>
       </div>
     </section>
@@ -207,16 +200,15 @@ const breadcrumbJsonLd = {
     .pfaq-item[open] summary svg{transform:rotate(180deg)}
     .pfaq-a{padding:0 18px 18px;font-size:14px;line-height:1.6;color:var(--muted-fg);text-wrap:pretty}
 
-    /* Sponsor band — sits between the plan cards and the boss pitch. A softened
-       mono surface that reads as a "thank you" aside, not a paid plan. */
-    .sponsor-band{padding:28px 0 24px}
-    .sponsor-card{max-width:720px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid var(--border);border-style:dashed;border-radius:var(--radius);background:var(--card);padding:28px 20px}
+    /* Sponsor band — sits between the plan cards and the boss pitch. Full
+       width and deliberately not a card: the offer's own tier cards are the
+       only boxes, so there is no box wrapped around a box. */
+    .sponsor-band{padding:34px 0 28px}
+    .sponsor-card{display:flex;flex-direction:column;align-items:center;text-align:center}
     .sponsor-ico{display:flex;align-items:center;justify-content:center;size:40px;border-radius:999px;background:var(--bg_soft, rgba(127,127,127,.06));margin-bottom:10px}
     .sponsor-ico svg{width:22;height:22;color:var(--muted-fg);opacity:.85}
     .sponsor-card h2{font-size:clamp(1.25rem,2.6vw,1.5rem);margin:6px 0 4px}
-    .sponsor-card p{margin:0 auto 0;max-width:48ch;font-size:clamp(14px,2.6vw,15px);color:var(--muted-fg);line-height:1.55}
-    .sponsor-card p a{color:var(--orange);text-decoration:underline;text-underline-offset:3px}
-    .sponsor-foot{margin-top:14px;font-size:13px}
+    .sponsor-card p{margin:0 auto 0;max-width:56ch;font-size:clamp(14px,2.6vw,15px);color:var(--muted-fg);line-height:1.55}
 
     @media (max-width:640px){
       .price-intro.band{padding-top:48px}
@@ -226,7 +218,6 @@ const breadcrumbJsonLd = {
       .pfaq{margin-top:24px;gap:8px}
       .pfaq-item summary{padding:14px 14px;font-size:14px}
       .pfaq-a{padding:0 14px 14px;font-size:13.5px}
-      .sponsor-card{padding:22px 16px}
     }
   </style>
 </Base>

@@ -25,16 +25,24 @@ export {
 export type { SponsorTier, SponsorTierId }
 
 export const SPONSOR_PAGE_HREF = 'https://chmonitor.dev/sponsors'
-/** Sponsor questions, receipt chasing, logo swaps. Same inbox as licenses. */
+/** Support only — a question about a listing, a logo swap, a receipt. */
 export const SPONSOR_CONTACT_EMAIL = salesEmail
 
 export interface Sponsor {
-  /** Public name. Link label, and logo alt text. */
+  /** Public name. Wordmark, and the logo's alt text. */
   name: string
   /** Public site, linked from the hero slot and the sponsors page. */
   website: string
-  /** Optional logo in public/sponsors/ — SVG or PNG. The name is the fallback. */
+  /**
+   * Mark in `public/sponsors/` — the light-theme variant. Pair it with
+   * `logoDark`: a single-colour mark is invisible on the other theme, and the
+   * Base layout's `data-src-light`/`data-src-dark` swap needs both files.
+   */
   logo?: string
+  /** Dark-theme variant of `logo`. Omit only for a full-colour mark. */
+  logoDark?: string
+  /** One muted line under the wordmark, in their words. */
+  tagline?: string
   tier: SponsorTierId
   /** YYYY-MM, the month the sponsorship started. */
   since: string
@@ -46,10 +54,12 @@ export const sponsors: Sponsor[] = [
   {
     name: 'AnyRouter',
     website: 'https://anyrouter.dev',
-    // Backer = the hero logo slot. No logo file committed yet, so the hero
-    // renders the name as the wordmark; drop one in public/sponsors/ and set
-    // `logo` to swap it in.
-    tier: 'backer',
+    // Their published brand mark, both themes: a single-colour AR monogram is
+    // invisible on the wrong background, so commit the pair and let the Base
+    // layout swap it on the theme toggle.
+    logo: '/sponsors/anyrouter.svg',
+    logoDark: '/sponsors/anyrouter-dark.svg',
+    tier: 'hero',
     since: '2026-09',
   },
 ]
@@ -106,29 +116,4 @@ export function sponsorHref(
  */
 export function sponsorCheckoutAction(): string {
   return `${LICENSE_HOOKS_ORIGIN}${SPONSOR_CHECKOUT_PATH}`
-}
-
-/** Fallback for a PO, a wire transfer, or a checkout that already happened. */
-export function sponsorMailto(
-  tierId: SponsorTierId = DEFAULT_SPONSOR_TIER
-): string {
-  const tier = sponsorTier(tierId)
-  const subject = encodeURIComponent(
-    `chmonitor sponsorship — ${tier.label} ($${tier.amountUsd})`
-  )
-  const body = encodeURIComponent(
-    [
-      'I would like to sponsor chmonitor.',
-      '',
-      `Tier: ${tier.label} ($${tier.amountUsd} one-off)`,
-      '',
-      'Name:',
-      'Website:',
-      'Logo URL (optional):',
-      'Email:',
-      '',
-      'Paid already? Reply with the Polar checkout id.',
-    ].join('\n')
-  )
-  return `mailto:${SPONSOR_CONTACT_EMAIL}?subject=${subject}&body=${body}`
 }
