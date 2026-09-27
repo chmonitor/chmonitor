@@ -83,7 +83,7 @@ describe('ClickHouse agent system prompt — behavior', () => {
     // The point of the tool: the model should look for a primitive it was not
     // sure about instead of hand-writing SQL or claiming a gap.
     expect(PROMPT_FLAT).toContain('Not sure which tool fits?')
-    expect(PROMPT_FLAT).toContain('Call search_tools first')
+    expect(PROMPT_FLAT).toContain('Call **search_tools** first')
     expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain('search_tools')
   })
 })
