@@ -16,9 +16,10 @@
  * Polar's checkout `amount` field is cents — we convert. Optional `cents=` is
  * Polar-native. 302 to Polar on success. Never throws: 502 JSON on failure.
  *
- * The product is still `CHM_POLAR_DONATE_PRODUCT` — the `chmonitor Donate`
- * product predates the Sponsor rename and its id is committed in
- * apps/cloud-hooks/.env.production. Do not invent a product UUID.
+ * The product is `chmonitor Sponsor` (`CHM_POLAR_SPONSOR_PRODUCT`, from
+ * polar-setup.ts). It was renamed in place, so the id in
+ * apps/cloud-hooks/.env.production is the same one the old `donate` key held.
+ * Do not invent a product UUID.
  */
 
 import type { SponsorTierId } from '@chm/pricing'
@@ -42,7 +43,7 @@ export const SPONSOR_MIN_CENTS = 50
 /** Sanity cap: $10,000. Polar USD max is far higher. */
 export const SPONSOR_MAX_CENTS = 1_000_000
 
-export const SPONSOR_PRODUCT_ENV_KEY = 'CHM_POLAR_DONATE_PRODUCT'
+export const SPONSOR_PRODUCT_ENV_KEY = 'CHM_POLAR_SPONSOR_PRODUCT'
 
 export interface SponsorCheckoutDeps {
   fetchImpl?: typeof fetch

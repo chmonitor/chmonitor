@@ -39,7 +39,7 @@ checkout, which Polar stores on the customer account (`customer_email`,
 rendered listing is still the committed seed
 `apps/landing/src/data/sponsors.ts` — the landing site is static. Polar product IDs
 (`CHM_POLAR_LICENSE_TEAM_*`, `CHM_POLAR_LICENSE_UNLIMITED_*`,
-`CHM_POLAR_DONATE_PRODUCT`, `CHM_POLAR_SERVER`) live in
+`CHM_POLAR_SPONSOR_PRODUCT`, `CHM_POLAR_SERVER`) live in
 `apps/cloud-hooks/.env.production` — **and only there**.
 `apps/dashboard/.env.production` says so in a comment: *"Polar license product IDs
 live on apps/cloud-hooks (hooks.chmonitor.dev), not this dashboard. Do not set

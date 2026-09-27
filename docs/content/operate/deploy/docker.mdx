@@ -20,7 +20,7 @@ flowchart LR
 - A release tag to pin.
 
 <Callout type="info" title="Image and tags">
-**Image:** `ghcr.io/chmonitor/chmonitor:vX.Y.Z` — replace `vX.Y.Z` with a real release tag. Browse [all releases](https://github.com/chmonitor/chmonitor/pkgs/container/chmonitor).
+**Image:** `ghcr.io/chmonitor/chmonitor:X.Y.Z` — replace `X.Y.Z` with a real image tag. Browse [all releases](https://github.com/chmonitor/chmonitor/pkgs/container/chmonitor).
 
 The legacy name `ghcr.io/chmonitor/chmonitor` also works and points at the same build.
 </Callout>
@@ -40,7 +40,7 @@ docker run -d --name chmonitor -p 3000:3000 \
   -e CLICKHOUSE_HOST='http://host.docker.internal:8123' \
   -e CLICKHOUSE_USER='monitoring' \
   -e CLICKHOUSE_PASSWORD='change-me' \
-  ghcr.io/chmonitor/chmonitor:vX.Y.Z
+  ghcr.io/chmonitor/chmonitor:X.Y.Z
 ```
 
 Open `http://localhost:3000`.
@@ -57,7 +57,7 @@ Open `http://localhost:3000`.
 ```yaml
 services:
   chmonitor:
-    image: ghcr.io/chmonitor/chmonitor:vX.Y.Z
+    image: ghcr.io/chmonitor/chmonitor:X.Y.Z
     ports:
       - '3000:3000'
     environment:
@@ -109,7 +109,7 @@ set, then pass `CLERK_SECRET_KEY` at runtime.
 ### Pull the new tag
 
 ```bash
-docker pull ghcr.io/chmonitor/chmonitor:vX.Y.Z
+docker pull ghcr.io/chmonitor/chmonitor:X.Y.Z
 ```
 </Step>
 
@@ -128,7 +128,7 @@ docker rm -f chmonitor
 docker run -d --name chmonitor -p 3000:3000 \
   -e CLICKHOUSE_HOST='...' \
   ... \
-  ghcr.io/chmonitor/chmonitor:vX.Y.Z
+  ghcr.io/chmonitor/chmonitor:X.Y.Z
 ```
 
 Or with Compose: update the `image:` tag, then `docker compose up -d --force-recreate`.

@@ -193,7 +193,7 @@ describe('loadManifest', () => {
     )
     expect(cloudHooks.vars).toContain('CHM_POLAR_SERVER')
     expect(cloudHooks.vars).toContain('CHM_POLAR_LICENSE_*')
-    expect(cloudHooks.vars).toContain('CHM_POLAR_DONATE_*')
+    expect(cloudHooks.vars).toContain('CHM_POLAR_SPONSOR_*')
     expect(cloudHooks.secrets).toContain('POLAR_WEBHOOK_SECRET')
 
     const bugHandler = await loadManifest(

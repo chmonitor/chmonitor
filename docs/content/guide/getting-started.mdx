@@ -24,7 +24,7 @@ Point chmonitor at an existing ClickHouse instance and you have a dashboard. You
 
 ### Pull and run
 
-Replace `vX.Y.Z` with a real release tag from [GitHub releases](https://github.com/chmonitor/chmonitor/releases):
+Replace `X.Y.Z` with an image tag from [GitHub releases](https://github.com/chmonitor/chmonitor/releases):
 
 ```bash
 docker run -d \
@@ -33,7 +33,7 @@ docker run -d \
   -e CLICKHOUSE_HOST=http://your-clickhouse-host:8123 \
   -e CLICKHOUSE_USER=monitoring \
   -e CLICKHOUSE_PASSWORD=your-password \
-  ghcr.io/chmonitor/chmonitor:vX.Y.Z
+  ghcr.io/chmonitor/chmonitor:X.Y.Z
 ```
 
 <Callout type="info" title="Docker host networking">

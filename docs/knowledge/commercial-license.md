@@ -70,8 +70,10 @@ website on `/sponsors`), **backer $99** (+ logo under the homepage hero),
 no support window, no key.
 
 Checkout is `GET /checkout/sponsor?amount=…` on the Polar pay-what-you-want
-product (`CHM_POLAR_DONATE_PRODUCT` — the key is legacy, the surface is
-Sponsor; only the product id is pinned, never rename it in a rename-only PR).
+product `chmonitor Sponsor` (`CHM_POLAR_SPONSOR_PRODUCT`), renamed in place from
+`chmonitor Donate` — same product id, so the rename could not have broken a
+checkout. The product name and the env key are the ones deploy passes through;
+see cloud-hooks-worker for the two-sided rename checklist.
 Two paths into it, both in `SponsorOffer.astro` (shared by `/license#sponsor`
 and `/sponsors`, so the two surfaces cannot disagree on a price):
 
@@ -116,5 +118,7 @@ invitation survives the first sponsor.
   already holds them, and two sources of truth drift.
 - Render two different prices on `/license` and `/sponsors`; both render
   `SponsorOffer.astro` for exactly that reason.
-- Rename `CHM_POLAR_DONATE_PRODUCT` in a rename-only PR — the live product id is
-  committed; 501 the sponsor checkout until a `polar-setup.ts` run lands.
+- Rename a Polar product in only one of `.env.production`, `env.ts`,
+  `sponsor-checkout.ts`, `deploy.config.ts`, or the cloudflare.yml var grep —
+  a missed glob 501s the sponsor checkout with no test failure. Rename in place
+  and move every key in one commit.

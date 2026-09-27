@@ -23,14 +23,10 @@
 </p>
 
 <p align="center">
-  <a href="https://chmonitor.dev/watch/v0-3">
-    <img alt="Watch the chmonitor v0.3 launch film" src=".github/videos/hero.jpg">
-  </a>
+  <img alt="chmonitor v0.3 launch film" src=".github/videos/launch-v0-3.gif">
 </p>
 <p align="center">
   <a href="https://chmonitor.dev/watch/v0-3"><strong>Watch the v0.3 launch film</strong></a>
-  · 36 seconds ·
-  <a href="https://chmonitor.dev/assets/videos/chmonitor-v0.3.mp4">MP4</a>
 </p>
 
 **chmonitor** is a dashboard and advisor for ClickHouse. It reads `system.*`
@@ -42,7 +38,7 @@ It does **not** apply DDL for you. Recommendations stay recommendations.
 Runs the same way on Docker, Kubernetes, bare metal, or ClickHouse Cloud.
 Self-host it free (GPL-3.0), or use the [hosted demo](https://dash.chmonitor.dev/overview?host=0).
 
-Current release: **[v0.3.0](https://github.com/chmonitor/chmonitor/releases/tag/v0.3.0)**.
+Current release: **[v0.3.6](https://github.com/chmonitor/chmonitor/releases/tag/v0.3.6)**.
 Upgrading from v0.2? See [Migrate to v0.3](https://docs.chmonitor.dev/reference/migrating/v0-3).
 
 ---
@@ -74,10 +70,12 @@ docker run -d --name chmonitor -p 3000:3000 \
   -e CLICKHOUSE_HOST=https://clickhouse.example.com:8443 \
   -e CLICKHOUSE_USER=default \
   -e CLICKHOUSE_PASSWORD=change-me \
-  ghcr.io/chmonitor/chmonitor:v0.3.0
+  ghcr.io/chmonitor/chmonitor:0.3.6
 ```
 
 Open **http://localhost:3000**. Pin a version tag in production; use `:latest` only if you want the rolling tip.
+Image tags carry no `v` prefix — the release `v0.3.6` publishes `0.3.6`, plus
+`0.3` and `latest`.
 
 Want a look first? **[dash.chmonitor.dev](https://dash.chmonitor.dev/overview?host=0)** — no setup.
 
@@ -109,17 +107,44 @@ Release artifacts (Docker image, Node standalone, Workers archive) are on the
 
 ## Editions
 
-One codebase. Community is free forever (GPL-3.0). An optional license unlocks
-enterprise gates — same binary.
+chmonitor is **GPL-3.0**: self-host every feature, unlimited hosts, no payment, no
+key. A commercial license is optional and buys paper, not features — an invoice
+and named vendor, priority email support for the paid term, and an opt-in listing.
+Same binary either way.
 
-| | Community | Enterprise |
+| License | Hosts | Yearly | Lifetime |
+|---|---|---|---|
+| Personal Self Hosted | Unlimited | Free | Free |
+| Team | 3 | $499 | $1,349 |
+| Unlimited | Unlimited | $999 | $2,999 |
+
+You do not get extra dashboard features versus the free build today. A **host**
+is one monitored connection; replicas in the same shard are not counted.
+
+Details: [Editions](https://docs.chmonitor.dev/operate/advanced/editions) ·
+[Commercial license](https://docs.chmonitor.dev/operate/advanced/commercial-license) ·
+[Buy](https://chmonitor.dev/license).
+
+---
+
+## Sponsors
+
+Self-hosting is free under GPL-3.0. Sponsorship is not a license — it buys no
+features, no support window, and no key. It funds the free build, and it earns a
+listing.
+
+| Tier | One-off | You get |
 |---|---|---|
-| Cost | Free, GPL-3.0 | [Priced by host count](https://chmonitor.dev/pricing/) |
-| Where it runs | Your infra | Same |
-| ClickHouse hosts | Unlimited | Personal · Team 3 · Unlimited |
-| AI advisor, agent, MCP | Included | Same, plus enterprise gates |
+| Supporter | $19 | Your name on the sponsors page |
+| Backer | $59 | Your name and a link to your site on the sponsors page |
+| Hero | $99 | Your logo and link under the homepage hero, plus the sponsors page |
+| Partner | $199 | A larger hero slot, plus a short line about you on the sponsors page |
 
-Details: [Editions](https://docs.chmonitor.dev/operate/advanced/editions).
+Want to support the free build? **[Start sponsoring](https://chmonitor.dev/license#sponsor)** —
+from $19 one-off, or $99 to put your logo under the homepage hero.
+
+The wall: [chmonitor.dev/sponsors](https://chmonitor.dev/sponsors). A commercial
+license is a separate thing — see [Editions](#editions).
 
 ---
 
@@ -158,6 +183,9 @@ Details: [Editions](https://docs.chmonitor.dev/operate/advanced/editions).
 - [Deploy](https://docs.chmonitor.dev/operate/deploy) — Docker, Kubernetes, Workers, one-click
 - [AI agent](https://docs.chmonitor.dev/guide/ai-agent) — tools, skills, env
 - [MCP clients](https://docs.chmonitor.dev/reference/mcp-clients) — Claude, Cursor, and other clients
+- [Editions](https://docs.chmonitor.dev/operate/advanced/editions) — what a license does and does not unlock
+- [Commercial license](https://docs.chmonitor.dev/operate/advanced/commercial-license) — SKUs, prices, `CHM_LICENSE_KEY`
+- [Sponsors](https://chmonitor.dev/sponsors) — the sponsor wall and the ladder
 - [Environment variables](https://docs.chmonitor.dev/reference/environment-variables)
 - [Connection errors](https://docs.chmonitor.dev/guide/guides/connection-errors)
 - [Migrate to v0.3](https://docs.chmonitor.dev/reference/migrating/v0-3)
