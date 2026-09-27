@@ -28,17 +28,28 @@ between them from **real** `system.clusters` + Keeper data.
 > interdependent numbers. The numbers are not arbitrary — each encodes a geometric
 > relationship, and several form **cross-file contracts** (change one side, you must
 > change the other). This note is the single place those contracts are written down.
-> Read it before touching `model.ts` (or its siblings below) / `topo-canvas.tsx`.
+> Read it before touching `model.ts` (or its siblings below) / `topo-glyphs.tsx` /
+> `topo-canvas.tsx`. **None of the cross-file contracts below are currently enforced by a
+> test** — see "Test invariants".
 
 ## File map
 
+All component paths below are relative to
+**`apps/dashboard/src/components/cluster-topology/`** (the `src/` segment was
+added by the TanStack Start promotion; the pre-#1613 location was
+`apps/dashboard/components/cluster-topology/`).
+
 `model.ts` used to hold the whole pipeline in one 1500-line file; it now re-exports
-from four siblings so every existing `import { ... } from './model'` keeps working
-unmodified — split for maintainability only, not a public-API change.
+from **six** siblings (`model-types`, `model-constants`, `model-parse`,
+`model-assemble`, `model-layout`, `model-hulls`) so every existing
+`import { ... } from './model'` keeps working unmodified — split for
+maintainability only, not a public-API change.
 
 | File | Responsibility |
 |------|----------------|
-| `components/cluster-topology/model.ts` | Types (`TopologyData`, `TopologyModel`, `ChNode`, `KeeperNode`, `ClusterHull`, …) + `export *` from the four siblings below — the public entry point, table of contents. |
+| `index.ts` | Package barrel: re-exports `TopologyView` only. |
+| `components/cluster-topology/model.ts` | Types (`TopologyData`, `TopologyModel`, `ChNode`, `KeeperNode`, `ClusterHull`, …) + `export *` from the six siblings below — the public entry point, table of contents. |
+| `components/cluster-topology/model-types.ts` | The type declarations themselves (the leaf of the six-sibling split); imported directly by `topo-canvas-geometry.ts`. |
 | `components/cluster-topology/model-constants.ts` | Layout constants, geometry envelopes (`CH_R`/`KP_R`, `*Extent` functions), `STATUS_COLOR`, `CLUSTER_PALETTE`. |
 | `components/cluster-topology/model-parse.ts` | Row coercion (`num`, `numOrNull`, `truthy`) + node-identity heuristics (`shortId`, `isLoopbackAddr`, `nameScore`, `isPhysicalName`, `isReplicatedDbRow`, `isKeeperNode`). |
 | `components/cluster-topology/model-assemble.ts` | `assembleTopology`: raw ClickHouse rows → layout-free `TopologyData` (host merge, cluster/keeper assembly, edges). |
@@ -46,11 +57,13 @@ unmodified — split for maintainability only, not a public-API change.
 | `components/cluster-topology/model-hulls.ts` | Cluster territory + keeper-region overlay geometry (`buildClusterHulls`, `buildKeeperRect`, `nudgeLabels`). |
 | `components/cluster-topology/geometry.ts` | Pure path math: `roundedRectPath`, `offsetHullPath` (legacy), `convexHull`. |
 | `components/cluster-topology/topo-canvas-geometry.ts` | Pure geometry for the canvas, zero React deps: `contentViewBox`, `clientToSvg`, `cageForNode`, `clampToHull`, `groupSafeDelta` + drag/position types. Imports from `model-types`/`model-constants`/`model-parse` directly, never `./model` or a component file, so it can't reintroduce the barrel import cycle. Unit-tested in `topo-canvas-geometry.test.ts`. |
-| `components/cluster-topology/topo-canvas.tsx` | The SVG render: node glyphs, hull paths, curved edges, label pills, plus the drag pointer handlers (consumes `topo-canvas-geometry.ts`). |
+| `components/cluster-topology/topo-glyphs.tsx` | **The glyph + label layer**, extracted out of `topo-canvas.tsx`: `ChGlyph`, `KeeperGlyph`, `HullLabel`, `hexPath`, `curvePath`, plus the module-private `ChLogo`, `NodeLabel` and `truncateMiddle`. This is the file that actually paints every label offset the extent contract depends on (see below). |
+| `components/cluster-topology/topo-canvas.tsx` | The SVG render and drag pointer handlers (consumes `topo-canvas-geometry.ts`, and imports `ChGlyph`/`KeeperGlyph`/`HullLabel`/`curvePath` from `./topo-glyphs`). |
 | `components/cluster-topology/topology-view.tsx` | Wrapper: status strip, pills, legend, **canvas container**, inspector. Accepts `detailHref`. |
 | `components/cluster-topology/inspector.tsx` | Right-hand detail panel (per-node / cluster overview). |
-| `components/cluster-topology/use-topology.ts` | SWR hook → `/api/v1/cluster-topology`. |
-| `components/cluster-topology/__tests__/{model,geometry}.test.ts` | Lock the pure-logic **invariants** (see below). |
+| `components/cluster-topology/use-topology.ts` | TanStack Query hook (`useQuery`) → `/api/v1/cluster-topology`. Structure cached hard (60s) vs. the per-node live snapshot. |
+| `components/cluster-topology/topology-select.test.ts` | Locks `useOnClearSelect` identity (React.memo must not be defeated by a fresh closure). Needs `react` + `happy-dom`, so it needs an installed tree — unlike the geometry test. |
+| `components/cluster-topology/topo-canvas-geometry.test.ts` | Locks `clampToHull` + `clientToSvg` (8 pure tests, no React). |
 | `src/routes/api/v1/cluster-topology.ts` | Server route: assembles the layout-free `TopologyData`. |
 
 ## Layout pipeline (pure, deterministic)
@@ -75,20 +88,22 @@ Inside `layoutTopology`, in order:
    `buildClusterHulls` clamps each rect's top to the keeper ceiling (`KEEPER_CLUSTER_GAP`) and
    receives only the VISIBLE clusters (physical dropped when `showPhysical` is false).
 
-**Determinism is mandatory.** No `Math.random` / `Date.now` (would break SWR-stable layout and
-the determinism test). Per-cluster size jitter uses a stable string hash (`hashStr`).
+**Determinism is mandatory.** No `Math.random` / `Date.now` (would break the query-cache-stable
+layout and the determinism invariant). Per-cluster size jitter uses a stable string hash (`hashStr`).
 
 ## The constants — and the contracts between them
 
-Mostly in `model-constants.ts` (re-exported from `model.ts`) unless noted. **Do not change a number in isolation; check the contract.**
+Mostly in `model-constants.ts` (re-exported from `model.ts`) unless noted — the two
+hull constants `NEST_STEP` (30) and `KEEPER_CLUSTER_GAP` (16) live in `model-hulls.ts`
+next to the code that uses them. **Do not change a number in isolation; check the contract.**
 
 | Constant | Meaning | Contract / why |
 |----------|---------|----------------|
 | `VB_W` | viewBox width (1280) | Fixed. Wide aspect so the graph fills the xl two-column container. |
 | `VB_H` | **MINIMUM** viewBox height (560) | The ACTUAL height is **data-driven** (`model.vbHeight`, computed in `fitContent`): it grows to fit the keeper region, the keeper↔CH gap, and the deepest cluster-ring nesting + bottom pills for THIS model, floored at `VB_H`. A sparse graph stays compact (big glyphs); a deeply-nested one grows taller and letterboxes (`preserveAspectRatio="meet"`). **The canvas reads `model.vbHeight`, NOT `VB_H`.** Layout tests bound node `y` by `model.vbHeight`. |
 | `KEEPER_CLUSTER_GAP` | min gap below the keeper region (16) | `buildClusterHulls` clamps every cluster rect's TOP edge to `max(keeperBottom)+gap` so the outermost concentric ring can never climb into the keeper region — a keeper (a non-member) always stays OUTSIDE the CH cluster boxes. Guarded by the cluster's content-top so it only trims the decorative outset band, never a node's own box. |
-| `CH_R` `KP_R` | node radii (42 / 40) | **Exported & imported by `topo-canvas.tsx`** so the drawn glyph == the size layout reserves. Single source of truth — never redeclare in the canvas. |
-| `chHalfExtent / chUpExtent / chDownExtent` | CH node CONTENT envelope (glyph + labels) | **CONTRACT with `topo-canvas.tsx` label positions.** `chDownExtent` must cover the sub-line / host line / LOCAL badge the canvas paints (see `NodeLabel` + the LOCAL badge `r + …`). If you move a label in the canvas, update the matching extent here or it spills outside its cluster boundary. |
+| `CH_R` `KP_R` | node radii (42 / 40) | **Exported & imported by `topo-glyphs.tsx`** (via the `./model` barrel) so the drawn glyph == the size layout reserves. Single source of truth — never redeclare in the glyph layer. |
+| `chHalfExtent / chUpExtent / chDownExtent` | CH node CONTENT envelope (glyph + labels) | **CONTRACT with `topo-glyphs.tsx` label positions.** `chDownExtent` must cover the sub-line / host line / LOCAL badge the glyph layer paints (see `NodeLabel` + the LOCAL badge `r + …`). If you move a label there, update the matching extent here or it spills outside its cluster boundary. |
 | `keeperHalf/Up/DownExtent` | Keeper envelope | Same contract with the keeper glyph (`star` above → bigger up-extent for leaders). `keeperDownExtent(k)` is **node-aware**: when the keeper host is an FQDN (`host !== id`), `NodeLabel` paints a host line AT `r+16` **and** a sub-line at `r+31`, so the extent is `KP_R + 42` (vs `KP_R + 26` for short hosts). Get this wrong and follower labels spill below the green boundary into the cluster region. |
 | `ENVELOPE_MARGIN` | breathing room between content and a boundary (12) | Applied in `buildClusterHulls` + `buildKeeperRect`. |
 | `boundaryReserve(...) → fitContent padTop/padBottom` | room the rings + bottom pills need beyond the node envelopes | `fitContent` only knows node envelopes; the rects outset past them (`ENVELOPE_MARGIN` + concentric `NEST_STEP`) and pills sit on the bottom edge. `boundaryReserve` derives a top/bottom pad from the deepest coincident nest among the cluster set it receives (visible clusters — physical included only when `showPhysical: true`) so a densely-nested graph stays in view. |
@@ -101,12 +116,17 @@ Mostly in `model-constants.ts` (re-exported from `model.ts`) unless noted. **Do 
 
 `buildClusterHulls` draws each territory as the bounding box of its members' **content
 envelopes**, so nodes *and their labels* sit inside the boundary. The envelope numbers in
-`model.ts` (`chDownExtent` etc.) are derived from where `topo-canvas.tsx` actually paints the
-labels (`NodeLabel`'s `r + 16` / `r + 31`, the LOCAL badge's `r + 25`/`r + 40`). These are two
+`model-constants.ts` (`chDownExtent` etc.) are derived from where **`topo-glyphs.tsx`**
+actually paints the labels (`NodeLabel`'s `r + 16` / `r + 31`, the LOCAL badge's
+`r + 25`/`r + 40` — `topo-glyphs.tsx:116`/`:122`/`:339`). These are two
 files that **must agree**. When editing either:
 
-- Changed a label offset/size in the canvas? → update the matching `*Extent` in `model.ts`.
+- Changed a label offset/size in the glyph layer? → update the matching `*Extent` in
+  `model-constants.ts`.
 - Verify with the harness (below) that no label pokes outside its cluster rect.
+
+The pairing is asserted nowhere — there is no test, and no lint rule. This is the
+single most expensive mistake available in this component.
 
 ## OKLCH gotcha (critical, repo-wide)
 
@@ -143,8 +163,10 @@ Tailwind utilities (`bg-card`) are fine because they emit `var(--card)` directly
 - **Edges** = gentle quadratic-bezier curves (`curvePath`), never straight lines: blue =
   replication, dashed muted = coordination (CH↔leader), green = raft (keeper mesh).
 - **Current node** = the connected (`is_local`) ClickHouse card carries a persistent breathing
-  primary ring (`.topo-current-ring`, keyframe `topo-current-breathe` in `globals.css`, honoring
-  `prefers-reduced-motion`) — always visible, independent of selection.
+  primary ring (`.topo-current-ring`, keyframe `topo-current-breathe` in
+  `apps/dashboard/src/styles.css` — the dashboard has no `globals.css`; honoring
+  `prefers-reduced-motion`) — always visible, independent of selection. The class is applied
+  in `topo-glyphs.tsx`, not `topo-canvas.tsx`.
 
 ## Node identity merge (de-dupe the local server)
 
@@ -161,11 +183,13 @@ is that same physical machine** — even when listed under different `host_name`
 The merged node keeps the most descriptive name (`nameScore`: a real FQDN beats `localhost`), unions
 its host_name/address **aliases** for live-metric matching, and `is_local`/errors are OR'd/summed.
 The merged node then belongs to *both* clusters → it correctly sits inside both territories.
-Locked by `model.test.ts` → "local-duplicate merge".
+**Not currently test-locked** — the `model.test.ts` "local-duplicate merge" case was
+deleted with the Next.js app in #1613 and never replaced. Treat the union-find as
+unguarded: if you touch `assembleTopology`, re-check it by hand or restore a test.
 
 ## Label legibility (overlap, FQDNs, coincident clusters)
 
-- **Long host labels** are middle-truncated in `topo-canvas.tsx` (`truncateMiddle`, ~24 chars ≈
+- **Long host labels** are middle-truncated in `topo-glyphs.tsx` (`truncateMiddle`, ~24 chars ≈
   `chHalfExtent`) with the full host on hover (a `<title>`) — a 60-char FQDN otherwise blows past
   its cluster boundary. Truncation length is the horizontal half of the envelope contract.
 - **Coincident clusters** (same member SET — the implicit `all-*`/`default` clusters all covering
@@ -185,17 +209,44 @@ Locked by `model.test.ts` → "local-duplicate merge".
 ## Shared component
 
 `TopologyView` is mounted in **two** places, both via `dynamic(..., { ssr: false })`:
-- `app/(dashboard)/clusters/page.tsx` — full page (topology + the raw `system.clusters` table).
-- `app/(dashboard)/overview/page.tsx` — the **Cluster Topology** tab (`OverviewTabConfig.customContent === 'topology'`),
-  passing `detailHref="/clusters?host=N"` to show a "Cluster details" link through to the full page.
+- `apps/dashboard/src/routes/(dashboard)/clusters/index.tsx` — full page (topology + the raw
+  `system.clusters` table; sibling route `replicas-status.tsx`).
+- `apps/dashboard/src/routes/(dashboard)/overview.tsx` — the **Cluster Topology** tab
+  (`OverviewTabConfig.customContent === 'topology'`), passing `detailHref="/clusters?host=N"`
+  to show a "Cluster details" link through to the full page.
 
 Keep it one component. The overview tab is config-driven; the `customContent` discriminator is the
-only branch in `page.tsx`.
+only branch in `overview.tsx`.
 
-## Test invariants (do not break)
+## Test invariants — SPEC, not currently locked
 
-`bun test apps/dashboard/components/cluster-topology/__tests__/` — 39 pure tests, runnable without
-`node_modules`. They lock:
+> **Read this before trusting the numbers below.** The pure-logic test suite for
+> this component (`__tests__/{model,geometry}.test.ts`) was **deleted with the
+> Next.js app in #1613 and never replaced**. `topology-view.test.ts` went with it
+> in #3217. The invariants listed here are still the contract the layout must
+> honour, and every number in them is still live in `model-constants.ts` /
+> `model-layout.ts` / `model-hulls.ts` — but **no test asserts any of them
+> today.** Treat this section as the specification, and add a test when you
+> change something it describes.
+
+What still exists (and what it does and does not cover):
+
+```shell
+cd apps/dashboard && bun test src/components/cluster-topology/
+# 9 tests across 2 files: 8 pure geometry (clampToHull / clientToSvg) + 1 memo-identity.
+# topology-select.test.ts imports react, so it needs an installed tree; in a bare
+# worktree it reports "Cannot find package 'react'" and the run exits non-zero.
+```
+
+Nothing asserts `OVERVIEW_TABS`. The old
+`app/(dashboard)/overview/__tests__/overview.test.tsx` went with the Next.js app
+(#1613), and the successor is **not** `lib/menu/__tests__/menu-config-snapshot.test.ts`
+— `OVERVIEW_TABS` is defined in `src/routes/(dashboard)/-charts-config/index.ts`,
+which no test references. **Update `-charts-config/index.ts` and the overview tab
+rendering together; nothing will fail if you forget.**
+
+The invariants a restored suite must lock (all currently unguarded):
+
 - hull path shape per node count; **area-DESC z-order**; replication-edge rules.
 - **shared-node-between-centroids** (overlap lens) — relative x order; `fitContent` translates
   all nodes equally so it's preserved.
@@ -204,36 +255,47 @@ only branch in `page.tsx`.
 - **data-driven height**: `vbHeight ≥ VB_H` floor; deeper nesting ⇒ taller; deterministic.
 - **keeper separation**: every CH cluster box top sits below the lowest keeper (clamp works).
 - **physical toggle**: `showPhysical:false` drops outline hulls + shrinks `vbHeight`; counts stay; node x unchanged.
+- **local-duplicate merge** (the union-find above).
 - `roundedRectPath` = closed, 4 corner arcs, clamped radius; keeper region = rounded rect for any N.
 
-`app/(dashboard)/overview/__tests__/overview.test.tsx` asserts the exact `OVERVIEW_TABS` value
-list — **update it when adding/removing a tab** (it imports `next/dynamic` transitively, so it
-only runs where `node_modules` is present, i.e. CI — not in a bare worktree).
+## Verification harness (how to eyeball changes safely) — CURRENTLY BROKEN
 
-## Verification harness (how to eyeball changes safely)
+The canvas uses theme CSS vars, so you can't judge it from path strings. The intended check is
+the committed harness **`scripts/topo-harness.tsx`**, which renders the **real `<TopoCanvas>`**
+via `react-dom/server` (no glyph mirroring → no drift) for representative fixtures into a page
+carrying the true light-theme OKLCH vars.
 
-The canvas uses theme CSS vars, so you can't judge it from path strings. The reliable check is the
-committed harness **`scripts/topo-harness.tsx`**:
+> **It does not run today.** `bun run scripts/topo-harness.tsx` exits 1 with
+> `Cannot find module '../apps/dashboard/components/cluster-topology/__tests__/fixtures'`.
+> Two problems, only one of which is a path:
+>
+> 1. **Repointable** — its `topo-canvas` / `model` imports point into
+>    `apps/dashboard/components/cluster-topology/`, a directory that no longer exists; the
+>    files live under `apps/dashboard/src/components/cluster-topology/` since #1613.
+> 2. **Not repointable** — `__tests__/fixtures.ts` (`localDuplicateClusters`,
+>    `overlapClusters`) was deleted with the Next.js app in #1613 and has **no successor
+>    anywhere in the tree**. Without it the harness cannot run at all.
+>
+> So today there is **no working automated or harness check** for the invariants above. That is
+> a real gap, not a documentation nit: see the "not currently locked" warning. Restoring the
+> fixtures is a code change, deliberately not made here.
 
-```shell
-bun run scripts/topo-harness.tsx > /tmp/topo.html   # then open via chrome-devtools MCP
-```
-
-It renders the **real `<TopoCanvas>`** via `react-dom/server` (no glyph mirroring → no drift) for
-representative fixtures (local-duplicate = the reported screenshot, host-overlap, coincident nested
-rings), into a page carrying the true light-theme OKLCH vars from `globals.css`. Screenshot it, and
-for hard cases measure overflow directly in the browser — `getBoundingClientRect` of every `<text>`
-vs the `<svg>`'s client box is the ground truth for "does a label clip the viewBox" (`getBBox`
+When it is restored, the method it uses is still the right one: screenshot it, and for hard
+cases measure overflow directly in the browser — `getBoundingClientRect` of every `<text>` vs
+the `<svg>`'s client box is the ground truth for "does a label clip the viewBox" (`getBBox`
 returns *local* coords and will mislead). This catches the OKLCH black-fill regression,
 label-outside-boundary, collisions, and clipping that pure tests can't.
 
 ## Safe-change recipes
 
-- **Resize nodes**: change `CH_R`/`KP_R` in `model.ts` only (canvas imports them). Re-tune id
-  `fontSize` + `fit()` limits so hostnames fit; bump envelopes/`enforceMinDistance` accordingly.
-- **Move/restyle a label**: edit `NodeLabel` (or the LOCAL badge) in the canvas, THEN update the
-  matching `*Extent` in `model.ts` so the boundary still encloses it. Verify with the harness.
+- **Resize nodes**: change `CH_R`/`KP_R` in `model-constants.ts` only (`topo-glyphs.tsx` imports
+  them via the `./model` barrel). Re-tune id `fontSize` + `fit()` limits so hostnames fit; bump
+  envelopes/`enforceMinDistance` accordingly.
+- **Move/restyle a label**: edit `NodeLabel` (or the LOCAL badge) in `topo-glyphs.tsx`, THEN
+  update the matching `*Extent` in `model-constants.ts` so the boundary still encloses it. There
+  is no test for this pairing — the harness is broken (above), so eyeball it.
 - **Change overlap look**: it's normal alpha blending (no `mix-blend-mode`) + the `hashStr`
   jitter. Keep jitter **expand-only** so content never leaves the rect.
-- **Add an overview sub-view**: extend `OverviewTabConfig.customContent` + branch in `page.tsx`;
-  update `overview.test.tsx`.
+- **Add an overview sub-view**: extend `OverviewTabConfig.customContent` in
+  `src/routes/(dashboard)/-charts-config/index.ts` + branch in `overview.tsx`. **No test
+  asserts `OVERVIEW_TABS`**, so nothing will catch a forgotten render branch — check it by hand.
