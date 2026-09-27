@@ -21,7 +21,13 @@ export const STATIC_PAGES: ListedPage[] = [
     path: '/license',
     title: 'License',
     description:
-      'Self-hosted licenses (yearly and lifetime) and a donate option.',
+      'Self-hosted licenses (yearly and lifetime) plus sponsorship tiers.',
+  },
+  {
+    path: '/sponsors',
+    title: 'Sponsors',
+    description:
+      'Sponsor chmonitor: one-off $59, $99, or $199 for a listing and a logo under the homepage hero.',
   },
   {
     path: '/changelog',

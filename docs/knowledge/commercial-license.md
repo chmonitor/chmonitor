@@ -3,11 +3,12 @@ id: commercial-license
 title: Self-hosted commercial licenses (honor system)
 type: spec
 status: active
-updated: 2026-08-19
+updated: 2026-09-27
 tags:
   - billing
   - license
   - pricing
+  - sponsor
   - landing
   - telemetry
 related:
@@ -61,12 +62,30 @@ can run in Docker. They will pay a commercial license for invoice / support /
 below pganalyze / Datadog. Three SKUs only: Personal (free self-host), Team
 $499 / $1,349 (3 hosts), Unlimited $999 / $2,999.
 
+## Sponsorship (separate from licensing)
+
+One-off tiers in `packages/pricing/src/sponsors.ts`: **supporter $59** (name +
+website on `/sponsors`), **backer $99** (+ logo under the homepage hero),
+**partner $199** (larger hero slot, optional note). Not a license: no features,
+no support window, no key. Checkout reuses the Polar pay-what-you-want product
+(`GET /checkout/donate?amount=`, `CHM_POLAR_DONATE_PRODUCT`) — the wire name is
+legacy, the surface is Sponsor. The listing is a **committed seed**
+(`apps/landing/src/data/sponsors.ts`, empty until the first confirmed sponsor)
+because the landing site is static; `POST /sponsors/register` records the
+request in `CHM_HOOKS_KV`. Publish the **name and website link only** — the
+email stays in KV. With no sponsor, the hero slot and `/sponsors` render the
+open-slot design; that empty state is intentional, not a gap.
+
 ## Surfaces
 
 - Landing cards: `apps/landing/src/components/Pricing.astro`
 - Register: `apps/landing/src/pages/license/register.astro` (paid=1 POSTs to hooks)
 - Lookup: `apps/landing/src/pages/license/lookup.astro`
 - Wall: `apps/landing/src/pages/customers.astro`
+- Sponsor tiers + claim form: `apps/landing/src/pages/license.astro#sponsor`,
+  `apps/landing/src/pages/sponsors.astro`
+- Hero sponsor slot: `apps/landing/src/components/SponsorSlot.astro` (in
+  `Hero.astro`, below the feature list)
 - User docs: `docs/content/operate/advanced/commercial-license.mdx`
 - Dashboard env: `CHM_LICENSE_KEY` (Polar checkout id) → instance ping
   `license_key` when telemetry is on (`lib/telemetry/instance-ping.ts`)
@@ -78,3 +97,7 @@ $499 / $1,349 (3 hosts), Unlimited $999 / $2,999.
 - Add Polar checkout or plan picker back into `apps/dashboard`.
 - Add a Settings / UI field for the key.
 - Auto-list a company without `listPublic: true`.
+- Auto-list a sponsor without a confirmed row in
+  `apps/landing/src/data/sponsors.ts`, or publish a sponsor's email address.
+- Rename `CHM_POLAR_DONATE_PRODUCT` in a rename-only PR — the live product id is
+  committed; 501 the sponsor checkout until a `polar-setup.ts` run lands.

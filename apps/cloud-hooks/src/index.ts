@@ -9,6 +9,7 @@
  *   GET  /licenses/lookup  → honor-system Polar checkout/customer lookup
  *   POST /licenses/register → persist company + website in KV
  *   GET  /licenses/public   → opt-in customers wall rows
+ *   POST /sponsors/register → persist a sponsor listing request in KV
  *   GET  /healthz         → 200 liveness shell (static, no deps)
  *
  * Scheduled (wrangler.toml [triggers] crons):
@@ -38,6 +39,7 @@ import { handleLicensePublic, handleLicenseRegister } from './license-register'
 import { logError, logInfo } from './log'
 import { fetchWorkerExceptions } from './observability'
 import { readProbeSnapshot, runProbes } from './probes'
+import { handleSponsorRegister } from './sponsor-register'
 import { collectSummary, formatDigest } from './summary'
 import { Notifier } from './telegram'
 import { collectUsage, utcDay } from './usage'
@@ -363,6 +365,10 @@ export default {
 
     if (url.pathname === '/licenses/public') {
       return handleLicensePublic(request, env)
+    }
+
+    if (url.pathname === '/sponsors/register') {
+      return handleSponsorRegister(request, env)
     }
 
     return new Response('Not Found', { status: 404 })

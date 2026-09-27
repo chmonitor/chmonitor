@@ -95,23 +95,6 @@ export const LICENSE_PAGE_HREF = 'https://chmonitor.dev/license'
 /** @deprecated Use LICENSE_PAGE_HREF. /pricing 301s there. */
 export const PRICING_PAGE_HREF = LICENSE_PAGE_HREF
 
-/**
- * Polar donate checkout. Amount is USD dollars; hooks convert to Polar cents.
- * Product id is `CHM_POLAR_DONATE_PRODUCT` on cloud-hooks (polar-setup.ts).
- * Missing env → GET /checkout/donate returns 501. Do not invent a product UUID.
- */
-export const DONATE_AMOUNTS_USD = [10, 100, 1000] as const
-export const DONATE_CHECKOUT_PATH = '/checkout/donate'
-
-export function donateHref(amountUsd: number): string {
-  const params = new URLSearchParams({ amount: String(amountUsd) })
-  return `${LICENSE_HOOKS_ORIGIN}${DONATE_CHECKOUT_PATH}?${params}`
-}
-
-export function donateCheckoutAction(): string {
-  return `${LICENSE_HOOKS_ORIGIN}${DONATE_CHECKOUT_PATH}`
-}
-
 export const bossPitch = {
   to: 'Your boss',
   subject: `Approve chmonitor ${team.name} license — $${teamYearly}/year, self-hosted`,

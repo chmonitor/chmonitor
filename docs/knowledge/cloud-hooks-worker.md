@@ -18,7 +18,7 @@ tags:
     telemetry,
     issues,
   ]
-updated: 2026-09-09
+updated: 2026-09-27
 ---
 
 # Cloud-hooks worker (Polar webhooks + ops notifications)
@@ -265,7 +265,12 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `amount_type: custom`). Polar `POST /v1/checkouts/` `amount` is **cents**.
   400 bad amount, 501 missing token or product id (do not invent a UUID),
   502 `{error, status}` on Polar failure. Success URL
-  `/license?donated=1&checkout_id={CHECKOUT_ID}`.
+  `/license?donated=1&checkout_id={CHECKOUT_ID}`. The user-facing name is
+  **Sponsor** (tiers $59/$99/$199 on `/license#sponsor` + `/sponsors`); the
+  route, the env key, and the Polar product keep the `donate` name because the
+  product id is committed in `.env.production`. Renaming the key needs a
+  `polar-setup.ts` run with `POLAR_ACCESS_TOKEN` — do not rename it in a
+  rename-only PR, it 501s the checkout until the new id is committed.
 - `license-lookup.ts` — `GET /licenses/lookup?q=` honor-system order check
   (Polar checkout id — this is `CHM_LICENSE_KEY` on the dashboard — then
   customer by email / id / query). 404 JSON if none. Cloud-hooks does not
@@ -274,8 +279,17 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   `{company, website, sku, term, list_public, checkout_id?}` to
   `CHM_HOOKS_KV` `license-reg:v1:{uuid}`; `GET /licenses/public` returns
   opt-in rows for `/customers`.
+- `sponsor-register.ts` — `POST /sponsors/register` persists
+  `{name, website, email, tier, checkout_id?, logo?}` to `CHM_HOOKS_KV`
+  `sponsor-reg:v1:{uuid}`. 400 missing name / non-http(s) website / bad email /
+  unknown `tier` (validated against `@chm/pricing` `SPONSOR_TIER_IDS`, the same
+  list the landing page renders), 429 after 5/hour per IP, 501 without KV, 204
+  CORS preflight. The response is `{ok, id}` only — the sponsor's email is never
+  echoed. Landing is static, so the **rendered** listing is the committed seed
+  `apps/landing/src/data/sponsors.ts`; this endpoint only records the request.
 - `index.ts` — `fetch` router (`/webhooks/polar`, `/webhooks/clerk`,
-  `/checkout/license`, `/checkout/donate`, `/licenses/*`, `/healthz`) +
+  `/checkout/license`, `/checkout/donate`, `/licenses/*`, `/sponsors/register`,
+  `/healthz`) +
   `scheduled` (daily cron → digest, weekly cron → weekly report, everything else
   → the ops sweep: probes, `runExceptions`, `runIssues`). `resolveGitHub(env,
   label)` centralizes credential checks, repo parsing, and token minting for the

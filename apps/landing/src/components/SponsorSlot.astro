@@ -1,0 +1,76 @@
+---
+import { heroSponsors, sponsorTier, SPONSOR_TIERS } from '../data/sponsors'
+
+/** Tiers that earn the hero slot. The first one sets the headline price. */
+const HERO_TIERS = SPONSOR_TIERS.filter((tier) => tier.hero)
+const hero = heroSponsors()
+const heroFrom = HERO_TIERS[0] ?? sponsorTier('supporter')
+---
+{/* Sponsor line at the foot of the hero, under the feature list. With no
+    sponsor in the seed it renders the open-slot design: a dashed logo
+    placeholder, the price, and the link to the sponsor page. That empty state
+    is deliberate — it shows a prospect exactly what their logo looks like. */}
+<div class="mt-14 border-t border-border pt-8 sm:mt-16" data-sponsor-slot>
+  <p class="text-center text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+    Sponsored by
+  </p>
+
+  {
+    hero.length === 0 ? (
+      <div class="mx-auto mt-5 flex max-w-2xl flex-col items-center gap-4 rounded-xl border border-dashed border-[var(--hairline-strong)] bg-background px-5 py-6 text-center sm:flex-row sm:text-left">
+        <span
+          class="flex h-14 w-32 shrink-0 items-center justify-center rounded-lg border border-dashed border-[var(--hairline-strong)] bg-[var(--surface-strong)] px-2 text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground"
+          data-sponsor-placeholder
+          aria-hidden="true"
+        >
+          Your logo
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium text-foreground">
+            Sponsor slot open
+          </p>
+          <p class="mt-1 text-pretty text-sm text-muted-foreground">
+            ${heroFrom.amountUsd} one-off puts your logo and link right here, with
+            your name on the sponsors page.
+          </p>
+        </div>
+        <a
+          class="shrink-0 text-sm font-medium text-[var(--brand)] underline underline-offset-4 hover:opacity-80"
+          href="/license#sponsor"
+          data-cta="hero-become-sponsor"
+        >
+          Become a sponsor
+        </a>
+      </div>
+    ) : (
+      <ul class="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+        {hero.map((s) => (
+          <li>
+            <a
+              class="flex items-center gap-2.5 opacity-80 transition-opacity hover:opacity-100"
+              href={s.website}
+              target="_blank"
+              rel="noopener sponsored"
+              title={s.name}
+            >
+              {s.logo ? (
+                <img
+                  src={s.logo}
+                  alt={s.name}
+                  height="32"
+                  loading="lazy"
+                  decoding="async"
+                  class="h-8 w-auto"
+                />
+              ) : (
+                <span class="text-sm font-medium tracking-tight text-foreground">
+                  {s.name}
+                </span>
+              )}
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</div>
