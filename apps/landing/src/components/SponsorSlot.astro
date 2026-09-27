@@ -1,5 +1,10 @@
 ---
-import { heroSponsors, SPONSOR_TIERS, sponsorTier } from '../data/sponsors'
+import {
+  heroSponsors,
+  SPONSOR_TIERS,
+  sponsorLink,
+  sponsorTier,
+} from '../data/sponsors'
 
 /** The tier that earns the slot — the price belongs on the offer, not here. */
 const heroFrom = sponsorTier(SPONSOR_TIERS.find((tier) => tier.hero)?.id ?? 'hero')
@@ -21,7 +26,7 @@ const sponsors = heroSponsors()
           <li>
             <a
               class="group flex flex-col items-center gap-2.5"
-              href={s.website}
+              href={sponsorLink(s, 'homepage-hero')}
               target="_blank"
               rel="noopener sponsored"
               title={s.name}

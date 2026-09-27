@@ -43,6 +43,11 @@ export interface Sponsor {
   logoDark?: string
   /** One muted line under the wordmark, in their words. */
   tagline?: string
+  /**
+   * Fallback `?ref` when the sponsor's own URL does not already carry one.
+   * The URL always wins — see `sponsorLink`.
+   */
+  ref?: string
   tier: SponsorTierId
   /** YYYY-MM, the month the sponsorship started. */
   since: string
@@ -59,6 +64,7 @@ export const sponsors: Sponsor[] = [
     // layout swap it on the theme toggle.
     logo: '/sponsors/anyrouter.svg',
     logoDark: '/sponsors/anyrouter-dark.svg',
+    ref: 'anyrouter',
     tier: 'hero',
     since: '2026-09',
   },
@@ -69,11 +75,43 @@ export function heroSponsors(rows: Sponsor[] = sponsors): Sponsor[] {
   return rows.filter((row) => sponsorTier(row.tier).hero)
 }
 
+function refSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 /**
- * Sponsor details we collect in our UI and forward to Polar, which stores them
- * on the customer account (`customer_email` / `customer_name` /
- * `customer_metadata`) and on the order (`metadata`).
+ * The tracked URL for a sponsor link — one helper so the hero and the wall
+ * cannot send different analytics.
+ *
+ * `ref` is the sponsor's own campaign key; the utm_* set is ours (`source` the
+ * site, `medium` marks it as a sponsorship rather than an editorial link,
+ * `campaign` which surface, `content` the tier).
+ *
+ * **Never overwrite.** A param already on the sponsor's URL belongs to the
+ * sponsor's own tracking — their `ref` is their campaign key and their
+ * `utm_source` is their referral — so each one is added only when absent.
  */
+export function sponsorLink(sponsor: Sponsor, campaign: string): string {
+  try {
+    const url = new URL(sponsor.website)
+    const setIfAbsent = (key: string, value: string) => {
+      if (!url.searchParams.has(key)) url.searchParams.set(key, value)
+    }
+    setIfAbsent('ref', sponsor.ref ?? refSlug(sponsor.name))
+    setIfAbsent('utm_source', 'chmonitor')
+    setIfAbsent('utm_medium', 'sponsor')
+    setIfAbsent('utm_campaign', campaign)
+    setIfAbsent('utm_content', sponsor.tier)
+    return url.toString()
+  } catch {
+    // A malformed website in the seed must not take the page down at build.
+    return sponsor.website
+  }
+}
+
 export interface SponsorCheckoutInfo {
   tier?: SponsorTierId
   name?: string
