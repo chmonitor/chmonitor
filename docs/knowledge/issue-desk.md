@@ -3,7 +3,7 @@ id: issue-desk
 title: Scheduled Herdr desk (external CLI)
 type: workflow
 status: active
-updated: 2026-09-27
+updated: 2026-09-28
 tags:
   - herdr
   - cron
@@ -55,10 +55,15 @@ queue silently starved PR maintenance. The split gives each duty its own budget
 and its own manager, and it makes "which job is broken" answerable — one row of
 `status` per job.
 
-## Failure mode this repo has already paid for
+## Two ways a desk dies silently
 
-**A desk that fails looks exactly like a desk with nothing to do.** Between
-2026-08-21 and 2026-09-24, 24 consecutive chmonitor fires failed with
+**A desk that fails looks exactly like a desk with nothing to do.** It has
+happened twice, for unrelated reasons, and `Fails` cannot tell you which one you
+have. Read the error; the counter is not a diagnosis.
+
+### A directory where the run pointer belongs (EISDIR)
+
+Between 2026-08-21 and 2026-09-24, 24 consecutive chmonitor fires failed with
 
 ```
 EISDIR: illegal operation on a directory,
@@ -82,6 +87,65 @@ Two lessons are now encoded rather than remembered:
 Corollary: `Next: -` in `status` means the cron can never match. That is always
 a config bug, not a schedule that is merely far away.
 
+### The agent name is taken and no session can be found (`agent_name_taken`)
+
+On 2026-09-28 `local:prod` died of an unrelated cause, and `status` showed
+`Fails 19 from 2026-09-28` and nothing else:
+
+```
+2026-09-28T08:57:15.403Z  herdr agent start chm-prod --kind opencode --pane wAY:p1
+  --timeout 180000 failed (1): {"error":{"code":"agent_name_taken",
+  "message":"agent name chm-prod is already used; candidates: terminal_id=term_65c7a29e1e3325b
+  pane_id=wAY:p1 workspace_id=wAY tab_id=wAY:t1 cwd=/home/duyet/.herdr/worktrees/chmoni…"}}
+...
+2026-09-28T08:58:50.444Z  (same, last of the burst)
+```
+
+Thirty-one failures in 95 seconds, then a self-recovery at `09:49:41Z` with
+`{"prompted":true}` and no intervention. `Fails` said 19 for the same window;
+the two counters disagree, which is reason enough to read the error rather than
+the number. Three things a reader cannot guess:
+
+- **The tell is inside the error.** It names a session sitting in its own pane —
+  `pane_id=wAY:p1`, `cwd=…/chmonitor/desk-local-prod` — while `herdr agent list`
+  does not surface it. The desk can see the name is taken, cannot find a session
+  to prompt, and its only remaining move is `agent start`, which is refused. The
+  desk is not stuck deciding; it is stuck with nothing left to try.
+- **It is transient, so `Fails` lies by omission.** A non-zero `Fails` on a row
+  that is healthy right now may be this and nothing else. Do not tell yourself to
+  wait it out: the cost was the fires of the one job whose purpose is catching a
+  bad production deploy, lost while `chm-prod` was mid-investigation of a live
+  outage.
+- **Nothing in this repo can fix it.** The repair is in the plugin, and it is
+  filed upstream ([duyet/herdr-desk#32](https://github.com/duyet/herdr-desk/issues/32)),
+  not here. This note exists so the next reader recognises the shape instead of
+  re-deriving it from a `Fails` count.
+
+## When a job misbehaves, first ask whether the plugin is on a commit
+
+The desk is **an external CLI, not code in this repo** (see the top of this
+note). That line is usually read as a boundary; it is also a first debugging
+step. Our config can be perfect and the code that reads it can be a working
+tree.
+
+The fix for the mode above — `isManagerCheckout` at `herdr-desk/src/run.ts:436`,
+which accepts Herdr's dashed directory spelling (`desk-local-prod`) so a finished
+manager matches its own checkout — is in the herdr-desk working tree and in no
+commit. The two commands that show it:
+
+```sh
+cd /home/duyet/project/herdr-desk
+git show HEAD:src/run.ts | grep -c isManagerCheckout   # → 0
+git diff --stat                                            # 238 insertions, 5 untracked
+```
+
+238 changed lines and five new modules (`failures.ts`, `health.ts`, `queue.ts`,
+`chart.ts`, `dashboard.ts`), unreviewed, and they schedule all 16 jobs across 9
+repos. HEAD at the time was `ad73bd6c chore(main): release 0.1.6 (#27)`, committed
+four minutes before the burst started. So: **is the plugin even on a commit?**
+before asking whether our config is right. `hd-desk` owns that repository's
+review process; this note only records that the answer was no.
+
 ## The ledger is thin — read `changes.md`, not `runs.jsonl`
 
 `runs.jsonl` records `{prompted: true}` or `{spawned: true}` and nothing about
@@ -90,6 +154,23 @@ what the manager then did. It cannot answer "did the desk land anything", and
 real record: opened / merged / research-only / skipped-and-why. Typed ledger
 fields are scoped in the 0.2 design (`herdr-desk/docs/design.md` §9), not
 shipped.
+
+**But a record still has to be checked.** Tick 1 of `local:improve` on
+2026-09-28 wrote in its `summary.md`: *"**3 issues** — herdr-desk timezone;
+`CHM_API_KEY_SECRET` provenance; the dangling `agent-model-discovery` edge"*, and
+spawned one child for a prod-playbook PR. Checked five hours later:
+
+| Claimed | Actual |
+|---|---|
+| 3 issues filed | 0, on both repos |
+| 1 child → 1 PR | 0. No branch, no worktree, no agent, no PR |
+
+The rule: **before acting on a handoff, or writing that a handoff closed,
+confirm it landed.** One `gh issue list`, one `gh pr list --state all`, and for a
+child one `git worktree list`. The cost is asymmetric — a `summary.md` that
+reports unlanded work as landed is worse than an empty one, because the next run
+reads it, sees the work covered, and skips it. Three findings became unowned
+because one sentence said they were filed.
 
 ## Identity is not cosmetic
 
