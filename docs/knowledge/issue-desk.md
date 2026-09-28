@@ -101,7 +101,7 @@ above, and `status` showed `Fails 19 from 2026-09-28` and nothing else:
 2026-09-28T08:58:50.444Z  (same, last of the burst)
 ```
 
-Thirty-one failures in 95 seconds, then a self-recovery at `09:49:51Z` with
+Thirty-one failures in 95 seconds, then a self-recovery at `09:49:41Z` with
 `{"prompted":true}` and no intervention. Four things a reader cannot guess:
 
 - **The tell is inside the error.** It names a session sitting in its own pane —
