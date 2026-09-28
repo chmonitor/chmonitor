@@ -89,8 +89,8 @@ a config bug, not a schedule that is merely far away.
 
 ### The agent name is taken and no session can be found (`agent_name_taken`)
 
-On 2026-09-28 `local:prod` died of an unrelated cause, and `status` showed
-`Fails 19 from 2026-09-28` and nothing else:
+On 2026-09-28 `local:prod` died of a cause with nothing in common with the one
+above, and `status` showed `Fails 19 from 2026-09-28` and nothing else:
 
 ```
 2026-09-28T08:57:15.403Z  herdr agent start chm-prod --kind opencode --pane wAY:p1
@@ -101,21 +101,28 @@ On 2026-09-28 `local:prod` died of an unrelated cause, and `status` showed
 2026-09-28T08:58:50.444Z  (same, last of the burst)
 ```
 
-Thirty-one failures in 95 seconds, then a self-recovery at `09:49:41Z` with
-`{"prompted":true}` and no intervention. `Fails` said 19 for the same window;
-the two counters disagree, which is reason enough to read the error rather than
-the number. Three things a reader cannot guess:
+Thirty-one failures in 95 seconds, then a self-recovery at `09:49:51Z` with
+`{"prompted":true}` and no intervention. Four things a reader cannot guess:
 
 - **The tell is inside the error.** It names a session sitting in its own pane —
   `pane_id=wAY:p1`, `cwd=…/chmonitor/desk-local-prod` — while `herdr agent list`
   does not surface it. The desk can see the name is taken, cannot find a session
   to prompt, and its only remaining move is `agent start`, which is refused. The
   desk is not stuck deciding; it is stuck with nothing left to try.
-- **It is transient, so `Fails` lies by omission.** A non-zero `Fails` on a row
-  that is healthy right now may be this and nothing else. Do not tell yourself to
-  wait it out: the cost was the fires of the one job whose purpose is catching a
-  bad production deploy, lost while `chm-prod` was mid-investigation of a live
-  outage.
+- **It is transient, so recovery is indistinguishable from never having broken.**
+  A non-zero `Fails` on a row that is healthy right now may be this and nothing
+  else — and by 17:05 every chmonitor row read `Fails -` again. Do not tell
+  yourself to wait it out: the cost was the fires of the one job whose purpose is
+  catching a bad production deploy, lost while `chm-prod` was mid-investigation
+  of a live outage.
+- **`Fails` is a floor, not a count.** `status.ts:16` calls `loadRuns(200)`,
+  `history.ts:15` caps at `MAX = 200`, and `failureStreak` (`history.ts:92`)
+  counts back over that slice. The slice is the last 200 records *globally* —
+  every repo, every job — so on a busy machine a streak is truncated from the
+  front. Measured: 1009 records in the ledger, the burst at lines 696–726, 283
+  records after it. When the row read `Fails 19` at 09:48, exactly 19 of the 31
+  were still inside the window; the other 12 had already scrolled out. The count
+  is lowest when the machine is busiest, which is when a reader most needs it.
 - **Nothing in this repo can fix it.** The repair is in the plugin, and it is
   filed upstream ([duyet/herdr-desk#32](https://github.com/duyet/herdr-desk/issues/32)),
   not here. This note exists so the next reader recognises the shape instead of
@@ -140,11 +147,11 @@ git diff --stat                                            # 238 insertions, 5 u
 ```
 
 238 changed lines and five new modules (`failures.ts`, `health.ts`, `queue.ts`,
-`chart.ts`, `dashboard.ts`), unreviewed, and they schedule all 16 jobs across 9
-repos. HEAD at the time was `ad73bd6c chore(main): release 0.1.6 (#27)`, committed
-four minutes before the burst started. So: **is the plugin even on a commit?**
-before asking whether our config is right. `hd-desk` owns that repository's
-review process; this note only records that the answer was no.
+`chart.ts`, `dashboard.ts`), unreviewed, and they schedule every job in the
+desk, across 9 repos. HEAD at the time was `ad73bd6c chore(main): release 0.1.6
+(#27)`, committed four minutes before the burst started. So: **is the plugin
+even on a commit?** before asking whether our config is right. `hd-desk` owns
+that repository's review process; this note only records that the answer was no.
 
 ## The ledger is thin — read `changes.md`, not `runs.jsonl`
 
