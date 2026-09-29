@@ -159,12 +159,19 @@ rules:
     critical: 5
 ```
 
-<Callout type="warn" title="Threshold overrides are not applied from files yet">
-`alerts.yaml` also accepts a `thresholds:` map (rule name to `warning` /
-`critical`). It is validated but **not applied yet**. To override a built-in
-threshold from config, use the `HEALTH_THRESHOLD_<RULE>_WARNING` and
-`HEALTH_THRESHOLD_<RULE>_CRITICAL` environment variables.
-</Callout>
+`alerts.yaml` also accepts a `thresholds:` map (rule id to `warning` /
+`critical`). The sweep and the current-findings snapshot apply it over the
+built-in default. It is merged with the `HEALTH_THRESHOLD_<RULE>_WARNING` and
+`HEALTH_THRESHOLD_<RULE>_CRITICAL` environment variables field by field, and
+the file wins a collision: `warning: 70` in the file with
+`HEALTH_THRESHOLD_DISK_USAGE_CRITICAL=95` in env gives `70` / `95`. A rule id
+that does not exist is skipped with a warning in the log.
+
+```yaml
+thresholds:
+  disk-usage:
+    warning: 70
+```
 
 **`routing.yaml`** declares routes. `provider` is `webhook`, `pagerduty`,
 `telegram`, `ntfy` or `pushover`; `matchRule` and `matchHost` default to `*` and

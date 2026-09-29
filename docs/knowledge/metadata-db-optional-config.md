@@ -794,10 +794,13 @@ gates on knowing what "available" means.
 >   with the same *name* as a Helm target hid it; now both appear unless the
 >   ids match. The public `source` value `'helm'` is now `'env'` (plus
 >   `'file'`).
-> - **`alerts.yaml` `thresholds:` are parsed but not applied yet.** Thresholds
->   are not one of the seven stores (they live in browser storage plus
->   `HEALTH_THRESHOLD_*`); wiring the file layer into
->   `getServerThresholdOverrides` is a follow-up.
+> - **`alerts.yaml` `thresholds:` apply (#3538).** Thresholds have no D1 layer
+>   (the UI keeps them in browser storage), so the chain is
+>   `file > env > default`, merged per rule and field by field through
+>   `mergeSources` (`declarative/thresholds.ts`
+>   `resolveThresholdOverrides`), used by the sweep and `current-findings`. An
+>   unknown rule id is dropped with a `warnOnce`; it cannot be a loader
+>   `skipped[]` entry because the rule registry is not known at load time.
 > - **UI:** `file`/`env` rows show a "Config file"/"Env" badge in place of the
 >   Delete control (`components/health/declarative-source-badge.tsx`); a
 >   declarative route's webhook URL is redacted in `GET /routes`. With no DB
