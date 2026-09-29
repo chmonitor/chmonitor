@@ -175,6 +175,28 @@ kubectl create secret generic chmonitor-clickhouse \
 `CHM_AUTH_PROVIDER` and `CHM_CLERK_PUBLISHABLE_KEY` must be present at **image build** time. The published GHCR image is auth `none`.
 </Callout>
 
+### Feature permissions from a ConfigMap
+
+The dashboard reads `CHM_CONFIG_FILE` once at startup, so a mounted ConfigMap
+can hold the [feature-permission](/operate/advanced/feature-permissions) file.
+Env vars still win over the file; a missing or invalid file is ignored with a
+warning, never a crash. Restart the pods to pick up a changed ConfigMap.
+
+```bash
+kubectl create configmap chmonitor-config --from-file=config.toml
+```
+
+Mount it into the pod (the chart has no volume values yet, so use a
+post-renderer or your own manifest) and point the env var at it:
+
+```yaml
+extraEnv:
+  - name: CHM_CONFIG_FILE
+    value: /etc/clickhouse-monitor/config.toml
+# pod spec: volume from ConfigMap "chmonitor-config",
+# mounted read-only at /etc/clickhouse-monitor
+```
+
 ## Health probes
 
 | Probe | Path | Behavior |

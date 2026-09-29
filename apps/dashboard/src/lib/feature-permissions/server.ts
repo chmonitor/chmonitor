@@ -4,8 +4,9 @@
  * Ported from apps/dashboard/lib/feature-permissions/server.ts with these
  * intentional differences:
  *
- * - No CHM_CONFIG_FILE loading: `node:fs/promises` is not available in workerd.
- *   All config comes from env vars only.
+ * - CHM_CONFIG_FILE is read by `./config-file.ts` (sync `node:fs`), gated on
+ *   the build-time `import.meta.env.SSR`. On workerd the file is simply not
+ *   there, so it resolves to no overrides. Env vars are layered on top.
  * - Clerk `auth()` is imported dynamically and guarded by isClerkAuthProvider()
  *   so the symbol is never touched when Clerk is disabled. Uses
  *   `@clerk/tanstack-react-start/server` (not `@clerk/nextjs/server`).
@@ -17,6 +18,7 @@
 
 import type { FeaturePermission } from './types'
 
+import { getFileFeatureOverrides } from './config-file'
 import {
   anonymousCapabilities,
   mergeFeatureOverrides,
@@ -62,7 +64,7 @@ function readEnv(key: string): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// Config resolution (env-only; no file loading).
+// Config resolution: built-in defaults < CHM_CONFIG_FILE < env vars.
 // ---------------------------------------------------------------------------
 
 function parseBoolean(
@@ -85,7 +87,12 @@ function splitFeatureList(value: string | undefined): string[] {
 }
 
 function parseEnvFeatureOverrides(): FeatureOverrides {
-  let overrides: FeatureOverrides = {}
+  // Start from the file; every env override below merges on top, so an
+  // explicit env var always wins. Build-time SSR gate keeps node:fs out of
+  // the client bundle.
+  let overrides: FeatureOverrides = import.meta.env.SSR
+    ? getFileFeatureOverrides(readEnv)
+    : {}
 
   for (const feature of splitFeatureList(readEnv('CHM_DISABLED_FEATURES'))) {
     overrides = mergeFeatureOverrides(overrides, {
