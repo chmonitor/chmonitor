@@ -23,6 +23,7 @@ import type { VersionedSql } from '@chm/sql-builder'
 import { getClient, releaseClient } from './clickhouse/clickhouse-client'
 import { getClickHouseConfigs } from './clickhouse/clickhouse-config'
 import { QUERY_COMMENT } from './clickhouse/constants'
+import { checkTableExists } from './table-existence-cache'
 import { debug, error as logError } from '@chm/logger'
 
 /**
@@ -231,42 +232,13 @@ async function fetchClickHouseVersion(
   }
 }
 
-/**
- * Check if a specific table exists on the host
- * Uses raw client to avoid circular dependency with fetchData
- *
- * Returns `'unknown'` (not `false`) when the probe itself fails
- * (network/timeout/auth) — the caller must not treat that the same as a
- * confirmed-missing table. See issue #2505.
- */
-export async function checkTableExists(
-  hostId: number,
-  database: string,
-  table: string
-): Promise<boolean | 'unknown'> {
-  try {
-    const configs = getClickHouseConfigs()
-    const clientConfig = configs[hostId]
-    if (!clientConfig) return false
+const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
 
-    const client = await getClient({ clientConfig })
-    try {
-      const resultSet = await client.query({
-        query:
-          QUERY_COMMENT +
-          `SELECT count() > 0 as exists FROM system.tables WHERE database = {database:String} AND name = {table:String}`,
-        query_params: { database, table },
-        format: 'JSONEachRow',
-      })
-
-      const data = (await resultSet.json()) as { exists: number }[]
-      return data?.[0]?.exists === 1
-    } finally {
-      releaseClient({ clientConfig })
-    }
-  } catch {
-    return 'unknown'
+function quoteIdentifier(name: string): string {
+  if (!IDENTIFIER_RE.test(name)) {
+    throw new Error(`Invalid ClickHouse identifier: ${JSON.stringify(name)}`)
   }
+  return `\`${name}\``
 }
 
 /**
@@ -274,12 +246,16 @@ export async function checkTableExists(
  * Uses raw client to avoid circular dependency with fetchData
  *
  * Returns `'unknown'` (not `false`) when the probe itself fails — see
- * {@link checkTableExists}.
+ * `checkTableExists` in `table-existence-cache.ts`. Database/table names are
+ * validated and backtick-quoted before interpolation (ClickHouse cannot bind
+ * identifiers as query parameters); an invalid name throws before any query.
  */
 export async function checkTableHasData(
   hostId: number,
-  fullTableName: string
+  database: string,
+  table: string
 ): Promise<boolean | 'unknown'> {
+  const fullTableName = `${quoteIdentifier(database)}.${quoteIdentifier(table)}`
   try {
     const configs = getClickHouseConfigs()
     const clientConfig = configs[hostId]
@@ -321,13 +297,19 @@ export interface TableAvailability {
 }
 
 /**
- * Check table availability with data status
+ * Check table availability with data status. Existence goes through the
+ * shared cached probe (`table-existence-cache.ts`), so it is deduped, L2-backed
+ * and honours `invalidateTable`.
  */
 export async function checkTableAvailability(
   hostId: number,
   database: string,
   table: string
 ): Promise<TableAvailability> {
+  // Validate up front so a bad name never reaches ClickHouse.
+  quoteIdentifier(database)
+  quoteIdentifier(table)
+
   const exists = await checkTableExists(hostId, database, table)
   if (exists === 'unknown') {
     return {
@@ -345,7 +327,7 @@ export async function checkTableAvailability(
     }
   }
 
-  const hasData = await checkTableHasData(hostId, `${database}.${table}`)
+  const hasData = await checkTableHasData(hostId, database, table)
   if (hasData === 'unknown') {
     return {
       exists: true,
