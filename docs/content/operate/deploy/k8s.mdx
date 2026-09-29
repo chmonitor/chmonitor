@@ -197,6 +197,84 @@ extraEnv:
 # mounted read-only at /etc/clickhouse-monitor
 ```
 
+### Alert definitions from a ConfigMap
+
+You can run alerting on Kubernetes with no metadata database. Declare the
+definitions in a ConfigMap and the secrets in a Secret. Definitions are
+declarative; alert state and ACKs are not, so without D1 or Postgres alert state
+is in memory, resets on pod restart, and Acknowledge is disabled. Read the
+[read-only/writable boundary](/guide/features/health#run-alerts-without-a-metadata-database)
+first.
+
+<Steps>
+<Step>
+Write one YAML file per concern (`alerts.yaml`, `routing.yaml`, `channels.yaml`,
+`quiet-hours.yaml`, `maintenance.yaml`, `digest.yaml`). File formats and
+examples are in [Health](/guide/features/health#the-files). Then create the
+ConfigMap from the directory:
+
+```bash
+kubectl create configmap chmonitor-health --from-file=health.d/
+```
+</Step>
+<Step>
+Put every secret in a Secret. The YAML only names the variable
+(`secretEnv`, `urlEnv`, `headersEnv`); a ConfigMap is not a Secret.
+
+```bash
+kubectl create secret generic chmonitor-alert-secrets \
+  --from-literal=CHM_ROUTE_PAGERDUTY_KEY='<routing-key>' \
+  --from-literal=CHM_WEBHOOK_OPS_CHAT_URL='https://hooks.slack.com/services/...'
+```
+</Step>
+<Step>
+Expose those keys as env vars with `secretKeyRef`, and mount the ConfigMap at
+`/etc/chmonitor/health.d`, the default directory. The chart has no volume values
+yet, so add the volume with a post-renderer or your own manifest. Set
+`CHM_HEALTH_CONFIG_DIRECTORY` only if you mount somewhere else.
+
+```yaml
+# values.yaml
+extraEnv:
+  - name: CHM_ROUTE_PAGERDUTY_KEY
+    valueFrom:
+      secretKeyRef:
+        name: chmonitor-alert-secrets
+        key: CHM_ROUTE_PAGERDUTY_KEY
+  - name: CHM_WEBHOOK_OPS_CHAT_URL
+    valueFrom:
+      secretKeyRef:
+        name: chmonitor-alert-secrets
+        key: CHM_WEBHOOK_OPS_CHAT_URL
+```
+
+```yaml
+# pod spec (post-renderer / own manifest)
+volumes:
+  - name: health-d
+    configMap:
+      name: chmonitor-health
+containers:
+  - name: chmonitor
+    volumeMounts:
+      - name: health-d
+        mountPath: /etc/chmonitor/health.d
+        readOnly: true
+```
+</Step>
+<Step>
+Restart the pods. The directory is read once per process, so a changed
+ConfigMap needs `kubectl rollout restart deployment/chmonitor`. Then open
+**Health → Settings**: declared entries show a **Config file** badge and are
+read-only.
+</Step>
+</Steps>
+
+Bad entries never stop the pod: they are skipped with a warning in the pod log
+that names the file and entry, never a value. Check
+`GET /api/v1/config` (`capabilities.health`) to see which store backend the pod
+resolved.
+
 ## Health probes
 
 | Probe | Path | Behavior |

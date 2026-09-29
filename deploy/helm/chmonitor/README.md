@@ -110,8 +110,14 @@ Unknown keys, bad YAML, and entries without a key are skipped with a warning;
 they never stop the pod. Do not put secrets in these files — reference an env
 var name (`secretEnv`, `urlEnv`) backed by a `secretKeyRef` instead.
 
-The loader ships first; alert stores start reading it in a follow-up
-(chmonitor#3497). Until then the files are parsed and validated but not applied.
+Definitions merge D1/Postgres > file > env > default. Declared entries are
+read-only in the UI and a changed ConfigMap needs a pod restart. Declarative
+config defines alerts but cannot acknowledge them: with no D1 or Postgres,
+alert state is in memory (streaks and incident timers reset on restart) and ACK
+is disabled. Full boundary table, per-concern YAML examples and the
+end-to-end ConfigMap mount:
+[Health](https://docs.chmonitor.dev/guide/features/health#run-alerts-without-a-metadata-database)
+and [Kubernetes](https://docs.chmonitor.dev/operate/deploy/k8s#alert-definitions-from-a-configmap).
 
 ## ClickHouse user requirements
 

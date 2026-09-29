@@ -410,8 +410,15 @@ alertWebhooks:
 #     value: "prod"
 #   # Declarative alert config directory (see README "Declarative alert
 #   # config"). Mount a ConfigMap of <concern>.yaml files at this path.
+#   # Only needed for a non-default path; alert state/ACKs still need a DB.
 #   - name: CHM_HEALTH_CONFIG_DIRECTORY
 #     value: /etc/chmonitor/health.d
+#   # Secrets named by `secretEnv` / `urlEnv` in those YAML files:
+#   - name: CHM_ROUTE_PAGERDUTY_KEY
+#     valueFrom:
+#       secretKeyRef:
+#         name: chmonitor-alert-secrets
+#         key: CHM_ROUTE_PAGERDUTY_KEY
 extraEnv: []
 
 nodeSelector: {}
