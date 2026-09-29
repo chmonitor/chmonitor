@@ -23,6 +23,7 @@ earlier one:
 |---|---|---|
 | Built-in defaults | Everything | Every feature is public and enabled. Sensible query/pool timeouts. |
 | `CHM_CONFIG_FILE` | Feature permissions only | Optional file; mount at any path, point `CHM_CONFIG_FILE` at it. |
+| `CHM_HEALTH_CONFIG_DIRECTORY` | Alert definitions only | Optional directory of `<concern>.yaml` files (default `/etc/chmonitor/health.d`). Merges below database rows and above env. Read once at startup. |
 | Environment variables | All settings | Primary surface. Server vars take effect on restart; client vars require a rebuild. |
 | Browser localStorage | Per-user UI state | Time range, alert settings, connection list. Not server config. |
 
@@ -158,6 +159,11 @@ HEALTH_ALERT_ENABLED=true
 HEALTH_ALERT_WEBHOOK_URL=https://hooks.slack.com/services/...
 HEALTH_ALERT_MIN_SEVERITY=warning
 ```
+
+Without a metadata database, declare alert definitions from a mounted directory
+(`CHM_HEALTH_CONFIG_DIRECTORY`). Definitions merge D1/Postgres > file > env >
+default; alert state and ACKs stay in memory. See
+[Run alerts without a metadata database](/guide/features/health#run-alerts-without-a-metadata-database).
 
 Full reference: [Environment variables — health alerting](/reference/environment-variables#health-alerting).
 

@@ -564,7 +564,7 @@ gates on knowing what "available" means.
 | 3 | Declarative config loader for health | [#3496](https://github.com/chmonitor/chmonitor/issues/3496) | **done** (loader only) |
 | 4 | Source layer for the read-only definitions | [#3497](https://github.com/chmonitor/chmonitor/issues/3497) | **done** (all seven stores) |
 | 5 | Honest state stores without a DB | [#3498](https://github.com/chmonitor/chmonitor/issues/3498) | **done** (items 1–2: ACK 501 + disabled controls + restart copy); Q5 split to [#3534](https://github.com/chmonitor/chmonitor/issues/3534) (`needs-design`, **open**) |
-| 6 | Document the operator path | [#3499](https://github.com/chmonitor/chmonitor/issues/3499) | all of the above |
+| 6 | Document the operator path | [#3499](https://github.com/chmonitor/chmonitor/issues/3499) | **done** (health.mdx boundary table + files, env-vars, configuration, k8s ConfigMap, Helm README/values, `.env.example`) |
 
 ### 1. Fix the `metadataDb.available` asymmetry (DECIDED 2026-09-29: B) → **#3493** — DONE
 
@@ -855,7 +855,7 @@ gates on knowing what "available" means.
 > **Tests:** a write with no DB returns the capability, not a silent success;
 > the UI never renders an enabled ACK button it cannot honour.
 
-### 6. Document the operator path
+### 6. Document the operator path (DONE)
 
 > `docs/content/reference/environment-variables.mdx` (new vars; the
 > `CHM_CONFIG_FILE` row at `:220`), `docs/content/reference/configuration.mdx`,

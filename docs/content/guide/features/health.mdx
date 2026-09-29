@@ -76,6 +76,189 @@ access = "authenticated"
 
 ## Configuration
 
+### Run alerts without a metadata database
+
+Alerting works on Docker and Kubernetes with no D1 and no Postgres, but there is
+one boundary to learn up front: **declarative config can fire alerts. It cannot
+acknowledge them.**
+
+| Data | Declarative? | Why |
+|---|---|---|
+| Alert definitions: rules, thresholds, routing, channels, webhook targets, quiet hours, maintenance windows, digest settings | **Yes** | Desired state. An operator declares intent. |
+| Alert state: firing or cleared, hysteresis streak, incident start, last-notified | **No** | Observation, not intent. It cannot be authored. |
+| ACKs, suggestion dismissals, digest buffer | **No** | Per-user runtime state. |
+
+With no database, alert state lives in memory in each worker instance. So
+**hysteresis streaks and incident timers reset on every restart or deploy**, and
+Acknowledge, Clear and dismiss are disabled in the UI. `POST` and `DELETE` on
+`/api/v1/health/ack` return `501`. The ClickHouse state backend
+(`CHM_STATE_CLICKHOUSE_*`) does not back the alert stores; the alert surface
+runs on D1 or Postgres (`DATABASE_URL` / `POSTGRES_URL`). Attach one of them if
+you need ACKs. See [`GET /api/v1/config`](/reference/api) `capabilities.health`
+for what a deployment resolved.
+
+#### Where definitions come from
+
+Definitions merge from four sources, highest first:
+
+1. **D1 or Postgres** rows, written from the UI.
+2. **Config files** in `CHM_HEALTH_CONFIG_DIRECTORY` (default `/etc/chmonitor/health.d`).
+3. **Environment variables** (`HEALTH_ALERT_*`, `HEALTH_THRESHOLD_*`).
+4. **Built-in defaults.**
+
+Every source is always read; precedence only decides who wins a key. Per key:
+
+- **Most definitions** (routes, custom rules, webhook targets, quiet hours, channels) merge field by field. A higher source overrides a field only when it sets a non-empty value, so a file can set `enabled` while a D1 row owns a token. A higher source cannot clear a lower source's value back to empty.
+- **Maintenance windows** are replaced whole per `id`, and windows from different sources are all active.
+- **Digest** settings are a single value: the highest source wins outright.
+- A key that only a lower source defines disappears when that source stops defining it. There is no tombstone.
+
+Declared entries are shared by every user (deployment-wide, like the env
+fallbacks). In the UI they are read-only and show a **Config file** or **Env**
+badge instead of Delete or Reset. Custom rules declared with `id: foo` appear as
+`custom:foo`. The directory is read once per process, so **a changed file needs
+a pod restart**. Secrets are read from the environment on each read.
+
+#### The files
+
+One YAML file per concern, named exactly `<concern>.yaml` (or `.yml`). Files with
+other names are skipped with a warning.
+
+| File | Top-level keys | Entry key |
+|---|---|---|
+| `alerts.yaml` | `rules`, `thresholds` | `id` (rules), rule name (thresholds) |
+| `routing.yaml` | `routes` | `id` |
+| `channels.yaml` | `channels`, `webhookTargets` | `channel`, `id` |
+| `quiet-hours.yaml` | `windows` | `id` |
+| `maintenance.yaml` | `windows` | `id` |
+| `digest.yaml` | `enabled`, `windowMinutes` | none (single value) |
+
+Every keyed entry carries its key explicitly. The schema is strict: unknown keys
+are rejected, so a typo is reported instead of silently ignored.
+
+**Secrets never go in these files.** A ConfigMap is not a Secret. Secret fields
+take the *name* of an environment variable (`secretEnv`, `urlEnv`,
+`headersEnv`), which you back with a Kubernetes Secret. An unset variable skips
+that entry with a warning that names the variable, never its value. Declared
+outbound URLs must be HTTPS and pass the same SSRF check as the API. A URL that
+is itself a credential (Slack or Discord webhook) belongs in a `routes` entry
+`secretEnv` or a `webhookTargets` `urlEnv`, not in a channel `target.url`.
+
+**`alerts.yaml`** declares custom rules. `metric` is a key from the rule
+builder catalog (for example `failed-mutations`, `readonly-replicas`,
+`replication-max-lag`, `disk-usage-percent`). `op` is one of `>`, `>=`, `<`,
+`<=`, and `warning` and `critical` must be ordered for that operator.
+
+```yaml
+rules:
+  - id: failed-mutations-any
+    name: Failed mutations
+    metric: failed-mutations
+    op: ">="
+    warning: 1
+    critical: 5
+```
+
+<Callout type="warn" title="Threshold overrides are not applied from files yet">
+`alerts.yaml` also accepts a `thresholds:` map (rule name to `warning` /
+`critical`). It is validated but **not applied yet**. To override a built-in
+threshold from config, use the `HEALTH_THRESHOLD_<RULE>_WARNING` and
+`HEALTH_THRESHOLD_<RULE>_CRITICAL` environment variables.
+</Callout>
+
+**`routing.yaml`** declares routes. `provider` is `webhook`, `pagerduty`,
+`telegram`, `ntfy` or `pushover`; `matchRule` and `matchHost` default to `*` and
+accept globs. `secretEnv` names the variable holding the webhook URL, PagerDuty
+routing key, Telegram bot token, ntfy token (optional) or Pushover app token.
+`target` carries the non-secret fields: `serviceName` (pagerduty), `chatId`
+(telegram), `url` (ntfy) and `user` (pushover).
+
+```yaml
+routes:
+  - id: oncall-pagerduty
+    provider: pagerduty
+    matchRule: "*"
+    matchHost: "*"
+    minSeverity: critical
+    secretEnv: CHM_ROUTE_PAGERDUTY_KEY
+    target:
+      serviceName: chmonitor-prod
+  - id: team-telegram
+    provider: telegram
+    matchRule: "custom:*"
+    secretEnv: CHM_ROUTE_TELEGRAM_TOKEN
+    target:
+      chatId: "-1001234567890"
+```
+
+**`channels.yaml`** declares the server delivery channels (`webhook`,
+`healthchecks`, `email`, `opsgenie`, `telegram`, `ntfy`, `pushover`, `twilio`) and
+custom webhook targets. A target's `urlEnv` is required; `headersEnv` names a
+variable holding a JSON object of secret headers. Precedence against env is per
+channel, not per field.
+
+```yaml
+channels:
+  - channel: telegram
+    minSeverity: warning
+    secretEnv: HEALTH_CHANNEL_TELEGRAM_TOKEN
+    target:
+      chatId: "-1001234567890"
+  - channel: opsgenie
+    secretEnv: HEALTH_CHANNEL_OPSGENIE_KEY
+    target:
+      region: eu
+webhookTargets:
+  - id: ops-chat
+    name: Ops chat
+    format: slack
+    minSeverity: warning
+    urlEnv: CHM_WEBHOOK_OPS_CHAT_URL
+    headersEnv: CHM_WEBHOOK_OPS_CHAT_HEADERS
+```
+
+**`quiet-hours.yaml`** takes `days` (0 to 6), `start` and `end` as `HH:mm`, an
+IANA `timezone` (default `UTC`) and an optional `severityCap: critical`.
+
+```yaml
+windows:
+  - id: nightly
+    days: [1, 2, 3, 4, 5]
+    start: "22:00"
+    end: "07:00"
+    timezone: Asia/Ho_Chi_Minh
+    severityCap: critical
+```
+
+**`maintenance.yaml`** takes an optional `hostId` (omit for all hosts), a
+`reason`, and ISO-8601 `startsAt` / `endsAt` with `endsAt` later.
+
+```yaml
+windows:
+  - id: upgrade-2026-10-05
+    hostId: 0
+    reason: ClickHouse 25.8 upgrade
+    startsAt: "2026-10-05T01:00:00Z"
+    endsAt: "2026-10-05T03:00:00Z"
+```
+
+**`digest.yaml`** is a single object. `windowMinutes` is 0 to 1440.
+
+```yaml
+enabled: true
+windowMinutes: 15
+```
+
+#### Fail-closed behaviour
+
+- A missing directory, or a runtime with no filesystem (Cloudflare Workers), is a silent no-op.
+- Bad YAML, unknown keys, schema violations, entries without a key and duplicate keys are skipped with a warning. The rest of the file and the other files still load, and the pod never fails to start.
+- Warnings name the file and entry, never a field value, so a secret pasted into a ConfigMap by mistake does not reach the logs.
+- An entry whose `*Env` variable is unset, or whose URL is not an allowed HTTPS endpoint, is skipped.
+- With no database and no declared custom rule, the rule builder still reports "not available" (`501`) on write.
+
+For the Kubernetes mount, see [Alert definitions from a ConfigMap](/operate/deploy/k8s#alert-definitions-from-a-configmap). Variable reference: [`CHM_HEALTH_CONFIG_DIRECTORY`](/reference/environment-variables#health-alerting).
+
 ### Health-sweep cron alerting
 
 The health-sweep endpoint runs checks over all configured hosts and sends a webhook notification when a check meets or exceeds the minimum severity.

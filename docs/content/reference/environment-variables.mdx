@@ -127,6 +127,7 @@ browser tab open.
 | `HEALTH_ALERT_ENABLED` | `false` | Set `true` to POST webhook alerts. Checks run regardless; alerts only fire when `true`. |
 | `HEALTH_ALERT_WEBHOOK_URL` | — | Slack- or Discord-compatible webhook URL. Required for alerts to be dispatched. |
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Minimum severity to alert: `warning` (warning + critical) or `critical` (critical only). |
+| `CHM_HEALTH_CONFIG_DIRECTORY` | `/etc/chmonitor/health.d` | Self-hosted only (needs a filesystem; a no-op on Cloudflare Workers). Directory of declarative alert definitions, one YAML file per concern: `alerts.yaml`, `routing.yaml`, `channels.yaml`, `quiet-hours.yaml`, `maintenance.yaml`, `digest.yaml`. Read once per process, so a changed file needs a restart. Bad files and entries are skipped with a warning, never fatal. Secret fields name an env var (`secretEnv`, `urlEnv`, `headersEnv`); secrets are never written in the files. Definitions merge D1/Postgres > file > env > default. Files, examples and merge rules: [Run alerts without a metadata database](/guide/features/health#run-alerts-without-a-metadata-database). |
 
 ```bash
 # Alert Slack on warning-or-worse
@@ -135,6 +136,13 @@ HEALTH_ALERT_ENABLED=true
 HEALTH_ALERT_WEBHOOK_URL=https://hooks.slack.com/services/T000/B000/XXXX
 HEALTH_ALERT_MIN_SEVERITY=warning
 ```
+
+**No metadata database?** Alert *definitions* (rules, routing, channels, webhook
+targets, quiet hours, maintenance windows, digest) can be declared from
+`CHM_HEALTH_CONFIG_DIRECTORY` and the `HEALTH_*` variables. Alert *state*,
+ACKs and dismissals cannot: without D1 or Postgres they live in memory, reset on
+restart, and ACK returns `501`. See the
+[read-only/writable boundary](/guide/features/health#run-alerts-without-a-metadata-database).
 
 ## Weekly health report
 
@@ -664,7 +672,6 @@ Injected at build time for the About page.
 |---|---|---|
 | `CHM_CONFIG_SOURCE` | `ts` | Query-config resolution path: `ts` (hand-written TypeScript configs, current default everywhere) or `declarative` (opt-in data-only catalog, validated against the same schema and kept at parity — see [Catalog contributing](/reference/catalog-contributing)). Any value other than the literal string `declarative` resolves to `ts`. A malformed declarative entry logs an error and falls back to the `ts` config rather than crashing. |
 | `CHM_CONFIG_DIRECTORY` | `/etc/chmonitor/queries.d` | Self-hosted only. Directory scanned once at startup for `*.yaml` local query-config overrides — no PR or fork needed. Each file must satisfy the same declarative schema as the [catalog](/reference/catalog-contributing); an invalid file (bad YAML, schema violation, or duplicate `name`) is skipped with a warning log, never crashes boot. Checked **first**, ahead of `CHM_CONFIG_SOURCE` — a local file overrides a same-named built-in `ts` or `declarative` config regardless of that setting. Requires a real filesystem (Docker/K8s; not available on the Cloudflare Worker deploy). Mount example in the repo's `docker-compose.yml`. |
-| `CHM_HEALTH_CONFIG_DIRECTORY` | `/etc/chmonitor/health.d` | Self-hosted only. Directory of declarative alert config, one YAML file per concern: `alerts.yaml`, `routing.yaml`, `channels.yaml`, `quiet-hours.yaml`, `maintenance.yaml`, `digest.yaml`. Every entry needs its key (`id`, or `channel` for channel config). Unknown keys, bad YAML, and entries without a key are skipped with a warning, never fatal; a missing directory is a no-op. Secrets are never written in these files — secret fields name an env var (`secretEnv`, `urlEnv`). Read once at startup. The loader ships first; alert stores apply it once #3497 lands. |
 | `CHM_PACK_REGISTRY_URL` | — | Comma-separated community query-pack URLs (HTTP(S) or `file://`), consulted when `CHM_CONFIG_SOURCE=declarative`. Each pack is a single YAML manifest (`{ name, version, queries: [...] }`) fetched once at startup (no hot-reload). HTTP(S) fetches are SSRF-guarded; `file://` reads a local, operator-chosen path. Precedence (highest to lowest): the self-hosted local `queries.d` override > packs > the built-in declarative catalog > `ts` configs. Within packs, the last URL wins on a name collision (logged). An unreachable or malformed pack — or a single bad query inside an otherwise-valid pack — is skipped with a warning; the built-in catalog always still serves. |
 
 ## Legacy / migration
