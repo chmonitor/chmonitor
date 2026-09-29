@@ -19,10 +19,12 @@
 
 import type { AlertRuleSeverity } from '@/lib/alerting/rule-registry'
 import type { AlertStateRecord, AlertStateStore } from './alert-state-store'
+import type { HealthSqlDb, HealthSqlStatement } from './sql-db'
 
 import { alertStateKey } from './alert-state-store'
+import { getHealthDb } from './resolve-store'
+import { isPostgresHealthDb } from './sql-db'
 import { ErrorLogger } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
 
 const COMPONENT = 'alert-state-persist'
 const warn = (msg: string) =>
@@ -65,11 +67,13 @@ interface D1AlertStateRow {
 
 let migration: Promise<void> | null = null
 
-function getDb(): D1Database | null {
-  return getPlatformBindings().getD1Database('CHM_CLOUD_D1')
+function getDb(): HealthSqlDb | null {
+  return getHealthDb()
 }
 
-function ensureMigrated(db: D1Database): Promise<void> {
+function ensureMigrated(db: HealthSqlDb): Promise<void> {
+  // Postgres: the adapter bootstraps its own schema (postgres-schema.ts).
+  if (isPostgresHealthDb(db)) return Promise.resolve()
   if (!migration) {
     migration = (async () => {
       try {
@@ -136,7 +140,7 @@ export async function flushAlertState(store: AlertStateStore): Promise<void> {
     await ensureMigrated(db)
 
     const live = new Set<string>()
-    const statements: D1PreparedStatement[] = []
+    const statements: HealthSqlStatement[] = []
     for (const [key, rec] of store.entries()) {
       live.add(key)
       const [hostIdRaw, ...ruleParts] = key.split(':')

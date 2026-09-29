@@ -28,9 +28,10 @@
  */
 
 import type { AlertSeverityFloor } from './alert-channel-settings'
+import type { HealthSqlDb } from './sql-db'
 
+import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
 
 const COMPONENT = 'alert-channel-config'
 const warn = (msg: string) =>
@@ -105,8 +106,8 @@ interface D1ChannelConfigRow {
   updated_at: number
 }
 
-function getDb(): D1Database | null {
-  return getPlatformBindings().getD1Database('CHM_CLOUD_D1')
+function getDb(): HealthSqlDb | null {
+  return getHealthDb()
 }
 
 /** Parse the stored `target_json` into a flat string map, tolerating junk. */

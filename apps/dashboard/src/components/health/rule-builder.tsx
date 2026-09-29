@@ -292,7 +292,8 @@ function AddRuleForm({ onCreated }: { onCreated: () => void }) {
 export function RuleBuilderPanel({ className }: { className?: string }) {
   const { rules, isLoading, error, refetch } = useCustomAlertRules()
 
-  // The API returns 501 when no D1 binding (CHM_CLOUD_D1) is configured —
+  // The API returns 501 when no alert state backend (a CHM_CLOUD_D1 binding
+  // or a Postgres DATABASE_URL) is configured —
   // mirrors WebhookSubscriptionsPanel's explicit "not available" message
   // instead of silently showing a form that would fail on save.
   const notConfigured =
@@ -305,8 +306,8 @@ export function RuleBuilderPanel({ className }: { className?: string }) {
     return (
       <p className={cn('text-sm text-muted-foreground', className)}>
         Custom alert rules require a configured database backend (cloud
-        deployments, or self-hosted with a D1 database configured). Not
-        available on this deployment.
+        deployments, or self-hosted with a D1 database or a Postgres
+        DATABASE_URL). Not available on this deployment.
       </p>
     )
   }

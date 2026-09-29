@@ -11,7 +11,7 @@
  * routes / channel-config APIs): self-hosted manages it with zero auth under the
  * OSS single-tenant owner `''`, cloud requires sign-in for writes. The store is
  * best-effort D1 — GET always returns 200 (falling back to the env value), and a
- * PUT with no D1 binding returns 501.
+ * PUT with no alert state backend (D1 or Postgres) returns 501.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
@@ -86,7 +86,7 @@ async function handlePut(request: Request): Promise<Response> {
   const saved = await setDigestSettings(ownerId, { enabled, windowMinutes })
   if (!saved) {
     return jsonError(
-      'Digest settings storage is not configured (no D1 binding) or the write failed.',
+      'Digest settings storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
       501
     )
   }

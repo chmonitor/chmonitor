@@ -23,14 +23,15 @@
  */
 
 import type { CustomWebhookFormat } from './custom-webhook-targets'
+import type { HealthSqlDb } from './sql-db'
 
 import {
   isCustomWebhookFormat,
   normalizeCustomWebhookFormat,
   sanitizeCustomHeaders,
 } from './custom-webhook-targets'
+import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
 
 const COMPONENT = 'custom-webhook-target'
 const warn = (msg: string) =>
@@ -43,8 +44,8 @@ const TABLE = 'alert_webhook_targets'
 /** Storage cap: at most this many custom targets per owner. */
 export const MAX_CUSTOM_WEBHOOK_TARGETS = 20
 
-function getDb(): D1Database | null {
-  return getPlatformBindings().getD1Database('CHM_CLOUD_D1')
+function getDb(): HealthSqlDb | null {
+  return getHealthDb()
 }
 
 /** Whether the deployment has the D1 binding needed for persisted targets. */

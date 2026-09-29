@@ -194,7 +194,7 @@ async function handlePost(request: Request): Promise<Response> {
 
     if (!created) {
       return jsonError(
-        'Alert routing storage is not configured (no D1 binding) or the write failed.',
+        'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
         501
       )
     }
@@ -237,7 +237,7 @@ async function handlePost(request: Request): Promise<Response> {
 
     if (!created) {
       return jsonError(
-        'Alert routing storage is not configured (no D1 binding) or the write failed.',
+        'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
         501
       )
     }
@@ -281,7 +281,7 @@ async function handlePost(request: Request): Promise<Response> {
 
     if (!created) {
       return jsonError(
-        'Alert routing storage is not configured (no D1 binding) or the write failed.',
+        'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
         501
       )
     }
@@ -322,7 +322,7 @@ async function handlePost(request: Request): Promise<Response> {
 
     if (!created) {
       return jsonError(
-        'Alert routing storage is not configured (no D1 binding) or the write failed.',
+        'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
         501
       )
     }
@@ -363,7 +363,7 @@ async function handlePost(request: Request): Promise<Response> {
 
   if (!created) {
     return jsonError(
-      'Alert routing storage is not configured (no D1 binding) or the write failed.',
+      'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
       501
     )
   }

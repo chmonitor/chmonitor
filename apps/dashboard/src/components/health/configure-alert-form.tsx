@@ -45,7 +45,7 @@ import { describeError } from '@/lib/swr/fetch-error'
  *  `rule-builder.tsx`, so the two surfaces do not describe the same limit two
  *  different ways. */
 export const ALERT_STORE_UNAVAILABLE_HINT =
-  'Named alerts need a database backend (cloud, or self-hosted with D1 configured). Not available on this deployment — thresholds below still work.'
+  'Named alerts need a database backend (cloud, or self-hosted with a D1 database or a Postgres DATABASE_URL). Not available on this deployment — thresholds below still work.'
 
 export function ConfigureAlertForm({
   check,

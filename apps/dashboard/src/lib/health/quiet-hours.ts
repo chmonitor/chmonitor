@@ -25,8 +25,11 @@
  * mocking D1.
  */
 
+import type { HealthSqlDb } from './sql-db'
+
+import { getHealthDb } from './resolve-store'
+import { isPostgresHealthDb } from './sql-db'
 import { ErrorLogger } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
 
 const COMPONENT = 'quiet-hours'
 const warn = (msg: string) =>
@@ -326,20 +329,17 @@ export function _resetQuietCatchUpTracker(): void {
 // D1-backed store — mirrors maintenance-windows.ts.
 // ---------------------------------------------------------------------------
 
-function getDb(): D1Database | null {
-  const bindings = getPlatformBindings()
-  for (const name of D1_BINDING_NAMES) {
-    const db = bindings.getD1Database(name)
-    if (db) return db
-  }
-  return null
+function getDb(): HealthSqlDb | null {
+  return getHealthDb({ bindingNames: D1_BINDING_NAMES })
 }
 
 // Single-flight migration: concurrent first calls share one promise so the
 // idempotent DDL runs at most once; a failure clears it so the next call retries.
 let migration: Promise<void> | null = null
 
-function ensureMigrated(db: D1Database): Promise<void> {
+function ensureMigrated(db: HealthSqlDb): Promise<void> {
+  // Postgres: the adapter bootstraps its own schema (postgres-schema.ts).
+  if (isPostgresHealthDb(db)) return Promise.resolve()
   if (!migration) {
     migration = (async () => {
       try {
@@ -429,7 +429,9 @@ export async function createQuietHours(
 
   const db = getDb()
   if (!db) {
-    throw new Error('No D1 binding (MAINTENANCE_D1 / CHM_CLOUD_D1) found')
+    throw new Error(
+      'No alert state backend configured (D1 binding MAINTENANCE_D1 / CHM_CLOUD_D1, or Postgres DATABASE_URL)'
+    )
   }
   await ensureMigrated(db)
 

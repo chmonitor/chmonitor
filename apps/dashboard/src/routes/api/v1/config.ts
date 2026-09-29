@@ -44,7 +44,7 @@ import {
   FEATURE_ACCESS_VALUES,
   FEATURE_IDS,
 } from '@/lib/feature-permissions/types'
-import { getPlatformBindings } from '@/lib/platform-native'
+import { isMetadataDbAvailable } from '@/lib/state-backend/config'
 
 // ---------------------------------------------------------------------------
 // Inlined feature-permission resolution (mirror lib/feature-permissions/shared.ts).
@@ -221,18 +221,10 @@ function getPublicFeaturePermissionConfig(): PublicFeaturePermissionConfig {
 
   const userConnections = getUserConnectionsServerConfig()
 
-  // Metadata DB = anywhere app state (report subscriptions, per-user
-  // connections, shared dashboards) can persist: the D1 binding on Cloudflare,
-  // or a Postgres URL on Docker/K8s. Fail-open false so an OSS deploy without
-  // one just dims the dependent menu items instead of hiding them.
-  let metadataDbAvailable = false
-  try {
-    metadataDbAvailable =
-      getPlatformBindings().getD1Database('CHM_CLOUD_D1') !== null ||
-      Boolean(readEnv('DATABASE_URL') ?? readEnv('POSTGRES_URL'))
-  } catch {
-    metadataDbAvailable = false
-  }
+  // Metadata DB = a state backend exists (D1 / ClickHouse state / Postgres).
+  // Derived from the ONE resolver the stores use, so the flag can never
+  // disagree with them (#3493).
+  const metadataDbAvailable = isMetadataDbAvailable()
 
   return {
     authProvider,

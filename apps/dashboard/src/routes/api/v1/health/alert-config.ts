@@ -185,7 +185,7 @@ async function handlePut(request: Request): Promise<Response> {
 
   if (!saved) {
     return jsonError(
-      'Alert channel storage is not configured (no D1 binding) or the write failed.',
+      'Alert channel storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
       501
     )
   }

@@ -12,7 +12,13 @@
  *
  * This module only centralizes the env reads so the stores share one source
  * of truth — it does not talk to any database itself.
+ *
+ * {@link resolveStateBackend} is the ONE answer to "is there a state backend,
+ * and which kind?" — `/api/v1/config`'s `metadataDb.available` derives from it
+ * so the flag and the stores can never disagree (#3493).
  */
+
+import { getPlatformBindings } from '@chm/platform'
 
 /** Valid ClickHouse identifier (database name / table prefix). */
 const IDENTIFIER_RE = /^[A-Za-z0-9_]+$/
@@ -84,4 +90,54 @@ export function getStatePostgresUrl(
     env.POSTGRES_PRISMA_URL?.trim() ||
     null
   )
+}
+
+/** The D1 binding every state store checks first (Cloud). */
+export const STATE_D1_BINDING = 'CHM_CLOUD_D1'
+
+/** Which state backend a deployment resolves to, in precedence order. */
+export type StateBackendKind = 'd1' | 'clickhouse' | 'postgres'
+
+/** Probe for a bound D1 database. Injectable so tests need no module mocks. */
+export type D1BindingProbe = (bindingName: string) => boolean
+
+/**
+ * Default probe: the platform D1 binding. Any throw (not on workerd, no
+ * platform context) counts as "not bound" — fail closed.
+ */
+export const defaultD1BindingProbe: D1BindingProbe = (bindingName) => {
+  try {
+    return getPlatformBindings().getD1Database(bindingName) !== null
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Resolve the state backend in the documented order: D1 binding →
+ * `CHM_STATE_CLICKHOUSE_*` → `DATABASE_URL` / `POSTGRES_URL` /
+ * `POSTGRES_PRISMA_URL`. Returns `null` when none is configured (the caller
+ * then falls back to local/memory state, or reports the capability as
+ * unavailable). D1 stays first, so Cloud is unchanged.
+ */
+export function resolveStateBackend(
+  env: Record<string, string | undefined> = process.env,
+  hasD1: D1BindingProbe = defaultD1BindingProbe
+): StateBackendKind | null {
+  if (hasD1(STATE_D1_BINDING)) return 'd1'
+  if (getStateClickHouseConfig(env)) return 'clickhouse'
+  if (getStatePostgresUrl(env)) return 'postgres'
+  return null
+}
+
+/**
+ * `/api/v1/config`'s `metadataDb.available`: true iff a state backend
+ * resolves. Kept here (not inlined in the route) so the flag is, by
+ * construction, `resolveStateBackend() !== null`.
+ */
+export function isMetadataDbAvailable(
+  env: Record<string, string | undefined> = process.env,
+  hasD1: D1BindingProbe = defaultD1BindingProbe
+): boolean {
+  return resolveStateBackend(env, hasD1) !== null
 }

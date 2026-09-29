@@ -14,12 +14,11 @@
 
 import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 import type { CustomRuleInput } from './rule-builder-schema'
+import type { HealthSqlDb } from './sql-db'
 
+import { getHealthDb } from './resolve-store'
 import { compileCustomRule, customRuleInputSchema } from './rule-builder-schema'
 import { debug } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
-
-const D1_BINDING_NAME = 'CHM_CLOUD_D1'
 
 export interface CustomAlertRule {
   id: string
@@ -56,11 +55,21 @@ interface D1CustomRuleRow {
   created_at: number
 }
 
-function getDb(): D1Database {
-  const db = getPlatformBindings().getD1Database(D1_BINDING_NAME)
+/**
+ * The resolved backend (D1 → Postgres), or `NOT_CONFIGURED` when there is none.
+ *
+ * Unlike the sibling stores this throws instead of degrading to `[]`, on every
+ * path including reads: the GET route maps `NOT_CONFIGURED` to 501, and that
+ * 501 is the signal `RuleBuilderPanel` renders as "not available on this
+ * deployment" — an empty list would show a form whose save then fails. The
+ * internal readers (`loadCustomRulesIntoRegistry`, alert suggestions) catch it
+ * and fail open, so the sweep is never affected.
+ */
+function getDb(): HealthSqlDb {
+  const db = getHealthDb()
   if (!db) {
     throw new CustomRuleStoreError(
-      `${D1_BINDING_NAME} binding not found. Ensure D1 database is configured in wrangler.toml`,
+      'No alert state backend configured. Custom alert rules require a D1 binding (CHM_CLOUD_D1) or a Postgres DATABASE_URL.',
       'NOT_CONFIGURED'
     )
   }

@@ -36,8 +36,9 @@ export interface MenuItem {
   /** ClickHouse system table name(s) to check for availability/muting */
   tableCheck?: string | string[]
   /**
-   * Page needs the deployment's metadata database (D1 or Postgres) to persist
-   * its state (e.g. report subscriptions). When none is configured the item is
+   * Page needs the deployment's state backend (D1, ClickHouse state, or
+   * Postgres) to persist its state (e.g. report subscriptions). When none is
+   * configured the item is
    * dimmed — same treatment as a missing `tableCheck` table — so the operator
    * can still FIND the feature they are about to enable. Resolved via
    * `config.metadataDb.available` from `/api/v1/config` (see
