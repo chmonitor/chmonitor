@@ -190,13 +190,13 @@ affordance on top.**
    `resolve-store.ts` + per-backend store shape as `connection-store` and
    `dashboard-storage`,
    and `metadataDb.available` is *derived* from `lib/state-backend/config.ts`
-   rather than re-derived, which fixes both directions at once.
+   rather than re-derived, which fixes both directions at once. → **#3493**
 2. **A** as the guardrail: the derived capability must fail **closed** — no
    backend resolvable means *unavailable*, never *unknown-because-unresolved*.
 3. **C** only as a UI affordance **after** B — a per-feature capability the
    panels ask, so the honest states (no DB / degraded backend / not yet
    resolved) can render. On its own, C is what the triage comment feared:
-   "makes the breakage quieter instead of fixing it".
+   "makes the breakage quieter instead of fixing it". → **#3495**
 
 The deciding evidence: a Postgres-only deploy is **documented and
 Helm-supported** (see above), so A and C each strand a supported configuration.
@@ -482,11 +482,21 @@ and nothing is stored (`alert-ack-store.ts`).
 
 ## Implementation-ready prompts
 
-One issue per row. Each is independent enough to ship separately, in this order —
-the asymmetry first, because everything else gates on knowing what "available"
-means.
+One issue per row, filed as follow-ups to #3440. Each is independent enough to
+ship separately, in this order — the asymmetry first, because everything else
+gates on knowing what "available" means.
 
-### 1. Fix the `metadataDb.available` asymmetry (DECIDED 2026-09-29: B)
+| # | Prompt | Issue | Gate |
+|---|---|---|---|
+| 1 | Fix the `metadataDb.available` asymmetry | [#3493](https://github.com/chmonitor/chmonitor/issues/3493) | decided (B) |
+| 2 | Implement `CHM_CONFIG_FILE` | [#3494](https://github.com/chmonitor/chmonitor/issues/3494) | decided (implement) |
+| — | Per-feature capability (option C) | [#3495](https://github.com/chmonitor/chmonitor/issues/3495) | after #3493 |
+| 3 | Declarative config loader for health | [#3496](https://github.com/chmonitor/chmonitor/issues/3496) | **Q1 open** |
+| 4 | Source layer for the read-only definitions | [#3497](https://github.com/chmonitor/chmonitor/issues/3497) | #3496 |
+| 5 | Honest state stores without a DB | [#3498](https://github.com/chmonitor/chmonitor/issues/3498) | #3495; last part **Q5 open** |
+| 6 | Document the operator path | [#3499](https://github.com/chmonitor/chmonitor/issues/3499) | all of the above |
+
+### 1. Fix the `metadataDb.available` asymmetry (DECIDED 2026-09-29: B) → **#3493**
 
 > **Restated 2026-09-29** after the premise correction. The old wording asked
 > for a per-feature capability probe (option C). The evidence says the real fix
@@ -527,7 +537,7 @@ means.
 > `docs/content/operate/advanced/feature-permissions.mdx`,
 > `docs/knowledge/metadata-db-optional-config.md` (this file).
 
-### 2. Implement `CHM_CONFIG_FILE` (DECIDED 2026-09-29)
+### 2. Implement `CHM_CONFIG_FILE` (DECIDED 2026-09-29) → **#3494**
 
 > **Decision:** implement, scoped to the feature-permission surface first. Do
 > not leave it half-done.
