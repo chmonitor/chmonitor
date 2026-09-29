@@ -8,11 +8,12 @@
  *
  * ## Why availability is probed, not declared
  *
- * The D1-backed custom-rule store answers `501` when `CHM_CLOUD_D1` is unbound.
- * `metadataDb.available` in `GET /api/v1/config` is NOT a substitute: it counts
- * `DATABASE_URL` / `POSTGRES_URL` as satisfying, while every alert store is
- * D1-only, so a Postgres-only self-host reports `available === true` and then
- * gets a 501 on write. Rather than invent a second, contradictory signal, this
+ * The custom-rule store answers `501` when no alert state backend resolves
+ * (D1 or Postgres — `lib/health/resolve-store.ts`). `metadataDb.available` in
+ * `GET /api/v1/config` is NOT a substitute: it also counts a ClickHouse state
+ * backend, which the alert stores cannot use, so a ClickHouse-only self-host
+ * reports `available === true` and then gets a 501 (#3493). Rather than invent
+ * a second, contradictory signal, this
  * hook reuses the store's own `NOT_CONFIGURED` answer — the same 501 probe
  * `RuleBuilderPanel` already uses — and keeps the UI in an explicit `unknown`
  * state until it lands, so a D1-less deploy is never shown a falsely-enabled

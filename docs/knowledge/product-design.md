@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-09-29
+updated: 2026-09-30
 tags:
   - design-system
   - ui
@@ -424,7 +424,8 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
     here, so under the default it leaves the rail. (`/traffic` on the cloud
     demo, whose read-only user cannot read `system.query_log`.)
   - **Not configured, but enableable** — the item declares
-    `requiresMetadataDb` and the deployment has no D1/Postgres. The operator
+    `requiresMetadataDb` and no state backend resolves (D1 / ClickHouse state /
+    Postgres — `resolveStateBackend()`). The operator
     can turn it on, so hiding it would delete the discovery path for a feature
     that ships in the box. It DIMS. (`/report-settings` → Scheduled Reports.)
   `hideWhenUnavailable: true|false` on a `MenuItem` overrides the class in both

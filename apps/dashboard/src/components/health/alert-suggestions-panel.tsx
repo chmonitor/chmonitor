@@ -161,7 +161,7 @@ function SuggestionCard({
 export function AlertSuggestionsPanel({ className }: { className?: string }) {
   const { suggestions, isLoading, error, refetch } = useAlertSuggestions()
 
-  // 501 when no D1 binding — mirror RuleBuilderPanel's "not available" note.
+  // 501 when no alert state backend (D1 or Postgres) — mirror RuleBuilderPanel's "not available" note.
   const notConfigured =
     error !== null &&
     typeof error === 'object' &&
@@ -172,8 +172,8 @@ export function AlertSuggestionsPanel({ className }: { className?: string }) {
     return (
       <p className={cn('text-sm text-muted-foreground', className)}>
         Alert suggestions require a configured database backend (cloud
-        deployments, or self-hosted with a D1 database configured). Not
-        available on this deployment.
+        deployments, or self-hosted with a D1 database or a Postgres
+        DATABASE_URL). Not available on this deployment.
       </p>
     )
   }
