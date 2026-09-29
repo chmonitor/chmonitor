@@ -408,6 +408,10 @@ alertWebhooks:
 # extraEnv:
 #   - name: CLICKHOUSE_NAME
 #     value: "prod"
+#   # Declarative alert config directory (see README "Declarative alert
+#   # config"). Mount a ConfigMap of <concern>.yaml files at this path.
+#   - name: CHM_HEALTH_CONFIG_DIRECTORY
+#     value: /etc/chmonitor/health.d
 extraEnv: []
 
 nodeSelector: {}

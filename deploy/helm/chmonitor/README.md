@@ -96,6 +96,23 @@ D1/UI configuration is owner-scoped and takes precedence over a Helm target with
 
 The chart includes a values checksum for declarative changes. Rotating an externally managed Secret may require a normal pod rollout, as with other externally managed Secret references.
 
+## Declarative alert config (health.d)
+
+The dashboard reads alert definitions from a directory of YAML files, one per
+concern: `alerts.yaml`, `routing.yaml`, `channels.yaml`, `quiet-hours.yaml`,
+`maintenance.yaml`, `digest.yaml`. The path is `CHM_HEALTH_CONFIG_DIRECTORY`
+(default `/etc/chmonitor/health.d`). The chart has no dedicated value for it
+yet: create a ConfigMap and mount it at that path yourself, and set the env var
+through `extraEnv` only if you use a different path.
+
+Every entry needs its merge key (`id`, or `channel` for channel config).
+Unknown keys, bad YAML, and entries without a key are skipped with a warning;
+they never stop the pod. Do not put secrets in these files — reference an env
+var name (`secretEnv`, `urlEnv`) backed by a `secretKeyRef` instead.
+
+The loader ships first; alert stores start reading it in a follow-up
+(chmonitor#3497). Until then the files are parsed and validated but not applied.
+
 ## ClickHouse user requirements
 
 Prefer a **dedicated read-only user** with `SELECT` / `SHOW` (and usually

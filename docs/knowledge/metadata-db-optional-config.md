@@ -438,7 +438,9 @@ a file may set the routing rules while env sets the thresholds, and both apply.
 Highest wins, resolved **per key** (see the merge contract below):
 
 1. **D1 row** (per-owner; the cloud/multi-tenant path)
-2. **Config file** entry (`CHM_CONFIG_DIRECTORY` / `CHM_CONFIG_FILE`)
+2. **Config file** entry (`CHM_HEALTH_CONFIG_DIRECTORY` for health
+   definitions; `CHM_CONFIG_DIRECTORY` is the separate `queries.d` loader, and
+   `CHM_CONFIG_FILE` is #3494)
 3. **Environment variable** (`CHM_*` / `HEALTH_*`)
 4. **Built-in default**
 
@@ -554,7 +556,7 @@ gates on knowing what "available" means.
 | 1 | Fix the `metadataDb.available` asymmetry | [#3493](https://github.com/chmonitor/chmonitor/issues/3493) | decided (B) |
 | 2 | Implement `CHM_CONFIG_FILE` | [#3494](https://github.com/chmonitor/chmonitor/issues/3494) | **done** |
 | — | Per-feature capability (option C) | [#3495](https://github.com/chmonitor/chmonitor/issues/3495) | after #3493 |
-| 3 | Declarative config loader for health | [#3496](https://github.com/chmonitor/chmonitor/issues/3496) | **Q1 open** |
+| 3 | Declarative config loader for health | [#3496](https://github.com/chmonitor/chmonitor/issues/3496) | **done** (loader only) |
 | 4 | Source layer for the read-only definitions | [#3497](https://github.com/chmonitor/chmonitor/issues/3497) | #3496 |
 | 5 | Honest state stores without a DB | [#3498](https://github.com/chmonitor/chmonitor/issues/3498) | #3495; last part **Q5 open** |
 | 6 | Document the operator path | [#3499](https://github.com/chmonitor/chmonitor/issues/3499) | all of the above |
@@ -646,6 +648,21 @@ gates on knowing what "available" means.
 > (`docs/content/operate/deploy/k8s.mdx:261-268`) that it is now read.
 
 ### 3. The declarative config loader for health
+
+> **DONE (2026-09-30, #3496).** `apps/dashboard/src/lib/health/declarative/`:
+> `schema.ts` (zod `strictObject` per entry and per file, `HealthConfigLayer`,
+> `HealthConfigData`) and `loader.ts` (`getHealthConfigDirectory`,
+> `loadHealthConfigFiles`, `loadHealthConfigEnv`, `getHealthConfigLayers`,
+> `_resetHealthConfigCache`). Layers come back lowest precedence first
+> (`env`, then `file`); #3497 adds `d1` and does the merge. Choices made here
+> that #3497 inherits: secrets are never in the files — secret fields are env
+> var NAMES (`secretEnv`, `urlEnv`, `headersEnv`); list entries validate one by
+> one so a bad entry does not drop its siblings; a duplicate key keeps the
+> first entry; maintenance `startsAt`/`endsAt` are ISO-8601 strings; the env
+> layer reuses `getServerThresholdOverrides` (needs `ruleIds`),
+> `loadEnvCustomWebhookTargets`, and `getServerDigestWindowMinutes`, and its
+> webhook targets are already resolved (`env:<name>` ids). No store reads the
+> loader yet.
 
 > **New:** `lib/health/declarative/` — schema types + a loader modelled on
 > `local-loader.ts`. `CHM_HEALTH_CONFIG_DIRECTORY` (default
