@@ -39,12 +39,13 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // --- a real SQLite database behind the D1 API --------------------------------
 
-const MIGRATIONS_DIR = join(
-  import.meta.dir,
-  '../../../db/conversations-migrations'
+// Portable `import.meta.url` form — tsc does not type Bun's `import.meta.dir`.
+const MIGRATIONS_DIR = fileURLToPath(
+  new URL('../../../db/conversations-migrations', import.meta.url)
 )
 /** The committed migrations for the seven definition tables, in order. */
 const HEALTH_MIGRATIONS =
