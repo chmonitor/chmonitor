@@ -17,7 +17,7 @@
 
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const fakeD1 = { prepare: () => ({}), batch: async () => [] }
 let boundD1 = new Set<string>()
@@ -167,7 +167,12 @@ describe('capability and the store 501 cannot disagree', () => {
   test('MAINTENANCE_D1_BINDINGS matches the maintenance store', () => {
     // The store keeps its own (unexported) list; fail loud on drift.
     const src = readFileSync(
-      join(import.meta.dir, '../../../../lib/health/maintenance-windows.ts'),
+      fileURLToPath(
+        new URL(
+          '../../../../lib/health/maintenance-windows.ts',
+          import.meta.url
+        )
+      ),
       'utf8'
     )
     const match = src.match(/const D1_BINDING_NAMES = \[([^\]]*)\]/)
