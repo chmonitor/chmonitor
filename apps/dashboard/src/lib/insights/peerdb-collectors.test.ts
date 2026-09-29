@@ -69,6 +69,23 @@ describe('collectPeerDBInsights', () => {
     expect(err?.value).toBe(12)
   })
 
+  test('the per-mirror cap keeps a critical card behind earlier warnings', async () => {
+    const names = ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'crit']
+    const candidates = await collectPeerDBInsights(
+      stubReader({
+        listMirrors: async () =>
+          names.map((name) => ({ name, status: 'STATUS_RUNNING' })),
+        // 5 warnings (3..9 errors) listed first, the critical (10+) last.
+        mirrorErrorCount: async (name) => (name === 'crit' ? 12 : 4),
+      })
+    )
+    const err = candidates.filter((c) =>
+      c.metric?.startsWith('peerdb_mirror_errors:')
+    )
+    expect(err).toHaveLength(5)
+    expect(err.some((c) => c.metric === 'peerdb_mirror_errors:crit')).toBe(true)
+  })
+
   test('terminated mirrors are surfaced, unlike before (#3439)', async () => {
     const candidates = await collectPeerDBInsights(
       stubReader({

@@ -325,9 +325,21 @@ export async function collectPeerDBInsights(
         return found
       })
     )
+    const rank: Record<InsightSeverity, number> = {
+      critical: 0,
+      warning: 1,
+      info: 2,
+    }
     // Cap per-mirror error findings so a fleet-wide outage surfaces the
     // fleet-level `peerdb_failed_mirrors` card plus a sample, not N rows.
-    out.push(...perMirror.flat().slice(0, 5))
+    // Rank by severity first so the cap never drops a critical card behind
+    // earlier-listed warnings.
+    out.push(
+      ...perMirror
+        .flat()
+        .sort((a, b) => rank[a.severity] - rank[b.severity])
+        .slice(0, 5)
+    )
 
     const seen = new Set<string>()
     const merged: InsightCandidate[] = []
@@ -338,11 +350,6 @@ export async function collectPeerDBInsights(
       merged.push(candidate)
     }
 
-    const rank: Record<InsightSeverity, number> = {
-      critical: 0,
-      warning: 1,
-      info: 2,
-    }
     return merged.sort((a, b) => rank[a.severity] - rank[b.severity])
   } catch {
     return []
