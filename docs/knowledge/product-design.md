@@ -728,16 +728,24 @@ Rules that follow from the table:
   and `unknown` must render as *disabled*, not as *enabled*: a 501 probe that has
   not resolved yet is not permission to write.
 - `metadataDb.available` from `GET /api/v1/config` is **not** a valid gate for
-  this. It re-derives the backend check inline in `config.ts:224-231`, so it
-  **over-reports** (a `DATABASE_URL`-only deploy reads `available === true`,
-  then gets a 501 on write, because every alert store is D1-only) and
-  **under-reports** (a `CHM_STATE_CLICKHOUSE_URL`-only deploy reads
-  `available === false` while three state stores work fine). Reuse the store's
-  own `NOT_CONFIGURED` (HTTP 501) answer, as `RuleBuilderPanel` does, and
-  re-point at the per-feature capability when #3440 lands. Do not add a second,
-  subtly different signal. See `metadata-db-optional-config.md` for the
-  corrected analysis and why the fix is to *derive* the flag from
-  `lib/state-backend/config.ts` rather than add another probe.
+  this. Since #3493 it derives from `resolveStateBackend()`, which counts a
+  ClickHouse state backend — and no alert store has a ClickHouse
+  implementation, so a ClickHouse-only deploy reads `available === true` and
+  then gets a 501 on write.
+- **The alert-store write gate (#3495).** Every health/alert settings panel
+  that writes asks one hook, `useHealthStoreAvailability({ probeError, store })`
+  (`lib/health/store-availability.ts`). It combines `capabilities.health`
+  from `GET /api/v1/config` (`{ backend, maintenanceWindowsBackend }`, each
+  `'d1' | 'postgres' | 'none'`, resolved server-side with the same
+  `resolveHealthBackend()` call the stores use) with the panel's own list read
+  as a *veto*: a 501 always wins, so the two cannot disagree in the direction
+  that enables a write. Config still loading, a failed config fetch, or an
+  older server without the field all yield `unknown`. Gate every write control
+  with `canWriteHealthStore(availability)` (true only for `available`) and
+  render `<HealthStoreNotice availability feature>`
+  (`components/health/health-store-notice.tsx`) for `unknown`/`unavailable`.
+  Read surfaces (lists, env-derived values, Helm targets) stay visible. Do not
+  write a per-panel 501 check.
 
 **Already-alerting indicator** (`alert-configured-badge.tsx`, rendered on the
 card header, the dense row, and the dialog title): one amber `BellRing` badge,

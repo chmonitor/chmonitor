@@ -20,7 +20,8 @@ description: >-
   "customize dialog", "configure alert", "already alerting",
   "alert settings", "health detail dialog", "alert threshold", "badge",
   "unavailable pages", "dim unavailable", "hide unavailable",
-  "hideWhenUnavailable", "tableCheck", "requiresMetadataDb",
+  "hideWhenUnavailable", "tableCheck", "requiresMetadataDb", "health capability",
+  "store availability", "write disabled",
   "dead row", "greyed page", "collapsed flyout".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
@@ -249,10 +250,14 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   `custom_alert_rules` + cron sweep, disabled *with a reason* when the store
   can't be written; **channel** = delivery only. Availability is tri-state
   (`unknown | available | unavailable`) and `unknown` must render DISABLED — an
-  unresolved 501 probe is not permission to write. Never gate on
-  `metadataDb.available` (it counts `DATABASE_URL`, but every alert store is
-  D1-only) and never invent a second signal; see
-  `docs/knowledge/metadata-db-optional-config.md`.
+  unresolved 501 probe is not permission to write. Ask
+  `useHealthStoreAvailability({ probeError })` (`lib/health/store-availability.ts`,
+  fed by `capabilities.health` in `GET /api/v1/config`; a store 501 always
+  vetoes it), gate every write control with `canWriteHealthStore()` and show
+  `<HealthStoreNotice>` (`components/health/health-store-notice.tsx`) for
+  `unknown`/`unavailable`. Never gate on `metadataDb.available` (it counts a
+  ClickHouse state backend that no alert store can use) and never invent a
+  per-panel probe; see `docs/knowledge/metadata-db-optional-config.md`.
 - **"Already alerting" indicator:** `components/health/alert-configured-badge.tsx`
   — one amber `BellRing` badge, titled with why. Resolved once for the whole
   page by `components/health/use-alert-signals.ts` over the pure

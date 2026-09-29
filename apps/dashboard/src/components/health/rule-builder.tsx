@@ -15,6 +15,7 @@ import type {
   MetricKey,
 } from '@/lib/health/rule-builder-schema'
 
+import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { COMPARISON_OPERATORS } from '@/lib/health/rule-builder-schema'
+import { useHealthStoreAvailability } from '@/lib/health/store-availability'
 import {
   useCustomAlertRules,
   useCustomAlertRulesMutations,
@@ -39,7 +41,9 @@ import { cn } from '@/lib/utils'
 function RuleRow({
   rule,
   onDeleted,
+  canWrite,
 }: {
+  canWrite: boolean
   rule: {
     id: string
     name: string
@@ -88,7 +92,7 @@ function RuleRow({
             variant="destructive"
             size="sm"
             className="h-7 px-2 text-xs"
-            disabled={busy}
+            disabled={busy || !canWrite}
             onClick={handleDelete}
           >
             Yes
@@ -107,7 +111,7 @@ function RuleRow({
         <Button
           variant="ghost"
           size="sm"
-          disabled={busy}
+          disabled={busy || !canWrite}
           onClick={() => setConfirming(true)}
         >
           Delete
@@ -117,7 +121,13 @@ function RuleRow({
   )
 }
 
-function AddRuleForm({ onCreated }: { onCreated: () => void }) {
+function AddRuleForm({
+  onCreated,
+  canWrite,
+}: {
+  onCreated: () => void
+  canWrite: boolean
+}) {
   const { catalog } = useMetricCatalog()
   const { createRule, testMetric } = useCustomAlertRulesMutations()
 
@@ -266,7 +276,7 @@ function AddRuleForm({ onCreated }: { onCreated: () => void }) {
         <Button
           size="sm"
           className="self-start"
-          disabled={busy}
+          disabled={busy || !canWrite}
           onClick={handleSubmit}
         >
           Save rule
@@ -292,23 +302,19 @@ function AddRuleForm({ onCreated }: { onCreated: () => void }) {
 export function RuleBuilderPanel({ className }: { className?: string }) {
   const { rules, isLoading, error, refetch } = useCustomAlertRules()
 
-  // The API returns 501 when no alert state backend (a CHM_CLOUD_D1 binding
-  // or a Postgres DATABASE_URL) is configured —
-  // mirrors WebhookSubscriptionsPanel's explicit "not available" message
-  // instead of silently showing a form that would fail on save.
-  const notConfigured =
-    error !== null &&
-    typeof error === 'object' &&
-    'status' in error &&
-    (error as { status?: number }).status === 501
+  // Declared capability with the list read as a veto: a 501 forces
+  // `unavailable`, and `unknown` (config not answered yet) keeps every write
+  // control disabled (#3495).
+  const availability = useHealthStoreAvailability({ probeError: error })
+  const canWrite = canWriteHealthStore(availability)
 
-  if (notConfigured) {
+  if (availability === 'unavailable') {
     return (
-      <p className={cn('text-sm text-muted-foreground', className)}>
-        Custom alert rules require a configured database backend (cloud
-        deployments, or self-hosted with a D1 database or a Postgres
-        DATABASE_URL). Not available on this deployment.
-      </p>
+      <HealthStoreNotice
+        availability={availability}
+        feature="Custom alert rules"
+        className={className}
+      />
     )
   }
 
@@ -329,11 +335,20 @@ export function RuleBuilderPanel({ className }: { className?: string }) {
 
       <div className="flex flex-col gap-2">
         {rules.map((rule) => (
-          <RuleRow key={rule.id} rule={rule} onDeleted={refetch} />
+          <RuleRow
+            key={rule.id}
+            rule={rule}
+            onDeleted={refetch}
+            canWrite={canWrite}
+          />
         ))}
       </div>
 
-      <AddRuleForm onCreated={refetch} />
+      <HealthStoreNotice
+        availability={availability}
+        feature="Custom alert rules"
+      />
+      <AddRuleForm onCreated={refetch} canWrite={canWrite} />
     </div>
   )
 }

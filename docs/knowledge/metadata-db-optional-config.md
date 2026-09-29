@@ -597,6 +597,14 @@ gates on knowing what "available" means.
 > - **Known gap:** a ClickHouse-ONLY state backend reports
 >   `metadataDb.available = true` while every alert store resolves to `null`.
 >   #3495's per-feature capability must report health unavailable there.
+>   **Closed by #3495:** `GET /api/v1/config` now also returns
+>   `capabilities.health: { backend, maintenanceWindowsBackend }`
+>   (`'d1' | 'postgres' | 'none'`), resolved with `resolveHealthBackend()` —
+>   `'none'` on ClickHouse-only. The alert panels read it through
+>   `useHealthStoreAvailability()` (`lib/health/store-availability.ts`), with a
+>   store 501 as a veto; `unknown` renders disabled. `requiresMetadataDb` stays
+>   (its one user is backed by the insights stores, which do honour
+>   ClickHouse). Tests: `routes/api/v1/__tests__/config.health-capability.test.ts`.
 
 
 > **Restated 2026-09-29** after the premise correction. The old wording asked

@@ -16,12 +16,14 @@ import type {
   SuggestionSource,
 } from '@/lib/hooks/use-alert-suggestions'
 
+import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useHealthStoreAvailability } from '@/lib/health/store-availability'
 import {
   useAlertSuggestionMutations,
   useAlertSuggestions,
@@ -39,7 +41,9 @@ const SOURCE_LABELS: Record<SuggestionSource, string> = {
 function SuggestionCard({
   suggestion,
   onChanged,
+  canWrite,
 }: {
+  canWrite: boolean
   suggestion: AlertSuggestionInfo
   onChanged: () => void
 }) {
@@ -142,13 +146,17 @@ function SuggestionCard({
       </div>
 
       <div className="flex items-center gap-2">
-        <Button size="sm" disabled={busy !== null} onClick={handleAccept}>
+        <Button
+          size="sm"
+          disabled={busy !== null || !canWrite}
+          onClick={handleAccept}
+        >
           {busy === 'accept' ? 'Accepting…' : 'Accept'}
         </Button>
         <Button
           variant="ghost"
           size="sm"
-          disabled={busy !== null}
+          disabled={busy !== null || !canWrite}
           onClick={handleDismiss}
         >
           {busy === 'dismiss' ? 'Dismissing…' : 'Dismiss'}
@@ -161,20 +169,17 @@ function SuggestionCard({
 export function AlertSuggestionsPanel({ className }: { className?: string }) {
   const { suggestions, isLoading, error, refetch } = useAlertSuggestions()
 
-  // 501 when no alert state backend (D1 or Postgres) — mirror RuleBuilderPanel's "not available" note.
-  const notConfigured =
-    error !== null &&
-    typeof error === 'object' &&
-    'status' in error &&
-    (error as { status?: number }).status === 501
+  // 501 vetoes; `unknown` keeps accept/dismiss disabled (#3495).
+  const availability = useHealthStoreAvailability({ probeError: error })
+  const canWrite = canWriteHealthStore(availability)
 
-  if (notConfigured) {
+  if (availability === 'unavailable') {
     return (
-      <p className={cn('text-sm text-muted-foreground', className)}>
-        Alert suggestions require a configured database backend (cloud
-        deployments, or self-hosted with a D1 database or a Postgres
-        DATABASE_URL). Not available on this deployment.
-      </p>
+      <HealthStoreNotice
+        availability={availability}
+        feature="Alert suggestions"
+        className={className}
+      />
     )
   }
 
@@ -186,6 +191,11 @@ export function AlertSuggestionsPanel({ className }: { className?: string }) {
         maps to a vetted, read-only metric; accepting one creates a custom rule
         evaluated on every sweep.
       </p>
+
+      <HealthStoreNotice
+        availability={availability}
+        feature="Alert suggestions"
+      />
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
@@ -208,6 +218,7 @@ export function AlertSuggestionsPanel({ className }: { className?: string }) {
             key={suggestion.key}
             suggestion={suggestion}
             onChanged={() => refetch()}
+            canWrite={canWrite}
           />
         ))}
       </div>

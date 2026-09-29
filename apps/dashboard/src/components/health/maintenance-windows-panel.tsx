@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 
 import type { MaintenanceWindowInfo } from '@/lib/hooks/use-maintenance-windows'
 
+import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useHealthStoreAvailability } from '@/lib/health/store-availability'
 import {
   useMaintenanceWindows,
   useMaintenanceWindowsMutations,
@@ -63,7 +65,9 @@ function WindowRow({
   window,
   hostName,
   onDeleted,
+  canWrite,
 }: {
+  canWrite: boolean
   window: MaintenanceWindowInfo
   hostName: string
   onDeleted: () => void
@@ -108,7 +112,7 @@ function WindowRow({
             variant="destructive"
             size="sm"
             className="h-7 px-2 text-xs"
-            disabled={busy}
+            disabled={busy || !canWrite}
             onClick={handleDelete}
           >
             Yes
@@ -127,7 +131,7 @@ function WindowRow({
         <Button
           variant="ghost"
           size="sm"
-          disabled={busy}
+          disabled={busy || !canWrite}
           onClick={() => setConfirming(true)}
         >
           Delete
@@ -137,7 +141,13 @@ function WindowRow({
   )
 }
 
-function AddWindowForm({ onCreated }: { onCreated: () => void }) {
+function AddWindowForm({
+  onCreated,
+  canWrite,
+}: {
+  onCreated: () => void
+  canWrite: boolean
+}) {
   const { hosts } = useHosts()
   const [hostValue, setHostValue] = useState<string>(ALL_HOSTS_VALUE)
   const [reason, setReason] = useState('')
@@ -234,7 +244,7 @@ function AddWindowForm({ onCreated }: { onCreated: () => void }) {
       <Button
         size="sm"
         className="self-start"
-        disabled={busy}
+        disabled={busy || !canWrite}
         onClick={handleSubmit}
       >
         Add
@@ -244,7 +254,13 @@ function AddWindowForm({ onCreated }: { onCreated: () => void }) {
 }
 
 export function MaintenanceWindowsPanel({ className }: { className?: string }) {
-  const { windows, isLoading, refetch } = useMaintenanceWindows()
+  const { windows, isLoading, error, refetch } = useMaintenanceWindows()
+  // Maintenance windows also accept a dedicated MAINTENANCE_D1 binding.
+  const availability = useHealthStoreAvailability({
+    probeError: error,
+    store: 'maintenanceWindows',
+  })
+  const canWrite = canWriteHealthStore(availability)
   const { hosts } = useHosts()
 
   const hostName = (hostId: number | null): string => {
@@ -273,11 +289,16 @@ export function MaintenanceWindowsPanel({ className }: { className?: string }) {
             window={w}
             hostName={hostName(w.hostId)}
             onDeleted={refetch}
+            canWrite={canWrite}
           />
         ))}
       </div>
 
-      <AddWindowForm onCreated={refetch} />
+      <HealthStoreNotice
+        availability={availability}
+        feature="Maintenance windows"
+      />
+      <AddWindowForm onCreated={refetch} canWrite={canWrite} />
     </div>
   )
 }

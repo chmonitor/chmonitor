@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 
 import type { QuietHoursInfo } from '@/lib/hooks/use-quiet-hours'
 
+import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { useHealthStoreAvailability } from '@/lib/health/store-availability'
 import {
   useQuietHours,
   useQuietHoursMutations,
@@ -73,7 +75,9 @@ function formatDays(days: number[]): string {
 function QuietHoursRow({
   window,
   onDeleted,
+  canWrite,
 }: {
+  canWrite: boolean
   window: QuietHoursInfo
   onDeleted: () => void
 }) {
@@ -110,14 +114,25 @@ function QuietHoursRow({
             : 'Silences all alerts'}
         </span>
       </div>
-      <Button variant="ghost" size="sm" disabled={busy} onClick={handleDelete}>
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={busy || !canWrite}
+        onClick={handleDelete}
+      >
         Delete
       </Button>
     </div>
   )
 }
 
-function AddQuietHoursForm({ onCreated }: { onCreated: () => void }) {
+function AddQuietHoursForm({
+  onCreated,
+  canWrite,
+}: {
+  onCreated: () => void
+  canWrite: boolean
+}) {
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5])
   const [start, setStart] = useState('22:00')
   const [end, setEnd] = useState('07:00')
@@ -240,7 +255,7 @@ function AddQuietHoursForm({ onCreated }: { onCreated: () => void }) {
       <Button
         size="sm"
         className="self-start"
-        disabled={busy}
+        disabled={busy || !canWrite}
         onClick={handleSubmit}
       >
         Add
@@ -250,7 +265,9 @@ function AddQuietHoursForm({ onCreated }: { onCreated: () => void }) {
 }
 
 export function QuietHoursPanel({ className }: { className?: string }) {
-  const { windows, isLoading, refetch } = useQuietHours()
+  const { windows, isLoading, error, refetch } = useQuietHours()
+  const availability = useHealthStoreAvailability({ probeError: error })
+  const canWrite = canWriteHealthStore(availability)
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
@@ -280,12 +297,18 @@ export function QuietHoursPanel({ className }: { className?: string }) {
       {windows.length > 0 && (
         <div className="flex flex-col gap-2">
           {windows.map((w) => (
-            <QuietHoursRow key={w.id} window={w} onDeleted={refetch} />
+            <QuietHoursRow
+              key={w.id}
+              window={w}
+              onDeleted={refetch}
+              canWrite={canWrite}
+            />
           ))}
         </div>
       )}
 
-      <AddQuietHoursForm onCreated={refetch} />
+      <HealthStoreNotice availability={availability} feature="Quiet hours" />
+      <AddQuietHoursForm onCreated={refetch} canWrite={canWrite} />
     </div>
   )
 }
