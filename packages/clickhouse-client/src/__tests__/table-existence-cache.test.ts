@@ -202,6 +202,27 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
     expect(l2.has('0:system.backup_log2')).toBe(true)
   })
 
+  it('a probe already in flight during invalidateTable does not re-arm the cache with its stale result', async () => {
+    let release!: () => void
+    mockClientQuery.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = () =>
+            resolve({ json: () => Promise.resolve([{ count: '0' }]) })
+        })
+    )
+
+    const stale = l2cache.checkTableExists(0, 'system', 'backup_log')
+    await Promise.resolve()
+    await new Promise((r) => setTimeout(r, 0))
+    await l2cache.invalidateTable(0, 'system', 'backup_log')
+    release()
+    expect(await stale).toBe(false)
+
+    // Not cached: the next call probes again and sees the new value.
+    expect(await l2cache.checkTableExists(0, 'system', 'backup_log')).toBe(true)
+  })
+
   it('degrades to L1-LRU-only when no L2 provider is registered (Node/self-hosted path)', async () => {
     // No `setTableExistenceL2Provider` call — mirrors the Node/self-hosted
     // build, where `src/start.ts` never wires a provider.

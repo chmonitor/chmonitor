@@ -70,6 +70,12 @@ export type TableExistsResult = boolean | 'unknown'
  */
 const inFlightProbes = new Map<string, Promise<TableExistsResult>>()
 
+/**
+ * Bumped by `invalidateTable`. A probe that started before an invalidation
+ * must not write its (possibly pre-change) result back into L1/L2 (#3514).
+ */
+let invalidationGeneration = 0
+
 export async function checkColumnExists(
   hostId: number,
   database: string,
@@ -128,8 +134,12 @@ async function checkExists(
     return running
   }
 
-  const pending = probeExists(key, hostId, spec).finally(() => {
-    inFlightProbes.delete(key)
+  const pending: Promise<TableExistsResult> = probeExists(
+    key,
+    hostId,
+    spec
+  ).finally(() => {
+    if (inFlightProbes.get(key) === pending) inFlightProbes.delete(key)
   })
   inFlightProbes.set(key, pending)
   return pending
@@ -144,6 +154,7 @@ async function probeExists(
     label: string
   }
 ): Promise<TableExistsResult> {
+  const generation = invalidationGeneration
   // L2: KV cache (survives Worker isolate churn). No-op when no provider is
   // registered (self-hosted Node/Docker, or Cloudflare before the KV
   // namespace is provisioned — see #2183).
@@ -152,7 +163,7 @@ async function probeExists(
     try {
       const l2Exists = await l2.get(key)
       if (l2Exists !== null) {
-        cache.set(key, l2Exists)
+        if (generation === invalidationGeneration) cache.set(key, l2Exists)
         debug(`[Table Cache] L2 (KV) cache hit for ${key}`)
         return l2Exists
       }
@@ -172,6 +183,7 @@ async function probeExists(
       const data = (await result.json()) as { count: string }[]
       const exists = parseInt(data?.[0]?.count || '0', 10) > 0
 
+      if (generation !== invalidationGeneration) return exists
       cache.set(key, exists)
       if (l2) {
         try {
@@ -216,6 +228,7 @@ export const invalidateTable = async (
   const tableKey = `${hostId}:${database}.${table}`
   const columnPrefix = `${tableKey}.`
 
+  invalidationGeneration++
   for (const key of [...cache.keys()]) {
     if (key === tableKey || key.startsWith(columnPrefix)) cache.delete(key)
   }
