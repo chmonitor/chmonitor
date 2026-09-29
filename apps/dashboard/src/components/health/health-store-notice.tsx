@@ -48,3 +48,30 @@ export function HealthStoreNotice({
     </p>
   )
 }
+
+/**
+ * Stated where the operator tunes alert sensitivity (#3498): with no metadata
+ * database the sweep's alert state machine lives in memory per worker
+ * instance, so it cannot survive a restart. Only rendered when the backend is
+ * positively `unavailable` — `unknown` says nothing rather than guess.
+ */
+export const ALERT_STATE_VOLATILE_TEXT =
+  'No database backend is configured, so alert state is kept in memory on each worker instance. Hysteresis streaks and incident timers reset on every restart or deploy.'
+
+export function AlertStateVolatilityNotice({
+  availability,
+  className,
+}: {
+  availability: HealthStoreAvailability
+  className?: string
+}) {
+  if (availability !== 'unavailable') return null
+  return (
+    <p
+      className={cn('text-xs text-muted-foreground', className)}
+      data-alert-state-volatile=""
+    >
+      {ALERT_STATE_VOLATILE_TEXT}
+    </p>
+  )
+}

@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import type { AckDurationKey, AlertAck } from '@/lib/health/alert-ack-store'
 import type { CurrentFinding } from '@/lib/health/current-findings'
 
+import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useAckMutations, useActiveAlerts } from './use-active-alerts'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useHealthStoreAvailability } from '@/lib/health/store-availability'
 import { cn } from '@/lib/utils'
 
 const DURATION_OPTIONS: { value: AckDurationKey; label: string }[] = [
@@ -75,9 +77,12 @@ function formatExpiresIn(expiresAt: number): string {
 function AckControl({
   finding,
   ack,
+  canWrite,
 }: {
   finding: CurrentFinding
   ack: AlertAck | undefined
+  /** False unless the backend is positively `available` (#3498). */
+  canWrite: boolean
 }) {
   const [duration, setDuration] = useState<AckDurationKey>('15m')
   const { ack: ackMutation, clear: clearMutation } = useAckMutations()
@@ -93,7 +98,7 @@ function AckControl({
           variant="ghost"
           size="sm"
           className="h-6 px-2"
-          disabled={clearMutation.isPending}
+          disabled={!canWrite || clearMutation.isPending}
           onClick={() => {
             clearMutation.mutate(
               { hostId: finding.hostId, ruleId: finding.ruleId },
@@ -114,6 +119,7 @@ function AckControl({
       <Select
         value={duration}
         onValueChange={(v) => setDuration(v as AckDurationKey)}
+        disabled={!canWrite}
       >
         <SelectTrigger className="h-7 w-[100px] text-[12px]">
           <SelectValue />
@@ -130,7 +136,7 @@ function AckControl({
         variant="outline"
         size="sm"
         className="h-7"
-        disabled={ackMutation.isPending}
+        disabled={!canWrite || ackMutation.isPending}
         onClick={() => {
           ackMutation.mutate(
             { hostId: finding.hostId, ruleId: finding.ruleId, duration },
@@ -149,6 +155,9 @@ function AckControl({
 export function ActiveAlertsPanel() {
   const { findings, acks, isLoading, isFetching, error, refetch } =
     useActiveAlerts()
+  // An ACK with no backend would be discarded; `unknown` stays disabled too.
+  const availability = useHealthStoreAvailability()
+  const canWrite = canWriteHealthStore(availability)
 
   let content: React.ReactNode
   if (isLoading) {
@@ -210,6 +219,7 @@ export function ActiveAlertsPanel() {
                 <AckControl
                   finding={finding}
                   ack={findAck(acks, finding.hostId, finding.ruleId)}
+                  canWrite={canWrite}
                 />
               </TableCell>
             </TableRow>
@@ -221,10 +231,16 @@ export function ActiveAlertsPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-between gap-2">
+        <HealthStoreNotice
+          availability={availability}
+          feature="Alert acknowledgements"
+          className="text-xs"
+        />
         <Button
           variant="ghost"
           size="sm"
+          className="ml-auto"
           onClick={refetch}
           disabled={isFetching}
           aria-label="Refresh"

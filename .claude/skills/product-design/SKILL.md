@@ -258,6 +258,8 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   `unknown`/`unavailable`. Never gate on `metadataDb.available` (it counts a
   ClickHouse state backend that no alert store can use) and never invent a
   per-panel probe; see `docs/knowledge/metadata-db-optional-config.md`.
+  ACK/Clear follow the same gate; `<AlertStateVolatilityNotice>` states the
+  restart-resets-alert-state consequence where thresholds are tuned.
 - **"Already alerting" indicator:** `components/health/alert-configured-badge.tsx`
   — one amber `BellRing` badge, titled with why. Resolved once for the whole
   page by `components/health/use-alert-signals.ts` over the pure

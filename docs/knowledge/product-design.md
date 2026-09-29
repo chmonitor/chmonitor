@@ -752,6 +752,13 @@ Rules that follow from the table:
   (`components/health/health-store-notice.tsx`) for `unknown`/`unavailable`.
   Read surfaces (lists, env-derived values, Helm targets) stay visible. Do not
   write a per-panel 501 check.
+  ACK/un-ACK (`active-alerts-panel.tsx`) follows the same gate (#3498):
+  `POST`/`DELETE /api/v1/health/ack` answer 501 with no backend, and the
+  Acknowledge/Clear controls are disabled unless `available`. Where alert
+  sensitivity is tuned (`thresholds-panel.tsx`),
+  `<AlertStateVolatilityNotice>` states — only when `unavailable` — that
+  alert state is in-memory per worker, so hysteresis streaks and incident
+  timers reset on every restart/deploy.
 
 **Already-alerting indicator** (`alert-configured-badge.tsx`, rendered on the
 card header, the dense row, and the dialog title): one amber `BellRing` badge,

@@ -37,6 +37,7 @@ import {
   isAckDurationKey,
   listActiveAcks,
 } from '@/lib/health/alert-ack-store'
+import { resolveHealthBackend } from '@/lib/health/resolve-store'
 
 const ROUTE_CONTEXT = { route: '/api/v1/health/ack' } as const
 
@@ -76,6 +77,24 @@ interface AckRequestBody {
   note?: unknown
 }
 
+/**
+ * Writes are honest (#3498): with no D1/Postgres backend an ACK or un-ACK
+ * would be discarded, so say so with a 501 instead of confirming a write that
+ * never happened. Reads stay fail-open (an empty list).
+ */
+function notConfiguredResponse(method: 'POST' | 'DELETE'): Response | null {
+  if (resolveHealthBackend() !== null) return null
+  return createErrorResponse(
+    {
+      type: ApiErrorType.PermissionError,
+      message:
+        'No alert state backend configured. Acknowledging alerts requires a D1 binding (CHM_CLOUD_D1) or a Postgres DATABASE_URL.',
+    },
+    501,
+    { ...ROUTE_CONTEXT, method }
+  )
+}
+
 function validationError(message: string): Response {
   return createErrorResponse(
     { type: ApiErrorType.ValidationError, message },
@@ -91,6 +110,8 @@ async function handlePost(request: Request): Promise<Response> {
     { allowAgentBearerToken: true }
   )
   if (permissionResponse) return permissionResponse
+  const notConfigured = notConfiguredResponse('POST')
+  if (notConfigured) return notConfigured
 
   let body: AckRequestBody
   try {
@@ -155,6 +176,8 @@ async function handleDelete(request: Request): Promise<Response> {
     { allowAgentBearerToken: true }
   )
   if (permissionResponse) return permissionResponse
+  const notConfigured = notConfiguredResponse('DELETE')
+  if (notConfigured) return notConfigured
 
   const { searchParams } = new URL(request.url)
   const hostIdParam = searchParams.get('hostId')
