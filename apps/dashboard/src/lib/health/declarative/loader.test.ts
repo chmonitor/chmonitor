@@ -16,7 +16,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 let dir: string
-const savedEnv = { ...process.env }
+const ENV_KEYS = [
+  'HEALTH_THRESHOLD_DISK_USAGE_CRITICAL',
+  'HEALTH_ALERT_DIGEST_MINUTES',
+  'HEALTH_ALERT_WEBHOOK_TARGETS',
+  'OPS_URL',
+] as const
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'chm-health-config-'))
@@ -25,7 +30,7 @@ beforeEach(() => {
 
 afterEach(() => {
   rmSync(dir, { recursive: true, force: true })
-  process.env = { ...savedEnv }
+  for (const key of ENV_KEYS) delete process.env[key]
   _resetHealthConfigCache()
 })
 
@@ -237,6 +242,27 @@ describe('loadHealthConfigFiles — hostile input never throws', () => {
     )
     const r = loadHealthConfigFiles(dir)
     expect(JSON.stringify(r.skipped)).not.toContain('sk-very-secret')
+  })
+
+  test('an unknown timezone is rejected at load, not at sweep time', () => {
+    write(
+      'quiet-hours.yaml',
+      "windows:\n  - id: w\n    days: [0]\n    start: '01:00'\n    end: '02:00'\n    timezone: Mars/Olympus\n"
+    )
+    const r = loadHealthConfigFiles(dir)
+    expect(r.data.quietHours).toEqual({})
+    expect(r.skipped[0]?.error).toContain('timezone')
+  })
+
+  test('webhook target headers follow the X-* rules', () => {
+    write(
+      'channels.yaml',
+      "webhookTargets:\n  - id: t\n    name: T\n    urlEnv: T_URL\n    headers: { Authorization: 'Bearer abc' }\n"
+    )
+    const r = loadHealthConfigFiles(dir)
+    expect(r.data.webhookTargets).toEqual({})
+    expect(r.skipped[0]?.error).toContain('Authorization')
+    expect(JSON.stringify(r.skipped)).not.toContain('Bearer abc')
   })
 
   test('custom rule reuses the rule-builder ordering check', () => {

@@ -26,8 +26,15 @@ import { z } from 'zod'
 import type { CustomWebhookTarget } from '../custom-webhook-targets'
 
 import { ALERT_CONFIG_CHANNELS } from '../alert-channel-config-store'
-import { CUSTOM_WEBHOOK_FORMATS } from '../custom-webhook-targets'
-import { customRuleInputSchema, METRIC_CATALOG } from '../rule-builder-schema'
+import {
+  CUSTOM_WEBHOOK_FORMATS,
+  sanitizeCustomHeaders,
+} from '../custom-webhook-targets'
+import {
+  customRuleInputSchema,
+  METRIC_CATALOG,
+  type MetricKey,
+} from '../rule-builder-schema'
 
 /** The six concerns, in load order. The file name is `<concern>.yaml`. */
 export const HEALTH_CONFIG_CONCERNS = [
@@ -58,13 +65,22 @@ const severityFloorSchema = z.enum(['warning', 'critical'])
 /** Non-secret destination fields (chat ids, regions, to/from, …). */
 const targetSchema = z.record(z.string(), z.string())
 
+function isValidTimeZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
+}
+
 const HM_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 
 // ---------------------------------------------------------------------------
 // Entries
 // ---------------------------------------------------------------------------
 
-const METRIC_KEYS = Object.keys(METRIC_CATALOG) as [string, ...string[]]
+const METRIC_KEYS = Object.keys(METRIC_CATALOG) as [MetricKey, ...MetricKey[]]
 
 export const declarativeCustomRuleSchema = z
   .strictObject({
@@ -112,7 +128,7 @@ export const declarativeRouteSchema = z.strictObject({
 })
 
 export const declarativeChannelSchema = z.strictObject({
-  channel: z.enum(ALERT_CONFIG_CHANNELS as unknown as [string, ...string[]]),
+  channel: z.enum(ALERT_CONFIG_CHANNELS),
   enabled: z.boolean().default(true),
   minSeverity: severityFloorSchema.nullable().default(null),
   target: targetSchema.default({}),
@@ -124,13 +140,24 @@ export const declarativeWebhookTargetSchema = z.strictObject({
   id: idSchema,
   name: z.string().min(1).max(64),
   enabled: z.boolean().default(true),
-  format: z
-    .enum(CUSTOM_WEBHOOK_FORMATS as unknown as [string, ...string[]])
-    .default('auto'),
+  format: z.enum(CUSTOM_WEBHOOK_FORMATS).default('auto'),
   minSeverity: severityFloorSchema.nullable().default(null),
   titleTemplate: z.string().max(200).default(''),
   bodyTemplate: z.string().max(2000).default(''),
-  headers: z.record(z.string(), z.string()).default({}),
+  /** `X-*` only, capped — the same rules as the UI and env paths. */
+  headers: z
+    .record(z.string(), z.string())
+    .default({})
+    .superRefine((headers, ctx) => {
+      const { dropped } = sanitizeCustomHeaders(headers)
+      if (dropped.length > 0) {
+        // Header names only — values may be sensitive.
+        ctx.addIssue({
+          code: 'custom',
+          message: `rejected headers: ${dropped.join(', ')}`,
+        })
+      }
+    }),
   /** Env var holding the HTTPS webhook URL (credential-bearing). */
   urlEnv: envNameSchema,
   /** Env var holding a JSON object of secret headers. */
@@ -142,7 +169,11 @@ export const declarativeQuietHoursSchema = z.strictObject({
   days: z.array(z.number().int().min(0).max(6)).min(1),
   start: z.string().regex(HM_PATTERN, 'must be HH:mm'),
   end: z.string().regex(HM_PATTERN, 'must be HH:mm'),
-  timezone: z.string().min(1).default('UTC'),
+  timezone: z
+    .string()
+    .min(1)
+    .default('UTC')
+    .refine(isValidTimeZone, 'must be an IANA timezone'),
   severityCap: z.literal('critical').nullable().default(null),
 })
 
