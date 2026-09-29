@@ -217,7 +217,7 @@ different behavior.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CHM_CONFIG_FILE` | — | Path to TOML or YAML config file for feature overrides. |
+| `CHM_CONFIG_FILE` | — | Path to a TOML (`.toml`) or YAML config file with a `features` table. Read once at server start (Node / Docker / K8s; ignored on Cloudflare Workers, which have no filesystem). Env vars below override it. Invalid entries are skipped with a warning. |
 | `CHM_DISABLED_FEATURES` | — | Comma-separated feature ids to disable entirely. |
 | `CHM_AUTH_REQUIRED_FEATURES` | — | Comma-separated feature ids that require authentication. |
 | `CHM_FEATURE_{ID}_ACCESS` | `public` | Per-feature access: `public`, `guest` (alias for public), or `authenticated`. |

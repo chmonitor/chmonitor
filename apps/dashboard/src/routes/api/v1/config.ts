@@ -9,9 +9,9 @@
  * apps/dashboard/lib/feature-permissions/server.ts:getPublicFeaturePermissionConfig.
  *
  * WORKERD CONSTRAINTS (intentional differences from the Next app):
- * - No CHM_CONFIG_FILE loading: the dashboard's loadConfigFile() uses
- *   `node:fs/promises` + js-yaml/smol-toml, which are not wired in this app.
- *   File-based overrides are therefore NOT read here — env-driven config only.
+ * - CHM_CONFIG_FILE is read via lib/feature-permissions/config-file.ts, gated
+ *   on the build-time import.meta.env.SSR; env overrides are layered on top.
+ *   On workerd the file is absent, so this stays env-driven there.
  * - Principal is ALWAYS 'anonymous': resolving an authenticated principal
  *   requires Clerk's server `auth()` from '@clerk/nextjs/server', which is not
  *   available in workerd and must not be imported (FAIL-LOUD rule). Per-request
@@ -39,6 +39,7 @@ import type {
 import { env } from 'cloudflare:workers'
 import { parseAuthProvider } from '@/lib/auth/provider'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
+import { getFileFeatureOverrides } from '@/lib/feature-permissions/config-file'
 import {
   FEATURE_ACCESS_VALUES,
   FEATURE_IDS,
@@ -159,7 +160,10 @@ function splitFeatureList(value: string | undefined): string[] {
  *   CHM_FEATURE_<ID>_ENABLED, CHM_FEATURE_<ID>_ACCESS (per feature).
  */
 function parseEnvFeatureOverrides(): FeatureOverrides {
-  let overrides: FeatureOverrides = {}
+  // CHM_CONFIG_FILE first; env overrides merge on top (env wins).
+  let overrides: FeatureOverrides = import.meta.env.SSR
+    ? getFileFeatureOverrides(readEnv)
+    : {}
 
   for (const feature of splitFeatureList(readEnv('CHM_DISABLED_FEATURES'))) {
     overrides = mergeFeatureOverrides(overrides, {

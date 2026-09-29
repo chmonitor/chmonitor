@@ -2,7 +2,7 @@
 id: metadata-db-optional-config
 type: spec
 status: active
-updated: 2026-09-29
+updated: 2026-09-30
 related:
   - cloud-saas-mode
   - deployment
@@ -295,6 +295,9 @@ prompt 1 lands. Today it is D1-only, which is why the third column's promise
 
 ## `CHM_CONFIG_FILE` is documented but not implemented
 
+> **Resolved 2026-09-30 (#3494)** — see prompt 2. Kept below as the record of
+> why it was implemented.
+
 The single most consequential finding for the stated goal.
 
 **The only two code references are comments saying it is not implemented:**
@@ -549,7 +552,7 @@ gates on knowing what "available" means.
 | # | Prompt | Issue | Gate |
 |---|---|---|---|
 | 1 | Fix the `metadataDb.available` asymmetry | [#3493](https://github.com/chmonitor/chmonitor/issues/3493) | decided (B) |
-| 2 | Implement `CHM_CONFIG_FILE` | [#3494](https://github.com/chmonitor/chmonitor/issues/3494) | decided (implement) |
+| 2 | Implement `CHM_CONFIG_FILE` | [#3494](https://github.com/chmonitor/chmonitor/issues/3494) | **done** |
 | — | Per-feature capability (option C) | [#3495](https://github.com/chmonitor/chmonitor/issues/3495) | after #3493 |
 | 3 | Declarative config loader for health | [#3496](https://github.com/chmonitor/chmonitor/issues/3496) | **Q1 open** |
 | 4 | Source layer for the read-only definitions | [#3497](https://github.com/chmonitor/chmonitor/issues/3497) | #3496 |
@@ -597,7 +600,19 @@ gates on knowing what "available" means.
 > `docs/content/operate/advanced/feature-permissions.mdx`,
 > `docs/knowledge/metadata-db-optional-config.md` (this file).
 
-### 2. Implement `CHM_CONFIG_FILE` (DECIDED 2026-09-29) → **#3494**
+### 2. Implement `CHM_CONFIG_FILE` (DECIDED 2026-09-29) → **#3494** — DONE
+
+> **Status (2026-09-30): implemented.** Loader:
+> `apps/dashboard/src/lib/feature-permissions/config-file.ts`
+> (`loadFeatureConfigFile`, sync, never throws, bad entries → `skipped[]`).
+> Wired into `lib/feature-permissions/server.ts` and `routes/api/v1/config.ts`
+> behind `import.meta.env.SSR`; env overrides merge on top. YAML uses the
+> existing `yaml` dependency; TOML uses a small built-in parser for the
+> documented subset (`[features.<id>]`, string/bool values) because no TOML
+> parser is a dependency. On workerd the file is absent → no-op. Tests:
+> `lib/feature-permissions/__tests__/config-file.test.ts`. No bundle
+> assertion test exists in the repo; client exclusion rests on the SSR gate
+> plus both call-site modules already being server-only (`cloudflare:workers`).
 
 > **Decision:** implement, scoped to the feature-permission surface first. Do
 > not leave it half-done.
