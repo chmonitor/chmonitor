@@ -124,9 +124,12 @@ describe('getGuestAiPlan', () => {
 })
 
 describe('isGuestAllowedAgentModel', () => {
-  test('allows the default LongCat model, auto, and free aliases', () => {
-    expect(GUEST_DEFAULT_AGENT_MODEL).toBe('anyrouter:meituan/longcat-2.0')
-    expect(isGuestAllowedAgentModel('anyrouter:meituan/longcat-2.0')).toBe(true)
+  test('allows the default model, auto, and free aliases', () => {
+    expect(GUEST_DEFAULT_AGENT_MODEL).toBe('anyrouter:auto')
+    // The old pinned id is no longer served, so it is forced to the default.
+    expect(isGuestAllowedAgentModel('anyrouter:meituan/longcat-2.0')).toBe(
+      false
+    )
     expect(isGuestAllowedAgentModel(GUEST_DEFAULT_AGENT_MODEL)).toBe(true)
     expect(isGuestAllowedAgentModel('anyrouter:auto')).toBe(true)
     expect(isGuestAllowedAgentModel('anyrouter/free')).toBe(true)

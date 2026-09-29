@@ -16,13 +16,17 @@ import { isAnyRouterAutoModelId } from '@/lib/ai/anyrouter-dynamic-models'
 /** Default daily message cap for anonymous Cloud visitors. ≤ Free (5). */
 export const GUEST_AI_REQUESTS_PER_DAY = 3
 
-/** Guests share the deploy AnyRouter key. Prefer a known tool-capable model
- *  — `anyrouter:auto` has routed to providers that 402 on large max_tokens. */
-export const GUEST_DEFAULT_AGENT_MODEL = 'anyrouter:meituan/longcat-2.0'
+/**
+ * Guests share the deploy AnyRouter key. `anyrouter:auto` is a dynamic alias
+ * that always resolves to a currently served tool-capable model, so it cannot
+ * go stale the way a pinned model id did. This is the single source of truth:
+ * the server falls back to it and the web client sends whatever the server
+ * would force anyway.
+ */
+export const GUEST_DEFAULT_AGENT_MODEL = 'anyrouter:auto'
 
 const GUEST_ALLOWED_MODELS = new Set([
   GUEST_DEFAULT_AGENT_MODEL,
-  'anyrouter:auto',
   'anyrouter/free',
   'anyrouter:anyrouter/free',
 ])
