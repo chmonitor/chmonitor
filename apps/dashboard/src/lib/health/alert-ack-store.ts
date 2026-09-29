@@ -18,8 +18,11 @@
  * `ownerId` is `''` for OSS single-tenant deployments (no Clerk / no org).
  */
 
+import type { HealthSqlDb } from './sql-db'
+
+import { getHealthDb } from './resolve-store'
+import { isPostgresHealthDb } from './sql-db'
 import { ErrorLogger } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
 
 const COMPONENT = 'alert-ack-store'
 const warn = (msg: string) =>
@@ -94,11 +97,13 @@ function rowToAck(row: D1AlertAckRow): AlertAck {
 // share one promise; a failure clears it so the next call retries.
 let migration: Promise<void> | null = null
 
-function getDb(): D1Database | null {
-  return getPlatformBindings().getD1Database('CHM_CLOUD_D1')
+function getDb(): HealthSqlDb | null {
+  return getHealthDb()
 }
 
-function ensureMigrated(db: D1Database): Promise<void> {
+function ensureMigrated(db: HealthSqlDb): Promise<void> {
+  // Postgres: the adapter bootstraps its own schema (postgres-schema.ts).
+  if (isPostgresHealthDb(db)) return Promise.resolve()
   if (!migration) {
     migration = (async () => {
       try {
@@ -132,7 +137,9 @@ export interface AckAlertParams {
 export async function ackAlert(params: AckAlertParams): Promise<AlertAck> {
   const db = getDb()
   if (!db) {
-    throw new Error('No D1 binding (CHM_CLOUD_D1) configured for alert acks')
+    throw new Error(
+      'No alert state backend configured for alert acks (D1 binding CHM_CLOUD_D1, or Postgres DATABASE_URL)'
+    )
   }
   await ensureMigrated(db)
 

@@ -19,9 +19,10 @@
  */
 
 import type { AlertPayload } from './adapters/types'
+import type { HealthSqlDb } from './sql-db'
 
+import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
 
 const COMPONENT = 'alert-digest-buffer'
 const warn = (msg: string) =>
@@ -62,8 +63,8 @@ interface D1BufferRow {
   entry_json: string
 }
 
-function getDb(): D1Database | null {
-  return getPlatformBindings().getD1Database('CHM_CLOUD_D1')
+function getDb(): HealthSqlDb | null {
+  return getHealthDb()
 }
 
 function isBufferedEntry(v: unknown): v is BufferedDigestEntry {

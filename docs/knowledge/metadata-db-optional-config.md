@@ -39,6 +39,11 @@ already have. `CHM_CONFIG_FILE` is likewise **decided: implement it**. See
 [Implementation prompts](#implementation-ready-prompts), and the two questions
 that remain genuinely open in [Open questions](#open-questions).
 
+> [!NOTE]
+> **Update 2026-09-30 (#3493):** the flag now derives from
+> `resolveStateBackend()`, and the twelve stores run on D1 **or Postgres**
+> (still not ClickHouse). The warning below describes the state before that.
+
 > [!WARNING]
 > Today this is **not** true. All twelve alert/settings stores are D1-only and
 > degrade silently. The largest blocker is that `metadataDb.available` is
@@ -553,7 +558,7 @@ gates on knowing what "available" means.
 
 | # | Prompt | Issue | Gate |
 |---|---|---|---|
-| 1 | Fix the `metadataDb.available` asymmetry | [#3493](https://github.com/chmonitor/chmonitor/issues/3493) | decided (B) |
+| 1 | Fix the `metadataDb.available` asymmetry | [#3493](https://github.com/chmonitor/chmonitor/issues/3493) | **done** (alerts: D1/Postgres only) |
 | 2 | Implement `CHM_CONFIG_FILE` | [#3494](https://github.com/chmonitor/chmonitor/issues/3494) | **done** |
 | — | Per-feature capability (option C) | [#3495](https://github.com/chmonitor/chmonitor/issues/3495) | after #3493 |
 | 3 | Declarative config loader for health | [#3496](https://github.com/chmonitor/chmonitor/issues/3496) | **done** (loader only) |
@@ -561,7 +566,38 @@ gates on knowing what "available" means.
 | 5 | Honest state stores without a DB | [#3498](https://github.com/chmonitor/chmonitor/issues/3498) | #3495; last part **Q5 open** |
 | 6 | Document the operator path | [#3499](https://github.com/chmonitor/chmonitor/issues/3499) | all of the above |
 
-### 1. Fix the `metadataDb.available` asymmetry (DECIDED 2026-09-29: B) → **#3493**
+### 1. Fix the `metadataDb.available` asymmetry (DECIDED 2026-09-29: B) → **#3493** — DONE
+
+> **Status (2026-09-30): implemented, scoped to Postgres for alerts.**
+> - `resolveStateBackend(env?, hasD1?)` in `lib/state-backend/config.ts`
+>   returns `'d1' | 'clickhouse' | 'postgres' | null` (D1 first). The route
+>   sets `metadataDb.available = isMetadataDbAvailable()`, i.e.
+>   `resolveStateBackend() !== null`; the inline check is gone. Matrix tests:
+>   `lib/state-backend/resolve-state-backend.test.ts` and
+>   `routes/api/v1/__tests__/config.metadata-db.test.ts`.
+> - `lib/health/resolve-store.ts` (`resolveHealthBackend`, `getHealthDb`) has
+>   its **own** chain, D1 → Postgres → `null`. It deliberately does not reuse
+>   `resolveStateBackend()`, whose ClickHouse-before-Postgres order would drop
+>   alerts on a ClickHouse+Postgres deploy. **No ClickHouse alert stores were
+>   built.**
+> - `lib/health/sql-db.ts`: `HealthSqlDb`, a structural subset of `D1Database`
+>   (`prepare`/`bind`/`all`/`first`/`run`/`batch`). D1 satisfies it as-is;
+>   `PostgresHealthDb` implements it on postgres.js (dynamic import, `?N`→`$N`,
+>   booleans → 0/1, int8 → number, `batch` in one transaction,
+>   `meta.changes` = row count). The Postgres DDL for all eleven tables is in
+>   `lib/health/postgres-schema.ts` (BIGINT for unix-ms, DOUBLE PRECISION for
+>   REAL), bootstrapped once per client. The stores keep their D1 SQL; only
+>   `getDb()` changed.
+> - Real-Postgres coverage: `lib/health/sql-db.postgres.test.ts`, opt-in via
+>   `CHM_TEST_POSTGRES_URL` (skipped in CI — no Postgres service there).
+> - `custom-rules-store.ts` now resolves like its siblings but still throws
+>   `NOT_CONFIGURED` with no backend, reads included: the GET 501 is what
+>   `RuleBuilderPanel` renders as "not available". Its internal readers
+>   already fail open.
+> - **Known gap:** a ClickHouse-ONLY state backend reports
+>   `metadataDb.available = true` while every alert store resolves to `null`.
+>   #3495's per-feature capability must report health unavailable there.
+
 
 > **Restated 2026-09-29** after the premise correction. The old wording asked
 > for a per-feature capability probe (option C). The evidence says the real fix

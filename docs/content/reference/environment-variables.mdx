@@ -441,6 +441,11 @@ Configure a backend at runtime via `CONVERSATION_STORE_BACKEND`.
 | `POSTGRES_URL` | Alternative PostgreSQL connection string. |
 | `POSTGRES_PRISMA_URL` | Prisma-specific PostgreSQL connection string. |
 
+The same URL also backs the alert settings stores (routing, channels, custom
+rules, webhook targets, acks, quiet hours, maintenance windows, digests,
+alert state and history) when no D1 binding is present. Their tables are created
+on first use (`CREATE TABLE IF NOT EXISTS`); there is no migration step.
+
 See [Conversation history — backends](/guide/ai-agent/conversation-history/backends)
 for setup and fallback behavior.
 
@@ -450,6 +455,8 @@ Persists dashboards and per-user connections in your own ClickHouse instead of
 Cloudflare D1 or Postgres. Opt-in; tables are created lazily
 (`CREATE TABLE IF NOT EXISTS`, `ReplacingMergeTree`). Resolution order per
 store: D1 binding → ClickHouse state env → Postgres env → local/memory.
+Alert settings have no ClickHouse store: they use D1, then Postgres, and are
+unavailable on a ClickHouse-only state backend.
 
 | Variable | Default | Purpose |
 |---|---|---|

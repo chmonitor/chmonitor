@@ -3,9 +3,12 @@
  *
  * Items whose page persists state in the deployment's metadata database
  * (report subscriptions, shared dashboards, per-user connections) are DIMMED
- * — not hidden — when no metadata DB (D1 binding or Postgres URL) is
- * configured: the operator can still turn it on, so hiding the row would
- * delete the discovery path for a feature that ships in the box (#3463).
+ * — not hidden — when no state backend is configured: the server derives
+ * `metadataDb.available` from `resolveStateBackend()` in
+ * `lib/state-backend/config.ts` (D1 binding → `CHM_STATE_CLICKHOUSE_*` →
+ * `DATABASE_URL` / `POSTGRES_URL`, #3493). The operator can still turn it on,
+ * so hiding the row would delete the discovery path for a feature that ships
+ * in the box (#3463).
  *
  * The pure predicate stays the one place the answer is computed; the nav
  * surfaces reach it through `resolveUnavailable` /

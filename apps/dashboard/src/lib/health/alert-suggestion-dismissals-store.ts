@@ -19,10 +19,12 @@
  * to the `0020_alert_suggestion_dismissals` migration.
  */
 
-import { debug } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
+import type { HealthSqlDb } from './sql-db'
 
-const D1_BINDING_NAME = 'CHM_CLOUD_D1'
+import { getHealthDb } from './resolve-store'
+import { isPostgresHealthDb } from './sql-db'
+import { debug } from '@chm/logger'
+
 const TABLE = 'alert_suggestion_dismissals'
 
 const MIGRATION_SQL = `
@@ -45,14 +47,16 @@ export class SuggestionDismissalStoreError extends Error {
   }
 }
 
-function getDb(): D1Database | null {
-  return getPlatformBindings().getD1Database(D1_BINDING_NAME)
+function getDb(): HealthSqlDb | null {
+  return getHealthDb()
 }
 
 // Single-flight lazy migration: idempotent DDL runs at most once per process; a
 // failure clears the memo so the next call retries.
 let migration: Promise<void> | null = null
-function ensureMigrated(db: D1Database): Promise<void> {
+function ensureMigrated(db: HealthSqlDb): Promise<void> {
+  // Postgres: the adapter bootstraps its own schema (postgres-schema.ts).
+  if (isPostgresHealthDb(db)) return Promise.resolve()
   if (!migration) {
     migration = db
       .prepare(MIGRATION_SQL)
@@ -101,7 +105,7 @@ export async function dismissSuggestion(
   const db = getDb()
   if (!db) {
     throw new SuggestionDismissalStoreError(
-      `${D1_BINDING_NAME} binding not found. Dismissing suggestions requires a configured D1 database.`,
+      'No alert state backend configured. Dismissing suggestions requires a D1 binding (CHM_CLOUD_D1) or a Postgres DATABASE_URL.',
       'NOT_CONFIGURED'
     )
   }

@@ -15,9 +15,11 @@
  * the sweep falls back to the `HEALTH_ALERT_DIGEST_MINUTES` env value.
  */
 
+import type { HealthSqlDb } from './sql-db'
+
+import { getHealthDb } from './resolve-store'
 import { getServerDigestWindowMinutes } from './server-alert-config'
 import { ErrorLogger } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
 
 const COMPONENT = 'alert-digest-settings'
 const warn = (msg: string) =>
@@ -43,8 +45,8 @@ interface D1DigestRow {
   target_json: string | null
 }
 
-function getDb(): D1Database | null {
-  return getPlatformBindings().getD1Database('CHM_CLOUD_D1')
+function getDb(): HealthSqlDb | null {
+  return getHealthDb()
 }
 
 function parseWindowMinutes(targetJson: string | null): number {

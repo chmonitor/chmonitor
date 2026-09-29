@@ -22,8 +22,10 @@
  * `/api/v1/health/*` at all — there is no per-user data to leak.
  */
 
+import type { HealthSqlDb } from './sql-db'
+
+import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
-import { getPlatformBindings } from '@chm/platform'
 
 const COMPONENT = 'alert-history-store'
 const warn = (msg: string) =>
@@ -76,8 +78,8 @@ interface D1AlertEventRow {
   finding_refs: string | null
 }
 
-function getDb(): D1Database | null {
-  return getPlatformBindings().getD1Database('CHM_CLOUD_D1')
+function getDb(): HealthSqlDb | null {
+  return getHealthDb()
 }
 
 function rowToRecord(row: D1AlertEventRow): AlertEventRecord {

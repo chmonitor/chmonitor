@@ -220,6 +220,19 @@ CHM_DISABLED_FEATURES=insights
   <Card title="Authenticated" description="Unauthenticated visitors still see the feature in navigation (so they know to sign in) but cannot load data. API routes reject unauthenticated requests." />
 </Cards>
 
+### Pages that need a state backend
+
+A few pages persist state (scheduled reports, shared dashboards, per-user
+connections). They are **dimmed**, not hidden, when no state backend is
+configured. `/api/v1/config` reports this as `metadataDb.available`, which is
+true when any backend resolves: the `CHM_CLOUD_D1` binding,
+`CHM_STATE_CLICKHOUSE_URL`, or `DATABASE_URL` / `POSTGRES_URL`.
+
+Alert settings (routing, channels, custom rules, acks, quiet hours,
+maintenance windows, digests, history) store to D1 or Postgres only. On a
+deployment whose only state backend is ClickHouse, the flag is `true` but the
+alert settings are unavailable — add `DATABASE_URL` to enable them.
+
 ## Related
 
 <Cards>
