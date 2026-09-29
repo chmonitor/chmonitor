@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
-
 import { SANITIZED_MESSAGES } from '@/lib/api/error-handler/sanitize-error'
 
 // Mutable so the cloud demo-hidden branch (hostId=0 for a signed-in cloud
