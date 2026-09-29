@@ -423,21 +423,81 @@ SSRF-guarded, loaded once at startup).
 
 ## The decision
 
-**Proposed: a declarative *source layer* that every store reads through, with D1
-as an optional overlay — not a per-store env fallback.**
+**DECIDED 2026-09-29.** A declarative *source layer* that every store reads
+through, with the database as an optional overlay — not a per-store env fallback.
+
+**Multiple kinds of config are accepted simultaneously and MERGED, not
+shadowed.** This is the answer to Q1, and it is stronger than "one source wins":
+a file may set the routing rules while env sets the thresholds, and both apply.
 
 ### Precedence
 
-Highest wins:
+Highest wins, resolved **per key** (see the merge contract below):
 
 1. **D1 row** (per-owner; the cloud/multi-tenant path)
-2. **Config file** entry (`CHM_CONFIG_DIRECTORY`)
+2. **Config file** entry (`CHM_CONFIG_DIRECTORY` / `CHM_CONFIG_FILE`)
 3. **Environment variable** (`CHM_*` / `HEALTH_*`)
 4. **Built-in default**
 
-Rationale: file beats env because a mounted ConfigMap is a deliberate,
-version-controlled, human-reviewed artefact, while env is the fallback for a
-quick override. This matches how Kubernetes operators actually work.
+Rationale for file > env: a mounted ConfigMap is a deliberate, version-controlled,
+human-reviewed artefact, while env is the fallback for a quick override. This
+matches how Kubernetes operators actually work. Note this only decides
+**conflicts** — it does not decide what is *present*.
+
+### The merge contract
+
+The single most important design consequence, and the thing the original
+"source layer" proposal left undefined: **precedence answers "who wins this
+key", not "which sources are consulted".** Every source is always read; a
+higher source only *overrides the entries it names*.
+
+Every one of the seven read-only definition stores is a **keyed collection**, so
+one uniform union-merge covers all of them:
+
+| Entity | Merge key | Source of truth for the key |
+|---|---|---|
+| custom alert rules (`custom_alert_rules`) | `id` | operator-supplied in the file (`custom:<uuid>` is generated only on UI write) |
+| alert routes (`alert_routes`) | `id` | operator-supplied in the file (`crypto.randomUUID()` at `alert-routing.ts:227` is the UI-write path only) |
+| custom webhook targets (`alert_webhook_targets`) | `id` | operator-supplied in the file |
+| quiet hours (`quiet_hours`) | `id` | operator-supplied in the file |
+| maintenance windows (`maintenance_windows`) | `id` | operator-supplied in the file |
+| channel config (`alert_channel_config`) | `channel` | the channel name, not an id |
+| thresholds (`health-thresholds` localStorage) | rule name | the existing `ThresholdsMap` key |
+| digest settings | `channel` (sentinel `__digest__`) | the channel name |
+
+**Why `id` must be required in a declarative entry.** Today ids are minted at
+write time (`crypto.randomUUID()` — `custom-rules-store.ts:124`,
+`alert-routing.ts:227`). That is fine for a UI create and fatal for a merge: if
+a file entry has no id, there is no way to tell whether it is *the same rule* as
+a D1 row or a new one, so "D1 wins" degenerates into either an accidental
+duplicate or an unpredictable winner. **A declarative entry without an `id` is a
+validation error, not a generated id** — it lands in `skipped[]` like any other
+malformed input (invariant 5).
+
+### Three merge shapes, chosen per entity
+
+| Shape | Rule | Applies to | Why |
+|---|---|---|---|
+| **Union with per-key override** | all keys from all sources appear; on a key collision the highest source wins **field-by-field** | rules, routes, targets, quiet hours, channel config, thresholds, digest | a file adding one rule must not delete the operator's other rules |
+| **Time union** | windows from every source are active simultaneously; only a shared `id` shadows | maintenance windows | two windows at different times are not competing definitions — both should silence alerts |
+| **Single value** | highest source that names it wins outright | hysteresis, digest interval, `min_severity` | there is only one value; nothing to union |
+
+Field-level override within a key matters: a file may set a route's `enabled`
+while D1 owns its `telegram_bot_token`, and the merged row carries both rather
+than the whole row being replaced.
+
+### Consequences worth stating now
+
+- **Deletion is natural**: a key that only a file defined disappears when the
+  file stops defining it, *unless* a higher source names it. No tombstone
+  needed — and this is the case the old per-store-fallback design got wrong.
+- **`env` and `file` are complementary, not alternatives.** Deleting the
+  `HEALTH_THRESHOLD_*` docs in favour of files would be a regression; the file
+  simply wins where both are set.
+- **A DB-free deploy is the degenerate case of the same merge**: sources 1 is
+  empty, so file and env compose exactly as they would on Cloud. There is no
+  separate code path, which is what keeps invariant 2 ("never weaken OSS")
+  cheap to honour.
 
 ### Why a source layer, not per-store env fallback
 
@@ -578,13 +638,24 @@ gates on knowing what "available" means.
 > channels, quiet-hours, maintenance, digest). Reject-and-warn on unknown keys;
 > never throw. Process-lifetime memo, like `getLocalConfigCatalog`.
 >
+> **Q1 is ANSWERED (2026-09-29): config kinds merge, precedence only breaks
+> conflicts.** So this loader must emit a **layered** result — one tagged layer
+> per source — and *not* a resolved one. Resolution belongs to the single merge
+> helper in prompt 4. Keeping the loader a pure reader is what stops merge
+> semantics from being re-implemented per store.
+>
+> **Every declarative entry requires an explicit `id`** (or `channel`/rule
+> name), per [the merge contract](#the-merge-contract). A missing key is a
+> validation error landing in `skipped[]`, never a generated one.
+>
 > **Env:** one canonical `CHM_*` name per setting. If dual-surface, the client
 > `VITE_*` is **derived** in `vite.config.ts` (`loadDeployEnv` + `CLIENT_ENV`,
 > `:110-238`) and declared in `src/vite-env.d.ts`. Never ask an operator to set
 > both.
 >
-> **Tests:** precedence matrix (D1 > file > env > default) per setting; a bad
-> file degrades to env; an empty directory is a no-op.
+> **Tests:** the loader returns one layer per source, tagged and ordered; a bad
+> file lands in `skipped[]` and the other layers still load; an empty directory
+> is a no-op; an entry with no `id` is skipped, not generated.
 >
 > **Docs:** `.env.example`, `deploy/helm/**` `values.yaml` + README.
 
@@ -597,12 +668,28 @@ gates on knowing what "available" means.
 > (`alert-digest-settings-store.ts`), channel config
 > (`alert-channel-config-store.ts`).
 >
-> Add a declarative reader beside each store's D1 reader and a single merge
-> helper implementing the precedence rule. Do **not** touch the state stores —
-> see the read-only/writable table.
+> **Implement [the merge contract](#the-merge-contract), not a shadowing
+> fallback.** One `mergeSources(layers, keyFn, shape)` helper, applied
+> identically by all seven:
 >
-> **Tests:** one matrix test over (source × store); deleting a declarative entry
-> must actually remove it when no DB row shadows it.
+> - **Always read every source.** Precedence breaks collisions; it never
+>   decides which sources are consulted.
+> - Merge **per key** using the table in the contract (`id` for rules, routes,
+>   targets, quiet hours, windows; `channel` for channel config and digest;
+>   rule name for thresholds).
+> - **Union with field-level override** on a key collision — a file may set
+>   `enabled` while D1 owns `telegram_bot_token`, and the merged row keeps both.
+> - Apply the per-entity **shape**: union / time-union / single-value.
+> - A declarative entry **without an `id`** is a validation error landing in
+>   `skipped[]` (invariant 5), never a generated one.
+>
+> Do **not** touch the state stores — see the read-only/writable table.
+>
+> **Tests:** one matrix test over (source × store × shape); a key defined only
+> by a file disappears when the file stops defining it; a colliding key merges
+> field-by-field rather than replacing the row; two maintenance windows from
+> different sources are both active; a file entry with no `id` is skipped, not
+> generated.
 >
 > **Constraint:** `custom-rules-store.ts` currently **throws**
 > `NOT_CONFIGURED` (`custom-rules-store.ts:59-68`) while the other eleven fail
@@ -663,10 +750,17 @@ gates on knowing what "available" means.
 
 ## Open questions
 
-1. **Q1 — Precedence: does file really beat env?** Proposed yes. A counter-argument
-   is that Kubernetes ConfigMaps are *how* env is set, so the two are the same
-   input and precedence is arbitrary. Worth a decision before prompt 3. **Still
-   open** — this is a genuine operator-experience preference, not a fact.
+1. ~~**Q1 — Precedence: does file really beat env?**~~ — **ANSWERED
+   2026-09-29: both are accepted and merged; precedence only breaks
+   conflicts.** Multiple kinds of config compose — a file may set routing while
+   env sets thresholds — and the `D1 > file > env > default` order decides only
+   *which source wins a given key*, resolved per key with field-level override
+   inside a colliding key. The full contract, the per-entity merge keys, and
+   the three merge shapes (union / time-union / single-value) are in
+   [The merge contract](#the-merge-contract). The design consequence that
+   matters: **a declarative entry must carry an explicit `id`**, because ids are
+   minted by `crypto.randomUUID()` on the UI-write path and a generated id makes
+   "is this the same rule?" unanswerable.
 2. ~~**Q2 — Is option C enough, or does the alert surface need Postgres?**~~ —
    **ANSWERED 2026-09-29: the alert surface needs Postgres, and C is not
    enough.** A Postgres-only deploy is documented and Helm-supported
