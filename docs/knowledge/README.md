@@ -32,7 +32,7 @@ Agents discover knowledge in this order:
 | **Operations** | [deployment.md](deployment.md) | reference | Docker and Cloudflare Workers dual deployment guide |
 | **Operations** | [install-sh-bot-fight.md](install-sh-bot-fight.md) | reference | curl install.sh 403 from Bot Fight Mode; GitHub raw workaround; `cf:allow-install-sh` |
 | **Operations** | [worker-bundle-size.md](worker-bundle-size.md) | decision | Worker gzip 1.82 MiB (under limit); bundle breakdown; @opentelemetry/api probed = 6.5 KiB, NOT worth stubbing |
-| **Operations** | [monorepo-refactor.md](monorepo-refactor.md) | operations | Bun-workspaces + Turborepo migration: status, workflow, gotchas, Phase 5 TODO |
+| **Operations** | [monorepo-refactor.md](monorepo-refactor.md) | decision | COMPLETE 2026-07-05 — monorepo migration record: phase table, extraction methodology, live gotchas; layout block re-verified 2026-09-30 |
 | **Operations** | [core-memory.md](core-memory.md) | workflow | Automation core memory: code-smell scans, dead-code rules |
 | **Operations** | [issue-desk.md](issue-desk.md) | workflow | 4 herdr-desk jobs (triage / babysit / prod / improve), repo-owned playbooks, the EISDIR outage that silenced 24 fires, `name` must equal the folder |
 | **Operations** | [secret-rotation.md](secret-rotation.md) | workflow | Cloudflare Workers secret rotation: redeploy after wrangler secret put |
