@@ -70,7 +70,11 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 curl -sS https://dash.chmonitor.dev/api/healthz | head -c 400
 ```
 
-- **200 / `ok:true`** — the edge can reach the host and the Worker can query it.
+- **200 / `ok:true`** — the edge can reach the host and the Worker can query it,
+  but only from a *fresh* response: a cached 200 replayed a dead host as `up`
+  for 7 minutes while `/api/healthz` said `down` (#3529). `host-status` now
+  sends `no-store`, so read a `cf-cache-status: HIT` with a growing `age` as
+  "unknown", not "up".
 - **500 with `error code: 1016`** — Cloudflare cannot resolve the origin domain.
   This is the exact signature of a ClickHouse host that only resolves on a
   tailnet (a `*.ts.net` MagicDNS name has no public DNS record), which takes
