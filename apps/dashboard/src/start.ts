@@ -118,6 +118,17 @@ export async function securityHeadersHandler({
       // Never let a negotiated markdown response stick on /sign-in at the edge.
       result.response.headers.set('Cache-Control', 'private, no-store')
     }
+    if (isPrivateApiPath(url.pathname)) {
+      // A zone Cache Rule on dash.chmonitor.dev stores Worker responses keyed
+      // on URL alone (#3543): any per-host / per-user `/api/*` response that is
+      // not `no-store` can be served to another visitor, and a stored 500/200
+      // outlives the host state it described. `s-maxage` only ever targeted
+      // that shared cache (browsers ignore it), so overriding it here costs no
+      // browser caching. `caches.default` writes happen inside the route
+      // handler before this runs, so the gated anonymous edge cache (#2181)
+      // is unaffected.
+      result.response.headers.set('Cache-Control', 'private, no-store')
+    }
   }
 
   // Return the result (not void) — TanStack Start types a request middleware
@@ -143,6 +154,28 @@ async function sha256(text: string): Promise<string> {
  * Human auth URLs. These must stay `text/html` even when the client sends
  * `Accept: text/markdown`. Agent auth docs live at `/auth.md` (#3092).
  */
+/**
+ * `/api/*` routes whose body is identical for every visitor (derived from
+ * deploy-time env or a public upstream), so a shared cache may keep their own
+ * `Cache-Control`. Add a path here only after checking the handler reads no
+ * user, session, or per-host ClickHouse state. Everything else under `/api/`
+ * is forced to `private, no-store` by `securityHeadersHandler` (#3543).
+ */
+export const PUBLIC_API_PATHS = new Set([
+  '/api/v1/hosts', // env CLICKHOUSE_HOST / CLICKHOUSE_NAME only
+  '/api/v1/config', // env-derived; principal is hardcoded 'anonymous'
+  '/api/v1/releases', // public GitHub Releases, no user token
+])
+
+export function isPrivateApiPath(pathname: string): boolean {
+  // The router matches paths case-insensitively, so `/API/v1/…` reaches the
+  // same handler; the public exemption stays an exact, case-sensitive match.
+  return (
+    pathname.toLowerCase().startsWith('/api/') &&
+    !PUBLIC_API_PATHS.has(pathname)
+  )
+}
+
 export const HUMAN_AUTH_PATHS = new Set(['/sign-in', '/sign-up', '/login'])
 
 /** True when a page request should be rewritten to the agent product markdown. */
