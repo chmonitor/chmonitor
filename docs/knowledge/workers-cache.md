@@ -3,7 +3,7 @@ id: workers-cache
 title: Cloudflare Workers Cache
 type: reference
 status: active
-updated: 2026-08-24
+updated: 2026-09-30
 tags:
   - cloudflare-workers
   - cache
@@ -56,10 +56,34 @@ enabled = true
 | `apps/docs` (Fumadocs) | ✅ enabled | ✅ yes | Public docs — see below. |
 | `apps/landing` (Astro) | ✅ enabled | — (static assets) | Assets-only Worker; built assets already carry their own cache headers. |
 | `apps/blog` (Astro) | ✅ enabled | — (static assets) | Same as landing. |
-| `apps/dashboard` (TanStack Start) | ✅ enabled | ❌ **never** | Per-user (Clerk) + per-host; nothing is marked `public`. Flag is safe by default. |
+| `apps/dashboard` (TanStack Start) | ✅ enabled | ⚠️ **many routes** | Per-user (Clerk) + per-host, yet ~25 route files send `public, s-maxage=…` (`v1/hosts.ts`, `v1/releases.ts`, `v1/menu-counts`, …). Not "never" — see the zone-cache note below. |
 | `apps/telemetry` | ✅ enabled | ❌ no | Write-only POST ingest; only GET is a static text banner. No-op but safe. |
 | `apps/mcp` | ✅ enabled | ❌ no | Authed JSON-RPC; `Authorization` requests auto-bypass. No-op but safe. |
 | `apps/bug-handler` | ⛔ skipped | — | Email Worker (not HTTP-cacheable). |
+
+### dashboard — the zone is caching Worker responses (2026-09-30, #3482)
+
+The `s-maxage` family is **not** inert in production. Probed against
+`dash.chmonitor.dev`:
+
+```sh
+curl -sS -D - -o /dev/null 'https://dash.chmonitor.dev/api/v1/host-status?hostId=0' \
+  | grep -iE '^(cf-cache-status|age|cache-control)'
+# cf-cache-status: HIT
+# age: 4229            <- and NO cache-control header at all
+```
+
+`host-status.ts` sets no `Cache-Control`, and the Workers Cache never stores a
+response without a `public` directive, so a `HIT` with a 70-minute `age` can
+only come from a **zone Cache Rule** (e.g. "Cache everything"). Adding a
+throwaway query string (`&cb=…`) returned `MISS` and a different body, so the
+cache key is the URL. `/api/healthz` and `/api/health` are `BYPASS`
+(explicit `no-store`, #3481).
+
+Consequences: any per-host or per-user route that is not `no-store` can be
+served cross-visitor, and a stale `200` can mask an outage. The rule lives in
+the Cloudflare dashboard, not in this repo, so the fix is a human's: narrow or
+remove the rule for `/api/*`, or make every non-public response `no-store`.
 
 ### docs — public pages get `public` caching
 
