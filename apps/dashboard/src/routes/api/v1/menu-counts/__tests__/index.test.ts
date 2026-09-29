@@ -1,12 +1,34 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
+import { SANITIZED_MESSAGES } from '@/lib/api/error-handler/sanitize-error'
+
+// Mutable so the cloud demo-hidden branch (hostId=0 for a signed-in cloud
+// principal) is reachable from the last test below. Mirrors the reference
+// pattern in routes/api/v1/__tests__/host-status.cloud-demo-host-guard.test.ts.
+let cloudMode = false
+let signedIn = false
+
 // Mock 'cloudflare:workers' because it is imported in index.ts
 mock.module('cloudflare:workers', () => ({
   env: {
     CLICKHOUSE_HOST: 'http://localhost:8123',
     CLICKHOUSE_USER: 'default',
     CLICKHOUSE_PASSWORD: '',
+    get CHM_CLOUD_MODE() {
+      return cloudMode ? 'true' : 'false'
+    },
   },
+}))
+
+import * as realProvider from '@/lib/auth/provider'
+
+mock.module('@/lib/auth/provider', () => ({
+  ...realProvider,
+  isClerkAuthProvider: () => true,
+}))
+
+mock.module('@clerk/tanstack-react-start/server', () => ({
+  auth: async () => (signedIn ? { userId: 'user_123' } : { userId: null }),
 }))
 
 const mockFetchData = mock(
@@ -43,6 +65,8 @@ mock.module('@chm/clickhouse-client/clickhouse-version', () => ({
 describe('menu-counts API GET handler', () => {
   beforeEach(() => {
     mockFetchData.mockClear()
+    cloudMode = false
+    signedIn = false
   })
 
   test('constructs combined query and executes it', async () => {
@@ -142,5 +166,104 @@ describe('menu-counts API GET handler', () => {
 
     // Verify it executed more queries because of fallback loop
     expect(mockFetchData.mock.calls.length).toBeGreaterThan(2)
+  })
+
+  // #3487: a host that is not answering resolves EVERY key to `null`, which
+  // was indistinguishable from "this deployment has none of the optional
+  // tables" and shipped `200 {success:true}` — a dashboard with no numbers and
+  // no error.
+  test('every queried count unresolved answers non-2xx, not 200 with nulls', async () => {
+    const { handler } = await import('../index')
+
+    // The raw ClickHouse error carries internal detail that must never reach
+    // the client (#2555) — hence the exact sanitized bucket below.
+    mockFetchData.mockImplementation(async () => ({
+      data: null,
+      error: {
+        type: 'network_error',
+        message:
+          'Code: 210. DB::NetException: Connection refused (clickhouse-demo.internal:8123)',
+      },
+    }))
+
+    const request = new Request('http://localhost/api/v1/menu-counts?hostId=0')
+    const response = await handler(request)
+
+    expect(response.status).not.toBe(200)
+    expect(response.status).toBe(500)
+
+    const body = (await response.json()) as {
+      success: boolean
+      error?: { type: string; message: string }
+    }
+    expect(body.success).toBe(false)
+    expect(body.error?.type).toBe('network_error')
+    expect(body.error?.message).toBe(SANITIZED_MESSAGES.GENERIC)
+    // The raw error text (host, port, code) must not be echoed.
+    expect(JSON.stringify(body)).not.toContain('clickhouse-demo.internal')
+  })
+
+  // The retained half of the same rule: ONE unavailable key is still a 200.
+  // Fails if the #3487 check is over-broadened to "any key null errors".
+  test('keeps 200 when one optional key is null and the rest resolve', async () => {
+    const { handler } = await import('../index')
+
+    mockFetchData.mockImplementation(async ({ query }) => {
+      if (query.includes('database, name')) {
+        return { data: [], error: null }
+      }
+      if (query.includes('AS')) {
+        // Combined query fails, so the fallback loop runs per key.
+        return {
+          data: null,
+          error: { type: 'query_error', message: 'Syntax error' },
+        }
+      }
+      // One optional key's own query fails; every other key resolves.
+      if (query.includes('system.dictionaries')) {
+        return {
+          data: null,
+          error: { type: 'table_not_found', message: 'Table not found' },
+        }
+      }
+      return { data: [{ count: 42 }], error: null }
+    })
+
+    const request = new Request('http://localhost/api/v1/menu-counts?hostId=0')
+    const response = await handler(request)
+    expect(response.status).toBe(200)
+
+    const body = (await response.json()) as {
+      data: { counts: Record<string, number | null> }
+    }
+    expect(body.data.counts.dictionaries).toBeNull()
+    expect(body.data.counts['tables-explorer']).toBe(42)
+    expect(body.data.counts.merges).toBe(42)
+  })
+
+  // The demo-hiding branch answers 200 with an empty `counts` map and an
+  // `unavailable` block (#2172 / #2488). That is a deliberate "not available"
+  // answer, not a host failure — the new check must not read it as one.
+  test('cloud demo-hidden branch still answers 200 with its unavailable shape', async () => {
+    const { handler } = await import('../index')
+    cloudMode = true
+    signedIn = true
+
+    // No ClickHouse query may run: the branch returns before resolving.
+    mockFetchData.mockImplementation(async () => ({ data: [], error: null }))
+
+    const request = new Request('http://localhost/api/v1/menu-counts?hostId=0')
+    const response = await handler(request)
+    expect(response.status).toBe(200)
+    expect(mockFetchData).not.toHaveBeenCalled()
+
+    const body = (await response.json()) as {
+      success: boolean
+      data: { counts: Record<string, number | null> }
+      metadata: { unavailable: { reason: string; message: string } }
+    }
+    expect(body.success).toBe(true)
+    expect(body.data.counts).toEqual({})
+    expect(body.metadata.unavailable.reason).toBe('demo_hidden')
   })
 })

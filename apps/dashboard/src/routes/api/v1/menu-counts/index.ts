@@ -6,9 +6,14 @@
  * request, so the sidebar makes ONE call instead of N independent ones.
  *
  * Optional-table misses resolve to `null`, matching the per-key endpoint's
- * behavior. A query failure on one key resolves that key to `null` rather than
+ * behavior. A query failure on ONE key resolves that key to `null` rather than
  * failing the whole batch, so a single broken count never blanks out every
  * sidebar badge.
+ *
+ * When EVERY key this request actually queried comes back unresolved, the host
+ * itself is not answering — which is not a missing optional table. Answering
+ * 200 there ships a dashboard with no numbers and no error, so that case
+ * answers non-2xx and lets the client's error path render (#3487).
  *
  * SECURITY: No raw SQL is accepted from clients. Only pre-defined registry
  * queries are executed.
@@ -21,7 +26,10 @@ import { fetchData } from '@chm/clickhouse-client'
 import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { createErrorResponse } from '@/lib/api/error-handler'
-import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
+import {
+  SANITIZED_MESSAGES,
+  sanitizeClickHouseError,
+} from '@/lib/api/error-handler/sanitize-error'
 import {
   getAvailableMenuCountKeys,
   getMenuCountQuery,
@@ -178,6 +186,12 @@ export async function handler(request: Request): Promise<Response> {
     // Read-only GET path: safe to opt into the ClickHouse query cache
     // (#2182). getClickHouseVersion caches per host for 24h, so this is
     // cheap; runWithQueryCache fails closed on an unknown version.
+    //
+    // It returns `null` (it never throws) when the probe fails, and that null
+    // is deliberately NOT treated as a host-failure signal: it is a separate,
+    // cached, best-effort probe, so a cold cache timing out against a healthy
+    // host would blank every badge on its own. When the host really is down
+    // the count queries below fail too and the all-unresolved check fires.
     const cacheOpts = {
       version: await getClickHouseVersion(hostId),
       ttlSeconds: MENU_COUNT_CACHE_TTL_SECONDS,
@@ -206,6 +220,14 @@ export async function handler(request: Request): Promise<Response> {
     // 2. Build combined subqueries
     const selectSubqueries: string[] = []
     const counts: Record<string, number | null> = {}
+    // Keys this request actually asked ClickHouse for. An optional key whose
+    // `tableCheck` already missed is deliberately excluded — that is a
+    // legitimate unavailability decided by the system.tables check, not a
+    // failed query, so it must not count toward the host-failure check below.
+    const expectedKeys: string[] = []
+    // First hard failure of the combined batch, kept so an all-unresolved
+    // result can report WHY instead of a bare "failed".
+    let combinedFailure: { type: ApiErrorType; message: string } | null = null
     let combinedQueryCacheDisabled = false
 
     for (const key of keys) {
@@ -226,6 +248,7 @@ export async function handler(request: Request): Promise<Response> {
       if (menuCount.disableQueryCache) combinedQueryCacheDisabled = true
 
       // Wrap the registry query as a subquery
+      expectedKeys.push(key)
       selectSubqueries.push(
         `(SELECT count FROM (${menuCount.query})) AS \`${key}\``
       )
@@ -245,6 +268,10 @@ export async function handler(request: Request): Promise<Response> {
       )
 
       if (result.error) {
+        combinedFailure = {
+          type: (result.error.type as ApiErrorType) ?? ApiErrorType.QueryError,
+          message: result.error.message,
+        }
         // Fall back to original resolveCount loop if the combined query fails
         // (preserves robust error recovery on schema/version mismatches)
         debug(
@@ -272,6 +299,56 @@ export async function handler(request: Request): Promise<Response> {
           }
         }
       }
+    }
+
+    // #3487: `resolveCount` maps ANY query error to `null`, so a host that is
+    // not answering fills every key with `null` — identical to a deployment
+    // with none of the optional tables, and identical to the `200` this route
+    // used to answer in both cases. A guest then saw a dashboard with no
+    // numbers and no error.
+    //
+    // The `tableCheck` split makes this exact rather than heuristic: every key
+    // in `expectedKeys` is a required count over a core system table, which
+    // resolves on any reachable host, so "none of them resolved" can only mean
+    // the host is not answering. ONE unavailable key while the rest are
+    // numbers stays a 200 — that is the single-broken-count case the header
+    // above promises, and this check leaves it alone.
+    const unresolvedKeys = expectedKeys.filter(
+      (key) => counts[key] === null || counts[key] === undefined
+    )
+    if (
+      expectedKeys.length > 0 &&
+      unresolvedKeys.length === expectedKeys.length
+    ) {
+      const cause = combinedFailure?.message ?? 'no row returned'
+      error(
+        '[GET /api/v1/menu-counts] Every queried count is unresolved — reporting a host failure:',
+        undefined,
+        {
+          requestId,
+          hostId,
+          queriedKeys: expectedKeys.length,
+          cause,
+        }
+      )
+      const errorResponse = createErrorResponse(
+        {
+          type: combinedFailure?.type ?? ApiErrorType.QueryError,
+          // Never echo the raw ClickHouse error to the client (#2555).
+          message: combinedFailure
+            ? sanitizeClickHouseError(combinedFailure.message)
+            : SANITIZED_MESSAGES.GENERIC,
+        },
+        500,
+        { ...ROUTE_CONTEXT, hostId }
+      )
+      const headers = new Headers(errorResponse.headers)
+      headers.set('X-Request-ID', requestId)
+      return new Response(errorResponse.body, {
+        status: errorResponse.status,
+        statusText: errorResponse.statusText,
+        headers,
+      })
     }
 
     debug('[GET /api/v1/menu-counts] Batched count result:', {
