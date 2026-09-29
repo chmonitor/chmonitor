@@ -38,7 +38,7 @@ Five sources, checked in this order. Do not invent a sixth.
 ## The loop
 
 ```
-measure → pick the single top item → research → fix or file → verify → record
+measure → pick the single top item → research → fix or file → verify → record → reconcile
 ```
 
 1. **Measure.** Produce the evidence before you claim anything. A file path, a
@@ -58,6 +58,22 @@ measure → pick the single top item → research → fix or file → verify →
 6. **Record.** Update the knowledge note you touched, in the same change, and
    bump its `updated:` date. A finding that is not written down will be
    rediscovered next month.
+7. **Reconcile before you stop.** `summary.md` and `changes.md` are read by the
+   next run as fact, so prove every count in them first. Do not settle the
+   record until each line below has been run and the claim is no larger than
+   the result:
+
+   ```sh
+   gh issue list --state all --limit 200 --search "created:>=<run date>"  # issues filed
+   gh pr list --state all --limit 200 --search "created:>=<run date>"     # PRs opened
+   git worktree list                                                      # children that started
+   ```
+
+   A claim the output cannot confirm is written as **not done**, with the
+   reason. A child prompt saved to the run dir with no worktree behind it is a
+   **spawn failure**: record it as one, never as a child that ran. On
+   2026-09-28 a summary reported 3 issues and 1 PR; both were 0, and three
+   findings went unowned (#3483, `docs/knowledge/issue-desk.md`).
 
 ## Never
 

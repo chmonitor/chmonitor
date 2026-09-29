@@ -3,7 +3,7 @@ id: issue-desk
 title: Scheduled Herdr desk (external CLI)
 type: workflow
 status: active
-updated: 2026-09-29
+updated: 2026-09-30
 tags:
   - herdr
   - cron
@@ -212,6 +212,11 @@ child one `git worktree list`. The cost is asymmetric — a `summary.md` that
 reports unlanded work as landed is worse than an empty one, because the next run
 reads it, sees the work covered, and skips it. Three findings became unowned
 because one sentence said they were filed.
+
+The improve playbook now enforces this: `docs/herdr-desk/improve.md` step 7
+("Reconcile before you stop") runs the three commands and downgrades any
+unconfirmed claim to *not done*. A child that never reached a worktree is
+recorded as a spawn failure.
 
 ## Identity is not cosmetic
 
