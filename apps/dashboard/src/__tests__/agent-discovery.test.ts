@@ -1,6 +1,7 @@
 import {
   agentDiscoveryHandler,
   HUMAN_AUTH_PATHS,
+  PUBLIC_API_PATHS,
   securityHeadersHandler,
   shouldNegotiatePageMarkdown,
 } from '@/start'
@@ -403,6 +404,46 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
       next: nextMock,
     })) as { response: Response }
     expect(res.response.headers.get('Cache-Control')).toBe('private, no-store')
+  })
+
+  // #3543: a zone Cache Rule stores Worker responses keyed on URL alone, so a
+  // per-host route that says `public, s-maxage` is served cross-visitor and a
+  // stored 500/200 outlives the host state it describes.
+  test.each([
+    '/api/v1/menu-counts?hostId=0',
+    '/api/v1/table-availability?hostId=0',
+    '/api/v1/tables?hostId=0',
+    '/api/v1/explorer/databases?hostId=0',
+    '/api/v1/charts/query-count?hostId=0',
+    '/api/v1/user-connections',
+  ])('securityHeadersHandler forces no-store on per-host API %s', async (path) => {
+    const res = (await securityHeadersHandler({
+      request: new Request(`https://example.com${path}`),
+      next: async () => ({
+        response: new Response('{}', {
+          headers: {
+            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+          },
+        }),
+      }),
+    })) as { response: Response }
+    expect(res.response.headers.get('Cache-Control')).toBe('private, no-store')
+  })
+
+  test('securityHeadersHandler keeps caching on env-only public API routes', async () => {
+    for (const path of PUBLIC_API_PATHS) {
+      const res = (await securityHeadersHandler({
+        request: new Request(`https://example.com${path}`),
+        next: async () => ({
+          response: new Response('{}', {
+            headers: { 'Cache-Control': 'public, s-maxage=300' },
+          }),
+        }),
+      })) as { response: Response }
+      expect(res.response.headers.get('Cache-Control')).toBe(
+        'public, s-maxage=300'
+      )
+    }
   })
 
   test('securityHeadersHandler does not append Link headers to other routes', async () => {

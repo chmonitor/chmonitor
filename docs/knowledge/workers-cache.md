@@ -56,7 +56,7 @@ enabled = true
 | `apps/docs` (Fumadocs) | ✅ enabled | ✅ yes | Public docs — see below. |
 | `apps/landing` (Astro) | ✅ enabled | — (static assets) | Assets-only Worker; built assets already carry their own cache headers. |
 | `apps/blog` (Astro) | ✅ enabled | — (static assets) | Same as landing. |
-| `apps/dashboard` (TanStack Start) | ✅ enabled | ⚠️ **many routes** | Per-user (Clerk) + per-host, yet ~25 route files send `public, s-maxage=…` (`v1/hosts.ts`, `v1/releases.ts`, `v1/menu-counts`, …). Not "never" — see the zone-cache note below. |
+| `apps/dashboard` (TanStack Start) | ✅ enabled | only `PUBLIC_API_PATHS` | Per-user (Clerk) + per-host. Every other `/api/*` response leaves as `private, no-store` (#3543) — see the zone-cache note below. |
 | `apps/telemetry` | ✅ enabled | ❌ no | Write-only POST ingest; only GET is a static text banner. No-op but safe. |
 | `apps/mcp` | ✅ enabled | ❌ no | Authed JSON-RPC; `Authorization` requests auto-bypass. No-op but safe. |
 | `apps/bug-handler` | ⛔ skipped | — | Email Worker (not HTTP-cacheable). |
@@ -84,6 +84,31 @@ Consequences: any per-host or per-user route that is not `no-store` can be
 served cross-visitor, and a stale `200` can mask an outage. The rule lives in
 the Cloudflare dashboard, not in this repo, so the fix is a human's: narrow or
 remove the rule for `/api/*`, or make every non-public response `no-store`.
+
+**Code-side answer (#3543): every private `/api/*` response is `no-store`.**
+`securityHeadersHandler` in `apps/dashboard/src/start.ts` overwrites
+`Cache-Control` with `private, no-store` on every `/api/*` response except the
+paths in `PUBLIC_API_PATHS`. It is one central rule rather than a per-route
+sweep on purpose: it also covers per-user routes nobody has enumerated, and a
+new route cannot forget it. The per-route `public, s-maxage=…` values stay in
+the handlers because `putEdgeCache` uses `s-maxage` as its opt-in marker for
+the gated anonymous `caches.default` cache (#2181); that write happens inside
+the handler, before the middleware rewrites the outgoing header. Browsers
+ignore `s-maxage`, so no browser caching was lost.
+
+Genuinely public routes (`PUBLIC_API_PATHS`) keep their own header and may be
+stored by the zone, because the body is the same for every visitor:
+
+| Path | Why it is public |
+|------|------------------|
+| `/api/v1/hosts` | env `CLICKHOUSE_HOST` / `CLICKHOUSE_NAME` only |
+| `/api/v1/config` | env-derived; `principal` is hardcoded `'anonymous'` |
+| `/api/v1/releases` | public GitHub Releases, no user token |
+
+Add a path there only after checking the handler reads no session, user, or
+per-host ClickHouse state. Tests: `src/__tests__/agent-discovery.test.ts`
+(`forces no-store on per-host API`). The zone rule itself is still worth
+narrowing — HTML pages outside `/api/` are not covered by this rule.
 
 ### docs — public pages get `public` caching
 
@@ -133,10 +158,10 @@ explicit `public` directive) but deliberately **never mark any response
 worker-cache `public` kind:
 
 - data/SSR/auth routes use `no-store` or `private` (never stored),
-- some read endpoints (`/api/v1/explorer/*`, `hosts`, `tables`) use
-  `public, s-maxage=…` — `s-maxage` targets a **shared CDN** cache, and these
-  responses are still host-scoped, so they must not be promoted to a plain
-  `public, max-age` for this worker cache.
+- some read endpoints (`/api/v1/explorer/*`, `tables`, charts) set
+  `public, s-maxage=…` in the handler, but the outgoing header is rewritten to
+  `private, no-store` by `securityHeadersHandler` (#3543) — see above. They must
+  not be promoted to a plain `public, max-age` for this worker cache.
 
 If a future dashboard route is unambiguously public and identical for everyone,
 only then consider adding `Cache-Control: public`; when in doubt, leave it
@@ -148,6 +173,7 @@ uncached — the enabled flag alone is harmless.
   `apps/blog/wrangler.toml`, `apps/dashboard/wrangler.toml`,
   `apps/telemetry/wrangler.toml`, `apps/mcp/wrangler.toml` — `[cache]` blocks.
 - `apps/docs/src/start.ts` — `cacheHeadersMiddleware` (public `Cache-Control`).
+- `apps/dashboard/src/start.ts` — `PUBLIC_API_PATHS`, `isPrivateApiPath`, `securityHeadersHandler` (`/api/*` no-store).
 
 ## See also
 
