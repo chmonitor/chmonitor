@@ -62,7 +62,7 @@ Preconditions:
   `peer.config` block.
   Adding a PeerDB tool also means adding a `TOOL_CATALOG` row and clearing the
   shared agent-tool gates — see
-  [agent-tool-catalog](../../../docs/knowledge/agent-tool-catalog.md) for the
+  [agent-tool-catalog](../../../../docs/knowledge/agent-tool-catalog.md) for the
   full list.
 - **Metrics and insights.** Inspect `lib/insights/peerdb-checks.test.ts` and
   `peerdb-collectors.test.ts` in the same unit job. They cover thresholds,

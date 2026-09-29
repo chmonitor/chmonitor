@@ -19,11 +19,16 @@ Five sources, checked in this order. Do not invent a sixth.
    possible finding, because every other job on this list depends on it.
 2. **The desk's own trail.** `.herdr-desk/runs/*/changes.md` for the last
    three days. Every "skipped + why" and every "needs a human" is a candidate.
-3. **Drift between a rule and the code.** AGENTS.md, `.claude/skills/*/SKILL.md`
-   and `docs/knowledge/*.md` are a contract. A skill that points at a path that
-   no longer exists is a bug: grep for the paths each skill names and fix the
-   ones that moved. (This has already happened — see `git log` for the
-   `verify-deploy` path fix.)
+3. **Drift between a rule and the code.** AGENTS.md, the SKILL.md files under
+   `.claude/skills`, and `docs/knowledge/*.md` are a contract. A skill that
+   points at a path that no longer exists is a bug: grep for the paths each
+   skill names and fix the ones that moved. (This has already happened — see
+   `git log` for the `verify-deploy` path fix.)
+   **Scoped since 2026-09-29:** the machine-checkable half of this class is
+   gated in CI by `tests/repo/markdown-links.test.ts`, and the prose/graph half
+   belongs to `local:docs`. Take from item 3 only what is neither — a rule that
+   contradicts behaviour, rather than a path that moved. If a fix belongs to
+   either, leave it and say so in the report.
 4. **Dead weight.** Code with no non-test caller, a comment that contradicts the
    code below it, a duplicated helper, a test asserting behaviour nothing uses.
 5. **Slowdowns.** A workflow that got slower, a query that scans more than it

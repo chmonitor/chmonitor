@@ -76,6 +76,14 @@ jobs:
       - name: Agent eval SSE parser
         run: bun test tests/agent --isolate
 
+      # Gates the machine-checkable doc/skill contract: every relative markdown
+      # link under .claude/skills, docs/knowledge, and docs/herdr-desk must
+      # resolve. An agent loads these cold and follows the paths they name, so
+      # a link to a moved file is a dead end, not a cosmetic defect. The desk's
+      # local:docs job covers the classes a deterministic check cannot see.
+      - name: Repo contract tests
+        run: bun test tests/repo --isolate
+
       - name: Install cloud-hooks dependencies
         if: >-
           github.event_name != 'pull_request' ||
