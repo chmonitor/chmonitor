@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-09-27
+updated: 2026-09-30
 tags:
   - saas
   - cloud
@@ -71,6 +71,13 @@ split-brain. Detection is pure and unit-tested (`cloud-mode.test.ts`); the
 Read-only on the demo is *enforced* by the existing public-read gate: anonymous
 principals can only read, and signed-in users never see the demo. The `readOnly`
 flag on `MergedHostInfo` is the UI cue.
+
+**Demo grants.** The demo ClickHouse user must be granted `SELECT ON system.processes`
+(in practice the documented `GRANT SELECT ON system.*`). Without it the Active
+Queries KPI, `running-queries-count`, `health-long-running-queries`,
+`insight-active-queries` and `oom-killed-queries` return 403 `permission_error`
+(#3526); the KPI card renders "No access to system.processes" rather than a
+false "0 running". The grant lives on the external demo host, not in this repo.
 
 **Public-demo allowlist.** A deploy may bind more env hosts than it wants to
 show publicly. `CHM_CLOUD_DEMO_HOSTS` (comma list of `CLICKHOUSE_NAME` entries)
