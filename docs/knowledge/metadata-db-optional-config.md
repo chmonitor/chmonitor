@@ -2,7 +2,7 @@
 id: metadata-db-optional-config
 type: spec
 status: draft
-updated: 2026-09-28
+updated: 2026-09-29
 related:
   - cloud-saas-mode
   - deployment
@@ -27,14 +27,22 @@ alerts, thresholds, routing, quiet hours, maintenance windows, digests,
 webhook targets, and channel delivery. Everything must be declarable from
 environment variables or a mounted config file (ConfigMap).
 
-**Status.** Audit complete. Design decision **proposed, not yet landed**. See
-[Decision](#the-decision) and [Open questions](#open-questions).
+**Status.** Audit complete. **The §1.2 premise was wrong and is corrected
+below** (2026-09-29): the metadata backend is a documented *three-way* thing
+(D1 / ClickHouse / Postgres), two domains already implement it in full, and the
+`metadataDb.available` flag is wrong in **both** directions because it
+duplicates that resolution instead of deriving it. Design decision **proposed,
+not yet landed** — but the remaining decision is now one question, not a
+rewrite. See [The asymmetry](#the-asymmetry) and
+[Open questions](#open-questions).
 
 > [!WARNING]
-> Today this is **not** true. Of the twelve alert/settings stores, ten are
-> D1-only and degrade silently. The single largest blocker is that
-> `metadataDb.available` claims availability for Postgres-only deployments that
-> every alert store then rejects. Read [The asymmetry](#the-asymmetry) first.
+> Today this is **not** true. All twelve alert/settings stores are D1-only and
+> degrade silently. The largest blocker is that `metadataDb.available` is
+> derived independently of the canonical backend resolver, so it
+> **over-reports** for Postgres-only deployments that every alert store then
+> rejects, and **under-reports** for ClickHouse-state deployments that work
+> fine. Read [The asymmetry](#the-asymmetry) first.
 
 ---
 
@@ -78,36 +86,117 @@ row `title`. (Hidden is only reachable via an explicit per-item
 
 **This is the thing to fix first.**
 
-`metadataDb.available` counts `DATABASE_URL` / `POSTGRES_URL` as satisfying.
-**Every health/alert store is D1-only** — they call
-`getD1Database('CHM_CLOUD_D1')` with no Postgres fallback
-(`lib/platform-native.ts:27,45`; 45 call sites).
+> **Corrected 2026-09-29.** An earlier revision of this note said a
+> Postgres-only self-host was "a hypothetical today". **It is not.** It is
+> documented and Helm-supported, and it is the reason the fix is cheaper and
+> more obvious than this note first claimed. Evidence below.
 
-So a Postgres-only self-host gets `metadataDb.available === true`, sees
-un-dimmed menu items, and then:
+### The root cause: the flag duplicates the resolver
 
-- gets `200` + an **empty list** from every read, and
-- gets `501` from every write.
+`metadataDb.available` is computed in `routes/api/v1/config.ts:224-231` by
+re-deriving the backend check from scratch:
 
-`requiresMetadataDb: true` currently appears on exactly **one** menu item
-("Scheduled Reports", `menu/insights.ts:56`), so the flag is effectively untested
-in the Health section. Adding `requiresMetadataDb` to Health items would
-therefore make the lie more visible, not less.
+```ts
+getPlatformBindings().getD1Database('CHM_CLOUD_D1') !== null ||
+  Boolean(readEnv('DATABASE_URL') ?? readEnv('POSTGRES_URL'))
+```
+
+Meanwhile the repo already has **one canonical answer** to "is there a state
+backend, and which kind?" — `lib/state-backend/config.ts`, whose own docblock
+states the resolution order used by its consumers:
+
+> explicit backend override → D1 binding → **ClickHouse state env
+> (`CHM_STATE_CLICKHOUSE_*`)** → **Postgres env (`DATABASE_URL` / `POSTGRES_URL`)**
+> → local/memory fallback
+
+`config.ts` imports nothing from `state-backend/config.ts`. One question, two
+answers — and they disagree in **both** directions:
+
+| Deployment | `metadataDb.available` | Reality | Direction |
+|---|---|---|---|
+| `CHM_CLOUD_D1` bound | `true` | correct | — |
+| Nothing bound | `false` | correct | — |
+| `DATABASE_URL` set, no D1 | **`true`** | conversations, insights + user connections work; **all 12 alert stores 501** | **over-reports** |
+| `CHM_STATE_CLICKHOUSE_URL` set, no D1/`DATABASE_URL` | **`false`** | connection + dashboard state stores work; "Scheduled Reports" is dimmed for no reason | **under-reports** |
+
+So this is not one asymmetry, it is a duplicated resolver. Fixing it by
+subtraction (removing the Postgres clause) would leave the ClickHouse leg
+still wrong.
+
+### The Postgres leg is not hypothetical
+
+`DATABASE_URL` / `POSTGRES_URL` is a **documented, supported** metadata backend:
+
+- `deploy/helm/chmonitor/values.yaml:264` — *"a DB backend (`DATABASE_URL` /
+  `POSTGRES_URL` …)"* as the stated prerequisite for connection storage.
+- `docs/content/reference/environment-variables.mdx:478` — same, for user
+  connections.
+- `docs/content/guide/features/user-connections.mdx:31` — *"A database backend
+  — `CHM_CLOUD_D1` on Cloudflare, or `DATABASE_URL` / `POSTGRES_URL` on Docker /
+  Kubernetes."*
+- `CHM_STATE_CLICKHOUSE_URL` is documented at `environment-variables.mdx:456-460`
+  alongside the concrete table names (`chm_state_dashboards`,
+  `chm_state_user_connections`).
+
+**Three domains already honour all of it** — and they are the pattern to copy,
+not a precedent that needs inventing:
+
+| Domain | Resolver | DB backends |
+|---|---|---|
+| `lib/connection-store/resolve-store.ts` | ✅ | **D1 → ClickHouse → Postgres** (all three) |
+| `lib/dashboard-storage/resolve-server-store.ts` | ✅ | **D1 → ClickHouse → Postgres** (all three) |
+| `lib/conversation-store/resolve-store.ts` | ✅ | D1 → Postgres, plus non-DB fallbacks (AgentState, browser, memory) — **no ClickHouse** |
+| **`lib/health/` (12 stores)** | ❌ | **D1 only, no `resolve-store.ts`** |
+
+So two domains already implement the **full** three-way DB backend
+(`connection-store`, `dashboard-storage`), a third implements the two-way subset
+(`conversation-store`), and the alert surface implements neither. The health
+domain is the **outlier**, not the frontier.
+
+### What this does to the option analysis
+
+The earlier revision priced option B as *"Large — twelve stores, twelve
+migrations, a second DDL dialect"*. That estimate is wrong in the direction
+that matters:
+
+- The second DDL dialect **already exists, twice over**
+  (`connection-store/postgres-store.ts`, `conversation-store/postgres-store.ts`).
+- **There is no migration runner to feed.** Each Postgres store carries its own
+  idempotent DDL and runs it lazily:
+  `PostgresConnectionStore` has a `MIGRATION_SQL` block of
+  `CREATE TABLE IF NOT EXISTS` + `ALTER TABLE … ADD COLUMN IF NOT EXISTS`;
+  `conversation-store/postgres-store.ts` documents *"Auto-migration on first
+  query (idempotent CREATE TABLE IF NOT EXISTS)"*; the insights stores do the
+  same (`weekly-report-store.ts:32`, `report-subscription-store.ts:26`).
+
+So B is *"be the third domain that resolves a three-way backend"*, not *"invent
+a second dialect"*.
 
 ### Options
 
 | | Change | Blast radius | Trade-off |
 |---|---|---|---|
-| **A** | Narrow the flag to D1 for the alert surface | Small — split `metadataDb.available` into `available` + `writable` | Postgres-backed health/alert users see a dimmed menu they can no longer use. Wrong for them. |
-| **B** | Add a Postgres path to the twelve stores | Large — twelve stores, twelve migrations, a second DDL dialect | Uniform, but a big change to ship before ENV config exists. |
-| **C** | Per-feature write-capability probe | Medium — one new endpoint, UI asks what it can actually do | Honest and cheap; the UI gets more states to render. |
+| **A** | Narrow the flag to D1 for the alert surface | Small — split `metadataDb.available` into `available` + `writable` | Correct but incomplete: leaves the ClickHouse leg under-reporting, and locks a Helm-documented Postgres deploy out of alerting permanently. |
+| **B** | Give the alert stores the three-way `resolve-store.ts` pattern | **Medium, and mostly copy-paste** — 12 stores gain a Postgres (and ClickHouse) implementation beside the D1 one, each carrying idempotent `CREATE TABLE IF NOT EXISTS`; the flag is then *derived* from `lib/state-backend/config.ts` instead of re-derived | Uniform with the domains that already work. Largest diff, but the full three-way shape is already proven twice in-repo. |
+| **C** | Per-feature write-capability probe | Small | **Not an answer to this problem.** It renders the gap honestly; it does not close it, and it permanently strands a documented deployment. |
 
-**Proposal: C, with a step toward A.** Add
-`GET /api/v1/config` → `capabilities: { health: { alertRoutes: 'd1' | 'postgres' | 'none', … } }`
-derived from what each store's `getDb()` can actually reach, and have the panels
-ask that instead of guessing from one global boolean. Then
-`requiresMetadataDb` is retired in favour of the per-feature answer.
+**Proposal: B — with A's fail-closed guardrail and C's honesty affordance on
+top.**
 
+1. **B** as the fix: the alert surface gets the same
+   `resolve-store.ts` + per-backend store shape as `connection-store` and
+   `dashboard-storage`,
+   and `metadataDb.available` is *derived* from `lib/state-backend/config.ts`
+   rather than re-derived, which fixes both directions at once.
+2. **A** as the guardrail: the derived capability must fail **closed** — no
+   backend resolvable means *unavailable*, never *unknown-because-unresolved*.
+3. **C** only as a UI affordance **after** B — a per-feature capability the
+   panels ask, so the honest states (no DB / degraded backend / not yet
+   resolved) can render. On its own, C is what the triage comment feared:
+   "makes the breakage quieter instead of fixing it".
+
+Whoever confirms this: the remaining open question is *not* "A, B, or C" — it
+is [Q2](#open-questions), which the evidence above now answers in B's favour.
 Whichever is chosen, **do not ship a second, subtly different signal** — the
 whole point is that there is currently one lie and we are not adding two.
 
@@ -192,6 +281,11 @@ every `HEALTH_ALERT_*` var · `HEALTH_THRESHOLD_<RULE>_WARNING|CRITICAL`
 `alert-settings-storage.ts` exists precisely to work around the localStorage
 blind spot; `alert-channel-config-store.ts` exists to make channels server-wide.
 Any declarative source has to be reconciled with all three.
+
+Note the asymmetry with the *backend* axis: the medium is three-way, but the
+backend behind "D1" should be three-way too (D1 / ClickHouse / Postgres) once
+prompt 1 lands. Today it is D1-only, which is why the third column's promise
+(server-wide) is only kept on Cloudflare.
 
 ---
 
@@ -380,25 +474,44 @@ means.
 
 ### 1. Fix the `metadataDb.available` asymmetry (BLOCKING)
 
-> **Files:** `routes/api/v1/config.ts:220-231`,
-> `lib/feature-permissions/types.ts:85-93, :105`, `lib/menu/metadata-db.ts`,
-> `nav-main/menu-item.tsx:114, :138-140, :215`,
-> `nav-main/collapsed-submenu.tsx:62`.
+> **Restated 2026-09-29** after the premise correction. The old wording asked
+> for a per-feature capability probe (option C). The evidence says the real fix
+> is to stop re-deriving the backend and start deriving it.
 >
-> `metadataDb.available` counts `DATABASE_URL`/`POSTGRES_URL`, but every
-> health/alert store is D1-only. Implement option **C**: add a per-feature
-> write-capability block to the `/api/v1/config` response derived from what each
-> store's `getDb()` can actually reach, and have the panels consume that instead
-> of the global boolean. Keep `metadataDb.available` for the surfaces that really
-> are backend-agnostic.
+> **Files:** `routes/api/v1/config.ts:220-231` (the duplicated check),
+> `lib/state-backend/config.ts` (the canonical answer — reuse, do not extend),
+> `lib/health/` (add a `resolve-store.ts` mirroring
+> `lib/connection-store/resolve-store.ts`), then the twelve stores,
+> `lib/menu/metadata-db.ts`, `lib/components/menu/types.ts:46`.
 >
-> **Tests:** a Postgres-env-but-no-D1 case must report health alert
-> capabilities as unavailable; a D1 case as available; an unbound case must
-> **fail closed**. Assert no Health menu item is dimmed while its write path
-> 501s.
+> **Do this:**
+>
+> 1. Export one `resolveStateBackend()` from `lib/state-backend/config.ts`
+>    returning `'d1' | 'clickhouse' | 'postgres' | null`, in the precedence its
+>    docblock already documents. D1 stays first (Cloud unchanged).
+> 2. Derive `metadataDb.available` from **that** instead of the inline D1 +
+>    `DATABASE_URL` test. This fixes the Postgres over-report *and* the
+>    ClickHouse under-report in one change.
+> 3. Add `lib/health/resolve-store.ts` with the same
+>    D1 → ClickHouse → Postgres shape as `connection-store`, and give each of
+>    the twelve stores a Postgres implementation carrying its own idempotent
+>    `CREATE TABLE IF NOT EXISTS` (copy `PostgresConnectionStore.MIGRATION_SQL`).
+>    **No migration runner** — the existing Postgres stores all self-bootstrap
+>    on first query, and matching that is the point.
+> 4. **Fail closed**: no backend resolvable ⇒ `unavailable`, never
+>    `unknown-because-unresolved`. A per-feature capability the UI asks is a
+>    *follow-up* (it is how the honest states render), not this step.
+>
+> **Tests:** a Postgres-env-but-no-D1 case reports health capabilities
+> **available** (not 501); a `CHM_STATE_CLICKHOUSE_URL`-but-no-D1 case reports
+> **available** (the regression the old flag had); an unbound case **fails
+> closed**; and one matrix test asserts
+> `resolveStateBackend()` and `metadataDb.available` can never disagree — that
+> is the invariant the duplication broke.
 >
 > **Docs:** `docs/content/reference/environment-variables.mdx`,
-> `docs/content/operate/advanced/feature-permissions.mdx`.
+> `docs/content/operate/advanced/feature-permissions.mdx`,
+> `docs/knowledge/metadata-db-optional-config.md` (this file).
 
 ### 2. Resolve `CHM_CONFIG_FILE`
 
@@ -509,17 +622,33 @@ means.
 
 1. **Q1 — Precedence: does file really beat env?** Proposed yes. A counter-argument
    is that Kubernetes ConfigMaps are *how* env is set, so the two are the same
-   input and precedence is arbitrary. Worth a decision before prompt 3.
-2. **Q2 — Is option C enough, or does the alert surface need Postgres?** Cloud
-   uses D1. A Postgres-only self-host is a hypothetical today, but option A would
-   make it impossible.
+   input and precedence is arbitrary. Worth a decision before prompt 3. **Still
+   open** — this is a genuine operator-experience preference, not a fact.
+2. ~~**Q2 — Is option C enough, or does the alert surface need Postgres?**~~ —
+   **ANSWERED 2026-09-29: the alert surface needs Postgres, and C is not
+   enough.** A Postgres-only deploy is documented and Helm-supported
+   (`deploy/helm/values.yaml:264`, `environment-variables.mdx:478`,
+   `user-connections.mdx:31`), and two domains already implement the
+   three-way backend. C would render a permanent gap in a supported
+   configuration. The answer is **B**. See [The asymmetry](#the-asymmetry).
+   The residual question — the *one* decision now on the table — is simply
+   whether to confirm B, or to pick A and accept that a documented deployment
+   loses alerting.
 3. **Q3 — Should declarative config be readable by anonymous visitors?** An
    `HEALTH_ALERT_WEBHOOK_URL` in a file is a secret. Today
    `GET /api/v1/health/alert-config` returns `envConfiguredMap()` (booleans, no
    values) and masks secrets. A file-backed store must not leak targets or URLs
-   to an unauthenticated GET.
-4. **Q4 — Do we retire `requiresMetadataDb`?** It has one user and that user is
-   Postgres-capable, so it may be actively wrong. If prompt 1 lands, delete it.
+   to an unauthenticated GET. **Answered by invariant, not preference:** reuse
+   `envConfiguredMap()`'s boolean-only shape for file-backed values too. Same
+   rule, one code path.
+4. **Q4 — Do we retire `requiresMetadataDb`?** It has one user, "Scheduled
+   Reports" (`menu/insights.ts:62`). That item is backed by the insights stores,
+   which **do** honour Postgres and ClickHouse — so the flag is not wrong for
+   it; it is wrong for the *health* surface, which has none. **Recommendation:**
+   do not delete it — fix its **input** by deriving the flag from
+   `lib/state-backend/config.ts` (which also fixes the ClickHouse
+   under-report). Retire it only if a per-feature capability lands.
 5. **Q5 — Where does declarative alert *state* go if an operator later attaches a
    DB?** The merge rule must be specified up front or the first attach will
-   produce a confusing discontinuity.
+   produce a confusing discontinuity. **Still open** — this is a real design
+   question and the merge rule cannot be inferred from the code.
