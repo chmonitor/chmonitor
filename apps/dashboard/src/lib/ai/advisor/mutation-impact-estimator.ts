@@ -234,7 +234,7 @@ async function fetchMutationThroughput(
   table: string
 ): Promise<{ bytesPerMs: number } | null> {
   const partLogEnabled = await checkTableExists(hostId, 'system', 'part_log')
-  if (!partLogEnabled) return null
+  if (partLogEnabled !== true) return null
 
   const rows = (await readOnlyQuery({
     query: `

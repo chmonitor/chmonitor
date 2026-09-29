@@ -255,4 +255,34 @@ describe('estimateMutationImpact', () => {
     expect(result.confidence).toBe('low')
     expect(result.warnings.some((w) => /no active parts/i.test(w))).toBe(true)
   })
+
+  // checkTableExists returns boolean | 'unknown'; 'unknown' is truthy, so a
+  // failed probe must not be treated as "part_log exists".
+  test("does not query system.part_log when the existence probe is 'unknown'", async () => {
+    mockFetchData.mockClear()
+    mockCheckTableExists.mockResolvedValue('unknown')
+    mockFetchData.mockImplementation(async ({ query }: { query: string }) => {
+      if (query.includes('SELECT count() AS matched')) {
+        return { data: [{ matched: 5 }], error: null }
+      }
+      if (query.includes('FROM system.parts')) {
+        return {
+          data: [{ parts: 2, bytes: 1_000, rows: 10 }],
+          error: null,
+        }
+      }
+      return { data: [], error: null }
+    })
+
+    const result = await estimateMutationImpact({
+      sql: 'ALTER TABLE events DELETE WHERE id = 1',
+      hostId: 0,
+    })
+
+    const queries: string[] = mockFetchData.mock.calls.map(
+      (c: any[]) => c[0].query
+    )
+    expect(queries.some((q) => q.includes('FROM system.part_log'))).toBe(false)
+    expect(result.estDurationMs).toBeNull()
+  })
 })
