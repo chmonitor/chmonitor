@@ -34,6 +34,10 @@ const cache = new LRUCache<string, boolean>({
 export interface TableExistenceCacheL2 {
   get(key: string): Promise<boolean | null>
   set(key: string, exists: boolean, ttlSeconds: number): Promise<void>
+  /** Remove one entry. Used by `invalidateTable` so L2 cannot re-arm L1. */
+  delete(key: string): Promise<void>
+  /** Remove every entry whose key starts with `prefix` (column keys). */
+  deletePrefix(prefix: string): Promise<void>
 }
 
 let l2CacheProvider: (() => TableExistenceCacheL2 | null) | null = null
@@ -65,6 +69,12 @@ export type TableExistsResult = boolean | 'unknown'
  * await its promise.
  */
 const inFlightProbes = new Map<string, Promise<TableExistsResult>>()
+
+/**
+ * Bumped by `invalidateTable`. A probe that started before an invalidation
+ * must not write its (possibly pre-change) result back into L1/L2 (#3514).
+ */
+let invalidationGeneration = 0
 
 export async function checkColumnExists(
   hostId: number,
@@ -124,8 +134,12 @@ async function checkExists(
     return running
   }
 
-  const pending = probeExists(key, hostId, spec).finally(() => {
-    inFlightProbes.delete(key)
+  const pending: Promise<TableExistsResult> = probeExists(
+    key,
+    hostId,
+    spec
+  ).finally(() => {
+    if (inFlightProbes.get(key) === pending) inFlightProbes.delete(key)
   })
   inFlightProbes.set(key, pending)
   return pending
@@ -140,6 +154,7 @@ async function probeExists(
     label: string
   }
 ): Promise<TableExistsResult> {
+  const generation = invalidationGeneration
   // L2: KV cache (survives Worker isolate churn). No-op when no provider is
   // registered (self-hosted Node/Docker, or Cloudflare before the KV
   // namespace is provisioned — see #2183).
@@ -148,7 +163,7 @@ async function probeExists(
     try {
       const l2Exists = await l2.get(key)
       if (l2Exists !== null) {
-        cache.set(key, l2Exists)
+        if (generation === invalidationGeneration) cache.set(key, l2Exists)
         debug(`[Table Cache] L2 (KV) cache hit for ${key}`)
         return l2Exists
       }
@@ -168,6 +183,7 @@ async function probeExists(
       const data = (await result.json()) as { count: string }[]
       const exists = parseInt(data?.[0]?.count || '0', 10) > 0
 
+      if (generation !== invalidationGeneration) return exists
       cache.set(key, exists)
       if (l2) {
         try {
@@ -200,14 +216,35 @@ export function getCacheMetrics() {
 }
 
 /**
- * Manual cache invalidation
+ * Manual cache invalidation. Clears the table key and its column keys
+ * (`host:db.table.column`) from L1 and L2. Clearing only L1 would let the next
+ * probe re-read the stale L2 value and re-arm L1 with a full TTL (#3514).
  */
-export const invalidateTable = (
+export const invalidateTable = async (
   hostId: number,
   database: string,
   table: string
-) => {
-  cache.delete(`${hostId}:${database}.${table}`)
+): Promise<void> => {
+  const tableKey = `${hostId}:${database}.${table}`
+  const columnPrefix = `${tableKey}.`
+
+  invalidationGeneration++
+  for (const key of [...cache.keys()]) {
+    if (key === tableKey || key.startsWith(columnPrefix)) cache.delete(key)
+  }
+  for (const key of [...inFlightProbes.keys()]) {
+    if (key === tableKey || key.startsWith(columnPrefix)) {
+      inFlightProbes.delete(key)
+    }
+  }
+
+  const l2 = l2CacheProvider?.()
+  if (!l2) return
+  try {
+    await Promise.all([l2.delete(tableKey), l2.deletePrefix(columnPrefix)])
+  } catch (err) {
+    error('[Table Cache] L2 cache invalidate error:', err)
+  }
 }
 
 /**

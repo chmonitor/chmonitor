@@ -36,8 +36,8 @@ describe('tableExistenceCache shims', () => {
     expect(metrics.ttl).toBe('5 minutes')
   })
 
-  it('invalidateTable on a missing key is a no-op (no throw)', () => {
-    expect(() => cache.invalidateTable(0, 'default', 'never_set')).not.toThrow()
+  it('invalidateTable on a missing key is a no-op (no throw)', async () => {
+    await cache.invalidateTable(0, 'default', 'never_set')
     expect(cache.tableCacheSize()).toBe(0)
   })
 
@@ -99,6 +99,8 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
     l2cache.setTableExistenceL2Provider(() => ({
       get: async () => true,
       set: async () => {},
+      delete: async () => {},
+      deletePrefix: async () => {},
     }))
 
     const result = await l2cache.checkTableExists(0, 'system', 'backup_log')
@@ -112,6 +114,8 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
     l2cache.setTableExistenceL2Provider(() => ({
       get: async () => null,
       set: setSpy,
+      delete: async () => {},
+      deletePrefix: async () => {},
     }))
 
     const result = await l2cache.checkTableExists(0, 'system', 'backup_log')
@@ -123,6 +127,100 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
     expect(key).toBe('0:system.backup_log')
     expect(exists).toBe(true)
     expect(ttlSeconds).toBe(5 * 60) // 5min, matching the L1 TTL
+  })
+
+  // Regression for #3514: invalidateTable used to clear only L1, so the next
+  // probe re-read the stale L2 value and re-armed L1 with a full TTL.
+  it('invalidateTable clears L2 so the next probe sees the flipped value', async () => {
+    const l2 = new Map<string, boolean>([['0:system.backup_log', false]])
+    l2cache.setTableExistenceL2Provider(() => ({
+      get: async (k) => l2.get(k) ?? null,
+      set: async (k, v) => {
+        l2.set(k, v)
+      },
+      delete: async (k) => {
+        l2.delete(k)
+      },
+      deletePrefix: async (p) => {
+        for (const k of [...l2.keys()]) if (k.startsWith(p)) l2.delete(k)
+      },
+    }))
+
+    expect(await l2cache.checkTableExists(0, 'system', 'backup_log')).toBe(
+      false
+    )
+
+    // The table is created; the probe would now report it.
+    await l2cache.invalidateTable(0, 'system', 'backup_log')
+
+    expect(await l2cache.checkTableExists(0, 'system', 'backup_log')).toBe(true)
+  })
+
+  it('invalidateTable also clears the table column keys in L1 and L2', async () => {
+    const l2 = new Map<string, boolean>([['0:system.backup_log.status', false]])
+    const deletePrefix = mock(async (p: string) => {
+      for (const k of [...l2.keys()]) if (k.startsWith(p)) l2.delete(k)
+    })
+    l2cache.setTableExistenceL2Provider(() => ({
+      get: async (k) => l2.get(k) ?? null,
+      set: async (k, v) => {
+        l2.set(k, v)
+      },
+      delete: async (k) => {
+        l2.delete(k)
+      },
+      deletePrefix,
+    }))
+
+    expect(
+      await l2cache.checkColumnExists(0, 'system', 'backup_log', 'status')
+    ).toBe(false)
+    await l2cache.invalidateTable(0, 'system', 'backup_log')
+
+    expect(deletePrefix).toHaveBeenCalledWith('0:system.backup_log.')
+    expect(
+      await l2cache.checkColumnExists(0, 'system', 'backup_log', 'status')
+    ).toBe(true)
+  })
+
+  it('invalidateTable does not touch a different table sharing a name prefix', async () => {
+    const l2 = new Map<string, boolean>([['0:system.backup_log2', false]])
+    l2cache.setTableExistenceL2Provider(() => ({
+      get: async (k) => l2.get(k) ?? null,
+      set: async () => {},
+      delete: async (k) => {
+        l2.delete(k)
+      },
+      deletePrefix: async (p) => {
+        for (const k of [...l2.keys()]) if (k.startsWith(p)) l2.delete(k)
+      },
+    }))
+
+    await l2cache.checkTableExists(0, 'system', 'backup_log2')
+    await l2cache.invalidateTable(0, 'system', 'backup_log')
+
+    expect(l2.has('0:system.backup_log2')).toBe(true)
+  })
+
+  it('a probe already in flight during invalidateTable does not re-arm the cache with its stale result', async () => {
+    let release!: () => void
+    mockClientQuery.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = () =>
+            resolve({ json: () => Promise.resolve([{ count: '0' }]) })
+        })
+    )
+
+    const stale = l2cache.checkTableExists(0, 'system', 'backup_log')
+    await Promise.resolve()
+    await new Promise((r) => setTimeout(r, 0))
+    await l2cache.invalidateTable(0, 'system', 'backup_log')
+    release()
+    expect(await stale).toBe(false)
+
+    // Not cached: the next call probes again and sees the new value.
+    expect(await l2cache.checkTableExists(0, 'system', 'backup_log')).toBe(true)
   })
 
   it('degrades to L1-LRU-only when no L2 provider is registered (Node/self-hosted path)', async () => {
@@ -168,6 +266,8 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
       l2cache.setTableExistenceL2Provider(() => ({
         get: async () => null,
         set: setSpy,
+        delete: async () => {},
+        deletePrefix: async () => {},
       }))
       mockClientQuery.mockRejectedValue(new Error('connection refused'))
 

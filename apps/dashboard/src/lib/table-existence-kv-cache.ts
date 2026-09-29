@@ -23,6 +23,8 @@ import { target } from '@/lib/target'
 export interface TableExistenceCacheAdapter {
   get(key: string): Promise<boolean | null>
   set(key: string, exists: boolean, ttlSeconds: number): Promise<void>
+  delete(key: string): Promise<void>
+  deletePrefix(prefix: string): Promise<void>
 }
 
 function kvKey(key: string): string {
@@ -55,6 +57,31 @@ class KVTableExistenceCache implements TableExistenceCacheAdapter {
       })
     } catch (err) {
       warn('[table-existence-kv-cache] KV set error:', err)
+    }
+  }
+
+  async delete(key: string): Promise<void> {
+    if (!this.kv) return
+
+    try {
+      await this.kv.delete(kvKey(key))
+    } catch (err) {
+      warn('[table-existence-kv-cache] KV delete error:', err)
+    }
+  }
+
+  async deletePrefix(prefix: string): Promise<void> {
+    if (!this.kv) return
+
+    try {
+      let cursor: string | undefined
+      do {
+        const page = await this.kv.list({ prefix: kvKey(prefix), cursor })
+        await Promise.all(page.keys.map((k) => this.kv!.delete(k.name)))
+        cursor = page.list_complete ? undefined : page.cursor
+      } while (cursor)
+    } catch (err) {
+      warn('[table-existence-kv-cache] KV deletePrefix error:', err)
     }
   }
 }
