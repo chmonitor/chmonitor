@@ -10,6 +10,7 @@
 
 import { toast } from 'sonner'
 
+import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
 import type {
   ComparisonOperator,
   MetricKey,
@@ -17,6 +18,10 @@ import type {
 
 import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useMemo, useState } from 'react'
+import {
+  DeclarativeSourceBadge,
+  isDeclarativeSource,
+} from '@/components/health/declarative-source-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,6 +56,7 @@ function RuleRow({
     op: string
     warning: number
     critical: number
+    source?: HealthDefinitionSource
   }
   onDeleted: () => void
 }) {
@@ -85,7 +91,9 @@ function RuleRow({
           </span>
         </div>
       </div>
-      {confirming ? (
+      {isDeclarativeSource(rule.source) ? (
+        <DeclarativeSourceBadge source={rule.source} />
+      ) : confirming ? (
         <div className="flex shrink-0 items-center gap-1">
           <span className="mr-1 text-xs text-destructive">Delete?</span>
           <Button
@@ -308,7 +316,9 @@ export function RuleBuilderPanel({ className }: { className?: string }) {
   const availability = useHealthStoreAvailability({ probeError: error })
   const canWrite = canWriteHealthStore(availability)
 
-  if (availability === 'unavailable') {
+  // Without a DB, rules declared in the health config directory still run
+  // (#3497) — list them read-only instead of hiding them behind the notice.
+  if (availability === 'unavailable' && rules.length === 0) {
     return (
       <HealthStoreNotice
         availability={availability}
@@ -348,7 +358,9 @@ export function RuleBuilderPanel({ className }: { className?: string }) {
         availability={availability}
         feature="Custom alert rules"
       />
-      <AddRuleForm onCreated={refetch} canWrite={canWrite} />
+      {availability !== 'unavailable' && (
+        <AddRuleForm onCreated={refetch} canWrite={canWrite} />
+      )}
     </div>
   )
 }

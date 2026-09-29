@@ -16,6 +16,10 @@ import type { MaintenanceWindowInfo } from '@/lib/hooks/use-maintenance-windows'
 
 import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useState } from 'react'
+import {
+  DeclarativeSourceBadge,
+  isDeclarativeSource,
+} from '@/components/health/declarative-source-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -105,7 +109,9 @@ function WindowRow({
           {new Date(window.endsAt).toLocaleString()}
         </span>
       </div>
-      {confirming ? (
+      {isDeclarativeSource(window.source) ? (
+        <DeclarativeSourceBadge source={window.source} />
+      ) : confirming ? (
         <div className="flex shrink-0 items-center gap-1">
           <span className="mr-1 text-xs text-destructive">Delete?</span>
           <Button

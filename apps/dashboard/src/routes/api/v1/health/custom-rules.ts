@@ -11,6 +11,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import type { CustomAlertRule } from '@/lib/health/custom-rules-store'
+import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
 
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
@@ -26,7 +27,9 @@ import { METRIC_CATALOG } from '@/lib/health/rule-builder-schema'
 const ROUTE_GET = { route: '/api/v1/health/custom-rules', method: 'GET' }
 const ROUTE_POST = { route: '/api/v1/health/custom-rules', method: 'POST' }
 
-function toPublicRule(rule: CustomAlertRule) {
+function toPublicRule(
+  rule: CustomAlertRule & { source?: HealthDefinitionSource }
+) {
   return {
     id: rule.id,
     name: rule.name,
@@ -36,6 +39,8 @@ function toPublicRule(rule: CustomAlertRule) {
     critical: rule.critical,
     enabled: rule.enabled,
     createdAt: rule.createdAt,
+    // `file` / `env` rules are read-only: delete them from their source.
+    source: rule.source ?? 'd1',
   }
 }
 

@@ -562,7 +562,7 @@ gates on knowing what "available" means.
 | 2 | Implement `CHM_CONFIG_FILE` | [#3494](https://github.com/chmonitor/chmonitor/issues/3494) | **done** |
 | — | Per-feature capability (option C) | [#3495](https://github.com/chmonitor/chmonitor/issues/3495) | after #3493 |
 | 3 | Declarative config loader for health | [#3496](https://github.com/chmonitor/chmonitor/issues/3496) | **done** (loader only) |
-| 4 | Source layer for the read-only definitions | [#3497](https://github.com/chmonitor/chmonitor/issues/3497) | #3496 |
+| 4 | Source layer for the read-only definitions | [#3497](https://github.com/chmonitor/chmonitor/issues/3497) | **done** (all seven stores) |
 | 5 | Honest state stores without a DB | [#3498](https://github.com/chmonitor/chmonitor/issues/3498) | #3495; last part **Q5 open** |
 | 6 | Document the operator path | [#3499](https://github.com/chmonitor/chmonitor/issues/3499) | all of the above |
 
@@ -705,8 +705,9 @@ gates on knowing what "available" means.
 > first entry; maintenance `startsAt`/`endsAt` are ISO-8601 strings; the env
 > layer reuses `getServerThresholdOverrides` (needs `ruleIds`),
 > `loadEnvCustomWebhookTargets`, and `getServerDigestWindowMinutes`, and its
-> webhook targets are already resolved (`env:<name>` ids). No store reads the
-> loader yet.
+> webhook targets are already resolved (`env:<name>` ids). The stores read it
+> through `declarative/sources.ts` since #3497 (the env half moved to
+> `declarative/env-layer.ts`).
 
 > **New:** `lib/health/declarative/` — schema types + a loader modelled on
 > `local-loader.ts`. `CHM_HEALTH_CONFIG_DIRECTORY` (default
@@ -736,6 +737,75 @@ gates on knowing what "available" means.
 > **Docs:** `.env.example`, `deploy/helm/**` `values.yaml` + README.
 
 ### 4. Route the read-only alert definitions through the source layer
+
+> **DONE (2026-09-30, #3497).** `lib/health/declarative/merge.ts` holds the one
+> `mergeSources(layers, keyFn, shape)` (shapes `union` / `time-union` /
+> `single`; precedence `d1 > file > env` applied whatever order the layers
+> arrive in). Each store has a small declarative reader beside its DB reader
+> that maps the layers into its row shape; `declarative/sources.ts` is the
+> shared plumbing (the SSR-gated layers, `*Env` secret resolution, the SSRF
+> guard) and imports no store, so there is no import cycle (`depcruise`
+> counts type-only imports; `ALERT_CONFIG_CHANNELS` moved to the leaf
+> `alert-config-channels.ts` for the same reason). `declarative/env-layer.ts`
+> is the env half of the loader, split out so it has no node:fs import. The seven stores' public readers
+> (`listRoutes`, `listCustomRules`, `listEffectiveCustomWebhookConfig`,
+> `listQuietHours`, `listWindows`, `resolveDigestSettings`,
+> `listChannelConfigs`) return the merged view tagged
+> `source: 'd1' | 'file' | 'env'`; write paths keep reading the DB rows only
+> (webhook-target cap, channel upsert re-read). Test:
+> `declarative/source-layer.test.ts` (real YAML + env + SQLite over the
+> committed D1 migrations). Decisions an operator or a follow-up must know:
+>
+> - **"Set" for a field-level override** means not `undefined`, `null`, `''`,
+>   or `{}`. So an empty DB secret keeps the file's secret (the write-only
+>   secret convention), and a higher source **cannot clear** a lower value back
+>   to null — a DB `minSeverity: null` does not undo a file's `warning` floor.
+> - **Time union** replaces a shared-`id` window whole; `startsAt` from one
+>   source is never paired with `endsAt` from another.
+> - **Custom rules:** declarative ids become `custom:<id>` (idempotent), so a
+>   file rule can never overwrite a built-in rule in `ruleRegistry` and stays
+>   inside the sweep's `custom:*` unregister pass. `listCustomRules` throws
+>   `NOT_CONFIGURED` (the 501 `rule-builder.tsx` renders) only when there is
+>   neither a DB nor a declarative rule; with a file and no DB it returns the
+>   file's rules, and the sweep registers them. Creating a rule from the UI
+>   still needs a DB (POST → 501).
+> - **Route and channel `target` keys** (non-secret fields): pagerduty
+>   `serviceName`; telegram `chatId`; ntfy `url`; pushover `user`. Channels use
+>   the keys `server-channel-resolve.ts` reads (`url`, `chatId`, `user`, `to`,
+>   `from`, `region`, `accountSid`). The single secret comes from `secretEnv`:
+>   webhook route URL, PagerDuty routing key, Telegram/ntfy/Pushover token,
+>   channel secret. A missing env var skips the entry (warned once per process,
+>   id and var NAME only).
+> - **SSRF:** declared outbound URLs (webhook route, ntfy route, channel
+>   `webhook`/`healthchecks`/`ntfy` `target.url`) must be HTTPS and pass
+>   `validateHostUrl` at read time, memoised per process — these paths are
+>   otherwise only guarded at API write time. Webhook targets go through the
+>   same `buildDeclaredWebhookTarget` pipeline as `HEALTH_ALERT_WEBHOOK_TARGETS`
+>   and are re-guarded at send time.
+> - **Owner scope:** declarative entries apply to every owner (deployment-wide),
+>   matching the pre-existing env fallbacks.
+> - **Deletion takes effect on restart:** the file layer is memoised per
+>   process, so removing an entry from a ConfigMap takes effect on the next pod
+>   restart.
+> - **Channel precedence is per channel, not per field, against env:** a file
+>   (or DB) channel entry makes `resolveServerChannels` ignore that channel's
+>   `HEALTH_*` env reader entirely. There is no env channel layer yet.
+> - **Webhook targets merge by `id`, not by name.** Before this, a D1 target
+>   with the same *name* as a Helm target hid it; now both appear unless the
+>   ids match. The public `source` value `'helm'` is now `'env'` (plus
+>   `'file'`).
+> - **`alerts.yaml` `thresholds:` are parsed but not applied yet.** Thresholds
+>   are not one of the seven stores (they live in browser storage plus
+>   `HEALTH_THRESHOLD_*`); wiring the file layer into
+>   `getServerThresholdOverrides` is a follow-up.
+> - **UI:** `file`/`env` rows show a "Config file"/"Env" badge in place of the
+>   Delete control (`components/health/declarative-source-badge.tsx`); a
+>   declarative route's webhook URL is redacted in `GET /routes`. With no DB
+>   the rule builder still lists declarative rules (read-only, no add form)
+>   instead of hiding them behind the #3495 "not available" notice.
+> - **SSRF verdicts** are memoised per URL: an allowed URL for the process, a
+>   rejection for 5 minutes, so a transient DNS failure does not drop a route
+>   for the life of the pod.
 
 > For each of: alert routes (`alert-routing.ts`), custom rules
 > (`custom-rules-store.ts`), webhook targets

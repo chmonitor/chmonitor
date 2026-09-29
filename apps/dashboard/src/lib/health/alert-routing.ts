@@ -24,8 +24,17 @@
  */
 
 import type { AlertSeverityFloor } from './alert-channel-settings'
+import type { Sourced, SourceLayer } from './declarative/merge'
 import type { HealthSqlDb } from './sql-db'
 
+import { mergeSources } from './declarative/merge'
+import {
+  isAllowedDeclaredUrl,
+  readHealthConfigLayers,
+  resolveSecretEnv,
+  warnOnce,
+} from './declarative/sources'
+import { PAGERDUTY_EVENTS_API_URL } from './pagerduty-config'
 import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
 
@@ -155,12 +164,28 @@ function rowToRoute(row: D1AlertRouteRow): AlertRoute {
 }
 
 /**
- * List every enabled+disabled route for an owner, best-effort. Returns `[]`
- * when D1 isn't configured (self-hosted/OSS default) or on any store error —
- * NEVER throws, so a routing-table hiccup can never break the sweep or the
- * routes UI's initial load.
+ * List every enabled+disabled route for an owner: the D1/Postgres rows merged
+ * with the declarative `routing.yaml` / env layers (#3497) — union by `id`,
+ * the DB row winning field by field. Best-effort: a missing or failing DB
+ * contributes no rows, the declarative routes still come back — NEVER throws,
+ * so a routing-table hiccup can never break the sweep or the routes UI.
  */
-export async function listRoutes(ownerId: string): Promise<AlertRoute[]> {
+export async function listRoutes(
+  ownerId: string
+): Promise<Sourced<AlertRoute>[]> {
+  const [rows, declared] = await Promise.all([
+    listDbRoutes(ownerId),
+    declarativeRoutes(ownerId),
+  ])
+  return mergeSources(
+    [...declared, { source: 'd1', entries: rows }],
+    (route) => route.id,
+    'union'
+  )
+}
+
+/** The DB rows only — `[]` without a DB or on any store error. */
+async function listDbRoutes(ownerId: string): Promise<AlertRoute[]> {
   try {
     const db = getDb()
     if (!db) return []
@@ -618,4 +643,103 @@ export function resolvePushoverTargets(
   if (matched.length > 0) return []
 
   return envFallback ? [envFallback] : []
+}
+
+// ---------------------------------------------------------------------------
+// Declarative reader: Alert routes — merge key `id`
+// ---------------------------------------------------------------------------
+
+async function declarativeRoutes(
+  ownerId: string
+): Promise<SourceLayer<AlertRoute>[]> {
+  const out: SourceLayer<AlertRoute>[] = []
+  for (const layer of await readHealthConfigLayers()) {
+    const entries: AlertRoute[] = []
+    for (const r of Object.values(layer.data.routes)) {
+      const kind = 'route'
+      const secret = r.secretEnv
+        ? resolveSecretEnv(kind, r.id, r.secretEnv)
+        : ''
+      const base: AlertRoute = {
+        id: r.id,
+        ownerId,
+        matchRule: r.matchRule,
+        matchHost: r.matchHost,
+        channelUrl: '',
+        enabled: r.enabled,
+        createdAt: 0,
+        provider: r.provider,
+        serviceName: null,
+        routingKey: null,
+        telegramBotToken: null,
+        telegramChatId: null,
+        ntfyUrl: null,
+        ntfyToken: null,
+        pushoverToken: null,
+        pushoverUser: null,
+        minSeverity: r.minSeverity,
+      }
+      const t = r.target
+      let route: AlertRoute | null = null
+      let warnedUrl = false
+      const allowed = async (url: string) => {
+        const ok = await isAllowedDeclaredUrl(kind, r.id, url)
+        if (!ok) warnedUrl = true
+        return ok
+      }
+      switch (r.provider) {
+        case 'webhook':
+          if (secret && (await allowed(secret))) {
+            route = { ...base, channelUrl: secret }
+          }
+          break
+        case 'pagerduty':
+          if (secret) {
+            route = {
+              ...base,
+              channelUrl: PAGERDUTY_EVENTS_API_URL,
+              routingKey: secret,
+              serviceName: t.serviceName?.trim() || null,
+            }
+          }
+          break
+        case 'telegram':
+          if (secret && t.chatId?.trim()) {
+            route = {
+              ...base,
+              telegramBotToken: secret,
+              telegramChatId: t.chatId.trim(),
+            }
+          }
+          break
+        case 'ntfy': {
+          const url = t.url?.trim() ?? ''
+          // The token is optional, but a declared-and-unset one skips the
+          // route rather than silently sending unauthenticated.
+          if (url && (!r.secretEnv || secret) && (await allowed(url))) {
+            route = { ...base, ntfyUrl: url, ntfyToken: secret || null }
+          }
+          break
+        }
+        case 'pushover':
+          if (secret && t.user?.trim()) {
+            route = {
+              ...base,
+              pushoverToken: secret,
+              pushoverUser: t.user.trim(),
+            }
+          }
+          break
+      }
+      if (route) entries.push(route)
+      else if (!warnedUrl && (!r.secretEnv || secret)) {
+        // A missing secret or a rejected URL has already been reported.
+        warnOnce(
+          `[health-config] Skipping route "${r.id}": missing required ${r.provider} fields`
+        )
+      }
+    }
+    out.push({ source: layer.source, entries })
+  }
+  return out
 }

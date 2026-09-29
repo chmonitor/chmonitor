@@ -630,6 +630,12 @@ its form logic small and testable:
 - D1 targets are editable cards/selectors; Helm/GitOps targets are read-only
   status rows. If neither source has a target, use `EmptyState` rather than
   rendering an empty form wall.
+- The same rule covers every alert-definition list (routes, custom rules,
+  quiet hours, maintenance windows, channel config): a row whose API `source`
+  is `file` or `env` renders `DeclarativeSourceBadge`
+  (`components/health/declarative-source-badge.tsx`, "Config file" / "Env")
+  in place of its Delete/Reset control — the operator removes it from its
+  source, never from the UI.
 - Preview and send-test are explicit actions. The preview is a deterministic
   sample payload formatted by the same server-side formatter as delivery; the
   browser receives only a redacted destination hint, never a raw webhook URL

@@ -162,7 +162,10 @@ export function CustomWebhookTargetCard({
             <h3 className="truncate text-sm font-medium">
               {target?.name || 'New custom webhook'}
             </h3>
-            {target?.source === 'helm' && <Badge variant="outline">Helm</Badge>}
+            {target?.source === 'env' && <Badge variant="outline">Env</Badge>}
+            {target?.source === 'file' && (
+              <Badge variant="outline">Config file</Badge>
+            )}
             {target?.source === 'd1' && <Badge variant="outline">D1</Badge>}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">

@@ -39,6 +39,10 @@ import {
 import { ChannelSeverityToggle } from './channel-severity-toggle'
 import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useEffect, useState } from 'react'
+import {
+  DeclarativeSourceBadge,
+  isDeclarativeSource,
+} from '@/components/health/declarative-source-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -365,7 +369,9 @@ export function ServerChannelConfigPanel() {
 
   const renderCard = (spec: ChannelSpec) => {
     const draft = drafts[spec.channel] ?? emptyDraft()
-    const hasRow = configs.some((c) => c.channel === spec.channel)
+    const config = configs.find((c) => c.channel === spec.channel)
+    // A `file` config (#3497) is read-only: no Reset, and a save shadows it.
+    const hasRow = config !== undefined && !isDeclarativeSource(config.source)
     const envConfigured = Boolean(env[spec.channel])
     return (
       <ChannelCard
@@ -382,6 +388,9 @@ export function ServerChannelConfigPanel() {
         badges={
           <>
             {!hasRow && envConfigured && <Badge variant="secondary">env</Badge>}
+            {config && isDeclarativeSource(config.source) && (
+              <DeclarativeSourceBadge source={config.source} />
+            )}
             {draft.hasSecret && <Badge variant="outline">Secret set</Badge>}
           </>
         }

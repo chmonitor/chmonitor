@@ -13,9 +13,12 @@
  */
 
 import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
+import type { Sourced, SourceLayer } from './declarative/merge'
 import type { CustomRuleInput } from './rule-builder-schema'
 import type { HealthSqlDb } from './sql-db'
 
+import { mergeSources } from './declarative/merge'
+import { readHealthConfigLayers } from './declarative/sources'
 import { getHealthDb } from './resolve-store'
 import { compileCustomRule, customRuleInputSchema } from './rule-builder-schema'
 import { debug } from '@chm/logger'
@@ -58,12 +61,12 @@ interface D1CustomRuleRow {
 /**
  * The resolved backend (D1 → Postgres), or `NOT_CONFIGURED` when there is none.
  *
- * Unlike the sibling stores this throws instead of degrading to `[]`, on every
- * path including reads: the GET route maps `NOT_CONFIGURED` to 501, and that
+ * Writes always throw without a DB (the POST/DELETE routes map it to 501). The
+ * read path is normalised to its siblings (#3497): {@link listCustomRules}
+ * returns the declarative rules when there is no DB, and throws
+ * `NOT_CONFIGURED` only when there is no DB AND no declarative rule — that
  * 501 is the signal `RuleBuilderPanel` renders as "not available on this
- * deployment" — an empty list would show a form whose save then fails. The
- * internal readers (`loadCustomRulesIntoRegistry`, alert suggestions) catch it
- * and fail open, so the sweep is never affected.
+ * deployment", so an empty list never shows a form whose save then fails.
  */
 function getDb(): HealthSqlDb {
   const db = getHealthDb()
@@ -90,10 +93,32 @@ function rowToRule(row: D1CustomRuleRow): CustomAlertRule {
   }
 }
 
-/** List every custom rule owned by `ownerId`. */
+/**
+ * List every custom rule visible to `ownerId`: the DB rows merged with the
+ * declarative `alerts.yaml` rules (#3497) — union by id (declarative ids are
+ * `custom:<id>`), the DB row winning field by field. Throws `NOT_CONFIGURED`
+ * only when there is neither a DB nor a declarative rule; a DB read failure
+ * with declarative rules present still throws `STORAGE_ERROR`, so a broken
+ * table is reported rather than hidden behind the file's rules.
+ */
 export async function listCustomRules(
   ownerId: string
-): Promise<CustomAlertRule[]> {
+): Promise<Sourced<CustomAlertRule>[]> {
+  const declared = await declarativeCustomRules(ownerId)
+  const hasDeclared = declared.some((layer) => layer.entries.length > 0)
+  if (!getHealthDb() && hasDeclared) {
+    return mergeSources(declared, (rule) => rule.id, 'union')
+  }
+  const rows = await listDbCustomRules(ownerId)
+  return mergeSources(
+    [...declared, { source: 'd1', entries: rows }],
+    (rule) => rule.id,
+    'union'
+  )
+}
+
+/** The DB rows only; throws `NOT_CONFIGURED` / `STORAGE_ERROR`. */
+async function listDbCustomRules(ownerId: string): Promise<CustomAlertRule[]> {
   try {
     const db = getDb()
     const result = await db
@@ -205,16 +230,41 @@ export async function deleteCustomRule(
  * `HEALTH_ALERT_WEBHOOK_URL` is a single env-wide destination today. True
  * per-owner alert routing in a multi-tenant cloud deployment is a documented
  * follow-up (plan 32 open question 3), not attempted here.
+ *
+ * Declarative rules (#3497) are merged in by id and always load: a missing or
+ * failing DB contributes no rows (logged), it never drops the file's rules.
+ * Merging happens BEFORE the enabled filter, so a DB row can disable a
+ * declarative rule and a file can disable nothing it does not define.
  */
 async function listAllEnabledCustomRules(): Promise<CustomAlertRule[]> {
-  const db = getDb()
-  const result = await db
-    .prepare(
-      `SELECT id, owner_id, name, metric, op, warning, critical, enabled, created_at
-       FROM custom_alert_rules WHERE enabled = 1`
+  const declared = await declarativeCustomRules('')
+  const hasDeclared = declared.some((layer) => layer.entries.length > 0)
+  let rows: CustomAlertRule[] = []
+  try {
+    const db = getHealthDb()
+    if (db) {
+      // Disabled rows only matter when they can shadow a declarative rule;
+      // a DB-only deploy keeps reading just the enabled ones.
+      const result = await db
+        .prepare(
+          `SELECT id, owner_id, name, metric, op, warning, critical, enabled, created_at
+           FROM custom_alert_rules${hasDeclared ? '' : ' WHERE enabled = 1'}`
+        )
+        .all<D1CustomRuleRow>()
+      rows = (result.results || []).map(rowToRule)
+    }
+  } catch (err) {
+    debug(
+      '[custom-rules-store] failed to read custom alert rules from the DB; declarative rules only',
+      err instanceof Error ? err.message : String(err)
     )
-    .all<D1CustomRuleRow>()
-  return (result.results || []).map(rowToRule)
+  }
+  const merged = mergeSources(
+    [...declared, { source: 'd1', entries: rows }],
+    (rule) => rule.id,
+    'union'
+  )
+  return merged.filter((rule) => rule.enabled)
 }
 
 /**
@@ -273,4 +323,35 @@ export async function loadCustomRulesIntoRegistry(): Promise<void> {
       )
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Declarative reader: Custom rules — merge key `id`, normalised to `custom:<id>`
+// ---------------------------------------------------------------------------
+
+/**
+ * The registry's id for a declarative rule. `custom:` keeps it out of the
+ * built-in rule namespace and inside the sweep's `custom:*` unregister pass.
+ */
+function toCustomRuleId(id: string): string {
+  return id.startsWith('custom:') ? id : `custom:${id}`
+}
+
+async function declarativeCustomRules(
+  ownerId: string
+): Promise<SourceLayer<CustomAlertRule>[]> {
+  return (await readHealthConfigLayers()).map((layer) => ({
+    source: layer.source,
+    entries: Object.values(layer.data.customRules).map((rule) => ({
+      id: toCustomRuleId(rule.id),
+      ownerId,
+      name: rule.name,
+      metric: rule.metric,
+      op: rule.op,
+      warning: rule.warning,
+      critical: rule.critical,
+      enabled: rule.enabled,
+      createdAt: 0,
+    })),
+  }))
 }

@@ -9,6 +9,8 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
+import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
+
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
@@ -34,6 +36,8 @@ export interface AlertChannelConfigInfo {
   /** Masked secret preview (last 4 chars), or `null` when none is stored. */
   secretMasked: string | null
   updatedAt: number
+  /** `file`/`env` definitions are read-only (#3497); absent = `d1`. */
+  source?: HealthDefinitionSource
 }
 
 export const ALERT_CHANNEL_CONFIG_QUERY_KEY = [

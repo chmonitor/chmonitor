@@ -36,6 +36,14 @@ let setResult: { enabled: boolean; windowMinutes: number } | null = null
 const setCalls: unknown[] = []
 mock.module('@/lib/health/alert-digest-settings-store', () => ({
   getDigestSettings: async () => getResult,
+  // The single-value merge itself is covered by the declarative matrix test;
+  // here it only has to pick the row over env, as the store does.
+  resolveDigestSettings: async () =>
+    getResult
+      ? { ...getResult, source: 'd1' }
+      : envWindow > 0
+        ? { enabled: true, windowMinutes: envWindow, source: 'env' }
+        : null,
   setDigestSettings: async (_ownerId: string, input: unknown) => {
     setCalls.push(input)
     return setResult

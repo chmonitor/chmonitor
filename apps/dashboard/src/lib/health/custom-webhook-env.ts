@@ -64,6 +64,67 @@ function parseSecretHeaders(raw: string | undefined): Record<string, string> {
   }
 }
 
+/** One declared (env or file) target, before URL/secret resolution. */
+export interface DeclaredWebhookTarget {
+  id: string
+  name: string
+  urlEnv: string
+  headersEnv?: string
+  enabled?: boolean
+  format?: unknown
+  minSeverity?: unknown
+  titleTemplate?: unknown
+  bodyTemplate?: unknown
+  headers?: unknown
+}
+
+/**
+ * Resolve one declared target: read the URL and secret headers from the env
+ * var NAMES it carries, then run the same validation the UI/API path uses
+ * (HTTPS-only URL, name/template bounds, `X-*` headers). Returns `null` when
+ * the URL is missing or the entry is invalid. Shared by the
+ * `HEALTH_ALERT_WEBHOOK_TARGETS` env layer and the `channels.yaml` file layer
+ * so both validate identically; delivery re-runs the SSRF guard at send time.
+ */
+export function buildDeclaredWebhookTarget(
+  entry: DeclaredWebhookTarget,
+  env: Record<string, string | undefined> = process.env
+): CustomWebhookTarget | null {
+  const name = entry.name.trim()
+  const url = entry.urlEnv ? (env[entry.urlEnv] ?? '').trim() : ''
+  if (!name || !url || !isHttpsCustomWebhookUrl(url)) return null
+
+  const format = isCustomWebhookFormat(entry.format)
+    ? normalizeCustomWebhookFormat(entry.format)
+    : 'auto'
+  const validated = validateCustomWebhookDraft({
+    name,
+    url,
+    format,
+    minSeverity: entry.minSeverity,
+    titleTemplate: entry.titleTemplate,
+    bodyTemplate: entry.bodyTemplate,
+    headers: parseHeaders(entry.headers),
+  })
+  if (!validated.ok) return null
+
+  return {
+    id: entry.id,
+    name,
+    url,
+    enabled: entry.enabled !== false,
+    format: validated.format,
+    minSeverity: validated.minSeverity,
+    titleTemplate: validated.titleTemplate,
+    bodyTemplate: validated.bodyTemplate,
+    headers: validated.headers,
+    secretHeaders: parseSecretHeaders(
+      entry.headersEnv ? env[entry.headersEnv] : undefined
+    ),
+    updatedAt: 0,
+  }
+}
+
 /**
  * Parse the chart's declarative target list. Invalid entries are ignored rather
  * than throwing from a cron sweep; runtime delivery still revalidates URLs.
@@ -87,41 +148,23 @@ export function loadEnvCustomWebhookTargets(
     if (!value || typeof value !== 'object' || Array.isArray(value)) continue
     const entry = value as RawEnvTarget
     const name = typeof entry.name === 'string' ? entry.name.trim() : ''
-    const urlEnv = typeof entry.urlEnv === 'string' ? entry.urlEnv : ''
-    const url = urlEnv ? (env[urlEnv] ?? '').trim() : ''
-    if (!name || !url || !isHttpsCustomWebhookUrl(url)) continue
-
-    const format = isCustomWebhookFormat(entry.format)
-      ? normalizeCustomWebhookFormat(entry.format)
-      : 'auto'
-    const declaredHeaders = parseHeaders(entry.headers)
-    const validated = validateCustomWebhookDraft({
-      name,
-      url,
-      format,
-      minSeverity: entry.minSeverity,
-      titleTemplate: entry.titleTemplate,
-      bodyTemplate: entry.bodyTemplate ?? entry.textTemplate,
-      headers: declaredHeaders,
-    })
-    if (!validated.ok) continue
-
-    const secretHeaders = parseSecretHeaders(
-      typeof entry.headersEnv === 'string' ? env[entry.headersEnv] : undefined
+    const target = buildDeclaredWebhookTarget(
+      {
+        id: `env:${name}`,
+        name,
+        urlEnv: typeof entry.urlEnv === 'string' ? entry.urlEnv : '',
+        headersEnv:
+          typeof entry.headersEnv === 'string' ? entry.headersEnv : undefined,
+        enabled: entry.enabled !== false,
+        format: entry.format,
+        minSeverity: entry.minSeverity,
+        titleTemplate: entry.titleTemplate,
+        bodyTemplate: entry.bodyTemplate ?? entry.textTemplate,
+        headers: entry.headers,
+      },
+      env
     )
-    targets.push({
-      id: `env:${name}`,
-      name,
-      url,
-      enabled: entry.enabled !== false,
-      format: validated.format,
-      minSeverity: validated.minSeverity,
-      titleTemplate: validated.titleTemplate,
-      bodyTemplate: validated.bodyTemplate,
-      headers: validated.headers,
-      secretHeaders,
-      updatedAt: 0,
-    })
+    if (target) targets.push(target)
   }
   return targets
 }

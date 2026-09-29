@@ -19,6 +19,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import {
   getDigestSettings,
+  resolveDigestSettings,
   setDigestSettings,
 } from '@/lib/health/alert-digest-settings-store'
 import {
@@ -36,16 +37,20 @@ function jsonError(message: string, status: number): Response {
 
 async function handleGet(): Promise<Response> {
   const ownerId = await resolveAlertRoutingOwnerId()
-  const row = await getDigestSettings(ownerId)
+  const [row, effective] = await Promise.all([
+    getDigestSettings(ownerId),
+    resolveDigestSettings(ownerId),
+  ])
   const envWindowMinutes = getServerDigestWindowMinutes()
   return Response.json(
     {
       success: true,
-      // A saved row wins; otherwise reflect the env value as the effective one.
-      enabled: row ? row.enabled : envWindowMinutes > 0,
-      windowMinutes: row ? row.windowMinutes : envWindowMinutes,
+      // Single value (#3497): saved row › digest.yaml › env › off.
+      enabled: effective?.enabled ?? false,
+      windowMinutes: effective?.windowMinutes ?? 0,
       hasRow: row !== null,
       envWindowMinutes,
+      source: effective?.source ?? null,
     },
     { status: 200 }
   )
