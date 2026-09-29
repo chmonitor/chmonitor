@@ -416,6 +416,8 @@ describe('Agent Discovery Metadata Endpoints & Content Negotiation', () => {
     '/api/v1/explorer/databases?hostId=0',
     '/api/v1/charts/query-count?hostId=0',
     '/api/v1/user-connections',
+    '/API/v1/menu-counts?hostId=0',
+    '/Api/v1/hosts',
   ])('securityHeadersHandler forces no-store on per-host API %s', async (path) => {
     const res = (await securityHeadersHandler({
       request: new Request(`https://example.com${path}`),

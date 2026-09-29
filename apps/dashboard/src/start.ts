@@ -168,7 +168,12 @@ export const PUBLIC_API_PATHS = new Set([
 ])
 
 export function isPrivateApiPath(pathname: string): boolean {
-  return pathname.startsWith('/api/') && !PUBLIC_API_PATHS.has(pathname)
+  // The router matches paths case-insensitively, so `/API/v1/…` reaches the
+  // same handler; the public exemption stays an exact, case-sensitive match.
+  return (
+    pathname.toLowerCase().startsWith('/api/') &&
+    !PUBLIC_API_PATHS.has(pathname)
+  )
 }
 
 export const HUMAN_AUTH_PATHS = new Set(['/sign-in', '/sign-up', '/login'])
