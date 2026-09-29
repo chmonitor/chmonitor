@@ -1,7 +1,7 @@
 ---
 id: metadata-db-optional-config
 type: spec
-status: draft
+status: active
 updated: 2026-09-29
 related:
   - cloud-saas-mode
@@ -27,14 +27,17 @@ alerts, thresholds, routing, quiet hours, maintenance windows, digests,
 webhook targets, and channel delivery. Everything must be declarable from
 environment variables or a mounted config file (ConfigMap).
 
-**Status.** Audit complete. **The §1.2 premise was wrong and is corrected
-below** (2026-09-29): the metadata backend is a documented *three-way* thing
-(D1 / ClickHouse / Postgres), two domains already implement it in full, and the
-`metadataDb.available` flag is wrong in **both** directions because it
-duplicates that resolution instead of deriving it. Design decision **proposed,
-not yet landed** — but the remaining decision is now one question, not a
-rewrite. See [The asymmetry](#the-asymmetry) and
-[Open questions](#open-questions).
+**Status.** Audit complete; the two blocking design questions are **decided**
+(2026-09-29). **The §1.2 premise was wrong and is corrected below**: the
+metadata backend is a documented *three-way* thing (D1 / ClickHouse / Postgres),
+two domains already implement it in full, and the `metadataDb.available` flag
+is wrong in **both** directions because it duplicates that resolution instead of
+deriving it. **Decision: option B** — derive the flag from the canonical
+resolver, and give the alert surface the `resolve-store.ts` shape its siblings
+already have. `CHM_CONFIG_FILE` is likewise **decided: implement it**. See
+[The asymmetry](#the-asymmetry), [`CHM_CONFIG_FILE`](#chm_config_file-is-documented-but-not-implemented),
+[Implementation prompts](#implementation-ready-prompts), and the two questions
+that remain genuinely open in [Open questions](#open-questions).
 
 > [!WARNING]
 > Today this is **not** true. All twelve alert/settings stores are D1-only and
@@ -180,8 +183,8 @@ a second dialect"*.
 | **B** | Give the alert stores the three-way `resolve-store.ts` pattern | **Medium, and mostly copy-paste** — 12 stores gain a Postgres (and ClickHouse) implementation beside the D1 one, each carrying idempotent `CREATE TABLE IF NOT EXISTS`; the flag is then *derived* from `lib/state-backend/config.ts` instead of re-derived | Uniform with the domains that already work. Largest diff, but the full three-way shape is already proven twice in-repo. |
 | **C** | Per-feature write-capability probe | Small | **Not an answer to this problem.** It renders the gap honestly; it does not close it, and it permanently strands a documented deployment. |
 
-**Proposal: B — with A's fail-closed guardrail and C's honesty affordance on
-top.**
+**DECIDED 2026-09-29: B — with A's fail-closed guardrail and C's honesty
+affordance on top.**
 
 1. **B** as the fix: the alert surface gets the same
    `resolve-store.ts` + per-backend store shape as `connection-store` and
@@ -195,9 +198,10 @@ top.**
    resolved) can render. On its own, C is what the triage comment feared:
    "makes the breakage quieter instead of fixing it".
 
-Whoever confirms this: the remaining open question is *not* "A, B, or C" — it
-is [Q2](#open-questions), which the evidence above now answers in B's favour.
-Whichever is chosen, **do not ship a second, subtly different signal** — the
+The deciding evidence: a Postgres-only deploy is **documented and
+Helm-supported** (see above), so A and C each strand a supported configuration.
+Whichever of the three is implemented, **do not ship a second, subtly different
+signal** — the
 whole point is that there is currently one lie and we are not adding two.
 
 ---
@@ -300,8 +304,9 @@ The single most consequential finding for the stated goal.
 - `lib/feature-permissions/server.ts:7` — *"No CHM_CONFIG_FILE loading:
   `node:fs/promises` is not available in workerd."*
 
-**It is documented as a working feature in 45 locations**, including a ConfigMap
-mount example in the K8s guide:
+**It is documented as a working feature in ~35 committed locations** (more once
+the regenerated `apps/docs` mirror is counted), including a ConfigMap mount
+example in the K8s guide:
 
 | Doc | Lines |
 |---|---|
@@ -313,19 +318,28 @@ mount example in the K8s guide:
 | `docs/content/operate/deploy/self-host.mdx` | 93 |
 | `docs/content/guide/features.mdx` | 136 |
 | `docs/content/guide/features/*.mdx` (16 pages) | one `# CHM_CONFIG_FILE (TOML)` section each |
-| `apps/docs/src/content/docs/**` (generated mirror) | 24 more |
+| `apps/docs/src/content/docs/**` (generated mirror) | regenerated on every docs build — fix the source, not the mirror |
 
 An operator following `deploy/k8s.md:261-268` today mounts a ConfigMap, sets
 `CHM_CONFIG_FILE`, and **nothing happens** — feature permissions silently ignore
 the file. That is precisely the failure mode this document exists to eliminate.
 **One of the two mechanisms the docs already teach is a no-op.**
 
-Resolution is a deliberate choice, not a drive-by edit:
+Resolution was a deliberate choice, not a drive-by edit:
 
 - **Implement it** for the feature-permission surface at minimum, reusing
   `lib/query-config/declarative/local-loader.ts` as the model; or
 - **Delete the file-config claims** and document `CHM_CONFIG_DIRECTORY` +
   `CHM_CONFIG_SOURCE` as the only file mechanism.
+
+**DECIDED 2026-09-29: implement it.** The documented ConfigMap path is a real
+feature with real operator use, and deleting ~35 references is the larger,
+more disruptive change — while a silent no-op is the exact failure mode this
+document exists to eliminate. Scope it to the feature-permission surface
+first (that is the surface the docs actually promise), model the loader on
+`local-loader.ts`, and gate every call site on the build-time
+`import.meta.env.SSR` constant so `node:fs` is dead-code-eliminated from the
+client bundle. See prompt 2.
 
 ---
 
@@ -472,7 +486,7 @@ One issue per row. Each is independent enough to ship separately, in this order 
 the asymmetry first, because everything else gates on knowing what "available"
 means.
 
-### 1. Fix the `metadataDb.available` asymmetry (BLOCKING)
+### 1. Fix the `metadataDb.available` asymmetry (DECIDED 2026-09-29: B)
 
 > **Restated 2026-09-29** after the premise correction. The old wording asked
 > for a per-feature capability probe (option C). The evidence says the real fix
@@ -513,19 +527,38 @@ means.
 > `docs/content/operate/advanced/feature-permissions.mdx`,
 > `docs/knowledge/metadata-db-optional-config.md` (this file).
 
-### 2. Resolve `CHM_CONFIG_FILE`
+### 2. Implement `CHM_CONFIG_FILE` (DECIDED 2026-09-29)
 
-> Decide: implement, or delete the 45 doc references. **Do not leave it
-> half-done.** If implementing, model it on
-> `lib/query-config/declarative/local-loader.ts` — pure, sync, never throws,
-> `skipped[]` for malformed input — and gate every call site on the build-time
-> `import.meta.env.SSR` constant so `node:fs` never reaches the client bundle.
-> If deleting, replace every `# CHM_CONFIG_FILE (TOML)` section with
-> `CHM_CONFIG_DIRECTORY` / `CHM_CONFIG_SOURCE` and fix the K8s ConfigMap example
-> at `docs/content/deploy/k8s.md:261-268`.
+> **Decision:** implement, scoped to the feature-permission surface first. Do
+> not leave it half-done.
 >
-> **Tests:** a malformed file must not break config resolution; a valid file must
-> override the built-in defaults.
+> **Files:** `lib/feature-permissions/server.ts` (where the "not implemented"
+> comment at `:7` lives), the loader modelled on
+> `lib/query-config/declarative/local-loader.ts`, and
+> `routes/api/v1/config.ts:12` (the matching comment there).
+>
+> **Requirements:**
+>
+> - Model it on `local-loader.ts`: **pure, sync, never throws.** A malformed
+>   file, a schema violation, or a duplicate name is pushed onto a `skipped[]`
+>   array and warned — never fatal (invariant 5).
+> - Gate every call site on the **build-time** `import.meta.env.SSR` constant,
+>   not a `typeof window` runtime check, so Vite dead-code-eliminates
+>   `node:fs` + the TOML parser out of the client bundle (invariant 8).
+> - One canonical name. The file is an *input*, not a second naming scheme;
+>   an explicit env var still wins over the file.
+> - Fail closed: an unreadable or absent file yields the current behaviour, not
+>   a new failure mode.
+>
+> **Tests:** a malformed file does not break config resolution and lands in
+> `skipped[]`; a valid file overrides the built-in defaults; an absent
+> directory is a no-op; and a build assertion that `node:fs` is absent from the
+> client bundle.
+>
+> **Docs:** the `CHM_CONFIG_FILE` row at
+> `docs/content/reference/environment-variables.mdx:220` stops being a promise
+> and starts being true; note in the K8s ConfigMap example
+> (`docs/content/operate/deploy/k8s.mdx:261-268`) that it is now read.
 
 ### 3. The declarative config loader for health
 
