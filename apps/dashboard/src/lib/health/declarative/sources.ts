@@ -23,7 +23,7 @@
 
 import type { HealthConfigLayer } from './schema'
 
-import { loadHealthConfigEnv } from './env-layer'
+import { type HealthConfigEnvOptions, loadHealthConfigEnv } from './env-layer'
 import { warn } from '@chm/logger'
 
 /**
@@ -31,14 +31,16 @@ import { warn } from '@chm/logger'
  * every runtime; the file layer only where the build-time SSR constant holds
  * (the loader is imported inside that branch). Never throws.
  */
-export async function readHealthConfigLayers(): Promise<HealthConfigLayer[]> {
+export async function readHealthConfigLayers(
+  options: HealthConfigEnvOptions = {}
+): Promise<HealthConfigLayer[]> {
   const layers: HealthConfigLayer[] = [
-    { source: 'env', data: loadHealthConfigEnv() },
+    { source: 'env', data: loadHealthConfigEnv(options) },
   ]
   if (import.meta.env.SSR) {
     try {
       const { getHealthConfigLayers } = await import('./loader')
-      for (const layer of getHealthConfigLayers().layers) {
+      for (const layer of getHealthConfigLayers(options).layers) {
         if (layer.source === 'file') layers.push(layer)
       }
     } catch (err) {

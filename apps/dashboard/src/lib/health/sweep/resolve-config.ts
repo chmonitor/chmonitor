@@ -29,6 +29,7 @@ import { listRoutes } from './../alert-routing'
 import { hydrateAlertState } from './../alert-state-persist'
 import { alertStateStore } from './../alert-state-store'
 import { loadCustomRulesIntoRegistry } from './../custom-rules-store'
+import { resolveThresholdOverrides } from './../declarative/thresholds'
 import { listWindows } from './../maintenance-windows'
 import { getPagerDutyFallbackRoutingKey } from './../pagerduty-config'
 import { listQuietHours } from './../quiet-hours'
@@ -36,7 +37,6 @@ import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
   getServerHysteresisConfig,
-  getServerThresholdOverrides,
 } from './../server-alert-config'
 import { resolveServerChannels } from './../server-channel-resolve'
 import { getClickHouseConfigs } from '@chm/clickhouse-client'
@@ -74,7 +74,7 @@ export interface SweepContext {
   alertingEnabled: boolean
   cooldownMs: number
   rules: AlertRuleDef[]
-  thresholdOverrides: ReturnType<typeof getServerThresholdOverrides>
+  thresholdOverrides: Awaited<ReturnType<typeof resolveThresholdOverrides>>
   hysteresis: ReturnType<typeof getServerHysteresisConfig>
   orderedCompoundRules: CompoundRuleDef[]
   configs: ClickHouseConfig[]
@@ -120,7 +120,9 @@ export async function resolveSweepContext(): Promise<SweepContext> {
   await loadCustomRulesIntoRegistry()
 
   const rules = ruleRegistry.getAll()
-  const thresholdOverrides = getServerThresholdOverrides(rules.map((r) => r.id))
+  const thresholdOverrides = await resolveThresholdOverrides(
+    rules.map((r) => r.id)
+  )
 
   // Hysteresis config (#2767): per-check anti-flap knobs. Resolved for every
   // base + compound rule id; dispatch looks up `byRule[id] ?? defaults`

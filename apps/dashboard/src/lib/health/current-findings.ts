@@ -15,7 +15,7 @@
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
 import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 
-import { getServerThresholdOverrides } from './server-alert-config'
+import { resolveThresholdOverrides } from './declarative/thresholds'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
@@ -93,7 +93,9 @@ function shouldRunRule(
  */
 export async function getCurrentFindings(): Promise<CurrentFinding[]> {
   const rules = ruleRegistry.getAll()
-  const thresholdOverrides = getServerThresholdOverrides(rules.map((r) => r.id))
+  const thresholdOverrides = await resolveThresholdOverrides(
+    rules.map((r) => r.id)
+  )
   const configs = getClickHouseConfigs()
 
   const findings: CurrentFinding[] = []
