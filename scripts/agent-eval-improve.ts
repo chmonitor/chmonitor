@@ -22,7 +22,8 @@ const suggestionsPath = join(outDir, 'improve.md')
 
 const apiBase = process.env.ANYROUTER_API_BASE || 'https://anyrouter.dev/api/v1'
 const apiKey = process.env.ANYROUTER_API_KEY
-const grader = process.env.AGENT_EVAL_GRADER_MODEL || 'meituan/longcat-2.0'
+const grader =
+  process.env.AGENT_EVAL_GRADER_MODEL || 'anyrouter:anyrouter/agent'
 
 if (!apiKey) {
   console.error('ANYROUTER_API_KEY is required for improve notes.')

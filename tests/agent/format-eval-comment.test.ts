@@ -23,7 +23,7 @@ describe('formatEvalComment', () => {
           ],
         },
       },
-      { tags: 'core,safety', model: 'anyrouter:meituan/longcat-2.0' }
+      { tags: 'core,safety', model: 'anyrouter:auto' }
     )
     expect(md.startsWith(MARKER)).toBe(true)
     expect(md).toContain('| Status | **FAIL** |')
