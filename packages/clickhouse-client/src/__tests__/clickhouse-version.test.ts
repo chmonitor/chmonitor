@@ -30,7 +30,6 @@ const {
   selectVersionedSql,
   getTableInfoMessage,
   SYSTEM_TABLE_INFO,
-  checkTableExists,
   checkTableHasData,
   checkTableAvailability,
   getClickHouseVersion,
@@ -44,6 +43,7 @@ const { _resetEnvCache: resetEnvCache } = await import(
   '../clickhouse/env-schema'
 )
 const { clientPool } = await import('../clickhouse/connection-pool')
+const { clearTableCache } = await import('../table-existence-cache')
 // Same `?test=version` buster as the module under test, so this is the SAME
 // pool instance its probes lease from.
 const { clientPool: versionPool } = await import(
@@ -441,76 +441,6 @@ describe('getTableInfoMessage', () => {
   })
 })
 
-describe('checkTableExists', () => {
-  const originalEnv = { ...process.env }
-
-  beforeEach(() => {
-    process.env = { ...originalEnv }
-    process.env.CLICKHOUSE_HOST = 'http://localhost:8123'
-    process.env.CLICKHOUSE_USER = 'default'
-    process.env.CLICKHOUSE_PASSWORD = ''
-    resetEnvCache()
-    clientPool.clear()
-    mockCreateClient.mockReset()
-    mockClientQuery.mockReset()
-    mockCreateClient.mockReturnValue(mockClient)
-    mockClientQuery.mockResolvedValue({
-      json: () => Promise.resolve([{ exists: 0 }]),
-    })
-  })
-
-  afterAll(() => {
-    process.env = originalEnv
-  })
-
-  it('sends a parameterized query using query_params instead of interpolating db/table into the SQL', async () => {
-    await checkTableExists(0, 'system', 'backup_log')
-
-    expect(mockClientQuery).toHaveBeenCalledTimes(1)
-    const call = mockClientQuery.mock.calls[0][0]
-
-    // The SQL must use bound placeholders, not raw interpolated values.
-    expect(call.query).toContain('{database:String}')
-    expect(call.query).toContain('{table:String}')
-    expect(call.query).not.toContain("'system'")
-    expect(call.query).not.toContain("'backup_log'")
-
-    // The actual values must be passed via query_params.
-    expect(call.query_params).toEqual({
-      database: 'system',
-      table: 'backup_log',
-    })
-  })
-
-  it('returns true when the query reports the table exists', async () => {
-    mockClientQuery.mockResolvedValue({
-      json: () => Promise.resolve([{ exists: 1 }]),
-    })
-
-    const result = await checkTableExists(0, 'system', 'query_log')
-    expect(result).toBe(true)
-  })
-
-  it('returns false when the query reports the table does not exist', async () => {
-    mockClientQuery.mockResolvedValue({
-      json: () => Promise.resolve([{ exists: 0 }]),
-    })
-
-    const result = await checkTableExists(0, 'system', 'missing_table')
-    expect(result).toBe(false)
-  })
-
-  // Regression coverage for issue #2505: a transient probe failure
-  // (network/timeout/auth) must not be reported the same as a
-  // confirmed-missing table.
-  it('returns "unknown" (not false) when the underlying client query throws', async () => {
-    mockClientQuery.mockRejectedValue(new Error('connection refused'))
-
-    const result = await checkTableExists(0, 'system', 'query_log')
-    expect(result).toBe('unknown')
-  })
-})
-
 describe('checkTableHasData', () => {
   const originalEnv = { ...process.env }
 
@@ -534,7 +464,7 @@ describe('checkTableHasData', () => {
   })
 
   it('returns true when the query reports rows present', async () => {
-    const result = await checkTableHasData(0, 'system.query_log')
+    const result = await checkTableHasData(0, 'system', 'query_log')
     expect(result).toBe(true)
   })
 
@@ -543,14 +473,14 @@ describe('checkTableHasData', () => {
       json: () => Promise.resolve([{ has_data: 0 }]),
     })
 
-    const result = await checkTableHasData(0, 'system.query_log')
+    const result = await checkTableHasData(0, 'system', 'query_log')
     expect(result).toBe(false)
   })
 
   it('returns "unknown" (not false) when the underlying client query throws', async () => {
     mockClientQuery.mockRejectedValue(new Error('timeout'))
 
-    const result = await checkTableHasData(0, 'system.query_log')
+    const result = await checkTableHasData(0, 'system', 'query_log')
     expect(result).toBe('unknown')
   })
 })
@@ -565,6 +495,7 @@ describe('checkTableAvailability', () => {
     process.env.CLICKHOUSE_PASSWORD = ''
     resetEnvCache()
     clientPool.clear()
+    clearTableCache()
     mockCreateClient.mockReset()
     mockClientQuery.mockReset()
     mockCreateClient.mockReturnValue(mockClient)
@@ -586,7 +517,7 @@ describe('checkTableAvailability', () => {
 
   it('reports a confirmed missing table without checkFailed when the probe succeeds', async () => {
     mockClientQuery.mockResolvedValue({
-      json: () => Promise.resolve([{ exists: 0 }]),
+      json: () => Promise.resolve([{ count: '0' }]),
     })
 
     const result = await checkTableAvailability(0, 'system', 'backup_log')
@@ -599,7 +530,7 @@ describe('checkTableAvailability', () => {
   it('reports checkFailed when the table exists but the has-data probe errors', async () => {
     // 1st call: checkTableExists (inside checkTableAvailability) — succeeds.
     mockClientQuery.mockResolvedValueOnce({
-      json: () => Promise.resolve([{ exists: 1 }]),
+      json: () => Promise.resolve([{ count: '1' }]),
     })
     // 2nd call: checkTableHasData — the probe itself fails.
     mockClientQuery.mockRejectedValueOnce(new Error('timeout'))
@@ -609,6 +540,51 @@ describe('checkTableAvailability', () => {
     expect(result.exists).toBe(true)
     expect(result.hasData).toBe(false)
     expect(result.checkFailed).toBe(true)
+  })
+
+  // Regression for #3515: availability used to run its own uncached
+  // system.tables probe on every call.
+  it('shares the cached existence probe: two calls issue one system.tables query', async () => {
+    mockClientQuery.mockImplementation(
+      async ({ query }: { query: string }) => ({
+        json: () =>
+          Promise.resolve(
+            query.includes('system.tables')
+              ? [{ count: '1' }]
+              : [{ has_data: 1 }]
+          ),
+      })
+    )
+
+    await checkTableAvailability(0, 'system', 'backup_log')
+    await checkTableAvailability(0, 'system', 'backup_log')
+
+    const existenceQueries = mockClientQuery.mock.calls.filter(([arg]) =>
+      (arg as { query: string }).query.includes('system.tables')
+    )
+    expect(existenceQueries).toHaveLength(1)
+  })
+
+  it('rejects an unsafe identifier without issuing any query', async () => {
+    await expect(
+      checkTableAvailability(0, 'system', 'query_log; DROP TABLE x')
+    ).rejects.toThrow(/Invalid ClickHouse identifier/)
+    await expect(checkTableHasData(0, 'system', 'a`b')).rejects.toThrow(
+      /Invalid ClickHouse identifier/
+    )
+    expect(mockClientQuery).not.toHaveBeenCalled()
+  })
+
+  it('backtick-quotes identifiers in the has-data query', async () => {
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ has_data: 1 }]),
+    })
+
+    await checkTableHasData(0, 'system', 'query_log')
+
+    expect(mockClientQuery.mock.calls[0][0].query).toContain(
+      'FROM `system`.`query_log`'
+    )
   })
 })
 
@@ -750,22 +726,12 @@ describe('probe lifecycle (issues #2946, #2953)', () => {
     expectEveryClientReleased()
   })
 
-  it('releases the pooled client after checkTableExists', async () => {
-    mockClientQuery.mockResolvedValue({
-      json: () => Promise.resolve([{ exists: 1 }]),
-    })
-
-    await checkTableExists(0, 'system', 'query_log')
-
-    expectEveryClientReleased()
-  })
-
   it('releases the pooled client after checkTableHasData', async () => {
     mockClientQuery.mockResolvedValue({
       json: () => Promise.resolve([{ has_data: 1 }]),
     })
 
-    await checkTableHasData(0, 'system.query_log')
+    await checkTableHasData(0, 'system', 'query_log')
 
     expectEveryClientReleased()
   })
