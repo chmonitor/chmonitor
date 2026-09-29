@@ -2,7 +2,10 @@ import type { MenuItem as MenuItemType } from '@/components/menu/types'
 
 import { lazy, Suspense, useState } from 'react'
 import { ClientOnly } from '@/components/layout/client-only'
-import { useUnavailableVisibility } from '@/components/menu/hooks/use-unavailable-visibility'
+import {
+  useGroupVisibility,
+  useUnavailableVisibility,
+} from '@/components/menu/hooks/use-unavailable-visibility'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
 import { unavailableReasonText } from '@/lib/menu/unavailable-visibility'
 import { useHostId } from '@/lib/swr'
@@ -126,8 +129,11 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
   const [open, setOpen] = useState(false)
   const { isMobile, setOpenMobile } = useSidebar()
   const hostId = useHostId()
-  const hasChildren = item.items && item.items.length > 0
-  const siblingHrefs = item.items?.map((child) => child.href) ?? []
+  // Same visible set as the expanded rail (menu-item.tsx), so both rails agree
+  // on which rows exist and which sibling hrefs take part in active-row choice.
+  const { visibleChildren } = useGroupVisibility(item, hostId)
+  const hasChildren = visibleChildren.length > 0
+  const siblingHrefs = visibleChildren.map((child) => child.href)
 
   if (!hasChildren) {
     return <>{trigger}</>
@@ -156,7 +162,7 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
           onMouseLeave={() => setOpen(false)}
         >
           <div className="flex flex-col gap-0.5">
-            {item.items?.map((subItem) => (
+            {visibleChildren.map((subItem) => (
               <CollapsedSubMenuItem
                 key={subItem.href}
                 subItem={subItem}
