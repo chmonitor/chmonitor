@@ -55,7 +55,7 @@ rust/           # ONE Cargo workspace (rust/Cargo.toml members): monitor-core(wa
                 #   ch-json, ch-pivot, ch-monitor-cli, user-events-rs
 docs/           # content/ knowledge/ clickhouse-schemas/ agents/ (the live
                 #   /docs site is apps/docs, which builds its content collection
-                #   from docs/content via scripts/sync-docs.mjs; the old Nextra
+                #   from docs/content via apps/docs/scripts/sync-docs.mjs; the old Nextra
                 #   site was removed)
 ```
 
