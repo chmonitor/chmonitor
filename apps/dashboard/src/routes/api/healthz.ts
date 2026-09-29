@@ -15,6 +15,18 @@ import { detectCloudModeMismatch } from '@/lib/cloud/cloud-mode'
 // comma-separated lists from the Cloudflare env binding (workerd does not map
 // arbitrary bindings onto process.env) instead of process.env.
 
+const DEFAULT_PING_TIMEOUT_MS = 3000
+
+/**
+ * Parse CHM_HEALTHZ_TIMEOUT_MS. Any non-numeric or non-positive value falls
+ * back to the default: `AbortSignal.timeout(-1)` throws a RangeError, which
+ * would mark every host down on a config typo.
+ */
+function resolvePingTimeoutMs(raw: string | undefined): number {
+  const parsed = Number.parseInt(raw ?? '', 10)
+  return parsed > 0 ? parsed : DEFAULT_PING_TIMEOUT_MS
+}
+
 interface HostHealth {
   host: string
   name?: string
@@ -73,11 +85,9 @@ async function handleGet(): Promise<Response> {
   // chart's readinessProbe.timeoutSeconds (default 10s). abort_signal +
   // AbortSignal.timeout() are supported on both runtimes (Node 18+ and
   // workerd), so this route stays runtime-agnostic.
-  const pingTimeoutMs =
-    Number.parseInt(
-      (env as Record<string, string | undefined>).CHM_HEALTHZ_TIMEOUT_MS ?? '',
-      10
-    ) || 3000
+  const pingTimeoutMs = resolvePingTimeoutMs(
+    (env as Record<string, string | undefined>).CHM_HEALTHZ_TIMEOUT_MS
+  )
 
   const hosts: HostHealth[] = await Promise.all(
     configs.map(async (config) => {
@@ -137,4 +147,7 @@ export const Route = createFileRoute('/api/healthz')({
 })
 
 // Exported for unit tests only.
-export { handleGet as __handleGetForTests }
+export {
+  handleGet as __handleGetForTests,
+  resolvePingTimeoutMs as __resolvePingTimeoutMsForTests,
+}

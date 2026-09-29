@@ -37,7 +37,10 @@ mock.module('@chm/logger', () => ({
   warn: mock(() => undefined),
 }))
 
-const { __handleGetForTests: handleGet } = await import('./healthz')
+const {
+  __handleGetForTests: handleGet,
+  __resolvePingTimeoutMsForTests: resolvePingTimeoutMs,
+} = await import('./healthz')
 
 const NO_STORE = 'no-cache, no-store, must-revalidate'
 
@@ -75,5 +78,23 @@ describe('GET /api/healthz — Cache-Control', () => {
 
     expect(res.status).toBe(503)
     expect(res.headers.get('Cache-Control')).toBe(NO_STORE)
+  })
+})
+
+describe('CHM_HEALTHZ_TIMEOUT_MS parsing', () => {
+  test('a positive value is used as-is', () => {
+    expect(resolvePingTimeoutMs('2500')).toBe(2500)
+  })
+
+  // AbortSignal.timeout(-5) throws a RangeError, which marks every host down.
+  test.each([
+    '-5',
+    '-1',
+    '0',
+    'abc',
+    '',
+    undefined,
+  ])('falls back to 3000ms for %p', (raw) => {
+    expect(resolvePingTimeoutMs(raw)).toBe(3000)
   })
 })
