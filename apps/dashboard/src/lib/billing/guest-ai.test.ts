@@ -126,7 +126,7 @@ describe('getGuestAiPlan', () => {
 describe('isGuestAllowedAgentModel', () => {
   test('allows the default model, auto, and free aliases', () => {
     expect(GUEST_DEFAULT_AGENT_MODEL).toBe('anyrouter:auto')
-    // A guest may keep the default the server would force on them anyway.
+    // The old pinned id is no longer served, so it is forced to the default.
     expect(isGuestAllowedAgentModel('anyrouter:meituan/longcat-2.0')).toBe(
       false
     )
