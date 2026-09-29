@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-09-28
+updated: 2026-09-29
 tags:
   - design-system
   - ui
@@ -727,11 +727,16 @@ Rules that follow from the table:
   and `unknown` must render as *disabled*, not as *enabled*: a 501 probe that has
   not resolved yet is not permission to write.
 - `metadataDb.available` from `GET /api/v1/config` is **not** a valid gate for
-  this. It counts `DATABASE_URL`/`POSTGRES_URL`, but every alert store is
-  D1-only, so a Postgres-only deploy reads `available === true` and then gets a
-  501 on write. Reuse the store's own `NOT_CONFIGURED` (HTTP 501) answer, as
-  `RuleBuilderPanel` does, and re-point at the per-feature capability when
-  #3440 lands. Do not add a second, subtly different signal.
+  this. It re-derives the backend check inline in `config.ts:224-231`, so it
+  **over-reports** (a `DATABASE_URL`-only deploy reads `available === true`,
+  then gets a 501 on write, because every alert store is D1-only) and
+  **under-reports** (a `CHM_STATE_CLICKHOUSE_URL`-only deploy reads
+  `available === false` while three state stores work fine). Reuse the store's
+  own `NOT_CONFIGURED` (HTTP 501) answer, as `RuleBuilderPanel` does, and
+  re-point at the per-feature capability when #3440 lands. Do not add a second,
+  subtly different signal. See `metadata-db-optional-config.md` for the
+  corrected analysis and why the fix is to *derive* the flag from
+  `lib/state-backend/config.ts` rather than add another probe.
 
 **Already-alerting indicator** (`alert-configured-badge.tsx`, rendered on the
 card header, the dense row, and the dialog title): one amber `BellRing` badge,
