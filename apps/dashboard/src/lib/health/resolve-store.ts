@@ -28,6 +28,16 @@ export type HealthStoreBackend = 'd1' | 'postgres'
 /** The default D1 binding. Some stores prefer `MAINTENANCE_D1` first. */
 export const HEALTH_D1_BINDINGS: readonly string[] = ['CHM_CLOUD_D1']
 
+/**
+ * Maintenance windows try a dedicated `MAINTENANCE_D1` binding first. Mirrors
+ * `D1_BINDING_NAMES` in `maintenance-windows.ts`; `/api/v1/config` uses this to
+ * report that store's capability with the same inputs the store resolves.
+ */
+export const MAINTENANCE_D1_BINDINGS: readonly string[] = [
+  'MAINTENANCE_D1',
+  'CHM_CLOUD_D1',
+]
+
 export type HealthD1Probe = (bindingName: string) => D1Database | null
 
 const defaultProbe: HealthD1Probe = (bindingName) => {

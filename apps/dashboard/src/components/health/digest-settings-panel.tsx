@@ -5,19 +5,22 @@
  * panel only exposes the optional time-window mode: a switch to enable it and a
  * minutes input for the buffer window. Non-critical findings are held for that
  * window and flushed together; criticals always send immediately. Server-
- * persisted via `/api/v1/health/alert-digest` (per-owner D1); when D1 is absent
- * the switch still edits the env-derived value (save returns 501, surfaced as a
- * toast) — the operator sets `HEALTH_ALERT_DIGEST_MINUTES` instead.
+ * persisted via `/api/v1/health/alert-digest` (D1 or Postgres); with no alert
+ * backend the env-derived value still shows but Save is disabled, as it is
+ * while the capability is `unknown` (#3495) — the operator sets
+ * `HEALTH_ALERT_DIGEST_MINUTES` instead.
  */
 
 import { toast } from 'sonner'
 
+import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { useHealthStoreAvailability } from '@/lib/health/store-availability'
 import {
   useAlertDigestConfig,
   useAlertDigestConfigMutation,
@@ -25,7 +28,9 @@ import {
 import { describeError } from '@/lib/swr/fetch-error'
 
 export function DigestSettingsPanel() {
-  const { config, isLoading } = useAlertDigestConfig()
+  const { config, isLoading, error } = useAlertDigestConfig()
+  const availability = useHealthStoreAvailability({ probeError: error })
+  const canWrite = canWriteHealthStore(availability)
   const { saveDigest } = useAlertDigestConfigMutation()
 
   const [enabled, setEnabled] = useState(false)
@@ -97,8 +102,18 @@ export function DigestSettingsPanel() {
         </div>
       )}
 
+      <HealthStoreNotice
+        availability={availability}
+        feature="Digest settings"
+        className="text-xs"
+      />
+
       <div className="flex justify-end">
-        <Button size="sm" onClick={() => void handleSave()} disabled={saving}>
+        <Button
+          size="sm"
+          onClick={() => void handleSave()}
+          disabled={saving || !canWrite}
+        >
           Save
         </Button>
       </div>

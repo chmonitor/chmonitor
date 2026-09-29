@@ -61,6 +61,36 @@ export interface AnonymousCapabilities {
   write: boolean
 }
 
+/**
+ * The backend the health/alert stores resolve to on this deployment
+ * (`resolveHealthBackend()` in `lib/health/resolve-store.ts`: D1 → Postgres →
+ * none). ClickHouse is not a value on purpose — there is no ClickHouse alert
+ * store, so a ClickHouse-only state backend reports `'none'` here even though
+ * `metadataDb.available` is `true` (#3493, #3495).
+ */
+export type HealthStoreBackendName = 'd1' | 'postgres' | 'none'
+
+/**
+ * Per-feature write capability for the health/alert stores. Backend-only: it
+ * says whether a store CAN persist, never whether the caller is allowed to —
+ * auth gating stays with `AnonymousCapabilities` and the server.
+ */
+export interface HealthCapabilityConfig {
+  /** Backend for the default alert stores (binding `CHM_CLOUD_D1`). */
+  backend: HealthStoreBackendName
+  /**
+   * Backend for maintenance windows, which also accept a dedicated
+   * `MAINTENANCE_D1` binding before `CHM_CLOUD_D1`.
+   */
+  maintenanceWindowsBackend: HealthStoreBackendName
+}
+
+/** Everything `/api/v1/config` reports under `capabilities`. */
+export interface DeploymentCapabilities extends AnonymousCapabilities {
+  /** Absent on an older server ⇒ the client treats health as `unknown`. */
+  health?: HealthCapabilityConfig
+}
+
 export interface FeatureOverride {
   enabled?: boolean
   access?: FeatureAccess
@@ -97,8 +127,11 @@ export interface PublicFeaturePermissionConfig {
   principal: Principal
   features: FeatureOverrides
   resolved?: ResolvedFeatureStates
-  /** What anonymous callers may do under this deployment's auth posture. */
-  capabilities?: AnonymousCapabilities
+  /**
+   * What anonymous callers may do under this deployment's auth posture, plus
+   * per-feature store capabilities (`health`).
+   */
+  capabilities?: DeploymentCapabilities
   /** Per-user ClickHouse connection storage capabilities. */
   userConnections?: UserConnectionsPublicConfig
   /** Metadata-database availability for state-persisting features. */

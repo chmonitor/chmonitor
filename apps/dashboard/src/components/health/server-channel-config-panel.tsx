@@ -9,9 +9,10 @@
  * keep it) + a per-channel severity floor. Saving writes the D1 config the sweep
  * reads (`resolveServerChannels`: D1 row › env fallback).
  *
- * Fail-open: on a deployment with no D1 binding the API returns 501 on save and
- * an env-configured channel still works via its `HEALTH_ALERT_*` env vars — the
- * form shows an "env" badge so the operator knows a channel is already live.
+ * With no alert backend (D1 or Postgres) Save/Reset are disabled — as they are
+ * while the capability is `unknown` (#3495) — and an env-configured channel
+ * still works via its `HEALTH_ALERT_*` env vars: the form shows an "env" badge
+ * so the operator knows a channel is already live.
  */
 
 import {
@@ -36,6 +37,7 @@ import {
   ChannelSectionHeader,
 } from './channel-card'
 import { ChannelSeverityToggle } from './channel-severity-toggle'
+import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -46,6 +48,7 @@ import {
   isServerChannelConfigured,
   partitionChannels,
 } from '@/lib/health/channel-classification'
+import { useHealthStoreAvailability } from '@/lib/health/store-availability'
 import {
   useAlertChannelConfig,
   useAlertChannelConfigMutations,
@@ -243,7 +246,9 @@ function emptyDraft(): DraftState {
 }
 
 export function ServerChannelConfigPanel() {
-  const { configs, env, isLoading } = useAlertChannelConfig()
+  const { configs, env, isLoading, error } = useAlertChannelConfig()
+  const availability = useHealthStoreAvailability({ probeError: error })
+  const canWrite = canWriteHealthStore(availability)
   const { upsertChannel, deleteChannel } = useAlertChannelConfigMutations()
 
   const [drafts, setDrafts] = useState<Record<string, DraftState>>({})
@@ -451,7 +456,7 @@ export function ServerChannelConfigPanel() {
               variant="ghost"
               size="sm"
               onClick={() => void handleReset(spec)}
-              disabled={savingChannel === spec.channel}
+              disabled={savingChannel === spec.channel || !canWrite}
             >
               Reset
             </Button>
@@ -459,7 +464,7 @@ export function ServerChannelConfigPanel() {
           <Button
             size="sm"
             onClick={() => void handleSave(spec)}
-            disabled={savingChannel === spec.channel}
+            disabled={savingChannel === spec.channel || !canWrite}
           >
             Save
           </Button>
@@ -497,6 +502,11 @@ export function ServerChannelConfigPanel() {
           </Button>
         )}
       </div>
+
+      <HealthStoreNotice
+        availability={availability}
+        feature="Server delivery channels"
+      />
 
       {configured.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2">

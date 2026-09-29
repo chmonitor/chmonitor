@@ -3,10 +3,12 @@
 import { Plus, Webhook } from 'lucide-react'
 
 import { CustomWebhookTargetCard } from './custom-webhook-target-card'
+import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Separator } from '@/components/ui/separator'
+import { useHealthStoreAvailability } from '@/lib/health/store-availability'
 import {
   type CustomWebhookTargetInput,
   useCustomWebhookTargetMutations,
@@ -21,6 +23,11 @@ export function CustomWebhookTargetsPanel() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
+  // The list's own `storage: 'unavailable'` answer vetoes like a 501 does;
+  // `unknown` keeps every write control disabled (#3495).
+  const declared = useHealthStoreAvailability({ probeError: error })
+  const availability = storage === 'unavailable' ? 'unavailable' : declared
+  const canWrite = canWriteHealthStore(availability)
 
   const editableTargets = targets.filter((target) => target.editable)
   const helmTargets = targets.filter((target) => !target.editable)
@@ -104,7 +111,7 @@ export function CustomWebhookTargetsPanel() {
             setCreating(true)
             setSelectedId(null)
           }}
-          disabled={busy || storage === 'unavailable'}
+          disabled={busy || !canWrite}
         >
           <Plus className="size-3.5" strokeWidth={1.5} />
           Add target
@@ -117,6 +124,13 @@ export function CustomWebhookTargetsPanel() {
           still deliver; UI-created targets require the metadata database
           migration.
         </p>
+      )}
+      {availability === 'unknown' && (
+        <HealthStoreNotice
+          availability={availability}
+          feature="Custom webhook targets"
+          className="text-xs"
+        />
       )}
       {error instanceof Error && (
         <p role="alert" className="text-xs text-destructive">
@@ -173,7 +187,7 @@ export function CustomWebhookTargetsPanel() {
           {editableTargets.length > 0 && <Separator />}
           <CustomWebhookTargetCard
             target={creating ? null : selected}
-            busy={busy}
+            busy={busy || !canWrite}
             onSave={handleSave}
             onRemove={handleRemove}
             onPreview={handlePreview}
@@ -190,11 +204,15 @@ export function CustomWebhookTargetsPanel() {
               icon={<Webhook className="size-5" strokeWidth={1.5} />}
               title="No custom webhook targets"
               description="Add a target for raw JSON, Slack, or Element/Matrix alerts, or configure one through Helm."
-              action={{
-                label: 'Add target',
-                onClick: () => setCreating(true),
-                icon: <Plus className="size-3.5" strokeWidth={1.5} />,
-              }}
+              action={
+                canWrite
+                  ? {
+                      label: 'Add target',
+                      onClick: () => setCreating(true),
+                      icon: <Plus className="size-3.5" strokeWidth={1.5} />,
+                    }
+                  : undefined
+              }
             />
           </div>
         )}

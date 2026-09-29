@@ -33,6 +33,7 @@ import type {
   FeatureOverride,
   FeatureOverrides,
   FeatureState,
+  HealthCapabilityConfig,
   PublicFeaturePermissionConfig,
 } from '@/lib/feature-permissions/types'
 
@@ -44,6 +45,10 @@ import {
   FEATURE_ACCESS_VALUES,
   FEATURE_IDS,
 } from '@/lib/feature-permissions/types'
+import {
+  MAINTENANCE_D1_BINDINGS,
+  resolveHealthBackend,
+} from '@/lib/health/resolve-store'
 import { isMetadataDbAvailable } from '@/lib/state-backend/config'
 
 // ---------------------------------------------------------------------------
@@ -198,6 +203,21 @@ function parseEnvFeatureOverrides(): FeatureOverrides {
   return overrides
 }
 
+/**
+ * Health/alert store capability (#3495). Resolved with the SAME call and the
+ * same defaults (`process.env`, platform D1 probe) the stores use in
+ * `getHealthDb()`, so this answer and a store's 501 cannot disagree. NOT
+ * derived from `metadataDb.available`: a ClickHouse-only state backend is
+ * `available` there but has no alert store, so health reports `'none'`.
+ */
+function getHealthCapability(): HealthCapabilityConfig {
+  return {
+    backend: resolveHealthBackend() ?? 'none',
+    maintenanceWindowsBackend:
+      resolveHealthBackend({ bindingNames: MAINTENANCE_D1_BINDINGS }) ?? 'none',
+  }
+}
+
 function getPublicFeaturePermissionConfig(): PublicFeaturePermissionConfig {
   const authProvider = parseAuthProvider(
     readEnv('CHM_AUTH_PROVIDER') ??
@@ -212,12 +232,13 @@ function getPublicFeaturePermissionConfig(): PublicFeaturePermissionConfig {
   // anonymousCapabilities; inlined to keep this route self-contained). The
   // client combines this with its Clerk signed-in state to gate write UI.
   const publicRead = parseBoolean(readEnv('CHM_CLERK_PUBLIC_READ')) === true
-  const capabilities =
+  const anonymous =
     authProvider === 'none'
       ? { read: true, write: true }
       : authProvider === 'clerk' && publicRead
         ? { read: true, write: false }
         : { read: false, write: false }
+  const capabilities = { ...anonymous, health: getHealthCapability() }
 
   const userConnections = getUserConnectionsServerConfig()
 
