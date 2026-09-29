@@ -6,7 +6,7 @@
  * Defaults:
  *   AGENT_EVAL_URL=http://localhost:3000/api/v1/agent
  *   AGENT_EVAL_MODEL=anyrouter:auto
- *   AGENT_EVAL_GRADER_MODEL=anyrouter:anyrouter/agent
+ *   AGENT_EVAL_GRADER_MODEL=anyrouter/free
  *   ANYROUTER_API_BASE=https://anyrouter.dev/api/v1
  *
  * Tags: --tags core,safety  (default)   --tags all
@@ -58,7 +58,7 @@ const defaults = {
     process.env.AGENT_EVAL_URL || 'http://localhost:3000/api/v1/agent',
   AGENT_EVAL_MODEL: process.env.AGENT_EVAL_MODEL || 'anyrouter:auto',
   AGENT_EVAL_GRADER_MODEL:
-    process.env.AGENT_EVAL_GRADER_MODEL || 'anyrouter:anyrouter/agent',
+    process.env.AGENT_EVAL_GRADER_MODEL || 'anyrouter/free',
   ANYROUTER_API_BASE:
     process.env.ANYROUTER_API_BASE || 'https://anyrouter.dev/api/v1',
   AGENT_API_TOKEN: process.env.AGENT_API_TOKEN || '',

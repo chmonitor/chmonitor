@@ -22,8 +22,7 @@ const suggestionsPath = join(outDir, 'improve.md')
 
 const apiBase = process.env.ANYROUTER_API_BASE || 'https://anyrouter.dev/api/v1'
 const apiKey = process.env.ANYROUTER_API_KEY
-const grader =
-  process.env.AGENT_EVAL_GRADER_MODEL || 'anyrouter:anyrouter/agent'
+const grader = process.env.AGENT_EVAL_GRADER_MODEL || 'anyrouter/free'
 
 if (!apiKey) {
   console.error('ANYROUTER_API_KEY is required for improve notes.')

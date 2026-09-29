@@ -174,7 +174,7 @@ tool presence — e.g. does a "why is my database slow?" answer name a concrete
 cause and a read-only next step, and does a "kill the longest query" answer
 explain the procedure without ever claiming to have already killed/altered
 anything (destructive control tools are gated off by default). The grader is AnyRouter (`AGENT_EVAL_GRADER_MODEL`, default
-`anyrouter:anyrouter/agent`). Add a rubric in `tests/agent/cases/` whenever a
+`anyrouter/free`). Add a rubric in `tests/agent/cases/` whenever a
 prompt/skill change could affect correctness or recommendation safety.
 
 ## Writing New Component Tests
