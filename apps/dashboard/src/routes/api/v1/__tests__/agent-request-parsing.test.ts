@@ -18,6 +18,7 @@ import {
   parseAgentRequest,
 } from '../-agent/request-parsing'
 import { describe, expect, test } from 'bun:test'
+import { GUEST_DEFAULT_AGENT_MODEL } from '@/lib/billing/guest-ai'
 
 function postRequest(body: unknown, headers?: Record<string, string>): Request {
   return new Request('https://example.com/api/v1/agent', {
@@ -203,7 +204,7 @@ describe('parseAgentRequest', () => {
     expect(hardened.byokApiKey).toBeNull()
     expect(hardened.mcpServers).toEqual([])
     expect(hardened.body.apiKey).toBeUndefined()
-    expect(hardened.body.model).toBe('anyrouter:meituan/longcat-2.0')
+    expect(hardened.body.model).toBe(GUEST_DEFAULT_AGENT_MODEL)
     expect(hardened.hostId).toBe(0)
   })
 

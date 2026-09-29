@@ -95,7 +95,7 @@ function useAgentChatRuntime() {
         fetch: trackedAgentFetch as typeof globalThis.fetch,
         body: {
           hostId,
-          model: cloudGuest ? 'anyrouter:auto' : model,
+          model,
           disabledTools,
           sessionId,
           mcpServers: cloudGuest ? [] : mcpServers,

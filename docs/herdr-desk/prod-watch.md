@@ -112,12 +112,10 @@ not a code bug** — record it, do not open a PR against the repo for it.
   (`apps/dashboard/src/lib/billing/guest-ai.ts`). Counts live in D1
   `ai_usage_daily`. If the cap is being hit by traffic rather than by a stuck
   retry loop, that is a cost problem worth an issue.
-- `GUEST_DEFAULT_AGENT_MODEL` is a **hard-coded model id that can go stale**.
-  Today the client overrides it with `anyrouter:auto` at
-  `agent-runtime-provider.tsx`, so a dead default is masked. If a probe shows the
-  default itself 404s, file it as an issue with both call sites — never change
-  the default as a drive-by. The decision needs a human (see the 2026-09-27 run
-  note, `research-1.md`).
+- `GUEST_DEFAULT_AGENT_MODEL` is `anyrouter:auto`, a dynamic alias, so it does
+  not go stale. The web client no longer overrides the model for guests; the
+  server (`hardenGuestAgentRequest`) forces the default. If a probe shows the
+  default 404s or 402s, that is a gateway/account fact, not a code bug.
 - Never log a token, key, cookie, or user id. Aggregate counts only.
 
 ## 5. When something is broken
