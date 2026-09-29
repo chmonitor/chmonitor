@@ -28,8 +28,20 @@
  */
 
 import type { AlertSeverityFloor } from './alert-channel-settings'
+import type { AlertConfigChannel } from './alert-config-channels'
 import type { HealthSqlDb } from './sql-db'
 
+import { isAlertConfigChannel } from './alert-config-channels'
+import {
+  mergeSources,
+  type Sourced,
+  type SourceLayer,
+} from './declarative/merge'
+import {
+  isAllowedDeclaredUrl,
+  readHealthConfigLayers,
+  resolveSecretEnv,
+} from './declarative/sources'
 import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
 
@@ -41,42 +53,11 @@ const warn = (msg: string) =>
 
 const TABLE = 'alert_channel_config'
 
-/**
- * Every outbound delivery channel that can be persisted here. Superset of
- * `AlertChannelId`'s server-reachable members plus `twilio` (which keeps its
- * own severity floor and is excluded from the generic `ChannelSettingsMap`).
- * `browser` / `pagerduty` are intentionally absent: browser notifications are
- * per-browser (localStorage), and PagerDuty is configured per-route in
- * `alert_routes`, not as a single global destination.
- */
-export type AlertConfigChannel =
-  | 'webhook'
-  | 'healthchecks'
-  | 'email'
-  | 'opsgenie'
-  | 'telegram'
-  | 'ntfy'
-  | 'pushover'
-  | 'twilio'
-
-/** Ordered channel list — the UI iterates this, parsing validates against it. */
-export const ALERT_CONFIG_CHANNELS: readonly AlertConfigChannel[] = [
-  'webhook',
-  'healthchecks',
-  'email',
-  'opsgenie',
-  'telegram',
-  'ntfy',
-  'pushover',
-  'twilio',
-]
-
-export function isAlertConfigChannel(v: unknown): v is AlertConfigChannel {
-  return (
-    typeof v === 'string' &&
-    (ALERT_CONFIG_CHANNELS as readonly string[]).includes(v)
-  )
-}
+export {
+  ALERT_CONFIG_CHANNELS,
+  type AlertConfigChannel,
+  isAlertConfigChannel,
+} from './alert-config-channels'
 
 /**
  * One channel's persisted config. `target` holds the channel's non-secret
@@ -167,11 +148,32 @@ export const D1_UPSERT_CHANNEL_CONFIG_SQL = `INSERT INTO ${TABLE}
      updated_at = excluded.updated_at`
 
 /**
- * List every channel config for an owner, best-effort. Returns `[]` when D1
- * isn't configured (self-hosted/OSS default) or on any store error — NEVER
- * throws, so a config-table hiccup can never break the sweep or the settings UI.
+ * List every channel config for an owner: the DB rows merged with the
+ * declarative `channels.yaml` layer (#3497) — union by `channel`, the DB row
+ * winning field by field (an empty DB secret keeps the file's secret). A
+ * channel with no entry in any source falls back to its env reader in
+ * `resolveServerChannels`. Best-effort: NEVER throws, so a config-table hiccup
+ * can never break the sweep or the settings UI.
  */
 export async function listChannelConfigs(
+  ownerId: string
+): Promise<Sourced<AlertChannelConfig>[]> {
+  const [rows, declared] = await Promise.all([
+    listDbChannelConfigs(ownerId),
+    declarativeChannelConfigs(),
+  ])
+  return mergeSources(
+    [...declared, { source: 'd1', entries: rows }],
+    (config) => config.channel,
+    'union'
+  )
+}
+
+/**
+ * The DB rows only — `[]` when D1 isn't configured or on any store error.
+ * Write paths read this, never the merged view.
+ */
+async function listDbChannelConfigs(
   ownerId: string
 ): Promise<AlertChannelConfig[]> {
   try {
@@ -194,12 +196,15 @@ export async function listChannelConfigs(
   }
 }
 
-/** Read one channel's config, best-effort. Returns `null` when absent or on error. */
+/**
+ * Read one channel's stored DB row, best-effort. Returns `null` when absent or
+ * on error. The upsert re-reads through this, so it reports what was written.
+ */
 export async function getChannelConfig(
   ownerId: string,
   channel: AlertConfigChannel
 ): Promise<AlertChannelConfig | null> {
-  const all = await listChannelConfigs(ownerId)
+  const all = await listDbChannelConfigs(ownerId)
   return all.find((c) => c.channel === channel) ?? null
 }
 
@@ -283,4 +288,41 @@ export async function deleteChannelConfig(
     warn(`failed to delete ${channel} config for owner ${ownerId}: ${err}`)
     return false
   }
+}
+
+// ---------------------------------------------------------------------------
+// Declarative reader: Channel config — merge key `channel`
+// ---------------------------------------------------------------------------
+
+const URL_TARGET_CHANNELS = new Set(['webhook', 'healthchecks', 'ntfy'])
+
+async function declarativeChannelConfigs(): Promise<
+  SourceLayer<AlertChannelConfig>[]
+> {
+  const out: SourceLayer<AlertChannelConfig>[] = []
+  for (const layer of await readHealthConfigLayers()) {
+    const entries: AlertChannelConfig[] = []
+    for (const c of Object.values(layer.data.channels)) {
+      const url = c.target.url?.trim()
+      if (
+        URL_TARGET_CHANNELS.has(c.channel) &&
+        url &&
+        !(await isAllowedDeclaredUrl('channel', c.channel, url))
+      ) {
+        continue
+      }
+      entries.push({
+        channel: c.channel,
+        enabled: c.enabled,
+        minSeverity: c.minSeverity,
+        target: { ...c.target },
+        secret: c.secretEnv
+          ? resolveSecretEnv('channel', c.channel, c.secretEnv) || null
+          : null,
+        updatedAt: 0,
+      })
+    }
+    out.push({ source: layer.source, entries })
+  }
+  return out
 }

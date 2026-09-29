@@ -18,6 +18,10 @@ import type { QuietHoursInfo } from '@/lib/hooks/use-quiet-hours'
 
 import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
 import { useState } from 'react'
+import {
+  DeclarativeSourceBadge,
+  isDeclarativeSource,
+} from '@/components/health/declarative-source-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -114,14 +118,18 @@ function QuietHoursRow({
             : 'Silences all alerts'}
         </span>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={busy || !canWrite}
-        onClick={handleDelete}
-      >
-        Delete
-      </Button>
+      {isDeclarativeSource(window.source) ? (
+        <DeclarativeSourceBadge source={window.source} />
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy || !canWrite}
+          onClick={handleDelete}
+        >
+          Delete
+        </Button>
+      )}
     </div>
   )
 }

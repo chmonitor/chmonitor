@@ -324,7 +324,7 @@ describe('quiet-hours d1 store', () => {
 
     expect(created.days).toEqual([1, 3, 5])
     const listed = await listQuietHours('owner-roundtrip')
-    expect(listed).toEqual([created])
+    expect(listed).toEqual([{ ...created, source: 'd1' }])
   })
 
   test('createQuietHours rejects empty days', async () => {

@@ -22,19 +22,15 @@
 
 import type { z } from 'zod'
 
+import type { HealthConfigEnvOptions } from './env-layer'
 import type {
   HealthConfigConcern,
   HealthConfigData,
-  HealthConfigEnvData,
   HealthConfigLayer,
   HealthConfigSkip,
 } from './schema'
 
-import { loadEnvCustomWebhookTargets } from '../custom-webhook-env'
-import {
-  getServerDigestWindowMinutes,
-  getServerThresholdOverrides,
-} from '../server-alert-config'
+import { loadHealthConfigEnv } from './env-layer'
 import {
   declarativeChannelSchema,
   declarativeCustomRuleSchema,
@@ -51,6 +47,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { warn } from '@chm/logger'
 import { parse as parseYaml } from 'yaml'
+
+export { type HealthConfigEnvOptions, loadHealthConfigEnv } from './env-layer'
 
 export const DEFAULT_HEALTH_CONFIG_DIRECTORY = '/etc/chmonitor/health.d'
 
@@ -276,42 +274,6 @@ export function loadHealthConfigFiles(
   }
 
   return { data, files, skipped }
-}
-
-export interface HealthConfigEnvOptions {
-  /** Rule ids to probe for `HEALTH_THRESHOLD_<RULE>_WARNING|CRITICAL`. */
-  ruleIds?: readonly string[]
-}
-
-/**
- * The env layer, built from the existing parsers so env semantics stay
- * defined in one place: `getServerThresholdOverrides`,
- * `loadEnvCustomWebhookTargets` (`HEALTH_ALERT_WEBHOOK_TARGETS`), and
- * `getServerDigestWindowMinutes` (`HEALTH_ALERT_DIGEST_MINUTES`). Settings
- * with no env form yet stay empty.
- */
-export function loadHealthConfigEnv(
-  options: HealthConfigEnvOptions = {}
-): HealthConfigEnvData {
-  const env = typeof process !== 'undefined' ? process.env : {}
-  const data: HealthConfigEnvData = {
-    ...emptyHealthConfigData(),
-    webhookTargets: {},
-  }
-
-  for (const [rule, override] of Object.entries(
-    getServerThresholdOverrides(options.ruleIds ?? [])
-  )) {
-    data.thresholds[rule] = override
-  }
-  for (const target of loadEnvCustomWebhookTargets(env)) {
-    data.webhookTargets[target.id] = target
-  }
-  if (env.HEALTH_ALERT_DIGEST_MINUTES?.trim()) {
-    const windowMinutes = getServerDigestWindowMinutes()
-    data.digest = { enabled: windowMinutes > 0, windowMinutes }
-  }
-  return data
 }
 
 export interface HealthConfigLayers {

@@ -1,7 +1,9 @@
 /**
  * Effective custom-webhook configuration for the server sweep and settings UI.
- * D1 rows override Helm/GitOps rows by name; an explicit disabled D1 row hides
- * the Helm row until it is deleted/reset. Secret URLs stay server-side.
+ * Three sources merged by `id` through the shared `mergeSources` (#3497):
+ * DB rows › `channels.yaml` › `HEALTH_ALERT_WEBHOOK_TARGETS` (env ids are
+ * `env:<name>`). Declarative targets are read-only; secret URLs stay
+ * server-side.
  */
 
 import type {
@@ -9,8 +11,9 @@ import type {
   CustomWebhookTarget,
   CustomWebhookTargetPublic,
 } from './custom-webhook-targets'
+import type { HealthDefinitionSource, SourceLayer } from './declarative/merge'
 
-import { loadEnvCustomWebhookTargets } from './custom-webhook-env'
+import { buildDeclaredWebhookTarget } from './custom-webhook-env'
 import {
   type CustomWebhookTargetRow,
   isCustomWebhookStoreConfigured,
@@ -20,9 +23,11 @@ import {
   redactWebhookUrl,
   sanitizeCustomHeaders,
 } from './custom-webhook-targets'
+import { mergeSources } from './declarative/merge'
+import { readHealthConfigLayers, warnOnce } from './declarative/sources'
 
 export interface EffectiveCustomWebhookTarget extends CustomWebhookTarget {
-  source: 'd1' | 'helm'
+  source: HealthDefinitionSource
   editable: boolean
 }
 
@@ -50,23 +55,20 @@ function rowToTarget(row: CustomWebhookTargetRow): CustomWebhookTarget {
 export async function listEffectiveCustomWebhookConfig(
   ownerId: string
 ): Promise<EffectiveCustomWebhookConfig> {
-  const envTargets = loadEnvCustomWebhookTargets()
-  const d1Rows = await listCustomWebhookTargets(ownerId)
-  const byName = new Map<string, EffectiveCustomWebhookTarget>()
-
-  for (const target of envTargets) {
-    byName.set(target.name, { ...target, source: 'helm', editable: false })
-  }
-  for (const row of d1Rows) {
-    byName.set(row.name, {
-      ...rowToTarget(row),
-      source: 'd1',
-      editable: true,
-    })
-  }
+  const [d1Rows, declared] = await Promise.all([
+    listCustomWebhookTargets(ownerId),
+    declarativeWebhookTargets(),
+  ])
+  const merged = mergeSources(
+    [...declared, { source: 'd1', entries: d1Rows.map(rowToTarget) }],
+    (target) => target.id,
+    'union'
+  )
 
   return {
-    targets: [...byName.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    targets: merged
+      .map((target) => ({ ...target, editable: target.source === 'd1' }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
     storage: isCustomWebhookStoreConfigured() ? 'ok' : 'unavailable',
   }
 }
@@ -89,4 +91,44 @@ export function toPublicCustomWebhookTarget(
     source: target.source,
     editable: target.editable,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Declarative reader: Custom webhook targets — merge key `id`
+// ---------------------------------------------------------------------------
+
+async function declarativeWebhookTargets(): Promise<
+  SourceLayer<CustomWebhookTarget>[]
+> {
+  return (await readHealthConfigLayers()).map((layer) => {
+    if (layer.source === 'env') {
+      // Already resolved and validated by `loadEnvCustomWebhookTargets`.
+      return {
+        source: layer.source,
+        entries: Object.values(layer.data.webhookTargets),
+      }
+    }
+    const entries: CustomWebhookTarget[] = []
+    for (const t of Object.values(layer.data.webhookTargets)) {
+      const target = buildDeclaredWebhookTarget({
+        id: t.id,
+        name: t.name,
+        urlEnv: t.urlEnv,
+        headersEnv: t.headersEnv,
+        enabled: t.enabled,
+        format: t.format,
+        minSeverity: t.minSeverity,
+        titleTemplate: t.titleTemplate,
+        bodyTemplate: t.bodyTemplate,
+        headers: t.headers,
+      })
+      if (target) entries.push(target)
+      else {
+        warnOnce(
+          `[health-config] Skipping webhook target "${t.id}": env var ${t.urlEnv} is unset or not an HTTPS URL, or the entry is invalid`
+        )
+      }
+    }
+    return { source: layer.source, entries }
+  })
 }

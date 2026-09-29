@@ -15,7 +15,8 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import type { AlertRouteProvider } from '@/lib/health/alert-routing'
+import type { AlertRoute, AlertRouteProvider } from '@/lib/health/alert-routing'
+import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
 
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import {
@@ -27,6 +28,7 @@ import {
   requiresSignInForWrite,
   resolveAlertRoutingOwnerId,
 } from '@/lib/health/alert-routing-auth'
+import { redactWebhookUrl } from '@/lib/health/custom-webhook-targets'
 import { PAGERDUTY_EVENTS_API_URL } from '@/lib/health/pagerduty-config'
 
 function jsonError(message: string, status: number): Response {
@@ -45,12 +47,20 @@ function maskRoutingKey(key: string): string {
   return `••••${key.slice(-4)}`
 }
 
-function toPublicRoute(route: Awaited<ReturnType<typeof listRoutes>>[number]) {
+function toPublicRoute(
+  route: AlertRoute & { source?: HealthDefinitionSource }
+) {
+  // A declarative route (#3497) resolved its URL from an env var the operator
+  // keeps in a Secret, so it is redacted rather than echoed like a UI row.
+  const source = route.source ?? 'd1'
   return {
     id: route.id,
     matchRule: route.matchRule,
     matchHost: route.matchHost,
-    channelUrl: route.channelUrl,
+    channelUrl:
+      source === 'd1' || !route.channelUrl
+        ? route.channelUrl
+        : redactWebhookUrl(route.channelUrl),
     enabled: route.enabled,
     createdAt: route.createdAt,
     provider: route.provider,
@@ -83,6 +93,8 @@ function toPublicRoute(route: Awaited<ReturnType<typeof listRoutes>>[number]) {
     // Per-route severity floor (#2661): `null` = inherit the channel/global
     // gate. Not a secret — returned as-is so the UI can show/edit it.
     minSeverity: route.minSeverity,
+    // `file` / `env` routes are read-only: delete them from their source.
+    source,
   }
 }
 

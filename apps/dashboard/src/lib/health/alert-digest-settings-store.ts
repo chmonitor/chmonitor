@@ -17,8 +17,13 @@
 
 import type { HealthSqlDb } from './sql-db'
 
+import {
+  mergeSources,
+  type Sourced,
+  type SourceLayer,
+} from './declarative/merge'
+import { readHealthConfigLayers } from './declarative/sources'
 import { getHealthDb } from './resolve-store'
-import { getServerDigestWindowMinutes } from './server-alert-config'
 import { ErrorLogger } from '@chm/logger'
 
 const COMPONENT = 'alert-digest-settings'
@@ -134,14 +139,45 @@ export async function setDigestSettings(
 }
 
 /**
- * Resolve the effective buffer window in minutes for the sweep: the persisted
- * D1 setting when a row exists (0 when it exists but is disabled), otherwise the
- * `HEALTH_ALERT_DIGEST_MINUTES` env fallback. `0` = time-window mode off.
+ * The effective digest settings: a SINGLE value (#3497) — the highest source
+ * that sets it wins outright: DB row › `digest.yaml` › the
+ * `HEALTH_ALERT_DIGEST_MINUTES` env var. `null` when no source sets it (the
+ * built-in default: time-window mode off). Never throws.
+ */
+export async function resolveDigestSettings(
+  ownerId = ''
+): Promise<Sourced<DigestSettings> | null> {
+  const [row, declared] = await Promise.all([
+    getDigestSettings(ownerId),
+    declarativeDigest(),
+  ])
+  const [winner] = mergeSources(
+    [...declared, { source: 'd1', entries: row ? [row] : [] }],
+    () => DIGEST_KEY,
+    'single'
+  )
+  return winner ?? null
+}
+
+/**
+ * Resolve the effective buffer window in minutes for the sweep from
+ * {@link resolveDigestSettings} (0 when the winning source disables it).
+ * `0` = time-window mode off.
  */
 export async function resolveDigestWindowMinutes(
   ownerId = ''
 ): Promise<number> {
-  const row = await getDigestSettings(ownerId)
-  if (row) return row.enabled ? row.windowMinutes : 0
-  return getServerDigestWindowMinutes()
+  const settings = await resolveDigestSettings(ownerId)
+  return settings?.enabled ? settings.windowMinutes : 0
+}
+
+// ---------------------------------------------------------------------------
+// Declarative reader: Digest settings — single value, key `__digest__`
+// ---------------------------------------------------------------------------
+
+async function declarativeDigest(): Promise<SourceLayer<DigestSettings>[]> {
+  return (await readHealthConfigLayers()).map((layer) => ({
+    source: layer.source,
+    entries: layer.data.digest ? [{ ...layer.data.digest }] : [],
+  }))
 }

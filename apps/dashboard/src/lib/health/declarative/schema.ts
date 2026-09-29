@@ -25,7 +25,7 @@ import { z } from 'zod'
 
 import type { CustomWebhookTarget } from '../custom-webhook-targets'
 
-import { ALERT_CONFIG_CHANNELS } from '../alert-channel-config-store'
+import { ALERT_CONFIG_CHANNELS } from '../alert-config-channels'
 import {
   CUSTOM_WEBHOOK_FORMATS,
   sanitizeCustomHeaders,

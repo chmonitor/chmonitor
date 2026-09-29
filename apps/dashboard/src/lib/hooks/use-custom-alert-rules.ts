@@ -7,6 +7,8 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
+import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
+
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
@@ -19,6 +21,8 @@ export interface CustomAlertRuleInfo {
   critical: number
   enabled: boolean
   createdAt: number
+  /** `file`/`env` definitions are read-only (#3497); absent = `d1`. */
+  source?: HealthDefinitionSource
 }
 
 export interface MetricCatalogEntryInfo {

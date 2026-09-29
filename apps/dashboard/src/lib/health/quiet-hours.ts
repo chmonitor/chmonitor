@@ -27,6 +27,12 @@
 
 import type { HealthSqlDb } from './sql-db'
 
+import {
+  mergeSources,
+  type Sourced,
+  type SourceLayer,
+} from './declarative/merge'
+import { readHealthConfigLayers } from './declarative/sources'
 import { getHealthDb } from './resolve-store'
 import { isPostgresHealthDb } from './sql-db'
 import { ErrorLogger } from '@chm/logger'
@@ -386,10 +392,27 @@ function validateInput(input: CreateQuietHoursInput): void {
 }
 
 /**
- * List every quiet-hours window for an owner. Best-effort: degrades to `[]`
- * when no D1 binding resolves or the read fails.
+ * List every quiet-hours window for an owner: the DB rows merged with the
+ * declarative `quiet-hours.yaml` layer (#3497) — union by `id`, the DB row
+ * winning field by field. Best-effort: a missing or failing DB contributes no
+ * rows and the declarative windows still apply.
  */
-export async function listQuietHours(ownerId: string): Promise<QuietHours[]> {
+export async function listQuietHours(
+  ownerId: string
+): Promise<Sourced<QuietHours>[]> {
+  const [rows, declared] = await Promise.all([
+    listDbQuietHours(ownerId),
+    declarativeQuietHours(ownerId),
+  ])
+  return mergeSources(
+    [...declared, { source: 'd1', entries: rows }],
+    (window) => window.id,
+    'union'
+  )
+}
+
+/** The DB rows only (30s-cached) — `[]` without a DB or on any error. */
+async function listDbQuietHours(ownerId: string): Promise<QuietHours[]> {
   const cached = cache.get(ownerId)
   if (cached && cached.expiresAt > Date.now()) return cached.windows
 
@@ -494,4 +517,27 @@ export async function deleteQuietHours(
   } catch (err) {
     warn(`failed to delete quiet hours ${id} for owner ${ownerId}: ${err}`)
   }
+}
+
+// ---------------------------------------------------------------------------
+// Declarative reader: Quiet hours — merge key `id`
+// ---------------------------------------------------------------------------
+
+async function declarativeQuietHours(
+  ownerId: string
+): Promise<SourceLayer<QuietHours>[]> {
+  return (await readHealthConfigLayers()).map((layer) => ({
+    source: layer.source,
+    entries: Object.values(layer.data.quietHours).map((q) => ({
+      id: q.id,
+      ownerId,
+      days: [...q.days],
+      start: q.start,
+      end: q.end,
+      timezone: q.timezone,
+      severityCap: q.severityCap,
+      createdBy: layer.source,
+      createdAt: 0,
+    })),
+  }))
 }

@@ -22,6 +22,7 @@ mock.module('sonner', () => ({
 type ConfigAnswer = 'pending' | 'none' | 'd1' | 'absent'
 let configAnswer: ConfigAnswer = 'pending'
 let rulesStatus = 200
+let rulesData: unknown[] = []
 const realFetch = globalThis.fetch
 
 function json(body: unknown, status = 200): Response {
@@ -65,7 +66,7 @@ beforeAll(() => {
           { success: false, error: { code: 'NOT_CONFIGURED', message: 'x' } },
           501
         )
-      return json({ success: true, data: [] })
+      return json({ success: true, data: rulesData })
     }
     return json({})
   }) as typeof fetch
@@ -80,6 +81,7 @@ afterEach(() => {
   document.body.replaceChildren()
   configAnswer = 'pending'
   rulesStatus = 200
+  rulesData = []
 })
 
 async function render() {
@@ -144,6 +146,34 @@ describe('RuleBuilderPanel write gating (#3495)', () => {
     const c = await render()
     expect(saveButton(c)).toBeUndefined()
     expect(c.querySelector('[data-health-store="unavailable"]')).not.toBeNull()
+  })
+
+  // #3497: with no DB, rules from the health config directory still fire, so
+  // the panel lists them (read-only, no Delete) instead of hiding them.
+  test('unavailable with declarative rules lists them read-only, no Save', async () => {
+    configAnswer = 'none'
+    rulesData = [
+      {
+        id: 'custom:disk',
+        name: 'Disk nearly full',
+        metric: 'disk',
+        op: '>=',
+        warning: 80,
+        critical: 90,
+        enabled: true,
+        createdAt: 0,
+        source: 'file',
+      },
+    ]
+    const c = await render()
+    expect(c.textContent).toContain('Disk nearly full')
+    expect(c.textContent).toContain('Config file')
+    expect(
+      [...c.querySelectorAll('button')].some(
+        (b) => b.textContent?.trim() === 'Delete'
+      )
+    ).toBe(false)
+    expect(saveButton(c)).toBeUndefined()
   })
 
   test('a 501 from the store vetoes a declared d1 backend', async () => {

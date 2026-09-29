@@ -23,6 +23,12 @@
 
 import type { HealthSqlDb } from './sql-db'
 
+import {
+  mergeSources,
+  type Sourced,
+  type SourceLayer,
+} from './declarative/merge'
+import { readHealthConfigLayers } from './declarative/sources'
 import { getHealthDb } from './resolve-store'
 import { isPostgresHealthDb } from './sql-db'
 import { ErrorLogger } from '@chm/logger'
@@ -164,12 +170,28 @@ export function isSuppressed(
 
 /**
  * List every maintenance window for an owner (past, current, and upcoming —
- * callers filter to "active" via `isSuppressed`). Best-effort: degrades to
- * `[]` when no D1 binding resolves or the read fails.
+ * callers filter to "active" via `isSuppressed`): the DB rows plus the
+ * declarative `maintenance.yaml` windows (#3497), merged as a TIME UNION —
+ * windows from every source are active at once, and only a shared `id` is
+ * shadowed (whole window, never field by field). Best-effort: a missing or
+ * failing DB contributes no rows and the declarative windows still apply.
  */
 export async function listWindows(
   ownerId: string
-): Promise<MaintenanceWindow[]> {
+): Promise<Sourced<MaintenanceWindow>[]> {
+  const [rows, declared] = await Promise.all([
+    listDbWindows(ownerId),
+    declarativeMaintenanceWindows(ownerId),
+  ])
+  return mergeSources(
+    [...declared, { source: 'd1', entries: rows }],
+    (window) => window.id,
+    'time-union'
+  )
+}
+
+/** The DB rows only (30s-cached) — `[]` without a DB or on any error. */
+async function listDbWindows(ownerId: string): Promise<MaintenanceWindow[]> {
   const cached = cache.get(ownerId)
   if (cached && cached.expiresAt > Date.now()) return cached.windows
 
@@ -272,4 +294,26 @@ export async function deleteWindow(ownerId: string, id: string): Promise<void> {
   } catch (err) {
     warn(`failed to delete window ${id} for owner ${ownerId}: ${err}`)
   }
+}
+
+// ---------------------------------------------------------------------------
+// Declarative reader: Maintenance windows — merge key `id`, time-union
+// ---------------------------------------------------------------------------
+
+async function declarativeMaintenanceWindows(
+  ownerId: string
+): Promise<SourceLayer<MaintenanceWindow>[]> {
+  return (await readHealthConfigLayers()).map((layer) => ({
+    source: layer.source,
+    entries: Object.values(layer.data.maintenanceWindows).map((w) => ({
+      id: w.id,
+      ownerId,
+      hostId: w.hostId,
+      reason: w.reason,
+      startsAt: Date.parse(w.startsAt),
+      endsAt: Date.parse(w.endsAt),
+      createdBy: layer.source,
+      createdAt: 0,
+    })),
+  }))
 }

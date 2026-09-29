@@ -129,8 +129,9 @@ export interface CustomWebhookTargetPublic {
   updatedAt: number
   urlConfigured: boolean
   urlMasked: string
-  source: 'd1' | 'helm'
-  /** Helm-managed rows are read-only in the UI; D1 rows can be overridden. */
+  /** Highest source that defined the target (#3497). */
+  source: 'd1' | 'file' | 'env'
+  /** Declarative (`file`/`env`) rows are read-only in the UI; D1 rows are editable. */
   editable: boolean
 }
 

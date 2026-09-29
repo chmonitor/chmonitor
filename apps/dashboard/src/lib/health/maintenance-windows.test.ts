@@ -182,7 +182,7 @@ describe('maintenance-windows d1 store', () => {
     })
 
     const listed = await listWindows('owner-roundtrip')
-    expect(listed).toEqual([created])
+    expect(listed).toEqual([{ ...created, source: 'd1' }])
   })
 
   test('createWindow rejects endsAt <= startsAt', async () => {

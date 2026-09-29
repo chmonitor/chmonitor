@@ -26,7 +26,7 @@ describe('custom webhook public config', () => {
         'X-Internal-Token': 'header-secret',
       },
       updatedAt: 0,
-      source: 'helm',
+      source: 'env',
       editable: false,
     })
 

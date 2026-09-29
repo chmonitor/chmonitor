@@ -21,7 +21,11 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import type { AlertConfigChannel } from '@/lib/health/alert-channel-config-store'
+import type {
+  AlertChannelConfig,
+  AlertConfigChannel,
+} from '@/lib/health/alert-channel-config-store'
+import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
 
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
@@ -63,7 +67,7 @@ function maskSecret(secret: string): string {
 }
 
 function toPublicChannelConfig(
-  config: Awaited<ReturnType<typeof listChannelConfigs>>[number]
+  config: AlertChannelConfig & { source?: HealthDefinitionSource }
 ) {
   return {
     channel: config.channel,
@@ -76,6 +80,9 @@ function toPublicChannelConfig(
     hasSecret: Boolean(config.secret),
     secretMasked: config.secret ? maskSecret(config.secret) : null,
     updatedAt: config.updatedAt,
+    // `file` channels are read-only: change them in channels.yaml. A D1 row
+    // for the same channel overrides the file field by field.
+    source: config.source ?? 'd1',
   }
 }
 

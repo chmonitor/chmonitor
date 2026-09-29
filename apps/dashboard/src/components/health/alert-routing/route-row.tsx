@@ -4,6 +4,10 @@ import type { AlertRouteInfo } from '@/lib/hooks/use-alert-routes'
 
 import { TEST_ALERT } from './types'
 import { useState } from 'react'
+import {
+  DeclarativeSourceBadge,
+  isDeclarativeSource,
+} from '@/components/health/declarative-source-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { fireNtfyTest, fireWebhook } from '@/lib/health/alert-dispatcher'
@@ -129,7 +133,9 @@ export function RouteRow({
         <Button variant="ghost" size="sm" disabled={busy} onClick={handleTest}>
           Send test
         </Button>
-        {confirming ? (
+        {isDeclarativeSource(route.source) ? (
+          <DeclarativeSourceBadge source={route.source} />
+        ) : confirming ? (
           <div className="flex items-center gap-1">
             <span className="mr-1 text-xs text-destructive">Delete?</span>
             <Button

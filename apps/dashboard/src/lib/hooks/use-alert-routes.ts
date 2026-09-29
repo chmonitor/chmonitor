@@ -9,6 +9,8 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
+import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
+
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
@@ -48,6 +50,8 @@ export interface AlertRouteInfo {
   pushoverTokenMasked: string | null
   /** Per-route severity floor (#2661); `null` = inherit the channel/global gate. */
   minSeverity: 'warning' | 'critical' | null
+  /** `file`/`env` definitions are read-only (#3497); absent = `d1`. */
+  source?: HealthDefinitionSource
 }
 
 export const ALERT_ROUTES_QUERY_KEY = ['/api/v1/health/routes'] as const
