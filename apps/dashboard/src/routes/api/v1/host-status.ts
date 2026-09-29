@@ -22,6 +22,15 @@ const QUERY_COMMENT = '/* { "client": "clickhouse-monitoring" } */\n'
  */
 const HOST_STATUS_CACHE_TTL_SECONDS = 60
 
+// HTTP layer, NOT the 60s query cache above (upstream, and 60s is right there).
+// With no policy here a shared cache stores the 200 and replays it for its whole
+// TTL, so a dead host reads `up` with a frozen `uptime` for minutes of real
+// outage (#3529) — and this route is what the host switcher and the prod-watch
+// playbook trust for "is the host up". Same value as /api/healthz.
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+}
+
 export const Route = createFileRoute('/api/v1/host-status')({
   server: {
     handlers: {
@@ -42,7 +51,7 @@ export const Route = createFileRoute('/api/v1/host-status')({
         if (hostIdRaw === null || hostIdRaw === '') {
           return Response.json(
             { success: false, error: 'hostId query parameter is required' },
-            { status: 400 }
+            { status: 400, headers: NO_STORE_HEADERS }
           )
         }
 
@@ -50,7 +59,7 @@ export const Route = createFileRoute('/api/v1/host-status')({
         if (!Number.isInteger(hostId) || hostId < 0) {
           return Response.json(
             { success: false, error: 'hostId must be a non-negative integer' },
-            { status: 400 }
+            { status: 400, headers: NO_STORE_HEADERS }
           )
         }
 
@@ -61,16 +70,19 @@ export const Route = createFileRoute('/api/v1/host-status')({
         // principal can only be the hidden env/demo host. No-op for OSS and
         // anonymous cloud callers (both legitimately use hostId=0).
         if (await isDemoHostBlockedForRequest(hostId, bindings)) {
-          return Response.json({
-            success: true,
-            data: { version: '', uptime: '', hostname: '' },
-            metadata: {
-              unavailable: {
-                reason: 'demo_hidden',
-                message: 'The demo host is hidden for signed-in accounts.',
+          return Response.json(
+            {
+              success: true,
+              data: { version: '', uptime: '', hostname: '' },
+              metadata: {
+                unavailable: {
+                  reason: 'demo_hidden',
+                  message: 'The demo host is hidden for signed-in accounts.',
+                },
               },
             },
-          })
+            { headers: NO_STORE_HEADERS }
+          )
         }
 
         const configs = getClickHouseConfigsFromEnv(bindings)
@@ -81,7 +93,7 @@ export const Route = createFileRoute('/api/v1/host-status')({
               success: false,
               error: `hostId ${hostId} is out of range (${configs.length} host(s) configured)`,
             },
-            { status: 400 }
+            { status: 400, headers: NO_STORE_HEADERS }
           )
         }
 
@@ -278,10 +290,13 @@ ORDER BY t`,
             }
           }
 
-          return Response.json({
-            success: true,
-            data: { version, uptime, hostname, ...counts },
-          })
+          return Response.json(
+            {
+              success: true,
+              data: { version, uptime, hostname, ...counts },
+            },
+            { headers: NO_STORE_HEADERS }
+          )
         } catch (err) {
           error('[GET /api/v1/host-status] Error:', err)
           // An unreachable upstream is a 503/504, not a 500.
@@ -291,7 +306,10 @@ ORDER BY t`,
               success: false,
               error: message || 'Failed to fetch host status',
             },
-            { status: getStatusCodeForErrorType(type) }
+            {
+              status: getStatusCodeForErrorType(type),
+              headers: NO_STORE_HEADERS,
+            }
           )
         }
       },
