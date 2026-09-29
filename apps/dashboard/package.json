@@ -117,7 +117,7 @@
     "dedent": "^1.7.2",
     "embla-carousel-react": "^8.6.0",
     "highlight.js": "^11.11.1",
-    "ip-address": "^10.3.1",
+    "ip-address": "^10.5.1",
     "lru-cache": "^11.5.0",
     "lucide-react": "^1.21.0",
     "motion": "^12.40.0",
