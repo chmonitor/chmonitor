@@ -96,16 +96,22 @@ const insightsGroup: MenuItemType = {
 
 async function mount({
   item = insightsGroup,
+  pathname = '/',
+  direct = false,
   dimUnavailablePages = false,
   missingTables = {},
 }: {
   item?: MenuItemType
+  pathname?: string
+  /** Render CollapsedSubmenu itself, bypassing MenuItem's own empty-group guard. */
+  direct?: boolean
   dimUnavailablePages?: boolean
   missingTables?: Record<string, boolean>
 } = {}) {
   const { act } = await import('react')
   const { createRoot } = await import('react-dom/client')
   const { MenuItem } = await import('./menu-item')
+  const { CollapsedSubmenu } = await import('./collapsed-submenu')
   const { SidebarProvider, SidebarMenu } = await import(
     '@/components/ui/sidebar'
   )
@@ -154,7 +160,15 @@ async function mount({
       <QueryClientProvider client={queryClient}>
         <SidebarProvider defaultOpen={false}>
           <SidebarMenu>
-            <MenuItem item={item} pathname="/" />
+            {direct ? (
+              <CollapsedSubmenu
+                item={item}
+                pathname={pathname}
+                trigger={<button type="button">trigger</button>}
+              />
+            ) : (
+              <MenuItem item={item} pathname={pathname} />
+            )}
           </SidebarMenu>
         </SidebarProvider>
       </QueryClientProvider>
@@ -279,6 +293,40 @@ describe('collapsed submenu availability hiding (#3463)', () => {
       expect(m.container.querySelector('button')).toBeNull()
       await m.openFlyout()
       expect(m.flyoutRows()).toEqual([])
+    } finally {
+      await m.cleanup()
+    }
+  })
+})
+
+describe('CollapsedSubmenu used directly (visible children drive the flyout)', () => {
+  const nested: MenuItemType = {
+    title: 'Insights',
+    href: '',
+    items: [
+      { title: 'Insights', href: '/insights' },
+      {
+        title: 'Traffic',
+        href: '/insights/traffic',
+        tableCheck: 'system.query_log',
+      },
+    ],
+  }
+
+  // MenuItem returns null for an empty group, so only a direct mount reaches
+  // CollapsedSubmenu's own guard. With every child hidden it must fall back to
+  // the bare trigger, not an empty popover.
+  test('all children hidden -> bare trigger, no popover', async () => {
+    const m = await mount({
+      item: { ...nested, items: [nested.items![1]] },
+      direct: true,
+      missingTables: { 'system.query_log': false },
+    })
+    try {
+      await m.render()
+      await m.openFlyout()
+      expect(m.container.querySelector('button')).not.toBeNull()
+      expect(document.querySelector('[data-slot="popover-content"]')).toBeNull()
     } finally {
       await m.cleanup()
     }
