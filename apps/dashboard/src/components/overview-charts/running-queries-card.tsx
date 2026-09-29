@@ -1,6 +1,7 @@
 import { Activity } from 'lucide-react'
 
 import { KpiCard } from './kpi-card'
+import { detectCardErrorVariant } from '@/lib/card-error-utils'
 import { useChartData } from '@/lib/query/use-chart-data'
 import { REFRESH_INTERVAL, useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
@@ -40,10 +41,30 @@ export const RunningQueriesCard = function RunningQueriesCard() {
     refreshInterval: REFRESH_INTERVAL.SLOW_2M,
   })
 
+  // The user cannot read system.processes (e.g. the read-only demo): say so
+  // instead of showing a misleading "0 running".
+  const noAccess =
+    !!runningSwr.error &&
+    detectCardErrorVariant(runningSwr.error) === 'permission'
+
   const isLoading = runningSwr.isLoading || todaySwr.isLoading
   const runningCount = runningSwr.data?.[0]?.count ?? 0
   const todayCount = todaySwr.data?.[0]?.count ?? 0
   const spark = (trendSwr.data ?? []).map((d) => Number(d.query_count) || 0)
+
+  if (noAccess) {
+    return (
+      <KpiCard
+        icon={Activity}
+        tone="amber"
+        label="Active Queries"
+        value="—"
+        sub="No access to system.processes"
+        href={buildUrl('/running-queries', { host: hostId })}
+        isLoading={isLoading}
+      />
+    )
+  }
 
   return (
     <KpiCard

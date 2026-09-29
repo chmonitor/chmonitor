@@ -62,6 +62,12 @@ SETTINGS PROFILE 'chmonitor_readonly';
 GRANT SELECT ON system.* TO chmonitor;
 ```
 
+A user without this grant still works: each page or card that reads a table it
+cannot access shows a "permission denied" state (HTTP 403) instead of failing
+the whole dashboard. The Overview "Active Queries" card, running queries, and
+the long-running / OOM-killed health charts need `SELECT` on
+`system.processes`; grant it (or `system.*`) to enable them.
+
 If you also want to let chmonitor browse user databases (e.g. via the Explorer
 page), add grants for those databases:
 

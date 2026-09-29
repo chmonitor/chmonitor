@@ -83,7 +83,10 @@ export function classifyFetchError(errorMessage: string): FetchDataErrorType {
   // Permission errors
   if (
     errorMessage.toLowerCase().includes('permission') ||
-    errorMessage.toLowerCase().includes('access')
+    errorMessage.toLowerCase().includes('access') ||
+    // ClickHouse ACCESS_DENIED (code 497): "Not enough privileges. To execute
+    // this query, it's necessary to have the grant SELECT ... ON system.x"
+    errorMessage.toLowerCase().includes('not enough privileges')
   ) {
     return 'permission_error'
   }
