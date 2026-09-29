@@ -3,7 +3,7 @@ id: issue-desk
 title: Scheduled Herdr desk (external CLI)
 type: workflow
 status: active
-updated: 2026-09-28
+updated: 2026-09-29
 tags:
   - herdr
   - cron
@@ -34,18 +34,50 @@ herdr plugin action invoke herdr-desk.history   # per-fire ok/fail + error
 State: `.herdr-desk/runs/<task>/YYYY-MM-DD/` (gitignored), plus the ledger
 `~/.local/state/herdr/plugins/herdr-desk/runs.jsonl`.
 
-## The four jobs
+## The eight jobs
 
-| Job | Cron | Agent | Playbook |
-|---|---|---|---|
-| `desk:github-issues` | `0,30 * * * *` | `chm-desk` | bundled `github-issues` |
-| `local:babysit` | `10,40 * * * *` | `chm-babysit` | `docs/herdr-desk/babysit-prs.md` |
-| `local:prod` | `20,50 * * * *` | `chm-prod` | `docs/herdr-desk/prod-watch.md` |
-| `local:improve` | `17 2 * * *` | `chm-improve` | `docs/herdr-desk/improve.md` |
+| Job | Cron | Agent | Playbook | Owns |
+|---|---|---|---|---|
+| `desk:github-issues` | `0,30 * * * *` | `chm-desk` | bundled `github-issues` | triage, research, dispatch children |
+| `local:babysit` | `10,40 * * * *` | `chm-babysit` | `docs/herdr-desk/babysit-prs.md` | red required CI, review replies, auto-merge, worktree cleanup |
+| `local:prod` | `20,50 * * * *` | `chm-prod` | `docs/herdr-desk/prod-watch.md` | live-deploy verification, agent probe, usage, revert on regression |
+| `local:improve` | `17 2 * * *` | `chm-improve` | `docs/herdr-desk/improve.md` | desk health, dead code, slowdowns |
+| `local:secrets` | `6 6 * * *` | `chm-secrets` | `docs/herdr-desk/secrets.md` | every `secrets.*` a workflow references vs. what exists; workflows with zero successful runs |
+| `local:red-jobs` | `26 7 * * *` | `chm-redjobs` | `docs/herdr-desk/red-jobs.md` | the CI jobs babysit is forbidden to spend runs on; classifies each as repo defect or external fact |
+| `local:stale-issues` | `34 9 * * *` | `chm-stale` | `docs/herdr-desk/stale-issues.md` | closes stale-bot / fixed / superseded / duplicate issues with a reason |
+| `local:docs` | `46 3 * * *` | `chm-docs` | `docs/herdr-desk/docs-drift.md` | prose-named dead paths, dangling `related:` ids, stale notes |
 
 Minutes are staggered so two jobs never contend for the same slot, and each job
 has its **own `agentName`** because the agent name *is* the session identity:
-one name shared by two jobs means two prompts racing for one manager pane.
+one name shared by two jobs means two prompts racing for one manager pane. The
+new jobs' minutes (`6, 26, 34, 46`) were also checked against every other desk
+on this host, not just this repo.
+
+### Why the last four exist
+
+Each closes a specific hole where a failure is invisible *because* nothing
+depends on it — which is exactly what makes it rot.
+
+- **`local:secrets`.** `claude-issues.yml` referenced
+  `secrets.ANTHROPIC_API_KEY`, which was never in the repo. It failed **100
+  runs out of 100** across three days and nobody saw it, because no required
+  check depends on that workflow, so `local:babysit` never looks at it (#3488).
+  A referenced-but-absent secret is a one-line `comm` check; the job exists so
+  it stops being a one-line check nobody ever runs.
+- **`local:red-jobs`.** Babysit is *forbidden* to fix non-required checks. That
+  is right for throughput and wrong for ownership: with no owner, red
+  informational jobs decay into background noise. Its core duty is the
+  classification — a code defect gets an issue, an external fact (a gateway
+  `404 model_unavailable`) does not, because a stale "the eval is broken" issue
+  is itself rot.
+- **`local:stale-issues`.** `desk:github-issues` triages what *arrives*; nothing
+  pruned what accumulated. Issue #14 is a Renovate dashboard from 2023-11-18,
+  still open, listing PRs against a repository name this project no longer has.
+- **`local:docs`.** Splits doc drift in two so the halves do not duplicate.
+  `tests/repo/markdown-links.test.ts` **gates** relative markdown links in the
+  required `unit-tests` job. `local:docs` owns the three classes a deterministic
+  check cannot reach — paths named in prose, `related:` frontmatter ids with no
+  matching note, and notes that now contradict the code.
 
 ## Why the jobs are split this way
 
@@ -53,7 +85,9 @@ The 0.1.x desk had one job doing triage, CI fixing, review, and merges. It
 worked, but every duty competed for the same five child slots, so a busy issue
 queue silently starved PR maintenance. The split gives each duty its own budget
 and its own manager, and it makes "which job is broken" answerable — one row of
-`status` per job.
+`status` per job. The same reasoning drives the four later additions: a duty
+with no owner is a duty that silently rots, and adding capacity to the busiest
+job would only make the starvation worse.
 
 ## Two ways a desk dies silently
 

@@ -43,6 +43,50 @@
       "schedule": "20,50 * * * *",
       "describe": "Verify the live deploy, probe the agent, watch usage, revert on regression",
       "extra": "Read-only by default. You may verify, probe, and file issues. You may open a revert PR. You may run `wrangler rollback` only when `CLOUDFLARE_API_TOKEN` and `CHM_ALLOW_INSTANT_ROLLBACK=1` are both in the environment, and only when service is down now — and you must still open the revert PR afterwards so `main` and production converge. Never print a secret, token, cookie, or user id. Never change a model default or a quota as a drive-by; file it."
+    },
+    {
+      "id": "local:secrets",
+      "label": "Secret and workflow audit",
+      "playbook": "docs/herdr-desk/secrets.md",
+      "agentName": "chm-secrets",
+      "kind": "opencode",
+      "maxChildren": 1,
+      "schedule": "6 6 * * *",
+      "describe": "Diff every secrets.* referenced in .github/workflows against `gh secret list`; flag workflows with zero successful runs",
+      "extra": "Read-only. Never create, rotate, or delete a secret — that is a human decision. Never print a secret VALUE; `gh secret list` shows names only. A workflow nothing depends on can fail forever without any required check noticing, which is exactly how `Claude Issues` failed 100 runs out of 100 unnoticed. Never disable or delete a failing workflow to make the report clean. File one issue per distinct defect with the evidence attached; do not implement workflow changes here."
+    },
+    {
+      "id": "local:red-jobs",
+      "label": "Red CI jobs",
+      "playbook": "docs/herdr-desk/red-jobs.md",
+      "agentName": "chm-redjobs",
+      "kind": "opencode",
+      "maxChildren": 1,
+      "schedule": "26 7 * * *",
+      "describe": "Own the CI jobs babysit must ignore; classify each as a repo defect or an external fact",
+      "extra": "This job exists because `local:babysit` is forbidden to spend runs on non-required checks, which is right for throughput and wrong for ownership. Classify every red job as either a code defect (file an issue) or an external fact (record it, do NOT file a code issue). A gateway `404 model_unavailable` is external; a missing credential is a code defect. A path-filtered workflow with zero runs is NOT red — confirm the trigger first. Never touch a required check (`unit-tests`, `dashboard`); that is babysit's job. Never 'fix' an external failure by changing a model default, base URL, timeout, or retry count. Never delete or disable a workflow to make the board green. A repeated 'no change' report is the healthy outcome."
+    },
+    {
+      "id": "local:stale-issues",
+      "label": "Stale issue triage",
+      "playbook": "docs/herdr-desk/stale-issues.md",
+      "agentName": "chm-stale",
+      "kind": "opencode",
+      "maxChildren": 1,
+      "schedule": "34 9 * * *",
+      "describe": "Prune the open-issue queue: close stale-bot, fixed, superseded, and duplicate issues with a reason",
+      "extra": "Close with a REASON, never bare — the reason is what makes the closure useful later. Never delete an issue. Never implement anything here; implementation is `desk:github-issues`. `needs-design` is a hard stop: a human owes that decision, so leave it open. Verify 'fixed' against the code, not from memory; an issue whose named path no longer exists is usually superseded rather than fixed, and those close with different reasons. At most 8 closures per run, oldest first. Never close a live issue just to reduce the count."
+    },
+    {
+      "id": "local:docs",
+      "label": "Docs and skill drift",
+      "playbook": "docs/herdr-desk/docs-drift.md",
+      "agentName": "chm-docs",
+      "kind": "opencode",
+      "maxChildren": 1,
+      "schedule": "46 3 * * *",
+      "describe": "Prose-named dead paths, dangling knowledge-graph `related:` ids, stale or contradictory notes",
+      "extra": "Do NOT duplicate the CI gate: `tests/repo/markdown-links.test.ts` already fails the required `unit-tests` job on any unresolvable relative markdown link. This job owns the three classes a deterministic check cannot reach — paths named in backticks or prose, `related:` frontmatter ids pointing at a note that does not exist, and notes that are stale or now contradict the code. Parse frontmatter and read the `related:` key specifically: `tags:` uses the same `- item` syntax, so a naive line scan reports false dangling edges. Bump the note's `updated:` date in the same change as any fix. Never edit the pinned vendored tree at `.claude/skills/pstack/upstream/`, and never regenerate `apps/dashboard/src/lib/ai/agent/skills/registry.ts` as a side effect. One theme per run; if `local:improve` would pick the same item, let improve have it."
     }
   ]
 }
