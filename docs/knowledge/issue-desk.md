@@ -89,11 +89,12 @@ and its own manager, and it makes "which job is broken" answerable — one row o
 with no owner is a duty that silently rots, and adding capacity to the busiest
 job would only make the starvation worse.
 
-## Two ways a desk dies silently
+## Three ways a desk dies silently
 
 **A desk that fails looks exactly like a desk with nothing to do.** It has
-happened twice, for unrelated reasons, and `Fails` cannot tell you which one you
-have. Read the error; the counter is not a diagnosis.
+happened three times, for unrelated reasons, and `Fails` cannot tell you which
+one you have. Read the error; the counter is not a diagnosis. Twice the error
+was there to read, and the third time it was not.
 
 ### A directory where the run pointer belongs (EISDIR)
 
@@ -161,6 +162,79 @@ Thirty-one failures in 95 seconds, then a self-recovery at `09:49:41Z` with
   filed upstream ([duyet/herdr-desk#32](https://github.com/duyet/herdr-desk/issues/32)),
   not here. This note exists so the next reader recognises the shape instead of
   re-deriving it from a `Fails` count.
+
+### The daemon dies outright, and the restart writes `ok`
+
+From `2026-09-28T16:00:21.697Z` to `2026-09-29T19:41:49.984Z` — 27h41m, or
+2026-09-28 23:00 to 2026-09-30 02:41 in `Asia/Ho_Chi_Minh` — `daemon.log` has
+these two lines and nothing in between:
+
+```
+2026-09-28T16:00:21.697Z hub sent (🔴 5 running · 5 stuck · 3 done · 2 skipped · 3 blocked · 1 failed)
+2026-09-29T19:41:49.984Z daemon start pid=129060
+```
+
+The host did not reboot — `last -x reboot` shows the last boot at 2026-09-05,
+still running — and `earlyoom` names the process that stopped:
+
+```
+Sep 28 23:04:19 duet-ubuntu earlyoom[1729719]: sending SIGTERM to process 102956 uid 1000 "bun": badness 968, VmRSS 44 MiB
+Sep 28 23:04:19 duet-ubuntu earlyoom[1729719]: process exited after 0.1 seconds
+```
+
+`102956` is the pid the daemon logged for itself at
+`2026-09-28T15:58:37.697Z daemon start pid=102956`. `runDaemon` installs a
+SIGTERM handler that exits without writing a line (`daemon.ts:313-322`), so a
+kill under memory pressure ends the desk as quietly as a clean shutdown.
+Nothing restarted it. `pid 129060` is there only because the plugin directory
+was replaced at 02:41:44, five seconds before the new `daemon start`, and
+`herdr-desk.start` was invoked; the update check then recorded
+`manual 0.1.6 -> v0.1.6` in `update-check.json` — the same version, and the check
+calls it `manual`. The daemon's own auto-update path never ran.
+
+149 chmonitor fires never happened on 2026-09-29 — one full local day of this
+desk's schedule, 48 each for `desk:github-issues`, `local:babysit` and
+`local:prod`, plus one for each of the five daily jobs, counted with the
+plugin's own `cronSlotsToday` against that date. Five more were still ahead on
+09-28 when it died. Every desk on the host went dark for the same window.
+
+Six things a reader cannot guess:
+
+- **The gap is invisible by construction, and provably not a prune.**
+  `tickOnce` computes `day = dayKey(at)` once (`daemon.ts:213`) and builds every
+  plan from `cronSlotsToday(expr, at)`, which walks `at.getHours()` and takes no
+  date (`cron.ts:195-211`), while the ledger key is
+  `repo::task::cron::day::slot` (`daemon.ts:154-162`). A 09-29 slot is not in the
+  query at all, so a restart cannot learn that yesterday was missed. The result
+  measures: `fires.json` holds **no key dated 2026-09-29** for any repo, while
+  its oldest retained day is 2026-09-22 — eight days back, matching
+  `FIRE_KEEP_DAYS = 8` (`daemon.ts:24`, `pruneFires` at `daemon.ts:64-78`).
+  chmonitor's per-day key count across 09-28 / 09-29 / 09-30 is 140 / **0** / 18.
+- **What the restart wrote was `ok`.** Three write-off lines for chmonitor — 5,
+  5 and 4 slots, every one of them a 2026-09-30 slot — then four fires, each
+  `ok {"spawned":true}`. `catchUpPlan` (`daemon.ts:173-180`) runs the newest
+  missed slot and consumes the rest, so the recovery log is what an ordinary
+  first tick of the day looks like, and nothing in it says 27 hours went missing.
+- **`status` cannot disagree, because it only reads the last record.** `Last` is
+  `last.at.slice(0, 16)` and `Fails` is `-` whenever the streak is zero
+  (`status.ts:37`, `status.ts:41-44`), so every chmonitor row read
+  `ok 2026-09-29 19:41` beside a `-`: the check AGENTS.md prescribes. `Last` is
+  UTC while `Next` is local (`status.ts:9-13`), so that row also puts the last
+  fire seven hours and one calendar day before the rest of the table.
+- **The table has no liveness column to notice with.** `formatSchedule` fills
+  `Next` from `cronNext` and `Last` and `Fails` from `runs.jsonl`
+  (`status.ts:15-62`); the process that writes those rows is not one of the
+  inputs. Its only liveness reading is the `daemon: running (pid N)` line
+  `cli.ts:383` prints above the table, which is true whenever you happen to look
+  — and for 27 hours nobody did.
+- **There is no `restart stale daemon` line to go looking for, and there would
+  not be one.** `startDaemon` logs it only when `daemonPid()` returned a live
+  pid (`daemon.ts:383-388`), and `daemonPid` returns null for a dead one
+  (`daemon.ts:42-52`). The startup line is `daemon start pid=…`
+  (`daemon.ts:312`) and carries no "dark since".
+- **Nothing in this repo can fix it.** The repair belongs to the plugin, and is
+  filed on duyet/herdr-desk. This note exists so the next reader recognises the
+  shape from a green table instead of re-deriving it from a 27-hour silence.
 
 ## When a job misbehaves, first ask whether the plugin is on a commit
 
