@@ -35,6 +35,7 @@ import { logError } from './log'
 import {
   isSponsorEmailAcceptable,
   isSponsorTier,
+  SPONSOR_TIER_IDS,
   sponsorTier,
 } from '@chm/pricing'
 
@@ -94,7 +95,7 @@ export function parseSponsorAmount(
     }
     return {
       error: tierRaw
-        ? 'tier must be supporter, backer, or partner'
+        ? `tier must be ${SPONSOR_TIER_IDS.slice(0, -1).join(', ')}, or ${SPONSOR_TIER_IDS.at(-1)}`
         : 'amount is required (USD dollars) or tier',
     }
   }

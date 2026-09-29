@@ -9,6 +9,7 @@ import {
   sponsorSuccessUrl,
 } from './sponsor-checkout'
 import { describe, expect, mock, test } from 'bun:test'
+import { SPONSOR_TIER_IDS } from '@chm/pricing'
 
 const env: Env = {
   POLAR_ACCESS_TOKEN: 'polar_test',
@@ -92,8 +93,15 @@ describe('parseSponsorAmount', () => {
     expect(
       parseSponsorAmount(new URL('https://x/s?tier=platinum'))
     ).toMatchObject({
-      error: expect.stringMatching(/supporter, backer, or partner/),
+      error: expect.stringMatching(/supporter, backer, hero, or partner/),
     })
+    // The message is built from the source of truth, so a tier change
+    // cannot leave it stale.
+    const result = parseSponsorAmount(new URL('https://x/s?tier=bogus'))
+    const message = 'error' in result ? result.error : ''
+    for (const id of SPONSOR_TIER_IDS) {
+      expect(message).toContain(id)
+    }
     expect(
       parseSponsorAmount(new URL('https://x/s?amount=0.25'))
     ).toMatchObject({ error: expect.stringMatching(/at least/i) })
