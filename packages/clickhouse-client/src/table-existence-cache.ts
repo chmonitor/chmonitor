@@ -34,6 +34,10 @@ const cache = new LRUCache<string, boolean>({
 export interface TableExistenceCacheL2 {
   get(key: string): Promise<boolean | null>
   set(key: string, exists: boolean, ttlSeconds: number): Promise<void>
+  /** Remove one entry. Used by `invalidateTable` so L2 cannot re-arm L1. */
+  delete(key: string): Promise<void>
+  /** Remove every entry whose key starts with `prefix` (column keys). */
+  deletePrefix(prefix: string): Promise<void>
 }
 
 let l2CacheProvider: (() => TableExistenceCacheL2 | null) | null = null
@@ -200,14 +204,34 @@ export function getCacheMetrics() {
 }
 
 /**
- * Manual cache invalidation
+ * Manual cache invalidation. Clears the table key and its column keys
+ * (`host:db.table.column`) from L1 and L2. Clearing only L1 would let the next
+ * probe re-read the stale L2 value and re-arm L1 with a full TTL (#3514).
  */
-export const invalidateTable = (
+export const invalidateTable = async (
   hostId: number,
   database: string,
   table: string
-) => {
-  cache.delete(`${hostId}:${database}.${table}`)
+): Promise<void> => {
+  const tableKey = `${hostId}:${database}.${table}`
+  const columnPrefix = `${tableKey}.`
+
+  for (const key of [...cache.keys()]) {
+    if (key === tableKey || key.startsWith(columnPrefix)) cache.delete(key)
+  }
+  for (const key of [...inFlightProbes.keys()]) {
+    if (key === tableKey || key.startsWith(columnPrefix)) {
+      inFlightProbes.delete(key)
+    }
+  }
+
+  const l2 = l2CacheProvider?.()
+  if (!l2) return
+  try {
+    await Promise.all([l2.delete(tableKey), l2.deletePrefix(columnPrefix)])
+  } catch (err) {
+    error('[Table Cache] L2 cache invalidate error:', err)
+  }
 }
 
 /**

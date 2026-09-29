@@ -18,6 +18,15 @@ function createFakeKv() {
     ) => {
       store.set(key, { value, expirationTtl: options?.expirationTtl })
     },
+    delete: async (key: string) => {
+      store.delete(key)
+    },
+    list: async ({ prefix }: { prefix: string }) => ({
+      keys: [...store.keys()]
+        .filter((name) => name.startsWith(prefix))
+        .map((name) => ({ name })),
+      list_complete: true,
+    }),
   } as unknown as KVNamespace
   return { kv, store }
 }
@@ -51,6 +60,22 @@ describe('getTableExistenceCache — Node/self-hosted degradation (issue #2183)'
       value: 'false',
       expirationTtl: 300,
     })
+  })
+
+  it('delete removes one entry; deletePrefix removes only matching keys', async () => {
+    const { kv, store } = createFakeKv()
+    const cache = getTableExistenceCache(kv)
+    await cache.set('0:system.t', true, 300)
+    await cache.set('0:system.t.col', true, 300)
+    await cache.set('0:system.t2', true, 300)
+
+    await cache.deletePrefix('0:system.t.')
+    expect([...store.keys()].sort()).toEqual([
+      'ch-table-exists:0:system.t',
+      'ch-table-exists:0:system.t2',
+    ])
+    await cache.delete('0:system.t')
+    expect([...store.keys()]).toEqual(['ch-table-exists:0:system.t2'])
   })
 
   it('memoizes the instance across calls', () => {
