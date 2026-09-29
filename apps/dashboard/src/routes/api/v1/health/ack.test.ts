@@ -83,7 +83,7 @@ describe('POST/DELETE /api/v1/health/ack with no backend (#3498)', () => {
   test('GET stays fail-open: 200 with an empty list', async () => {
     const res = await handleGet()
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ success: true, acks: [] })
+    expect((await res.json()) as unknown).toEqual({ success: true, acks: [] })
   })
 })
 
