@@ -563,7 +563,7 @@ gates on knowing what "available" means.
 | — | Per-feature capability (option C) | [#3495](https://github.com/chmonitor/chmonitor/issues/3495) | after #3493 |
 | 3 | Declarative config loader for health | [#3496](https://github.com/chmonitor/chmonitor/issues/3496) | **done** (loader only) |
 | 4 | Source layer for the read-only definitions | [#3497](https://github.com/chmonitor/chmonitor/issues/3497) | **done** (all seven stores) |
-| 5 | Honest state stores without a DB | [#3498](https://github.com/chmonitor/chmonitor/issues/3498) | #3495; last part **Q5 open** |
+| 5 | Honest state stores without a DB | [#3498](https://github.com/chmonitor/chmonitor/issues/3498) | **done** (items 1–2: ACK 501 + disabled controls + restart copy); Q5 split to [#3534](https://github.com/chmonitor/chmonitor/issues/3534) (`needs-design`, **open**) |
 | 6 | Document the operator path | [#3499](https://github.com/chmonitor/chmonitor/issues/3499) | all of the above |
 
 ### 1. Fix the `metadataDb.available` asymmetry (DECIDED 2026-09-29: B) → **#3493** — DONE
@@ -934,4 +934,5 @@ gates on knowing what "available" means.
 5. **Q5 — Where does declarative alert *state* go if an operator later attaches a
    DB?** The merge rule must be specified up front or the first attach will
    produce a confusing discontinuity. **Still open** — this is a real design
-   question and the merge rule cannot be inferred from the code.
+   question and the merge rule cannot be inferred from the code. Tracked in
+   [#3534](https://github.com/chmonitor/chmonitor/issues/3534) (`needs-design`).

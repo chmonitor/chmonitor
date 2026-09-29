@@ -6,6 +6,7 @@ import type { ThresholdPresetId } from '@/lib/health/threshold-presets'
 import type { ThresholdsMap } from '@/lib/health/thresholds-storage'
 
 import { HEALTH_CHECKS } from './health-checks'
+import { AlertStateVolatilityNotice } from './health-store-notice'
 import { ThresholdField } from './threshold-field'
 import { useMemo, useState } from 'react'
 import { SegmentedControl } from '@/components/settings/segmented-control'
@@ -21,6 +22,7 @@ import {
 } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useHealthStoreAvailability } from '@/lib/health/store-availability'
 import {
   applyPresetToDefaults,
   isThresholdOverridden,
@@ -46,6 +48,7 @@ export function ThresholdsPanel({
   setThresholds: (updater: (prev: ThresholdsMap) => ThresholdsMap) => void
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
+  const stateAvailability = useHealthStoreAvailability()
   // Checks opened from the picker this session — they render as cards even
   // before their values differ from the preset baseline.
   const [pinned, setPinned] = useState<string[]>([])
@@ -137,6 +140,7 @@ export function ThresholdsPanel({
             {HEALTH_CHECKS.length} health checks at once. Tune individual checks
             below.
           </p>
+          <AlertStateVolatilityNotice availability={stateAvailability} />
         </div>
         <SegmentedControl
           value={activePreset === 'custom' ? 'balanced' : activePreset}
