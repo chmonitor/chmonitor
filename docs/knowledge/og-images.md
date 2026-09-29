@@ -1,6 +1,7 @@
 ---
 id: og-images
 type: spec
+updated: 2026-09-30
 related: [deployment, conventions]
 tags: [seo, og, social, satori, static]
 ---
@@ -12,7 +13,9 @@ Social-share preview images (1200×630) for landing, docs, blog, and dashboard.
 ## How it works
 
 One compositor — [`scripts/og-builder.ts`](../../scripts/og-builder.ts) — paints
-the Bayer-dune plate (`assets/og/dunes-*.jpg`) and overlays type with **resvg**.
+the Bayer-dune plate (`assets/og/dunes-landing.jpg` — the only plate left; all
+four consumers in `scripts/og-builder.ts` map to it) and overlays type with
+**resvg**.
 The **title is always centered**. The wordmark sits **top-left** (product pages)
 or **bottom-right** (blog / release / version) so the title stays the hero.
 
@@ -53,7 +56,11 @@ the `__root.tsx` base tags.
 
 - **Landing** — `apps/landing/src/layouts/Base.astro` (`image` prop, default
   `/og/og.png`; absolute URL via `Astro.site`).
-- **Docs** — `apps/docs/src/layouts/MainLayout.astro`.
+- **Docs** — `apps/docs/src/routes/__root.tsx` sets the site-wide `og:image`
+  (plus `og:image:width`/`height`); `apps/docs/src/routes/$.tsx` overrides it
+  per page from the doc's frontmatter `ogImageUrl`. (`apps/docs` is Fumadocs +
+  TanStack Start, so there is no Astro layout — the old
+  `apps/docs/src/layouts/MainLayout.astro` is gone.)
 - **Dashboard** — base tags in `src/routes/__root.tsx`; per-page `og:title` /
   `og:image` / `twitter:image` come from `pageOgHead('<slug>')` in each route's
   `head()`. Both the image and the meta read from the same registry, so they

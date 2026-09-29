@@ -1,6 +1,7 @@
 ---
 id: tsr-migration
 type: architecture
+updated: 2026-09-30
 related: [static-site-architecture, deployment, mcp-server, rust-wasm-performance]
 tags: [tanstack-start, migration, cloudflare-workers, vite, dual-target, agent]
 ---
@@ -113,13 +114,17 @@ There are **two independent auth layers**:
 
 **Verified behavior:** `dash.chmonitor.dev` (Next prod) has the secret set, so a real
 browser gets **401 on every `/api/v1/*`** — the dashboard is a key-gated deployment and
-does not serve data anonymously. The TSR app must match this; the `src/start.ts`
-middleware (#1397, PR #1428) restores that parity.
+does not serve data anonymously. The TSR app matched that: the `src/start.ts` middleware
+(#1397, PR #1428) restored that parity and shipped long ago.
 
 ## Parity & verification
 
-- **Pages: 82/82** return matching status on both deployments (`/tmp/compare-prod.sh`).
-- **APIs**: both key-gated (401 to anonymous) once #1428 deploys.
+- **Pages: 82/82** returned matching status on both deployments. The harness that
+  proved it was a throwaway script at `/tmp/compare-prod.sh` — it lived in
+  `/tmp`, was never committed, and no longer exists. Nothing in the tree
+  reproduces that crawl, so treat the 82/82 figure as a one-time result of the
+  cutover week, not a check you can re-run.
+- **APIs**: both key-gated (401 to anonymous) once #1428 deployed.
 - Build gate: `pnpm run build` (`vite build && tsc --noEmit`) must be green; 112 pages
   prerender. The dashboard is wired into CI (the `dashboard` job).
 
@@ -178,27 +183,43 @@ prerender are pre-existing and non-fatal (client-only page content), not a regre
 **Net:** TSR's lighter client bootstrap makes it **faster to LCP on the heavy
 data-dashboard pages** (render-delay collapses), but it's not universal.
 
-### Performance issues found (to fix)
-1. **Trailing-slash redirect** — every TSR route 301/308s `/x` → `/x/`, adding a uniform
-   **~55-60 ms TTFB** tax (confirmed by the DocumentLatency insight on all routes). Disable
-   the trailing-slash redirect in the router/start config.
-2. **`/tables` broken** — client-redirects to a malformed URL
-   `/explorer?database=default%3Fhost%3D0?host=0` — the `?host=0` search string is encoded
-   *into* the `database` param (double `?`). The redirect/search serializer concatenates
-   instead of merging search params. Functional bug.
-3. **`/agents` CLS 0.28** (Next: 0.00) — the chat composer/sidebar mounts after first paint
-   without reserving height. Reserve layout space.
+### Performance issues found (re-checked 2026-09-30)
+
+1. ~~**Trailing-slash redirect**~~ — **FIXED.** `apps/dashboard/src/router.tsx:31`
+   sets `trailingSlash: 'never'`, so `/x` no longer 301/308s to `/x/` and the
+   ~55-60 ms TTFB tax is gone.
+2. ~~**`/tables` broken redirect**~~ — **FIXED.** The route used to navigate to
+   `/explorer?database=default%3Fhost%3D0?host=0`, with `?host=0` percent-encoded
+   *into* the `database` value. `apps/dashboard/src/routes/(dashboard)/tables.tsx`
+   now calls `navigate(splitHref('/table?database=default'))`, and
+   `splitHref()` (`src/lib/url/url-builder.ts`) parses the query string out into
+   TanStack's `{ to, search }` shape so the `?` can no longer land in the path.
+   (The redirect target also changed `/explorer` → `/table`.)
+3. **`/agents` CLS 0.28** (Next: 0.00) — **NOT fixed, and not verifiable as fixed
+   from the tree.** The cause was the chat composer/sidebar mounting after first
+   paint without reserving height. `components/assistant-ui/thread.tsx` still
+   reserves no height for the thread, and
+   `routes/(dashboard)/agents/index.tsx` is a bare `<AgentsPageClient />` with no
+   layout placeholder. Re-measure before acting — this note's numbers are
+   single-sample, unthrottled desktop traces from cutover week.
 
 ## Known follow-ups
 
-- **`CLICKHOUSE_PASSWORD` is a per-worker secret** — `wrangler.toml` `[vars]`
-  carry `CLICKHOUSE_HOST`/`USER`/`NAME`, but the password is injected via
+- **`CLICKHOUSE_PASSWORD` is a per-worker secret** — there is **no `[vars]` block
+  in `wrangler.toml`**, and `AGENTS.md` says never to re-add one. Non-secret
+  Worker config is injected at deploy time from the committed
+  `apps/dashboard/.env.production` by
+  `apps/dashboard/scripts/patch-wrangler-env.ts` (the `@cloudflare/vite-plugin`
+  strips `[vars]` from the generated config). Only the password goes through
   `wrangler secret put CLICKHOUSE_PASSWORD`. If charts show "Unable to connect to
   the server" while the data path is code-correct — env bridged via
   `bridgeClickHouseEnv`, web client auto-selected by `CLOUDFLARE_WORKERS=1` +
   `nodejs_compat_populate_process_env` — check that the secret is set on
   `chmonitor-dash` (and `--env preview`), then redeploy.
-  Verify with `bun wrangler secret list` (top-level and `--env preview`).
+  Verify with `pnpm exec wrangler secret list` (top-level and `--env preview`).
+  Note this note's other `[vars]` references are historical: the same "Worker
+  `[vars]` are runtime-only and never reach the client" reasoning still holds,
+  but the values now arrive via `.env.production`.
 - **Surfaced by wiring the chrome (#1433), deferred as separate items:**
   - **Refresh controls are no-ops on TanStack Query.** `HeaderActions`/
     `RefreshCountdown` (and the Cmd/Ctrl+R shortcut) still dispatch the SWR-era
@@ -217,8 +238,12 @@ data-dashboard pages** (render-delay collapses), but it's not universal.
   works via the client thread store until then.
 - Copied agent-subsystem **test files** are excluded from the production typecheck
   (mirrors the Next app's tsconfig); wiring `bun test` for them is a follow-up.
-- Make the **Cloudflare deploy a required CI check** — a size-failing deploy reached main
-  during the migration because it isn't.
+- ~~Make the **Cloudflare deploy a required CI check**.~~ **DONE.** The
+  `dashboard` job (`.github/workflows/cloudflare.yml`) is a required status
+  check on `main` today — one of exactly two, alongside `unit-tests`:
+  `gh api repos/chmonitor/chmonitor/branches/main/protection --jq '.required_status_checks.contexts'`
+  → `["dashboard","unit-tests"]`. Required-ness is branch protection, so it is
+  not visible in any workflow YAML.
 
 ## Retiring the `next-compat` shim (#2887)
 
