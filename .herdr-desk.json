@@ -31,7 +31,7 @@
       "kind": "opencode",
       "maxChildren": 2,
       "schedule": "17 2 * * *",
-      "describe": "One theme per night: desk health, doc/skill drift, dead code, slowdowns"
+      "describe": "One theme per night: desk health, rule-vs-code contradictions, dead code, slowdowns"
     },
     {
       "id": "local:prod",
