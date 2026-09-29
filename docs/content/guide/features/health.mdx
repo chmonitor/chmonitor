@@ -165,7 +165,9 @@ built-in default. It is merged with the `HEALTH_THRESHOLD_<RULE>_WARNING` and
 `HEALTH_THRESHOLD_<RULE>_CRITICAL` environment variables field by field, and
 the file wins a collision: `warning: 70` in the file with
 `HEALTH_THRESHOLD_DISK_USAGE_CRITICAL=95` in env gives `70` / `95`. A rule id
-that does not exist is skipped with a warning in the log.
+that is not registered is skipped with a warning in the log. The file is read
+once per process, so restart after editing it; env changes apply on the next
+sweep. Only built-in rule ids are honoured by the current-findings snapshot.
 
 ```yaml
 thresholds:

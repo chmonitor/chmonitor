@@ -46,6 +46,14 @@ describe('resolveThresholdOverrides', () => {
     })
   })
 
+  test('a critical-only file threshold leaves the env warning in place', async () => {
+    write('thresholds:\n  disk-usage:\n    critical: 99\n')
+    process.env.HEALTH_THRESHOLD_DISK_USAGE_WARNING = '60'
+    expect(await resolveThresholdOverrides(['disk-usage'])).toEqual({
+      'disk-usage': { warning: 60, critical: 99 },
+    })
+  })
+
   test('env alone still applies with no file', async () => {
     process.env.HEALTH_THRESHOLD_DISK_USAGE_CRITICAL = '90'
     expect(await resolveThresholdOverrides(['disk-usage'])).toEqual({

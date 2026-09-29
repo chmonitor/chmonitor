@@ -28,7 +28,7 @@ export async function resolveThresholdOverrides(
     for (const [rule, override] of Object.entries(layer.data.thresholds)) {
       if (!known.has(rule)) {
         warnOnce(
-          `[health-config] Skipping thresholds.${rule}: no alert rule with that id`
+          `[health-config] Skipping thresholds.${rule}: no registered alert rule with that id`
         )
         continue
       }
