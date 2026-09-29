@@ -24,5 +24,5 @@ overrides:
   nanoid: ^3.3.18
   postcss: ^8.5.23
   protobufjs: ^8.7.2
-  undici: ^7.28.0
+  undici: ^7.29.1
   ws: ^8.21.3

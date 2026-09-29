@@ -9,5 +9,5 @@ onlyBuiltDependencies:
   - workerd
 
 overrides:
-  undici: ^7.28.0
+  undici: ^7.29.1
   ws: ^8.21.3
