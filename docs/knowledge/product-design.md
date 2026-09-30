@@ -1171,9 +1171,14 @@ the group is one click away and the key numbers need no click at all.
   link cards (icon, title, menu `description`, `CountBadge` when `countKey`).
   Sections come from `getHubSections` (`lib/menu/hub.ts`) — never keep a
   second page list. Deployment gates (permission, cloud-only, engine) apply
-  via `getAllowedMenuItems`; an unavailable page is **dimmed with its reason,
-  never hidden**, whatever the rail's Hide setting — a hub is a discovery
-  surface.
+  via `getAllowedMenuItems`. **Hubs follow the Hide settings**: pages the
+  user hid (workspace hidden hrefs, or the *Unavailable pages: Hide* setting)
+  are left out of the card grids; a subgroup with no cards left is omitted; if
+  any were left out one "Show N hidden pages" link at the bottom toggles them
+  in place (local state, not persisted), dimmed, with the reason for
+  unavailable ones. Unavailable pages that are not hidden stay dimmed with
+  their reason. Key charts are unaffected. The rule is the pure
+  `filterHubSections` in `lib/menu/hub-visibility.ts` (tested).
 - **Sidebar + breadcrumb:** on a hub group the heading label is a link to the
   hub and the chevron is a separate sibling button that still expands
   (`group-expand-button`); groups without a hub keep the whole row as the

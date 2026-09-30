@@ -5,7 +5,7 @@ import type { ComponentType } from 'react'
 import type { ChartProps } from '@/components/charts/chart-props'
 import type { MenuItem } from '@/components/menu/types'
 
-import { memo, Suspense } from 'react'
+import { memo, Suspense, useState } from 'react'
 import { CountBadge } from '@/components/menu/components/count-badge'
 import { useUnavailableResolver } from '@/components/menu/hooks/use-unavailable-visibility'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
@@ -14,7 +14,9 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useActiveHostEngine } from '@/lib/hooks/use-active-pg-connection'
 import { findHubGroup, getHubSections } from '@/lib/menu/hub'
+import { filterHubSections, isHubItemHidden } from '@/lib/menu/hub-visibility'
 import { unavailableReasonText } from '@/lib/menu/unavailable-visibility'
+import { useMenuWorkspaceCatalog } from '@/lib/menu/use-menu-workspace'
 import { getAllowedMenuItems } from '@/lib/menu/visible-items'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
@@ -64,8 +66,11 @@ const HubChart = memo(function HubChart({
 function HubLinkCard({
   item,
   reason,
+  dimmed = false,
 }: {
   item: MenuItem
+  /** A page the user hid, shown because the toggle is on. */
+  dimmed?: boolean
   /** Why the page is unavailable on this host; null when it is available. */
   reason: string | null
 }) {
@@ -78,7 +83,7 @@ function HubLinkCard({
         'group flex min-h-11 items-start gap-3 rounded-lg border bg-card p-3 transition-colors',
         'hover:border-foreground/20 hover:bg-accent/50',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        reason && 'opacity-50'
+        (reason || dimmed) && 'opacity-50'
       )}
     >
       {Icon ? (
@@ -109,7 +114,18 @@ function HubLinkCard({
 
 function HubSections({ group, hostId }: { group: MenuItem; hostId: number }) {
   const resolve = useUnavailableResolver(hostId)
-  const sections = getHubSections(group)
+  const { hiddenHrefs } = useMenuWorkspaceCatalog()
+  // Local only: a peek at what the user hid, never written to settings.
+  const [showHidden, setShowHidden] = useState(false)
+  const input = {
+    hiddenHrefs,
+    visibilityOf: (item: MenuItem) => resolve(item).visibility,
+    showHidden,
+  }
+  const { sections, hiddenCount } = filterHubSections(
+    getHubSections(group),
+    input
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -127,18 +143,31 @@ function HubSections({ group, hostId }: { group: MenuItem; hostId: number }) {
           </h2>
           <div className={HUB_CARD_GRID_CLASS}>
             {section.items.map((item) => (
-              // A hub is a discovery surface: an unavailable page is dimmed
-              // with its reason, never dropped, whatever the rail's Hide
-              // setting says.
+              // Pages the user hid are left out unless toggled on; an
+              // unavailable page that is not hidden stays, dimmed with its
+              // reason. A revealed hidden page is dimmed too.
               <HubLinkCard
                 key={item.href}
                 item={item}
+                dimmed={isHubItemHidden(item, input)}
                 reason={unavailableReasonText(resolve(item))}
               />
             ))}
           </div>
         </section>
       ))}
+      {hiddenCount > 0 ? (
+        <button
+          type="button"
+          onClick={() => setShowHidden((v) => !v)}
+          aria-pressed={showHidden}
+          className="self-start text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {showHidden
+            ? 'Hide hidden pages'
+            : `Show ${hiddenCount} hidden ${hiddenCount === 1 ? 'page' : 'pages'}`}
+        </button>
+      ) : null}
     </div>
   )
 }

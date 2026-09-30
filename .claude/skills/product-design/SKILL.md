@@ -592,7 +592,9 @@ is a full-width control under the hide-count line. Full detail:
    Tools & AI (main), then Settings (others) and the About footer. Queries,
    Data & Storage, Cluster & Replication, and Server have hub pages
    (`/hub/<slug>`, group `hubHref`): a new page in those groups MUST set
-   `subgroup` so it appears as a card on the hub (`hub.test.ts`). Put a
+   `subgroup` so it appears as a card on the hub (`hub.test.ts`). Hubs follow
+   the user's Hide settings: hidden pages drop out of the cards behind a
+   "Show N hidden pages" toggle (`lib/menu/hub-visibility.ts`). Put a
    new page in the group matching the task, in its subgroup run (see the
    list in `docs/knowledge/product-design.md` → *Sidebar navigation
    groups*); never add a new top-level group or nest a group in a group.
