@@ -8,6 +8,7 @@ import type { MenuItemActiveState, MenuItemProps } from './types'
 import { AddButton, SubAddButton } from './add-button'
 import { CollapsedSubmenu } from './collapsed-submenu'
 import { GroupCustomizeButton } from './group-customize-dialog'
+import { GroupHoverFlyout, GroupTouchQuickLinks } from './group-quick-links'
 import { HideButton, SubHideButton } from './hide-button'
 import { PinButton, SubPinButton } from './pin-button'
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -371,22 +372,28 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
       className="group/collapsible"
       render={<SidebarMenuItem />}
     >
-      <CollapsibleTrigger
-        render={
-          <SidebarMenuButton
-            isActive={hasActiveChild}
-            tooltip={item.title}
-            className="h-11 min-h-11 lg:h-8 lg:min-h-8"
-          />
-        }
+      <GroupHoverFlyout
+        groupTitle={item.title}
+        visibleChildren={visibleChildren}
+        onShowAll={() => setOpen(true)}
       >
-        {item.icon && <item.icon className="size-4" />}
-        {/* pr-7 reserves the customize button's slot: it is an absolutely
-            positioned sibling now (a <button> cannot nest inside the trigger's
-            <button>), so it no longer takes flex space. */}
-        <span className="min-w-0 truncate pr-7">{item.title}</span>
-        <ChevronRight className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-      </CollapsibleTrigger>
+        <CollapsibleTrigger
+          render={
+            <SidebarMenuButton
+              isActive={hasActiveChild}
+              tooltip={item.title}
+              className="h-11 min-h-11 lg:h-8 lg:min-h-8"
+            />
+          }
+        >
+          {item.icon && <item.icon className="size-4" />}
+          {/* pr-7 reserves the customize button's slot: it is an absolutely
+              positioned sibling now (a <button> cannot nest inside the trigger's
+              <button>), so it no longer takes flex space. */}
+          <span className="min-w-0 truncate pr-7">{item.title}</span>
+          <ChevronRight className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+        </CollapsibleTrigger>
+      </GroupHoverFlyout>
       <GroupCustomizeButton groupTitle={item.title} />
       {item.countKey && (
         <SidebarMenuBadge className={cn(badgeHiddenClasses, 'max-lg:hidden')}>
@@ -401,6 +408,10 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
       )}
       <CollapsibleContent>
         <SidebarMenuSub className="ml-2.5 gap-0 py-0 pl-1.5">
+          <GroupTouchQuickLinks
+            visibleChildren={visibleChildren}
+            onNavigate={closeMobileSidebar}
+          />
           {visibleChildren.map((subItem) => (
             <SubMenuItem
               key={subItem.href}

@@ -22,6 +22,7 @@ const CountBadge = lazy(() =>
   }))
 )
 
+import { CollapsedGroupQuickSections } from './group-quick-links'
 import {
   Popover,
   PopoverContent,
@@ -161,6 +162,13 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
         >
+          <CollapsedGroupQuickSections
+            visibleChildren={visibleChildren}
+            onNavigate={() => {
+              setOpen(false)
+              if (isMobile) setOpenMobile(false)
+            }}
+          />
           <div className="flex flex-col gap-0.5">
             {visibleChildren.map((subItem) => (
               <CollapsedSubMenuItem
