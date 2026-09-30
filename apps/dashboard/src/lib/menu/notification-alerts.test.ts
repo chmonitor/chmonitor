@@ -14,7 +14,7 @@ const leaf = (overrides: Partial<MenuItem> = {}): MenuItem => ({
 })
 
 const healthGroup = (): MenuItem => ({
-  title: 'Health',
+  title: 'Alerts & Insights',
   href: '',
   section: 'main',
   items: [
@@ -33,14 +33,16 @@ describe('revealAlertsWhenActive (#3291)', () => {
   test('does not add Alerts when the notification count is zero', () => {
     const result = revealAlertsWhenActive(catalog(), false)
     expect(
-      result.find((item) => item.title === 'Health')?.items?.map((i) => i.title)
+      result
+        .find((item) => item.title === 'Alerts & Insights')
+        ?.items?.map((i) => i.title)
     ).toEqual(['Health', 'Health Settings'])
-    expect(JSON.stringify(result)).not.toContain(ALERTS_TITLE)
+    expect(JSON.stringify(result)).not.toContain(ALERTS_HREF)
   })
 
-  test('inserts Alerts under Health after the Health page when count > 0', () => {
+  test('inserts Alerts under Alerts & Insights after the Health page when count > 0', () => {
     const result = revealAlertsWhenActive(catalog(), true)
-    const health = result.find((item) => item.title === 'Health')
+    const health = result.find((item) => item.title === 'Alerts & Insights')
     expect(health?.items?.map((item) => item.title)).toEqual([
       'Health',
       ALERTS_TITLE,
@@ -55,7 +57,7 @@ describe('revealAlertsWhenActive (#3291)', () => {
     const withSettings: MenuItem[] = [
       leaf({ title: 'Overview', href: '/overview', section: 'main' }),
       {
-        title: 'Health',
+        title: 'Alerts & Insights',
         href: '',
         items: [
           leaf({ title: 'Health', href: '/health' }),
@@ -66,12 +68,12 @@ describe('revealAlertsWhenActive (#3291)', () => {
     const result = revealAlertsWhenActive(withSettings, true)
     const hrefs =
       result
-        .find((item) => item.title === 'Health')
+        .find((item) => item.title === 'Alerts & Insights')
         ?.items?.map((item) => item.href) ?? []
     expect(hrefs.filter((href) => href === ALERTS_HREF)).toEqual([ALERTS_HREF])
     expect(
       result
-        .find((item) => item.title === 'Health')
+        .find((item) => item.title === 'Alerts & Insights')
         ?.items?.map((item) => item.title)
     ).not.toContain(ALERTS_TITLE)
   })

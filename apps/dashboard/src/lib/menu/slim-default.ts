@@ -11,15 +11,15 @@ import type { MenuItem } from '@/components/menu/types'
  * Footer rows are never hidden.
  *
  * Groups stay grouped on the live rail. QA default keep list is Essential
- * plus Insights, Explorer, and Query History: Overview (leaf); AI Agent →
- * Chat; Insights → Insights; Health → Health; Queries → Running +
- * History; Tables → Overview + Explorer; Tools → SQL (Explorer also
- * lists under Tools). Hover + still nests hidden siblings. Group headings
- * open a per-category customize dialog.
+ * plus Insights, Explorer, and Query History: Overview (leaf); Queries →
+ * Running + History; Data & Storage → Tables Overview + Explorer; Alerts &
+ * Insights → Insights + Health; Tools & AI → Chat + SQL. Hover + still
+ * nests hidden siblings. Group headings open a per-category customize
+ * dialog.
  *
  * Full in Settings → Navigation still shows every page. Merges / Metrics /
- * Clusters / Explain / Advisor, and Keeper / PeerDB / Security / Logs /
- * System / Operations, stay off first-run. New pages that should stay off
+ * Clusters / Explain / Advisor, and the Cluster & Replication, Server, and
+ * Settings groups, stay off first-run. New pages that should stay off
  * the default rail must not be added here.
  *
  * DBA / Engineer / SRE remain group-title presets (not leaf keep-lists).

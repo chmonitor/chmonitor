@@ -168,11 +168,10 @@ Show all is full-width under the hide-count line on that pane. Dialog keeps
 **Workspace default:** first-run / missing-workspace blobs use
 `workspacePreset: 'custom'` plus `DEFAULT_HIDDEN_MENU_HREFS`
 (`lib/menu/slim-default.ts`) — QA keep list is Essential plus Insights,
-Explorer, and Query History (Overview, Chat, Insights, Health, Queries /
-running + history, Tables overview + Explorer, SQL).
-Merges, Metrics, Clusters, Explain, Advisor, Keeper, PeerDB,
-Security, Logs, System, Operations, and extra children stay off the
-first-run rail. Full still means every
+Explorer, and Query History (Overview, Queries → running + history,
+Data & Storage → Tables Overview + Explorer, Alerts & Insights → Insights +
+Health, Tools & AI → Chat + SQL). Cluster & Replication, Server, Settings,
+and extra children stay off the first-run rail. Full still means every
 page (`workspacePreset: 'full'`, `hiddenMenuHrefs: []`). An explicit
 stored Full empty hide list is never replaced by the Essential list.
 DBA / Engineer / SRE remain **group-title** presets (they still dump
@@ -404,9 +403,9 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   all). Full with hide count 0 hides the row. Below `lg` the catalog is an
   inline panel inside the overlay sidebar — it does not open the 375
   Settings dialog unless Customize is tapped. Essential keeps grouped
-  parents (Overview is a leaf; AI Agent → Chat, Insights → Insights,
-  Health → Health, Queries → Running + History, Tables → Overview + Explorer,
-  Tools → SQL) — do not flatten those groups to Chat / SQL leaves.
+  parents (Overview is a leaf; Queries → Running + History, Data & Storage →
+  Tables Overview + Explorer, Alerts & Insights → Insights + Health, Tools & AI
+  → Chat + SQL) — do not flatten those groups to Chat / SQL leaves.
   Settings → Navigation has **Show all** (applies Full) when the preset
   is not Full.
 
@@ -1042,53 +1041,83 @@ The dashboard sidebar (and Settings > Navigation, ⌘K, breadcrumbs) is composed
 from `apps/dashboard/src/menu/*.ts` via `menu/index.ts` (re-exported as
 `src/menu.ts`). Order in `menuItemsConfig` is the sidebar order.
 
-**Main**: Overview, Postgres (engine-gated), AI Agent, Insights, Health
-(Health, Health Settings, Alert Settings, Inbound Events), Queries, Tables,
-Merges, Metrics, Keeper, PeerDB, **Tools** (last main group).
+The sidebar is **task groups**, not system-table origins (#3565). It is two
+levels deep (group > page); `nav-main/menu-item.tsx` does not recurse, so never
+nest a group inside a group. A new page joins one of these groups — do not add
+a new top-level heading.
 
-**Others**: Security, Logs, System, Cluster, Operations.
+**Main** (in order):
+- **Overview** (leaf), then the Postgres leaves (engine-gated, top-level so a
+  ClickHouse-family parent cannot drop them on a Postgres host).
+- **Queries** — live (Running, User Processes) → history (History, Recent,
+  Failed, Query Views Log, Query Metric Log) → performance (Slow, Slow Query
+  Patterns, Most Expensive, Query Insights, Thread & Parallelization) → caches.
+- **Data & Storage** — tables (Tables, Tables Overview, Data Explorer,
+  Dictionaries) → merges & parts → table health (TTL & Partitions, Dropped,
+  Readonly, View Refreshes, Index & Projection Analytics) → ingestion (Async
+  Inserts, Kafka, RabbitMQ, PeerDB Mirrors / Peers) → storage (Disks, Storage
+  Economics, Blob Storage Log, Backups).
+- **Cluster & Replication** — Clusters, Fleet Overview, Connections →
+  replication (Table Replicas, Replication Queue, Replicated Fetches, DDL
+  Queue) → every Keeper page.
+- **Server** — metrics (Metrics, Async, Histogram, Profiler) → logs (Text Log,
+  Stack Traces, Crashes, Errors, OpenTelemetry Spans) → background work
+  (Background Schedule Pool, Workload Scheduling, Warnings, Page Views) →
+  access (Users, Roles, RBAC Management, Sessions, Login Attempts, Audit Log).
+- **Alerts & Insights** — Insights, Health and Alert, Inbound Events, Traffic.
+- **Tools & AI** (last main group) — Chat, SQL Console, Explain, Advisor,
+  Chart Builder, Schema Compare, Settings Diff, MCP Server.
+
+**Others**: **Settings** — Agent Settings, Insights Settings, Scheduled Reports,
+Health Settings, Alert Settings, then server Settings / MergeTree Settings /
+Replicated MergeTree Settings. Configuration pages live here, not in the task
+groups.
 
 **Footer**: About (next to the Settings gear; never hidden by a workspace
 preset).
 
+**Permissions on mixed groups.** Only Queries keeps a parent `permission`
+(every child is `queries`). The other groups hold pages with different gates,
+so the parent has none and **each child sets the `permission` it needs** — a
+parent gate would hide pages the deployment allows. Every leaf href appears
+exactly once (`menu-config-invariants.test.ts` asserts it, the group order, and
+the per-child gates).
+
 **Essential first-run default:** Custom + `DEFAULT_HIDDEN_MENU_HREFS`.
 QA keep list is Essential plus `/insights`, `/explorer`, and
 `/history-queries`.
-Grouped rail (not flattened leaves): Overview (leaf), AI Agent → Chat
-(`/agents`), Insights → Insights (`/insights`), Health → Health
-(`/health`), Queries → Running + History (`/running-queries`,
-`/history-queries`), Tables → Overview
-+ Explorer (`/tables-overview`, `/explorer`), Tools → SQL (`/sql`;
-Explorer also lists under Tools), More. Merges, Metrics, Clusters,
-Explain, Advisor, Keeper, PeerDB, Security, Logs, System, Operations,
-and extra children stay in the catalog — restore via the group-heading
+Grouped rail (not flattened leaves): Overview (leaf), Queries → Running +
+History (`/running-queries`, `/history-queries`), Data & Storage → Tables
+Overview + Explorer (`/tables-overview`, `/explorer`), Alerts & Insights →
+Insights + Health (`/insights`, `/health`), Tools & AI → Chat + SQL
+(`/agents`, `/sql`), More. Cluster & Replication, Server, Settings, and the
+extra children stay in the catalog — restore via the group-heading
 customize dialog, hover +, More, Settings → Navigation, or in-page More
-/ Customize. Parent `/tables` is not a keep-list href. Do not add a page
+/ Customize. Do not add a page
 to `DEFAULT_VISIBLE_MENU_HREFS` unless it is day-to-day; new specialist
 pages are hidden by default because the hide list is the complement of
 that keep list. Postgres-only leaves are never auto-hidden.
 DBA / Engineer / SRE leftover: those pills still keep whole **groups**,
-not Essential-plus-a-few-leaves.
+not Essential-plus-a-few-leaves. `workspace-presets.test.ts` pins every
+page each preset showed before #3565 — a regroup may add pages to a preset,
+never drop one.
 
-**Tools** is the interactive-utility group — pages where you *do* something
-(run SQL, explore schema, explain a query, compare hosts, build charts) rather
-than watch a system-table monitor. It is the last Main group: composed after
-Logs in `menu/index.ts`, before the About footer and System / Cluster /
-Operations. Current leaves, most-used first: SQL Console (`/sql`), Data
-Explorer (`/explorer`), Explain (`/explain`), Advisor (`/advisor`,
-recommend-only), Chart Builder (`/dashboard`), Schema Compare
-(`/schema-diff`), Settings Diff (`/settings-diff`). Data Explorer is
-**also** listed under Tables (`menu/data-explorer.ts` shared leaf).
+**Tools & AI** is the interactive-utility group — pages where you *do*
+something (ask the agent, run SQL, explain a query, compare hosts, build
+charts, expose MCP) rather than watch a system-table monitor. It is the last
+Main group in `menu/index.ts`, before the About footer and Settings. It has no
+`engines` tag, so a Postgres host hides the whole group. Data Explorer lives
+only under **Data & Storage**.
 TTL & Partitions (`/ttl-partition-health`) is a system-table inventory
-of MergeTree TTL / `PARTITION BY` — it lives under **Tables**, not
-System or Tools. The listing includes a stacked **in-range vs past TTL**
+of MergeTree TTL / `PARTITION BY` — it lives under **Data & Storage**, not
+Server or Tools & AI. The listing includes a stacked **in-range vs past TTL**
 bar (bytes still inside the parsed `INTERVAL` window versus parts whose
 `max_date` is older than that window). Same recommend-only heuristics
 back the **TTL & Partition Health** card on `/health` (`HEALTH_CHECKS` id
 `ttl-partition-health`): a flagged-table count plus a detail-dialog
 breakdown. Do not add a third TTL reporting surface. Never `ALTER TTL`
-or `DROP PARTITION` from this page. AI Agent stays its own flagship group. Postgres-only
-items stay engine-gated and are not moved here.
+or `DROP PARTITION` from this page. Postgres-only items stay engine-gated
+and are not moved here.
 
 ⌘K (`components/controls/command-palette.tsx`) indexes the **full**
 permission/engine/cloud-allowed catalog (`usePaletteMenuItems` /

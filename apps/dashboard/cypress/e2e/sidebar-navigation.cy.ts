@@ -158,11 +158,11 @@ describe('Sidebar navigation', () => {
     cy.get('body').should('exist')
   })
 
-  it('navigates to sql console via Tools sidebar group', () => {
-    // Tools is the last Main group (composed after Logs in menu/index.ts).
+  it('navigates to sql console via Tools & AI sidebar group', () => {
+    // Tools & AI is the last Main group (composed last in menu/index.ts).
     // expandGroup scrolls it into view — do not assume it is near the top.
     cy.get(SIDEBAR).should('be.visible')
-    expandGroup('Tools', '/sql')
+    expandGroup('Tools & AI', '/sql')
     clickHref('/sql')
     cy.url().should('include', '/sql')
     cy.url().should('include', 'host=0')
@@ -171,7 +171,7 @@ describe('Sidebar navigation', () => {
 
   it('navigates to clusters via sidebar', () => {
     cy.get(SIDEBAR).should('be.visible')
-    expandGroup('Cluster', '/clusters')
+    expandGroup('Cluster & Replication', '/clusters')
     clickHref('/clusters')
     cy.url().should('include', '/clusters')
     cy.url().should('include', 'host=0')

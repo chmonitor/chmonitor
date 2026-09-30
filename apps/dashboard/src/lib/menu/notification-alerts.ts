@@ -44,7 +44,7 @@ export function revealAlertsWhenActive(
     return items.map((item) => ({ ...item }))
   }
 
-  const healthAt = items.findIndex((item) => item.title === 'Health')
+  const healthAt = items.findIndex((item) => item.title === 'Alerts & Insights')
   if (healthAt >= 0) {
     return items.map((item, index) =>
       index === healthAt ? insertAlertsChild(item) : { ...item }
