@@ -38,6 +38,7 @@ function derivePeerDBAction(
     // prefix rather than enumerating every suffix.
     case metric.startsWith('peerdb_mirror_errors:'):
     case metric.startsWith('peerdb_snapshot_stalled:'):
+    case metric.startsWith('peerdb_snapshot_in_progress:'):
       return { label: 'View mirrors', href: '/peerdb' }
     case metric === 'peerdb_failed_mirrors':
     case metric === 'peerdb_paused_mirrors':

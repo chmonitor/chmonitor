@@ -39,7 +39,7 @@ import {
   checkPausedMirrors,
   checkSlotLag,
   checkSlotLagTrend,
-  checkSnapshotStalled,
+  checkSnapshotProgress,
   checkTerminatedMirrors,
 } from './peerdb-checks'
 
@@ -319,8 +319,17 @@ export async function collectPeerDBInsights(
           const done = clones.filter(
             (c) => c?.fetchCompleted && c?.consolidateCompleted
           ).length
-          const stalled = checkSnapshotStalled(m.name, clones.length, done)
-          if (stalled) found.push(stalled)
+          const starts = clones
+            .map((c) => (c?.startTime ? Date.parse(c.startTime) : Number.NaN))
+            .filter((t) => Number.isFinite(t))
+          const startedAtMs = starts.length > 0 ? Math.min(...starts) : null
+          const snapshot = checkSnapshotProgress(
+            m.name,
+            clones.length,
+            done,
+            startedAtMs
+          )
+          if (snapshot) found.push(snapshot)
         }
         return found
       })

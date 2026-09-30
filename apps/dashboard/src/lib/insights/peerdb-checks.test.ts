@@ -17,9 +17,10 @@ import {
   checkPausedMirrors,
   checkSlotLag,
   checkSlotLagTrend,
-  checkSnapshotStalled,
+  checkSnapshotProgress,
   checkTerminatedMirrors,
   PEERDB_MIRROR_ERRORS_CRIT,
+  PEERDB_SNAPSHOT_STALL_MS,
 } from './peerdb-checks'
 import { PEERDB_SOURCE_ID } from './read-peerdb-insights'
 import { insightKey } from './types'
@@ -191,20 +192,49 @@ describe('checkMirrorErrors', () => {
   })
 })
 
-describe('checkSnapshotStalled', () => {
+describe('checkSnapshotProgress', () => {
+  const NOW = Date.parse('2026-09-30T12:00:00Z')
+  const hoursAgo = (h: number) => NOW - h * 60 * 60 * 1000
+
   test('null when complete or no tables', () => {
-    expect(checkSnapshotStalled('m', 4, 4)).toBeNull()
-    expect(checkSnapshotStalled('m', 0, 0)).toBeNull()
+    expect(checkSnapshotProgress('m', 4, 4, hoursAgo(48), NOW)).toBeNull()
+    expect(checkSnapshotProgress('m', 0, 0, hoursAgo(48), NOW)).toBeNull()
   })
-  test('warning card with remaining table count as value', () => {
-    const c = checkSnapshotStalled('m', 4, 1)
-    expect(c?.severity).toBe('warning')
-    expect(c?.metric).toBe('peerdb_snapshot_stalled:m')
+  test('null on missing mirror', () => {
+    expect(checkSnapshotProgress('', 4, 1, hoursAgo(1), NOW)).toBeNull()
+  })
+
+  // #3516: a healthy mirror mid initial-load must not be reported as stalled.
+  test('a young unfinished snapshot is an info "in progress" card, not stalled', () => {
+    const c = checkSnapshotProgress('m', 4, 1, hoursAgo(2), NOW)
+    expect(c?.severity).toBe('info')
+    expect(c?.metric).toBe('peerdb_snapshot_in_progress:m')
+    expect(c?.title).toBe('PeerDB: m snapshot is in progress')
+    expect(c?.title).not.toMatch(/stall/i)
     expect(c?.value).toBe(3)
     expect(c?.action?.href).toBe('/peerdb')
   })
-  test('null on missing mirror', () => {
-    expect(checkSnapshotStalled('', 4, 1)).toBeNull()
+  test('no start time means age is unknown, so it stays info', () => {
+    expect(checkSnapshotProgress('m', 4, 1, null, NOW)?.severity).toBe('info')
+  })
+  test('flagged stalled only once the fixed time limit has passed', () => {
+    const justUnder = NOW - (PEERDB_SNAPSHOT_STALL_MS - 1)
+    expect(checkSnapshotProgress('m', 4, 1, justUnder, NOW)?.severity).toBe(
+      'info'
+    )
+    const atLimit = NOW - PEERDB_SNAPSHOT_STALL_MS
+    const c = checkSnapshotProgress('m', 4, 1, atLimit, NOW)
+    expect(c?.severity).toBe('warning')
+    expect(c?.metric).toBe('peerdb_snapshot_stalled:m')
+    expect(c?.title).toBe('PeerDB: m snapshot is stalled')
+    expect(c?.value).toBe(3)
+  })
+  test('in-progress and stalled keep separate dismissal keys', () => {
+    const a = checkSnapshotProgress('m', 4, 1, hoursAgo(1), NOW)
+    const b = checkSnapshotProgress('m', 4, 1, hoursAgo(30), NOW)
+    expect(a && insightKey(PEERDB_SOURCE_ID, a, 'peerdb')).not.toBe(
+      b && insightKey(PEERDB_SOURCE_ID, b, 'peerdb')
+    )
   })
 })
 
@@ -244,7 +274,8 @@ describe('identity determinism (the dismissal survives regeneration)', () => {
       checkSlotLag(SLOT_LAG_CRITICAL_MB, 'pg/slot'),
       checkSlotLagTrend([0, 100, 400, 900], 'pg/slot'),
       checkMirrorErrors('pg_to_ch', 42),
-      checkSnapshotStalled('pg_to_ch', 40, 3),
+      checkSnapshotProgress('pg_to_ch', 40, 3, 0, PEERDB_SNAPSHOT_STALL_MS),
+      checkSnapshotProgress('pg_to_ch', 40, 3, null),
     ]
     for (const card of cards) {
       expect(card).not.toBeNull()
