@@ -30,6 +30,7 @@ describe('insightChartNames', () => {
       // Per-mirror cards key on their flow slug.
       'peerdb_mirror_errors:pg_to_ch',
       'peerdb_snapshot_stalled:pg_to_ch',
+      'peerdb_snapshot_in_progress:pg_to_ch',
     ]) {
       expect(insightChartNames({ category: 'reliability', metric })).toEqual([])
       expect(insightChartNames({ category: 'performance', metric })).toEqual([])
