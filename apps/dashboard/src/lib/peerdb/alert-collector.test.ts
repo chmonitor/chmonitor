@@ -92,6 +92,25 @@ describe('collectPeerDBSignals', () => {
     expect(await stalled(reader(false, hoursAgo(25)))).toBe(true)
     // age unknown: never claim a stall that cannot be shown
     expect(await stalled(reader(false))).toBe(false)
+    // age is measured from the earliest clone start, not the newest
+    expect(
+      await stalled(
+        stubReader({
+          listMirrors: async () => [{ name: 'm' }],
+          mirrorStatus: async () => ({
+            currentFlowState: 'STATUS_SNAPSHOT',
+            cdcStatus: {
+              snapshotStatus: {
+                clones: [
+                  { tableName: 'a', startTime: hoursAgo(1) },
+                  { tableName: 'b', startTime: hoursAgo(25) },
+                ],
+              },
+            },
+          }),
+        })
+      )
+    ).toBe(true)
     // finished snapshot is never stalled, however old
     expect(await stalled(reader(true, hoursAgo(25)))).toBe(false)
   })
