@@ -70,14 +70,19 @@ describe('HeaderActionRegion', () => {
     expect(region).not.toBeNull()
 
     const classes = region?.className.split(/\s+/) ?? []
-    expect(classes).toContain('ml-auto')
-    expect(classes).toContain('justify-end')
-    expect(classes).toContain('min-w-0')
-    expect(classes).toContain('max-w-full')
-    expect(classes).toContain('overflow-x-auto')
+    // Phone: `contents`, so utility icons join the title row and the time
+    // picker can wrap to its own row (a wrapper box would force a third row).
+    expect(classes).toContain('contents')
+    expect(classes).not.toContain('w-full')
+    expect(classes).not.toContain('basis-full')
+    // sm+: bounded, right-aligned, swipeable column beside the title.
+    expect(classes).toContain('sm:flex')
+    expect(classes).toContain('sm:ml-auto')
+    expect(classes).toContain('sm:justify-end')
+    expect(classes).toContain('sm:min-w-0')
+    expect(classes).toContain('sm:max-w-full')
+    expect(classes).toContain('sm:overflow-x-auto')
     expect(classes).toContain('scrollbar-hide')
-    expect(classes).toContain('w-full')
-    expect(classes).toContain('basis-full')
     expect(classes).toContain('sm:w-auto')
     expect(classes).toContain('sm:flex-1')
     expect(classes).toContain('sm:shrink')

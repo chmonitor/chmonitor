@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils'
  * Sets the global default lastHours used by all charts that do not have an
  * individual per-chart date range selector configured.
  *
- * Phone (below `sm`): chips stay compact and `flex-1` so 1h…30d fills the
- * remaining header row beside the 44×44 utilities. 44×44 chips (#3108)
- * overflowed 375 and clipped the theme icon / left an empty band.
+ * Phone (below `sm`): the group takes its own full-width second header row
+ * (`order-last basis-full`) with `flex-1`, 36px-tall chips, so the title row
+ * keeps the 44×44 utilities (refresh, search, theme) right-aligned.
  * From `sm` the group shrinks to intrinsic width (same compact chips as
  * before) because the header is a single nowrap row with more room.
  */
@@ -21,7 +21,7 @@ export const GlobalTimeRangePicker = function GlobalTimeRangePicker() {
 
   return (
     <div
-      className="flex min-w-0 flex-1 items-center gap-0.5 rounded-md border border-border/50 bg-muted/40 p-0.5 sm:flex-none sm:shrink-0"
+      className="order-last flex min-w-0 basis-full items-center gap-0.5 rounded-md border border-border/50 bg-muted/40 p-0.5 sm:order-none sm:flex-none sm:shrink-0 sm:basis-auto"
       role="group"
       aria-label="Global time range"
     >
@@ -35,7 +35,7 @@ export const GlobalTimeRangePicker = function GlobalTimeRangePicker() {
             aria-pressed={isActive}
             title={`Show last ${preset.label}`}
             className={cn(
-              'inline-flex min-w-0 flex-1 items-center justify-center rounded px-1.5 py-0.5 text-xs font-medium transition-colors sm:flex-none sm:px-2',
+              'inline-flex min-h-9 min-w-0 flex-1 items-center justify-center rounded px-1.5 py-0.5 text-xs font-medium transition-colors sm:min-h-0 sm:flex-none sm:px-2',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               isActive
                 ? 'bg-background text-foreground'

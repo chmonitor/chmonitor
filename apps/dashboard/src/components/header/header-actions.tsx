@@ -45,7 +45,7 @@ export const HeaderActions = function HeaderActions({
   return (
     <div
       data-testid="dashboard-header-action-controls"
-      className="flex w-full min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-1 sm:w-auto lg:gap-3"
+      className="contents sm:flex sm:w-auto sm:min-w-0 sm:max-w-full sm:shrink-0 sm:flex-nowrap sm:items-center sm:justify-end sm:gap-1 lg:gap-3"
     >
       {showTimeControls ? (
         <>

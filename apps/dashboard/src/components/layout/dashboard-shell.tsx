@@ -45,7 +45,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <ResizableSidebarProvider defaultOpen={true}>
           <AppSidebar />
           <SidebarInset className="min-w-0 overflow-hidden">
-            <header className="relative z-10 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 transition-[width,height] ease-linear sm:h-16 sm:flex-nowrap sm:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sm:group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-12">
+            <header className="relative z-10 flex min-h-16 shrink-0 flex-wrap items-center gap-x-1 gap-y-2 px-3 py-2 transition-[width,height] ease-linear sm:h-16 sm:flex-nowrap sm:gap-x-2 sm:px-0 sm:py-0 sm:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sm:group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-12">
               <HeaderIdentity />
               <HeaderActionRegion>
                 <HeaderActions />

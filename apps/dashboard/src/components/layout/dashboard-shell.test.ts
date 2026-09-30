@@ -31,10 +31,16 @@ describe('dashboard header composition', () => {
   })
 
   test('keeps the page identity intrinsic-width and readable', () => {
+    // sm+ stays intrinsic-width so the title is never ellipsized at 768; on
+    // phones it fills row 1 to push the utility icons right. No phone-only
+    // top padding: it offset the separator from the toggle and title.
     expect(identitySrc).toContain(
-      'className="flex shrink-0 items-center gap-2 px-3 pt-2 sm:px-4 sm:pt-0"'
+      'className="flex shrink-0 items-center gap-2 max-sm:flex-1 sm:px-4"'
     )
     expect(identitySrc).not.toContain('flex min-w-0 flex-1')
+    expect(identitySrc).not.toContain('pt-2')
+    // The base vertical Separator self-stretches; centre it at h-4.
+    expect(identitySrc).toContain('data-vertical:h-4 data-vertical:self-center')
   })
 
   test('keeps the action controls right-aligned and bounded', () => {
