@@ -54,6 +54,13 @@ that remain genuinely open in [Open questions](#open-questions).
 
 ---
 
+
+> **Built-in alert names (#3438).** Built-in check alerts are rows in
+> `custom_alert_rules` keyed by the check id; the name is display-only
+> (notifications keep the built-in title, `alert_state`/`alert_acks` stay keyed
+> on `(hostId, ruleId)`). With no metadata DB the list renders read-only, gated
+> by the same `canWriteHealthStore()` as every other alert store.
+
 ## What "the metadata database" is
 
 There is no `metadataDb` module and no `CHM_METADATA_DB` env var. It is a
