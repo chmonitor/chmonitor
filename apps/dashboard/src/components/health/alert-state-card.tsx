@@ -3,7 +3,6 @@ import { RefreshCw } from 'lucide-react'
 import type { AlertRuleSeverity } from '@/lib/alerting/rule-registry'
 import type { AlertStateRow } from '@/lib/health/alert-state-persist'
 
-import { HEALTH_CHECKS } from './health-checks'
 import { useAlertState } from './use-alert-state'
 import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -18,12 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useCheckAlertNames } from '@/lib/hooks/use-check-alerts'
 import { useHostId } from '@/lib/swr/use-host'
 import { cn, formatDuration } from '@/lib/utils'
 import { formatRelativeTime } from '@/lib/utils/format-relative-time'
 
 /** Badge tint per confirmed state — 'ok' reuses the brand's health emerald. */
-const STATE_BADGE_CLASS: Record<AlertRuleSeverity, string> = {
+export const STATE_BADGE_CLASS: Record<AlertRuleSeverity, string> = {
   ok: 'border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
   warning:
     'border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
@@ -31,22 +31,27 @@ const STATE_BADGE_CLASS: Record<AlertRuleSeverity, string> = {
     'border-transparent bg-destructive/15 text-destructive dark:bg-destructive/25',
 }
 
-const STATE_LABEL: Record<AlertRuleSeverity, string> = {
+export const STATE_LABEL: Record<AlertRuleSeverity, string> = {
   ok: 'OK',
   warning: 'Warning',
   critical: 'Critical',
 }
 
-function checkTitle(ruleId: string): string {
-  const match = HEALTH_CHECKS.find((c) => c.id === ruleId)
-  return match?.title ?? ruleId
-}
-
-function StateRow({ row, now }: { row: AlertStateRow; now: number }) {
+function StateRow({
+  row,
+  now,
+  name,
+}: {
+  row: AlertStateRow
+  now: number
+  name: string
+}) {
   const firing = row.severity !== 'ok'
   return (
     <TableRow>
-      <TableCell className="font-medium">{checkTitle(row.ruleId)}</TableCell>
+      <TableCell className="font-medium" title={row.ruleId}>
+        {name}
+      </TableCell>
       <TableCell>
         <Badge className={cn('font-normal', STATE_BADGE_CLASS[row.severity])}>
           {STATE_LABEL[row.severity]}
@@ -82,6 +87,7 @@ export function AlertStateCard() {
   const hostId = useHostId()
   const { states, isLoading, isFetching, error, refetch } =
     useAlertState(hostId)
+  const alertName = useCheckAlertNames()
   const now = Date.now()
 
   // Firing conditions first, then most-recently-transitioned.
@@ -144,6 +150,7 @@ export function AlertStateCard() {
                   key={`${row.hostId}:${row.ruleId}`}
                   row={row}
                   now={now}
+                  name={alertName(row.ruleId)}
                 />
               ))}
             </TableBody>

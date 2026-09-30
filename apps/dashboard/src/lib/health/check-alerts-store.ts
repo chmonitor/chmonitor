@@ -29,11 +29,27 @@ import { CustomRuleStoreError } from './custom-rules-store'
 import { getHealthDb } from './resolve-store'
 import { MAX_NAME_LENGTH } from './rule-builder-schema'
 import { HEALTH_CHECKS } from '@/components/health/health-checks'
+import {
+  BUILTIN_COMPOUND_RULES,
+  BUILTIN_RULES,
+} from '@/lib/alerting/builtin-rules'
 
-/** Default title per known check id, in `HEALTH_CHECKS` order. */
-const DEFAULT_TITLES: ReadonlyMap<string, string> = new Map(
-  HEALTH_CHECKS.map((check) => [check.id, check.title])
-)
+/**
+ * Default title per known id: the browser checks (`HEALTH_CHECKS`) first,
+ * then every server sweep rule (`BUILTIN_RULES` + `BUILTIN_COMPOUND_RULES`)
+ * whose id the browser does not track. The sweep is the only writer of
+ * `alert_state`, so every id that can appear as an alert/ACK `ruleId` must be
+ * nameable. A shared id keeps the browser title; ids are never re-keyed.
+ */
+const DEFAULT_TITLES: ReadonlyMap<string, string> = (() => {
+  const titles = new Map<string, string>(
+    HEALTH_CHECKS.map((check) => [check.id, check.title])
+  )
+  for (const rule of [...BUILTIN_RULES, ...BUILTIN_COMPOUND_RULES]) {
+    if (!titles.has(rule.id)) titles.set(rule.id, rule.title)
+  }
+  return titles
+})()
 
 export function isKnownCheckId(checkId: string): boolean {
   return DEFAULT_TITLES.has(checkId)
