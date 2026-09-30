@@ -4,6 +4,7 @@ import type { ApiResponseMetadata } from '@/lib/api/types'
 import type { ChartDataPoint } from '@/types/chart-data'
 
 import { useState } from 'react'
+import { chartActionClass } from '@/components/cards/chart-action-classes'
 import { ChartCsvExportButton } from '@/components/cards/chart-csv-export-button'
 import { RequestInfoContent } from '@/components/dialogs/dialog-sql'
 import { Button } from '@/components/ui/button'
@@ -19,7 +20,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
 /**
@@ -102,13 +102,7 @@ export const CardToolbar = function CardToolbar({
               variant="ghost"
               size="icon"
               aria-label="Open chart actions"
-              className={cn(
-                'size-6 transition-opacity rounded-full',
-                'relative before:content-[""] before:absolute before:-inset-4',
-                alwaysVisible
-                  ? 'opacity-40 hover:opacity-100'
-                  : 'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:!opacity-100'
-              )}
+              className={chartActionClass({ alwaysVisible })}
             />
           }
         >
@@ -145,7 +139,7 @@ export const CardToolbar = function CardToolbar({
       {/* Request Info Dialog (Metadata + SQL combined) — shares the same body
           as DialogSQL so both Request Info dialogs stay identical. */}
       <Dialog open={showRequestInfo} onOpenChange={setShowRequestInfo}>
-        <DialogContent className="w-full max-w-[95vw] sm:min-w-[550px] sm:max-w-[850px] max-h-[90vh] flex flex-col p-6">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[95vw] sm:w-full sm:max-w-[850px] max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader className="pb-2">
             <DialogTitle className="text-lg font-medium">
               Request Info

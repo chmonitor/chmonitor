@@ -617,6 +617,31 @@ export const OG_PAGES: Record<string, OgPage> = {
     description:
       'Server-side warnings about configuration or operational issues.',
   },
+  // ── Hub landing pages (/hub/<slug>), one per sidebar task group.
+  'hub-queries': {
+    eyebrow: 'QUERIES',
+    title: 'Queries',
+    description:
+      'Running, failed and slow queries at a glance, with every query page one click away.',
+  },
+  'hub-data-storage': {
+    eyebrow: 'DATA & STORAGE',
+    title: 'Data & Storage',
+    description:
+      'Disk usage, largest tables and merges at a glance, with every table and storage page one click away.',
+  },
+  'hub-cluster-replication': {
+    eyebrow: 'CLUSTER & REPLICATION',
+    title: 'Cluster & Replication',
+    description:
+      'Replication queue, readonly replicas and Keeper health at a glance, with every cluster page one click away.',
+  },
+  'hub-server': {
+    eyebrow: 'SERVER',
+    title: 'Server',
+    description:
+      'CPU, memory, errors and crashes at a glance, with every server page one click away.',
+  },
 }
 
 /** Absolute URL of a page's OG image, e.g. .../og-running-queries.png. */

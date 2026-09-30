@@ -9,6 +9,21 @@ export interface MenuItem {
   title: string
   href: string
   description?: string
+  /**
+   * Group rows only: the hub landing page for this group (e.g.
+   * `/hub/queries`). The sidebar heading label links here while the chevron
+   * still expands, and the breadcrumb's group crumb links here. Kept apart
+   * from `href`, which stays `''` on groups: every nav surface keys groups
+   * by an empty href, and a real href would make the parent-path active rule
+   * light the group up on unrelated pages.
+   */
+  hubHref?: string
+  /**
+   * Child rows of a hub group: the hub section this page is listed under
+   * (e.g. "Live", "History"). Hub sections are derived from this field in
+   * declaration order (lib/menu/hub.ts), so the hub never keeps its own list.
+   */
+  subgroup?: string
   /** Key for fetching count from /api/v1/menu-counts/[key] */
   countKey?: string
   /** Label shown on hover (e.g., "running", "merges", "tables") */

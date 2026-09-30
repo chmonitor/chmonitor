@@ -18,6 +18,7 @@ description: >-
   "header title", "768", "truncate Overview", "essential sidebar",
   "more pages", "keep in sidebar", "hover add", "group heading",
   "sidebar groups", "menu group", "add to sidebar", "task groups",
+  "hub page", "landing page", "subgroup", "hubHref",
   "customize dialog", "configure alert", "already alerting",
   "alert settings", "health detail dialog", "alert threshold", "badge",
   "unavailable pages", "dim unavailable", "hide unavailable",
@@ -388,6 +389,17 @@ chartName, hostId, interval })`. Header icon order:
 `[StaleIndicator] [DateRange] [LogScaleToggle] [CardToolbar]`. Copy an existing
 chart in `components/charts/` as the template — don't reinvent the wiring.
 
+**Touch-safe chart card actions (#3563).** Never hand-write `opacity-0
+group-hover:*` on a chart card icon: hover does not exist on touch, so the
+action can never be found. Use `chartActionClass({ alwaysVisible?, emphasis? })`
+from `components/cards/chart-action-classes.ts` (zoom, CSV export, log scale,
+stale indicator, actions menu). Mouse (`pointer-fine:`) keeps the hover-reveal;
+touch (`pointer-coarse:`) rests at `opacity-40` and the button grows
+`size-6` -> `size-9` (36px). Other small header targets follow the same
+`pointer-coarse:` rule (date-range trigger `h-9`, host-switcher row action
+`size-9`, time-range segments `min-h-9`). Use `pointer-coarse:` rather than a
+width breakpoint: a tablet is wide and still touch.
+
 ## Loading / empty / error
 
 - **Loading:** a `Skeleton` that matches the final layout (`components/skeletons/`)
@@ -568,7 +580,10 @@ is a full-width control under the hide-count line. Full detail:
    `<title>` as well as the sidebar label.
    The sidebar is task groups, two levels deep (#3565): Overview, Queries,
    Data & Storage, Cluster & Replication, Server, Alerts & Insights,
-   Tools & AI (main), then Settings (others) and the About footer. Put a
+   Tools & AI (main), then Settings (others) and the About footer. Queries,
+   Data & Storage, Cluster & Replication, and Server have hub pages
+   (`/hub/<slug>`, group `hubHref`): a new page in those groups MUST set
+   `subgroup` so it appears as a card on the hub (`hub.test.ts`). Put a
    new page in the group matching the task, in its subgroup run (see the
    list in `docs/knowledge/product-design.md` → *Sidebar navigation
    groups*); never add a new top-level group or nest a group in a group.

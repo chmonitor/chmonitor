@@ -1,12 +1,12 @@
 import { Maximize2Icon } from 'lucide-react'
 
+import { chartActionClass } from '@/components/cards/chart-action-classes'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
 
 /**
  * The "zoom to" affordance in a chart card's toolbar.
@@ -35,11 +35,7 @@ export const ChartZoomButton = function ChartZoomButton({
             onClick={onClick}
             disabled={disabled}
             aria-label="Zoom chart"
-            className={cn(
-              'size-6 rounded-full transition-opacity',
-              'relative before:content-[""] before:absolute before:-inset-4',
-              'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:!opacity-100'
-            )}
+            className={chartActionClass()}
           />
         }
       >

@@ -25,11 +25,13 @@ export const clusterReplicationItems: MenuItem[] = [
     // and Keeper pages were never gated — each child carries its own.
     title: 'Cluster & Replication',
     href: '',
+    hubHref: '/hub/cluster-replication',
     icon: UngroupIcon,
     section: 'main',
     items: [
       // Cluster
       {
+        subgroup: 'Cluster',
         title: 'Clusters',
         href: '/clusters',
         description: 'Interactive topology map and cluster member information',
@@ -41,6 +43,7 @@ export const clusterReplicationItems: MenuItem[] = [
         permission: { feature: 'cluster' },
       },
       {
+        subgroup: 'Cluster',
         title: 'Fleet Overview',
         href: '/fleet',
         description: 'Health signals across all ClickHouse hosts in one view',
@@ -49,6 +52,7 @@ export const clusterReplicationItems: MenuItem[] = [
         permission: { feature: 'cluster' },
       },
       {
+        subgroup: 'Cluster',
         title: 'Connections',
         href: '/charts?name=connections-http,connections-interserver',
         description: 'Client and inter-server connection metrics',
@@ -59,6 +63,7 @@ export const clusterReplicationItems: MenuItem[] = [
       },
       // Replication
       {
+        subgroup: 'Replication',
         title: 'Table Replicas',
         href: '/replicas',
         description: 'Replicated table health status and lag metrics',
@@ -70,6 +75,7 @@ export const clusterReplicationItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Replication',
         title: 'Replication Queue',
         href: '/replication-queue',
         description:
@@ -82,6 +88,7 @@ export const clusterReplicationItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Replication',
         title: 'Replicated Fetches',
         href: '/replicated-fetches',
         description:
@@ -92,6 +99,7 @@ export const clusterReplicationItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Replication',
         title: 'DDL Queue',
         href: '/distributed-ddl-queue',
         countKey: 'distributed-ddl-queue',
@@ -104,6 +112,7 @@ export const clusterReplicationItems: MenuItem[] = [
       },
       // Keeper
       {
+        subgroup: 'Keeper',
         title: 'Overview',
         href: '/keeper/overview',
         description:
@@ -113,6 +122,7 @@ export const clusterReplicationItems: MenuItem[] = [
         tableCheck: 'system.zookeeper_info',
       },
       {
+        subgroup: 'Keeper',
         title: 'Data Browser',
         href: '/keeper?path=/',
         description:
@@ -122,6 +132,7 @@ export const clusterReplicationItems: MenuItem[] = [
         tableCheck: 'system.zookeeper',
       },
       {
+        subgroup: 'Keeper',
         title: 'Keeper Info',
         href: '/keeper/info',
         description:
@@ -131,6 +142,7 @@ export const clusterReplicationItems: MenuItem[] = [
         tableCheck: 'system.zookeeper_info',
       },
       {
+        subgroup: 'Keeper',
         // Renamed from "Connections": it now shares a list with the cluster
         // Connections page above.
         title: 'Keeper Connections',
@@ -142,6 +154,7 @@ export const clusterReplicationItems: MenuItem[] = [
         tableCheck: 'system.zookeeper_connection',
       },
       {
+        subgroup: 'Keeper',
         title: 'Connection Log',
         href: '/keeper/connection-log',
         description:
@@ -151,6 +164,7 @@ export const clusterReplicationItems: MenuItem[] = [
         tableCheck: 'system.zookeeper_connection_log',
       },
       {
+        subgroup: 'Keeper',
         title: 'Request Log',
         href: '/keeper/log',
         description:
@@ -160,6 +174,7 @@ export const clusterReplicationItems: MenuItem[] = [
         tableCheck: 'system.zookeeper_log',
       },
       {
+        subgroup: 'Keeper',
         title: 'Watches',
         href: '/keeper/watches',
         description:
@@ -169,6 +184,7 @@ export const clusterReplicationItems: MenuItem[] = [
         tableCheck: 'system.zookeeper_watches',
       },
       {
+        subgroup: 'Keeper',
         title: 'Keeper Deep-dive',
         href: '/keeper/deep-dive',
         description:

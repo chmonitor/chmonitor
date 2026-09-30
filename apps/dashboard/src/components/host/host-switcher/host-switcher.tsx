@@ -230,7 +230,7 @@ export function HostSwitcher() {
                           clash with the dialog that opens next. */}
                       <button
                         type="button"
-                        className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:bg-accent hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="inline-flex size-6 pointer-coarse:size-9 shrink-0 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:bg-accent hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         aria-label={
                           editable
                             ? `Edit ${hostLabel}`
