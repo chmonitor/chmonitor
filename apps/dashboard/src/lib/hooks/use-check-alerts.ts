@@ -93,7 +93,6 @@ export function useCheckAlertsMutations() {
     queryClient.setQueryData<CheckAlertInfo[]>(CHECK_ALERTS_QUERY_KEY, (prev) =>
       prev?.map((a) => (a.checkId === updated.checkId ? updated : a))
     )
-    void queryClient.invalidateQueries({ queryKey: CHECK_ALERTS_QUERY_KEY })
   }
 
   const send = async (

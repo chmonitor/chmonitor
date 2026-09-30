@@ -216,7 +216,7 @@ export function CheckAlertList({ className }: { className?: string }) {
       <ul className="divide-y rounded-xl border bg-card shadow-sm">
         {alerts.map((alert) => (
           <CheckAlertRow
-            key={`${hostId}:${alert.checkId}`}
+            key={alert.checkId}
             alert={alert}
             state={stateById.get(alert.ruleId)}
             canWrite={canWrite}
