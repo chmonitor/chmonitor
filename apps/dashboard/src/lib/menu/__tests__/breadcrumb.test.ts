@@ -74,7 +74,7 @@ describe('getBreadcrumbPath (Inbound Events under Alerts & Insights, #3134 / #35
 describe('getBreadcrumbPath (task groups, #3565)', () => {
   test('Data Explorer breadcrumbs go through Data & Storage (its only parent)', () => {
     expect(getBreadcrumbPath('/explorer')).toEqual([
-      { title: 'Data & Storage', href: '' },
+      { title: 'Data & Storage', href: '/hub/data-storage' },
       { title: 'Data Explorer', href: '/explorer' },
     ])
   })
@@ -102,8 +102,31 @@ describe('getBreadcrumbPath (task groups, #3565)', () => {
 
   test('TTL & Partitions breadcrumbs go through Data & Storage, not System', () => {
     expect(getBreadcrumbPath('/ttl-partition-health')).toEqual([
-      { title: 'Data & Storage', href: '' },
+      { title: 'Data & Storage', href: '/hub/data-storage' },
       { title: 'TTL & Partitions', href: '/ttl-partition-health' },
     ])
+  })
+})
+
+describe('getBreadcrumbPath (hub pages)', () => {
+  // The group crumb is the way back up to the hub from any child page.
+  test('a child page links its group crumb to the group hub', () => {
+    expect(getBreadcrumbPath('/running-queries')).toEqual([
+      { title: 'Queries', href: '/hub/queries' },
+      { title: 'Running Queries', href: '/running-queries' },
+    ])
+  })
+
+  test('the hub page itself resolves to its group, not a URL fallback', () => {
+    expect(getBreadcrumbPath('/hub/cluster-replication')).toEqual([
+      { title: 'Cluster & Replication', href: '/hub/cluster-replication' },
+    ])
+  })
+
+  test('a group without a hub keeps a non-navigable crumb', () => {
+    expect(getBreadcrumbPath('/sql')[0]).toEqual({
+      title: 'Tools & AI',
+      href: '',
+    })
   })
 })

@@ -84,6 +84,10 @@ export const ROUTE_TITLE_MAP: Record<string, string> = {
   '/settings-diff': 'Settings Diff',
   '/ttl-partition-health': 'TTL & Partition Health',
   '/storage-economics': 'Storage Economics',
+  '/hub/queries': 'Queries',
+  '/hub/data-storage': 'Data & Storage',
+  '/hub/cluster-replication': 'Cluster & Replication',
+  '/hub/server': 'Server',
 }
 
 function pathOnly(href: string): string {
