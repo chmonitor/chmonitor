@@ -37,6 +37,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useHealthStoreAvailability } from '@/lib/health/store-availability'
+import { useCheckAlertNames } from '@/lib/hooks/use-check-alerts'
 import { cn } from '@/lib/utils'
 
 const DURATION_OPTIONS: { value: AckDurationKey; label: string }[] = [
@@ -158,6 +159,7 @@ export function ActiveAlertsPanel() {
   // An ACK with no backend would be discarded; `unknown` stays disabled too.
   const availability = useHealthStoreAvailability()
   const canWrite = canWriteHealthStore(availability)
+  const alertName = useCheckAlertNames()
 
   let content: React.ReactNode
   if (isLoading) {
@@ -201,7 +203,9 @@ export function ActiveAlertsPanel() {
           {findings.map((finding) => (
             <TableRow key={`${finding.hostId}-${finding.ruleId}`}>
               <TableCell className="text-xs">{finding.hostName}</TableCell>
-              <TableCell className="text-xs">{finding.title}</TableCell>
+              <TableCell className="text-xs" title={finding.ruleId}>
+                {alertName(finding.ruleId, finding.title)}
+              </TableCell>
               <TableCell>
                 <Badge
                   className={cn(

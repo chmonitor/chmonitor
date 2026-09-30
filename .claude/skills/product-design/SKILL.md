@@ -260,6 +260,13 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   per-panel probe; see `docs/knowledge/metadata-db-optional-config.md`.
   ACK/Clear follow the same gate; `<AlertStateVolatilityNotice>` states the
   restart-resets-alert-state consequence where thresholds are tuned.
+- **Built-in alert names (#3438):** an alert is keyed by its stable check id
+  (= `alert_state` / ACK `ruleId`); the name is display-only. Show any alert
+  listed by `ruleId` through ONE resolver, `useCheckAlertNames()`
+  (`lib/hooks/use-check-alerts.ts`; stored name → caller label → browser
+  title → id) — never a local `HEALTH_CHECKS.find`. Rename lives in
+  `components/health/check-alert-list.tsx` (Alert Settings → Alerts): list
+  always renders, rename/reset gated like every other health store write.
 - **"Already alerting" indicator:** `components/health/alert-configured-badge.tsx`
   — one amber `BellRing` badge, titled with why. Resolved once for the whole
   page by `components/health/use-alert-signals.ts` over the pure

@@ -18,6 +18,7 @@ import { AdvancedSettingsPanel } from './advanced-settings-panel'
 import { AlertChannelsPanel } from './alert-channels-panel'
 import { AlertStateCard } from './alert-state-card'
 import { AlertTemplateDialog } from './alert-template-dialog'
+import { CheckAlertList } from './check-alert-list'
 import { CustomWebhookTargetsPanel } from './custom-webhook-targets-panel'
 import { HEALTH_CHECKS } from './health-checks'
 import { RecentAlertsCard } from './recent-alerts-card'
@@ -275,6 +276,10 @@ export function HealthSettingsPanel({
                 Use a template
               </Button>
             </div>
+
+            <CheckAlertList />
+
+            <Separator />
 
             <AlertChannelsPanel
               alerts={alerts}

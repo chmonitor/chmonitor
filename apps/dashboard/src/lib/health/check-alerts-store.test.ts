@@ -71,6 +71,9 @@ const {
 const { ackAlert, listActiveAcks } = await import('./alert-ack-store')
 const { ruleRegistry } = await import('@/lib/alerting/rule-registry')
 const { HEALTH_CHECKS } = await import('@/components/health/health-checks')
+const { BUILTIN_RULES, BUILTIN_COMPOUND_RULES } = await import(
+  '@/lib/alerting/builtin-rules'
+)
 const { __handleGetForTests: handleGet } = await import(
   '@/routes/api/v1/health/check-alerts'
 )
@@ -78,6 +81,12 @@ const { __handlePutForTests: handlePut, __handleDeleteForTests: handleDelete } =
   await import('@/routes/api/v1/health/check-alerts/$checkId')
 
 const OWNER = 'owner-1'
+/** Union of browser check ids and server sweep rule ids. */
+const KNOWN_ID_COUNT = new Set([
+  ...HEALTH_CHECKS.map((c) => c.id),
+  ...BUILTIN_RULES.map((r) => r.id),
+  ...BUILTIN_COMPOUND_RULES.map((r) => r.id),
+]).size
 
 const putRequest = (body: unknown) =>
   new Request('http://localhost/api/v1/health/check-alerts/max-parts', {
@@ -96,7 +105,10 @@ beforeEach(() => {
 describe('check alert store (D1)', () => {
   test('lists every known check with its default title', async () => {
     const list = await listCheckAlerts(OWNER)
-    expect(list.map((c) => c.checkId)).toEqual(HEALTH_CHECKS.map((c) => c.id))
+    // Browser checks come first, in HEALTH_CHECKS order.
+    expect(list.slice(0, HEALTH_CHECKS.length).map((c) => c.checkId)).toEqual(
+      HEALTH_CHECKS.map((c) => c.id)
+    )
     const maxParts = list.find((c) => c.checkId === 'max-parts')
     expect(maxParts).toMatchObject({
       ruleId: 'max-parts',
@@ -148,6 +160,45 @@ describe('check alert store (D1)', () => {
       (c) => c.checkId === 'max-parts'
     )
     expect(listed?.source).toBe('default')
+  })
+
+  // The server sweep is the only writer of alert_state, and several of its
+  // rule ids are not browser checks. Every id that can appear as an
+  // alert_state / ACK ruleId must be nameable, or those alerts can never be
+  // renamed. On the HEALTH_CHECKS-only store these were NOT_FOUND.
+  test('every server sweep rule id is a known, nameable check', async () => {
+    const sweepRules = [...BUILTIN_RULES, ...BUILTIN_COMPOUND_RULES]
+    const list = await listCheckAlerts(OWNER)
+    const ids = new Set(list.map((c) => c.checkId))
+    for (const rule of sweepRules) {
+      expect(isKnownCheckId(rule.id)).toBe(true)
+      expect(ids.has(rule.id)).toBe(true)
+    }
+    for (const check of HEALTH_CHECKS) expect(ids.has(check.id)).toBe(true)
+    // No duplicates: a shared id is listed once.
+    expect(ids.size).toBe(list.length)
+
+    // Server-only rules default to the sweep rule's own title.
+    for (const id of [
+      'disk-usage',
+      'keeper-unavailable',
+      'fatal-log-entries',
+      'replica-split-brain',
+      'merge-pressure',
+    ]) {
+      const rule = sweepRules.find((r) => r.id === id)
+      expect(rule).toBeDefined()
+      expect(list.find((c) => c.checkId === id)?.defaultName).toBe(
+        rule?.title as string
+      )
+    }
+
+    const renamed = await renameCheckAlert(OWNER, 'disk-usage', 'Disk (prod)')
+    expect(renamed).toMatchObject({
+      ruleId: 'disk-usage',
+      name: 'Disk (prod)',
+      defaultName: 'Disk Usage',
+    })
   })
 
   test('unknown check ids and empty names are rejected', async () => {
@@ -227,7 +278,7 @@ describe('check-alerts API', () => {
     const res = await handleGet()
     expect(res.status).toBe(200)
     const { data } = (await res.json()) as { data: { checkId: string }[] }
-    expect(data).toHaveLength(HEALTH_CHECKS.length)
+    expect(data).toHaveLength(KNOWN_ID_COUNT)
 
     expect((await handlePut('nope', putRequest({ name: 'x' }))).status).toBe(
       404
@@ -246,7 +297,7 @@ describe('check-alerts API', () => {
     const { data } = (await res.json()) as {
       data: { source: string }[]
     }
-    expect(data).toHaveLength(HEALTH_CHECKS.length)
+    expect(data).toHaveLength(KNOWN_ID_COUNT)
     expect(data.every((c) => c.source === 'default')).toBe(true)
 
     expect(

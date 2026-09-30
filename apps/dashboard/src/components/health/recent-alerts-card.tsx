@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useCheckAlertNames } from '@/lib/hooks/use-check-alerts'
 import { useHostId } from '@/lib/swr/use-host'
 import { isServerHost, useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { cn } from '@/lib/utils'
@@ -70,6 +71,8 @@ export function RecentAlertsCard() {
     day: day || undefined,
     limit: HISTORY_LIMIT,
   })
+
+  const alertName = useCheckAlertNames()
 
   let content: React.ReactNode
   if (isLoading) {
@@ -122,7 +125,9 @@ export function RecentAlertsCard() {
               <TableCell className="text-xs">
                 {event.hostLabel ?? event.hostId}
               </TableCell>
-              <TableCell className="text-xs">{event.rule}</TableCell>
+              <TableCell className="text-xs" title={event.rule}>
+                {alertName(event.rule)}
+              </TableCell>
               <TableCell>
                 <Badge
                   className={cn(

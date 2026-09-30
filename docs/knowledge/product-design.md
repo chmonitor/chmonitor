@@ -778,6 +778,27 @@ watched?", not "is it bad?" — so it does not violate the one-signal-per-elemen
 rule above. The grid resolves all three sources **once for the page** and passes
 the result down as data; cards stay presentational.
 
+### Built-in alert names (#3438)
+
+A built-in alert is keyed by its stable check id, which is also the
+`alert_state` / `alert_acks` `ruleId`. The operator-set name is display-only,
+so a rename never re-keys state or resets an ACK. The known set is the union
+of the browser checks (`HEALTH_CHECKS`) and the server sweep rules
+(`BUILTIN_RULES` + `BUILTIN_COMPOUND_RULES`), so every id the sweep can write
+is nameable.
+
+- Every surface that lists alerts by `ruleId` (Current alert state, Active
+  alerts, Recent alerts) resolves the label through `useCheckAlertNames()`
+  (`lib/hooks/use-check-alerts.ts`): stored name → caller's own label (custom
+  rule title) → browser check title → raw id. Show the id in a `title`
+  tooltip. Never re-add a local `HEALTH_CHECKS.find` lookup.
+- `CheckAlertList` (`components/health/check-alert-list.tsx`, Alert Settings →
+  Alerts) lists every built-in alert: name, id in `font-mono` muted text,
+  a severity badge only while firing on the current host, pencil to rename
+  inline, reset only when a stored name exists. The list always renders
+  (the API returns defaults with no DB); rename/reset are gated on
+  `canWriteHealthStore` with `<HealthStoreNotice feature="Alert names">`.
+
 ### Presets before forms
 
 When a settings surface would otherwise render N identical input pairs (16
