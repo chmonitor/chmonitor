@@ -115,7 +115,7 @@ const queriesGroup: MenuItemType = {
   ],
 }
 
-/** Mirrors `menu/insights.ts`: one tableCheck leaf, one config-gated leaf. */
+/** One tableCheck leaf (like Traffic) and one config-gated leaf (like Scheduled Reports). */
 const insightsGroup: MenuItemType = {
   title: 'Insights',
   href: '',
