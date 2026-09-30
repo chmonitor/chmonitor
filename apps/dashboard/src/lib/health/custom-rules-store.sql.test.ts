@@ -98,3 +98,52 @@ describe('custom_alert_rules DELETE guard (real SQL)', () => {
     expect(row.check_id).toBe('max-parts')
   })
 })
+
+describe('migration 0032 (#3438)', () => {
+  test('keeps existing rules and adds the (owner_id, check_id) unique index', () => {
+    const db = new Database(':memory:')
+    db.exec(
+      readFileSync(join(MIGRATIONS_DIR, '0014_custom_alert_rules.sql'), 'utf-8')
+    )
+    db.run(
+      `INSERT INTO custom_alert_rules VALUES
+       ('custom:old','owner-1','Old','stuck-merges','>=',1,3,0,7)`
+    )
+    db.exec(
+      readFileSync(
+        join(MIGRATIONS_DIR, '0032_custom_alert_rules_check_alerts.sql'),
+        'utf-8'
+      )
+    )
+    expect(db.query(`SELECT * FROM custom_alert_rules`).all()).toEqual([
+      {
+        id: 'custom:old',
+        owner_id: 'owner-1',
+        name: 'Old',
+        metric: 'stuck-merges',
+        op: '>=',
+        warning: 1,
+        critical: 3,
+        enabled: 0,
+        created_at: 7,
+        check_id: null,
+      },
+    ])
+    const indexes = (
+      db.query(`PRAGMA index_list('custom_alert_rules')`).all() as {
+        name: string
+        unique: number
+      }[]
+    ).map((i) => `${i.name}:${i.unique}`)
+    expect(indexes).toContain('idx_custom_alert_rules_owner_id:0')
+    expect(indexes).toContain('idx_custom_alert_rules_owner_check_id:1')
+    const insertCheck = () =>
+      db.run(
+        `INSERT INTO custom_alert_rules (id, owner_id, name, created_at, check_id)
+         VALUES (?1, 'owner-1', 'n', 1, 'max-parts')`,
+        [`check:${Math.random()}`]
+      )
+    insertCheck()
+    expect(insertCheck).toThrow()
+  })
+})
