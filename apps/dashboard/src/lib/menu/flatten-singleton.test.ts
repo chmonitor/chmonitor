@@ -54,16 +54,16 @@ describe('flattenSingletonTitle', () => {
     ).toBe('Health')
   })
 
-  test('uses Chat / SQL for folder groups', () => {
+  test('uses Chat / SQL for the Tools & AI folder group', () => {
     expect(
       flattenSingletonTitle(
-        leaf({ title: 'AI Agent', href: '' }),
+        leaf({ title: 'Tools & AI', href: '' }),
         leaf({ title: 'Chat', href: '/agents' })
       )
     ).toBe('Chat')
     expect(
       flattenSingletonTitle(
-        leaf({ title: 'Tools', href: '' }),
+        leaf({ title: 'Tools & AI', href: '' }),
         leaf({ title: 'SQL Console', href: '/sql' })
       )
     ).toBe('SQL')
@@ -120,31 +120,28 @@ describe('Essential first-run rail (grouped, not flattened)', () => {
 
     expect(body.map((item) => item.title)).toEqual([
       'Overview',
-      'AI Agent',
-      'Insights',
-      'Health',
       'Queries',
-      'Tables',
-      'Tools',
+      'Data & Storage',
+      'Alerts & Insights',
+      'Tools & AI',
     ])
     expect(body[0]?.href).toBe('/overview')
     expect(body[0]?.items).toBeUndefined()
     expect(body.map((item) => item.items?.map((child) => child.href))).toEqual([
       undefined,
-      ['/agents'],
-      ['/insights'],
-      ['/health'],
       ['/running-queries', '/history-queries'],
-      ['/explorer', '/tables-overview'],
-      ['/sql', '/explorer'],
+      ['/tables-overview', '/explorer'],
+      ['/insights', '/health'],
+      ['/agents', '/sql'],
     ])
     expect(visible.some((item) => item.href === '/about')).toBe(true)
   })
 
-  test('Alerts injection keeps Health as a two-child group', () => {
+  test('Alerts injection lands after Health in Alerts & Insights', () => {
     const withAlerts = revealAlertsWhenActive(essentialRail(), true)
-    const health = withAlerts.find((item) => item.title === 'Health')
-    expect(health?.items?.map((child) => child.href)).toEqual([
+    const alerts = withAlerts.find((item) => item.title === 'Alerts & Insights')
+    expect(alerts?.items?.map((child) => child.href)).toEqual([
+      '/insights',
       '/health',
       '/alert-settings',
     ])

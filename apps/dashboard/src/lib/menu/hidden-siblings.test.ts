@@ -11,15 +11,15 @@ import {
 import { DEFAULT_HIDDEN_MENU_HREFS } from '@/lib/menu/slim-default'
 
 describe('findCatalogGroupForHref', () => {
-  test('Queries owns running-queries; Tools owns sql; Tables owns explorer first', () => {
+  test('Queries owns running-queries; Tools & AI owns sql; Data & Storage owns explorer', () => {
     expect(
       findCatalogGroupForHref(menuItemsConfig, '/running-queries')?.title
     ).toBe('Queries')
     expect(findCatalogGroupForHref(menuItemsConfig, '/sql')?.title).toBe(
-      'Tools'
+      'Tools & AI'
     )
     expect(findCatalogGroupForHref(menuItemsConfig, '/explorer')?.title).toBe(
-      'Tables'
+      'Data & Storage'
     )
     expect(
       findCatalogGroupForHref(menuItemsConfig, '/overview')
@@ -43,13 +43,13 @@ describe('hiddenSiblingLeaves', () => {
     expect(hrefs).not.toContain('/running-queries')
   })
 
-  test('Tables + lists Replicas and TTL, not Explorer or Overview', () => {
+  test('Data & Storage + lists Merges and TTL, not Explorer or Overview', () => {
     const hrefs = hiddenSiblingLeaves(
       menuItemsConfig,
       '/tables-overview',
       hidden
     ).map((item) => item.href)
-    expect(hrefs).toContain('/replicas')
+    expect(hrefs).toContain('/merges')
     expect(hrefs).toContain('/ttl-partition-health')
     expect(hrefs).not.toContain('/explorer')
     expect(hrefs).not.toContain('/tables-overview')
@@ -77,6 +77,6 @@ describe('hiddenLeavesGrouped', () => {
     )
     expect(explorerHits).toHaveLength(1)
     expect(groups.some((group) => group.group === 'Queries')).toBe(true)
-    expect(groups.some((group) => group.group === 'Tables')).toBe(true)
+    expect(groups.some((group) => group.group === 'Data & Storage')).toBe(true)
   })
 })

@@ -62,47 +62,47 @@ describe('isMenuItemActiveAmongSiblings', () => {
   })
 })
 
-describe('getBreadcrumbPath (Inbound Events under Health, #3134)', () => {
-  test('Inbound Events breadcrumbs go through Health, not as a top-level leaf', () => {
+describe('getBreadcrumbPath (Inbound Events under Alerts & Insights, #3134 / #3565)', () => {
+  test('Inbound Events breadcrumbs go through Alerts & Insights, not as a top-level leaf', () => {
     expect(getBreadcrumbPath('/inbound-events')).toEqual([
-      { title: 'Health', href: '' },
+      { title: 'Alerts & Insights', href: '' },
       { title: 'Inbound Events', href: '/inbound-events' },
     ])
   })
 })
 
-describe('getBreadcrumbPath (Tools regroup)', () => {
-  test('Data Explorer breadcrumbs go through Tables (first parent; also listed under Tools)', () => {
+describe('getBreadcrumbPath (task groups, #3565)', () => {
+  test('Data Explorer breadcrumbs go through Data & Storage (its only parent)', () => {
     expect(getBreadcrumbPath('/explorer')).toEqual([
-      { title: 'Tables', href: '/tables' },
+      { title: 'Data & Storage', href: '' },
       { title: 'Data Explorer', href: '/explorer' },
     ])
   })
 
-  test('SQL Console breadcrumbs go through Tools, not Tables', () => {
+  test('SQL Console breadcrumbs go through Tools & AI, not Tables', () => {
     expect(getBreadcrumbPath('/sql')).toEqual([
-      { title: 'Tools', href: '' },
+      { title: 'Tools & AI', href: '' },
       { title: 'SQL Console', href: '/sql' },
     ])
   })
 
-  test('Explain breadcrumbs go through Tools, not Queries', () => {
+  test('Explain breadcrumbs go through Tools & AI, not Queries', () => {
     expect(getBreadcrumbPath('/explain')).toEqual([
-      { title: 'Tools', href: '' },
+      { title: 'Tools & AI', href: '' },
       { title: 'Explain', href: '/explain' },
     ])
   })
 
-  test('Chart Builder breadcrumbs go through Tools, not Operations', () => {
+  test('Chart Builder breadcrumbs go through Tools & AI, not Operations', () => {
     expect(getBreadcrumbPath('/dashboard')).toEqual([
-      { title: 'Tools', href: '' },
+      { title: 'Tools & AI', href: '' },
       { title: 'Chart Builder', href: '/dashboard' },
     ])
   })
 
-  test('TTL & Partitions breadcrumbs go through Tables, not System', () => {
+  test('TTL & Partitions breadcrumbs go through Data & Storage, not System', () => {
     expect(getBreadcrumbPath('/ttl-partition-health')).toEqual([
-      { title: 'Tables', href: '/tables' },
+      { title: 'Data & Storage', href: '' },
       { title: 'TTL & Partitions', href: '/ttl-partition-health' },
     ])
   })

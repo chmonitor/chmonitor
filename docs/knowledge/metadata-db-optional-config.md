@@ -273,7 +273,7 @@ custom webhook targets (env fallback) · webhook subscriptions ·
 timers reset on every worker restart (`alert-state-persist.ts:108-191`).
 
 **Type C — menu dimming:** `requiresMetadataDb: true` → "Scheduled Reports"
-only (`menu/insights.ts`), and it dims rather than hides so the OSS discovery
+only (`menu/settings.ts`), and it dims rather than hides so the OSS discovery
 path survives (#3463).
 
 **Type D — works with no DB (must not regress):**
@@ -936,7 +936,7 @@ gates on knowing what "available" means.
    `envConfiguredMap()`'s boolean-only shape for file-backed values too. Same
    rule, one code path.
 4. **Q4 — Do we retire `requiresMetadataDb`?** It has one user, "Scheduled
-   Reports" (`menu/insights.ts:62`). That item is backed by the insights stores,
+   Reports" (`menu/settings.ts`). That item is backed by the insights stores,
    which **do** honour Postgres and ClickHouse — so the flag is not wrong for
    it; it is wrong for the *health* surface, which has none. **Recommendation:**
    do not delete it — fix its **input** by deriving the flag from

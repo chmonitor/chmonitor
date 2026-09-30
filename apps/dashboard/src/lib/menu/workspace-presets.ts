@@ -37,31 +37,35 @@ export const PRESET_GROUP_TITLES: Record<
   Exclude<WorkspacePreset, 'full' | 'custom'>,
   readonly string[]
 > = {
+  // Mapped from the pre-#3565 16-group layout to the task groups: each
+  // preset keeps every group that holds a page it used to show.
   dba: [
     'Overview',
-    'Tools',
+    'Tools & AI',
     'Queries',
-    'Tables',
-    'Merges',
-    'Metrics',
-    'Keeper',
-    'Security',
-    'Logs',
-    'Cluster',
-    'System',
+    'Data & Storage',
+    'Cluster & Replication',
+    'Server',
+    'Settings',
   ],
-  engineer: ['Overview', 'Tools', 'Queries', 'Tables', 'Insights', 'AI Agent'],
+  engineer: [
+    'Overview',
+    'Tools & AI',
+    'Queries',
+    'Data & Storage',
+    'Cluster & Replication',
+    'Alerts & Insights',
+    'Settings',
+  ],
   sre: [
     'Overview',
-    'Tools',
-    'Health',
-    'Insights',
+    'Tools & AI',
+    'Alerts & Insights',
     'Queries',
-    'Tables',
-    'System',
-    'Operations',
-    'Metrics',
-    'Logs',
+    'Data & Storage',
+    'Cluster & Replication',
+    'Server',
+    'Settings',
   ],
 }
 

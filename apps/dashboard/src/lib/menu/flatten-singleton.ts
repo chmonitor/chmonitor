@@ -8,7 +8,7 @@ import type { MenuItem } from '@/components/menu/types'
  */
 
 /** Group titles that are folders; flattening uses the child's title. */
-const FOLDER_TITLES = new Set(['AI Agent', 'Tools'])
+const FOLDER_TITLES = new Set(['Tools & AI'])
 
 /**
  * Short label for a 1-child group: parent title for Queries / Tables /
@@ -18,7 +18,7 @@ export function flattenSingletonTitle(
   parent: MenuItem,
   child: MenuItem
 ): string {
-  if (parent.title === 'Tools' && child.href === '/sql') return 'SQL'
+  if (parent.title === 'Tools & AI' && child.href === '/sql') return 'SQL'
   if (FOLDER_TITLES.has(parent.title)) return child.title
   return parent.title
 }

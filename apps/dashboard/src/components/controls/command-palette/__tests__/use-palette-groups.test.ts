@@ -129,7 +129,7 @@ describe('derivePaletteGroups', () => {
     expect(tableResult.quickNav.isTableName).toBe(true)
   })
 
-  test('Data Explorer is listed under both Tools and Tables', () => {
+  test('Data Explorer is listed once, under Data & Storage (#3565)', () => {
     const result = derivePaletteGroups({
       menuItems: menuItemsConfig,
       favoriteMenuItems: [],
@@ -138,13 +138,13 @@ describe('derivePaletteGroups', () => {
       currentHostId: 0,
       query: '',
     })
-    const tools = result.sectionedItems.find((item) => item.title === 'Tools')
-    const tables = result.sectionedItems.find((item) => item.title === 'Tables')
-    expect(tools?.items?.map((item) => item.href)).toContain('/explorer')
-    expect(tables?.items?.map((item) => item.href)).toContain('/explorer')
+    const groupsWithExplorer = result.sectionedItems
+      .filter((item) => item.items?.some((child) => child.href === '/explorer'))
+      .map((item) => item.title)
+    expect(groupsWithExplorer).toEqual(['Data & Storage'])
   })
 
-  test('Inbound Events is under Health, not a top-level Go-to leaf (#3134)', () => {
+  test('Inbound Events is under Alerts & Insights, not a top-level Go-to leaf (#3134)', () => {
     const result = derivePaletteGroups({
       menuItems: menuItemsConfig,
       favoriteMenuItems: [],
@@ -156,7 +156,9 @@ describe('derivePaletteGroups', () => {
     expect(result.leafItems.map((item) => item.href)).not.toContain(
       '/inbound-events'
     )
-    const health = result.sectionedItems.find((item) => item.title === 'Health')
+    const health = result.sectionedItems.find(
+      (item) => item.title === 'Alerts & Insights'
+    )
     expect(health?.items?.map((item) => item.href)).toContain('/inbound-events')
   })
 })

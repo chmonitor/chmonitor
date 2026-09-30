@@ -6,6 +6,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   applyWorkspacePreset,
   applyWorkspaceVisibility,
+  collectMenuHrefs,
   effectiveHiddenMenuHrefs,
   hideMenuHref,
   menuItemIsHidden,
@@ -30,19 +31,17 @@ const fixture: MenuItem[] = [
     ],
   },
   {
-    title: 'Keeper',
+    title: 'Cluster & Replication',
     href: '',
     items: [leaf({ title: 'Keeper Info', href: '/keeper/info' })],
   },
   {
-    title: 'Health',
+    title: 'Alerts & Insights',
     href: '',
-    items: [leaf({ title: 'Health', href: '/health' })],
-  },
-  {
-    title: 'Insights',
-    href: '',
-    items: [leaf({ title: 'Insights', href: '/insights' })],
+    items: [
+      leaf({ title: 'Health', href: '/health' }),
+      leaf({ title: 'Insights', href: '/insights' }),
+    ],
   },
   leaf({ title: 'About', href: '/about', section: 'footer' }),
 ]
@@ -184,16 +183,16 @@ describe('hideMenuHref with real menu config (#3134)', () => {
     expect(next.hiddenMenuHrefs).not.toContain('/inbound-events')
   })
 
-  test('hiding the leaf keeps the Health group and its other children', () => {
+  test('hiding the leaf keeps the Alerts & Insights group and its other children', () => {
     const visible = applyWorkspaceVisibility(menuItemsConfig, {
       workspacePreset: 'custom',
       hiddenMenuHrefs: ['/inbound-events'],
     })
-    const health = visible.find((item) => item.title === 'Health')
-    expect(health?.items?.map((item) => item.href)).toEqual([
+    const alerts = visible.find((item) => item.title === 'Alerts & Insights')
+    expect(alerts?.items?.map((item) => item.href)).toEqual([
+      '/insights',
       '/health',
-      '/health-settings',
-      '/alert-settings',
+      '/traffic',
     ])
   })
 })
@@ -202,11 +201,11 @@ describe('effectiveHiddenMenuHrefs / menuItemIsHidden', () => {
   test('named presets mute leaves outside the group set', () => {
     const hidden = new Set(
       effectiveHiddenMenuHrefs(fixture, {
-        workspacePreset: 'engineer',
+        workspacePreset: 'dba',
         hiddenMenuHrefs: [],
       })
     )
-    expect(hidden.has('/keeper/info')).toBe(true)
+    expect(hidden.has('/keeper/info')).toBe(false)
     expect(hidden.has('/health')).toBe(true)
     expect(hidden.has('/overview')).toBe(false)
     expect(hidden.has('/running-queries')).toBe(false)
@@ -229,10 +228,231 @@ describe('effectiveHiddenMenuHrefs / menuItemIsHidden', () => {
   })
 })
 
+// Every page each named preset showed under the old 16-group layout
+// (captured before #3565). Group-title presets are coarse, so a preset may
+// now show MORE pages, but never fewer: a DBA who picked "DBA" must not lose
+// a page because it moved to another group.
+const PRE_3565_PRESET_HREFS: Record<'dba' | 'engineer' | 'sre', string[]> = {
+  dba: [
+    '/overview',
+    '/running-queries',
+    '/history-queries',
+    '/queries/insights',
+    '/recent-queries',
+    '/failed-queries',
+    '/expensive-queries',
+    '/slow-queries',
+    '/slow-query-patterns',
+    '/query-views-log',
+    '/queries/thread-analysis',
+    '/user-processes',
+    '/query-metric-log',
+    '/query-cache',
+    '/query-condition-cache',
+    '/explorer',
+    '/tables-overview',
+    '/ttl-partition-health',
+    '/distributed-ddl-queue',
+    '/replicas',
+    '/replication-queue',
+    '/replicated-fetches',
+    '/readonly-tables',
+    '/dropped-tables',
+    '/dictionaries',
+    '/kafka-consumers',
+    '/rabbitmq-consumers',
+    '/asynchronous-inserts',
+    '/detached-parts',
+    '/view-refreshes',
+    '/index-analytics',
+    '/merges',
+    '/merge-performance',
+    '/mutations',
+    '/moves',
+    '/part-log',
+    '/metrics',
+    '/asynchronous-metrics',
+    '/profiler',
+    '/keeper/overview',
+    '/keeper?path=/',
+    '/keeper/info',
+    '/keeper/connections',
+    '/keeper/connection-log',
+    '/keeper/log',
+    '/keeper/watches',
+    '/keeper/deep-dive',
+    '/security/sessions',
+    '/security/login-attempts',
+    '/security/audit-log',
+    '/users',
+    '/roles',
+    '/security/management',
+    '/logs/text-log',
+    '/logs/stack-traces',
+    '/logs/crashes',
+    '/opentelemetry-spans',
+    '/sql',
+    '/explain',
+    '/advisor',
+    '/dashboard',
+    '/schema-diff',
+    '/settings-diff',
+    '/settings',
+    '/mergetree-settings',
+    '/replicated-merge-tree-settings',
+    '/disks',
+    '/storage-economics',
+    '/warnings',
+    '/background-schedule-pool',
+    '/histogram-metrics',
+    '/workload-scheduling',
+    '/clusters',
+    '/fleet',
+    '/charts?name=connections-http,connections-interserver',
+  ],
+  engineer: [
+    '/overview',
+    '/agents',
+    '/agents/settings',
+    '/mcp',
+    '/insights',
+    '/traffic',
+    '/insights-settings',
+    '/report-settings',
+    '/running-queries',
+    '/history-queries',
+    '/queries/insights',
+    '/recent-queries',
+    '/failed-queries',
+    '/expensive-queries',
+    '/slow-queries',
+    '/slow-query-patterns',
+    '/query-views-log',
+    '/queries/thread-analysis',
+    '/user-processes',
+    '/query-metric-log',
+    '/query-cache',
+    '/query-condition-cache',
+    '/explorer',
+    '/tables-overview',
+    '/ttl-partition-health',
+    '/distributed-ddl-queue',
+    '/replicas',
+    '/replication-queue',
+    '/replicated-fetches',
+    '/readonly-tables',
+    '/dropped-tables',
+    '/dictionaries',
+    '/kafka-consumers',
+    '/rabbitmq-consumers',
+    '/asynchronous-inserts',
+    '/detached-parts',
+    '/view-refreshes',
+    '/index-analytics',
+    '/sql',
+    '/explain',
+    '/advisor',
+    '/dashboard',
+    '/schema-diff',
+    '/settings-diff',
+  ],
+  sre: [
+    '/overview',
+    '/insights',
+    '/traffic',
+    '/insights-settings',
+    '/report-settings',
+    '/health',
+    '/health-settings',
+    '/alert-settings',
+    '/inbound-events',
+    '/running-queries',
+    '/history-queries',
+    '/queries/insights',
+    '/recent-queries',
+    '/failed-queries',
+    '/expensive-queries',
+    '/slow-queries',
+    '/slow-query-patterns',
+    '/query-views-log',
+    '/queries/thread-analysis',
+    '/user-processes',
+    '/query-metric-log',
+    '/query-cache',
+    '/query-condition-cache',
+    '/explorer',
+    '/tables-overview',
+    '/ttl-partition-health',
+    '/distributed-ddl-queue',
+    '/replicas',
+    '/replication-queue',
+    '/replicated-fetches',
+    '/readonly-tables',
+    '/dropped-tables',
+    '/dictionaries',
+    '/kafka-consumers',
+    '/rabbitmq-consumers',
+    '/asynchronous-inserts',
+    '/detached-parts',
+    '/view-refreshes',
+    '/index-analytics',
+    '/metrics',
+    '/asynchronous-metrics',
+    '/profiler',
+    '/logs/text-log',
+    '/logs/stack-traces',
+    '/logs/crashes',
+    '/opentelemetry-spans',
+    '/sql',
+    '/explain',
+    '/advisor',
+    '/dashboard',
+    '/schema-diff',
+    '/settings-diff',
+    '/settings',
+    '/mergetree-settings',
+    '/replicated-merge-tree-settings',
+    '/disks',
+    '/storage-economics',
+    '/warnings',
+    '/background-schedule-pool',
+    '/histogram-metrics',
+    '/workload-scheduling',
+    '/backups',
+    '/blob-storage-log',
+    '/errors',
+    '/page-views',
+  ],
+}
+
 describe('PRESET_GROUP_TITLES', () => {
-  test('DBA, Engineer, and SRE all include Tools', () => {
-    expect(PRESET_GROUP_TITLES.dba).toContain('Tools')
-    expect(PRESET_GROUP_TITLES.engineer).toContain('Tools')
-    expect(PRESET_GROUP_TITLES.sre).toContain('Tools')
+  test('DBA, Engineer, and SRE all include Tools & AI', () => {
+    expect(PRESET_GROUP_TITLES.dba).toContain('Tools & AI')
+    expect(PRESET_GROUP_TITLES.engineer).toContain('Tools & AI')
+    expect(PRESET_GROUP_TITLES.sre).toContain('Tools & AI')
   })
+
+  test('every preset name is a real top-level group title', () => {
+    const titles = new Set(menuItemsConfig.map((item) => item.title))
+    for (const list of Object.values(PRESET_GROUP_TITLES)) {
+      for (const title of list) expect(titles.has(title), title).toBe(true)
+    }
+  })
+
+  for (const preset of ['dba', 'engineer', 'sre'] as const) {
+    test(`${preset} keeps every page it showed before the task-group regroup (#3565)`, () => {
+      const visible = new Set(
+        collectMenuHrefs(
+          applyWorkspaceVisibility(menuItemsConfig, {
+            workspacePreset: preset,
+            hiddenMenuHrefs: [],
+          })
+        )
+      )
+      const lost = PRE_3565_PRESET_HREFS[preset].filter(
+        (href) => !visible.has(href)
+      )
+      expect(lost).toEqual([])
+    })
+  }
 })
