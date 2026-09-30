@@ -386,6 +386,17 @@ chartName, hostId, interval })`. Header icon order:
 `[StaleIndicator] [DateRange] [LogScaleToggle] [CardToolbar]`. Copy an existing
 chart in `components/charts/` as the template — don't reinvent the wiring.
 
+**Touch-safe chart card actions (#3563).** Never hand-write `opacity-0
+group-hover:*` on a chart card icon: hover does not exist on touch, so the
+action can never be found. Use `chartActionClass({ alwaysVisible?, emphasis? })`
+from `components/cards/chart-action-classes.ts` (zoom, CSV export, log scale,
+stale indicator, actions menu). Mouse (`pointer-fine:`) keeps the hover-reveal;
+touch (`pointer-coarse:`) rests at `opacity-40` and the button grows
+`size-6` -> `size-9` (36px). Other small header targets follow the same
+`pointer-coarse:` rule (date-range trigger `h-9`, host-switcher row action
+`size-9`, time-range segments `min-h-9`). Use `pointer-coarse:` rather than a
+width breakpoint: a tablet is wide and still touch.
+
 ## Loading / empty / error
 
 - **Loading:** a `Skeleton` that matches the final layout (`components/skeletons/`)

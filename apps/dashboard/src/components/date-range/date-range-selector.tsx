@@ -79,14 +79,14 @@ export const DateRangeSelector = function DateRangeSelector({
             variant="ghost"
             size="sm"
             className={cn(
-              'h-6 gap-1 px-1.5 text-xs font-medium text-muted-foreground transition-opacity',
+              'h-6 gap-1 px-1.5 text-xs font-medium text-muted-foreground transition-opacity pointer-coarse:h-9 pointer-coarse:px-2.5',
               'hover:bg-muted hover:text-foreground rounded-md',
               'focus-visible:ring-1 focus-visible:ring-ring',
               'relative before:content-[""] before:absolute before:-inset-4',
               disabled && 'opacity-50 cursor-not-allowed',
               alwaysVisible || isOpen
                 ? 'opacity-100'
-                : 'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:!opacity-100 focus-visible:!opacity-100',
+                : 'opacity-40 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40 hover:!opacity-100 focus-visible:!opacity-100',
               className
             )}
           />

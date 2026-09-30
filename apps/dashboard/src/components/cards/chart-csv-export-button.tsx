@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import type { ChartDataPoint } from '@/types/chart-data'
 
+import { chartActionClass } from '@/components/cards/chart-action-classes'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -10,7 +11,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { arrayToCsv, downloadCsv, slugifyFilename } from '@/lib/csv'
-import { cn } from '@/lib/utils'
 
 interface ChartCsvExportButtonProps {
   /** Current chart data array to serialize */
@@ -57,13 +57,7 @@ export const ChartCsvExportButton = function ChartCsvExportButton({
             size="icon"
             onClick={handleExport}
             aria-label="Export to CSV"
-            className={cn(
-              'size-6 rounded-full transition-opacity',
-              'relative before:content-[""] before:absolute before:-inset-4',
-              alwaysVisible
-                ? 'opacity-40 hover:opacity-100'
-                : 'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:!opacity-100'
-            )}
+            className={chartActionClass({ alwaysVisible })}
           />
         }
       >
