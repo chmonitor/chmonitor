@@ -3,10 +3,13 @@
  * `useSyncExternalStore` wrapper over `lib/menu/favorites-store.ts`.
  */
 
+import type { FavoriteMoveDirection } from '@/lib/menu/favorites-store'
+
 import { useCallback, useSyncExternalStore } from 'react'
 import {
   getFavoriteHrefs,
   getFavoritesServerSnapshot,
+  moveFavorite,
   reorderFavorites,
   subscribeFavorites,
   toggleFavorite,
@@ -37,6 +40,21 @@ export function useReorderFavorites(): (
   return useCallback(
     (activeHref: string, overHref: string) =>
       reorderFavorites(activeHref, overHref),
+    []
+  )
+}
+
+export function useMoveFavorite(): (
+  href: string,
+  direction: FavoriteMoveDirection,
+  order: readonly string[]
+) => void {
+  return useCallback(
+    (
+      href: string,
+      direction: FavoriteMoveDirection,
+      order: readonly string[]
+    ) => moveFavorite(href, direction, order),
     []
   )
 }

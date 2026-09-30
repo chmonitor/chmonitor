@@ -17,6 +17,7 @@ description: >-
   "command palette", "cmd k", "search dialog", "ttl partitions",
   "header title", "768", "truncate Overview", "essential sidebar",
   "more pages", "keep in sidebar", "hover add", "group heading",
+  "page actions", "row actions", "mobile sidebar", "move up", "move down",
   "sidebar groups", "menu group", "add to sidebar", "task groups",
   "hub page", "landing page", "subgroup", "hubHref",
   "customize dialog", "configure alert", "already alerting",
@@ -163,7 +164,8 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   miss.
 - **Sidebar favorites:** the row is a link (`cursor-pointer`). Pin is
   hover-only. Favorites also reveal a grip handle on hover — drag it to
-  reorder (`nav-favorites.tsx`).
+  reorder (`nav-favorites.tsx`). Both are `lg`+ only; below `lg` the row's
+  "…" menu has Pin / Unpin, Hide, Move up / Move down.
 - **Overflow strip (one row, no wrap):** `scrollbar-hide overflow-x-auto` + `py-*`
   (so shadows/accents/focus rings aren't clipped) with a chevron button + a
   `from-background`→`transparent` edge fade per scrollable side, paging via
@@ -459,8 +461,15 @@ visible rows have Remove (`hideMenuHref`), hidden rows are muted with Add
 arrow. Footer Done, optional All pages… into Settings → Navigation (not
 the default path). Overview (no children) has no heading dialog. Footer
 About is never hideable. More is a flyout of hidden pages (not Settings).
-Below `lg` (touch overlay) leaf rows show only the pin; Hide / Add are
-`max-lg:hidden` and live in the heading dialog. Overlay-visible row actions
+Below `lg` (touch overlay, #3580) the hover Pin / Hide / Add and the
+Favorites grip are `max-lg:hidden`; every page row instead has one trailing
+"…" button (`nav-main/row-actions-menu.tsx`, `aria-label="Page actions"`,
+36px `size-9`, `lg:hidden`) opening a `DropdownMenu` with Pin / Unpin, Hide
+from sidebar, and — in the Favorites group only — Move up / Move down
+(disabled at the edges; `moveFavorite` in `favorites-store.ts`, fed the
+rendered order by `FavoritesOrderProvider`). No drag and no long-press on
+touch. Add a new row action to that menu for touch, not a second
+always-visible icon. Add still lives in the heading dialog on touch. Overlay-visible row actions
 use `overlayActionClasses` (`nav-main/overlay-action.ts`), not
 `showOnHover` (its `md:opacity-0` hides the `+` on 768 tablets). Group
 `Collapsible` is controlled: it opens when the active child href changes so

@@ -363,7 +363,8 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   `first-run-empty-state.tsx` (cloud signed-in / cloud anon / self-hosted).
 - **Sidebar favorites:** each item is a real link (`cursor-pointer`). The pin
   is hover-only on that row (never always-on). Favorites also show a grip
-  handle on hover; drag it to reorder (`nav-favorites.tsx`). Order is the
+  handle on hover; drag it to reorder (`nav-favorites.tsx`) — `lg`+ only,
+  touch uses the row's "…" menu (see *Overlay leaf chrome* below). Order is the
   `chm-pinned-favorites` localStorage pin list (`lib/menu/favorites-store.ts`).
   Leaf rows also reveal Hide (EyeOff) beside the pin; that writes
   `hiddenMenuHrefs` via `hideMenuHref` and toasts Undo + Open Navigation
@@ -384,9 +385,22 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   An explicit Open arrow navigates; Done closes; optional All pages… opens
   Settings → Navigation focused on the group (not the default path). This
   dialog is the 375 customize surface — no overflow-x, do not rely on the
-  cramped hover +/hide/pin row. **Overlay leaf chrome (below `lg`):** Hide
-  and Add on leaf rows are `max-lg:hidden` (docked rail, hover-only); the
-  pin is the single leaf action and stays visible with a 44px hit area.
+  cramped hover +/hide/pin row. **Overlay leaf chrome (below `lg`, #3580):** the
+  hover Pin, Hide, Add and the Favorites grip are all `max-lg:hidden`
+  (docked rail, hover-only). Every page row (top-level leaf and sub-item)
+  instead gets one trailing **"…"** button — `RowActionsMenu`
+  (`nav-main/row-actions-menu.tsx`), `aria-label="Page actions"`, a 36px
+  (`size-9`) target, `lg:hidden`, stepping left of the badge when the row
+  has one. It opens a `DropdownMenu`: **Pin / Unpin**, **Hide from sidebar**
+  (same `useHideMenuItem` undo toast as the hover button), and — only for
+  rows inside the Favorites group — **Move up / Move down**, disabled at
+  the first / last row. There is no drag reorder and no long-press on touch.
+  Reorder goes through `moveFavorite(href, direction, order)` in
+  `lib/menu/favorites-store.ts`; `nav-favorites.tsx` supplies the *rendered*
+  order via `FavoritesOrderProvider` so a stale pin never swallows a step.
+  The menu is keyboard operable (Enter/Space opens, arrows move, Escape
+  closes). New row actions go into this menu for touch and get a hover
+  button for `lg`+ — never a second always-visible icon on the overlay row.
   Group headings keep the Customize `+` visible on the overlay, including
   768 tablets — use `overlayActionClasses` (`nav-main/overlay-action.ts`),
   not `SidebarMenuAction showOnHover`, whose `md:opacity-0` hides it there.

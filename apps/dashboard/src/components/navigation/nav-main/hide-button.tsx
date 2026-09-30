@@ -11,7 +11,7 @@ import {
 } from '@/lib/menu/hide-menu-item'
 import { cn } from '@/lib/utils'
 
-function useHideMenuItem(): (href: string, title: string) => void {
+export function useHideMenuItem(): (href: string, title: string) => void {
   const { settings, updateSettings } = useUserSettings()
   const openSettings = useOpenSettings()
   const settingsRef = useRef(settings)

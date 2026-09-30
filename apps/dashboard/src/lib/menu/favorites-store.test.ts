@@ -2,7 +2,9 @@ import {
   __resetFavoritesForTests,
   getFavoriteHrefs,
   isFavoriteHref,
+  moveFavorite,
   moveHref,
+  neighborHref,
   pinFavorite,
   reorderFavorites,
   subscribeFavorites,
@@ -263,5 +265,59 @@ describe('reorderFavorites', () => {
     reorderFavorites('/overview', '/traffic')
     unsubscribe()
     expect(calls).toBe(1)
+  })
+})
+
+// The touch / keyboard reorder path (#3580): below `lg` there is no drag, so
+// Move up / Move down in the row menu is the only way to order favorites.
+describe('moveFavorite (one step up / down)', () => {
+  beforeEach(() => {
+    pinFavorite('/a')
+    pinFavorite('/b')
+    pinFavorite('/c')
+  })
+
+  test('up swaps with the row above, down with the row below', () => {
+    moveFavorite('/b', 'up')
+    expect(getFavoriteHrefs()).toEqual(['/b', '/a', '/c'])
+    moveFavorite('/b', 'down')
+    expect(getFavoriteHrefs()).toEqual(['/a', '/b', '/c'])
+    moveFavorite('/b', 'down')
+    expect(getFavoriteHrefs()).toEqual(['/a', '/c', '/b'])
+  })
+
+  test('first-up and last-down are no-ops that notify nobody', () => {
+    let calls = 0
+    const unsubscribe = subscribeFavorites(() => {
+      calls++
+    })
+    moveFavorite('/a', 'up')
+    moveFavorite('/c', 'down')
+    moveFavorite('/missing', 'up')
+    unsubscribe()
+    expect(getFavoriteHrefs()).toEqual(['/a', '/b', '/c'])
+    expect(calls).toBe(0)
+  })
+
+  test('persists the new order', () => {
+    moveFavorite('/c', 'up')
+    __resetFavoritesForTests()
+    expect(getFavoriteHrefs()).toEqual(['/a', '/c', '/b'])
+  })
+
+  test('steps over a stale pin when given the rendered order', () => {
+    // '/b' is pinned but no longer in the menu, so the sidebar shows a, c.
+    // Moving c up must land it above a, not swap it with the invisible b.
+    moveFavorite('/c', 'up', ['/a', '/c'])
+    expect(getFavoriteHrefs().filter((h) => h !== '/b')).toEqual(['/c', '/a'])
+  })
+
+  test('neighborHref is null at the edges and for unknown hrefs', () => {
+    const order = ['/a', '/b', '/c']
+    expect(neighborHref(order, '/a', 'up')).toBeNull()
+    expect(neighborHref(order, '/c', 'down')).toBeNull()
+    expect(neighborHref(order, '/x', 'down')).toBeNull()
+    expect(neighborHref(order, '/b', 'up')).toBe('/a')
+    expect(neighborHref(order, '/b', 'down')).toBe('/c')
   })
 })
