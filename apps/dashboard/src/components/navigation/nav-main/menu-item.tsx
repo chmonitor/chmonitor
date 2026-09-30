@@ -17,6 +17,7 @@ import {
   useUnavailableVisibility,
 } from '@/components/menu/hooks/use-unavailable-visibility'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
+import { getGroupHubHref } from '@/lib/menu/group-hub'
 import { hiddenSiblingLeaves } from '@/lib/menu/hidden-siblings'
 import { unavailableReasonText } from '@/lib/menu/unavailable-visibility'
 import { useMenuWorkspaceCatalog } from '@/lib/menu/use-menu-workspace'
@@ -363,8 +364,13 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
     )
   }
 
-  // Standard shadcn/ui pattern: Collapsible wraps SidebarMenuItem
-  // Entire button (text + chevron) triggers toggle
+  const hubHref = getGroupHubHref(item.title)
+  const isHubActive = Boolean(hubHref && isMenuItemActive(hubHref, pathname))
+
+  // Standard shadcn/ui pattern: Collapsible wraps SidebarMenuItem.
+  // A group with a hub splits the row: the label navigates to the hub, the
+  // chevron (a sibling button — a <button> cannot nest inside the <a>) still
+  // expands. Groups without a hub keep the whole row as the toggle.
   return (
     <Collapsible
       open={open}
@@ -377,6 +383,33 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
         visibleChildren={visibleChildren}
         onShowAll={() => setOpen(true)}
       >
+      {hubHref ? (
+        <>
+          <SidebarMenuButton
+            isActive={isHubActive || hasActiveChild}
+            tooltip={item.title}
+            className="h-11 min-h-11 lg:h-8 lg:min-h-8"
+            render={
+              <HostPrefixedLink
+                href={hubHref}
+                className="flex w-full cursor-pointer items-center"
+                onClick={closeMobileSidebar}
+              />
+            }
+          >
+            {item.icon && <item.icon className="size-4" />}
+            {/* pr-14 reserves the customize button and chevron slots. */}
+            <span className="min-w-0 truncate pr-14">{item.title}</span>
+          </SidebarMenuButton>
+          <CollapsibleTrigger
+            aria-label={`${open ? 'Collapse' : 'Expand'} ${item.title}`}
+            data-testid="group-expand-button"
+            className="absolute top-1/2 right-1 flex aspect-square w-6 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 group-data-[collapsible=icon]:hidden"
+          >
+            <ChevronRight className="size-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </CollapsibleTrigger>
+        </>
+      ) : (
         <CollapsibleTrigger
           render={
             <SidebarMenuButton
@@ -388,11 +421,12 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
         >
           {item.icon && <item.icon className="size-4" />}
           {/* pr-7 reserves the customize button's slot: it is an absolutely
-              positioned sibling now (a <button> cannot nest inside the trigger's
-              <button>), so it no longer takes flex space. */}
+            positioned sibling now (a <button> cannot nest inside the trigger's
+            <button>), so it no longer takes flex space. */}
           <span className="min-w-0 truncate pr-7">{item.title}</span>
           <ChevronRight className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
         </CollapsibleTrigger>
+      )}
       </GroupHoverFlyout>
       <GroupCustomizeButton groupTitle={item.title} />
       {item.countKey && (

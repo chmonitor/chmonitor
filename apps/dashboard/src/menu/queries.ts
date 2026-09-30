@@ -18,10 +18,11 @@ import type { MenuItem } from '@/components/menu/types'
 export const queriesItems: MenuItem[] = [
   {
     // Children are ordered by task: live → history → slow/expensive →
-    // caches. Each run becomes a hub page in a later PR; the sidebar stays
-    // two levels deep (group > page) until then.
+    // caches. Each run is a `subgroup` section on the /hub/queries landing
+    // page; the sidebar stays two levels deep (group > page).
     title: 'Queries',
     href: '',
+    hubHref: '/hub/queries',
     countKey: 'running-queries',
     icon: MixIcon,
     section: 'main',
@@ -29,6 +30,7 @@ export const queriesItems: MenuItem[] = [
     items: [
       // Live
       {
+        subgroup: 'Live',
         title: 'Running Queries',
         href: '/running-queries',
         description:
@@ -40,6 +42,7 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.processes',
       },
       {
+        subgroup: 'Live',
         title: 'User Processes',
         href: '/user-processes',
         description: 'Per-user memory usage and resource summary',
@@ -50,6 +53,7 @@ export const queriesItems: MenuItem[] = [
       },
       // History
       {
+        subgroup: 'History',
         title: 'History Queries',
         href: '/history-queries',
         description:
@@ -59,6 +63,7 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        subgroup: 'History',
         title: 'Recent Queries',
         href: '/recent-queries',
         description:
@@ -69,6 +74,7 @@ export const queriesItems: MenuItem[] = [
         isNew: true,
       },
       {
+        subgroup: 'History',
         title: 'Failed Queries',
         href: '/failed-queries',
         description:
@@ -78,6 +84,7 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        subgroup: 'History',
         title: 'Query Views Log',
         href: '/query-views-log',
         description:
@@ -87,6 +94,7 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_views_log',
       },
       {
+        subgroup: 'History',
         title: 'Query Metric Log',
         href: '/query-metric-log',
         description:
@@ -98,6 +106,7 @@ export const queriesItems: MenuItem[] = [
       },
       // Performance
       {
+        subgroup: 'Performance',
         title: 'Slow Queries',
         href: '/slow-queries',
         description: 'Top 10 slowest finished queries by duration',
@@ -106,6 +115,7 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        subgroup: 'Performance',
         title: 'Slow Query Patterns',
         href: '/slow-query-patterns',
         description:
@@ -115,6 +125,7 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        subgroup: 'Performance',
         title: 'Most Expensive Queries',
         href: '/expensive-queries',
         description:
@@ -124,6 +135,7 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        subgroup: 'Performance',
         title: 'Query Insights',
         href: '/queries/insights',
         description:
@@ -134,6 +146,7 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
+        subgroup: 'Performance',
         title: 'Thread & Parallelization',
         href: '/queries/thread-analysis',
         description:
@@ -145,6 +158,7 @@ export const queriesItems: MenuItem[] = [
       },
       // Caches
       {
+        subgroup: 'Caches',
         title: 'Query Cache',
         href: '/query-cache',
         description:
@@ -155,6 +169,7 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_cache',
       },
       {
+        subgroup: 'Caches',
         title: 'Query Condition Cache',
         href: '/query-condition-cache',
         description:

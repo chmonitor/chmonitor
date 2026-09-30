@@ -911,6 +911,17 @@ would clip it.
   44px floor; docs header search/menu is a separate control (`#nd-nav` /
   `#nd-subnav`).
 
+**Touch-safe chart card actions (#3563).** Never hand-write `opacity-0
+group-hover:*` on a chart card icon: hover does not exist on touch, so the
+action can never be found. Use `chartActionClass({ alwaysVisible?, emphasis? })`
+from `components/cards/chart-action-classes.ts` (zoom, CSV export, log scale,
+stale indicator, actions menu). Mouse (`pointer-fine:`) keeps the hover-reveal;
+touch (`pointer-coarse:`) rests at `opacity-40` and the button grows
+`size-6` -> `size-9` (36px). Other small header targets follow the same
+`pointer-coarse:` rule (date-range trigger `h-9`, host-switcher row action
+`size-9`, time-range segments `min-h-9`). Use `pointer-coarse:` rather than a
+width breakpoint: a tablet is wide and still touch.
+
 ## UX conventions
 
 - `?host=N` routing; `useHostId()` (`lib/swr`); preserve params via
@@ -1124,6 +1135,36 @@ DBA / Engineer / SRE leftover: those pills still keep whole **groups**,
 not Essential-plus-a-few-leaves. `workspace-presets.test.ts` pins every
 page each preset showed before #3565 — a regroup may add pages to a preset,
 never drop one.
+
+**Hub pages (`/hub/<slug>`).** Queries, Data & Storage, Cluster &
+Replication, and Server each have a hub landing page (`/hub/queries`,
+`/hub/data-storage`, `/hub/cluster-replication`, `/hub/server`) so any page in
+the group is one click away and the key numbers need no click at all.
+- **Wiring:** the group row sets `hubHref` (its `href` stays `''` — groups are
+  keyed by the empty href everywhere, and a real href would trip the
+  parent-path active rule). Each child sets `subgroup` (Queries: Live /
+  History / Performance / Caches; Data & Storage: Tables / Merges & Parts /
+  Table Health / Ingestion / Storage; Cluster & Replication: Cluster /
+  Replication / Keeper; Server: Metrics / Logs & Diagnostics / Background
+  Work / Access Control). **A new page in a hub group must set `subgroup`**
+  (`lib/menu/__tests__/hub.test.ts` fails otherwise).
+- **Page:** `components/hub/hub-page.tsx` renders 3–4 existing registry
+  charts (config in `routes/(dashboard)/hub/-hub-charts.ts`; each chart's
+  `href` makes its ChartCard title a link and must be a page of the same
+  group), then one section per `subgroup` as a 1 → 2 → 3 → 4 column grid of
+  link cards (icon, title, menu `description`, `CountBadge` when `countKey`).
+  Sections come from `getHubSections` (`lib/menu/hub.ts`) — never keep a
+  second page list. Deployment gates (permission, cloud-only, engine) apply
+  via `getAllowedMenuItems`; an unavailable page is **dimmed with its reason,
+  never hidden**, whatever the rail's Hide setting — a hub is a discovery
+  surface.
+- **Sidebar + breadcrumb:** on a hub group the heading label is a link to the
+  hub and the chevron is a separate sibling button that still expands
+  (`group-expand-button`); groups without a hub keep the whole row as the
+  toggle. `getBreadcrumbPath` links the group crumb to the hub and resolves
+  the hub URL itself to its group crumb. Every surface reads the hub through
+  `getGroupHubHref(groupTitle)` (`lib/menu/group-hub.ts`), which reads the
+  group's `hubHref` — never add a second title → hub table.
 
 **Tools & AI** is the interactive-utility group — pages where you *do*
 something (ask the agent, run SQL, explain a query, compare hosts, build

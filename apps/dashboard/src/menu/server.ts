@@ -25,11 +25,13 @@ export const serverItems: MenuItem[] = [
     // `security`, none), so each child carries the gate it used to inherit.
     title: 'Server',
     href: '',
+    hubHref: '/hub/server',
     icon: ServerIcon,
     section: 'main',
     items: [
       // Metrics
       {
+        subgroup: 'Metrics',
         title: 'Metrics',
         href: '/metrics',
         description: 'Real-time server metrics and counters',
@@ -41,6 +43,7 @@ export const serverItems: MenuItem[] = [
         tableCheck: 'system.metrics',
       },
       {
+        subgroup: 'Metrics',
         title: 'Async Metrics',
         href: '/asynchronous-metrics',
         description: 'Background-calculated metrics for resource monitoring',
@@ -50,6 +53,7 @@ export const serverItems: MenuItem[] = [
         tableCheck: 'system.asynchronous_metrics',
       },
       {
+        subgroup: 'Metrics',
         title: 'Histogram Metrics',
         href: '/histogram-metrics',
         description:
@@ -60,6 +64,7 @@ export const serverItems: MenuItem[] = [
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/histogram_metrics',
       },
       {
+        subgroup: 'Metrics',
         title: 'Profiler',
         href: '/profiler',
         description: 'CPU profiling data for query performance analysis',
@@ -71,6 +76,7 @@ export const serverItems: MenuItem[] = [
       },
       // Logs & diagnostics
       {
+        subgroup: 'Logs & Diagnostics',
         title: 'Text Log',
         href: '/logs/text-log',
         description: 'Server logs with query context and stack traces',
@@ -81,6 +87,7 @@ export const serverItems: MenuItem[] = [
         permission: { feature: 'logs' },
       },
       {
+        subgroup: 'Logs & Diagnostics',
         title: 'Stack Traces',
         href: '/logs/stack-traces',
         description: 'Live thread stack traces for debugging',
@@ -91,6 +98,7 @@ export const serverItems: MenuItem[] = [
         permission: { feature: 'logs' },
       },
       {
+        subgroup: 'Logs & Diagnostics',
         title: 'Crashes',
         href: '/logs/crashes',
         description: 'Historical crash reports with diagnostics',
@@ -101,6 +109,7 @@ export const serverItems: MenuItem[] = [
         permission: { feature: 'logs' },
       },
       {
+        subgroup: 'Logs & Diagnostics',
         title: 'Errors',
         href: '/errors',
         description: 'Detailed error events with stack traces',
@@ -110,6 +119,7 @@ export const serverItems: MenuItem[] = [
         permission: { feature: 'operations' },
       },
       {
+        subgroup: 'Logs & Diagnostics',
         title: 'OpenTelemetry Spans',
         href: '/opentelemetry-spans',
         description:
@@ -122,6 +132,7 @@ export const serverItems: MenuItem[] = [
       },
       // Background work
       {
+        subgroup: 'Background Work',
         title: 'Background Schedule Pool',
         href: '/background-schedule-pool',
         description:
@@ -132,6 +143,7 @@ export const serverItems: MenuItem[] = [
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/background_schedule_pool',
       },
       {
+        subgroup: 'Background Work',
         title: 'Workload Scheduling',
         href: '/workload-scheduling',
         description:
@@ -142,6 +154,7 @@ export const serverItems: MenuItem[] = [
         docs: 'https://clickhouse.com/docs/en/operations/workload-scheduling',
       },
       {
+        subgroup: 'Background Work',
         title: 'Warnings',
         href: '/warnings',
         description:
@@ -151,6 +164,7 @@ export const serverItems: MenuItem[] = [
         tableCheck: 'system.warnings',
       },
       {
+        subgroup: 'Background Work',
         title: 'Page Views',
         href: '/page-views',
         description: 'Dashboard usage analytics',
@@ -162,6 +176,7 @@ export const serverItems: MenuItem[] = [
       },
       // Access control
       {
+        subgroup: 'Access Control',
         title: 'Users',
         href: '/users',
         description:
@@ -173,6 +188,7 @@ export const serverItems: MenuItem[] = [
         permission: { feature: 'security' },
       },
       {
+        subgroup: 'Access Control',
         title: 'Roles',
         href: '/roles',
         description: 'Defined roles for role-based access control',
@@ -183,6 +199,7 @@ export const serverItems: MenuItem[] = [
         permission: { feature: 'security' },
       },
       {
+        subgroup: 'Access Control',
         title: 'RBAC Management',
         href: '/security/management',
         description:
@@ -192,6 +209,7 @@ export const serverItems: MenuItem[] = [
         permission: { feature: 'security' },
       },
       {
+        subgroup: 'Access Control',
         title: 'Sessions',
         href: '/security/sessions',
         description: 'User session history with authentication details',
@@ -202,6 +220,7 @@ export const serverItems: MenuItem[] = [
         permission: { feature: 'security' },
       },
       {
+        subgroup: 'Access Control',
         title: 'Login Attempts',
         href: '/security/login-attempts',
         description: 'Authentication events with failure reasons',
@@ -212,6 +231,7 @@ export const serverItems: MenuItem[] = [
         permission: { feature: 'security' },
       },
       {
+        subgroup: 'Access Control',
         title: 'Audit Log',
         href: '/security/audit-log',
         description: 'Security-related events and access control',

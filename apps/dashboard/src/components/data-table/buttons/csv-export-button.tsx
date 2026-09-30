@@ -116,7 +116,7 @@ export const CsvExportButton = function CsvExportButton<
           <Button
             variant="ghost"
             size="icon"
-            className="size-8 opacity-40 hover:opacity-100 focus-visible:opacity-100 transition-opacity rounded-full"
+            className="size-9 lg:size-8 pointer-coarse:size-9 pointer-coarse:lg:size-9 opacity-40 pointer-coarse:opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity rounded-full"
             aria-label="Export to CSV"
             title="Export to CSV"
             disabled={!hasData}

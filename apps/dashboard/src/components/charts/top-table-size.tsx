@@ -30,6 +30,7 @@ export const ChartTopTableSize = function ChartTopTableSize({
   className,
   chartCardContentClassName,
   hostId,
+  href,
 }: ChartProps) {
   const limit = 7
   const [mode, setMode] = useState<'size' | 'rows'>('size')
@@ -70,6 +71,7 @@ export const ChartTopTableSize = function ChartTopTableSize({
         return (
           <ChartCard
             title={title}
+            href={href}
             className={className}
             sql={sql}
             data={dataArray}

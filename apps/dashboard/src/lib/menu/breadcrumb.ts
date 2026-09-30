@@ -2,6 +2,8 @@ import { menuItemsConfig } from '@/menu'
 
 import type { MenuItem } from '@/components/menu/types'
 
+import { getGroupHubHref } from '@/lib/menu/group-hub'
+
 export interface BreadcrumbItem {
   title: string
   /** Empty string means this item is a non-navigable section label */
@@ -38,7 +40,8 @@ function buildFallbackPath(normalizedPath: string): BreadcrumbItem[] {
  * Searches through the menu hierarchy first; falls back to URL segment parsing
  * when the page is not registered in the menu.
  *
- * Parent menu items with href: '' are included as non-navigable section labels.
+ * Parent menu items with href: '' are included as non-navigable section labels,
+ * unless they declare a `hubHref`, which the crumb links to instead.
  */
 export function getBreadcrumbPath(
   pathname: string,
@@ -49,13 +52,22 @@ export function getBreadcrumbPath(
 
   function searchItems(items: MenuItem[], path: BreadcrumbItem[]): boolean {
     for (const item of items) {
+      const hubHref = item.items?.length
+        ? getGroupHubHref(item.title)
+        : undefined
       const currentPath: BreadcrumbItem[] = [
         ...path,
-        { title: item.title, href: item.href },
+        // A group with a hub links its crumb to the hub; other groups stay
+        // non-navigable labels (`href: ''`).
+        { title: item.title, href: hubHref ?? item.href },
       ]
 
-      // Check if this item matches the current pathname (skip empty-href group headers)
-      if (item.href && item.href === normalizedPath) {
+      // Check if this item matches the current pathname (skip empty-href
+      // group headers). A hub page matches its own group row.
+      if (
+        (item.href && item.href === normalizedPath) ||
+        (hubHref !== undefined && hubHref === normalizedPath)
+      ) {
         result.push(...currentPath)
         return true
       }

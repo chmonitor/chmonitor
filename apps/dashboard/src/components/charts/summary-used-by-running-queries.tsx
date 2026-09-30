@@ -21,6 +21,7 @@ export const ChartSummaryUsedByRunningQueries =
     title,
     className,
     hostId,
+    href,
   }: ChartProps) {
     // Single API call that returns all data combined
     const { data, error, isLoading, sql } = useChartData<{
@@ -107,7 +108,7 @@ export const ChartSummaryUsedByRunningQueries =
     const totalMemory = transformedData.raw.totalMem.readable_total
 
     return (
-      <ChartCard title={title} sql={sql} className={className}>
+      <ChartCard title={title} href={href} sql={sql} className={className}>
         <CardMultiMetrics
           primary={
             <Link
