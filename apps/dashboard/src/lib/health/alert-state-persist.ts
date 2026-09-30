@@ -67,6 +67,15 @@ interface D1AlertStateRow {
 
 let migration: Promise<void> | null = null
 
+/**
+ * Whether this process has completed a hydrate against a metadata DB yet.
+ * Until then, any records in the memory store were built without a DB and are
+ * DISCARDED on the first successful hydrate (#3534, maintainer decision:
+ * in-memory alert state is ephemeral and is never migrated into a DB attached
+ * later — the DB starts fresh).
+ */
+let attachedToDb = false
+
 function getDb(): HealthSqlDb | null {
   return getHealthDb()
 }
@@ -103,11 +112,18 @@ function rowToRecord(row: D1AlertStateRow): AlertStateRecord {
 
 /**
  * Overlay every persisted state row onto `store` (D1 is authoritative for any
- * key it holds). Deliberately does NOT clear the store first: on a real restart
- * the in-memory store is already empty so an overlay == a full load, while on a
- * warm worker this refreshes from D1 without discarding a just-committed record
- * that a best-effort flush may not have persisted. Best-effort — a no-op when
- * D1 is unavailable, leaving the store as-is.
+ * key it holds).
+ *
+ * First attach (#3534): the first successful hydrate in a process CLEARS the
+ * store before loading, so state accumulated while no metadata DB was
+ * reachable is discarded, never migrated — the DB starts fresh and the
+ * following flush cannot persist the memory-only streaks/incident timers. On a
+ * real restart the store is already empty, so this is a no-op.
+ *
+ * After that, hydrate does NOT clear: on a warm worker it refreshes from D1
+ * without discarding a just-committed record that a best-effort flush may not
+ * have persisted. Best-effort — a no-op when D1 is unavailable (or the read
+ * fails), leaving the store as-is and the first-attach discard still pending.
  */
 export async function hydrateAlertState(store: AlertStateStore): Promise<void> {
   try {
@@ -120,6 +136,10 @@ export async function hydrateAlertState(store: AlertStateStore): Promise<void> {
          FROM ${TABLE}`
       )
       .all<D1AlertStateRow>()
+    if (!attachedToDb) {
+      store.clear()
+      attachedToDb = true
+    }
     for (const row of result.results ?? []) {
       store.set(alertStateKey(row.host_id, row.rule_id), rowToRecord(row))
     }
