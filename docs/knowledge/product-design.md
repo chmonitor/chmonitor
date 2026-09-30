@@ -893,15 +893,17 @@ would clip it.
   sidebar trigger (`size-11` until `lg`), and header utility icons — refresh,
   search, theme (`min-h-11 min-w-11` until `lg`). Glyph stays 16–20px. Compact
   sizes return at the desktop rail. The **global header day switcher**
-  (1h…30d) is the exception: chips stay compact (`px-1.5 py-0.5`, `flex-1`
-  below `sm`) so they fill the row beside those 44×44 utilities on 375
-  without clipping the theme icon or leaving an empty band. Chart
+  (1h…30d) is the exception: below `sm` it takes its own full-width second
+  header row (`order-last basis-full`, `flex-1` chips, `min-h-9` = 36px) so
+  row 1 keeps toggle | title | the 44×44 utilities right-aligned. One `px-3`
+  gutter on the header matches `#main-content`. Chart
   `DateRangeSelector` dropdown chips stay `min-h-11 min-w-11` until `sm`.
   **Header page title** (breadcrumb current page) stays fully readable at
   768. Do not `truncate` it — the title cluster is `shrink-0` so sibling
   chrome cannot squeeze "Overview" into "Over…". The header is a two-region
   flex contract: `HeaderIdentity` stays intrinsic-width on the left, while
-  `HeaderActionRegion` is `ml-auto`, full-width/basis-full on phones, and
+  `HeaderActionRegion` and `HeaderActions` are `display: contents` on phones
+  (their children join the header's wrap), and from `sm` are `ml-auto`,
   `sm:flex-1` with `min-w-0`/`overflow-x-auto` so the controls remain
   right-aligned and swipeable instead of compressing the title. Parent crumbs
   hide until `lg` (overlay-sidebar breakpoint). Header Search is icon-only

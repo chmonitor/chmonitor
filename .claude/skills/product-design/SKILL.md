@@ -314,15 +314,18 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   only). App sidebar overlays below `lg` (not a docked rail at 768). Mobile
   sidebar sheet is opaque — no heatmap-through-frost. Phone sidebar rows /
   toggle / header utility icons (refresh, search, theme) are `min 44×44`.
-  The header day switcher (1h…30d) stays compact and `flex-1` below `sm` so
-  chips + those utilities fit one 375 row. Header page title (breadcrumb
+  Below `sm` the header is two rows with one `px-3` gutter (same as
+  `#main-content`): row 1 = toggle | title | refresh, search, theme
+  right-aligned; row 2 = the day switcher (1h…30d) full-width
+  (`order-last basis-full`, chips `min-h-9`). Header page title (breadcrumb
   current page) stays fully readable at 768 — do not ellipsize it; the title
   cluster is `shrink-0`, parent crumbs wait until `lg`, Search is icon-only
   below `lg` (the Search… field is desktop), and the refresh countdown label
   plus header action gap stay compact until `lg`. The header itself is a
   two-region flex contract: `HeaderIdentity` stays `shrink-0` on the left, while
-  `HeaderActionRegion` is `ml-auto`, full-width on phones, and `sm:flex-1` with
-  `min-w-0`/`overflow-x-auto` so controls remain right-aligned and swipeable
+  `HeaderActionRegion` (and `HeaderActions`) are `contents` on phones so their
+  children join the header's own wrap, and from `sm` are `ml-auto`, `sm:flex-1`
+  with `min-w-0`/`overflow-x-auto` so controls remain right-aligned and swipeable
   instead of compressing the title. Docs article Copy Markdown / Open
   are 44px below `md` (not header search/menu). Agent FAB must not cover
   heatmap "Avg / active day" (`pb-16` + last-card `pr-16`; landscape FAB at
