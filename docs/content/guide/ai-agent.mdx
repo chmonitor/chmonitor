@@ -118,7 +118,10 @@ be burned. Usage is tracked in the same D1 `ai_usage_daily` table, keyed by a
 per-visitor `guest:<ip-hash>` id — not a single global `guest` bucket. Sign in
 to get the plan allowance (Free 5 / Pro 100 / …). Guests are limited to
 `anyrouter:auto` and the `anyrouter/free` aliases; any other model (or none) is
-forced to `anyrouter:auto` by the server. Self-hosted / OSS is unchanged
+forced to `anyrouter:auto` by the server. `anyrouter:auto` picks the top
+tool-capable model by usage, skipping models AnyRouter serves only through BYOK
+upstreams (the shared key cannot route them); if none qualify it falls back to
+the curated default. Self-hosted / OSS is unchanged
 (no guest gate).
 
 ## Child pages

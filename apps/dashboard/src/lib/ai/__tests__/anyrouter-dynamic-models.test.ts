@@ -14,6 +14,7 @@ import {
   isAgentToolCapable,
   isAnyRouterAutoModelId,
   isAnyRouterRouterAlias,
+  isByokOnlyModel,
   loadAnyRouterDynamicModelEntries,
   mergeAnyRouterDynamicModels,
   pickTopUsageModelId,
@@ -300,6 +301,61 @@ describe('routers, auto, merge', () => {
       5
     )
     expect(pickTopUsageModelId(ranked)).toBe('anyrouter:popular/tool-model')
+  })
+
+  // Regression for #3578: production `auto` resolved to google/gemini-3.5-flash,
+  // served only via BYOK upstreams, so every guest question (shared deploy key)
+  // failed with "BYOK only model". `auto` must never pick a model the deploy
+  // key cannot route, even when it tops usage.
+  test('pickTopUsageModelId skips a BYOK-only top-by-usage model', () => {
+    const tools = { supported_parameters: ['tools'] }
+    const ranked = rankModelsByUsage([
+      {
+        model: {
+          id: 'google/gemini-3.5-flash',
+          ...tools,
+          providers: ['google-byok', 'openrouter-byok'],
+        },
+        requestCount: 9_000,
+      },
+      {
+        model: {
+          id: 'z-ai/glm-5.3-flash',
+          ...tools,
+          providers: ['hue', 'openrouter-byok'],
+        },
+        requestCount: 100,
+      },
+    ])
+    expect(ranked[0]?.modelId).toBe('google/gemini-3.5-flash')
+    expect(pickTopUsageModelId(ranked)).toBe('anyrouter:z-ai/glm-5.3-flash')
+  })
+
+  test('pickTopUsageModelId returns null when every candidate is BYOK-only', () => {
+    const ranked = rankModelsByUsage([
+      {
+        model: {
+          id: 'meituan/longcat-2.5-preview',
+          supported_parameters: ['tools'],
+          providers: ['longcat-byok'],
+        },
+        requestCount: 50,
+      },
+    ])
+    // null → runtime falls back to the curated DEFAULT_AGENT_MODEL.
+    expect(pickTopUsageModelId(ranked)).toBeNull()
+  })
+
+  test('isByokOnlyModel needs every provider to be BYOK', () => {
+    expect(isByokOnlyModel({ id: 'a', providers: ['x-byok', 'Y-BYOK'] })).toBe(
+      true
+    )
+    expect(isByokOnlyModel({ id: 'b', providers: ['hue', 'x-byok'] })).toBe(
+      false
+    )
+    // No metadata is not evidence of BYOK-only.
+    expect(isByokOnlyModel({ id: 'c' })).toBe(false)
+    expect(isByokOnlyModel({ id: 'd', providers: [] })).toBe(false)
   })
 
   test('buildAnyRouterAutoEntry documents current top model', () => {

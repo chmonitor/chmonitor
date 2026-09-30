@@ -74,6 +74,11 @@ export interface AnyRouterModelListItem {
   top_provider?: {
     max_completion_tokens?: number | null
   }
+  /**
+   * Upstream backends serving this model. BYOK backends carry a `-byok`
+   * suffix (`openrouter-byok`); platform-funded ones do not (`hue`, `nvidia`).
+   */
+  providers?: string[]
 }
 
 /** Subset of `GET /api/v1/models/{id}/metrics`. */
@@ -103,6 +108,8 @@ export interface RankedAnyRouterModel {
   requestCount: number
   /** True when this entry is a router alias (anyrouter/*), not a concrete model */
   isRouterAlias: boolean
+  /** True when every upstream is BYOK — the shared deploy key cannot route it. */
+  byokOnly: boolean
   /** Source of the entry */
   source: 'usage-ranked' | 'router-alias' | 'auto'
 }
@@ -166,6 +173,19 @@ export function isAgentToolCapable(model: AnyRouterModelListItem): boolean {
   if (caps.some((c) => c.toLowerCase() === 'function-calling')) return true
   const params = model.supported_parameters ?? []
   return params.includes('tools') || params.includes('tool_choice')
+}
+
+/**
+ * True when AnyRouter serves this model only through BYOK upstreams, so a
+ * request on the shared deploy key fails with "BYOK only model". Missing or
+ * empty `providers` is treated as routable (no evidence either way).
+ */
+export function isByokOnlyModel(model: AnyRouterModelListItem): boolean {
+  const providers = model.providers ?? []
+  return (
+    providers.length > 0 &&
+    providers.every((p) => p.toLowerCase().endsWith('-byok'))
+  )
 }
 
 /** Router / auto-routing catalog ids (no concrete upstream model). */
@@ -339,6 +359,7 @@ function listItemToRanked(
     ...(pricing ? { pricing } : {}),
     requestCount: opts.requestCount,
     isRouterAlias: opts.isRouterAlias,
+    byokOnly: isByokOnlyModel(model),
     source: opts.source,
   }
 }
@@ -385,6 +406,7 @@ export function buildAnyRouterAutoEntry(
     supportsVision: false,
     requestCount: 0,
     isRouterAlias: false,
+    byokOnly: false,
     source: 'auto',
   }
 }
@@ -441,17 +463,20 @@ export function mergeAnyRouterDynamicModels<T extends { id: string }>(
 /**
  * Pure selection of the auto-resolved model id from a ranked list.
  * Returns the first usage-ranked (or first tool-capable) full id, or null.
+ *
+ * BYOK-only models are skipped: `auto` runs on the shared deploy key (it is
+ * the guest default), and AnyRouter rejects that key for BYOK-only models.
+ * Null sends the caller to the curated static default.
  */
 export function pickTopUsageModelId(
   ranked: readonly RankedAnyRouterModel[]
 ): string | null {
-  const usage = ranked.find(
-    (m) => m.source === 'usage-ranked' && m.supportsTools && m.requestCount > 0
+  const eligible = ranked.filter(
+    (m) => m.source === 'usage-ranked' && m.supportsTools && !m.byokOnly
   )
+  const usage = eligible.find((m) => m.requestCount > 0)
   if (usage) return usage.id
-  const anyUsage = ranked.find(
-    (m) => m.source === 'usage-ranked' && m.supportsTools
-  )
+  const anyUsage = eligible[0]
   if (anyUsage) return anyUsage.id
   return null
 }
