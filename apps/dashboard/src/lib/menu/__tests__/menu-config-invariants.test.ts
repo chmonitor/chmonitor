@@ -16,6 +16,7 @@ import { RssIcon } from 'lucide-react'
 import { menuItemsConfig } from '@/menu'
 
 import type { MenuItem } from '@/components/menu/types'
+import type { FeaturePermission } from '@/lib/feature-permissions/types'
 
 import { describe, expect, test } from 'bun:test'
 import { readdirSync, statSync } from 'node:fs'
@@ -330,7 +331,7 @@ describe('task-group layout (#3565)', () => {
     const featureOf = (href: string) =>
       flatten(menuItemsConfig).find((f) => f.item.href === href && f.isLeaf)
         ?.item.permission?.feature
-    const expected: Record<string, string | undefined> = {
+    const expected: Record<string, FeaturePermission['feature'] | undefined> = {
       '/tables': 'tables',
       '/explorer': 'tables',
       '/merges': 'operations',
