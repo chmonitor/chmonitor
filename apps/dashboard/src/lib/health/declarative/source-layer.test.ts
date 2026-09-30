@@ -49,7 +49,7 @@ const MIGRATIONS_DIR = fileURLToPath(
 )
 /** The committed migrations for the seven definition tables, in order. */
 const HEALTH_MIGRATIONS =
-  /^\d{4}_(alert_events|custom_alert_rules|maintenance_windows|alert_routes\w*|quiet_hours|alert_channel_config|alert_digest|alert_webhook_targets)\.sql$/
+  /^\d{4}_(alert_events|custom_alert_rules\w*|maintenance_windows|alert_routes\w*|quiet_hours|alert_channel_config|alert_digest|alert_webhook_targets)\.sql$/
 
 function sqliteD1() {
   const db = new Database(':memory:')

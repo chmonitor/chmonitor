@@ -148,7 +148,7 @@ export type MetricKey = keyof typeof METRIC_CATALOG
 const METRIC_KEYS = Object.keys(METRIC_CATALOG) as [MetricKey, ...MetricKey[]]
 
 /** Longest name we'll persist/display — generous but bounded. */
-const MAX_NAME_LENGTH = 80
+export const MAX_NAME_LENGTH = 80
 
 export const customRuleInputSchema = z
   .object({
