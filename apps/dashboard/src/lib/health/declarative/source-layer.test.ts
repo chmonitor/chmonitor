@@ -408,7 +408,7 @@ describe('custom rules (union by id, normalised to custom:<id>)', () => {
   })
 })
 
-describe('custom webhook targets (union by id, three sources)', () => {
+describe('custom webhook targets (shadow by name, three sources)', () => {
   const CHANNELS = `webhookTargets:
   - id: ops-slack
     name: Ops Slack
@@ -440,21 +440,25 @@ describe('custom webhook targets (union by id, three sources)', () => {
     })
   })
 
-  test('a DB row with a declarative id shadows it field by field', async () => {
+  // #3539: operators silence or override a Helm/file target by saving a D1
+  // target under the same name; the D1 row has its own id.
+  test('a DB row with a declarative name replaces it whole', async () => {
     writeConfig('channels', CHANNELS)
     fakeDb = sqliteD1()
     const ownerId = nextOwner()
     fakeDb.raw.run(
       `INSERT INTO alert_webhook_targets (owner_id, id, name, url, enabled, format, updated_at)
-       VALUES (?1, 'ops-slack', 'Ops Slack', '', 0, 'auto', 3)`,
+       VALUES (?1, 'cwt_9', 'Ops Slack', 'https://1.1.1.1/hooks/db', 0, 'auto', 3)`,
       [ownerId]
     )
     const { targets } = await listEffectiveCustomWebhookConfig(ownerId)
     expect(targets).toHaveLength(1)
     expect(targets[0]).toMatchObject({
+      id: 'cwt_9',
       source: 'd1',
+      editable: true,
       enabled: false,
-      url: 'https://1.1.1.1/hooks/file', // empty DB url keeps the file URL
+      url: 'https://1.1.1.1/hooks/db', // never the file URL
     })
   })
 })
