@@ -22,7 +22,7 @@ description: >-
   "unavailable pages", "dim unavailable", "hide unavailable",
   "hideWhenUnavailable", "tableCheck", "requiresMetadataDb", "health capability",
   "store availability", "write disabled",
-  "dead row", "greyed page", "collapsed flyout".
+  "dead row", "greyed page", "collapsed flyout", "advanced tab", "alert groups", "silencing", "delivery", "rename alert", "alert name".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -228,6 +228,11 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
   unreachable, and every retired `?tab=` id must still resolve — keep a
   `LEGACY_TAB_MAP` to `{ tab, advancedSection? }` so an old link opens the right
   dialog (`advanced-settings-panel.tsx` + `health-settings-panel.tsx`).
+  Group launchers by job and place each group next to what it belongs with
+  (`AlertSectionGroup` + `ADVANCED_SECTION_PLACEMENT`): define alerts under the
+  built-in alert list, delivery under channels, silencing on Advanced. A group
+  opens only the deep-linked section it owns. Moved panels render unchanged, so
+  their store notice and source badges come along.
 - **Presets before forms:** when a surface would render N identical input pairs,
   lead with a named `SegmentedControl` preset covering all of them and show only
   the items tuned away from that baseline; the rest come from a searchable

@@ -9,6 +9,7 @@
 import type { AdvancedSectionId } from '../health-settings-tabs'
 
 import {
+  ADVANCED_SECTION_PLACEMENT,
   HEALTH_SETTINGS_TABS,
   isHealthSettingsTab,
   LEGACY_TAB_MAP,
@@ -70,21 +71,42 @@ describe('resolveHealthSettingsTab', () => {
     }
   })
 
-  test('the six retired panel tabs open their dialog on the Advanced tab', () => {
-    const expected: Record<string, AdvancedSectionId> = {
-      routing: 'routing',
-      webhooks: 'webhooks',
-      maintenance: 'maintenance',
-      'quiet-hours': 'quiet-hours',
-      suggested: 'suggested',
-      'custom-rules': 'custom-rules',
+  test('#3438: each retired panel tab opens its dialog on the tab that now hosts its group', () => {
+    // Hardcoded, not derived from ADVANCED_SECTION_PLACEMENT, so moving a
+    // section silently cannot keep this green.
+    const expected: Record<
+      string,
+      { tab: string; section: AdvancedSectionId }
+    > = {
+      suggested: { tab: 'alerts', section: 'suggested' },
+      'custom-rules': { tab: 'alerts', section: 'custom-rules' },
+      routing: { tab: 'alerts', section: 'routing' },
+      webhooks: { tab: 'alerts', section: 'webhooks' },
+      digest: { tab: 'alerts', section: 'digest' },
+      maintenance: { tab: 'advanced', section: 'maintenance' },
+      'quiet-hours': { tab: 'advanced', section: 'quiet-hours' },
     }
-    for (const [tabId, section] of Object.entries(expected)) {
+    for (const [tabId, { tab, section }] of Object.entries(expected)) {
       expect(resolveHealthSettingsTab(tabId)).toEqual({
-        tab: 'advanced',
+        tab: tab as never,
         advancedSection: section,
       })
     }
+  })
+
+  test('#3438: every section is placed in exactly one group, on a real tab', () => {
+    expect(Object.keys(ADVANCED_SECTION_PLACEMENT).sort()).toEqual(
+      [...ADVANCED_SECTION_IDS].sort()
+    )
+    for (const { tab } of Object.values(ADVANCED_SECTION_PLACEMENT)) {
+      expect(HEALTH_SETTINGS_TABS).toContain(tab)
+    }
+  })
+
+  test('#3438: group ids resolve to the tab that renders the group', () => {
+    expect(resolveHealthSettingsTab('define')).toEqual({ tab: 'alerts' })
+    expect(resolveHealthSettingsTab('delivery')).toEqual({ tab: 'alerts' })
+    expect(resolveHealthSettingsTab('silencing')).toEqual({ tab: 'advanced' })
   })
 
   test('the two merged history tabs both land on Activity, with no dialog', () => {

@@ -30,6 +30,33 @@ export type AdvancedSectionId =
   | 'suggested'
   | 'custom-rules'
 
+/**
+ * The three groups the seven former Advanced sections are sorted into (#3438).
+ *
+ * - `define`    — things that create alerts; sit under the built-in alert list.
+ * - `delivery`  — things that decide where/how an alert is sent; sit with channels.
+ * - `silencing` — things that hold alerts back; the only group left on Advanced.
+ */
+export type AdvancedGroupId = 'define' | 'delivery' | 'silencing'
+
+/** Where each section lives now: the tab that renders its group. */
+export const ADVANCED_SECTION_PLACEMENT: Readonly<
+  Record<AdvancedSectionId, { tab: HealthSettingsTab; group: AdvancedGroupId }>
+> = {
+  suggested: { tab: 'alerts', group: 'define' },
+  'custom-rules': { tab: 'alerts', group: 'define' },
+  routing: { tab: 'alerts', group: 'delivery' },
+  webhooks: { tab: 'alerts', group: 'delivery' },
+  digest: { tab: 'alerts', group: 'delivery' },
+  maintenance: { tab: 'advanced', group: 'silencing' },
+  'quiet-hours': { tab: 'advanced', group: 'silencing' },
+}
+
+const section = (id: AdvancedSectionId): ResolvedHealthSettingsTab => ({
+  tab: ADVANCED_SECTION_PLACEMENT[id].tab,
+  advancedSection: id,
+})
+
 export interface ResolvedHealthSettingsTab {
   tab: HealthSettingsTab
   advancedSection?: AdvancedSectionId
@@ -53,13 +80,17 @@ export const LEGACY_TAB_MAP: Readonly<
   history: { tab: 'activity' },
   activity: { tab: 'activity' },
   advanced: { tab: 'advanced' },
-  routing: { tab: 'advanced', advancedSection: 'routing' },
-  webhooks: { tab: 'advanced', advancedSection: 'webhooks' },
-  maintenance: { tab: 'advanced', advancedSection: 'maintenance' },
-  'quiet-hours': { tab: 'advanced', advancedSection: 'quiet-hours' },
-  digest: { tab: 'advanced', advancedSection: 'digest' },
-  suggested: { tab: 'advanced', advancedSection: 'suggested' },
-  'custom-rules': { tab: 'advanced', advancedSection: 'custom-rules' },
+  routing: section('routing'),
+  webhooks: section('webhooks'),
+  maintenance: section('maintenance'),
+  'quiet-hours': section('quiet-hours'),
+  digest: section('digest'),
+  suggested: section('suggested'),
+  'custom-rules': section('custom-rules'),
+  // Group ids (#3438) — link to a whole group without naming one section.
+  define: { tab: 'alerts' },
+  delivery: { tab: 'alerts' },
+  silencing: { tab: 'advanced' },
 }
 
 /**

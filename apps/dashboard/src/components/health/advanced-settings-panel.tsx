@@ -13,7 +13,10 @@ import {
 } from 'lucide-react'
 
 import type { ReactNode } from 'react'
-import type { AdvancedSectionId } from '@/lib/health/health-settings-tabs'
+import type {
+  AdvancedGroupId,
+  AdvancedSectionId,
+} from '@/lib/health/health-settings-tabs'
 
 import { AlertRoutingPanel } from './alert-routing-dialog'
 import { AlertSuggestionsPanel } from './alert-suggestions-panel'
@@ -33,19 +36,23 @@ import {
 import { cn } from '@/lib/utils'
 
 /**
- * Every advanced alerting surface, as one grid of cards that each open a dialog.
+ * The seven alerting surfaces that used to sit together behind the Advanced
+ * tab, each a launcher card that opens its panel in a dialog.
  *
- * These six panels used to be six top-level tabs, which made a settings page
- * with ten tabs where most operators only ever touch two. Nothing is removed —
- * each panel renders unchanged inside its dialog, and its old `?tab=` deep link
- * still lands here with the right dialog already open (the ids below match the
- * `advancedSection` values in `LEGACY_TAB_MAP`).
+ * #3438 sorts them into three groups by what they do, and renders each group
+ * next to the thing it belongs with (placement lives in
+ * `ADVANCED_SECTION_PLACEMENT`): `define` under the built-in alert list,
+ * `delivery` under the channels, `silencing` on the Advanced tab. Nothing is
+ * removed — each panel renders unchanged (its own write-capability notice and
+ * source badges included), and every old `?tab=` deep link still opens the
+ * right dialog on whichever tab now hosts it.
  */
 interface AdvancedSection {
   id: AdvancedSectionId
   title: string
   description: string
   icon: LucideIcon
+  group: AdvancedGroupId
   /** Wider dialog for the panels that render tables/forms side by side. */
   wide?: boolean
   render: () => ReactNode
@@ -54,6 +61,7 @@ interface AdvancedSection {
 export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   {
     id: 'routing',
+    group: 'delivery',
     title: 'Routing rules',
     description:
       'Send specific checks or severities to specific channels instead of everything to everyone.',
@@ -63,6 +71,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
   {
     id: 'webhooks',
+    group: 'delivery',
     title: 'Webhook subscriptions',
     description:
       'Server-side subscriptions that POST alert events to your own endpoints.',
@@ -72,6 +81,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
   {
     id: 'quiet-hours',
+    group: 'silencing',
     title: 'Quiet hours',
     description:
       'Hold non-critical alerts during a recurring window — nights, weekends.',
@@ -80,6 +90,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
   {
     id: 'maintenance',
+    group: 'silencing',
     title: 'Maintenance windows',
     description:
       'Suppress alerts entirely for a planned window, so a migration does not page anyone.',
@@ -88,6 +99,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
   {
     id: 'digest',
+    group: 'delivery',
     title: 'Digest',
     description:
       'Batch alerts into a periodic summary instead of one message per event.',
@@ -96,6 +108,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
   {
     id: 'suggested',
+    group: 'define',
     title: 'Suggested alerts',
     description:
       'Threshold suggestions derived from how this cluster has actually behaved.',
@@ -105,6 +118,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
   {
     id: 'custom-rules',
+    group: 'define',
     title: 'Custom rules',
     description:
       'Build a rule on any metric with your own comparison and window.',
@@ -114,35 +128,62 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
 ]
 
-export function AdvancedSettingsPanel({
+export const ADVANCED_GROUPS: Readonly<
+  Record<AdvancedGroupId, { title: string; description: string }>
+> = {
+  define: {
+    title: 'More ways to alert',
+    description:
+      'Add alerts beyond the built-in list — suggested from this cluster, or your own rule on any metric.',
+  },
+  delivery: {
+    title: 'Delivery',
+    description:
+      'Decide which alerts reach which channel, forward events to your own endpoints, or batch them into a digest.',
+  },
+  silencing: {
+    title: 'Silencing',
+    description:
+      'Hold alerts back on purpose — a recurring quiet window or a planned maintenance.',
+  },
+}
+
+/**
+ * One group of launcher cards plus the dialog they open. `initialSection` is
+ * ignored unless it belongs to this group, so every group on a tab can be
+ * handed the same resolved deep link.
+ */
+export function AlertSectionGroup({
+  group,
   initialSection,
 }: {
+  group: AdvancedGroupId
   /** Opened on mount — how a legacy `?tab=routing` deep link still works. */
   initialSection?: AdvancedSectionId
 }) {
-  const [openId, setOpenId] = useState<AdvancedSectionId | undefined>(
-    initialSection
-  )
+  const sections = ADVANCED_SECTIONS.filter((s) => s.group === group)
+  const own = sections.some((s) => s.id === initialSection)
+    ? initialSection
+    : undefined
+  const [openId, setOpenId] = useState<AdvancedSectionId | undefined>(own)
 
   // Follow the URL when the deep link changes without a remount.
   useEffect(() => {
-    if (initialSection) setOpenId(initialSection)
-  }, [initialSection])
+    if (own) setOpenId(own)
+  }, [own])
 
-  const active = ADVANCED_SECTIONS.find((section) => section.id === openId)
+  const active = sections.find((section) => section.id === openId)
+  const meta = ADVANCED_GROUPS[group]
 
   return (
-    <div className="flex flex-col gap-3">
+    <section className="flex flex-col gap-3" data-alert-group={group}>
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-sm font-medium text-foreground">Advanced</h2>
-        <p className="text-xs text-muted-foreground">
-          Everything that shapes when and where an alert is delivered. Each
-          opens in its own dialog.
-        </p>
+        <h2 className="text-sm font-medium text-foreground">{meta.title}</h2>
+        <p className="text-xs text-muted-foreground">{meta.description}</p>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        {ADVANCED_SECTIONS.map((section) => {
+        {sections.map((section) => {
           const Icon = section.icon
           return (
             <button
@@ -199,6 +240,15 @@ export function AdvancedSettingsPanel({
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </section>
   )
+}
+
+/** The Advanced tab: now only the silencing group. */
+export function AdvancedSettingsPanel({
+  initialSection,
+}: {
+  initialSection?: AdvancedSectionId
+}) {
+  return <AlertSectionGroup group="silencing" initialSection={initialSection} />
 }

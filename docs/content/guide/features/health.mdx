@@ -45,6 +45,22 @@ Open `/health` for the status grid — each check reports ok / warning / critica
 
 To run the same checks without a browser, call the health-sweep endpoint (see below) on a schedule.
 
+### Alert Settings layout
+
+`/alert-settings` has four tabs: **Alerts**, **Thresholds**, **Activity**, and **Advanced**. The Alerts tab answers "what alerts do I have, and where do they go?" on one screen:
+
+1. **Built-in alerts** — one row per health check, with its name and stable id.
+2. **More ways to alert** — **Suggested alerts** (thresholds derived from how this cluster behaved) and **Custom rules** (your own rule on any metric).
+3. **Channels** — browser, server delivery channels, and custom webhook targets.
+4. **Delivery** — **Routing rules** (which alerts go to which channel), **Webhook subscriptions** (POST alert events to your own endpoints), and **Digest** (batch non-critical alerts).
+5. **Minimum severity** — the default floor every channel inherits.
+
+The **Advanced** tab now holds only **Silencing**: **Quiet hours** and **Maintenance windows**. Each item still opens in its own dialog. Old links keep working: `?tab=routing`, `?tab=webhooks`, `?tab=digest`, `?tab=suggested`, and `?tab=custom-rules` open that dialog on the Alerts tab; `?tab=maintenance` and `?tab=quiet-hours` open it on Advanced. `?tab=define`, `?tab=delivery`, and `?tab=silencing` open the tab that holds that group.
+
+#### Naming built-in alerts
+
+Each built-in alert can be renamed from the list (1–80 characters). The name is **display-only in the dashboard**: notifications still use the built-in check title, and the alert keeps its check id, so a rename never resets alert state or acknowledgements. Names are stored in the metadata database; with no database the list still renders, but rename is read-only.
+
 ## Permissions & access
 
 <Tabs items={["Gate to authenticated", "Disable", "Config file"]}>

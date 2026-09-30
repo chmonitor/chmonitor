@@ -14,7 +14,10 @@ import type { AlertChannelId } from '@/lib/health/alert-channel-settings'
 import type { HealthSettingsTab } from '@/lib/health/health-settings-tabs'
 
 import { ActiveAlertsPanel } from './active-alerts-panel'
-import { AdvancedSettingsPanel } from './advanced-settings-panel'
+import {
+  AdvancedSettingsPanel,
+  AlertSectionGroup,
+} from './advanced-settings-panel'
 import { AlertChannelsPanel } from './alert-channels-panel'
 import { AlertStateCard } from './alert-state-card'
 import { AlertTemplateDialog } from './alert-template-dialog'
@@ -279,6 +282,11 @@ export function HealthSettingsPanel({
 
             <CheckAlertList />
 
+            <AlertSectionGroup
+              group="define"
+              initialSection={resolved.advancedSection}
+            />
+
             <Separator />
 
             <AlertChannelsPanel
@@ -299,6 +307,13 @@ export function HealthSettingsPanel({
             <Separator />
 
             <CustomWebhookTargetsPanel />
+
+            <Separator />
+
+            <AlertSectionGroup
+              group="delivery"
+              initialSection={resolved.advancedSection}
+            />
 
             <Separator />
 

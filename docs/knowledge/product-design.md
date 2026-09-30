@@ -700,6 +700,18 @@ unchanged panel inside a `Dialog`. `/alert-settings` collapsed ten tabs into
 `Alerts · Thresholds · Activity · Advanced` this way
 (`components/health/advanced-settings-panel.tsx`).
 
+**Group launchers by job, next to what they belong with (#3438).** A lone
+"Advanced" grid of unrelated cards is a second click nobody knows to make.
+The seven alert sections are split into three `AlertSectionGroup`s placed by
+`ADVANCED_SECTION_PLACEMENT` (`lib/health/health-settings-tabs.ts`):
+`define` (Suggested alerts, Custom rules) under the built-in `CheckAlertList`,
+`delivery` (Routing, Webhook subscriptions, Digest) under the channels, and
+`silencing` (Quiet hours, Maintenance windows) as the whole Advanced tab. Each
+group owns its own dialog and only opens a deep-linked section that it owns, so
+the same resolved `advancedSection` can be passed to every group on a tab.
+Panels render unchanged, keeping their `HealthStoreNotice` and declarative
+source badges.
+
 **Nothing may become unreachable, and no deep link may die.** Keep a
 `LEGACY_TAB_MAP` from every retired `?tab=` id to `{ tab, advancedSection? }`,
 so an old link lands on the right tab with the right dialog already open
