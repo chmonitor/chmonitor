@@ -2,8 +2,7 @@
  * Custom alert webhook target CRUD, preview, and explicit send-test endpoint.
  * Target URLs are treated as credentials: they are validated server-side but
  * never returned to the browser. Helm/GitOps targets are read-only in the UI;
- * D1 rows are owner-scoped and merge with env/file targets by id: a D1 target
- * only replaces one that shares its id.
+ * D1 rows are owner-scoped and override an env/file target by name.
  */
 
 import { createFileRoute } from '@tanstack/react-router'

@@ -468,7 +468,7 @@ one uniform union-merge covers all of them:
 |---|---|---|
 | custom alert rules (`custom_alert_rules`) | `id` | operator-supplied in the file (`custom:<uuid>` is generated only on UI write) |
 | alert routes (`alert_routes`) | `id` | operator-supplied in the file (`crypto.randomUUID()` at `alert-routing.ts:227` is the UI-write path only) |
-| custom webhook targets (`alert_webhook_targets`) | `id` | operator-supplied in the file |
+| custom webhook targets (`alert_webhook_targets`) | `name` (whole replace, #3539) | operator-supplied in the file; Helm validates unique names |
 | quiet hours (`quiet_hours`) | `id` | operator-supplied in the file |
 | maintenance windows (`maintenance_windows`) | `id` | operator-supplied in the file |
 | channel config (`alert_channel_config`) | `channel` | the channel name, not an id |
@@ -790,10 +790,11 @@ gates on knowing what "available" means.
 > - **Channel precedence is per channel, not per field, against env:** a file
 >   (or DB) channel entry makes `resolveServerChannels` ignore that channel's
 >   `HEALTH_*` env reader entirely. There is no env channel layer yet.
-> - **Webhook targets merge by `id`, not by name.** Before this, a D1 target
->   with the same *name* as a Helm target hid it; now both appear unless the
->   ids match. The public `source` value `'helm'` is now `'env'` (plus
->   `'file'`).
+> - **Webhook targets merge by `name`, replaced whole (#3539).** A D1 target
+>   with the same name as a Helm/file target replaces it (a disabled D1 row
+>   silences it); fields never mix, so a Helm URL or secret header cannot ride
+>   along to a D1 target. The public `source` value `'helm'` is now `'env'`
+>   (plus `'file'`).
 > - **`alerts.yaml` `thresholds:` apply (#3538).** Thresholds have no D1 layer
 >   (the UI keeps them in browser storage), so the chain is
 >   `file > env > default`, merged per rule and field by field through
