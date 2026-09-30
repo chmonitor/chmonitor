@@ -17,13 +17,15 @@ import { isAnyRouterAutoModelId } from '@/lib/ai/anyrouter-dynamic-models'
 export const GUEST_AI_REQUESTS_PER_DAY = 3
 
 /**
- * Guests share the deploy AnyRouter key. `anyrouter:auto` is a dynamic alias
- * that always resolves to a currently served tool-capable model, so it cannot
- * go stale the way a pinned model id did. This is the single source of truth:
- * the server falls back to it and the web client sends whatever the server
- * would force anyway.
+ * Guests share the deploy AnyRouter key. `anyrouter:anyrouter/free` is the
+ * same model production `LLM_MODEL` uses. `anyrouter:auto` was the default
+ * until #3578: it follows the top-by-usage model, which has been BYOK-only
+ * and, after that was skipped, an upstream pool out of quota — so guests got
+ * an error instead of an answer. Guests may still pick `auto` explicitly.
+ * This is the single source of truth: the server falls back to it and the web
+ * client sends whatever the server would force anyway.
  */
-export const GUEST_DEFAULT_AGENT_MODEL = 'anyrouter:auto'
+export const GUEST_DEFAULT_AGENT_MODEL = 'anyrouter:anyrouter/free'
 
 const GUEST_ALLOWED_MODELS = new Set([
   GUEST_DEFAULT_AGENT_MODEL,
