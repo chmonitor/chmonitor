@@ -24,7 +24,7 @@ description: >-
   "unavailable pages", "dim unavailable", "hide unavailable",
   "hideWhenUnavailable", "tableCheck", "requiresMetadataDb", "health capability",
   "store availability", "write disabled",
-  "dead row", "greyed page", "collapsed flyout", "advanced tab", "alert groups", "silencing", "delivery", "rename alert", "alert name".
+  "dead row", "greyed page", "collapsed flyout", "recent pages", "recently visited", "group hover", "group flyout", "advanced tab", "alert groups", "silencing", "delivery", "rename alert", "alert name".
 metadata:
   tags: design-system, ui, ux, tailwind, shadcn, charts, tokens, conventions, brand
 ---
@@ -626,3 +626,13 @@ change a durable UI pattern (a new token, a reusable component, an
 empty/error/onboarding convention), UPDATE this file + `docs/knowledge/
 product-design.md` in the SAME change. See the "Auto-improve project skills"
 note in the root `CLAUDE.md`.
+
+## Sidebar group quick links
+
+Hovering a top-level sidebar group shows Pinned, then up to 5 Recent pages of
+that group (deduped), with an "Open <Group> hub" / "All N pages" footer; empty
+state lists the first 3 pages. Keep logic in `lib/menu/recent-pages.ts` (pure,
+tested) and UI in `nav-main/group-quick-links.tsx`; touch devices get the rows
+inline at the top of the expanded group, the collapsed rail gets them above its
+list. Always link through `HostPrefixedLink`. See
+`docs/knowledge/product-design.md` "Group quick links".

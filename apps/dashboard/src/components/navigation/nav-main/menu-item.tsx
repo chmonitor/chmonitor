@@ -8,6 +8,7 @@ import type { MenuItemActiveState, MenuItemProps } from './types'
 import { AddButton, SubAddButton } from './add-button'
 import { CollapsedSubmenu } from './collapsed-submenu'
 import { GroupCustomizeButton } from './group-customize-dialog'
+import { GroupHoverFlyout, GroupTouchQuickLinks } from './group-quick-links'
 import { HideButton, SubHideButton } from './hide-button'
 import { PinButton, SubPinButton } from './pin-button'
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -377,6 +378,11 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
       className="group/collapsible"
       render={<SidebarMenuItem />}
     >
+      <GroupHoverFlyout
+        groupTitle={item.title}
+        visibleChildren={visibleChildren}
+        onShowAll={() => setOpen(true)}
+      >
       {hubHref ? (
         <>
           <SidebarMenuButton
@@ -421,6 +427,7 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
           <ChevronRight className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
         </CollapsibleTrigger>
       )}
+      </GroupHoverFlyout>
       <GroupCustomizeButton groupTitle={item.title} />
       {item.countKey && (
         <SidebarMenuBadge className={cn(badgeHiddenClasses, 'max-lg:hidden')}>
@@ -435,6 +442,10 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
       )}
       <CollapsibleContent>
         <SidebarMenuSub className="ml-2.5 gap-0 py-0 pl-1.5">
+          <GroupTouchQuickLinks
+            visibleChildren={visibleChildren}
+            onNavigate={closeMobileSidebar}
+          />
           {visibleChildren.map((subItem) => (
             <SubMenuItem
               key={subItem.href}
