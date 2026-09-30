@@ -5,6 +5,11 @@
  */
 
 import { D1_UPSERT_CHANNEL_CONFIG_SQL } from './alert-channel-config-store'
+import {
+  D1_DELETE_CHECK_ALERT_SQL,
+  D1_LIST_CHECK_ALERTS_SQL,
+  D1_UPSERT_CHECK_ALERT_SQL,
+} from './check-alerts-store'
 import { D1_DELETE_CUSTOM_RULE_SQL } from './custom-rules-store'
 import {
   D1_DELETE_WEBHOOK_TARGET_SQL,
@@ -75,6 +80,9 @@ describe('toPostgresPlaceholders', () => {
     const cases: Array<[string, number]> = [
       [D1_UPSERT_CHANNEL_CONFIG_SQL, 7],
       [D1_DELETE_CUSTOM_RULE_SQL, 2],
+      [D1_LIST_CHECK_ALERTS_SQL, 1],
+      [D1_UPSERT_CHECK_ALERT_SQL, 5],
+      [D1_DELETE_CHECK_ALERT_SQL, 2],
       [D1_LIST_WEBHOOK_TARGETS_SQL, 1],
       [D1_UPSERT_WEBHOOK_TARGET_SQL, 11],
       [D1_DELETE_WEBHOOK_TARGET_SQL, 2],

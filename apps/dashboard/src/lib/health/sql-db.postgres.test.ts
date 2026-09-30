@@ -272,3 +272,78 @@ describe.skipIf(!url)('health stores on Postgres (#3493)', () => {
     await m.deleteQuietHours(OWNER, q.id)
   })
 })
+
+/**
+ * #3438 — an existing Postgres database bootstrapped before `check_id` has the
+ * old `custom_alert_rules` table, which `CREATE TABLE IF NOT EXISTS` leaves
+ * alone. Runs against its OWN database (the adapter caches one bootstrapped
+ * client per URL), pre-created with the old shape and one old row.
+ */
+describe.skipIf(!url)('custom_alert_rules upgrade on Postgres (#3438)', () => {
+  const dbName = `chm_upgrade_${Date.now()}`
+  const saved = process.env.DATABASE_URL
+  let upgradeUrl = ''
+
+  beforeAll(async () => {
+    const { default: postgres } = await import('postgres')
+    const admin = postgres(url as string, { max: 1, onnotice: () => {} })
+    await admin.unsafe(`CREATE DATABASE ${dbName}`)
+    await admin.end()
+    const target = new URL(url as string)
+    target.pathname = `/${dbName}`
+    upgradeUrl = target.toString()
+    const sql = postgres(upgradeUrl, { max: 1, onnotice: () => {} })
+    await sql.unsafe(`CREATE TABLE custom_alert_rules (
+      id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL,
+      metric TEXT NOT NULL, op TEXT NOT NULL,
+      warning DOUBLE PRECISION NOT NULL, critical DOUBLE PRECISION NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1, created_at BIGINT NOT NULL)`)
+    await sql.unsafe(
+      `INSERT INTO custom_alert_rules VALUES
+       ('custom:old', 'upgrade-owner', 'Old rule', 'stuck-merges', '>=', 1, 3, 1, 1)`
+    )
+    await sql.end()
+    process.env.DATABASE_URL = upgradeUrl
+  })
+
+  afterAll(async () => {
+    if (saved === undefined) delete process.env.DATABASE_URL
+    else process.env.DATABASE_URL = saved
+  })
+
+  test('bootstrap adds check_id; old rows stay custom rules; check rows upsert', async () => {
+    const checks = await import('./check-alerts-store')
+    const rules = await import('./custom-rules-store')
+
+    await checks.renameCheckAlert('upgrade-owner', 'max-parts', 'First')
+    const renamed = await checks.renameCheckAlert(
+      'upgrade-owner',
+      'max-parts',
+      'Parts'
+    )
+    expect(renamed.ruleId).toBe('max-parts')
+    const listed = (await checks.listCheckAlerts('upgrade-owner')).find(
+      (c) => c.checkId === 'max-parts'
+    )
+    expect(listed).toMatchObject({ name: 'Parts', source: 'd1' })
+
+    const custom = await rules.listCustomRules('upgrade-owner')
+    expect(custom.map((r) => r.id)).toEqual(['custom:old'])
+
+    const { default: postgres } = await import('postgres')
+    const sql = postgres(upgradeUrl, { max: 1, onnotice: () => {} })
+    const rows = await sql.unsafe(
+      `SELECT metric FROM custom_alert_rules WHERE check_id = 'max-parts'`
+    )
+    await sql.end()
+    expect(rows).toHaveLength(1)
+    expect(rows[0].metric).toBeNull()
+
+    await checks.resetCheckAlert('upgrade-owner', 'max-parts')
+    expect(
+      (await checks.listCheckAlerts('upgrade-owner')).find(
+        (c) => c.checkId === 'max-parts'
+      )?.source
+    ).toBe('default')
+  })
+})

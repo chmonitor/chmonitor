@@ -14,6 +14,13 @@
  *   - `alert_routes` / `alert_events` carry their later ALTER-added columns
  *     inline instead of replaying the ALTERs.
  *   - 0/1 flags stay INTEGER, because the stores compare them with `=== 1`.
+ *   - `custom_alert_rules` is the one exception to "no ALTERs": D1 migration
+ *     0032 (#3438) added `check_id` and made metric/op/warning/critical
+ *     nullable. A database bootstrapped before that already has the old
+ *     table, which `CREATE TABLE IF NOT EXISTS` leaves alone, so the new
+ *     shape is inline for fresh databases AND replayed as idempotent
+ *     `ADD COLUMN IF NOT EXISTS` / `DROP NOT NULL` / `CREATE UNIQUE INDEX IF
+ *     NOT EXISTS` statements for existing ones.
  *
  * Primary keys are unchanged (on-disk formats: `alert_state (host_id, rule_id)`,
  * etc.) — only the dialect differs.
@@ -134,15 +141,23 @@ CREATE TABLE IF NOT EXISTS custom_alert_rules (
   id         TEXT PRIMARY KEY,
   owner_id   TEXT NOT NULL,
   name       TEXT NOT NULL,
-  metric     TEXT NOT NULL,
-  op         TEXT NOT NULL,
-  warning    DOUBLE PRECISION NOT NULL,
-  critical   DOUBLE PRECISION NOT NULL,
+  metric     TEXT,
+  op         TEXT,
+  warning    DOUBLE PRECISION,
+  critical   DOUBLE PRECISION,
   enabled    INTEGER NOT NULL DEFAULT 1,
-  created_at BIGINT NOT NULL
+  created_at BIGINT NOT NULL,
+  check_id   TEXT
 );
+ALTER TABLE custom_alert_rules ADD COLUMN IF NOT EXISTS check_id TEXT;
+ALTER TABLE custom_alert_rules ALTER COLUMN metric DROP NOT NULL;
+ALTER TABLE custom_alert_rules ALTER COLUMN op DROP NOT NULL;
+ALTER TABLE custom_alert_rules ALTER COLUMN warning DROP NOT NULL;
+ALTER TABLE custom_alert_rules ALTER COLUMN critical DROP NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_custom_alert_rules_owner_id
   ON custom_alert_rules (owner_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_alert_rules_owner_check_id
+  ON custom_alert_rules (owner_id, check_id);
 
 CREATE TABLE IF NOT EXISTS maintenance_windows (
   id         TEXT    NOT NULL PRIMARY KEY,

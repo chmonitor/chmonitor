@@ -5,6 +5,11 @@
  * `WHERE owner_id = ? AND id = ?`-guarded mutations so one owner can never
  * read, delete, or accidentally collide with another owner's rule.
  *
+ * The same table also holds built-in check alerts (#3438): rows with
+ * `check_id` set and no metric/op/thresholds, owned by `check-alerts-store.ts`.
+ * Every query here filters `check_id IS NULL`, so those rows never reach the
+ * rule builder, alert suggestions, the sweep registry, or the DELETE route.
+ *
  * Only `metric` (a catalog key), `op`, `name`, and the numeric thresholds are
  * persisted — never SQL. The SQL is always re-derived from
  * `METRIC_CATALOG` via `compileCustomRule` at read time (sweep + "test"),
@@ -124,7 +129,9 @@ async function listDbCustomRules(ownerId: string): Promise<CustomAlertRule[]> {
     const result = await db
       .prepare(
         `SELECT id, owner_id, name, metric, op, warning, critical, enabled, created_at
-         FROM custom_alert_rules WHERE owner_id = ?1 ORDER BY created_at DESC`
+         FROM custom_alert_rules
+         WHERE owner_id = ?1 AND check_id IS NULL
+         ORDER BY created_at DESC`
       )
       .bind(ownerId)
       .all<D1CustomRuleRow>()
@@ -196,8 +203,12 @@ export async function createCustomRule(
   }
 }
 
-/** Ownership-guarded DELETE. */
-export const D1_DELETE_CUSTOM_RULE_SQL = `DELETE FROM custom_alert_rules WHERE id = ?1 AND owner_id = ?2`
+/**
+ * Ownership-guarded DELETE. `check_id IS NULL` keeps a built-in check alert
+ * row (#3438) out of reach of the custom-rules route: those are reset through
+ * `check-alerts-store.ts`, never deleted as a custom rule.
+ */
+export const D1_DELETE_CUSTOM_RULE_SQL = `DELETE FROM custom_alert_rules WHERE id = ?1 AND owner_id = ?2 AND check_id IS NULL`
 
 export async function deleteCustomRule(
   ownerId: string,
@@ -248,7 +259,8 @@ async function listAllEnabledCustomRules(): Promise<CustomAlertRule[]> {
       const result = await db
         .prepare(
           `SELECT id, owner_id, name, metric, op, warning, critical, enabled, created_at
-           FROM custom_alert_rules${hasDeclared ? '' : ' WHERE enabled = 1'}`
+           FROM custom_alert_rules
+           WHERE check_id IS NULL${hasDeclared ? '' : ' AND enabled = 1'}`
         )
         .all<D1CustomRuleRow>()
       rows = (result.results || []).map(rowToRule)
