@@ -39,7 +39,7 @@ this suite measures live tool-first + recommend-only behavior.
 - `ANYROUTER_API_KEY` — rubric + local agent
 - `AGENT_API_TOKEN` — Bearer for the agent route
 - `AGENT_EVAL_URL` — default `http://localhost:3000/api/v1/agent`
-- `AGENT_EVAL_MODEL` — default `anyrouter:auto`
+- `AGENT_EVAL_MODEL` — default `anyrouter:anyrouter/free` (served without a BYOK key; `auto` can resolve to a BYOK-only model, see #3560)
 - `AGENT_EVAL_GRADER_MODEL` — default `anyrouter/free`
 - `ANYROUTER_API_BASE` — default `https://anyrouter.dev/api/v1`
 - `PROMPTFOO_API_KEY` — optional Promptfoo Cloud token (`promptfoo auth login`);
