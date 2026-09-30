@@ -10,7 +10,7 @@ export ANYROUTER_API_KEY=...          # secret — local or GH secret
 export AGENT_API_TOKEN=...            # Bearer for POST /api/v1/agent
 export AGENT_EVAL_URL=http://localhost:3000/api/v1/agent
 # optional
-export AGENT_EVAL_MODEL=anyrouter:auto
+export AGENT_EVAL_MODEL=anyrouter:anyrouter/free
 export AGENT_EVAL_GRADER_MODEL=anyrouter/free
 export ANYROUTER_API_BASE=https://anyrouter.dev/api/v1
 ```
