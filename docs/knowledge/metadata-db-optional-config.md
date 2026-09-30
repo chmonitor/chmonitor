@@ -942,5 +942,7 @@ gates on knowing what "available" means.
    `hydrateAlertState` in a process clears the memory store before loading
    rows (`alert-state-persist.ts`), so the DB starts fresh: any in-flight
    hysteresis streak restarts and an open incident gets a new `firstFiredAt`
-   and may notify again. Later hydrates overlay without clearing. Encoded by
+   and may notify again. Later hydrates overlay without clearing, and
+   `flushAlertState` is a no-op until a hydrate has succeeded, so a failed
+   first-attach read cannot let memory state leak into the DB. Encoded by
    `apps/dashboard/src/lib/health/alert-state-persist.test.ts`.

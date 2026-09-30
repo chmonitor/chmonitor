@@ -76,6 +76,11 @@ let migration: Promise<void> | null = null
  */
 let attachedToDb = false
 
+/** Test-only: forget the first-attach state so each test starts as a fresh process. */
+export function resetAlertStateAttachForTests(): void {
+  attachedToDb = false
+}
+
 function getDb(): HealthSqlDb | null {
   return getHealthDb()
 }
@@ -152,8 +157,13 @@ export async function hydrateAlertState(store: AlertStateStore): Promise<void> {
  * Persist the store's current contents to D1: upsert every live record and
  * delete rows for keys no longer present (recovered conditions clear their
  * record). Best-effort — dropped entirely on any D1 error.
+ *
+ * Skipped until a hydrate has succeeded in this process (#3534): otherwise a
+ * failed first-attach hydrate followed by a successful flush would migrate
+ * memory-only state into the DB.
  */
 export async function flushAlertState(store: AlertStateStore): Promise<void> {
+  if (!attachedToDb) return
   try {
     const db = getDb()
     if (!db) return

@@ -12,7 +12,7 @@
 import type { AlertStateRecord } from './alert-state-store'
 
 import { installHealthPlatformMock } from './__tests__/platform-mock'
-import { describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 interface Row {
   host_id: number
@@ -71,9 +71,8 @@ function makeFakeD1(rows: Row[]) {
 let currentDb: ReturnType<typeof makeFakeD1> | null = null
 installHealthPlatformMock(() => currentDb)
 
-const { hydrateAlertState, flushAlertState } = await import(
-  './alert-state-persist'
-)
+const { hydrateAlertState, flushAlertState, resetAlertStateAttachForTests } =
+  await import('./alert-state-persist')
 const { MemoryAlertStateStore, alertStateKey } = await import(
   './alert-state-store'
 )
@@ -87,7 +86,33 @@ const memoryOnly: AlertStateRecord = {
   pendingCount: 2,
 }
 
+/** A fake D1 whose SELECT throws, as on a transient read failure. */
+function makeFailingReadD1() {
+  const db = makeFakeD1([])
+  return {
+    ...db,
+    prepare(sql: string) {
+      const stmt = db.prepare(sql)
+      return {
+        ...stmt,
+        bind: stmt.bind,
+        run: stmt.run,
+        args: stmt.args,
+        sql: stmt.sql,
+        async all(): Promise<never> {
+          throw new Error('transient read failure')
+        },
+      }
+    },
+  }
+}
+
 describe('alert state on first metadata-DB attach (#3534: discard)', () => {
+  beforeEach(() => {
+    resetAlertStateAttachForTests()
+    currentDb = null
+  })
+
   test('memory state is kept without a DB, discarded on first attach, and never persisted', async () => {
     const store = new MemoryAlertStateStore()
     const memKey = alertStateKey(0, 'disk-usage')
@@ -110,6 +135,16 @@ describe('alert state on first metadata-DB attach (#3534: discard)', () => {
     expect(db.rows).toHaveLength(0)
   })
 
+  test('a failed first-attach hydrate does not let the flush migrate memory state', async () => {
+    const store = new MemoryAlertStateStore()
+    store.set(alertStateKey(0, 'disk-usage'), memoryOnly)
+    const db = makeFailingReadD1()
+    currentDb = db as unknown as ReturnType<typeof makeFakeD1>
+    await hydrateAlertState(store)
+    await flushAlertState(store)
+    expect(db.rows).toHaveLength(0)
+  })
+
   test('after attach, a warm hydrate overlays the DB without clearing new records', async () => {
     const store = new MemoryAlertStateStore()
     const dbKey = alertStateKey(1, 'replication-lag')
@@ -126,6 +161,7 @@ describe('alert state on first metadata-DB attach (#3534: discard)', () => {
         pending_count: null,
       },
     ])
+    await hydrateAlertState(store) // first attach
     // A record committed this tick but not yet flushed must survive.
     store.set(freshKey, memoryOnly)
     await hydrateAlertState(store)
