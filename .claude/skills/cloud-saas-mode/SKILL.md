@@ -68,7 +68,7 @@ on mismatch. The reverse (cloud build, runtime unset) is safe — fail-closed.
 | Env hosts | real, full access | `source:'demo'`, read-only |
 | Anonymous | env hosts | the demo |
 | Signed-in | env hosts | demo HIDDEN → own D1 connections; zero → welcome/setup |
-| Agent (anon) | Clerk-gated if access=authenticated | reachable on demo host via `authorizeAgentApiRequest` guest wrapper (not `CHM_FEATURE_AGENT_ACCESS=public`); daily cap 3 + RL 5/min; D1 `guest:<ip-hash>`; deploy `ANYROUTER_API_KEY` + `anyrouter:auto` |
+| Agent (anon) | Clerk-gated if access=authenticated | reachable on demo host via `authorizeAgentApiRequest` guest wrapper (not `CHM_FEATURE_AGENT_ACCESS=public`); daily cap 3 + RL 5/min; D1 `guest:<ip-hash>`; deploy `ANYROUTER_API_KEY` + `anyrouter:anyrouter/free` |
 | CLI device login (`CHM_DEVICE_LOGIN`) | **off** by default (`auto`); set `true` for device-only tokens when `auth=none` (trusted LAN) | **on** when `CHM_API_KEY_SECRET` is set; `/device` needs Clerk session |
 
 Resolver: `lib/auth/device-login-config.ts`. Store: D1 or in-memory
@@ -124,7 +124,7 @@ allows unsigned Cloud + public-read on agent POST / models / config-check /
 followups only. UI: `agent-auth-gate.tsx` `ensureAuthed()` true for Cloud
 unsigned; OSS Clerk stays gated.
 
-Guests bill the deploy `ANYROUTER_API_KEY` and default to `anyrouter:auto`.
+Guests bill the deploy `ANYROUTER_API_KEY` and default to `anyrouter:anyrouter/free` (pinned; `auto` routed guests to BYOK-only / out-of-quota models, #3578).
 Server strips BYOK `apiKey`, ignores `mcpServers` / user MCP, allowlists
 auto + free, hostId env/demo only. Conversations stay Clerk-only (local
 thread for unsigned Cloud).
