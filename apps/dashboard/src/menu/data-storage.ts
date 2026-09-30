@@ -34,11 +34,13 @@ export const dataStorageItems: MenuItem[] = [
     // the gate it used to inherit. A parent gate would over-gate the group.
     title: 'Data & Storage',
     href: '',
+    hubHref: '/hub/data-storage',
     icon: DatabaseIcon,
     section: 'main',
     items: [
       // Tables
       {
+        subgroup: 'Tables',
         title: 'Tables',
         href: '/tables',
         description: 'Browse tables by database with columns and sizes',
@@ -46,6 +48,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Tables',
         title: 'Tables Overview',
         href: '/tables-overview',
         countKey: 'tables-overview',
@@ -57,6 +60,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Tables',
         title: 'Data Explorer',
         href: '/explorer',
         description: 'Interactive database schema browser with metadata',
@@ -68,6 +72,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Tables',
         title: 'Dictionaries',
         href: '/dictionaries',
         description: 'External dictionary status and memory usage',
@@ -81,6 +86,7 @@ export const dataStorageItems: MenuItem[] = [
       },
       // Merges & parts
       {
+        subgroup: 'Merges & Parts',
         title: 'Merges',
         href: '/merges',
         description: 'Active merge and mutation operations with progress',
@@ -92,6 +98,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'operations' },
       },
       {
+        subgroup: 'Merges & Parts',
         title: 'Merge Performance',
         href: '/merge-performance',
         description: 'Historical merge operation statistics and trends',
@@ -101,6 +108,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'operations' },
       },
       {
+        subgroup: 'Merges & Parts',
         title: 'Mutations',
         href: '/mutations',
         description: 'Table mutation status with progress and failures',
@@ -110,6 +118,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'operations' },
       },
       {
+        subgroup: 'Merges & Parts',
         title: 'Moves',
         href: '/moves',
         description:
@@ -120,6 +129,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'operations' },
       },
       {
+        subgroup: 'Merges & Parts',
         title: 'Part Log',
         href: '/part-log',
         description:
@@ -130,6 +140,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'operations' },
       },
       {
+        subgroup: 'Merges & Parts',
         title: 'Detached Parts',
         href: '/detached-parts',
         description:
@@ -142,6 +153,7 @@ export const dataStorageItems: MenuItem[] = [
       },
       // Table health
       {
+        subgroup: 'Table Health',
         title: 'TTL & Partitions',
         href: '/ttl-partition-health',
         description:
@@ -161,6 +173,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Table Health',
         title: 'Dropped Tables',
         href: '/dropped-tables',
         description:
@@ -171,6 +184,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Table Health',
         title: 'Readonly Tables',
         href: '/readonly-tables',
         description: 'Tables in read-only mode with replica status',
@@ -183,6 +197,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Table Health',
         title: 'View Refreshes',
         href: '/view-refreshes',
         description:
@@ -194,6 +209,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Table Health',
         title: 'Index & Projection Analytics',
         href: '/index-analytics',
         description:
@@ -206,6 +222,7 @@ export const dataStorageItems: MenuItem[] = [
       },
       // Ingestion
       {
+        subgroup: 'Ingestion',
         title: 'Async Inserts',
         href: '/asynchronous-inserts',
         description:
@@ -217,6 +234,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Ingestion',
         title: 'Kafka Consumers',
         href: '/kafka-consumers',
         description:
@@ -228,6 +246,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Ingestion',
         title: 'RabbitMQ Consumers',
         href: '/rabbitmq-consumers',
         description:
@@ -239,6 +258,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'tables' },
       },
       {
+        subgroup: 'Ingestion',
         // "PeerDB" prefix: the old PeerDB group heading is gone, so the bare
         // "Mirrors" / "Peers" labels would lose their context.
         title: 'PeerDB Mirrors',
@@ -250,6 +270,7 @@ export const dataStorageItems: MenuItem[] = [
         docs: 'https://docs.peerdb.io/mirror/overview',
       },
       {
+        subgroup: 'Ingestion',
         title: 'PeerDB Peers',
         href: '/peerdb/peers',
         description:
@@ -260,6 +281,7 @@ export const dataStorageItems: MenuItem[] = [
       },
       // Storage
       {
+        subgroup: 'Storage',
         title: 'Disks',
         href: '/disks',
         description: 'Storage disk configuration and usage',
@@ -270,6 +292,7 @@ export const dataStorageItems: MenuItem[] = [
         tableCheck: 'system.disks',
       },
       {
+        subgroup: 'Storage',
         title: 'Storage Economics',
         href: '/storage-economics',
         description:
@@ -280,6 +303,7 @@ export const dataStorageItems: MenuItem[] = [
         tableCheck: 'system.parts',
       },
       {
+        subgroup: 'Storage',
         title: 'Blob Storage Log',
         href: '/blob-storage-log',
         description:
@@ -291,6 +315,7 @@ export const dataStorageItems: MenuItem[] = [
         permission: { feature: 'operations' },
       },
       {
+        subgroup: 'Storage',
         title: 'Backups',
         href: '/backups',
         description: 'Backup operation history with status and sizes',

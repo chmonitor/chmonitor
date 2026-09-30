@@ -287,6 +287,11 @@ export const ChartTopTableSize = lazy(() =>
     default: mod.ChartTopTableSize,
   }))
 )
+export const ChartSummaryUsedByRunningQueries = lazy(() =>
+  import('@/components/charts/summary-used-by-running-queries').then((mod) => ({
+    default: mod.ChartSummaryUsedByRunningQueries,
+  }))
+)
 // ZooKeeper charts
 export const ChartKeeperException = lazy(() =>
   import('@/components/charts/zookeeper/zookeeper-exception').then((mod) => ({

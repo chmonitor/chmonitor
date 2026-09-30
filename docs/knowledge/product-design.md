@@ -1102,6 +1102,36 @@ not Essential-plus-a-few-leaves. `workspace-presets.test.ts` pins every
 page each preset showed before #3565 — a regroup may add pages to a preset,
 never drop one.
 
+**Hub pages (`/hub/<slug>`).** Queries, Data & Storage, Cluster &
+Replication, and Server each have a hub landing page (`/hub/queries`,
+`/hub/data-storage`, `/hub/cluster-replication`, `/hub/server`) so any page in
+the group is one click away and the key numbers need no click at all.
+- **Wiring:** the group row sets `hubHref` (its `href` stays `''` — groups are
+  keyed by the empty href everywhere, and a real href would trip the
+  parent-path active rule). Each child sets `subgroup` (Queries: Live /
+  History / Performance / Caches; Data & Storage: Tables / Merges & Parts /
+  Table Health / Ingestion / Storage; Cluster & Replication: Cluster /
+  Replication / Keeper; Server: Metrics / Logs & Diagnostics / Background
+  Work / Access Control). **A new page in a hub group must set `subgroup`**
+  (`lib/menu/__tests__/hub.test.ts` fails otherwise).
+- **Page:** `components/hub/hub-page.tsx` renders 3–4 existing registry
+  charts (config in `routes/(dashboard)/hub/-hub-charts.ts`; each chart's
+  `href` makes its ChartCard title a link and must be a page of the same
+  group), then one section per `subgroup` as a 1 → 2 → 3 → 4 column grid of
+  link cards (icon, title, menu `description`, `CountBadge` when `countKey`).
+  Sections come from `getHubSections` (`lib/menu/hub.ts`) — never keep a
+  second page list. Deployment gates (permission, cloud-only, engine) apply
+  via `getAllowedMenuItems`; an unavailable page is **dimmed with its reason,
+  never hidden**, whatever the rail's Hide setting — a hub is a discovery
+  surface.
+- **Sidebar + breadcrumb:** on a hub group the heading label is a link to the
+  hub and the chevron is a separate sibling button that still expands
+  (`group-expand-button`); groups without a hub keep the whole row as the
+  toggle. `getBreadcrumbPath` links the group crumb to the hub and resolves
+  the hub URL itself to its group crumb. Every surface reads the hub through
+  `getGroupHubHref(groupTitle)` (`lib/menu/group-hub.ts`), which reads the
+  group's `hubHref` — never add a second title → hub table.
+
 **Tools & AI** is the interactive-utility group — pages where you *do*
 something (ask the agent, run SQL, explain a query, compare hosts, build
 charts, expose MCP) rather than watch a system-table monitor. It is the last

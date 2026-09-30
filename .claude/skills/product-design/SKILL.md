@@ -18,6 +18,7 @@ description: >-
   "header title", "768", "truncate Overview", "essential sidebar",
   "more pages", "keep in sidebar", "hover add", "group heading",
   "sidebar groups", "menu group", "add to sidebar", "task groups",
+  "hub page", "landing page", "subgroup", "hubHref",
   "customize dialog", "configure alert", "already alerting",
   "alert settings", "health detail dialog", "alert threshold", "badge",
   "unavailable pages", "dim unavailable", "hide unavailable",
@@ -565,7 +566,10 @@ is a full-width control under the hide-count line. Full detail:
    `<title>` as well as the sidebar label.
    The sidebar is task groups, two levels deep (#3565): Overview, Queries,
    Data & Storage, Cluster & Replication, Server, Alerts & Insights,
-   Tools & AI (main), then Settings (others) and the About footer. Put a
+   Tools & AI (main), then Settings (others) and the About footer. Queries,
+   Data & Storage, Cluster & Replication, and Server have hub pages
+   (`/hub/<slug>`, group `hubHref`): a new page in those groups MUST set
+   `subgroup` so it appears as a card on the hub (`hub.test.ts`). Put a
    new page in the group matching the task, in its subgroup run (see the
    list in `docs/knowledge/product-design.md` → *Sidebar navigation
    groups*); never add a new top-level group or nest a group in a group.
