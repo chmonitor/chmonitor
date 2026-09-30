@@ -108,6 +108,9 @@ describe.skipIf(!url)('health stores on Postgres (#3493)', () => {
     )
     const now = Date.now()
     const store = new MemoryAlertStateStore()
+    // #3534: flush is skipped until a hydrate has attached to the DB.
+    m.resetAlertStateAttachForTests()
+    await m.hydrateAlertState(store)
     store.set(alertStateKey(HOST, 'disk-usage'), {
       severity: 'critical',
       updatedAt: now,

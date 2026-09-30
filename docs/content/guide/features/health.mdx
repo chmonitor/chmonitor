@@ -97,6 +97,11 @@ runs on D1 or Postgres (`DATABASE_URL` / `POSTGRES_URL`). Attach one of them if
 you need ACKs. See [`GET /api/v1/config`](/reference/api) `capabilities.health`
 for what a deployment resolved.
 
+In-memory alert state is not migrated when you attach a database later. On the
+first sweep that reaches the new database, the in-memory state is discarded and
+alerting starts fresh from the database: a pending hysteresis streak restarts,
+and a condition that is still firing opens a new incident and can notify again.
+
 #### Where definitions come from
 
 Definitions merge from four sources, highest first:
