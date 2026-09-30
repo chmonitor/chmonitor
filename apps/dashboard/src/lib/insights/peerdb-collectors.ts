@@ -41,6 +41,7 @@ import {
   checkSlotLagTrend,
   checkSnapshotProgress,
   checkTerminatedMirrors,
+  earliestCloneStartMs,
 } from './peerdb-checks'
 
 /**
@@ -319,10 +320,7 @@ export async function collectPeerDBInsights(
           const done = clones.filter(
             (c) => c?.fetchCompleted && c?.consolidateCompleted
           ).length
-          const starts = clones
-            .map((c) => (c?.startTime ? Date.parse(c.startTime) : Number.NaN))
-            .filter((t) => Number.isFinite(t))
-          const startedAtMs = starts.length > 0 ? Math.min(...starts) : null
+          const startedAtMs = earliestCloneStartMs(clones)
           const snapshot = checkSnapshotProgress(
             m.name,
             clones.length,

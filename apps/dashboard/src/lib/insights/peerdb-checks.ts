@@ -240,6 +240,20 @@ export function checkMirrorErrors(
 export const PEERDB_SNAPSHOT_STALL_MS = 24 * 60 * 60 * 1000
 
 /**
+ * Earliest clone `startTime` (epoch ms) of a mirror's snapshot, or `null` when
+ * PeerDB reported none that parses. Shared by insights and alerting so both
+ * measure snapshot age the same way.
+ */
+export function earliestCloneStartMs(
+  clones: ReadonlyArray<{ startTime?: string | null } | null | undefined>
+): number | null {
+  const starts = clones
+    .map((c) => (c?.startTime ? Date.parse(c.startTime) : Number.NaN))
+    .filter((t) => Number.isFinite(t))
+  return starts.length > 0 ? Math.min(...starts) : null
+}
+
+/**
  * Snapshot / initial-load progress for one mirror. `tablesTotal` is the clone
  * table count, `tablesDone` how many report fetch+consolidate complete, and
  * `startedAtMs` the earliest clone start time (epoch ms, `null` when PeerDB did

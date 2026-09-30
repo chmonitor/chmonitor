@@ -63,8 +63,10 @@ describe('collectPeerDBSignals', () => {
     expect(out.metrics.hasErrorSample).toBe(false)
   })
 
-  test('marks snapshot stalled only when clones are pending', async () => {
-    const reader = (done: boolean) =>
+  test('marks snapshot stalled only after PEERDB_SNAPSHOT_STALL_MS', async () => {
+    const hoursAgo = (h: number) =>
+      new Date(Date.now() - h * 3_600_000).toISOString()
+    const reader = (done: boolean, startTime?: string) =>
       stubReader({
         listMirrors: async () => [{ name: 'm' }],
         mirrorStatus: async () => ({
@@ -76,18 +78,22 @@ describe('collectPeerDBSignals', () => {
                   tableName: 't',
                   fetchCompleted: done,
                   consolidateCompleted: done,
+                  startTime,
                 },
               ],
             },
           },
         }),
       })
-    expect(
-      (await collectPeerDBSignals(reader(false))).signals[0]!.snapshotStalled
-    ).toBe(true)
-    expect(
-      (await collectPeerDBSignals(reader(true))).signals[0]!.snapshotStalled
-    ).toBe(false)
+    const stalled = async (r: PeerDBAlertSnapshotReader) =>
+      (await collectPeerDBSignals(r)).signals[0]!.snapshotStalled
+    // in progress is not an alert
+    expect(await stalled(reader(false, hoursAgo(1)))).toBe(false)
+    expect(await stalled(reader(false, hoursAgo(25)))).toBe(true)
+    // age unknown: never claim a stall that cannot be shown
+    expect(await stalled(reader(false))).toBe(false)
+    // finished snapshot is never stalled, however old
+    expect(await stalled(reader(true, hoursAgo(25)))).toBe(false)
   })
 
   test('never throws on a totally failing reader', async () => {
