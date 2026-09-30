@@ -62,10 +62,16 @@ function ensureDesktopRailExpanded() {
 }
 
 function clickGroupTrigger(groupLabel: string) {
+  // Groups with a hub page (#3574) render the label as a link to the hub and
+  // a separate expand button, so the label is no longer the trigger. Clicking
+  // the label there would navigate away instead of opening the group.
   const labelRe = new RegExp(`^${groupLabel}(\\s|$)`)
+  const expandRe = new RegExp(`^(Expand|Collapse) ${groupLabel}$`)
   cy.get(`${SIDEBAR} [data-slot="collapsible-trigger"]`)
     .filter((_, el) =>
-      labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim())
+      el.getAttribute('data-testid') === 'group-expand-button'
+        ? expandRe.test(el.getAttribute('aria-label') || '')
+        : labelRe.test((el.innerText || '').replace(/\s+/g, ' ').trim())
     )
     .should('have.length.at.least', 1)
     .first()
