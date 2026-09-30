@@ -1,9 +1,11 @@
 /**
  * Effective custom-webhook configuration for the server sweep and settings UI.
- * Three sources merged by `id` through the shared `mergeSources` (#3497):
- * DB rows › `channels.yaml` › `HEALTH_ALERT_WEBHOOK_TARGETS` (env ids are
- * `env:<name>`). Declarative targets are read-only; secret URLs stay
- * server-side.
+ * Three sources merged by `name` through the shared `mergeSources` (#3497):
+ * DB rows › `channels.yaml` › `HEALTH_ALERT_WEBHOOK_TARGETS`. A D1 target
+ * with the same name replaces the declarative one whole (#3539), so a
+ * disabled D1 row hides the Helm target until it is deleted, and no env URL
+ * or secret header leaks into a D1 target. Declarative targets are
+ * read-only; secret URLs stay server-side.
  */
 
 import type {
@@ -59,18 +61,25 @@ export async function listEffectiveCustomWebhookConfig(
     listCustomWebhookTargets(ownerId),
     declarativeWebhookTargets(),
   ])
-  const merged = mergeSources(
-    [...declared, { source: 'd1', entries: d1Rows.map(rowToTarget) }],
-    (target) => target.id,
-    'union'
-  )
-
   return {
-    targets: merged
+    targets: mergeWebhookTargets([
+      ...declared,
+      { source: 'd1', entries: d1Rows.map(rowToTarget) },
+    ])
       .map((target) => ({ ...target, editable: target.source === 'd1' }))
       .sort((a, b) => a.name.localeCompare(b.name)),
     storage: isCustomWebhookStoreConfigured() ? 'ok' : 'unavailable',
   }
+}
+
+/**
+ * Merge target layers by name: the highest source that defines a name
+ * replaces the lower one whole (`time-union` shape), never field by field.
+ */
+export function mergeWebhookTargets(
+  layers: readonly SourceLayer<CustomWebhookTarget>[]
+) {
+  return mergeSources(layers, (target) => target.name, 'time-union')
 }
 
 export function toPublicCustomWebhookTarget(
@@ -94,7 +103,7 @@ export function toPublicCustomWebhookTarget(
 }
 
 // ---------------------------------------------------------------------------
-// Declarative reader: Custom webhook targets — merge key `id`
+// Declarative reader: Custom webhook targets — merge key `name`
 // ---------------------------------------------------------------------------
 
 async function declarativeWebhookTargets(): Promise<

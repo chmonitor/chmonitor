@@ -11,9 +11,8 @@ the browser.
   existing health-settings route aliases.
 - `webhook-targets` shows Helm targets as read-only and D1 targets as editable,
   with a deterministic empty state.
-- `webhook-precedence` merges D1, file, and env targets by id (#3497): a D1 row
-  replaces a declarative target only when the ids match, so a same-name D1 row
-  no longer hides an env target (see #3539).
+- `webhook-precedence` lets a D1 row override a Helm/file target by name
+  (#3539); a disabled D1 row suppresses the Helm target until it is reset.
 - `webhook-preview` renders a deterministic sample payload and can optionally
   send a test through the server-side dispatcher.
 - `webhook-egress` requires HTTPS, validates public destinations, follows no

@@ -100,8 +100,8 @@ export function CustomWebhookTargetsPanel() {
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Choose raw JSON, Slack, or Element/Matrix formatting. Helm and
-              file targets are read-only; a saved D1 target with the same id
-              replaces one, otherwise both are used.
+              file targets are read-only; saved D1 targets can override them by
+              name.
             </p>
           </div>
         </div>
