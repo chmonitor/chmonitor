@@ -11,6 +11,7 @@ import { GroupCustomizeButton } from './group-customize-dialog'
 import { GroupHoverFlyout, GroupTouchQuickLinks } from './group-quick-links'
 import { HideButton, SubHideButton } from './hide-button'
 import { PinButton, SubPinButton } from './pin-button'
+import { RowActionsMenu } from './row-actions-menu'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import {
   useGroupVisibility,
@@ -36,7 +37,8 @@ function unavailableTooltip(
 /**
  * Badges hide on hover/focus so they never stack on the pin in the same
  * right-hand corner (#2769 follow-up). Pin is hover-only, so badges stay
- * visible at rest even when the item is favorited.
+ * visible at rest even when the item is favorited. Below `lg` the pin is
+ * replaced by the "…" `RowActionsMenu`, which steps left of the badge.
  */
 const badgeHiddenClasses =
   'transition-opacity group-hover/menu-item:opacity-0 group-focus-within/menu-item:opacity-0'
@@ -159,6 +161,8 @@ const SingleMenuItem = function SingleMenuItem({
         <span
           className={cn(
             'min-w-0 truncate pr-12 group-data-[state=collapsed]/sidebar:hidden',
+            // Below `lg` the badge sits left of the "…" trigger.
+            hasBadge && 'max-lg:pr-20',
             hasBadge && hasAdd
               ? 'lg:pr-20'
               : hasAdd || hasBadge
@@ -174,6 +178,13 @@ const SingleMenuItem = function SingleMenuItem({
       ) : null}
       {item.href ? <AddButton href={item.href} hasBadge={hasBadge} /> : null}
       <PinButton href={item.href} title={item.title} hasBadge={hasBadge} />
+      {item.href ? (
+        <RowActionsMenu
+          href={item.href}
+          title={item.title}
+          hasBadge={hasBadge}
+        />
+      ) : null}
       {item.isNew && (
         <SidebarMenuBadge className={badgeHiddenClasses}>
           <Suspense fallback={null}>
@@ -285,6 +296,9 @@ const SubMenuItem = function SubMenuItem({
         title={subItem.title}
         hasBadge={hasBadge}
       />
+      {subItem.href ? (
+        <RowActionsMenu href={subItem.href} title={subItem.title} />
+      ) : null}
     </SidebarMenuSubItem>
   )
 }

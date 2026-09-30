@@ -4,6 +4,7 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import type { MenuItem as MenuItemType } from '@/components/menu/types'
 
 import { MenuItem } from './menu-item'
+import { FavoritesOrderProvider } from './row-actions-menu'
 import {
   closestCenter,
   DndContext,
@@ -56,7 +57,7 @@ function FavoriteDragHandle({
       type="button"
       aria-label="Reorder favorite"
       className={cn(
-        'absolute top-1/2 right-7 z-10 flex size-5 -translate-y-1/2 cursor-grab items-center justify-center rounded-md text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 active:cursor-grabbing group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 group-data-[collapsible=icon]:hidden',
+        'absolute top-1/2 right-7 z-10 flex size-5 -translate-y-1/2 cursor-grab items-center justify-center rounded-md text-sidebar-foreground opacity-0 outline-hidden transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 active:cursor-grabbing group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 group-data-[collapsible=icon]:hidden max-lg:hidden',
         hasBadge && 'right-12'
       )}
       {...attributes}
@@ -117,8 +118,10 @@ function SortableFavoriteItem({
  * pinned route that got renamed or removed is dropped silently instead of
  * rendering a broken link.
  *
- * Pins and the reorder grip are hover-only. Drag the grip to reorder; the
- * title stays a link. Collapsed icon-only mode is click-only.
+ * Pins and the reorder grip are hover-only on the docked rail (`lg`+). Drag
+ * the grip to reorder; the title stays a link. Collapsed icon-only mode is
+ * click-only. Below `lg` there is no drag: the row's "…" menu has Move up /
+ * Move down, fed by the rendered order through `FavoritesOrderProvider`.
  */
 export function NavFavorites({ items, pathname }: NavFavoritesProps) {
   const favoriteHrefs = useFavoriteHrefs()
@@ -164,16 +167,18 @@ export function NavFavorites({ items, pathname }: NavFavoritesProps) {
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          <SidebarMenu>
-            {favoriteItems.map((item) => (
-              <SortableFavoriteItem
-                key={item.href}
-                item={item}
-                pathname={pathname}
-                dragEnabled={dragEnabled}
-              />
-            ))}
-          </SidebarMenu>
+          <FavoritesOrderProvider value={itemIds}>
+            <SidebarMenu>
+              {favoriteItems.map((item) => (
+                <SortableFavoriteItem
+                  key={item.href}
+                  item={item}
+                  pathname={pathname}
+                  dragEnabled={dragEnabled}
+                />
+              ))}
+            </SidebarMenu>
+          </FavoritesOrderProvider>
         </SortableContext>
       </DndContext>
     </SidebarGroup>

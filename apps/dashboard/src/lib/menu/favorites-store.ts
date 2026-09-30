@@ -120,6 +120,38 @@ export function reorderFavorites(fromHref: string, toHref: string): void {
   emit()
 }
 
+export type FavoriteMoveDirection = 'up' | 'down'
+
+/**
+ * The href one step above/below `href` in `order`, or `null` at the edge
+ * (first has nothing above, last nothing below) or when `href` is unknown.
+ */
+export function neighborHref(
+  order: readonly string[],
+  href: string,
+  direction: FavoriteMoveDirection
+): string | null {
+  const index = order.indexOf(href)
+  if (index === -1) return null
+  return order[direction === 'up' ? index - 1 : index + 1] ?? null
+}
+
+/**
+ * Move a pinned href one step up or down — the touch/keyboard reorder path
+ * (#3580). `order` is the list the user sees; it defaults to the stored pin
+ * list, but the sidebar passes its rendered order so a stale pin (a removed
+ * route still in storage) never swallows a step. First-up and last-down are
+ * no-ops.
+ */
+export function moveFavorite(
+  href: string,
+  direction: FavoriteMoveDirection,
+  order: readonly string[] = getFavoriteHrefs()
+): void {
+  const target = neighborHref(order, href, direction)
+  if (target) reorderFavorites(href, target)
+}
+
 export function subscribeFavorites(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)

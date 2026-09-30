@@ -32,7 +32,8 @@ export function PinButton({ href, title, hasBadge }: PinButtonProps) {
         overlayActionClasses,
         // `SidebarMenuAction` forces `[&>svg]:size-4`; override so the pin
         // stays small and inset from the very right edge with breathing room.
-        'right-2 [&>svg]:size-3',
+        // Below `lg` the row's "…" menu carries Pin / Unpin (#3580).
+        'right-2 max-lg:hidden [&>svg]:size-3',
         hasBadge && 'right-7'
       )}
       onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
@@ -76,7 +77,7 @@ export function SubPinButton({ href, title, hasBadge }: SubPinButtonProps) {
       aria-label={isPinned ? `Unpin ${title}` : `Pin ${title}`}
       aria-pressed={isPinned}
       className={cn(
-        'absolute top-1/2 right-2 flex aspect-square size-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-hidden transition-opacity after:absolute after:-inset-3 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100 group-data-[collapsible=icon]:hidden lg:opacity-0 lg:after:hidden',
+        'absolute top-1/2 right-2 flex aspect-square size-5 -translate-y-1/2 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-hidden transition-opacity after:absolute after:-inset-3 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100 group-data-[collapsible=icon]:hidden max-lg:hidden lg:opacity-0 lg:after:hidden',
         hasBadge && 'right-7'
       )}
     >
