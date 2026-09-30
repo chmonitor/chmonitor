@@ -139,7 +139,7 @@ export const CardToolbar = function CardToolbar({
       {/* Request Info Dialog (Metadata + SQL combined) — shares the same body
           as DialogSQL so both Request Info dialogs stay identical. */}
       <Dialog open={showRequestInfo} onOpenChange={setShowRequestInfo}>
-        <DialogContent className="w-full max-w-[95vw] sm:min-w-[550px] sm:max-w-[850px] max-h-[90vh] flex flex-col p-6">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[95vw] sm:w-full sm:max-w-[850px] max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader className="pb-2">
             <DialogTitle className="text-lg font-medium">
               Request Info

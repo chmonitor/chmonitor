@@ -44,7 +44,7 @@ function PaginationInfo<TData extends RowData = RowData>({
   })()
 
   return (
-    <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+    <div className="flex min-w-[100px] whitespace-nowrap items-center justify-center text-sm font-medium">
       <span className="hidden sm:inline">{info.range}</span>
       <span className="sm:hidden">{info.page}</span>
     </div>
