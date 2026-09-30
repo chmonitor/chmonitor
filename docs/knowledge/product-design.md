@@ -1089,6 +1089,29 @@ groups.
 **Footer**: About (next to the Settings gear; never hidden by a workspace
 preset).
 
+### Group quick links (hover a group for pinned + recent pages)
+
+Hovering a top-level sidebar group opens a flyout listing that group's
+**Pinned** pages (pin order, from `lib/menu/favorites-store.ts`), then up to 5
+**Recent** pages (newest first, never repeating a pinned page), then a footer:
+"Open <Group> hub" (only when `getGroupHubHref()` in `lib/menu/group-hub.ts`
+returns a route) and "All N pages" (expands the group in place). With nothing
+pinned or visited it shows the group's first 3 pages instead.
+
+- Logic is pure and tested in `lib/menu/recent-pages.ts`
+  (`recordVisitIn`, `recentInGroup`, `buildGroupQuickLinks`). History is a
+  capped (50) localStorage list `chm-recent-pages` of pathnames only; the host
+  is re-applied by `HostPrefixedLink`, so links keep `?host=`.
+- UI is `components/navigation/nav-main/group-quick-links.tsx`; `menu-item.tsx`
+  only mounts `GroupHoverFlyout` around the group trigger and
+  `GroupTouchQuickLinks` at the top of the group body.
+- Desktop only (`(hover: hover) and (pointer: fine)`): 150ms open delay,
+  keyboard focus on the row opens it too, `motion-reduce:animate-none`.
+- Touch devices get no flyout; pinned/recent rows sit at the top of the
+  expanded group instead.
+- The collapsed (icon) rail shows the same Pinned/Recent sections above the
+  full page list in `collapsed-submenu.tsx`.
+
 **Permissions on mixed groups.** Only Queries keeps a parent `permission`
 (every child is `queries`). The other groups hold pages with different gates,
 so the parent has none and **each child sets the `permission` it needs** — a
