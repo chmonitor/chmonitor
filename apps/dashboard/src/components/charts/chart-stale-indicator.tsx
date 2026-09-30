@@ -3,6 +3,7 @@ import { AlertCircle, RefreshCw } from 'lucide-react'
 import type { StaleError } from '@/lib/query/use-chart-data'
 
 import { useState } from 'react'
+import { chartActionClass } from '@/components/cards/chart-action-classes'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -49,13 +50,12 @@ export const ChartStaleIndicator = function ChartStaleIndicator({
             variant="ghost"
             size="icon"
             className={cn(
-              'size-6 transition-opacity rounded-full',
+              chartActionClass({
+                alwaysVisible: alwaysVisible || isOpen,
+                emphasis: true,
+              }),
               'text-amber-500 dark:text-amber-400',
-              'hover:bg-amber-500/10 dark:hover:bg-amber-400/10',
-              'relative before:content-[""] before:absolute before:-inset-4',
-              alwaysVisible || isOpen
-                ? 'opacity-60 hover:opacity-100'
-                : 'opacity-0 group-hover:opacity-60 group-focus-within:opacity-60 hover:!opacity-100'
+              'hover:bg-amber-500/10 dark:hover:bg-amber-400/10'
             )}
             aria-label="Data may be stale - click for details"
             title="Data may be stale"

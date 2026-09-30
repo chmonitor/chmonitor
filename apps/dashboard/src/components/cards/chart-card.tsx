@@ -8,6 +8,7 @@ import type { StaleError } from '@/lib/swr'
 import type { ChartDataPoint } from '@/types/chart-data'
 
 import { CardToolbar } from '@/components/cards/card-toolbar'
+import { chartActionClass } from '@/components/cards/chart-action-classes'
 import { chartCard } from '@/components/charts/chart-card-styles'
 import {
   ChartScaleProvider,
@@ -48,10 +49,8 @@ function ScaleToggle() {
             onClick={toggleScale}
             aria-label={isLogScale ? 'Disable log scale' : 'Enable log scale'}
             className={cn(
-              'size-6 rounded-full transition-opacity',
-              'relative before:content-[""] before:absolute before:-inset-4',
-              'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:!opacity-100',
-              isLogScale && 'text-amber-500 group-hover:opacity-70'
+              chartActionClass(),
+              isLogScale && 'text-amber-500 pointer-fine:group-hover:opacity-70'
             )}
           />
         }
