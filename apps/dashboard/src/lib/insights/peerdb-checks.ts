@@ -226,16 +226,40 @@ export function checkMirrorErrors(
 }
 
 /**
- * Snapshot / initial-load stall: a mirror stuck in snapshot phase with no
- * clone progress. `tablesTotal` is the clone table count, `tablesDone` how many
- * report fetch+consolidate complete.
+ * How long a snapshot / initial load may run before an unfinished one is
+ * called "stalled".
  *
- * Per-mirror, so the metric carries the flow slug (see `checkMirrorErrors`).
+ * 24 hours: PeerDB's initial load is a bulk copy that routinely takes hours for
+ * multi-hundred-GB sources (partitioned QRep pulls, then consolidation), so a
+ * short limit would re-create the false alarm this replaces (#3516). A snapshot
+ * still unfinished after a full day is outside the normal range for most
+ * fleets and worth a human look (stuck partitions, destination back-pressure),
+ * while the insights sweep still flags it the same day. The clock starts at the
+ * earliest clone `startTime` PeerDB reports, so no extra state is stored.
  */
-export function checkSnapshotStalled(
+export const PEERDB_SNAPSHOT_STALL_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Snapshot / initial-load progress for one mirror. `tablesTotal` is the clone
+ * table count, `tablesDone` how many report fetch+consolidate complete, and
+ * `startedAtMs` the earliest clone start time (epoch ms, `null` when PeerDB did
+ * not report one).
+ *
+ * An unfinished snapshot is normal work, so it is an `info` "in progress" card.
+ * It escalates to a `warning` "stalled" card only once it has run for at least
+ * `PEERDB_SNAPSHOT_STALL_MS`. Without a start time the age is unknown, so it
+ * stays `info` — never claim a stall that cannot be shown.
+ *
+ * The two states use different metrics, so dismissing the in-progress card does
+ * not hide a later stall. Per-mirror, so the metric carries the flow slug (see
+ * `checkMirrorErrors`).
+ */
+export function checkSnapshotProgress(
   mirror: string,
   tablesTotal: number,
-  tablesDone: number
+  tablesDone: number,
+  startedAtMs: number | null,
+  nowMs: number = Date.now()
 ): InsightCandidate | null {
   if (!mirror) return null
   if (
@@ -245,13 +269,29 @@ export function checkSnapshotStalled(
     tablesDone >= tablesTotal
   )
     return null
+  const remaining = tablesTotal - tablesDone
+  const stalled =
+    startedAtMs !== null &&
+    Number.isFinite(startedAtMs) &&
+    nowMs - startedAtMs >= PEERDB_SNAPSHOT_STALL_MS
+  if (stalled) {
+    return {
+      severity: 'warning',
+      category: 'performance',
+      metric: mirrorMetric('peerdb_snapshot_stalled', mirror),
+      title: `PeerDB: ${mirror} snapshot is stalled`,
+      detail: `${mirror} has been in snapshot/initial-load for over 24 hours with ${tablesDone} of ${tablesTotal} tables fully cloned — CDC catch-up cannot start until the snapshot completes. Check QRep partition errors and destination capacity.`,
+      value: remaining,
+      action: { label: 'View mirrors', href: '/peerdb' },
+    }
+  }
   return {
-    severity: 'warning',
+    severity: 'info',
     category: 'performance',
-    metric: mirrorMetric('peerdb_snapshot_stalled', mirror),
-    title: `PeerDB: ${mirror} snapshot is stalled`,
-    detail: `${mirror} is still in snapshot/initial-load with ${tablesDone} of ${tablesTotal} tables fully cloned — CDC catch-up cannot start until the snapshot completes. Check QRep partition errors and destination capacity.`,
-    value: tablesTotal - tablesDone,
+    metric: mirrorMetric('peerdb_snapshot_in_progress', mirror),
+    title: `PeerDB: ${mirror} snapshot is in progress`,
+    detail: `${mirror} is running its snapshot/initial-load: ${tablesDone} of ${tablesTotal} tables fully cloned. CDC starts once the snapshot completes. This becomes a warning if it is still unfinished after 24 hours.`,
+    value: remaining,
     action: { label: 'View mirrors', href: '/peerdb' },
   }
 }

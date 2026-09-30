@@ -3,7 +3,7 @@ id: ai-insights
 title: AI Insights Engine
 type: spec
 status: active
-updated: 2026-09-28
+updated: 2026-09-30
 tags:
   - insights
   - findings
@@ -288,8 +288,10 @@ and Postgres pipelines with PeerDB-specific modules. It is the sibling of the
   (`peerdb_terminated_mirrors`, warning), absolute worst-slot lag
   (`peerdb_slot_lag_mb`), lag **divergence** across the history window
   (`peerdb_slot_lag_trend`), per-mirror error volume
-  (`peerdb_mirror_errors:<slug>`), and per-mirror snapshot stalls
-  (`peerdb_snapshot_stalled:<slug>`). Findings **reuse the existing categories**
+  (`peerdb_mirror_errors:<slug>`), and per-mirror snapshot progress: an
+  unfinished snapshot is an `info` card (`peerdb_snapshot_in_progress:<slug>`)
+  that becomes a `warning` (`peerdb_snapshot_stalled:<slug>`) only after
+  `PEERDB_SNAPSHOT_STALL_MS` (24h) from the earliest clone `startTime` (#3516). Findings **reuse the existing categories**
   (`reliability` / `performance`) with `peerdb_`-prefixed metrics and
   `"PeerDB:"-prefixed` titles — so the board's `CATEGORY_META` and filters work
   unchanged, exactly as the Postgres findings reuse `pg_`-prefixed metrics.

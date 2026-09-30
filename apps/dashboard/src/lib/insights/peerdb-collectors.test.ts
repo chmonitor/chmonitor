@@ -138,30 +138,49 @@ describe('collectPeerDBInsights', () => {
     )
   })
 
-  test('snapshot-stall finding from clone summaries', async () => {
-    const candidates = await collectPeerDBInsights(
-      stubReader({
-        listMirrors: async () => [{ name: 'snap', status: 'STATUS_SNAPSHOT' }],
-        mirrorStatus: async () => ({
-          currentFlowState: 'STATUS_SNAPSHOT',
-          cdcStatus: {
-            snapshotStatus: {
-              clones: [
-                {
-                  tableName: 't1',
-                  fetchCompleted: true,
-                  consolidateCompleted: true,
-                },
-                { tableName: 't2' },
-              ],
-            },
+  const snapshotReader = (startTime?: string) =>
+    stubReader({
+      listMirrors: async () => [{ name: 'snap', status: 'STATUS_SNAPSHOT' }],
+      mirrorStatus: async () => ({
+        currentFlowState: 'STATUS_SNAPSHOT',
+        cdcStatus: {
+          snapshotStatus: {
+            clones: [
+              {
+                tableName: 't1',
+                startTime,
+                fetchCompleted: true,
+                consolidateCompleted: true,
+              },
+              { tableName: 't2' },
+            ],
           },
-        }),
-      })
+        },
+      }),
+    })
+
+  // #3516: a snapshot that just started is progress, not a stall.
+  test('a snapshot started an hour ago is an info in-progress card', async () => {
+    const started = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const candidates = await collectPeerDBInsights(snapshotReader(started))
+    const card = candidates.find(
+      (c) => c.metric === 'peerdb_snapshot_in_progress:snap'
     )
+    expect(card?.severity).toBe('info')
+    expect(card?.value).toBe(1)
     expect(
-      candidates.find((c) => c.metric === 'peerdb_snapshot_stalled:snap')?.value
-    ).toBe(1)
+      candidates.some((c) => c.metric === 'peerdb_snapshot_stalled:snap')
+    ).toBe(false)
+  })
+
+  test('a snapshot started two days ago is flagged stalled', async () => {
+    const started = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+    const candidates = await collectPeerDBInsights(snapshotReader(started))
+    const card = candidates.find(
+      (c) => c.metric === 'peerdb_snapshot_stalled:snap'
+    )
+    expect(card?.severity).toBe('warning')
+    expect(card?.value).toBe(1)
   })
 
   test('never throws on a hostile reader', async () => {
