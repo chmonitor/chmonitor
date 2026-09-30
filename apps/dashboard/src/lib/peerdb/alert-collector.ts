@@ -40,6 +40,10 @@ import type {
 } from './types'
 
 import {
+  earliestCloneStartMs,
+  PEERDB_SNAPSHOT_STALL_MS,
+} from '../insights/peerdb-checks'
+import {
   countMirrorLogLevels,
   extractMirrorLogs,
   mirrorLogsRequestBody,
@@ -285,11 +289,18 @@ export async function collectPeerDBSignals(
         source: 'unavailable' as const,
       }
       const clones = st?.cdcStatus?.snapshotStatus?.clones
+      // In-progress is not an alert: stalled only once the earliest clone has
+      // been running for PEERDB_SNAPSHOT_STALL_MS. Unknown start = not stalled.
+      const startedAtMs = Array.isArray(clones)
+        ? earliestCloneStartMs(clones)
+        : null
       const snapshotStalled =
         Array.isArray(clones) &&
         clones.length > 0 &&
         clones.filter((c) => c?.fetchCompleted && c?.consolidateCompleted)
-          .length < clones.length
+          .length < clones.length &&
+        startedAtMs !== null &&
+        Date.now() - startedAtMs >= PEERDB_SNAPSHOT_STALL_MS
       return {
         flowName: m.name,
         status: st?.currentFlowState ?? m.status ?? null,
