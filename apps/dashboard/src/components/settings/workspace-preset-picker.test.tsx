@@ -130,17 +130,27 @@ describe('WorkspacePresetPicker', () => {
       ).toBeTruthy()
       expect(container.textContent).toContain('Overview')
       expect(container.textContent).toContain('Queries')
-      expect(container.textContent).toContain('Tools')
+      expect(container.textContent).toContain('Tools & AI')
       expect(container.textContent).toContain('Main')
-      // Settings tree groups by section: Tools is last in Main, so it
-      // appears after AI Agent and before the Others heading / Logs.
+      // Settings tree groups by section: Tools & AI is last in Main, so it
+      // appears after Alerts & Insights and before the Others heading /
+      // Settings group.
       const treeText =
         container.querySelector('[data-testid="workspace-menu-tree"]')
           ?.textContent ?? ''
-      expect(treeText.indexOf('Tools')).toBeGreaterThan(
-        treeText.indexOf('AI Agent')
+      expect(treeText.indexOf('Tools & AI')).toBeGreaterThan(
+        treeText.indexOf('Alerts & Insights')
       )
-      expect(treeText.indexOf('Tools')).toBeLessThan(treeText.indexOf('Logs'))
+      const tools = container.querySelector(
+        '[data-testid="workspace-menu-group-Tools & AI"]'
+      )
+      const settingsGroup = container.querySelector(
+        '[data-testid="workspace-menu-group-Settings"]'
+      )
+      expect(settingsGroup).toBeTruthy()
+      const position =
+        tools?.compareDocumentPosition(settingsGroup as Node) ?? 0
+      expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
       const overview = container.querySelector(
         '[data-testid="workspace-menu-leaf-/overview"]'
@@ -208,17 +218,18 @@ describe('WorkspacePresetPicker', () => {
         engineer?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       })
 
-      const keeperGroup = container.querySelector(
-        '[data-testid="workspace-menu-group-Keeper"]'
+      // Engineer leaves out the Server group.
+      const serverGroup = container.querySelector(
+        '[data-testid="workspace-menu-group-Server"]'
       )
-      expect(keeperGroup).toBeTruthy()
-      await expandGroup(container, 'Keeper')
+      expect(serverGroup).toBeTruthy()
+      await expandGroup(container, 'Server')
 
-      const keeper = container.querySelector(
-        '[data-testid="workspace-menu-leaf-/keeper/info"]'
+      const metrics = container.querySelector(
+        '[data-testid="workspace-menu-leaf-/metrics"]'
       )
-      expect(keeper).toBeTruthy()
-      expect(keeper?.getAttribute('data-hidden')).toBe('true')
+      expect(metrics).toBeTruthy()
+      expect(metrics?.getAttribute('data-hidden')).toBe('true')
 
       const overview = container.querySelector(
         '[data-testid="workspace-menu-leaf-/overview"]'
@@ -276,8 +287,8 @@ describe('WorkspacePresetPicker', () => {
       expect(
         container.querySelector('[data-testid="workspace-menu-leaf-/explorer"]')
       ).toBeNull()
-      expect(container.textContent).not.toContain('Cluster')
-      expect(container.textContent).not.toContain('Tools')
+      expect(container.textContent).not.toContain('Cluster & Replication')
+      expect(container.textContent).not.toContain('Tools & AI')
     } finally {
       await cleanup()
     }
@@ -308,7 +319,7 @@ describe('WorkspacePresetPicker', () => {
           '[data-testid="workspace-menu-leaf-/running-queries"]'
         )
       ).toBeTruthy()
-      await expandGroup(container, 'Tools')
+      await expandGroup(container, 'Tools & AI')
       expect(
         container.querySelector('[data-testid="workspace-menu-leaf-/sql"]')
       ).toBeTruthy()
@@ -334,7 +345,7 @@ describe('WorkspacePresetPicker', () => {
     )
 
     try {
-      await expandGroup(container, 'AI Agent')
+      await expandGroup(container, 'Tools & AI')
       const chat = container.querySelector(
         '[data-testid="workspace-menu-leaf-/agents"]'
       )

@@ -1,0 +1,226 @@
+import { BarChartIcon, UpdateIcon } from '@radix-ui/react-icons'
+import {
+  ActivityIcon,
+  AlertTriangleIcon,
+  CpuIcon,
+  GaugeIcon,
+  KeyIcon,
+  ScrollTextIcon,
+  ServerIcon,
+  ShieldAlertIcon,
+  ShieldIcon,
+  UsersIcon,
+  WorkflowIcon,
+} from 'lucide-react'
+
+import type { MenuItem } from '@/components/menu/types'
+
+import { EVENTS_TABLE } from '@/lib/app-tables'
+
+export const serverItems: MenuItem[] = [
+  {
+    // The server process itself: metrics → logs/diagnostics → background
+    // work → access control. No `permission` on the parent: children came
+    // from groups with different gates (`metrics`, `logs`, `operations`,
+    // `security`, none), so each child carries the gate it used to inherit.
+    title: 'Server',
+    href: '',
+    icon: ServerIcon,
+    section: 'main',
+    items: [
+      // Metrics
+      {
+        title: 'Metrics',
+        href: '/metrics',
+        description: 'Real-time server metrics and counters',
+        countKey: 'metrics',
+        countLabel: 'metrics',
+        icon: BarChartIcon,
+        permission: { feature: 'metrics' },
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/metrics',
+        tableCheck: 'system.metrics',
+      },
+      {
+        title: 'Async Metrics',
+        href: '/asynchronous-metrics',
+        description: 'Background-calculated metrics for resource monitoring',
+        icon: BarChartIcon,
+        permission: { feature: 'metrics' },
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/asynchronous_metrics',
+        tableCheck: 'system.asynchronous_metrics',
+      },
+      {
+        title: 'Histogram Metrics',
+        href: '/histogram-metrics',
+        description:
+          'Latency distribution panels for Keeper stages and query durations (system.histogram_metrics, CH 25.1+)',
+        icon: GaugeIcon,
+        isNew: true,
+        tableCheck: 'system.histogram_metrics',
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/histogram_metrics',
+      },
+      {
+        title: 'Profiler',
+        href: '/profiler',
+        description: 'CPU profiling data for query performance analysis',
+        icon: CpuIcon,
+        isNew: true,
+        permission: { feature: 'metrics' },
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/processors_profile_log',
+        tableCheck: 'system.processors_profile_log',
+      },
+      // Logs & diagnostics
+      {
+        title: 'Text Log',
+        href: '/logs/text-log',
+        description: 'Server logs with query context and stack traces',
+        icon: ScrollTextIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/text_log',
+        tableCheck: 'system.text_log',
+        permission: { feature: 'logs' },
+      },
+      {
+        title: 'Stack Traces',
+        href: '/logs/stack-traces',
+        description: 'Live thread stack traces for debugging',
+        icon: ScrollTextIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/stack_trace',
+        tableCheck: 'system.stack_trace',
+        permission: { feature: 'logs' },
+      },
+      {
+        title: 'Crashes',
+        href: '/logs/crashes',
+        description: 'Historical crash reports with diagnostics',
+        icon: ShieldAlertIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/crash_log',
+        tableCheck: 'system.crash_log',
+        permission: { feature: 'logs' },
+      },
+      {
+        title: 'Errors',
+        href: '/errors',
+        description: 'Detailed error events with stack traces',
+        icon: ShieldAlertIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/error_log',
+        tableCheck: 'system.error_log',
+        permission: { feature: 'operations' },
+      },
+      {
+        title: 'OpenTelemetry Spans',
+        href: '/opentelemetry-spans',
+        description:
+          'Distributed query trace waterfall from system.opentelemetry_span_log: spans across replicas and shards',
+        icon: ActivityIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/opentelemetry_span_log',
+        tableCheck: 'system.opentelemetry_span_log',
+        permission: { feature: 'logs' },
+      },
+      // Background work
+      {
+        title: 'Background Schedule Pool',
+        href: '/background-schedule-pool',
+        description:
+          'Live background scheduled tasks and execution history (CH 25.12+)',
+        icon: UpdateIcon,
+        isNew: true,
+        tableCheck: 'system.background_schedule_pool',
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/background_schedule_pool',
+      },
+      {
+        title: 'Workload Scheduling',
+        href: '/workload-scheduling',
+        description:
+          'SQL resource scheduling workload hierarchy and live scheduler state: weights, priorities, and concurrency caps (CH 25.4+)',
+        icon: WorkflowIcon,
+        isNew: true,
+        tableCheck: 'system.workloads',
+        docs: 'https://clickhouse.com/docs/en/operations/workload-scheduling',
+      },
+      {
+        title: 'Warnings',
+        href: '/warnings',
+        description:
+          'Server-side warnings about potential configuration or operational issues',
+        icon: AlertTriangleIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/warnings',
+        tableCheck: 'system.warnings',
+      },
+      {
+        title: 'Page Views',
+        href: '/page-views',
+        description: 'Dashboard usage analytics',
+        countKey: 'page-views',
+        countLabel: 'views',
+        icon: BarChartIcon,
+        tableCheck: EVENTS_TABLE,
+        permission: { feature: 'operations' },
+      },
+      // Access control
+      {
+        title: 'Users',
+        href: '/users',
+        description:
+          'ClickHouse user accounts, authentication types, hosts, and default roles',
+        icon: UsersIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/users',
+        tableCheck: 'system.users',
+        permission: { feature: 'security' },
+      },
+      {
+        title: 'Roles',
+        href: '/roles',
+        description: 'Defined roles for role-based access control',
+        icon: KeyIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/roles',
+        tableCheck: 'system.roles',
+        permission: { feature: 'security' },
+      },
+      {
+        title: 'RBAC Management',
+        href: '/security/management',
+        description:
+          'Create/alter/drop users, grant/revoke roles and privileges (requires CLICKHOUSE_MANAGEMENT_ENABLED)',
+        icon: ShieldAlertIcon,
+        isNew: true,
+        permission: { feature: 'security' },
+      },
+      {
+        title: 'Sessions',
+        href: '/security/sessions',
+        description: 'User session history with authentication details',
+        icon: UsersIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/session_log',
+        tableCheck: 'system.session_log',
+        permission: { feature: 'security' },
+      },
+      {
+        title: 'Login Attempts',
+        href: '/security/login-attempts',
+        description: 'Authentication events with failure reasons',
+        icon: KeyIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/session_log',
+        tableCheck: 'system.session_log',
+        permission: { feature: 'security' },
+      },
+      {
+        title: 'Audit Log',
+        href: '/security/audit-log',
+        description: 'Security-related events and access control',
+        icon: ShieldIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/opentelemetry_event_log',
+        tableCheck: 'system.session_log',
+        permission: { feature: 'security' },
+      },
+    ],
+  },
+]

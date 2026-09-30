@@ -17,6 +17,7 @@ description: >-
   "command palette", "cmd k", "search dialog", "ttl partitions",
   "header title", "768", "truncate Overview", "essential sidebar",
   "more pages", "keep in sidebar", "hover add", "group heading",
+  "sidebar groups", "menu group", "add to sidebar", "task groups",
   "customize dialog", "configure alert", "already alerting",
   "alert settings", "health detail dialog", "alert threshold", "badge",
   "unavailable pages", "dim unavailable", "hide unavailable",
@@ -452,9 +453,9 @@ use `overlayActionClasses` (`nav-main/overlay-action.ts`), not
 `showOnHover` (its `md:opacity-0` hides the `+` on 768 tablets). Group
 `Collapsible` is controlled: it opens when the active child href changes so
 ⌘K / breadcrumb navigation never lands on a collapsed parent.
-Essential is grouped (not flattened): Overview; AI Agent → Chat; Insights
-→ Insights; Health → Health; Queries → Running + History; Tables →
-Overview + Explorer; Tools → SQL. Do not flatten those groups to Chat /
+Essential is grouped (not flattened): Overview; Queries → Running + History; Data & Storage → Tables
+Overview + Explorer; Alerts & Insights → Insights + Health; Tools & AI →
+Chat + SQL. Do not flatten those groups to Chat /
 SQL leaves.
 
 ## User appearance settings
@@ -542,9 +543,9 @@ Timezone uses `timezone-combobox.tsx`
 a segmented control. Unit options show a sample value (`1.5 GiB` / `1.6 GB`).
 Integrations: MCP live; Slack/Telegram/PagerDuty/Email/Discord shown disabled.
 First-run workspace is Custom + the Essential hide list
-(`DEFAULT_HIDDEN_MENU_HREFS`: grouped Overview; AI Agent → Chat; Insights
-→ Insights; Health → Health; Queries → Running + History; Tables →
-Overview + Explorer; Tools → SQL). Full still restores every page. Other
+(`DEFAULT_HIDDEN_MENU_HREFS`: grouped Overview; Queries → Running + History; Data & Storage → Tables
+Overview + Explorer; Alerts & Insights → Insights + Health; Tools & AI →
+Chat + SQL). Full still restores every page. Other
 DEFAULTs reproduce the prior look (`byteUnit: 'binary'`, …). Applied by
 `AppearanceSettingsProvider` (`lib/context/appearance-settings.tsx`): units →
 module snapshot in `lib/format-settings.ts`; palette/density →
@@ -565,33 +566,38 @@ is a full-width control under the hide-count line. Full detail:
    Add the tab title in `lib/page-title.ts` (`ROUTE_TITLE_MAP`) when it
    differs from title-casing the last URL segment — ⌘K searches that
    `<title>` as well as the sidebar label.
-   Interactive utilities (SQL, explorer, explain, compare, builder, advisor)
-   go in `menu/tools.ts`. Data Explorer (`/explorer`) is also listed under
-   Tables. TTL & Partitions (`/ttl-partition-health`) is a system-table
-   inventory — it lives under Tables, not Tools or System. The listing
+   The sidebar is task groups, two levels deep (#3565): Overview, Queries,
+   Data & Storage, Cluster & Replication, Server, Alerts & Insights,
+   Tools & AI (main), then Settings (others) and the About footer. Put a
+   new page in the group matching the task, in its subgroup run (see the
+   list in `docs/knowledge/product-design.md` → *Sidebar navigation
+   groups*); never add a new top-level group or nest a group in a group.
+   Configuration pages go in `menu/settings.ts`. Interactive utilities
+   (SQL, explain, compare, builder, advisor, agent chat, MCP) go in
+   `menu/tools.ts` (Tools & AI, last Main group). Only Queries has a parent
+   `permission`; in every other group set the page's `permission` on the
+   leaf itself. Leave `engines` absent on Tools & AI so Postgres hosts hide
+   the whole group — do not add `engines: ['postgres']`; Postgres-only
+   leaves stay top-level. Every href appears once (Data Explorer lives only
+   under Data & Storage). TTL & Partitions (`/ttl-partition-health`) is a
+   system-table inventory — it lives under Data & Storage. The listing
    includes a stacked in-range vs past-TTL bar (part `max_date` vs the
    parsed TTL interval). The same recommend-only rules also power the
    **TTL & Partition Health** card on `/health` (flagged-table count +
    detail dialog). Do not invent a third TTL surface; never ALTER TTL or
-   DROP PARTITION from these pages. Other
-   system-table views stay in their domain file. Tools is the last Main group, composed
-   after Logs and before the About footer in `menu/index.ts` — do not put
-   it after Overview / before AI Agent. The Tools parent must not set
-   `permission`; copy the child's existing feature onto the leaf. Leave
-   `engines` absent so Postgres hosts hide the whole Tools group — do not
-   add `engines: ['postgres']`. DBA / Engineer / SRE presets include
-   `Tools`. Webhook ingest (Inbound Events) lives under Health after
-   Alert Settings — not as a top-level Others item; leave `engines`
-   absent so Postgres hosts inherit Health (default source-engine family).
+   DROP PARTITION from these pages. Inbound Events lives under Alerts &
+   Insights. DBA / Engineer / SRE presets are group-title lists in
+   `lib/menu/workspace-presets.ts`; `workspace-presets.test.ts` fails if a
+   regroup drops a page a preset showed before.
    Day-to-day pages belong in `DEFAULT_VISIBLE_MENU_HREFS`
    (`lib/menu/slim-default.ts`); omit specialist pages so the first-run
    sidebar stays Essential plus Insights, Explorer, and Query History
-   (grouped: Overview; AI Agent → Chat; Insights → Insights; Health →
-   Health; Queries → Running + History; Tables → Overview + Explorer;
-   Tools → SQL) — they remain restorable from the group heading dialog,
-   hover +, More, in-page More / Customize, or Settings → Navigation. Do
-   not add Merges / Metrics / Clusters / Explain / Advisor, or Keeper /
-   PeerDB / Security / Logs / System / Operations, to the keep list.
+   (grouped: Overview; Queries → Running + History; Data & Storage → Tables
+Overview + Explorer; Alerts & Insights → Insights + Health; Tools & AI →
+Chat + SQL) — they remain restorable from the group heading
+   dialog, hover +, More, in-page More / Customize, or Settings →
+   Navigation. Do not add Merges / Metrics / Clusters / Explain / Advisor,
+   or Cluster & Replication / Server / Settings pages, to the keep list.
 4. Compose `ChartContainer` + `ChartCard`; reuse skeletons + empty/error states.
 
 ## File & naming conventions

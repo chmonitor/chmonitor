@@ -10,13 +10,13 @@
  *   links directly to /merges AND lists /merges again inside its own
  *   dropdown) — that's a container mirroring its own landing page. Only
  *   *leaf* items (no nested `items`) are required to have a distinct href.
- * - Data Explorer (`/explorer`) is listed under both Tools and Tables.
  */
 
 import { RssIcon } from 'lucide-react'
 import { menuItemsConfig } from '@/menu'
 
 import type { MenuItem } from '@/components/menu/types'
+import type { FeaturePermission } from '@/lib/feature-permissions/types'
 
 import { describe, expect, test } from 'bun:test'
 import { readdirSync, statSync } from 'node:fs'
@@ -72,20 +72,11 @@ describe('menu.ts structural invariants', () => {
       titles.push(item.title)
       titlesByHref.set(item.href, titles)
     }
-    const allowedDupHrefs = new Set(['/explorer'])
+    // No exceptions: since #3565 every page lives in exactly one group.
     const duplicates = [...titlesByHref.entries()].filter(
-      ([href, titles]) => titles.length > 1 && !allowedDupHrefs.has(href)
+      ([, titles]) => titles.length > 1
     )
     expect(duplicates).toEqual([])
-  })
-
-  test('Data Explorer is listed under both Tools and Tables', () => {
-    const hrefsOf = (title: string) =>
-      menuItemsConfig
-        .find((item) => item.title === title)
-        ?.items?.map((item) => item.href) ?? []
-    expect(hrefsOf('Tools')).toContain('/explorer')
-    expect(hrefsOf('Tables')).toContain('/explorer')
   })
 
   test('sibling titles are unique within each dropdown / list', () => {
@@ -159,23 +150,249 @@ describe('menu.ts hrefs resolve to a real route file', () => {
   })
 })
 
-describe('Health group (inbound events nest, #3134)', () => {
-  const health = menuItemsConfig.find((item) => item.title === 'Health')
+const topGroup = (title: string) =>
+  menuItemsConfig.find((item) => item.title === title)
+const hrefsOf = (title: string) =>
+  topGroup(title)?.items?.map((item) => item.href) ?? []
 
-  test('Inbound Events is a Health child after Alert Settings, not a top-level item', () => {
-    expect(
-      menuItemsConfig.some((item) => item.href === '/inbound-events')
-    ).toBe(false)
-    expect(health?.items?.map((item) => item.href)).toEqual([
-      '/health',
-      '/health-settings',
-      '/alert-settings',
-      '/inbound-events',
+describe('task-group layout (#3565)', () => {
+  // WHY: the sidebar was 16 groups sorted by system-table origin. It is now
+  // grouped by what the operator is doing. A new page must join one of these
+  // groups, not add a 17th top-level heading.
+  test('top level is Overview, 6 task groups, About footer, Settings', () => {
+    const top = menuItemsConfig
+      .filter((item) => item.engines?.join() !== 'postgres')
+      .map((item) => [item.title, item.section])
+    expect(top).toEqual([
+      ['Overview', 'main'],
+      ['Queries', 'main'],
+      ['Data & Storage', 'main'],
+      ['Cluster & Replication', 'main'],
+      ['Server', 'main'],
+      ['Alerts & Insights', 'main'],
+      ['Tools & AI', 'main'],
+      ['About', 'footer'],
+      ['Settings', 'others'],
     ])
   })
 
-  test('keeps href, Rss icon, isNew, and health permission on the leaf', () => {
-    const inbound = health?.items?.find(
+  test('the sidebar stays two levels deep: no group nests a group', () => {
+    // The renderer (nav-main/menu-item.tsx) does not recurse, so a third
+    // level would never render.
+    const nested = menuItemsConfig.flatMap((group) =>
+      (group.items ?? [])
+        .filter((child) => child.items?.length)
+        .map((child) => `${group.title} > ${child.title}`)
+    )
+    expect(nested).toEqual([])
+  })
+
+  test('Postgres items stay top-level and engine-gated', () => {
+    // A ClickHouse-family parent would drop them on a Postgres host
+    // (filterMenuItemsByEngine drops the parent first).
+    const pg = menuItemsConfig.filter(
+      (item) => item.engines?.join() === 'postgres'
+    )
+    expect(pg.map((item) => item.href)).toEqual([
+      '/postgres/queries',
+      '/postgres/activity',
+    ])
+    for (const item of pg) expect(item.engines).toEqual(['postgres'])
+  })
+
+  test('children are ordered by task within each group', () => {
+    // Runs of related pages (live → history → performance → caches, …) sit
+    // together so the later hub pages can take each run as-is.
+    expect(hrefsOf('Queries')).toEqual([
+      '/running-queries',
+      '/user-processes',
+      '/history-queries',
+      '/recent-queries',
+      '/failed-queries',
+      '/query-views-log',
+      '/query-metric-log',
+      '/slow-queries',
+      '/slow-query-patterns',
+      '/expensive-queries',
+      '/queries/insights',
+      '/queries/thread-analysis',
+      '/query-cache',
+      '/query-condition-cache',
+    ])
+    expect(hrefsOf('Data & Storage')).toEqual([
+      '/tables',
+      '/tables-overview',
+      '/explorer',
+      '/dictionaries',
+      '/merges',
+      '/merge-performance',
+      '/mutations',
+      '/moves',
+      '/part-log',
+      '/detached-parts',
+      '/ttl-partition-health',
+      '/dropped-tables',
+      '/readonly-tables',
+      '/view-refreshes',
+      '/index-analytics',
+      '/asynchronous-inserts',
+      '/kafka-consumers',
+      '/rabbitmq-consumers',
+      '/peerdb',
+      '/peerdb/peers',
+      '/disks',
+      '/storage-economics',
+      '/blob-storage-log',
+      '/backups',
+    ])
+    expect(hrefsOf('Cluster & Replication')).toEqual([
+      '/clusters',
+      '/fleet',
+      '/charts?name=connections-http,connections-interserver',
+      '/replicas',
+      '/replication-queue',
+      '/replicated-fetches',
+      '/distributed-ddl-queue',
+      '/keeper/overview',
+      '/keeper?path=/',
+      '/keeper/info',
+      '/keeper/connections',
+      '/keeper/connection-log',
+      '/keeper/log',
+      '/keeper/watches',
+      '/keeper/deep-dive',
+    ])
+    expect(hrefsOf('Server')).toEqual([
+      '/metrics',
+      '/asynchronous-metrics',
+      '/histogram-metrics',
+      '/profiler',
+      '/logs/text-log',
+      '/logs/stack-traces',
+      '/logs/crashes',
+      '/errors',
+      '/opentelemetry-spans',
+      '/background-schedule-pool',
+      '/workload-scheduling',
+      '/warnings',
+      '/page-views',
+      '/users',
+      '/roles',
+      '/security/management',
+      '/security/sessions',
+      '/security/login-attempts',
+      '/security/audit-log',
+    ])
+    expect(hrefsOf('Alerts & Insights')).toEqual([
+      '/insights',
+      '/health',
+      '/inbound-events',
+      '/traffic',
+    ])
+    expect(hrefsOf('Tools & AI')).toEqual([
+      '/agents',
+      '/sql',
+      '/explain',
+      '/advisor',
+      '/dashboard',
+      '/schema-diff',
+      '/settings-diff',
+      '/mcp',
+    ])
+    expect(hrefsOf('Settings')).toEqual([
+      '/agents/settings',
+      '/insights-settings',
+      '/report-settings',
+      '/health-settings',
+      '/alert-settings',
+      '/settings',
+      '/mergetree-settings',
+      '/replicated-merge-tree-settings',
+    ])
+  })
+
+  test('mixed groups do not gate the parent; each child keeps its old feature', () => {
+    // WHY: the old groups set `permission` on the parent and children
+    // inherited it. Merged groups hold pages with different gates, so a
+    // parent gate would hide pages the deployment allows. Every child now
+    // carries the gate it used to inherit.
+    for (const title of [
+      'Data & Storage',
+      'Cluster & Replication',
+      'Server',
+      'Alerts & Insights',
+      'Tools & AI',
+      'Settings',
+    ]) {
+      expect(topGroup(title)?.permission, title).toBeUndefined()
+    }
+    expect(topGroup('Queries')?.permission).toEqual({ feature: 'queries' })
+
+    const featureOf = (href: string) =>
+      flatten(menuItemsConfig).find((f) => f.item.href === href && f.isLeaf)
+        ?.item.permission?.feature
+    const expected: Record<string, FeaturePermission['feature'] | undefined> = {
+      '/tables': 'tables',
+      '/explorer': 'tables',
+      '/merges': 'operations',
+      '/backups': 'operations',
+      '/peerdb': 'peerdb',
+      '/disks': undefined,
+      '/clusters': 'cluster',
+      '/replicas': 'tables',
+      '/keeper/overview': undefined,
+      '/metrics': 'metrics',
+      '/logs/text-log': 'logs',
+      '/errors': 'operations',
+      '/users': 'security',
+      '/warnings': undefined,
+      '/insights': 'insights',
+      '/traffic': 'insights',
+      '/health': 'health',
+      '/inbound-events': 'health',
+      '/agents': 'agent',
+      '/sql': 'tables',
+      '/explain': 'queries',
+      '/dashboard': 'dashboard',
+      '/schema-diff': 'settings',
+      '/mcp': 'mcp',
+      '/agents/settings': 'agent',
+      '/report-settings': 'insights',
+      '/alert-settings': 'health',
+      '/settings': 'settings',
+      '/replicated-merge-tree-settings': undefined,
+    }
+    for (const [href, feature] of Object.entries(expected)) {
+      expect(featureOf(href), href).toBe(feature)
+    }
+  })
+
+  test('only true sibling collisions were renamed', () => {
+    const titleOf = (href: string) =>
+      leaves.find((item) => item.href === href)?.title
+    expect(titleOf('/keeper/connections')).toBe('Keeper Connections')
+    expect(
+      titleOf('/charts?name=connections-http,connections-interserver')
+    ).toBe('Connections')
+    expect(titleOf('/peerdb')).toBe('PeerDB Mirrors')
+    expect(titleOf('/peerdb/peers')).toBe('PeerDB Peers')
+    // The /health child keeps "Health and Alert" (#3436): "Health" read as
+    // the same page as "Health Settings".
+    expect(titleOf('/health')).toBe('Health and Alert')
+  })
+
+  test('Tools & AI has no engines tag so Postgres hosts hide the whole group (#3105 / #3115)', () => {
+    // Absent engines = default source-engine family. Do not add
+    // engines: ['postgres'] — that would show CH-only tools on Postgres.
+    const tools = topGroup('Tools & AI')
+    expect(tools?.engines).toBeUndefined()
+    for (const item of tools?.items ?? []) {
+      expect(item.engines, item.href).toBeUndefined()
+    }
+  })
+
+  test('Inbound Events keeps href, Rss icon, isNew, and health permission (#3134)', () => {
+    const inbound = topGroup('Alerts & Insights')?.items?.find(
       (item) => item.href === '/inbound-events'
     )
     expect(inbound?.title).toBe('Inbound Events')
@@ -185,27 +402,9 @@ describe('Health group (inbound events nest, #3134)', () => {
     expect(inbound?.engines).toBeUndefined()
   })
 
-  test('Health parent stays default source-engine family (no postgres engines tag)', () => {
-    expect(health?.engines).toBeUndefined()
-    expect(health?.permission).toEqual({ feature: 'health' })
-    expect(health?.section).toBe('main')
-  })
-
-  test('the /health child is titled "Health and Alert", not "Health" (#3436)', () => {
-    // "Health" + "Health Settings" read as the same page. The /health page
-    // header is "Health Summary"; only the nav label changed.
-    expect(health?.items?.map((item) => item.title)).toEqual([
-      'Health and Alert',
-      'Health Settings',
-      'Alert Settings',
-      'Inbound Events',
-    ])
-    const healthAndAlert = health?.items?.find(
-      (item) => item.href === '/health'
-    )
-    // Route + ?host= routing unchanged; keywords so Cmd+K finds it by intent.
-    expect(healthAndAlert?.href).toBe('/health')
-    expect(healthAndAlert?.keywords).toEqual([
+  test('Health and Alert keeps its Cmd+K keywords (#3436)', () => {
+    const health = leaves.find((item) => item.href === '/health')
+    expect(health?.keywords).toEqual([
       'health summary',
       'alerts',
       'status',
@@ -214,84 +413,12 @@ describe('Health group (inbound events nest, #3134)', () => {
   })
 })
 
-describe('Tools group (interactive utilities)', () => {
-  const tools = menuItemsConfig.find((item) => item.title === 'Tools')
-
-  test('is the last main-section group: after Logs, before About (#3117)', () => {
-    const titles = menuItemsConfig.map((item) => item.title)
-    const toolsAt = titles.indexOf('Tools')
-    expect(toolsAt).toBeGreaterThan(titles.indexOf('Logs'))
-    expect(toolsAt).toBeLessThan(titles.indexOf('About'))
-    expect(toolsAt).toBeLessThan(titles.indexOf('System'))
-    expect(toolsAt).toBeLessThan(titles.indexOf('Cluster'))
-    expect(toolsAt).toBeLessThan(titles.indexOf('Operations'))
-    expect(toolsAt).toBeGreaterThan(titles.indexOf('AI Agent'))
-    expect(tools?.section).toBe('main')
-  })
-
-  test('lists daily-use utilities in most-used-first order', () => {
-    expect(tools?.items?.map((item) => item.href)).toEqual([
-      '/sql',
-      '/explorer',
-      '/explain',
-      '/advisor',
-      '/dashboard',
-      '/schema-diff',
-      '/settings-diff',
-    ])
-  })
-
-  test('parent does not over-gate children; each child keeps its feature', () => {
-    expect(tools?.permission).toBeUndefined()
-    const byHref = Object.fromEntries(
-      (tools?.items ?? []).map((item) => [item.href, item.permission?.feature])
-    )
-    expect(byHref['/sql']).toBe('tables')
-    expect(byHref['/explorer']).toBe('tables')
-    expect(byHref['/explain']).toBe('queries')
-    expect(byHref['/advisor']).toBe('queries')
-    expect(byHref['/dashboard']).toBe('dashboard')
-    expect(byHref['/schema-diff']).toBe('settings')
-    expect(byHref['/settings-diff']).toBe('settings')
-  })
-
-  test('has no engines tag so Postgres hosts hide the whole group (#3105 / #3115)', () => {
-    // Absent engines = default source-engine family. Do not add
-    // engines: ['postgres'] — that would show CH-only tools on Postgres.
-    expect(tools?.engines).toBeUndefined()
-    expect(tools?.engines?.includes('postgres') ?? false).toBe(false)
-    for (const item of tools?.items ?? []) {
-      expect(item.engines, item.href).toBeUndefined()
-      expect(item.engines?.includes('postgres') ?? false, item.href).toBe(false)
-    }
-  })
-
-  test('moved pages are gone from their old groups', () => {
-    const hrefsOf = (title: string) =>
-      menuItemsConfig
-        .find((item) => item.title === title)
-        ?.items?.map((item) => item.href) ?? []
-
-    expect(hrefsOf('Tables')).not.toContain('/sql')
-    expect(hrefsOf('Tables')).toContain('/explorer')
-    expect(hrefsOf('Tables')).toContain('/ttl-partition-health')
-    expect(hrefsOf('Queries')).not.toContain('/explain')
-    expect(hrefsOf('Queries')).not.toContain('/advisor')
-    expect(hrefsOf('Operations')).not.toContain('/dashboard')
-    expect(hrefsOf('System')).not.toContain('/schema-diff')
-    expect(hrefsOf('System')).not.toContain('/settings-diff')
-    expect(hrefsOf('System')).not.toContain('/ttl-partition-health')
-  })
-})
-
-describe('Insights group availability policy (#3463)', () => {
+describe('availability policy (#3463)', () => {
   // The two classes must not be confused. Traffic's backing table is missing on
   // some hosts → the page can NEVER work there → it leaves the rail. Scheduled
   // Reports only needs a metadata DB the operator can configure → it stays
   // greyed so a self-hoster who adds D1 later can still find it.
-  const insights = menuItemsConfig.find((item) => item.title === 'Insights')
-  const child = (href: string) =>
-    insights?.items?.find((item) => item.href === href)
+  const child = (href: string) => leaves.find((item) => item.href === href)
 
   const hiddenOnDemoHost = (item: MenuItem) =>
     resolveUnavailable(
@@ -327,10 +454,9 @@ describe('Insights group availability policy (#3463)', () => {
     ).toBe('hidden')
   })
 
-  test('Insights and Insights Settings survive, so the group is never empty', () => {
+  test('Insights and Health and Alert have no tableCheck, so Alerts & Insights is never empty', () => {
     expect(child('/insights')?.tableCheck).toBeUndefined()
-    expect(child('/insights-settings')?.tableCheck).toBeUndefined()
-    expect(insights?.items?.length).toBe(4)
+    expect(child('/health')?.tableCheck).toBeUndefined()
   })
 })
 

@@ -1,36 +1,46 @@
 import { DashboardIcon, InfoCircledIcon } from '@radix-ui/react-icons'
 import {
   GitCompareArrowsIcon,
+  SparklesIcon,
   TerminalIcon,
+  UnplugIcon,
   WandSparklesIcon,
   WrenchIcon,
 } from 'lucide-react'
 
 import type { MenuItem } from '@/components/menu/types'
 
-import { dataExplorerItem } from './data-explorer'
-
 export const toolsItems: MenuItem[] = [
   {
-    // Interactive utilities (run SQL, explore schema, explain, compare,
-    // build charts) — not system-table monitors. Composed last among main
-    // groups in index.ts (after Logs, before About / System / Cluster /
-    // Operations). No `permission` on the parent: children keep the
-    // feature gates they inherited from their old groups (`tables`,
-    // `queries`, `dashboard`, `settings`) so the group is not over-gated.
+    // Interactive utilities (ask the agent, run SQL, explain, compare, build
+    // charts, expose MCP) — not system-table monitors. No `permission` on the
+    // parent: children keep their own feature gates (`agent`, `tables`,
+    // `queries`, `dashboard`, `settings`, `mcp`) so the group is not
+    // over-gated.
     //
     // No `engines` on the parent or children (#3105 / #3115): absent already
     // means the default source-engine family. filterMenuItemsByEngine drops
     // the parent when itemMatchesEngine fails, so a Postgres host does not
-    // see the Tools group at all — not an empty heading, not CH-only
-    // children. Do NOT add `engines: ['postgres']` (that would show these
-    // pages on a Postgres host). Settings > Navigation uses the same
+    // see the group at all — not an empty heading, not CH-only children. Do
+    // NOT add `engines: ['postgres']` (that would show these pages on a
+    // Postgres host). Settings > Navigation uses the same
     // getSettingsNavMenuItems(engine) path as the sidebar.
-    title: 'Tools',
+    title: 'Tools & AI',
     href: '',
     icon: WrenchIcon,
     section: 'main',
     items: [
+      {
+        title: 'Chat',
+        href: '/agents',
+        description: 'Ask questions about this cluster in natural language',
+        icon: SparklesIcon,
+        isNew: true,
+        // The chat UI renders for everyone; the backend enforces auth on send
+        // (see AgentAuthGate / the /api/v1/agent route), not the client route
+        // gate.
+        permission: { feature: 'agent' },
+      },
       {
         title: 'SQL Console',
         href: '/sql',
@@ -40,7 +50,6 @@ export const toolsItems: MenuItem[] = [
         docs: 'https://clickhouse.com/docs/en/sql-reference/statements/select', // pragma: allowlist secret
         permission: { feature: 'tables' },
       },
-      dataExplorerItem,
       {
         title: 'Explain',
         href: '/explain',
@@ -108,6 +117,14 @@ export const toolsItems: MenuItem[] = [
           'settings-diff',
         ],
         permission: { feature: 'settings' },
+      },
+      {
+        title: 'MCP Server',
+        href: '/mcp',
+        description:
+          "Let external AI tools (Claude Desktop, Cursor, etc.) query this cluster via this dashboard's own MCP endpoint",
+        icon: UnplugIcon,
+        permission: { feature: 'mcp' },
       },
     ],
   },

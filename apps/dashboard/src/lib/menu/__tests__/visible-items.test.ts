@@ -123,11 +123,11 @@ describe('menu config footer section', () => {
     expect(about?.permission).toEqual({ feature: 'about' })
   })
 
-  test('About is no longer nested under the Operations group', () => {
-    const operations = menuItemsConfig.find(
-      (item) => item.title === 'Operations'
+  test('About is a top-level footer row, not nested under any group', () => {
+    const nested = menuItemsConfig.some((group) =>
+      group.items?.some((i) => i.href === '/about')
     )
-    expect(operations?.items?.some((i) => i.href === '/about')).toBe(false)
+    expect(nested).toBe(false)
   })
 
   test('OSS and cloud footer both keep About only', () => {
@@ -218,19 +218,19 @@ describe('filterMenuItemsByEngine', () => {
     expect(pgTitles).not.toContain('Billing')
     // ClickHouse-only top-level items must not appear.
     expect(pgTitles).not.toContain('Overview')
-    expect(pgTitles).not.toContain('Health')
-    // #3134: nested under Health (default source-engine family); do not leak as a
+    expect(pgTitles).not.toContain('Alerts & Insights')
+    // #3134: nested under Alerts & Insights (default source-engine family); do not leak as a
     // stray top-level item on Postgres hosts.
     expect(pgTitles).not.toContain('Inbound Events')
     // #3115: the whole Tools group is hidden, not an empty parent.
-    expect(pgTitles).not.toContain('Tools')
+    expect(pgTitles).not.toContain('Tools & AI')
   })
 
   test('Postgres host does not see the Tools group at all (#3115)', () => {
     // Absent `engines` on the Tools parent fails itemMatchesEngine for
     // postgres, so the group is dropped before children are considered.
     const pg = filterMenuItemsByEngine(menuItemsConfig, 'postgres')
-    expect(pg.map((i) => i.title)).not.toContain('Tools')
+    expect(pg.map((i) => i.title)).not.toContain('Tools & AI')
     for (const href of [
       '/sql',
       '/explorer',
@@ -252,19 +252,23 @@ describe('getSettingsNavMenuItems', () => {
       getSettingsNavMenuItems(DEFAULT_SOURCE_ENGINE).map((i) => i.title)
     )
     expect(titles).toContain('Queries')
-    expect(titles).toContain('Tools')
-    expect(titles).toContain('Cluster')
+    expect(titles).toContain('Tools & AI')
+    expect(titles).toContain('Cluster & Replication')
     expect(titles).not.toContain('Query Insights')
     expect(titles).not.toContain('About')
   })
 
-  test('Tools is after Logs and before System in the Settings tree (#3117)', () => {
-    const titles = getSettingsNavMenuItems().map((i) => i.title)
-    const toolsAt = titles.indexOf('Tools')
-    expect(toolsAt).toBeGreaterThan(titles.indexOf('Logs'))
-    expect(toolsAt).toBeLessThan(titles.indexOf('System'))
-    expect(toolsAt).toBeLessThan(titles.indexOf('Cluster'))
-    expect(toolsAt).toBeGreaterThan(titles.indexOf('AI Agent'))
+  test('Settings tree follows sidebar order: task groups, then Settings (#3565)', () => {
+    expect(getSettingsNavMenuItems().map((i) => i.title)).toEqual([
+      'Overview',
+      'Queries',
+      'Data & Storage',
+      'Cluster & Replication',
+      'Server',
+      'Alerts & Insights',
+      'Tools & AI',
+      'Settings',
+    ])
   })
 
   test('Postgres engine yields the Postgres menu tree, not Queries/Cluster groups', () => {
@@ -272,8 +276,8 @@ describe('getSettingsNavMenuItems', () => {
     expect(titles).toContain('Query Insights')
     expect(titles).toContain('Running Queries')
     expect(titles).not.toContain('Queries')
-    expect(titles).not.toContain('Tools')
-    expect(titles).not.toContain('Cluster')
+    expect(titles).not.toContain('Tools & AI')
+    expect(titles).not.toContain('Cluster & Replication')
     expect(titles).not.toContain('Overview')
     expect(titles).not.toContain('About')
   })
@@ -306,12 +310,12 @@ describe('applyWorkspaceVisibility', () => {
       ],
     },
     {
-      title: 'Keeper',
+      title: 'Server',
       href: '',
-      items: [leaf({ title: 'Keeper Info', href: '/keeper/info' })],
+      items: [leaf({ title: 'Metrics', href: '/metrics' })],
     },
     {
-      title: 'Health',
+      title: 'Alerts & Insights',
       href: '',
       items: [leaf({ title: 'Health', href: '/health' })],
     },
@@ -326,8 +330,8 @@ describe('applyWorkspaceVisibility', () => {
     expect(full.map((i) => i.title)).toEqual([
       'Overview',
       'Queries',
-      'Keeper',
-      'Health',
+      'Server',
+      'Alerts & Insights',
       'About',
     ])
 
@@ -348,7 +352,7 @@ describe('applyWorkspaceVisibility', () => {
     expect(dba.map((i) => i.title)).toEqual([
       'Overview',
       'Queries',
-      'Keeper',
+      'Server',
       'About',
     ])
 
@@ -359,6 +363,7 @@ describe('applyWorkspaceVisibility', () => {
     expect(engineer.map((i) => i.title)).toEqual([
       'Overview',
       'Queries',
+      'Alerts & Insights',
       'About',
     ])
 
@@ -369,7 +374,8 @@ describe('applyWorkspaceVisibility', () => {
     expect(sre.map((i) => i.title)).toEqual([
       'Overview',
       'Queries',
-      'Health',
+      'Server',
+      'Alerts & Insights',
       'About',
     ])
   })
@@ -377,9 +383,9 @@ describe('applyWorkspaceVisibility', () => {
   test('custom hide-list drops a parent left empty', () => {
     const result = applyWorkspaceVisibility(fixture, {
       workspacePreset: 'custom',
-      hiddenMenuHrefs: ['/keeper/info'],
+      hiddenMenuHrefs: ['/metrics'],
     })
-    expect(result.map((i) => i.title)).not.toContain('Keeper')
+    expect(result.map((i) => i.title)).not.toContain('Server')
     expect(result.map((i) => i.title)).toContain('About')
   })
 
@@ -406,12 +412,13 @@ describe('applyWorkspaceVisibility', () => {
   })
 
   test('DBA preset group titles stay the documented set', () => {
-    expect(PRESET_GROUP_TITLES.dba).toContain('Tables')
-    expect(PRESET_GROUP_TITLES.dba).toContain('Tools')
-    expect(PRESET_GROUP_TITLES.engineer).toContain('Tools')
-    expect(PRESET_GROUP_TITLES.engineer).not.toContain('Keeper')
-    expect(PRESET_GROUP_TITLES.sre).toContain('Health')
-    expect(PRESET_GROUP_TITLES.sre).toContain('Tools')
+    expect(PRESET_GROUP_TITLES.dba).toContain('Data & Storage')
+    expect(PRESET_GROUP_TITLES.dba).toContain('Tools & AI')
+    expect(PRESET_GROUP_TITLES.dba).not.toContain('Alerts & Insights')
+    expect(PRESET_GROUP_TITLES.engineer).toContain('Tools & AI')
+    expect(PRESET_GROUP_TITLES.engineer).not.toContain('Server')
+    expect(PRESET_GROUP_TITLES.sre).toContain('Alerts & Insights')
+    expect(PRESET_GROUP_TITLES.sre).toContain('Tools & AI')
   })
 })
 

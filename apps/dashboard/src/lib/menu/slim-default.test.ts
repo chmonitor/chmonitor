@@ -89,22 +89,15 @@ describe('slim default sidebar (Essential keep list)', () => {
     }).map((item: MenuItem) => item.title)
 
     expect(titles).toContain('Overview')
-    expect(titles).toContain('AI Agent')
-    expect(titles).toContain('Insights')
-    expect(titles).toContain('Health')
     expect(titles).toContain('Queries')
-    expect(titles).toContain('Tables')
-    expect(titles).toContain('Tools')
+    expect(titles).toContain('Data & Storage')
+    expect(titles).toContain('Alerts & Insights')
+    expect(titles).toContain('Tools & AI')
     expect(titles).toContain('About')
-    expect(titles).not.toContain('Merges')
-    expect(titles).not.toContain('Metrics')
-    expect(titles).not.toContain('Cluster')
-    expect(titles).not.toContain('Keeper')
-    expect(titles).not.toContain('PeerDB')
-    expect(titles).not.toContain('Security')
-    expect(titles).not.toContain('Logs')
-    expect(titles).not.toContain('System')
-    expect(titles).not.toContain('Operations')
+    // Specialist groups stay off the first-run rail.
+    expect(titles).not.toContain('Cluster & Replication')
+    expect(titles).not.toContain('Server')
+    expect(titles).not.toContain('Settings')
   })
 
   test('first-run grouped rail keeps the extra day-to-day children', () => {
@@ -120,18 +113,19 @@ describe('slim default sidebar (Essential keep list)', () => {
     expect(
       visible.find((item: MenuItem) => item.title === 'Overview')?.href
     ).toBe('/overview')
-    expect(childHrefs('AI Agent')).toEqual(['/agents'])
-    expect(childHrefs('Insights')).toEqual(['/insights'])
-    expect(childHrefs('Health')).toEqual(['/health'])
     expect(childHrefs('Queries')).toEqual([
       '/running-queries',
       '/history-queries',
     ])
-    expect(childHrefs('Tables')).toEqual(['/explorer', '/tables-overview'])
-    expect(childHrefs('Tools')).toEqual(['/sql', '/explorer'])
-    expect(childHrefs('Merges')).toBeUndefined()
-    expect(childHrefs('Metrics')).toBeUndefined()
-    expect(childHrefs('Cluster')).toBeUndefined()
+    expect(childHrefs('Data & Storage')).toEqual([
+      '/tables-overview',
+      '/explorer',
+    ])
+    expect(childHrefs('Alerts & Insights')).toEqual(['/insights', '/health'])
+    expect(childHrefs('Tools & AI')).toEqual(['/agents', '/sql'])
+    expect(childHrefs('Cluster & Replication')).toBeUndefined()
+    expect(childHrefs('Server')).toBeUndefined()
+    expect(childHrefs('Settings')).toBeUndefined()
   })
 
   test('Essential keep list excludes specialist rail rows', () => {

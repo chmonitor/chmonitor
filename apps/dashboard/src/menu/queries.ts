@@ -17,6 +17,9 @@ import type { MenuItem } from '@/components/menu/types'
 
 export const queriesItems: MenuItem[] = [
   {
+    // Children are ordered by task: live → history → slow/expensive →
+    // caches. Each run becomes a hub page in a later PR; the sidebar stays
+    // two levels deep (group > page) until then.
     title: 'Queries',
     href: '',
     countKey: 'running-queries',
@@ -24,6 +27,7 @@ export const queriesItems: MenuItem[] = [
     section: 'main',
     permission: { feature: 'queries' },
     items: [
+      // Live
       {
         title: 'Running Queries',
         href: '/running-queries',
@@ -36,21 +40,21 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.processes',
       },
       {
+        title: 'User Processes',
+        href: '/user-processes',
+        description: 'Per-user memory usage and resource summary',
+        icon: UsersIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/user_processes',
+        tableCheck: 'system.user_processes',
+      },
+      // History
+      {
         title: 'History Queries',
         href: '/history-queries',
         description:
           'Historical query log with execution metrics, memory usage, and performance data',
         icon: CounterClockwiseClockIcon,
-        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
-        tableCheck: 'system.query_log',
-      },
-      {
-        title: 'Query Insights',
-        href: '/queries/insights',
-        description:
-          'QPS, latency percentiles, operations breakdown, rows read/returned, cache hit ratio, and errors over time',
-        icon: ActivityIcon,
-        isNew: true,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
         tableCheck: 'system.query_log',
       },
@@ -74,14 +78,25 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
-        title: 'Most Expensive Queries',
-        href: '/expensive-queries',
+        title: 'Query Views Log',
+        href: '/query-views-log',
         description:
-          'Resource-intensive queries ranked by CPU, memory, and duration',
-        icon: CircleDollarSignIcon,
-        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
-        tableCheck: 'system.query_log',
+          'Materialized view execution history with status, duration, and row throughput',
+        icon: CounterClockwiseClockIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_views_log',
+        tableCheck: 'system.query_views_log',
       },
+      {
+        title: 'Query Metric Log',
+        href: '/query-metric-log',
+        description:
+          'Per-query resource timeline: memory, CPU, and rows sampled over each query lifetime',
+        icon: GaugeIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_metric_log',
+        tableCheck: 'system.query_metric_log',
+      },
+      // Performance
       {
         title: 'Slow Queries',
         href: '/slow-queries',
@@ -100,13 +115,23 @@ export const queriesItems: MenuItem[] = [
         tableCheck: 'system.query_log',
       },
       {
-        title: 'Query Views Log',
-        href: '/query-views-log',
+        title: 'Most Expensive Queries',
+        href: '/expensive-queries',
         description:
-          'Materialized view execution history with status, duration, and row throughput',
-        icon: CounterClockwiseClockIcon,
-        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_views_log',
-        tableCheck: 'system.query_views_log',
+          'Resource-intensive queries ranked by CPU, memory, and duration',
+        icon: CircleDollarSignIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+      },
+      {
+        title: 'Query Insights',
+        href: '/queries/insights',
+        description:
+          'QPS, latency percentiles, operations breakdown, rows read/returned, cache hit ratio, and errors over time',
+        icon: ActivityIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
       },
       {
         title: 'Thread & Parallelization',
@@ -118,25 +143,7 @@ export const queriesItems: MenuItem[] = [
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_thread_log',
         tableCheck: 'system.query_thread_log',
       },
-      {
-        title: 'User Processes',
-        href: '/user-processes',
-        description: 'Per-user memory usage and resource summary',
-        icon: UsersIcon,
-        isNew: true,
-        docs: 'https://clickhouse.com/docs/en/operations/system-tables/user_processes',
-        tableCheck: 'system.user_processes',
-      },
-      {
-        title: 'Query Metric Log',
-        href: '/query-metric-log',
-        description:
-          'Per-query resource timeline: memory, CPU, and rows sampled over each query lifetime',
-        icon: GaugeIcon,
-        isNew: true,
-        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_metric_log',
-        tableCheck: 'system.query_metric_log',
-      },
+      // Caches
       {
         title: 'Query Cache',
         href: '/query-cache',
