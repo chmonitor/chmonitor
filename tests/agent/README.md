@@ -11,7 +11,7 @@ export AGENT_API_TOKEN=...            # Bearer for POST /api/v1/agent
 export AGENT_EVAL_URL=http://localhost:3000/api/v1/agent
 # optional
 export AGENT_EVAL_MODEL=anyrouter:anyrouter/free
-export AGENT_EVAL_GRADER_MODEL=anyrouter/free
+export AGENT_EVAL_GRADER_MODEL=dots-studio/dots-3-note-preview
 export ANYROUTER_API_BASE=https://anyrouter.dev/api/v1
 ```
 
