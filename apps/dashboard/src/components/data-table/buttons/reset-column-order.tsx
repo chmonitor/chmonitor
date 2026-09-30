@@ -25,7 +25,7 @@ export const ResetColumnOrderButton = function ResetColumnOrderButton({
             <Button
               variant="ghost"
               size="icon"
-              className="size-8 opacity-40 hover:opacity-100 focus-visible:opacity-100 transition-opacity rounded-full"
+              className="size-9 lg:size-8 pointer-coarse:size-9 pointer-coarse:lg:size-9 opacity-40 pointer-coarse:opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity rounded-full"
               onClick={onReset}
               disabled={disabled}
               aria-label="Reset column order"

@@ -312,7 +312,7 @@ export const DataTableHeader = memo(function DataTableHeader<
             </div>
           ) : null}
           {/* Search TextBox on left */}
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative basis-full sm:basis-auto flex-1 sm:min-w-[200px]">
             <SearchIcon
               className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60"
               aria-hidden="true"
@@ -322,7 +322,7 @@ export const DataTableHeader = memo(function DataTableHeader<
               onValueChange={onGlobalSearchChange}
               placeholder="Search across all fields..."
               debounceMs={300}
-              className="h-8 w-full pl-9 pr-8 text-sm bg-muted/20 border-border/50 focus:bg-background focus:border-primary/50 placeholder:text-muted-foreground/50 transition-all rounded-lg shadow-none"
+              className="h-10 sm:h-8 w-full pl-9 pr-8 text-sm bg-muted/20 border-border/50 focus:bg-background focus:border-primary/50 placeholder:text-muted-foreground/50 transition-all rounded-lg shadow-none"
             />
             {globalSearch && (
               <button
@@ -362,7 +362,7 @@ export const DataTableHeader = memo(function DataTableHeader<
               </PopoverTrigger>
               <PopoverContent
                 align="end"
-                className="w-[450px] p-4 rounded-xl shadow-lg border border-border/80"
+                className="w-[min(450px,calc(100vw-2rem))] p-4 rounded-xl shadow-lg border border-border/80"
               >
                 <div className="flex items-center justify-between pb-2 border-b border-border/40">
                   <span className="text-sm font-semibold text-foreground">
@@ -380,7 +380,10 @@ export const DataTableHeader = memo(function DataTableHeader<
                 {/* List of active filters rules */}
                 <div className="flex flex-col gap-3 py-4 max-h-[300px] overflow-y-auto">
                   {filterDrafts.map((draft) => (
-                    <div key={draft.id} className="flex items-center gap-2">
+                    <div
+                      key={draft.id}
+                      className="flex flex-col sm:flex-row sm:items-center gap-2"
+                    >
                       {/* Column Select */}
                       <Select
                         value={draft.columnId}
@@ -392,7 +395,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                       >
                         <SelectTrigger
                           aria-label="Filter column"
-                          className="h-8 flex-1 text-xs"
+                          className="h-8 w-full sm:w-auto sm:flex-1 text-xs"
                         >
                           <SelectValue />
                         </SelectTrigger>
@@ -420,7 +423,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                       >
                         <SelectTrigger
                           aria-label="Filter operator"
-                          className="h-8 w-[130px] text-xs"
+                          className="h-8 w-full sm:w-[130px] text-xs"
                         >
                           <SelectValue />
                         </SelectTrigger>
@@ -446,7 +449,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                             applyFilters()
                           }
                         }}
-                        className="h-8 flex-1 text-xs shadow-none"
+                        className="h-8 w-full sm:w-auto sm:flex-1 text-xs shadow-none"
                       />
 
                       {/* Trash Delete button */}
