@@ -40,7 +40,7 @@ this suite measures live tool-first + recommend-only behavior.
 - `AGENT_API_TOKEN` — Bearer for the agent route
 - `AGENT_EVAL_URL` — default `http://localhost:3000/api/v1/agent`
 - `AGENT_EVAL_MODEL` — default `anyrouter:anyrouter/free` (served without a BYOK key; `auto` can resolve to a BYOK-only model, see #3560)
-- `AGENT_EVAL_GRADER_MODEL` — default `anyrouter/free`
+- `AGENT_EVAL_GRADER_MODEL` — default `dots-studio/dots-3-note-preview` (a fixed model, so grades do not change with routing; `anyrouter/free` picks a different free model per request and some return no JSON, see #3560)
 - `ANYROUTER_API_BASE` — default `https://anyrouter.dev/api/v1`
 - `PROMPTFOO_API_KEY` — optional Promptfoo Cloud token (`promptfoo auth login`);
   when set, `agent-eval` adds `--share` and links the report
