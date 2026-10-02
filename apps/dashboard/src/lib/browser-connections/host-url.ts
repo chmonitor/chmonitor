@@ -178,18 +178,29 @@ async function resolveValidatedHostUrl(
   return { url, addresses }
 }
 
+/**
+ * On Workers, the validation fetch cannot pin a DNS name to the address it
+ * validated, so it refuses every non-IP-literal host. Returns that refusal
+ * message, or null when the fetch may proceed. Callers can check this up
+ * front to skip DNS and client setup for a connection that cannot open.
+ */
+export function workerHostPinningError(rawUrl: string): string | null {
+  if (!isCloudflareWorkers()) return null
+  const url = parseHttpUrl(rawUrl)
+  if (url && !isIpLiteral(getNormalizedHostname(url))) {
+    return WORKER_DNS_PINNING_ERROR
+  }
+  return null
+}
+
 export function createHostValidationFetch(
   resolveHostAddresses: ResolveHostAddresses = resolveDnsAddresses
 ): typeof fetch {
   return async (input, init) => {
     const fetchUrl = getFetchUrl(input)
 
-    if (isCloudflareWorkers()) {
-      const url = parseHttpUrl(fetchUrl)
-      if (url && !isIpLiteral(getNormalizedHostname(url))) {
-        throw new Error(WORKER_DNS_PINNING_ERROR)
-      }
-    }
+    const pinningError = workerHostPinningError(fetchUrl)
+    if (pinningError) throw new Error(pinningError)
 
     const result = await resolveValidatedHostUrl(fetchUrl, resolveHostAddresses)
 
