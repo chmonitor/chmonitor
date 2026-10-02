@@ -13,7 +13,6 @@ import type { Plan } from '@/lib/billing/plans'
 import type { AgentRuntime, AgentUiMessage } from './runtime'
 
 import { AGENT_DEBUG_LOGS } from './debug'
-import { pipeJsonRender } from '@json-render/core'
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -30,6 +29,7 @@ import {
   sanitizeAgentError,
 } from '@/lib/ai/agent/errors'
 import { createJsonRenderPatchGuardStream } from '@/lib/ai/agent/json-render-patch-guard'
+import { pipeJsonRenderCoalesced } from '@/lib/ai/agent/text-delta-coalescer'
 import { meterAiOverage } from '@/lib/billing/ai-usage-store'
 
 /**
@@ -174,7 +174,9 @@ export function createAgentStreamResponse(options: {
 
         writer.merge(
           createJsonRenderPatchGuardStream(
-            pipeJsonRender(
+            // Not plain pipeJsonRender: it emits one text delta per character,
+            // which made every later stage run per char, not per token (#3560).
+            pipeJsonRenderCoalesced(
               // `onError` formats `error` / `tool-error` chunk `errorText`
               // (e.g. a dynamicTool's `execute` throwing) — without it the AI
               // SDK falls back to its safe-by-default "An error occurred.",
