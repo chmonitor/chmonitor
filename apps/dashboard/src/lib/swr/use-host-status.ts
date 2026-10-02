@@ -114,7 +114,7 @@ export function useHostStatus(
     : `/api/v1/host-status?hostId=${hostId}`
   const queryKey = [url]
 
-  const { data, error, isLoading } = useQuery<HostStatus>({
+  const { data, error, isLoading, isFetching, refetch } = useQuery<HostStatus>({
     queryKey,
     queryFn: async () => {
       const res = await apiFetch(url)
@@ -166,6 +166,8 @@ export function useHostStatus(
     data: data ?? null,
     error,
     isLoading,
+    isFetching,
+    refetch,
     isOnline: data?.version !== '' && data?.version !== undefined,
   }
 }
