@@ -364,6 +364,59 @@ describe('connectCustomMcpServers', () => {
   })
 })
 
+// On Workers the pinned fetch refuses hostnames, so a hostname endpoint can
+// never connect. Every agent request used to pay a DNS lookup plus MCP client
+// setup for the built-in Firecrawl server only to fail (#3560).
+describe('connectCustomMcpServers — on Cloudflare Workers', () => {
+  const previous = process.env.CLOUDFLARE_WORKERS
+  afterEach(() => {
+    if (previous === undefined) delete process.env.CLOUDFLARE_WORKERS
+    else process.env.CLOUDFLARE_WORKERS = previous
+  })
+
+  test('fails a hostname endpoint without DNS or a client', async () => {
+    process.env.CLOUDFLARE_WORKERS = '1'
+    const createClient = mock<McpClientFactory>(async () => ({
+      tools: async () => ({ ping: {} }),
+      close: async () => {},
+    }))
+    const resolveHostAddresses = mock(stubDns)
+
+    const result = await connectCustomMcpServers(
+      [{ id: 'f', name: 'firecrawl', endpoint: PUBLIC_ENDPOINT }],
+      { createClient, resolveHostAddresses }
+    )
+
+    expect(resolveHostAddresses).not.toHaveBeenCalled()
+    expect(createClient).not.toHaveBeenCalled()
+    expect(result.tools).toEqual({})
+    expect(result.statuses).toEqual([
+      {
+        id: 'f',
+        status: 'error',
+        toolCount: 0,
+        error: expect.stringContaining('require Node.js DNS pinning'),
+      },
+    ])
+  })
+
+  test('still connects an IP-literal endpoint', async () => {
+    process.env.CLOUDFLARE_WORKERS = '1'
+    const createClient = mock<McpClientFactory>(async () => ({
+      tools: async () => ({ ping: {} }),
+      close: async () => {},
+    }))
+
+    const result = await connectCustomMcpServers(
+      [{ id: 'i', name: 'byip', endpoint: `https://${PUBLIC_A}/mcp` }],
+      { createClient, resolveHostAddresses: stubDns }
+    )
+
+    expect(createClient).toHaveBeenCalledTimes(1)
+    expect(Object.keys(result.tools)).toEqual(['mcp_byip_ping'])
+  })
+})
+
 // ---------------------------------------------------------------------------
 // Firecrawl domain allowlist — wrap at connect so built-in AND registered
 // Firecrawl servers are covered (a renamed registration cannot bypass).

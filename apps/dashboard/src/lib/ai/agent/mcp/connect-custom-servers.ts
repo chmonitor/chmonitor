@@ -32,6 +32,7 @@ import {
   createHostValidationFetch,
   type ResolveHostAddresses,
   validateHostUrl,
+  workerHostPinningError,
 } from '@/lib/browser-connections/host-url'
 
 export interface CustomMcpServerInput {
@@ -245,6 +246,20 @@ export async function connectCustomMcpServers(
   const toConnect = servers.slice(0, MAX_SERVERS)
 
   for (const server of toConnect) {
+    // On Workers the pinned fetch refuses hostnames, so the connect would fail
+    // anyway. Fail before the DNS lookup and client setup: the built-in
+    // Firecrawl server hit this on every agent request (#3560).
+    const pinningError = workerHostPinningError(server.endpoint)
+    if (pinningError) {
+      statuses.push({
+        id: server.id,
+        status: 'error',
+        toolCount: 0,
+        error: pinningError.slice(0, 200),
+      })
+      continue
+    }
+
     if (!(await isAllowedMcpUrl(server.endpoint, opts?.resolveHostAddresses))) {
       statuses.push({
         id: server.id,
