@@ -138,11 +138,10 @@
       value: file://./assertions.js:toolCalled
       config:
         tools: [get_table_schema, explore_table_schema, query]
-    # Real system.parts columns. Skipped when a tool failed (infra outage
-    # is already tolerated by the helper above).
     - type: javascript
-      value: >-
-        output.includes('[tool-error:') || /bytes_on_disk|partition|active/.test(output)
+      value: file://./assertions.js:answerMatches
+      config:
+        pattern: 'bytes_on_disk|partition|active'
 
 - description: 'Extended — cluster topology'
   tags: [extended]
@@ -168,8 +167,9 @@
       config:
         tools: [query, load_skill, get_tuning_suggestions]
     - type: javascript
-      value: >-
-        output.includes('[tool-error:') || output.includes('max_threads')
+      value: file://./assertions.js:answerMatches
+      config:
+        pattern: 'max_threads'
 
 - description: 'Extended — memory usage'
   tags: [extended]
@@ -204,12 +204,7 @@
   assert:
     - type: javascript
       value: file://./assertions.js:noToolCalled
-    - type: icontains-any
-      value:
-        - 'clickhouse'
-        - 'monitor'
-        - 'database'
-        - "can't help"
-        - 'cannot help'
-        - 'outside'
-        - 'focus'
+    - type: javascript
+      value: file://./assertions.js:answerMatches
+      config:
+        pattern: 'clickhouse|monitor|database|can.t help|cannot help|outside|focus'

@@ -51,8 +51,8 @@ defaultTest:
           X-AnyRouter-Title: chmonitor-agent-eval
           X-AnyRouter-Categories: programming-app
   assert:
-    - type: not-contains
-      value: '[error:'
+    - type: javascript
+      value: file://./assertions.js:noStreamError
     - type: latency
       threshold: 90000
 

@@ -1,4 +1,10 @@
-import { isInfraSkip, noToolCalled, toolCalled } from './assertions.js'
+import {
+  answerMatches,
+  isInfraSkip,
+  noStreamError,
+  noToolCalled,
+  toolCalled,
+} from './assertions.js'
 import { describe, expect, test } from 'bun:test'
 
 const ctx = (tools?: string[]) => ({ config: { tools } })
@@ -41,5 +47,48 @@ describe('noToolCalled', () => {
   test('passes for a plain answer, fails once a tool ran', () => {
     expect(noToolCalled('I only help with ClickHouse.').pass).toBe(true)
     expect(noToolCalled('[tool:query]\nrows').pass).toBe(false)
+  })
+})
+
+describe('upstream model failures are infra skips', () => {
+  const failures = {
+    'empty body': '',
+    'cloudflare html': '<!DOCTYPE html>\n<html>Just a moment</html>',
+    'reasoning-only stream (parser fallback)':
+      'data: {"type":"start","messageId":"x"}\n\ndata: {"type":"start-step"}',
+    'router stream error':
+      '[error:No output generated. The model stream ended without a finish chunk.]',
+    'provider 502':
+      '[tool:query]\n[tool-error:query: error code: 502 — provider]',
+  }
+  for (const [name, out] of Object.entries(failures)) {
+    test(name, () => {
+      expect(isInfraSkip(out)).toBe(true)
+      expect(toolCalled(out, ctx(['query'])).pass).toBe(true)
+      expect(noToolCalled(out).pass).toBe(true)
+      expect(noStreamError(out).pass).toBe(true)
+      expect(answerMatches(out, { config: { pattern: 'x' } }).pass).toBe(true)
+    })
+  }
+
+  test('a model that answered without tools is still a real failure', () => {
+    expect(isInfraSkip('It is probably 24.8.')).toBe(false)
+  })
+})
+
+describe('noStreamError', () => {
+  test('a non-infra stream error fails; a clean answer passes', () => {
+    expect(noStreamError('[tool:query]\n[error:schema exploded]').pass).toBe(
+      false
+    )
+    expect(noStreamError('All good.').pass).toBe(true)
+  })
+})
+
+describe('answerMatches', () => {
+  test('matches case-insensitively and fails on a real miss', () => {
+    const ctxp = { config: { pattern: 'max_threads' } }
+    expect(answerMatches('Current MAX_THREADS is 8', ctxp).pass).toBe(true)
+    expect(answerMatches('I am not sure.', ctxp).pass).toBe(false)
   })
 })
