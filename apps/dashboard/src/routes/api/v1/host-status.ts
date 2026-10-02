@@ -112,36 +112,7 @@ export const Route = createFileRoute('/api/v1/host-status')({
             ttlSeconds: HOST_STATUS_CACHE_TTL_SECONDS,
             hostId,
           }
-          // Raw client calls THROW on error (unlike fetchData); the
-          // unknown-setting fallback inside runWithQueryCache handles both.
-          const resultSet = await runWithQueryCache(cacheOpts, (cache) =>
-            client.query({
-              query: `${QUERY_COMMENT}SELECT
-  version() AS version,
-  formatReadableTimeDelta(uptime()) AS uptime,
-  hostName() AS hostname`,
-              format: 'JSONEachRow',
-              clickhouse_settings: cache,
-            })
-          )
-
-          // JSONEachRow returns rows directly: json<Row>() => Row[]
-          const rows = await resultSet.json<{
-            version: string
-            uptime: string
-            hostname: string
-          }>()
-
-          const data = rows[0]
-          const version = data?.version ?? ''
-          const uptime = data?.uptime ?? ''
-          const hostname = data?.hostname ?? ''
-
-          // Additive comparison counts for the Fleet table. Run in a separate,
-          // fully guarded query so a counts failure never degrades the core
-          // status response — missing counts simply resolve to undefined and
-          // the table renders an en-dash for that cell.
-          let counts: {
+          type Counts = {
             databases?: number
             tables?: number
             clusterNodes?: number
@@ -154,141 +125,140 @@ export const Route = createFileRoute('/api/v1/host-status')({
             readonlyReplicas?: number
             replicationDelay?: number
             series?: number[]
-          } = {}
+          }
           const toNum = (v: unknown) => {
             const n = Number(v)
             return Number.isFinite(n) ? n : undefined
           }
-          if (wantCounts) {
+          // Raw client calls THROW on error (unlike fetchData); the
+          // unknown-setting fallback inside runWithQueryCache handles both.
+          const queryRows = async <T>(query: string): Promise<T[]> => {
+            const resultSet = await runWithQueryCache(cacheOpts, (cache) =>
+              client.query({
+                query: `${QUERY_COMMENT}${query}`,
+                format: 'JSONEachRow',
+                clickhouse_settings: cache,
+              })
+            )
+            // JSONEachRow returns rows directly: json<Row>() => Row[]
+            return resultSet.json<T>()
+          }
+          // Each Fleet block is independently guarded: a failure (e.g. a
+          // restricted grant on one system table) logs and yields `{}`, so it
+          // never degrades the core status or the other blocks.
+          const guarded = async (
+            label: string,
+            run: () => Promise<Counts>
+          ): Promise<Counts> => {
             try {
-              const countsSet = await runWithQueryCache(cacheOpts, (cache) =>
-                client.query({
-                  query: `${QUERY_COMMENT}SELECT
+              return await run()
+            } catch (blockErr) {
+              error(
+                `[GET /api/v1/host-status] ${label} query failed:`,
+                blockErr
+              )
+              return {}
+            }
+          }
+
+          const corePromise = queryRows<{
+            version: string
+            uptime: string
+            hostname: string
+          }>(`SELECT
+  version() AS version,
+  formatReadableTimeDelta(uptime()) AS uptime,
+  hostName() AS hostname`)
+
+          // The Fleet blocks are independent of each other and of the core
+          // probe, so all of them run concurrently: one ClickHouse
+          // round-trip of latency instead of five sequential ones.
+          const fleetPromise: Promise<Counts[]> = wantCounts
+            ? Promise.all([
+                // Additive comparison counts for the Fleet table.
+                guarded('counts', async () => {
+                  const [row] = await queryRows<Record<string, unknown>>(
+                    `SELECT
   (SELECT count() FROM system.databases) AS databases,
   (SELECT count() FROM system.tables) AS tables,
-  (SELECT uniqExact(host_name) FROM system.clusters) AS clusterNodes`,
-                  format: 'JSONEachRow',
-                  clickhouse_settings: cache,
-                })
-              )
-              const countRows = await countsSet.json<{
-                databases: string | number
-                tables: string | number
-                clusterNodes: string | number
-              }>()
-              const row = countRows[0]
-              counts = {
-                databases: toNum(row?.databases),
-                tables: toNum(row?.tables),
-                clusterNodes: toNum(row?.clusterNodes),
-              }
-            } catch (countsErr) {
-              error('[GET /api/v1/host-status] counts query failed:', countsErr)
-            }
-
-            // Live resource metrics. Separate guarded block: a restricted
-            // grant on one of these system tables must not drop the counts
-            // above (each missing metric renders as an en-dash).
-            try {
-              const metricsSet = await runWithQueryCache(cacheOpts, (cache) =>
-                client.query({
-                  query: `${QUERY_COMMENT}SELECT
+  (SELECT uniqExact(host_name) FROM system.clusters) AS clusterNodes`
+                  )
+                  return {
+                    databases: toNum(row?.databases),
+                    tables: toNum(row?.tables),
+                    clusterNodes: toNum(row?.clusterNodes),
+                  }
+                }),
+                // Live resource metrics.
+                guarded('metrics', async () => {
+                  const [row] = await queryRows<Record<string, unknown>>(
+                    `SELECT
   (SELECT value FROM system.metrics WHERE metric = 'Query') AS runningQueries,
   (SELECT value FROM system.asynchronous_metrics WHERE metric = 'MemoryResident') AS memoryBytes,
   (SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal') AS memoryTotalBytes,
   (SELECT sum(total_space - free_space) FROM system.disks) AS diskUsedBytes,
   (SELECT sum(total_space) FROM system.disks) AS diskTotalBytes,
-  (SELECT count() FROM system.errors WHERE last_error_time > now() - 3600) AS recentErrors`,
-                  format: 'JSONEachRow',
-                  clickhouse_settings: cache,
-                })
-              )
-              const metricRows =
-                await metricsSet.json<Record<string, unknown>>()
-              const row = metricRows[0]
-              counts = {
-                ...counts,
-                runningQueries: toNum(row?.runningQueries),
-                memoryBytes: toNum(row?.memoryBytes),
-                memoryTotalBytes: toNum(row?.memoryTotalBytes),
-                diskUsedBytes: toNum(row?.diskUsedBytes),
-                diskTotalBytes: toNum(row?.diskTotalBytes),
-                recentErrors: toNum(row?.recentErrors),
-              }
-            } catch (metricsErr) {
-              error(
-                '[GET /api/v1/host-status] metrics query failed:',
-                metricsErr
-              )
-            }
-
-            // Replication summary. Own block because `system.replicas` may be
-            // restricted; only cheap local columns are read (never the
-            // ZooKeeper-backed ones, which cost a ZK round-trip per table).
-            try {
-              const replicaSet = await runWithQueryCache(cacheOpts, (cache) =>
-                client.query({
-                  query: `${QUERY_COMMENT}SELECT
+  (SELECT count() FROM system.errors WHERE last_error_time > now() - 3600) AS recentErrors`
+                  )
+                  return {
+                    runningQueries: toNum(row?.runningQueries),
+                    memoryBytes: toNum(row?.memoryBytes),
+                    memoryTotalBytes: toNum(row?.memoryTotalBytes),
+                    diskUsedBytes: toNum(row?.diskUsedBytes),
+                    diskTotalBytes: toNum(row?.diskTotalBytes),
+                    recentErrors: toNum(row?.recentErrors),
+                  }
+                }),
+                // Replication summary. Only cheap local columns are read
+                // (never the ZooKeeper-backed ones, which cost a ZK
+                // round-trip per table).
+                guarded('replicas', async () => {
+                  const [row] = await queryRows<Record<string, unknown>>(
+                    `SELECT
   count() AS replicaCount,
   countIf(is_readonly) AS readonlyReplicas,
   max(absolute_delay) AS replicationDelay
-FROM system.replicas`,
-                  format: 'JSONEachRow',
-                  clickhouse_settings: cache,
-                })
-              )
-              const replicaRows =
-                await replicaSet.json<Record<string, unknown>>()
-              const row = replicaRows[0]
-              // These aggregates return 0 (not NULL) over an empty
-              // system.replicas, so a host with no replicated tables would
-              // otherwise report a meaningless "0s replica lag". Emit the
-              // fields only when the host actually has replicas — the UI then
-              // omits the row entirely rather than showing a fake zero.
-              const replicaCount = toNum(row?.replicaCount) ?? 0
-              if (replicaCount > 0) {
-                counts = {
-                  ...counts,
-                  readonlyReplicas: toNum(row?.readonlyReplicas),
-                  replicationDelay: toNum(row?.replicationDelay),
-                }
-              }
-            } catch (replicaErr) {
-              error(
-                '[GET /api/v1/host-status] replicas query failed:',
-                replicaErr
-              )
-            }
-
-            // Sparkline series (running queries, last hour). `system.metric_log`
-            // is opt-in in ClickHouse — absent on many installs, so this is
-            // fully guarded and simply yields no sparkline when missing.
-            try {
-              const seriesSet = await runWithQueryCache(cacheOpts, (cache) =>
-                client.query({
-                  query: `${QUERY_COMMENT}SELECT avg(CurrentMetric_Query) AS value
+FROM system.replicas`
+                  )
+                  // These aggregates return 0 (not NULL) over an empty
+                  // system.replicas, so a host with no replicated tables
+                  // would otherwise report a meaningless "0s replica lag".
+                  // Emit the fields only when the host actually has replicas.
+                  if ((toNum(row?.replicaCount) ?? 0) === 0) return {}
+                  return {
+                    readonlyReplicas: toNum(row?.readonlyReplicas),
+                    replicationDelay: toNum(row?.replicationDelay),
+                  }
+                }),
+                // Sparkline series (running queries, last hour).
+                // `system.metric_log` is opt-in — absent on many installs, so
+                // this simply yields no sparkline when missing.
+                guarded('metric_log', async () => {
+                  const seriesRows = await queryRows<{
+                    value: string | number
+                  }>(`SELECT avg(CurrentMetric_Query) AS value
 FROM system.metric_log
 WHERE event_time > now() - INTERVAL 1 HOUR
 GROUP BY toStartOfInterval(event_time, INTERVAL 5 MINUTE) AS t
-ORDER BY t`,
-                  format: 'JSONEachRow',
-                  clickhouse_settings: cache,
-                })
-              )
-              const seriesRows = await seriesSet.json<{
-                value: string | number
-              }>()
-              const series = seriesRows
-                .map((r) => toNum(r?.value))
-                .filter((n): n is number => n !== undefined)
-              if (series.length > 0) counts = { ...counts, series }
-            } catch (seriesErr) {
-              error(
-                '[GET /api/v1/host-status] metric_log query failed:',
-                seriesErr
-              )
-            }
-          }
+ORDER BY t`)
+                  const series = seriesRows
+                    .map((r) => toNum(r?.value))
+                    .filter((n): n is number => n !== undefined)
+                  return series.length > 0 ? { series } : {}
+                }),
+              ])
+            : Promise.resolve([])
+
+          const [rows, fleetBlocks] = await Promise.all([
+            corePromise,
+            fleetPromise,
+          ])
+
+          const data = rows[0]
+          const version = data?.version ?? ''
+          const uptime = data?.uptime ?? ''
+          const hostname = data?.hostname ?? ''
+          const counts: Counts = Object.assign({}, ...fleetBlocks)
 
           return Response.json(
             {
