@@ -9,13 +9,19 @@
  *   AGENT_EVAL_GRADER_MODEL=dots-studio/dots-3-note-preview
  *   ANYROUTER_API_BASE=https://anyrouter.dev/api/v1
  *
- * Tags: --tags core,safety  (default)   --tags all
+ * Tags: --tags core,safety  (default)   --tags extended   --tags all
+ *   Any comma list keeps the cases carrying at least one of those tags.
  */
 
 import {
   formatScoreboard,
   summarize,
 } from '../tests/agent/format-eval-comment.js'
+import {
+  loadCases,
+  parseTags,
+  selectCases,
+} from '../tests/agent/select-cases.js'
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -24,6 +30,7 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = join(root, 'tests/agent/results')
 const generated = join(root, 'tests/agent/promptfooconfig.generated.yaml')
+const generatedCases = join(root, 'tests/agent/cases.generated.yaml')
 
 function argValue(flag: string): string | undefined {
   const i = process.argv.indexOf(flag)
@@ -82,6 +89,20 @@ const configSrc = join(
 mkdirSync(outDir, { recursive: true })
 
 let yaml = readFileSync(configSrc, 'utf8')
+const tags = parseTags(tagsArg ?? 'core,safety')
+if (!useAll) {
+  const selected = selectCases(loadCases(join(root, 'tests/agent/cases')), tags)
+  if (selected.length === 0) {
+    console.error(`[agent-eval] no cases carry any of the tags: ${tags}`)
+    process.exit(2)
+  }
+  // JSON is valid YAML; promptfoo loads it as the test list.
+  writeFileSync(generatedCases, JSON.stringify(selected, null, 2))
+  yaml = yaml.replace(
+    /^tests:[\s\S]*?(?=^evaluateOptions:)/m,
+    'tests:\n  - file://./cases.generated.yaml\n\n'
+  )
+}
 for (const [key, value] of Object.entries(defaults)) {
   yaml = yaml.split(`\${${key}}`).join(value)
 }
@@ -114,7 +135,7 @@ if (process.env.PROMPTFOO_API_KEY && !extra.includes('--share')) {
 }
 
 console.log(
-  `[agent-eval] url=${defaults.AGENT_EVAL_URL} model=${defaults.AGENT_EVAL_MODEL} suite=${useAll ? 'all' : 'core,safety'}`
+  `[agent-eval] url=${defaults.AGENT_EVAL_URL} model=${defaults.AGENT_EVAL_MODEL} suite=${useAll ? 'all' : tags.join(',')}`
 )
 
 const result = spawnSync('bunx', promptfooArgs, {

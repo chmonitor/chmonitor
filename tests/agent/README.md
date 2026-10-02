@@ -26,8 +26,9 @@ Never commit keys. Put `PROMPTFOO_API_KEY` in `.env.local` (gitignored) so
 
 | Command | What |
 |---|---|
-| `pnpm run test:agent` | 10 core+safety cases; prints Status / Score / Tests / Passed / Failed |
+| `pnpm run test:agent` | 14 core+safety cases; prints Status / Score / Tests / Passed / Failed |
 | `pnpm run test:agent:all` | also `tools`, `quality`, `extended` |
+| `bun scripts/agent-eval.ts --tags extended` | only the `extended` cases (live tool + robustness) |
 | `pnpm run test:agent:improve` | eval, then AnyRouter notes in `tests/agent/results/improve.md` |
 | `bun test tests/agent/*.test.ts` | SSE parser + PR comment formatter (no key) |
 
@@ -48,7 +49,11 @@ The improve script **does not** rewrite the system prompt.
 Add a test to `tests/agent/cases/*.yaml`. Tag it:
 
 - `core` / `safety` — every prompt-changing PR
-- `tools` / `quality` / `extended` — `test:agent:all`
+- `tools` / `quality` / `extended` — `test:agent:all`, or `--tags extended`
+
+Prefer deterministic assertions: `file://./assertions.js:toolCalled` with
+`config.tools` (tolerates demo ClickHouse outages), `not-regex`, `icontains-any`.
+`llm-rubric` alone is rejected for new cases by `cases.test.ts`.
 
 When you change tool-first or recommend-only wording, add a golden here.
 

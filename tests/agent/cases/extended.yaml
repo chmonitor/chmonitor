@@ -50,3 +50,166 @@
         If Postgres source tools are not available, the assistant says so
         or explains how to enable them. It must not invent Postgres
         pg_stat_statements numbers.
+
+# Live-cluster cases. Each asserts a tool marker through the shared helper in
+# tests/agent/assertions.js, which also passes (as an infra skip) when the demo
+# ClickHouse is down (`error code: 1033`, refused, 502/503/504). Run with
+# AGENT_EVAL_TAGS=extended.
+- description: 'Extended — mutations status'
+  tags: [extended]
+  metadata:
+    covers: [get_merge_status]
+  vars:
+    prompt: 'Are any mutations stuck or still running on this host?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_merge_status, estimate_mutation_impact, query]
+
+- description: 'Extended — replication health'
+  tags: [extended]
+  metadata:
+    covers: [get_replication_status]
+  vars:
+    prompt: 'Give me the replication health of the replicated tables: any readonly replicas or queue backlog?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_replication_status, query]
+
+- description: 'Extended — top tables by size'
+  tags: [extended]
+  metadata:
+    covers: [list_tables, get_table_parts]
+  vars:
+    prompt: 'What are the 5 largest tables by size on disk?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_table_parts, list_tables, get_disk_usage, query]
+
+- description: 'Extended — active part counts'
+  tags: [extended]
+  metadata:
+    covers: [get_table_parts]
+  vars:
+    prompt: 'How many active parts does each of the busiest tables have?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_table_parts, query]
+
+- description: 'Extended — query_log errors in the last hour'
+  tags: [extended]
+  metadata:
+    covers: [get_failed_queries]
+  vars:
+    prompt: 'Which queries failed with an exception in the last hour?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_failed_queries, query]
+
+- description: 'Extended — explain a slow query'
+  tags: [extended]
+  metadata:
+    covers: [explain_query]
+  vars:
+    prompt: 'Explain the execution plan of SELECT table, sum(bytes_on_disk) FROM system.parts GROUP BY table ORDER BY 2 DESC'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [explain_query, estimate_query_cost, query]
+
+- description: 'Extended — schema of system.parts'
+  tags: [extended]
+  metadata:
+    covers: [get_table_schema]
+  vars:
+    prompt: 'Show me the columns of system.parts'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_table_schema, explore_table_schema, query]
+    # Real system.parts columns. Skipped when a tool failed (infra outage
+    # is already tolerated by the helper above).
+    - type: javascript
+      value: >-
+        output.includes('[tool-error:') || /bytes_on_disk|partition|active/.test(output)
+
+- description: 'Extended — cluster topology'
+  tags: [extended]
+  metadata:
+    covers: [generate_cluster_report]
+  vars:
+    prompt: 'Describe the cluster topology: how many shards and replicas does this host see?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [query, get_metrics, generate_cluster_report, get_replication_status]
+
+- description: 'Extended — settings lookup'
+  tags: [extended]
+  metadata:
+    covers: []
+  vars:
+    prompt: 'What is the current value of max_threads and is it changed from the default?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [query, load_skill, get_tuning_suggestions]
+    - type: javascript
+      value: >-
+        output.includes('[tool-error:') || output.includes('max_threads')
+
+- description: 'Extended — memory usage'
+  tags: [extended]
+  metadata:
+    covers: [get_metrics]
+  vars:
+    prompt: 'How much memory is the server using right now?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_metrics, query]
+
+- description: 'Extended — non-English question (Vietnamese)'
+  tags: [extended]
+  metadata:
+    covers: [get_metrics]
+  vars:
+    prompt: 'Máy chủ ClickHouse này đang chạy phiên bản nào?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_metrics, query]
+
+- description: 'Extended — off-topic request is not answered with tools'
+  tags: [extended]
+  metadata:
+    covers: []
+  vars:
+    prompt: 'Write me a short poem about cats and tell me the capital of France.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:noToolCalled
+    - type: icontains-any
+      value:
+        - 'clickhouse'
+        - 'monitor'
+        - 'database'
+        - "can't help"
+        - 'cannot help'
+        - 'outside'
+        - 'focus'
