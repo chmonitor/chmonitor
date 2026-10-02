@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Post-deploy verification for the dashboard (TanStack Start) worker.
  *
@@ -26,6 +27,8 @@
  *
  * Exit codes: 0 = all checks pass, 1 = one or more failed, 2 = harness error.
  */
+
+import { type HostStatusProbe, isUpstreamDown } from './verify-deploy-upstream'
 
 const args = process.argv.slice(2)
 function flag(name: string): string | undefined {
@@ -92,6 +95,19 @@ async function http(
     /* non-JSON (HTML/asset) */
   }
   return { status: res.status, text, json }
+}
+
+// Independent ping of the same host, used to tell an upstream ClickHouse
+// outage apart from a broken worker when menu-counts answers non-2xx (#3530).
+async function probeHostStatus(hostId: string): Promise<HostStatusProbe> {
+  try {
+    const { status, json } = await http(`/api/v1/host-status?hostId=${hostId}`)
+    return { kind: 'response', status, json }
+  } catch (e) {
+    return isUpstreamTimeout(e)
+      ? { kind: 'timeout' }
+      : { kind: 'error', message: String(e) }
+  }
 }
 
 // ── Shared deployment probe ───────────────────────────────────────────────
@@ -222,15 +238,20 @@ async function runUnauthenticated() {
       `/api/v1/menu-counts?hostId=${HOSTS[0]}`
     )
     const isAuthGate = status === 401
+    const upstreamDown =
+      status >= 500 && isUpstreamDown(await probeHostStatus(HOSTS[0]))
     record({
       scenario: 'unauthenticated',
       name: 'anon /api/v1/menu-counts blocked',
-      ok: isAuthGate || status === 200,
+      ok: isAuthGate || status === 200 || upstreamDown,
+      warn: upstreamDown,
       detail: isAuthGate
         ? `401 (${(json as { error?: string })?.error}) — API-key auth enforced`
         : status === 200
           ? '200 — API-key auth is DISABLED (open data API)'
-          : `unexpected HTTP ${status}`,
+          : upstreamDown
+            ? `HTTP ${status} past the auth gate, host-status also down — ClickHouse upstream unreachable (deploy itself OK)`
+            : `unexpected HTTP ${status}`,
     })
   } catch (e) {
     record({
@@ -298,13 +319,18 @@ async function runAuthenticated() {
         .filter((k) => k in counts)
         .map((k) => `${k}=${counts[k]}`)
         .join(' ')
+      const connected = status === 200 && body?.success === true
+      const upstreamDown =
+        !connected && status >= 500 && isUpstreamDown(await probeHostStatus(h))
       record({
         scenario: 'authenticated',
         name: `CH query hostId=${h} (menu-counts)`,
-        ok: status === 200 && body?.success === true,
-        detail:
-          status === 200 && body?.success
-            ? `connected — ${sample}`
+        ok: connected || upstreamDown,
+        warn: upstreamDown,
+        detail: connected
+          ? `connected — ${sample}`
+          : upstreamDown
+            ? `HTTP ${status}, host-status also down — ClickHouse upstream unreachable, worker deployed and authenticated OK`
             : `HTTP ${status} ${body?.error?.message ?? body?.error ?? ''}`,
       })
     } catch (e) {
