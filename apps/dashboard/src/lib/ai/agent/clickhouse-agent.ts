@@ -11,6 +11,7 @@ import type { ProviderOptions } from '@ai-sdk/provider-utils'
 import { CLICKHOUSE_AGENT_INSTRUCTIONS } from './prompts/clickhouse-instructions'
 import { DEFAULT_MODEL, resolveAgentChatModel } from './provider-chat-model'
 import { wrapToolsWithLogging } from './tool-logging'
+import { withCachedInputSchemas } from './tool-schema-cache'
 import { createAllTools } from './tools'
 import { isStepCount, type LanguageModel, ToolLoopAgent } from 'ai'
 
@@ -73,7 +74,11 @@ export function createClickHouseAgent(options: {
   } = options
 
   const allTools = createAllTools(hostId, includeControlTools)
-  const filteredTools = filterTools(allTools, disabledTools)
+  // Built-in schemas are static per tool name: reuse their JSON Schema across
+  // steps and requests instead of re-converting zod every step (#3560).
+  const filteredTools = withCachedInputSchemas(
+    filterTools(allTools, disabledTools)
+  )
   // Wrap each tool's execute to emit structured logs (toolName, durationMs, etc.)
   // Built-in tools take precedence over MCP tools on key collision (mcp_ prefix
   // prevents collisions in practice).
