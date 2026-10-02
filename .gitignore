@@ -13,6 +13,7 @@ node_modules/
 # testing
 tests/agent/results/
 tests/agent/promptfooconfig.generated.yaml
+tests/agent/cases.generated.yaml
 .promptfoo/
 /coverage
 apps/dashboard/coverage
