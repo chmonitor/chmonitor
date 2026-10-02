@@ -57,7 +57,11 @@ async function getFleet() {
   const res = await handler({
     request: new Request('http://x/api/v1/host-status?hostId=0&fleet=1'),
   })
-  return { status: res.status, body: await res.json() }
+  const body = (await res.json()) as {
+    success: boolean
+    data: Record<string, unknown>
+  }
+  return { status: res.status, body }
 }
 
 beforeEach(() => {
