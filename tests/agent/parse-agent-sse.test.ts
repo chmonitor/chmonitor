@@ -44,6 +44,31 @@ describe('parseAgentSse', () => {
     expect(parseAgentSse(text)).toContain('[error:ClickHouse timeout]')
   })
 
+  test('surfaces failed tools so a bare [tool:x] is not mistaken for no answer', () => {
+    const text = sse([
+      {
+        type: 'tool-input-available',
+        toolCallId: 'c1',
+        toolName: 'get_metrics',
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'c1',
+        errorText: 'error code: 1033',
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'c1',
+        errorText: 'error code: 1033',
+      },
+    ])
+    const out = parseAgentSse(text)
+    expect(out).toContain('[tool-error:get_metrics: error code: 1033]')
+    expect(out.match(/tool-error/g)?.length).toBe(1)
+    // must not trip the config's `not-contains [error:` stream-error assertion
+    expect(out).not.toContain('[error:')
+  })
+
   test('records usage cost when present', () => {
     const text = sse([
       { type: 'text-delta', delta: 'ok' },

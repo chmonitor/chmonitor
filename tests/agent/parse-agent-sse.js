@@ -7,6 +7,7 @@
  *
  * Output shape (promptfoo assertions match this):
  *   [tool:list_databases]
+ *   [tool-error:list_databases: <why the tool failed>]   (only when it failed)
  *   The cluster has 12 databases...
  *   [cost:$0.001234]
  */
@@ -15,6 +16,8 @@ function parseAgentSse(text) {
   const tools = []
   const seenTools = new Set()
   const errors = []
+  const toolErrors = []
+  const toolNames = new Map()
   const outputs = []
   let output = ''
   let costLine = ''
@@ -55,6 +58,9 @@ function parseAgentSse(text) {
         evt.type === 'tool-input-start' ||
         evt.type === 'tool-input-available')
     ) {
+      if (typeof evt.toolCallId === 'string') {
+        toolNames.set(evt.toolCallId, toolName)
+      }
       if (!seenTools.has(toolName)) {
         seenTools.add(toolName)
         tools.push(toolName)
@@ -73,6 +79,15 @@ function parseAgentSse(text) {
       } catch {
         // ignore unserializable tool output
       }
+    }
+
+    // A tool that failed (e.g. demo ClickHouse down) is otherwise invisible:
+    // the output would be a bare `[tool:x]` indistinguishable from a model
+    // that never answered. Surface it so triage can tell the two apart.
+    if (evt.type === 'tool-output-error' && toolErrors.length < 3) {
+      const name = toolNames.get(evt.toolCallId) || 'unknown'
+      const line = `[tool-error:${name}: ${String(evt.errorText || 'unknown')}]`
+      if (!toolErrors.includes(line)) toolErrors.push(line)
     }
 
     if (evt.type === 'data-usage') {
@@ -100,6 +115,7 @@ function parseAgentSse(text) {
   for (const chunk of outputs) {
     parts.push(`[tool-output:${chunk}]`)
   }
+  parts.push(...toolErrors)
   const answer = output.trim()
   if (answer) parts.push(answer)
   for (const err of errors) {
