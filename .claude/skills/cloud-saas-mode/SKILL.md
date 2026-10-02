@@ -93,6 +93,8 @@ redirects to `/sign-in`. `/auth.md` is the agent-facing markdown document.
 paths to `text/markdown` — a cached markdown HIT is what made
 `dash.chmonitor.dev/sign-in` unusable for people.
 
+**Demo down (#3592).** If the active host is `source:'demo'` and `host-status` fails, `FirstRunGate` shows `DemoUnavailableBanner` ("Demo temporarily unavailable" + Retry, `components/host/demo-unavailable-banner.tsx`). Demo-only via `isDemoUnavailable`; OSS/`env` hosts never see it. Don't add per-card demo-down handling.
+
 **Cloud signed-in welcome:** connect a host immediately. There is no Polar
 plan picker and no dashboard `/billing` page. Public paid checkout is
 self-host licenses on chmonitor.dev/pricing → hooks.chmonitor.dev/checkout/license.

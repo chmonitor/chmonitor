@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from '@tanstack/react-router'
 
+import { DemoUnavailableBanner } from './demo-unavailable-banner'
 import {
   isFirstRunExemptPath,
   resolveFirstRunAction,
@@ -91,5 +92,10 @@ export function FirstRunGate({ children }: { children: React.ReactNode }) {
     return <PageSkeleton />
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <DemoUnavailableBanner />
+      {children}
+    </>
+  )
 }
