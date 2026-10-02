@@ -138,7 +138,11 @@ function noStreamError(output) {
   return {
     pass: !bad,
     score: bad ? 0 : 1,
-    reason: bad ? 'agent stream error' : 'no stream error (or infra skip)',
+    reason: bad
+      ? 'agent stream error'
+      : v.kind === 'infra'
+        ? 'infra skip: router failure'
+        : 'no stream error',
   }
 }
 
