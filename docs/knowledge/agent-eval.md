@@ -76,11 +76,18 @@ the backlog to harden).
 - Infra tolerance: the demo ClickHouse is sometimes down. A
   `[tool-error:…1033…]` (also refused/reset/timeout/502-504) is an **infra
   skip**: the case passes with reason `infra skip`. Any other `[tool-error:`
-  fails the case. Upstream model failures count too: empty body, a Cloudflare
-  HTML page, a stream with no text or tool, `No output generated`, router
-  429/5xx. The 2026-10-02 extended run hit all of these halfway through
-  (free-model provider degraded under 33 sequential requests); without the
-  skip, half the suite was red for reasons unrelated to the agent.
+  fails the case. Two more classes are skips: the model router failing
+  (`No output generated`, 429/5xx) and an **origin-down** HTML page or truncated
+  stream (1033, 502/503/504, "origin is unreachable").
+- **Our own faults are never skipped.** `classify()` in `assertions.js` fails,
+  with a named reason, on: a Worker CPU/resource-limit page (`exceeded resource
+  limits`, Error 1101/1102, `Worker threw exception`, the #3560 class, checked
+  before any infra marker), any other HTML page, an empty body, and a `data: {`
+  stream cut short without an infra marker (`stream truncated`). Masking those
+  would read a Worker that dies mid-response as green. History: the first
+  extended run (2026-10-02) went red when the free-model provider degraded; the
+  first fix skipped every HTML page and truncated stream, which hid exactly
+  these faults, so the scope was narrowed.
 - Wording: `answerMatches` (`config.pattern`, case-insensitive) is the
   infra-tolerant replacement for `icontains-any`. The suite-wide
   `not-contains [error:` is `noStreamError` for the same reason.

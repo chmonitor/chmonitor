@@ -50,26 +50,80 @@ describe('noToolCalled', () => {
   })
 })
 
-describe('upstream model failures are infra skips', () => {
-  const failures = {
-    'empty body': '',
-    'cloudflare html': '<!DOCTYPE html>\n<html>Just a moment</html>',
-    'reasoning-only stream (parser fallback)':
-      'data: {"type":"start","messageId":"x"}\n\ndata: {"type":"start-step"}',
+const CPU_LIMIT_PAGE =
+  '<!DOCTYPE html>\n<html><head><title>Worker exceeded resource limits | dash.chmonitor.dev | Cloudflare</title></head><body>Error 1102</body></html>'
+const ORIGIN_1033_PAGE =
+  '<!DOCTYPE html>\n<html><head><title>Cloudflare Tunnel error</title></head><body>Error 1033 Argo Tunnel error</body></html>'
+const TRUNCATED_STREAM =
+  'data: {"type":"start","messageId":"x"}\n\ndata: {"type":"start-step"}'
+
+const ALL_HELPERS = (out: string) => [
+  toolCalled(out, ctx(['query'])),
+  noToolCalled(out),
+  noStreamError(out),
+  answerMatches(out, { config: { pattern: 'x' } }),
+]
+
+describe('infra skips: demo origin and model router only', () => {
+  const skips = {
+    'origin 1033 HTML page': ORIGIN_1033_PAGE,
+    '502 gateway HTML page':
+      '<html><head><title>502 Bad Gateway</title></head></html>',
+    'truncated stream carrying a 1033 marker': `${TRUNCATED_STREAM}\ndata: {"type":"error","errorText":"error code: 1033"}`,
     'router stream error':
       '[error:No output generated. The model stream ended without a finish chunk.]',
-    'provider 502':
+    'provider 502 tool error':
       '[tool:query]\n[tool-error:query: error code: 502 — provider]',
   }
-  for (const [name, out] of Object.entries(failures)) {
-    test(name, () => {
+  for (const [name, out] of Object.entries(skips)) {
+    test(`${name} is skipped by every helper`, () => {
       expect(isInfraSkip(out)).toBe(true)
-      expect(toolCalled(out, ctx(['query'])).pass).toBe(true)
-      expect(noToolCalled(out).pass).toBe(true)
-      expect(noStreamError(out).pass).toBe(true)
-      expect(answerMatches(out, { config: { pattern: 'x' } }).pass).toBe(true)
+      for (const r of ALL_HELPERS(out)) {
+        expect(r.pass).toBe(true)
+        expect(r.reason).toContain('infra skip')
+      }
     })
   }
+})
+
+describe('our own faults are never skipped', () => {
+  test('Worker CPU/resource-limit page fails with a clear reason', () => {
+    expect(isInfraSkip(CPU_LIMIT_PAGE)).toBe(false)
+    for (const r of ALL_HELPERS(CPU_LIMIT_PAGE)) {
+      expect(r.pass).toBe(false)
+      expect(r.reason).toBe('worker CPU/resource limit')
+    }
+  })
+
+  test.each([
+    'Error 1101',
+    'Worker threw exception',
+    'error code: 1102',
+  ])('%s fails as a Worker fault, even next to a 502 marker', (marker) => {
+    const out = `<html><body>${marker} 502 Bad Gateway</body></html>`
+    expect(noStreamError(out).reason).toBe('worker CPU/resource limit')
+    expect(noStreamError(out).pass).toBe(false)
+  })
+
+  test('a truncated stream without an infra marker fails', () => {
+    expect(isInfraSkip(TRUNCATED_STREAM)).toBe(false)
+    for (const r of ALL_HELPERS(TRUNCATED_STREAM)) {
+      expect(r.pass).toBe(false)
+      expect(r.reason).toBe('stream truncated')
+    }
+  })
+
+  test('an unrecognised HTML page fails', () => {
+    const out = '<!DOCTYPE html><html><body>Just a moment...</body></html>'
+    for (const r of ALL_HELPERS(out)) expect(r.pass).toBe(false)
+  })
+
+  test('an empty body fails', () => {
+    for (const r of ALL_HELPERS('')) {
+      expect(r.pass).toBe(false)
+      expect(r.reason).toBe('empty response')
+    }
+  })
 
   test('a model that answered without tools is still a real failure', () => {
     expect(isInfraSkip('It is probably 24.8.')).toBe(false)

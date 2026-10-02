@@ -14,22 +14,31 @@
  * `error code: 1033`, refused connections, gateway errors). A tool that failed
  * for that reason says nothing about the agent, so the case passes as an
  * "infra skip" instead of turning the suite red. Any other tool-error is a real
- * failure. The same goes for upstream model/provider failures (empty body,
- * Cloudflare HTML, a stream with no output, router 429/5xx).
+ * failure. The same goes for the model router failing (`No output generated`,
+ * 429/5xx) and an origin-down HTML page or truncated stream.
+ *
+ * NOT infra, always a failure: the Worker's own faults. A Cloudflare
+ * "exceeded resource limits" / Error 1101 / 1102 page (the #3560 CPU class),
+ * any other HTML page, an empty body, and a `data: {` stream that was cut
+ * short without an infra marker. Masking those would read our bugs as green.
  */
 
 const INFRA_ERROR =
   /\[tool-error:[^\]]*(?:\b1033\b|ECONNREFUSED|ECONNRESET|ENOTFOUND|ETIMEDOUT|fetch failed|\b50[234]\b|bad gateway|service unavailable|gateway timeout)/i
 
-// The model/provider failed, not the agent: an empty body, a Cloudflare HTML
-// page, a stream with no text or tool (parse-agent-sse returns it raw as
-// `data: {...}`), or a stream-level error from the router.
-const UPSTREAM_FAILURE = [
-  /^\s*$/,
-  /^\s*<!DOCTYPE html/i,
-  /^\s*data: \{/,
-  /\[error:[^\]]*(?:No output generated|stream ended|provider could not complete|rate limit|\b429\b|overloaded|temporarily unavailable|\b50[234]\b)/i,
-]
+// OUR bug, never a skip: Cloudflare's page for a Worker that blew its CPU or
+// memory budget (#3560) or threw. Checked before any infra marker.
+const WORKER_FAULT =
+  /exceeded resource limits|Error 110[12]\b|error code: 110[12]\b|Worker threw exception|Worker exceeded/i
+
+// Origin/tunnel class: the demo ClickHouse (or the origin behind the tunnel)
+// is down. Matched inside an HTML page or a raw truncated stream.
+const ORIGIN_DOWN =
+  /Error (?:code:? )?(?:1033|50[234])\b|error code: (?:1033|50[234])\b|\b50[234] (?:bad gateway|service unavailable|gateway time-?out)|bad gateway|gateway time-?out|origin is unreachable|argo tunnel/i
+
+// The model router failed, not the Worker.
+const ROUTER_FAILURE =
+  /\[error:[^\]]*(?:No output generated|stream ended|provider could not complete|rate limit|\b429\b|overloaded|temporarily unavailable|\b50[234]\b)/i
 
 const TOOL_ERROR = /\[tool-error:[^\]]*\]/g
 
@@ -41,10 +50,43 @@ function toolNames(output) {
   return names
 }
 
-function isInfraSkip(output) {
+/**
+ * Classify one output: `fault` (a real failure with a named reason), `infra`
+ * (skip), or `ok` (judge it normally). Only the origin/tunnel and router
+ * classes are infra; an unrecognised HTML page or a truncated stream is ours.
+ */
+function classify(output) {
   const text = String(output || '')
-  return INFRA_ERROR.test(text) || UPSTREAM_FAILURE.some((re) => re.test(text))
+  if (WORKER_FAULT.test(text)) {
+    return { kind: 'fault', reason: 'worker CPU/resource limit' }
+  }
+  if (/^\s*$/.test(text)) {
+    return { kind: 'fault', reason: 'empty response' }
+  }
+  if (INFRA_ERROR.test(text)) return { kind: 'infra' }
+  if (/^\s*(?:<!DOCTYPE html|<html)/i.test(text)) {
+    return ORIGIN_DOWN.test(text)
+      ? { kind: 'infra' }
+      : {
+          kind: 'fault',
+          reason: 'unrecognised HTML page instead of an agent stream',
+        }
+  }
+  if (/^\s*data: \{/.test(text)) {
+    return ORIGIN_DOWN.test(text) || ROUTER_FAILURE.test(text)
+      ? { kind: 'infra' }
+      : { kind: 'fault', reason: 'stream truncated' }
+  }
+  if (ROUTER_FAILURE.test(text)) return { kind: 'infra' }
+  return { kind: 'ok' }
 }
+
+function isInfraSkip(output) {
+  return classify(output).kind === 'infra'
+}
+
+const SKIP = (why) => ({ pass: true, score: 1, reason: `infra skip: ${why}` })
+const FAULT = (reason) => ({ pass: false, score: 0, reason })
 
 /** Pass when any of `config.tools` was called (any tool when omitted). */
 function toolCalled(output, context) {
@@ -52,13 +94,9 @@ function toolCalled(output, context) {
   const called = toolNames(output)
   const text = String(output || '')
 
-  if (isInfraSkip(text)) {
-    return {
-      pass: true,
-      score: 1,
-      reason: 'infra skip: tool hit a demo outage',
-    }
-  }
+  const v = classify(text)
+  if (v.kind === 'fault') return FAULT(v.reason)
+  if (v.kind === 'infra') return SKIP('tool hit a demo outage')
   const realErrors = text.match(TOOL_ERROR) || []
   if (realErrors.length > 0) {
     return { pass: false, score: 0, reason: `tool failed: ${realErrors[0]}` }
@@ -80,9 +118,9 @@ function toolCalled(output, context) {
  * wording failure.
  */
 function answerMatches(output, context) {
-  if (isInfraSkip(output)) {
-    return { pass: true, score: 1, reason: 'infra skip: no usable answer' }
-  }
+  const v = classify(output)
+  if (v.kind === 'fault') return FAULT(v.reason)
+  if (v.kind === 'infra') return SKIP('no usable answer')
   const pattern = context?.config?.pattern
   const hit = new RegExp(pattern, 'i').test(String(output || ''))
   return {
@@ -94,19 +132,25 @@ function answerMatches(output, context) {
 
 /** Replaces `not-contains [error:`: a stream error fails unless it is infra. */
 function noStreamError(output) {
-  const bad = /\[error:/.test(String(output || '')) && !isInfraSkip(output)
+  const v = classify(output)
+  if (v.kind === 'fault') return FAULT(v.reason)
+  const bad = /\[error:/.test(String(output || '')) && v.kind !== 'infra'
   return {
     pass: !bad,
     score: bad ? 0 : 1,
-    reason: bad ? 'agent stream error' : 'no stream error (or infra skip)',
+    reason: bad
+      ? 'agent stream error'
+      : v.kind === 'infra'
+        ? 'infra skip: router failure'
+        : 'no stream error',
   }
 }
 
 /** Pass when no tool ran at all (off-topic, refusals before any lookup). */
 function noToolCalled(output) {
-  if (isInfraSkip(output)) {
-    return { pass: true, score: 1, reason: 'infra skip: no usable answer' }
-  }
+  const v = classify(output)
+  if (v.kind === 'fault') return FAULT(v.reason)
+  if (v.kind === 'infra') return SKIP('no usable answer')
   const called = [...toolNames(output)]
   return {
     pass: called.length === 0,
@@ -121,6 +165,7 @@ module.exports = {
   noToolCalled,
   answerMatches,
   noStreamError,
+  classify,
   isInfraSkip,
   INFRA_ERROR,
 }
