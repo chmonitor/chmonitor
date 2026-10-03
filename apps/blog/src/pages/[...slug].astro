@@ -5,6 +5,7 @@ import Nav from '../components/Nav.astro'
 import Footer from '../components/Footer.astro'
 import { postSlug } from '../lib/slug'
 import { isPublished } from '../lib/published'
+import { postAuthor } from '../lib/authors'
 
 export async function getStaticPaths() {
   const posts = await getCollection('blog', ({ data }) => isPublished(data))
@@ -14,6 +15,7 @@ export async function getStaticPaths() {
 const { post } = Astro.props
 const { Content } = await render(post)
 const slug = postSlug(post)
+const author = postAuthor(post.data.author)
 
 function fmtDate(d: Date) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -40,7 +42,7 @@ const articleJsonLd = {
   datePublished: post.data.date.toISOString(),
   mainEntityOfPage: canonical,
   url: canonical,
-  author: { '@type': 'Organization', name: 'chmonitor', url: 'https://chmonitor.dev' },
+  author: { '@type': 'Person', name: author.name, url: author.url },
   publisher: {
     '@type': 'Organization',
     name: 'chmonitor',
@@ -76,6 +78,11 @@ const breadcrumbJsonLd = {
         <h1 class="mt-5 text-balance font-normal text-[clamp(1.5rem,4.4vw,2.75rem)] leading-[1.06] tracking-tight text-foreground">{post.data.title}</h1>
         <p class="lede mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">{post.data.description}</p>
         <div class="mt-5 flex flex-wrap items-center gap-2.5 text-sm text-muted-foreground">
+          <a class="post-author" href={author.url} target="_blank" rel="author noopener">
+            <img src={author.avatar} alt="" width="24" height="24" loading="eager" decoding="async" />
+            <span>{author.name}</span>
+          </a>
+          <span aria-hidden="true">·</span>
           <span class="post-tag">{post.data.version ?? post.data.tag}</span>
           <span>{fmtDate(post.data.date)}</span>
         </div>
