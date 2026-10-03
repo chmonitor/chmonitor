@@ -4,6 +4,7 @@ description: "After four days of agents working day and night — 50 PRs, 83 com
 date: 2026-08-16
 tag: Release
 version: v0.3.3
+cover: /posts/v0.3.3/cover.webp
 ---
 
 After **four days** of agents working day and night — **50 pull requests** and
@@ -30,6 +31,8 @@ tracked**, so a public demo cannot burn unbounded tool calls.
 
 You pick models dynamically: AnyRouter presets, plus a custom model field. The
 AnyRouter sign-in prompt only shows when no `ANYROUTER_API_KEY` is set.
+
+<img src="/posts/v0.3.3/models.webp" width="2000" height="1250" alt="Agent settings listing AnyRouter presets and models to pick from" loading="eager" />
 
 Self-hosted builds are unchanged — guest caps are Cloud-only.
 

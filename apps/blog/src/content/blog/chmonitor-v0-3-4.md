@@ -4,7 +4,7 @@ description: "After four days of agents working day and night — 106 PRs, 267 c
 date: 2026-08-20
 tag: Release
 version: v0.3.4
-cover: /assets/screenshots/tools-advisor-dark.jpeg
+cover: /posts/v0.3.4/cover.webp
 ---
 
 After **four days** of agents working day and night — **106 pull requests** and
@@ -29,10 +29,9 @@ Every path below opens the live demo on
 
 ### Tools and workspace
 
-<div class="img-row" data-cols="2">
-  <img src="/assets/screenshots/tools-advisor-dark.jpeg" alt="Tools menu open on Advisor — Schema & Settings with a table tree and copyable TTL advice" width="1600" height="949" loading="eager" />
-  <img src="/assets/screenshots/settings-navigation-dark.jpeg" alt="Settings Navigation: Full, DBA, Engineer, SRE, or Custom workspace roles" width="1600" height="1228" loading="eager" />
-</div>
+<img src="/posts/v0.3.4/tools-menu.webp" alt="The Tools group in the sidebar, expanded to SQL Console, Data Explorer, Explain, Advisor, Chart Builder, Schema Compare, and Settings Diff" width="2000" height="1250" loading="eager" />
+
+<img src="/posts/v0.3.4/workspace-roles.webp" alt="Settings Navigation with Full, DBA, Engineer, SRE, and Custom workspace roles" width="2000" height="1250" loading="eager" />
 
 SQL Console, Explorer, and Explain used to sit under Queries, Tables, and
 Operations. They now live together in **Tools**, the last group in Main:
@@ -54,7 +53,7 @@ lives in Settings → Workspace → Navigation. The longer argument is
 
 ### Schema Compare and Settings Diff
 
-<img src="/assets/screenshots/chm-schema-compare.png" alt="Schema Compare empty state with a sample DDL pair — Need two saved connections, plus example tables analytics.sessions vs Host B" width="1600" height="1000" loading="lazy" />
+<img src="/posts/v0.3.4/schema-compare.webp" alt="Schema Compare empty state with a sample DDL pair: Host A and Host B, source only and target only tables" width="2000" height="1250" loading="lazy" />
 
 [DBA workflows](https://docs.chmonitor.dev/guide/guides/dba-workflows) is the
 map of what these pages do today.

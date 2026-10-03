@@ -4,7 +4,7 @@ description: "75 commits and 185 pull requests across five weeks: PeerDB grew a 
 date: 2026-09-27
 tag: Release
 version: v0.3.6
-cover: /assets/screenshots/peerdb-new-dark.webp
+cover: /posts/v0.3.5/cover.webp
 ---
 
 Two releases, five weeks, **185 pull requests** merged across the monorepo and
@@ -39,9 +39,9 @@ rather than a bare threshold breach.
 Alongside it: read-only fleet metrics, a read-only mirror-status tool for the
 AI agent, and a batch of fixes closing auth and cache-isolation gaps.
 
-<img src="/assets/screenshots/peerdb-new-dark.webp" alt="PeerDB mirrors in chmonitor — fleet status tiles for running, snapshotting, paused and failed mirrors with rows-synced trends per mirror" width="1600" height="1049" loading="lazy" decoding="async" />
-
 ## Alerts you can point at your own endpoint
+
+<img src="/posts/v0.3.5/health-alerts.webp" alt="chmonitor Health Summary with critical and warning findings: failed queries, replication lag, query timeout breaches and readonly replicas" width="2000" height="1250" loading="lazy" decoding="async" />
 
 Health-alert findings can now go to destinations you declare, per deployment.
 The Helm chart renders an optional `alertWebhooks` block into the
