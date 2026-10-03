@@ -257,6 +257,10 @@ const ogImage = new URL(image, Astro.site).toString()
       background:var(--card)}
     figure.video video{display:block;width:100%;height:auto;background:var(--card)}
     figure.video iframe{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
+    /* video-wide: borderless, captionless, breaks out to --maxw like a lone screenshot */
+    figure.video.video-wide{border:0;background:none;width:min(var(--maxw), calc(100vw - 48px));
+      max-width:none;margin:36px 0;margin-left:50%;transform:translateX(-50%);border-radius:calc(var(--radius) + 6px);
+      box-shadow:0 30px 60px -30px rgba(0,0,0,.35)}
     figure.video figcaption{font-size:13px;color:var(--muted-foreground);padding:12px 16px;border-top:1px solid var(--border);
       background:var(--card);text-wrap:pretty}
 
@@ -268,6 +272,16 @@ const ogImage = new URL(image, Astro.site).toString()
     .hl b{font-size:15.5px;font-weight:600;letter-spacing:-.01em;color:var(--foreground);display:block}
     .hl span{font-size:13.5px;color:var(--muted-foreground);margin-top:6px;display:block;line-height:1.55}
     @media (max-width:600px){.hl-grid{grid-template-columns:1fr}}
+    /* hl-grid.wide: 4-up breakout grid with an icon tile per card */
+    .hl-grid.wide{grid-template-columns:repeat(4,minmax(0,1fr));width:min(var(--maxw), calc(100vw - 48px));
+      max-width:none;margin:32px 0;margin-left:50%;transform:translateX(-50%)}
+    .hl .hl-icon{display:grid;place-items:center;width:40px;height:40px;margin-bottom:16px;border-radius:11px;
+      color:#ea580c;background:linear-gradient(140deg,rgba(249,115,22,.16),rgba(249,115,22,.05));
+      box-shadow:inset 0 0 0 1px rgba(249,115,22,.22)}
+    .hl .hl-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    [data-theme=dark] .hl .hl-icon{color:#fb923c}
+    @media (max-width:960px){.hl-grid.wide{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:600px){.hl-grid.wide{grid-template-columns:1fr}}
     }
   </style>
 </head>
