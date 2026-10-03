@@ -24,6 +24,9 @@ export const AUTHORS: Record<string, Author> = {
 export function postAuthor(id: string | undefined): Author {
   const key = id ?? DEFAULT_AUTHOR
   const author = AUTHORS[key]
-  if (!author) throw new Error(`Unknown blog author "${key}" — add it to src/lib/authors.ts`)
+  if (!author)
+    throw new Error(
+      `Unknown blog author "${key}" — add it to src/lib/authors.ts`
+    )
   return author
 }

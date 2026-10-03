@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 // Release posts live at /vX.Y.Z/: the slug comes from `version` (see slug.ts).
@@ -49,8 +49,14 @@ describe('release posts', () => {
   test('the title names the same version as the frontmatter', () => {
     const bad = posts
       .filter((p) => p.data.version && /\bv\d+\.\d+/.test(p.data.title ?? ''))
-      .filter((p) => !(p.data.title ?? '').includes(`${p.data.version} `) && !(p.data.title ?? '').endsWith(p.data.version!))
-      .map((p) => `${p.file}: title="${p.data.title}" version=${p.data.version}`)
+      .filter(
+        (p) =>
+          !(p.data.title ?? '').includes(`${p.data.version} `) &&
+          !(p.data.title ?? '').endsWith(p.data.version!)
+      )
+      .map(
+        (p) => `${p.file}: title="${p.data.title}" version=${p.data.version}`
+      )
     expect(bad).toEqual([])
   })
 })
