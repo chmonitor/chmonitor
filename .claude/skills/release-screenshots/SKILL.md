@@ -80,6 +80,8 @@ are **source pixels** (a 3840x2160 capture is 2x the CSS layout).
 | `ver` | Version pill next to the logo, optional (cover only) |
 | `src`, `crop` | Capture and `{x,y,w,h}` region for a single window |
 | `callouts` | Optional `[{x,y,w,h, zoom, at:{x,y}, label}]`: ring the source region and show it magnified at canvas point `at` |
+| `bg` | Photo backdrop (path relative to the spec). Use `assets/backgrounds/meadow-hill.jpg` by default; this is the house style |
+| `bgPos` | CSS `background-position` for the photo (for example `50% 70%`), so a set of images does not repeat the same crop |
 | `layout: "split"` + `panes` | Before/after: `[{label, src, crop}, …]`; `label` takes HTML, wrap the keyword in `<b>` |
 
 Crop rules:
@@ -94,6 +96,25 @@ Crop rules:
 
 `examples/v0.3.6.json` is a complete spec for a real release.
 
+## Style: photo backdrop (default)
+
+Release images use a real photo behind the app window (`bg`), not a generated
+grid or glow. With `bg` set, the frame switches to the photo style: plain
+sentence-case eyebrow, a dark headline over the sky, the version as plain text
+next to the logo, the window resting on the meadow with a soft natural shadow,
+and white callouts. Avoid the generic tells: grid backdrops, orange glows, mono
+uppercase labels with rules, outlined pills, neon rings.
+
+Backgrounds in `assets/backgrounds/` (from the maintainer's own image library,
+downscaled to 2400px):
+
+- `meadow-hill.jpg` — sky over a grassy hill with flowers. Default for every image.
+- `meadow-lake.jpg` — painted meadow and lake. Busier at the edges; use sparingly.
+
+The headline sits on the sky, so it needs a light, low-detail top third. A deep
+saturated sky makes dark text unreadable — check contrast before adding a new
+background. Without `bg`, the frame falls back to the older grid style.
+
 ## 5. Render
 
 ```sh
@@ -101,7 +122,7 @@ bun .claude/skills/release-screenshots/render.mjs <spec.json> apps/blog/public/p
 ```
 
 Each run uses its own agent-browser session (`RELEASE_SHOTS_SESSION`, default
-per process), so several releases can render in parallel. Each image comes out 2000x1250 WebP at 60–100 KB. Run it with `bun`: `node` may
+per process), so several releases can render in parallel. Each image comes out 2000x1250 WebP, about 130–180 KB with a photo backdrop. Run it with `bun`: `node` may
 be a lazy-load shell function on dev machines, which `execFileSync` cannot
 call. Needs `agent-browser`, `cwebp`, and `sips` (macOS).
 

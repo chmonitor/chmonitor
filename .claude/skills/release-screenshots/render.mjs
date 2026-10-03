@@ -48,6 +48,8 @@ const tmp = join(tmpdir(), `release-frame-${process.pid}.png`)
 ab('set', 'viewport', '1600', '1000', '2')
 
 for (const shot of shots) {
+  // `bg` (a photo backdrop) resolves like `src`: relative to the spec file.
+  if (shot.bg) shot.bg = pathToFileURL(resolve(specDir, shot.bg)).href
   const resolved = shot.layout === 'split'
     ? { ...shot, panes: shot.panes.map(withSource) }
     : withSource(shot)
