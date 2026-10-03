@@ -156,6 +156,11 @@ const ogImage = new URL(image, Astro.site).toString()
       background:var(--muted);font-size:12px;font-weight:600;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
       color:var(--muted-foreground)}
 
+    /* ── post author ── */
+    .post-author{display:inline-flex;align-items:center;gap:8px;color:var(--foreground);font-weight:500;text-decoration:none}
+    .post-author:hover span{text-decoration:underline;text-underline-offset:3px}
+    .post-author img{width:24px;height:24px;border-radius:999px;border:1px solid var(--border);background:var(--muted)}
+
     /* ── prose ── */
     .prose{max-width:var(--maxw-prose);margin:0 auto;padding:8px 24px 96px;width:100%;
       font-size:16.5px;line-height:1.75;color:var(--muted-foreground)}
