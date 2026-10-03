@@ -4,6 +4,7 @@ description: "We rebuilt chmonitor from the ground up on TanStack Start: a faste
 date: 2026-06-29
 tag: Release
 version: v0.3
+cover: /posts/v0.3/framed-cover.webp
 ---
 
 chmonitor **v0.3** is the biggest release since the project started — a ground-up
@@ -103,7 +104,7 @@ per-node Raft stats for every Keeper node.
 live diagram — click any node for an inspector panel with latency, znodes and
 virtual cluster membership.
 
-<img src="/posts/v0.3/ai-agent.png" alt="AI Agent chat with suggested questions, connected MCP server and skill toggles" width="2642" height="1980" loading="lazy" />
+<img src="/posts/v0.3/framed-ai-agent.webp" alt="AI Agent chat with suggested questions, a connected chmonitor MCP server and skill toggles" width="2000" height="1250" loading="lazy" />
 
 **The AI agent**, wired straight into a host: suggested questions by category
 (insights, schema, storage, queries), live skill/tool toggles, and an MCP
@@ -120,12 +121,12 @@ materialized views, dictionaries and sources connected by typed edges (`TO`,
 **Running Queries**, live: active count, memory and per-user breakdown as
 charts up top, the actual query table below, auto-refreshing every 5 seconds.
 
-<img src="/posts/v0.3/explain-tree.png" alt="EXPLAIN Query page showing the execution plan as an interactive tree" width="1878" height="1212" loading="lazy" />
+<img src="/posts/v0.3/framed-explain-tree.webp" alt="EXPLAIN Query page showing the execution plan as a collapsible tree with a Tree and Text toggle" width="2000" height="1250" loading="lazy" />
 
 **EXPLAIN as a tree**: pick Plan, Pipeline, AST, Syntax or Estimate, and read
 the execution plan as a collapsible tree instead of a wall of text.
 
-<img src="/posts/v0.3/health-audit.png" alt="Generated audit prompt for a critical replication lag health check" width="2680" height="1790" loading="lazy" />
+<img src="/posts/v0.3/framed-health-audit.webp" alt="Audit prompt dialog for a critical replication lag health check with toggles for metric query, raw row and common causes" width="2000" height="1250" loading="lazy" />
 
 **Health → audit prompt**: a critical check (replication lag, in this case)
 turns into a ready-to-paste prompt with the metric, raw data row, system
@@ -143,7 +144,7 @@ list.
 every source-to-ClickHouse pipeline, plus a live peer topology and per-mirror
 pipeline phase breakdown.
 
-<img src="/posts/v0.3/mcp-server.png" alt="MCP Server page with endpoint URL and setup guides for Claude Desktop, Claude Code and Cursor" width="2946" height="1956" loading="lazy" />
+<img src="/posts/v0.3/framed-mcp-server.webp" alt="MCP Server page with the endpoint URL and setup guides for Claude Desktop, Claude Code and Cursor" width="2000" height="1250" loading="lazy" />
 
 **MCP Server**, self-serve: the endpoint URL plus copy-paste setup for Claude
 Desktop, Claude Code, Cursor or any Streamable HTTP MCP client — read-only
