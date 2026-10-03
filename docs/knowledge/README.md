@@ -31,6 +31,7 @@ Agents discover knowledge in this order:
 | **Architecture** | [frontend-perf-baseline.md](frontend-perf-baseline.md) | reference | Measured runtime baseline + profiling method; no memory leak (heap flat 55-57MB); cost is request fan-out, payload size and lazy boundaries that never defer; hook/caching/bundle rules and a known-good list |
 | **Operations** | [deployment.md](deployment.md) | reference | Docker and Cloudflare Workers dual deployment guide |
 | **Operations** | [install-sh-bot-fight.md](install-sh-bot-fight.md) | reference | curl install.sh 403 from Bot Fight Mode; GitHub raw workaround; `cf:allow-install-sh` |
+| **Design** | [release-screenshots.md](release-screenshots.md) | reference | Release images: privacy gate, one idea per image, branded frames, `render.mjs` to 2000x1250 WebP |
 | **Operations** | [worker-bundle-size.md](worker-bundle-size.md) | decision | Worker gzip 1.82 MiB (under limit); bundle breakdown; @opentelemetry/api probed = 6.5 KiB, NOT worth stubbing |
 | **Operations** | [monorepo-refactor.md](monorepo-refactor.md) | decision | COMPLETE 2026-07-05 — monorepo migration record: phase table, extraction methodology, live gotchas; layout block re-verified 2026-09-30 |
 | **Operations** | [core-memory.md](core-memory.md) | workflow | Automation core memory: code-smell scans, dead-code rules |

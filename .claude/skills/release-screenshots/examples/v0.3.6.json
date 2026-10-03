@@ -1,0 +1,56 @@
+[
+  {
+    "name": "cover",
+    "theme": "dark",
+    "eyebrow": "Release",
+    "ver": "v0.3.6",
+    "title": "Less menu. More cluster.",
+    "sub": "Everything since v0.2: 95 features, 179 fixes, 10 performance wins.",
+    "src": "capture/raw/new-overview-dark.png",
+    "crop": { "x": 0, "y": 0, "w": 3840, "h": 1980 },
+    "callouts": [
+      { "x": 19, "y": 204, "w": 473, "h": 391, "zoom": 2.2, "at": { "x": 1150, "y": 560 }, "label": "5 task groups + More" }
+    ]
+  },
+  {
+    "name": "sidebar",
+    "layout": "split",
+    "eyebrow": "Navigation",
+    "title": "From 16 menus to 5 task groups",
+    "sub": "Day-to-day pages up front. Everything else is one search away under More.",
+    "panes": [
+      { "label": "<b>Before</b> · v0.2", "src": "capture/raw/old-sidebar-expanded.png", "crop": { "x": 0, "y": 0, "w": 1700, "h": 1400 } },
+      { "label": "<b>After</b> · v0.3.6", "src": "capture/raw/new-more-flyout.png", "crop": { "x": 0, "y": 0, "w": 1700, "h": 1400 } }
+    ]
+  },
+  {
+    "name": "alert-settings",
+    "eyebrow": "Alerting",
+    "title": "Alerts that start from a template",
+    "sub": "Pick a preset, then tune thresholds, routing, and quiet hours.",
+    "src": "capture/raw/new-alert-settings.png",
+    "crop": { "x": 960, "y": 120, "w": 2400, "h": 1236 },
+    "callouts": [
+      { "x": 3010, "y": 1016, "w": 272, "h": 62, "zoom": 2.6, "at": { "x": 1060, "y": 850 }, "label": "One step" }
+    ]
+  },
+  {
+    "name": "settings-diff",
+    "eyebrow": "Tools",
+    "title": "Settings Diff across hosts and replicas",
+    "sub": "Compare system.settings and merge_tree_settings. Only what differs.",
+    "src": "capture/raw/new-settings-diff.png",
+    "crop": { "x": 520, "y": 130, "w": 3320, "h": 1712 },
+    "callouts": [
+      { "x": 566, "y": 306, "w": 908, "h": 108, "zoom": 2.0, "at": { "x": 700, "y": 500 }, "label": "Hosts or replica nodes" }
+    ]
+  },
+  {
+    "name": "ai-chat",
+    "eyebrow": "AI agent",
+    "title": "Ask your cluster",
+    "sub": "Schemas, queries, performance, health. Works with free models.",
+    "src": "capture/raw/new-ai-chat.png",
+    "crop": { "x": 552, "y": 144, "w": 3216, "h": 1656 }
+  }
+]
