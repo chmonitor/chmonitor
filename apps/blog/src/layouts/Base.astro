@@ -251,6 +251,7 @@ const ogImage = new URL(image, Astro.site).toString()
     figure.video{margin:32px 0;border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);overflow:hidden;
       background:var(--card)}
     figure.video video{display:block;width:100%;height:auto;background:var(--card)}
+    figure.video iframe{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
     figure.video figcaption{font-size:13px;color:var(--muted-foreground);padding:12px 16px;border-top:1px solid var(--border);
       background:var(--card);text-wrap:pretty}
 
