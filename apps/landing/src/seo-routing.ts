@@ -103,7 +103,7 @@ export const DASHBOARD_PREFIXES = new Set([
 
 const DASH_ORIGIN = 'https://dash.chmonitor.dev'
 const DOCS_ORIGIN = 'https://docs.chmonitor.dev'
-const BLOG_ORIGIN = 'https://blog.chmonitor.dev'
+export const BLOG_ORIGIN = 'https://blog.chmonitor.dev'
 
 export function firstSegment(pathname: string): string {
   return pathname.split('/').filter(Boolean)[0] ?? ''
