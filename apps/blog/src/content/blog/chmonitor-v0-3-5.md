@@ -1,16 +1,16 @@
 ---
-title: "chmonitor v0.3.5 + v0.3.6 — PeerDB alerting, a local CLI, and a quieter sidebar"
+title: "chmonitor v0.3.5 — PeerDB alerting, a local CLI, and a quieter sidebar"
 description: "75 commits and 185 pull requests across five weeks: PeerDB grew a full alert cycle, the Rust CLI learned local named connections, the sidebar learned to stay out of the way, and the public API surface got hardened."
 date: 2026-09-27
 tag: Release
-version: v0.3.6
+version: v0.3.5
 cover: /posts/v0.3.5/cover.webp
 ---
 
 Two releases, five weeks, **185 pull requests** merged across the monorepo and
 **75 commits** in the dashboard's own release range. v0.3.5 and v0.3.6 are the
 tags for everything after
-[v0.3.4](/chmonitor-v0-3-4/) — and the through-line is that chmonitor got a
+[v0.3.4](/v0.3.4/) — and the through-line is that chmonitor got a
 lot better at telling you when something is wrong, and a lot quieter about
 everything else.
 
