@@ -56,6 +56,28 @@
   /* split: two windows side by side (before / after) */
   .label{position:absolute;font-family:"Geist Mono",monospace;font-size:16px;letter-spacing:.06em;color:var(--ink-soft)}
   .label b{color:var(--orange);font-weight:500;text-transform:uppercase}
+  /* ── photo style (spec.bg): a real photo instead of grid + glow ──
+     Quieter type, no eyebrow rule, no outlined pill, white callouts. */
+  [data-style=photo] .bg{background:var(--photo) var(--photo-pos, 50% 50%)/cover no-repeat}
+  [data-style=photo] .bg::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,0) 38%,rgba(0,0,0,0) 70%,rgba(0,0,0,.12) 100%)}
+  [data-style=photo] .grid{display:none}
+  [data-style=photo] body{color:#0b1220}
+  [data-style=photo] .eyebrow{font-family:Geist,system-ui,sans-serif;font-size:19px;letter-spacing:0;text-transform:none;color:rgba(11,18,32,.62);font-weight:500}
+  [data-style=photo] .eyebrow::before{display:none}
+  [data-style=photo] h1{font-weight:550;letter-spacing:-.04em;color:#0b1220;margin-top:10px}
+  [data-style=photo] .sub{color:rgba(11,18,32,.72)}
+  [data-style=photo] .brand{color:#0b1220}
+  [data-style=photo] .brand .ver{border:0;padding:0;margin-left:6px;color:rgba(11,18,32,.55);font-family:Geist,system-ui,sans-serif;font-size:18px}
+  [data-style=photo] .win{border:0;border-radius:14px;
+    box-shadow:0 0 0 1px rgba(255,255,255,.55),0 50px 100px -30px rgba(20,30,20,.55),0 18px 36px -18px rgba(20,30,20,.35)}
+  [data-style=photo] .bar{background:rgba(245,245,244,.92)}
+  [data-style=photo][data-theme=dark] .bar{background:#1f1f22}
+  [data-style=photo] .ring{border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.12),0 8px 24px -8px rgba(0,0,0,.35)}
+  [data-style=photo] .callout{border:0;box-shadow:0 0 0 1px rgba(255,255,255,.7),0 30px 60px -20px rgba(20,30,20,.55)}
+  [data-style=photo] .tag{background:#fff;color:#0b1220;font-family:Geist,system-ui,sans-serif;font-size:16px;font-weight:550;box-shadow:0 8px 20px -8px rgba(0,0,0,.35)}
+  [data-style=photo] .label{color:rgba(11,18,32,.7);font-family:Geist,system-ui,sans-serif;font-size:18px;letter-spacing:0}
+  [data-style=photo] .label b{color:#0b1220;text-transform:none;font-weight:600}
 </style>
 </head>
 <body>
@@ -75,6 +97,13 @@
   // ---- spec ----
   const spec = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))))
   document.documentElement.dataset.theme = spec.theme || 'light'
+  if (spec.bg) {
+    // Photo backdrop: the page is always light-on-photo; spec.theme still
+    // controls the app window chrome (dark screenshots get a dark title bar).
+    document.documentElement.dataset.style = 'photo'
+    document.documentElement.style.setProperty('--photo', `url("${spec.bg}")`)
+    if (spec.bgPos) document.documentElement.style.setProperty('--photo-pos', spec.bgPos)
+  }
   for (const k of ['eyebrow', 'title', 'sub', 'ver']) {
     const el = document.getElementById(k)
     if (spec[k]) el.textContent = spec[k]
@@ -151,7 +180,8 @@
       }
     }
   }
-  Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))])
+  const bgReady = spec.bg ? Object.assign(new Image(), { src: spec.bg }).decode().catch(() => {}) : null
+  Promise.all([document.fonts.ready, bgReady, ...[...document.images].map((i) => i.decode().catch(() => {}))])
     .then(() => { document.body.dataset.ready = '1' })
 </script>
 </body>

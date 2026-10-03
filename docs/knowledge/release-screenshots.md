@@ -22,9 +22,10 @@ and social posts use framed images, not raw full-screen captures.
 ## Format
 
 - 1600x1000 CSS canvas rendered at DPR 2, exported as 2000x1250 WebP
-  (about 60–100 KB).
-- Brand: Geist / Geist Mono, orange `#f97316` accent, warm off-white light
-  background or near-black dark background, with a faint grid and an orange glow.
+  (about 130–180 KB).
+- Backdrop: a real photo (`assets/backgrounds/meadow-hill.jpg`), not a
+  generated grid or glow. Dark headline on the sky, window resting on the
+  meadow, white callouts, Geist type. Vary `bgPos` across a set.
 - Three layouts: single window with a headline, single window plus one zoomed
   callout, and before/after split.
 - The cover is dark, shows Overview, and carries the release headline and a
