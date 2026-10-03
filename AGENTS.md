@@ -278,6 +278,9 @@ leak into the agent bundle). Current dev skills:
   "the agent does not answer", and before any rollback. It replaced the stale
   `.claude/skills/verify-deploy.md`, which pointed at the deleted
   `apps/dashboard-tsr/` path. Backs the `local:prod` desk job.
+- **`release-screenshots`** — capture, privacy-check, pick, crop, and frame
+  release images (blog posts, changelog, social) with the bundled
+  `frame.html` + `render.mjs`. Backed by `docs/knowledge/release-screenshots.md`.
 
 **Auto-improve project skills (standing instruction).** These skills are living
 documents — keep them accurate as the codebase evolves, without being asked:
@@ -325,6 +328,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Tools | [standalone-cli.md](docs/knowledge/standalone-cli.md) | `chm`/`chmonitor` Rust CLI: live TUI, local `add`/`ls`/`use`, dashboard API, `chm doctor`, channels |
 | Development | [pstack-validation.md](docs/knowledge/pstack-validation.md) | Project-local pstack adapter, pinned upstream skills subtree, validation inventory, CI-first feature matrix, and evidence rules |
 | Operations | [install-sh-bot-fight.md](docs/knowledge/install-sh-bot-fight.md) | curl install.sh 403 from Bot Fight Mode; GitHub raw workaround; `cf:allow-install-sh` |
+| Design | [release-screenshots.md](docs/knowledge/release-screenshots.md) | Release images: privacy gate, one idea per image, branded frames, `render.mjs` to 2000x1250 WebP |
 
 ### When to Write to Knowledge vs Memory
 

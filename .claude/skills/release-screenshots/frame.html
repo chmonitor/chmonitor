@@ -1,0 +1,158 @@
+<!doctype html>
+<!--
+  Release screenshot frame. Rendered by render.mjs — not opened by hand.
+  The spec arrives as base64 JSON in the URL hash (see SKILL.md for fields).
+  Canvas is 1600x1000 CSS px; render.mjs captures it at DPR 2.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>release frame</title>
+<style>
+  @font-face{font-family:Geist;src:url(assets/geist-latin.woff2) format("woff2");font-weight:100 900}
+  @font-face{font-family:"Geist Mono";src:url(assets/geist-mono-latin-500.woff2) format("woff2");font-weight:500}
+  :root{
+    --orange:#f97316;--orange-soft:rgba(249,115,22,.14);
+    --bg:#faf8f5;--bg-2:#f3eee7;--ink:#1c1917;--ink-soft:#57534e;--line:rgba(28,25,23,.08);
+    --win:#ffffff;--win-bar:#f5f5f4;--shadow:0 40px 80px -24px rgba(28,25,23,.28),0 12px 24px -12px rgba(28,25,23,.18);
+  }
+  [data-theme=dark]{
+    --bg:#0c0a09;--bg-2:#1c1917;--ink:#fafaf9;--ink-soft:#a8a29e;--line:rgba(250,250,249,.07);
+    --win:#18181b;--win-bar:#27272a;--shadow:0 40px 90px -20px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.06);
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{width:1600px;height:1000px;overflow:hidden}
+  body{font-family:Geist,system-ui,sans-serif;color:var(--ink);background:var(--bg);position:relative;-webkit-font-smoothing:antialiased}
+  /* backdrop: fine grid fading out + a warm brand glow behind the window */
+  .bg{position:absolute;inset:0;
+    background:
+      radial-gradient(900px 520px at 72% 78%,var(--orange-soft),transparent 70%),
+      radial-gradient(700px 400px at 8% 0%,var(--bg-2),transparent 70%),
+      var(--bg)}
+  .grid{position:absolute;inset:0;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:40px 40px;
+    mask-image:radial-gradient(1200px 700px at 50% 30%,#000 30%,transparent 80%)}
+  header{position:absolute;left:96px;right:96px;top:72px;display:flex;justify-content:space-between;align-items:flex-start;gap:48px}
+  .eyebrow{font-family:"Geist Mono",monospace;font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);display:flex;align-items:center;gap:12px}
+  .eyebrow::before{content:"";width:28px;height:2px;background:var(--orange)}
+  h1{margin-top:16px;font-size:56px;line-height:1.04;letter-spacing:-.035em;font-weight:600;max-width:1000px;text-wrap:balance}
+  .sub{margin-top:14px;font-size:22px;line-height:1.4;color:var(--ink-soft);max-width:860px;text-wrap:pretty}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:22px;letter-spacing:-.01em;white-space:nowrap;padding-top:4px}
+  .brand svg{width:34px;height:34px}
+  .brand .ver{font-family:"Geist Mono",monospace;font-size:15px;font-weight:500;color:var(--ink-soft);border:1px solid var(--line);border-radius:999px;padding:4px 10px;margin-left:4px}
+  /* window */
+  .win{position:absolute;border-radius:16px;overflow:hidden;background:var(--win);box-shadow:var(--shadow);border:1px solid var(--line)}
+  .bar{height:36px;background:var(--win-bar);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--line)}
+  .bar i{width:11px;height:11px;border-radius:50%;background:var(--line);display:block}
+  .bar i:nth-child(1){background:#ff5f57}.bar i:nth-child(2){background:#febc2e}.bar i:nth-child(3){background:#28c840}
+  .shot{position:relative;overflow:hidden}
+  .shot img{position:absolute;display:block;max-width:none}
+  /* callout: magnified inset of a source region, with a ring on the window */
+  .ring{position:absolute;border:2.5px solid var(--orange);border-radius:10px;box-shadow:0 0 0 6px var(--orange-soft)}
+  .callout{position:absolute;border-radius:14px;overflow:hidden;background:var(--win);box-shadow:var(--shadow);border:2.5px solid var(--orange)}
+  .callout .shot{border-radius:0}
+  .tag{position:absolute;font-family:"Geist Mono",monospace;font-size:15px;font-weight:500;background:var(--orange);color:#fff;padding:6px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 8px 20px -8px rgba(249,115,22,.6)}
+  /* split: two windows side by side (before / after) */
+  .label{position:absolute;font-family:"Geist Mono",monospace;font-size:16px;letter-spacing:.06em;color:var(--ink-soft)}
+  .label b{color:var(--orange);font-weight:500;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="grid"></div>
+<header>
+  <div>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <p class="sub" id="sub"></p>
+  </div>
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><defs><clipPath id="a"><circle cx="16" cy="16" r="16"/></clipPath></defs><circle cx="16" cy="16" r="16" fill="#1c1917"/><g clip-path="url(#a)" transform="translate(-1.60 -1.88) scale(1.1)"><rect x="3.3" y="13.05" width="3.8" height="15.45" fill="#f97316"/><rect x="8.7" y="3.5" width="3.8" height="25" fill="#f97316"/><rect x="14.1" y="13.25" width="3.8" height="15.25" fill="#f97316"/><rect x="19.5" y="6.25" width="3.8" height="22.25" fill="#f97316"/><rect x="24.9" y="16.5" width="3.8" height="12" fill="#f97316"/></g></svg>
+    chmonitor<span class="ver" id="ver"></span>
+  </div>
+</header>
+<script>
+  // ---- spec ----
+  const spec = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))))
+  document.documentElement.dataset.theme = spec.theme || 'light'
+  for (const k of ['eyebrow', 'title', 'sub', 'ver']) {
+    const el = document.getElementById(k)
+    if (spec[k]) el.textContent = spec[k]
+    else el.remove()
+  }
+  const W = 1600, H = 1000
+
+  // A window showing `crop` (source px) of `src`, scaled to fit `box` (canvas px).
+  // Returns the scale + origin so callouts can map source coords onto the canvas.
+  function windowAt(src, crop, box, dims, chrome = true) {
+    const bar = chrome ? 36 : 0
+    const scale = Math.min(box.w / crop.w, (box.h - bar) / crop.h)
+    const w = Math.round(crop.w * scale), h = Math.round(crop.h * scale) + bar
+    const x = Math.round(box.x + (box.w - w) / 2)
+    const y = box.anchor === 'bottom' ? box.y + box.h - h : Math.round(box.y + (box.h - h) / 2)
+    const win = document.createElement('div')
+    win.className = 'win'
+    Object.assign(win.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' })
+    if (chrome) win.innerHTML = '<div class="bar"><i></i><i></i><i></i></div>'
+    win.appendChild(shotEl(src, crop, scale, w, h - bar, dims))
+    document.body.appendChild(win)
+    return { scale, ox: x, oy: y + bar, x, y, w, h }
+  }
+  function shotEl(src, crop, scale, w, h, dims) {
+    const shot = document.createElement('div')
+    shot.className = 'shot'
+    Object.assign(shot.style, { width: w + 'px', height: h + 'px' })
+    const img = new Image()
+    img.src = src
+    Object.assign(img.style, {
+      width: dims.w * scale + 'px', height: dims.h * scale + 'px',
+      left: -crop.x * scale + 'px', top: -crop.y * scale + 'px',
+    })
+    shot.appendChild(img)
+    return shot
+  }
+  function pos(el, css) { Object.assign(el.style, css); document.body.appendChild(el); return el }
+
+  const headerH = spec.title ? (spec.sub ? 300 : 250) : 120
+  if (spec.layout === 'split') {
+    // before / after: two windows, labels above each
+    const gap = 48, colW = (W - 96 * 2 - gap) / 2
+    spec.panes.forEach((p, i) => {
+      const box = { x: 96 + i * (colW + gap), y: headerH + 40, w: colW, h: H - headerH - 40 - 64 }
+      const r = windowAt(p.src, p.crop, box, p.dims)
+      const lab = document.createElement('div')
+      lab.className = 'label'
+      lab.innerHTML = p.label
+      pos(lab, { left: r.x + 'px', top: r.y - 32 + 'px' })
+    })
+  } else {
+    // single window, bleeding off the bottom edge for depth
+    const box = { x: 96, y: headerH, w: W - 192, h: H - headerH + 60, anchor: 'bottom' }
+    const r = windowAt(spec.src, spec.crop, box, spec.dims)
+    for (const c of spec.callouts || []) {
+      // ring over the source region on the window
+      const ring = document.createElement('div')
+      ring.className = 'ring'
+      pos(ring, {
+        left: r.ox + (c.x - spec.crop.x) * r.scale - 6 + 'px', top: r.oy + (c.y - spec.crop.y) * r.scale - 6 + 'px',
+        width: c.w * r.scale + 12 + 'px', height: c.h * r.scale + 12 + 'px',
+      })
+      // magnified inset at c.at (canvas px), zoom c.zoom
+      const z = r.scale * (c.zoom || 2)
+      const inset = document.createElement('div')
+      inset.className = 'callout'
+      inset.appendChild(shotEl(spec.src, c, z, c.w * z, c.h * z, spec.dims))
+      pos(inset, { left: c.at.x + 'px', top: c.at.y + 'px', width: c.w * z + 5 + 'px', height: c.h * z + 5 + 'px' })
+      if (c.label) {
+        const tag = document.createElement('div')
+        tag.className = 'tag'
+        tag.textContent = c.label
+        pos(tag, { left: c.at.x + 16 + 'px', top: c.at.y - 18 + 'px' })
+      }
+    }
+  }
+  Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))])
+    .then(() => { document.body.dataset.ready = '1' })
+</script>
+</body>
+</html>
