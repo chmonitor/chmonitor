@@ -14,6 +14,7 @@ function post(name: string, fm: string) {
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), 'blog-releases-'))
   post('ok.md', 'date: 2026-10-03\ntag: Release\nversion: v0.3.6')
+  post('minor.md', 'date: 2026-06-29\ntag: Release\nversion: v0.3')
   post(
     'draft.md',
     'date: 2026-10-01\ntag: Release\nversion: v0.3.7\ndraft: true'
@@ -36,7 +37,18 @@ describe('loadBlogReleasePostsFromDir', () => {
   })
 
   test('never links drafts, future-dated, non-Release or versionless posts (404s)', () => {
-    expect([...load().keys()].sort()).toEqual(['0.3.6', 'v0.3.6'])
+    expect([...load().keys()].sort()).toEqual([
+      '0.3',
+      '0.3.0',
+      '0.3.6',
+      'v0.3',
+      'v0.3.0',
+      'v0.3.6',
+    ])
+  })
+
+  test('a minor post (v0.3) links the v0.3.0 release tag', () => {
+    expect(load().get('v0.3.0')).toBe('https://blog.chmonitor.dev/v0.3/')
   })
 
   test('missing directory yields an empty map instead of throwing', () => {

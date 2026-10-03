@@ -56,8 +56,13 @@ export function loadBlogReleasePostsFromDir(
     )
     if (!version) continue
     const url = `${BLOG_ORIGIN}/${version}/`
-    map.set(version, url)
-    map.set(version.replace(/^v/i, ''), url)
+    const bare = version.replace(/^v/i, '')
+    // A minor post ("v0.3") is the release tagged "v0.3.0".
+    const keys = /^\d+\.\d+$/.test(bare) ? [bare, `${bare}.0`] : [bare]
+    for (const key of keys) {
+      if (!map.has(key)) map.set(key, url)
+      if (!map.has(`v${key}`)) map.set(`v${key}`, url)
+    }
   }
   return map
 }
