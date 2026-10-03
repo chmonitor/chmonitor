@@ -100,7 +100,8 @@ Crop rules:
 bun .claude/skills/release-screenshots/render.mjs <spec.json> apps/blog/public/posts/vX.Y.Z
 ```
 
-Each image comes out 2000x1250 WebP at 60–100 KB. Run it with `bun`: `node` may
+Each run uses its own agent-browser session (`RELEASE_SHOTS_SESSION`, default
+per process), so several releases can render in parallel. Each image comes out 2000x1250 WebP at 60–100 KB. Run it with `bun`: `node` may
 be a lazy-load shell function on dev machines, which `execFileSync` cannot
 call. Needs `agent-browser`, `cwebp`, and `sips` (macOS).
 

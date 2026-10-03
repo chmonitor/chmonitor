@@ -6,7 +6,8 @@
 // spec.json is an array of shots (fields in SKILL.md). Each shot is drawn by
 // frame.html at 1600x1000 CSS px, captured at DPR 2 with agent-browser, then
 // written as <out-dir>/<name>.webp (2000px wide) via cwebp. Needs
-// agent-browser, cwebp, and sips (macOS) on PATH.
+// agent-browser, cwebp, and sips (macOS) on PATH. Set RELEASE_SHOTS_SESSION to
+// give each parallel run its own browser session.
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -23,7 +24,9 @@ const here = dirname(fileURLToPath(import.meta.url))
 const frameUrl = pathToFileURL(join(here, 'frame.html')).href
 const specDir = dirname(resolve(specPath))
 const shots = JSON.parse(readFileSync(specPath, 'utf8'))
-const ab = (...args) => execFileSync('agent-browser', args, { encoding: 'utf8', timeout: 30_000 })
+const session = process.env.RELEASE_SHOTS_SESSION || `release-shots-${process.pid}`
+const ab = (...args) =>
+  execFileSync('agent-browser', ['--session', session, ...args], { encoding: 'utf8', timeout: 30_000 })
 
 function imageSize(file) {
   const out = execFileSync('sips', ['-g', 'pixelWidth', '-g', 'pixelHeight', file], { encoding: 'utf8' })

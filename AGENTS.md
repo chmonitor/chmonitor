@@ -5,12 +5,35 @@ Canonical project instructions for every coding agent (Claude, Grok, Codex, Curs
 
 ## Git Commit Convention
 
-**IMPORTANT**: All commits should include the co-authorship:
+**IMPORTANT**: Every commit is authored by **duyet** with **duyetbot** as
+co-author. The local git identity on agent machines is often `duyetbot`, so
+set the author explicitly on every commit you create, in this repo and in
+sibling repos (for example `chmonitor/launch`):
 ```
+git commit --author="duyet <5009534+duyet@users.noreply.github.com>" ...
+
 Co-Authored-By: duyetbot <bot@duyet.net>
 ```
+Squash merges on GitHub already credit duyet as author; this rule matters for
+any commit pushed directly.
 
 Use semantic commit format with consistent scope for commit messages and PR titles. Keep wording simple. Never mention external design references, visual inspiration sites, or comparative platforms in commit messages, PR titles, or PR descriptions.
+
+## Parallel subagents (default)
+
+Split work into independent pieces and run them as **parallel subagents** by
+default — one subagent per post, page, scene, package, or PR. Do it without
+being asked; sequential work is the exception and needs a reason (step N
+feeds step N+1, or two pieces touch the same file).
+
+- Give each subagent a self-contained brief: goal, exact files it owns,
+  constraints, and the check that proves it is done.
+- Never let two subagents edit the same file. Split by file ownership.
+- Shared tools need isolation: separate agent-browser sessions (for example
+  `RELEASE_SHOTS_SESSION`), separate ports, separate output dirs.
+- No `pnpm run build` / `bun build` inside parallel subagents (concurrent
+  builds run out of memory). Build and test once after they finish.
+- Subagents do not commit or push. The lead reviews, verifies, and commits.
 
 ## PR Workflow
 
