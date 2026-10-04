@@ -437,7 +437,7 @@ Both environments need these env vars (set via `.env.production.local`, `.env.lo
 | `CLICKHOUSE_USER` | Yes | ClickHouse username |
 | `CLICKHOUSE_PASSWORD` | Yes | ClickHouse password |
 
-Optional: `CLERK_SECRET_KEY`, LLM API keys, `CLICKHOUSE_TZ`, etc.
+Optional: `CLERK_SECRET_KEY`, LLM API keys, etc.
 
 #### CI Environment (GitHub Actions)
 
@@ -841,7 +841,7 @@ The application includes a robust table validation system to handle optional Cli
 
 - `packages/clickhouse-client/src/table-validator.ts` - Validates table existence before queries
 - `packages/clickhouse-client/src/table-existence-cache.ts` - Caches validation results (5-minute TTL)
-- `lib/error-utils.ts` - Provides user-friendly error messages
+- `apps/dashboard/src/lib/card-error-utils.ts` - Provides user-friendly error messages
 
 **Usage Pattern**:
 
@@ -1004,19 +1004,19 @@ export const ChartYourName = function ChartYourName({
 
 ### Data Layer
 - `packages/clickhouse-client/src/index.ts` - ClickHouse client and `fetchData` (hostId required)
-- `lib/swr/use-host.ts` - Extract hostId from query params
+- `apps/dashboard/src/lib/swr/use-host.ts` - Extract hostId from query params (TanStack Query; `lib/swr/` is a leftover directory name)
 - `apps/dashboard/src/lib/query/use-chart-data.ts` - TanStack Query hook for chart data
 - `apps/dashboard/src/lib/query/use-table-data.ts` - TanStack Query hook for table data
-- `lib/api/chart-registry.ts` - Chart query registry
-- `lib/query-config/index.ts` - Centralized query configurations
+- `apps/dashboard/src/lib/api/chart-registry.ts` - Chart query registry
+- `apps/dashboard/src/lib/query-config/index.ts` - Centralized query configurations
 
 ### Configuration
-- `menu.ts` - Navigation menu configuration (static routes)
+- `apps/dashboard/src/menu.ts` - Navigation menu configuration (static routes)
 - `.env.local` - Environment variables for ClickHouse hosts
 
 ### Types
-- `lib/api/types.ts` - API request/response types
-- `types/query-config.ts` - Query configuration types
+- `apps/dashboard/src/lib/api/types.ts` - API request/response types
+- `apps/dashboard/src/types/query-config.ts` - Query configuration types
 
 ## Migration Notes
 
