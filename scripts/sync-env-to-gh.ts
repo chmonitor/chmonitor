@@ -46,7 +46,6 @@ const ENV_FILE_CASCADE = [
 const SECRET_KEYS = [
   // ClickHouse
   'CLICKHOUSE_PASSWORD',
-  'CLICKHOUSE_TZ',
   'CLICKHOUSE_EXCLUDE_USER_DEFAULT',
   // LLM providers
   'LLM_API_KEY',

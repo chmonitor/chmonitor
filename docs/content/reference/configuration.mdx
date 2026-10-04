@@ -175,14 +175,13 @@ Optional. Set `PEERDB_API_URL` to enable the PeerDB section in the sidebar.
 Full reference: [Environment variables — PeerDB](/reference/environment-variables#peerdb-monitoring).
 
 </Accordion>
-<Accordion title="Branding and analytics">
+<Accordion title="Analytics">
 
-All client-side, all build-time. Customize the tab title, logo, and analytics
-integrations.
+Product analytics uses the PostHog key `CHM_ANALYTICS_KEY` (client
+`VITE_ANALYTICS_KEY` is derived at build time). Optional build-time override:
 
 ```bash
-VITE_TITLE_SHORT=MyCompany CH
-VITE_MEASUREMENT_ID=G-XXXXXXXXXX
+VITE_AUTOCOMPLETE_LIMIT=500
 ```
 
 Full reference: [Environment variables — analytics and branding](/reference/environment-variables#analytics--branding).

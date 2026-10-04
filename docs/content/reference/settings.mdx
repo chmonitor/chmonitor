@@ -162,7 +162,7 @@ CLICKHOUSE_NAME=prod-a,prod-b
 
 ```bash
 CLICKHOUSE_MAX_EXECUTION_TIME=60    # seconds
-CLICKHOUSE_TZ=UTC
+# CHM_TABLE_MAX_RESULT_ROWS=10000   # 0 disables the table row cap
 ```
 
 </Accordion>
@@ -207,18 +207,11 @@ CONVERSATION_STORE_BACKEND=agentstate   # or: d1, postgres, memory
 ```
 
 </Accordion>
-<Accordion title="Branding (build-time, TanStack app)">
+<Accordion title="Autocomplete (build-time)">
 
 ```bash
-VITE_TITLE_SHORT=ClickHouse
-VITE_LOGO=https://example.com/logo.svg
-VITE_MEASUREMENT_ID=G-XXXXXXXXXX
+VITE_AUTOCOMPLETE_LIMIT=500
 ```
-
-<Callout type="info" title="Legacy Next.js prefix">
-The legacy Next.js app (v0.2 and earlier) used `NEXT_PUBLIC_*` equivalents for
-these client-side variables.
-</Callout>
 
 </Accordion>
 </Accordions>
