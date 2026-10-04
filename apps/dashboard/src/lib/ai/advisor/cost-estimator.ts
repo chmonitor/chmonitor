@@ -242,23 +242,14 @@ export interface TableColumnStats {
 
 export type ColumnStatsByTable = Map<string, TableColumnStats>
 
-/**
- * Per-column average row size, reusing the same `data_uncompressed_bytes /
- * rows` shape used elsewhere for column storage stats (see
- * lib/query-config/system/database-table.ts), adapted here to a single
- * lightweight query per referenced table (metadata-cached — see
- * `readOnlyQuery`'s `useCache`) instead of a UI QueryConfig.
- */
-async function fetchColumnStats(
-  hostId: number,
-  tables: Array<{ database: string; table: string }>
-): Promise<ColumnStatsByTable> {
-  const stats: ColumnStatsByTable = new Map()
+type ColumnStatRow = {
+  name: string
+  uncompressed_bytes: string | number
+  total_rows: string | number | null
+}
 
-  const results = await Promise.all(
-    tables.map(async ({ database, table }) => {
-      const rows = (await readOnlyQuery({
-        query: `
+/** One table keeps this statement and `{database, table}` params. */
+const SINGLE_TABLE_COLUMN_STATS_SQL = `
           SELECT
             c.name AS name,
             sum(c.data_uncompressed_bytes) AS uncompressed_bytes,
@@ -267,31 +258,110 @@ async function fetchColumnStats(
           INNER JOIN system.tables t ON t.database = c.database AND t.name = c.table
           WHERE c.database = {database:String} AND c.table = {table:String}
           GROUP BY c.name
-        `,
-        query_params: { database, table },
-        hostId,
-        useCache: true,
-      })) as Array<{
-        name: string
-        uncompressed_bytes: string | number
-        total_rows: string | number | null
-      }>
-      return { key: `${database}.${table}`, rows }
-    })
-  )
+        `
 
-  for (const { key, rows } of results) {
-    if (rows.length === 0) continue
-    const columnBytes = new Map<string, number>()
-    let totalRows: number | null = null
-    for (const row of rows) {
-      columnBytes.set(row.name, Number(row.uncompressed_bytes))
-      if (row.total_rows != null) totalRows = Number(row.total_rows)
-    }
-    stats.set(key, { totalRows, columnBytes })
+export type ColumnStatsQuerier = (options: {
+  query: string
+  hostId: number
+  query_params?: Record<string, unknown>
+  useCache?: boolean
+}) => Promise<unknown>
+
+/**
+ * Per-column average row size, reusing the same `data_uncompressed_bytes /
+ * rows` shape used elsewhere for column storage stats (see
+ * lib/query-config/system/database-table.ts). One referenced table is one
+ * lightweight query; two or more tables share one batched query
+ * (metadata-cached — see `readOnlyQuery`'s `useCache`) instead of a UI
+ * QueryConfig.
+ */
+export async function fetchColumnStats(
+  hostId: number,
+  tables: Array<{ database: string; table: string }>,
+  query: ColumnStatsQuerier = readOnlyQuery
+): Promise<ColumnStatsByTable> {
+  const stats: ColumnStatsByTable = new Map()
+  if (tables.length === 0) return stats
+
+  if (tables.length === 1) {
+    const { database, table } = tables[0]
+    const rows = (await query({
+      query: SINGLE_TABLE_COLUMN_STATS_SQL,
+      hostId,
+      query_params: { database, table },
+      useCache: true,
+    })) as ColumnStatRow[]
+    putColumnStats(stats, `${database}.${table}`, rows)
+    return stats
+  }
+
+  const batched = batchColumnStatsQuery(tables)
+  const rows = (await query({
+    query: batched.sql,
+    hostId,
+    query_params: batched.query_params,
+    useCache: true,
+  })) as Array<ColumnStatRow & { database: string; table: string }>
+
+  const grouped = new Map<string, ColumnStatRow[]>()
+  for (const row of rows) {
+    const key = `${row.database}.${row.table}`
+    const group = grouped.get(key)
+    if (group) group.push(row)
+    else grouped.set(key, [row])
+  }
+
+  for (const { database, table } of tables) {
+    const key = `${database}.${table}`
+    putColumnStats(stats, key, grouped.get(key) ?? [])
   }
 
   return stats
+}
+
+function putColumnStats(
+  stats: ColumnStatsByTable,
+  key: string,
+  rows: ColumnStatRow[]
+): void {
+  if (rows.length === 0) return
+  const columnBytes = new Map<string, number>()
+  let totalRows: number | null = null
+  for (const row of rows) {
+    columnBytes.set(row.name, Number(row.uncompressed_bytes))
+    if (row.total_rows != null) totalRows = Number(row.total_rows)
+  }
+  stats.set(key, { totalRows, columnBytes })
+}
+
+function batchColumnStatsQuery(
+  tables: Array<{ database: string; table: string }>
+): { sql: string; query_params: Record<string, string> } {
+  const query_params: Record<string, string> = {}
+  const clauses: string[] = []
+  for (let i = 0; i < tables.length; i++) {
+    const dbParam = `db_${i}`
+    const tblParam = `tbl_${i}`
+    query_params[dbParam] = tables[i].database
+    query_params[tblParam] = tables[i].table
+    clauses.push(
+      `(c.database = {${dbParam}:String} AND c.table = {${tblParam}:String})`
+    )
+  }
+
+  const sql = `
+          SELECT
+            c.database AS database,
+            c.table AS table,
+            c.name AS name,
+            sum(c.data_uncompressed_bytes) AS uncompressed_bytes,
+            any(t.total_rows) AS total_rows
+          FROM system.columns c
+          INNER JOIN system.tables t ON t.database = c.database AND t.name = c.table
+          WHERE ${clauses.join('\n   OR ')}
+          GROUP BY c.database, c.table, c.name
+        `
+  return { sql, query_params }
 }
 
 // ---------------------------------------------------------------------------
