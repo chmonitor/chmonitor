@@ -108,10 +108,9 @@ product is a combination that actually happens.
 ## Agent and guest-model probes
 
 A dead model id is invisible in every health check, and that is exactly how it
-broke before: `GUEST_DEFAULT_AGENT_MODEL` is a hard-coded id
-(`apps/dashboard/src/lib/billing/guest-ai.ts`) that can go stale while the
-client-side override (`agent-runtime-provider.tsx` → `anyrouter:auto`) keeps
-the UI working. The default is therefore *masked*, not *fixed*.
+broke before: the guest default is the constant `GUEST_DEFAULT_AGENT_MODEL`
+in `apps/dashboard/src/lib/billing/guest-ai.ts`. That id can go stale while
+other surfaces still answer.
 
 ```sh
 curl -sS https://dash.chmonitor.dev/api/v1/agents/config-check | head -c 400
@@ -125,8 +124,8 @@ default id is a product decision: it needs a human.
 
 ## Usage and quota
 
-- Guest AI: 3 requests/day per IP, 5/min (`GUEST_AI_REQUESTS_PER_DAY`,
-  `GUEST_AI_RATE_LIMIT_PER_MIN`). Counts live in D1 `ai_usage_daily`
+- Guest AI: 3 requests/day per IP, 5/min (`CHM_GUEST_AI_REQUESTS_PER_DAY`,
+  `RATE_LIMIT_AGENT_GUEST_PER_MIN`). Counts live in D1 `ai_usage_daily`
   (`lib/billing/ai-usage-store.ts`), keyed `guest:<sha256-prefix>` per IP.
 - `GET /api/v1/billing/usage` returns the owner's meters vs. plan caps
   (`routes/api/v1/billing/usage.ts`). Auth mirrors the other billing routes;
