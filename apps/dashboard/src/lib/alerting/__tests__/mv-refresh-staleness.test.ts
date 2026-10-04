@@ -16,11 +16,16 @@ import { describe, expect, test } from 'bun:test'
 
 function makeRow(
   overrides: Partial<MvRefreshRow> = {}
-): Pick<MvRefreshRow, 'status' | 'staleness_seconds' | 'is_failed'> {
+): Pick<
+  MvRefreshRow,
+  'status' | 'staleness_seconds' | 'is_failed' | 'exception' | 'retry'
+> {
   return {
     status: 'Scheduled',
     staleness_seconds: 0,
     is_failed: 0,
+    exception: null,
+    retry: 0,
     ...overrides,
   }
 }
@@ -30,12 +35,29 @@ describe('classifyMvRefresh', () => {
     expect(classifyMvRefresh(makeRow({ staleness_seconds: 60 }))).toBe('ok')
   })
 
-  test('failed when status is Error', () => {
-    expect(classifyMvRefresh(makeRow({ status: 'Error' }))).toBe('failed')
+  test('failed when exception is set, even while Scheduled', () => {
+    expect(
+      classifyMvRefresh(
+        makeRow({ status: 'Scheduled', exception: 'timeout', retry: 1 })
+      )
+    ).toBe('failed')
   })
 
-  test('failed when status is Failed', () => {
-    expect(classifyMvRefresh(makeRow({ status: 'Failed' }))).toBe('failed')
+  test('failed when retry > 0 and exception is empty', () => {
+    expect(classifyMvRefresh(makeRow({ status: 'Scheduled', retry: 2 }))).toBe(
+      'failed'
+    )
+  })
+
+  test('ok when never succeeded and exception is empty', () => {
+    expect(
+      classifyMvRefresh(makeRow({ status: 'Scheduled', exception: '' }))
+    ).toBe('ok')
+  })
+
+  test('ok when status is Error or Failed but exception and retry are clear', () => {
+    expect(classifyMvRefresh(makeRow({ status: 'Error' }))).toBe('ok')
+    expect(classifyMvRefresh(makeRow({ status: 'Failed' }))).toBe('ok')
   })
 
   test('failed when is_failed flag is set', () => {
@@ -79,6 +101,7 @@ const fullRow = (overrides: Partial<MvRefreshRow> = {}): MvRefreshRow => ({
   staleness_seconds: 0,
   is_failed: 0,
   exception: null,
+  retry: 0,
   ...overrides,
 })
 
@@ -96,8 +119,8 @@ describe('countMvIssues', () => {
 
   test('counts failed views correctly', () => {
     const rows = [
-      fullRow({ status: 'Error' }),
-      fullRow({ status: 'Failed' }),
+      fullRow({ status: 'Scheduled', exception: 'boom', retry: 1 }),
+      fullRow({ status: 'Scheduled', retry: 2 }),
       fullRow({ staleness_seconds: 100 }),
     ]
     const result = countMvIssues(rows)
@@ -118,7 +141,7 @@ describe('countMvIssues', () => {
 
   test('mixed failed and stale', () => {
     const rows = [
-      fullRow({ status: 'Error' }),
+      fullRow({ exception: 'boom' }),
       fullRow({ staleness_seconds: 5000 }),
       fullRow({ staleness_seconds: 100 }),
     ]

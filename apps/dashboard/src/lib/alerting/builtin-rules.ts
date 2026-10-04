@@ -228,7 +228,7 @@ WHERE event_time > now() - INTERVAL 1 HOUR
     sql: `SELECT count() AS failed_count
 FROM system.backup_log
 WHERE event_time > now() - INTERVAL 24 HOUR
-  AND status = 'FAILED'`,
+  AND status IN ('BACKUP_FAILED', 'RESTORE_FAILED')`,
     valueKey: 'failed_count',
     defaults: { warning: 1, critical: 3 },
     formatLabel: fmtCount('failed backup'),
@@ -242,7 +242,7 @@ WHERE event_time > now() - INTERVAL 24 HOUR
     title: 'MV Refresh Failures',
     description:
       'Materialized views with REFRESH schedule that have failed or errored their last refresh cycle.',
-    sql: `SELECT countIf(status IN ('Error', 'Failed')) AS failed_count
+    sql: `SELECT countIf(exception != '' OR retry > 0) AS failed_count
 FROM system.view_refreshes`,
     valueKey: 'failed_count',
     defaults: { warning: 1, critical: 3 },
