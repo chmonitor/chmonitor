@@ -178,11 +178,11 @@ export function QueryHistoryPanel({
                       ` · ${e.rows.toLocaleString()} rows`}
                     {!e.ok && ' · failed'}
                   </span>
-                  <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <span className="flex items-center gap-0.5 opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="size-6"
+                      className="size-6 pointer-coarse:size-9"
                       title="Run"
                       aria-label="Run"
                       onClick={() => onSelect(e.sql, true)}
@@ -192,7 +192,7 @@ export function QueryHistoryPanel({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="size-6"
+                      className="size-6 pointer-coarse:size-9"
                       title={e.pinned ? 'Unpin' : 'Pin'}
                       aria-label={e.pinned ? 'Unpin' : 'Pin'}
                       onClick={() => onTogglePin(e.id)}
@@ -206,7 +206,7 @@ export function QueryHistoryPanel({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="size-6"
+                      className="size-6 pointer-coarse:size-9"
                       title="Remove"
                       aria-label="Remove"
                       onClick={() => onRemove(e.id)}
@@ -260,7 +260,7 @@ export function QueryHistoryPanel({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-6 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+                    className="size-6 pointer-coarse:size-9 opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100 focus-visible:opacity-100"
                     title="Run"
                     aria-label="Run"
                     onClick={() => onSelect(r.query, true)}
