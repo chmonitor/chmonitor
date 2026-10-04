@@ -24,6 +24,28 @@ describe('queryCharts', () => {
       }
     })
 
+    if (name === 'query-count' || name === 'failed-query-count') {
+      test('scans query_log once and still returns the kind breakdown', () => {
+        const result = builder({})
+        if (!('query' in result)) return
+        const scans =
+          result.query.match(/merge\('system', '\^query_log'\)/g) ?? []
+        expect(scans).toHaveLength(1)
+        expect(result.query).toContain('AS query_count')
+        expect(result.query).toContain('AS breakdown')
+        expect(result.query).toContain('max_execution_time = 25')
+      })
+    }
+
+    if (name === 'mv-staleness') {
+      test('marks a failed refresh by exception or retry, not status Error/Failed', () => {
+        const result = builder({})
+        if (!('query' in result)) return
+        expect(result.query).toContain("exception != '' OR retry > 0")
+        expect(result.query).not.toContain("status IN ('Error', 'Failed')")
+      })
+    }
+
     if (name === 'query-count-today') {
       test('filters today with event_time so query_log can prune partitions', () => {
         const result = builder({})

@@ -22,37 +22,25 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     const timeFilter = buildTimeFilter(lastHours)
     return {
       query: `
-    WITH event_count AS (
+    WITH per_kind AS (
       SELECT ${applyInterval(interval, 'event_time')},
-             COUNT() AS query_count
+             query_kind,
+             COUNT() AS count
       FROM merge('system', '^query_log')
       WHERE type = 'QueryFinish'
             ${timeFilter ? `AND ${timeFilter}` : ''}
-      GROUP BY event_time
-      ORDER BY event_time WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    ),
-    query_kind AS (
-      SELECT ${applyInterval(interval, 'event_time')},
-               query_kind,
-               COUNT() AS count
-        FROM merge('system', '^query_log')
-        WHERE type = 'QueryFinish'
-              ${timeFilter ? `AND ${timeFilter}` : ''}
-        GROUP BY 1, 2
-        ORDER BY 3 DESC
-    ),
-    breakdown AS (
-      SELECT event_time,
-             groupArray((query_kind, count)) AS breakdown
-      FROM query_kind
-      GROUP BY 1
+      GROUP BY event_time, query_kind
     )
     SELECT event_time,
-           query_count,
-           breakdown.breakdown AS breakdown
-    FROM event_count
-    LEFT JOIN breakdown USING event_time
-    ORDER BY 1
+           sum(count) AS query_count,
+           groupArray((query_kind, count)) AS breakdown
+    FROM (
+      SELECT event_time, query_kind, count
+      FROM per_kind
+      ORDER BY count DESC
+    )
+    GROUP BY event_time
+    ORDER BY event_time WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
     SETTINGS max_execution_time = 25
   `,
     }
@@ -253,39 +241,26 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     const timeFilter = buildTimeFilter(lastHours)
     return {
       query: `
-    WITH event_count AS (
+    WITH per_type AS (
       SELECT ${applyInterval(interval, 'event_time')},
-             COUNT() AS query_count
+             type AS query_type,
+             COUNT() AS count
       FROM merge('system', '^query_log')
       PREWHERE
             type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
             ${timeFilter ? `AND ${timeFilter}` : ''}
-      GROUP BY 1
-      ORDER BY 1
-    ),
-    query_type AS (
-        SELECT ${applyInterval(interval, 'event_time')},
-               type AS query_type,
-               COUNT() AS count
-        FROM merge('system', '^query_log')
-        PREWHERE
-              type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
-              ${timeFilter ? `AND ${timeFilter}` : ''}
-        GROUP BY 1, 2
-        ORDER BY 3 DESC
-    ),
-    breakdown AS (
-      SELECT event_time,
-             groupArray((query_type, count)) AS breakdown
-      FROM query_type
-      GROUP BY 1
+      GROUP BY event_time, query_type
     )
     SELECT event_time,
-           query_count,
-           breakdown.breakdown AS breakdown
-    FROM event_count
-    LEFT JOIN breakdown USING event_time
-    ORDER BY 1
+           sum(count) AS query_count,
+           groupArray((query_type, count)) AS breakdown
+    FROM (
+      SELECT event_time, query_type, count
+      FROM per_type
+      ORDER BY count DESC
+    )
+    GROUP BY event_time
+    ORDER BY event_time
     SETTINGS max_execution_time = 25
   `,
     }
@@ -497,7 +472,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
       next_refresh_time,
       dateDiff('second', coalesce(last_success_time, toDateTime(0)), now()) AS staleness_seconds,
       multiIf(
-        status IN ('Error', 'Failed'), 1,
+        exception != '' OR retry > 0, 1,
         isNull(last_success_time), 1,
         dateDiff('second', last_success_time, now()) > 3600, 1,
         0
