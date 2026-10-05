@@ -135,6 +135,18 @@ export interface PeerDBCycleOptions {
   dryRun?: boolean
   /** Injectable clock for tests. */
   now?: number
+  /**
+   * Max in-flight per-mirror reads during collection (#3677). Defaults to
+   * `PEERDB_SWEEP_CONCURRENCY`; the cycle only forwards it so the bound is
+   * injectable in tests and reusable by other callers.
+   */
+  concurrency?: number
+  /**
+   * Wall-clock budget for collection (#3677). Defaults to
+   * `PEERDB_SWEEP_BUDGET_MS`. Without it, a pool of N over M mirrors at the
+   * `PEERDB_FETCH_TIMEOUT_MS` ceiling can still overrun the sweep tick.
+   */
+  budgetMs?: number
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +208,10 @@ function runDeterministicPeerDBInvestigation(
     notes.push('no CDC-lag sample — message states lag only if observed')
   }
   if (!input.hasErrorSample) {
-    notes.push('error count unavailable — message must say so, not "0 errors"')
+    // Either the read failed, or every mirror was healthy-skipped (#3677) and
+    // no ERROR-log read was issued at all. Both mean "no error-count sample":
+    // the message must not imply a measured zero.
+    notes.push('no error-count sample — message must not claim "0 errors"')
   }
 
   // Fleet context (already-collected — no extra upstream calls).
@@ -249,7 +264,10 @@ export async function runPeerDBAlertCycle(
   }
   try {
     const { collectPeerDBSignals } = await import('./alert-collector')
-    const collection = await collectPeerDBSignals(opts.reader).catch(() => null)
+    const collection = await collectPeerDBSignals(opts.reader, {
+      concurrency: opts.concurrency,
+      budgetMs: opts.budgetMs,
+    }).catch(() => null)
     if (!collection || collection.signals.length === 0) {
       // Distinguish "PeerDB unconfigured" from "configured but empty" only
       // via the metrics: zero collected with zero checked means nothing to do.

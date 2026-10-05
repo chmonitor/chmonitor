@@ -48,6 +48,12 @@ import {
   extractMirrorLogs,
   mirrorLogsRequestBody,
 } from './mirror-logs'
+import {
+  mapWithPool,
+  resolvePeerDBSweepBudgetMs,
+  resolvePeerDBSweepConcurrency,
+  startSweepBudget,
+} from './sweep-pool'
 
 /**
  * Read-only PeerDB snapshot source. The default implementation talks to the
@@ -79,6 +85,51 @@ export interface PeerDBAlertSnapshotReader {
 /** Maximum mirrors to fan out per-mirror status/logs reads to. */
 export const PEERDB_ALERT_MAX_MIRRORS = 50
 
+/**
+ * Whether a mirror is worth the expensive per-mirror ERROR-log read (#3677).
+ *
+ * `POST /v1/mirrors/logs` filtered to `level=ERROR` is by far the most
+ * expensive read in this lane: PeerDB's only index on `flow_errors` is
+ * `flow_name`, so the `error_type` filter scans every row for that mirror. On
+ * a fleet whose `flow_errors` is 99.97% `info` QRep noise (2.88M rows across 72
+ * mirrors) that read costs seconds and returns nothing.
+ *
+ * So it is issued only for a mirror that already looks wrong:
+ *   - `STATUS_RUNNING` + no `errorMessage` → skip (the common, healthy case);
+ *   - any other readable state (`FAILED`, `PAUSED`, `UNKNOWN`, …) → read;
+ *   - `errorMessage` present → read;
+ *   - status unreadable / no usable state → do NOT read. The mirror is already
+ *     counted errored, and a status timeout means PeerDB is saturated — adding
+ *     a second expensive call per mirror there is exactly the storm this change
+ *     removes. The next tick retries it.
+ *
+ * A skipped read is reported as `errorCountSource: 'skipped'`, deliberately
+ * distinct from `'unavailable'`: nothing failed, so it must not inflate
+ * `errored`, must not hold a recovery in the cycle, and must not be phrased as
+ * "error count unavailable" in an alert message.
+ */
+export function isErrorLogWorthy(
+  status: MirrorStatusResponse | null | undefined
+): boolean {
+  if (!status) return false
+  if (typeof status.currentFlowState !== 'string') return false
+  if ((status.errorMessage ?? '').trim() !== '') return true
+  return status.currentFlowState !== 'STATUS_RUNNING'
+}
+
+/**
+ * Work order for the status stage: mirrors the mirror-list already reports as
+ * NOT running go first, so when the wall-clock budget cuts the run short the
+ * mirrors most likely to fire are the ones that were read (#3677). Signal
+ * OUTPUT order is unaffected — it still follows the mirror list.
+ */
+function prioritiseSuspectMirrors(mirrors: MirrorListItem[]): MirrorListItem[] {
+  return [
+    ...mirrors.filter((m) => m.status !== 'STATUS_RUNNING'),
+    ...mirrors.filter((m) => m.status === 'STATUS_RUNNING'),
+  ]
+}
+
 async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await fn()
@@ -101,8 +152,14 @@ function toNum(v: unknown): number | null {
  * `PEERDB_API_URL` is unset. The `peerdb-config` import is dynamic so a
  * runtime without node built-ins degrades to empty reads instead of failing
  * module evaluation (same pattern as the insights lane's collector).
+ *
+ * `signal` is the collection's wall-clock budget: forwarding it to
+ * `peerdbFetch` lets the budget cancel in-flight calls instead of only
+ * refusing to start new ones.
  */
-async function defaultReader(): Promise<PeerDBAlertSnapshotReader> {
+async function defaultReader(
+  signal?: AbortSignal
+): Promise<PeerDBAlertSnapshotReader> {
   const mod = await import('./peerdb-config').catch(() => null)
   const getConfig = mod?.getPeerDBConfig as
     | (() => { baseUrl: string } | null)
@@ -126,6 +183,9 @@ async function defaultReader(): Promise<PeerDBAlertSnapshotReader> {
   }
   if (!configured) return unconfigured
 
+  const fetchOptions = (body: string): RequestInit =>
+    signal ? { method: 'POST', body, signal } : { method: 'POST', body }
+
   return {
     listMirrors: () =>
       safe(async () => {
@@ -135,23 +195,25 @@ async function defaultReader(): Promise<PeerDBAlertSnapshotReader> {
     mirrorStatus: (name) =>
       safe(
         () =>
-          fetchFn<MirrorStatusResponse>('/v1/mirrors/status', {
-            method: 'POST',
-            body: JSON.stringify({ flow_job_name: name }),
-          }),
+          fetchFn<MirrorStatusResponse>(
+            '/v1/mirrors/status',
+            fetchOptions(JSON.stringify({ flow_job_name: name }))
+          ),
         null
       ),
     mirrorErrorCount: (name) =>
       safe(
         async () => {
-          const res = await fetchFn<unknown>('/v1/mirrors/logs', {
-            method: 'POST',
+          const res = await fetchFn<unknown>(
+            '/v1/mirrors/logs',
             // Shared contract (#3409): uppercase ERROR level — strict PeerDB
             // returns zero rows for lowercase — bounded page.
-            body: JSON.stringify(
-              mirrorLogsRequestBody(name, 'error', { numPerPage: 100 })
-            ),
-          })
+            fetchOptions(
+              JSON.stringify(
+                mirrorLogsRequestBody(name, 'error', { numPerPage: 100 })
+              )
+            )
+          )
           if (res === null || res === undefined) {
             return { count: 0, source: 'unavailable' as const }
           }
@@ -186,19 +248,55 @@ export interface PeerDBSignalCollection {
     mirrorsChecked: number
     /** Mirrors missing a usable status state or error-log sample. */
     errored: number
+    /**
+     * Mirrors the wall-clock budget left uncollected this tick (#3677). Not an
+     * error — an explicit "we ran out of time" signal, so an operator can tell
+     * a deferred tick from a broken PeerDB.
+     */
+    budgetDeferred: number
+    /** `POST /v1/mirrors/logs` calls actually issued. */
+    errorLogReads: number
+    /** Healthy mirrors whose ERROR-log read was skipped by design. */
+    errorLogsSkipped: number
   }
   /** Worst slot lag observed fleet-wide, MiB (null when unknown). */
   fleetMaxSlotLagMb: number | null
+}
+
+/** Per-call bounds for the fan-out; both default from the env (#3677). */
+export interface PeerDBSignalCollectionOptions {
+  /** Max in-flight per-mirror reads (default `PEERDB_SWEEP_CONCURRENCY`). */
+  concurrency?: number
+  /** Wall-clock budget for the whole collection (default `PEERDB_SWEEP_BUDGET_MS`). */
+  budgetMs?: number
 }
 
 /**
  * Collect one `PeerDBMirrorSignal` per mirror. Never throws — total failure
  * yields zero signals (the cycle then no-ops, including recoveries it cannot
  * observe; the persistent alert state is left untouched).
+ *
+ * Fan-out shape (#3677), in three pool-bounded stages:
+ *
+ *   1. `POST /v1/mirrors/status` per mirror (cheap; ~1.8s for 72 in parallel).
+ *   2. `POST /v1/mirrors/logs` — ONLY for mirrors stage 1 flagged suspicious
+ *      (see {@link isErrorLogWorthy}). Healthy running mirrors cost no logs
+ *      read at all.
+ *   3. `GET /v1/peers/slots/<peer>` per source peer.
+ *
+ * Concurrency is bounded by `PEERDB_SWEEP_CONCURRENCY` (default 8) so the
+ * sweep never floods the PeerDB catalog, and the whole collection is bounded by
+ * `PEERDB_SWEEP_BUDGET_MS` (default 60s) so a pool cannot simply turn 144
+ * parallel timeouts into 90s of sequential ones. Work is ordered
+ * suspects-first so a budget-truncated tick still reads the mirrors most likely
+ * to fire.
  */
 export async function collectPeerDBSignals(
-  reader?: PeerDBAlertSnapshotReader
+  reader?: PeerDBAlertSnapshotReader,
+  opts?: PeerDBSignalCollectionOptions
 ): Promise<PeerDBSignalCollection> {
+  const budgetMs = opts?.budgetMs ?? resolvePeerDBSweepBudgetMs()
+  const budget = startSweepBudget(budgetMs)
   const empty = (): PeerDBSignalCollection => ({
     signals: [],
     metrics: {
@@ -208,12 +306,17 @@ export async function collectPeerDBSignals(
       hasSlotSample: false,
       mirrorsChecked: 0,
       errored: 0,
+      budgetDeferred: 0,
+      errorLogReads: 0,
+      errorLogsSkipped: 0,
     },
     fleetMaxSlotLagMb: null,
   })
   try {
-    const r = reader ?? (await defaultReader().catch(() => null))
+    const r = reader ?? (await defaultReader(budget.signal).catch(() => null))
     if (!r) return empty()
+
+    const concurrency = opts?.concurrency ?? resolvePeerDBSweepConcurrency()
 
     const mirrors = await safe(() => r.listMirrors(), [])
     const scoped = mirrors
@@ -221,43 +324,90 @@ export async function collectPeerDBSignals(
       .slice(0, PEERDB_ALERT_MAX_MIRRORS)
     if (scoped.length === 0) return empty()
 
-    // Per-mirror status + error volume, fetched concurrently; one mirror's
-    // failure never blocks the rest.
-    let errored = 0
-    const statuses = new Map<string, MirrorStatusResponse>()
+    // Stage 1 — per-mirror status, pool-bounded and suspects-first. One
+    // mirror's failure never blocks the rest.
+    const statusOrder = prioritiseSuspectMirrors(scoped)
+    const statusOutcomes = await mapWithPool(
+      statusOrder,
+      concurrency,
+      (m) => safe(() => r.mirrorStatus(m.name), null),
+      budget.signal
+    )
+    const statuses = new Map<string, MirrorStatusResponse | null>()
+    const statusDeferred = new Set<string>()
+    statusOutcomes.forEach((outcome, i) => {
+      const name = statusOrder[i]!.name
+      if (outcome.kind === 'done') {
+        statuses.set(name, outcome.value)
+      } else {
+        statuses.set(name, null)
+        statusDeferred.add(name)
+      }
+    })
+
+    // Stage 2 — ERROR-log reads, only where stage 1 says the mirror is
+    // suspicious. This is the expensive call, so it is also the one skipped
+    // whenever there is no positive evidence of a problem.
+    const logTargets = scoped.filter((m) =>
+      isErrorLogWorthy(statuses.get(m.name))
+    )
+    const logOutcomes = await mapWithPool(
+      logTargets,
+      concurrency,
+      (m) =>
+        safe(() => r.mirrorErrorCount(m.name), {
+          count: 0,
+          source: 'unavailable' as const,
+        }),
+      budget.signal
+    )
     const errorCounts = new Map<
       string,
       { count: number; source: PeerDBErrorCountSource }
     >()
-    await Promise.all(
-      scoped.map(async (m) => {
-        const name = m.name
-        const [st, ec] = await Promise.all([
-          safe(() => r.mirrorStatus(name), null),
-          safe(() => r.mirrorErrorCount(name), {
-            count: 0,
-            source: 'unavailable' as const,
-          }),
-        ])
-        if (st) statuses.set(name, st)
-        errorCounts.set(name, ec)
-        if (
-          typeof st?.currentFlowState !== 'string' ||
-          ec.source === 'unavailable'
-        ) {
-          errored++
-        }
-      })
-    )
+    const logsDeferred = new Set<string>()
+    logOutcomes.forEach((outcome, i) => {
+      const name = logTargets[i]!.name
+      if (outcome.kind === 'done') {
+        errorCounts.set(name, outcome.value)
+      } else {
+        errorCounts.set(name, { count: 0, source: 'skipped' })
+        logsDeferred.add(name)
+      }
+    })
 
     // Slots across source peers → worst lag per mirror via `sourceName`.
     const peers = await safe(() => r.listSourcePeers(), [])
-    const slotsByPeer = new Map<string, SlotInfo[]>()
-    await Promise.all(
-      peers.slice(0, PEERDB_ALERT_MAX_MIRRORS).map(async (peer) => {
-        slotsByPeer.set(peer, await safe(() => r.peerSlots(peer), []))
-      })
+    const slotOrder = peers.slice(0, PEERDB_ALERT_MAX_MIRRORS)
+    const slotOutcomes = await mapWithPool(
+      slotOrder,
+      concurrency,
+      (peer) => safe(() => r.peerSlots(peer), [] as SlotInfo[]),
+      budget.signal
     )
+    const slotsByPeer = new Map<string, SlotInfo[]>()
+    slotOutcomes.forEach((outcome, i) => {
+      slotsByPeer.set(
+        slotOrder[i]!,
+        outcome.kind === 'done' ? outcome.value : []
+      )
+    })
+
+    // Per-mirror accounting. `errored` counts only genuine read failures; a
+    // healthy-skip or a budget-deferred mirror is neither, and conflating them
+    // is what made every check look errored on a large fleet (#3677).
+    let errored = 0
+    let errorLogsSkipped = 0
+    for (const m of scoped) {
+      const st = statuses.get(m.name) ?? null
+      if (st === null) errored++
+      if (!isErrorLogWorthy(st)) {
+        errorLogsSkipped++
+        continue
+      }
+      if (errorCounts.get(m.name)?.source === 'unavailable') errored++
+    }
+    const budgetDeferred = statusDeferred.size + logsDeferred.size
     const worstSlotLag = (slots: SlotInfo[]): number | null => {
       let worst: number | null = null
       for (const s of slots) {
@@ -283,10 +433,12 @@ export async function collectPeerDBSignals(
     }
 
     const signals: PeerDBMirrorSignal[] = scoped.map((m) => {
-      const st = statuses.get(m.name)
+      const st = statuses.get(m.name) ?? null
+      // Default `skipped`, never `unavailable`: a mirror we deliberately did
+      // not read has no error sample, but it is NOT a failed read.
       const ec = errorCounts.get(m.name) ?? {
         count: 0,
-        source: 'unavailable' as const,
+        source: 'skipped' as const,
       }
       const clones = st?.cdcStatus?.snapshotStatus?.clones
       // In-progress is not an alert: stalled only once the earliest clone has
@@ -331,10 +483,15 @@ export async function collectPeerDBSignals(
         hasSlotSample,
         mirrorsChecked: scoped.length,
         errored,
+        budgetDeferred,
+        errorLogReads: logTargets.length,
+        errorLogsSkipped,
       },
       fleetMaxSlotLagMb,
     }
   } catch {
     return empty()
+  } finally {
+    budget.dispose()
   }
 }

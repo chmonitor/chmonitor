@@ -173,10 +173,14 @@ describe('runPeerDBAlertCycle', () => {
     })
     const t = tape()
     const res = await runPeerDBAlertCycle({
+      // STATUS_SNAPSHOT is not in the FAIL/WARN state sets, so it classifies
+      // `ok` — and because it is not STATUS_RUNNING the ERROR-log read IS
+      // issued (#3677), so its `unavailable` is observable and the recovery
+      // hold below applies.
       reader: readerFor([
         {
           name: 'cycle-recover-errors',
-          status: 'STATUS_RUNNING',
+          status: 'STATUS_SNAPSHOT',
           errorSource: 'unavailable',
         },
       ]),

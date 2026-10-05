@@ -83,8 +83,9 @@ export function bridgePostgresEnv(bindings: ClickHouseBindings): void {
 
 /**
  * Env keys the PeerDB alert/insight path reads from `process.env`: the
- * flow-api base URL plus auth. The timeout/cache tunables below are ALSO
- * bridged, but consumers must read them lazily per request/call (Workers
+ * flow-api base URL plus auth. The timeout/cache tunables and the alert-sweep
+ * fan-out bounds (`PEERDB_SWEEP_CONCURRENCY`/`PEERDB_SWEEP_BUDGET_MS`, #3677)
+ * are ALSO bridged, but consumers must read them lazily per request/call (Workers
  * bindings are per-request state — a module-scope read would pin the first
  * isolate's values). Same bridging need as ClickHouse/Postgres — on Workers
  * the canonical source is the `env` binding, so these must be copied onto
@@ -98,6 +99,8 @@ const PEERDB_ENV_KEYS = [
   'PEERDB_CACHE_TTL_MS',
   'PEERDB_CACHE_MAX_ENTRIES',
   'PEERDB_FETCH_TIMEOUT_MS',
+  'PEERDB_SWEEP_CONCURRENCY',
+  'PEERDB_SWEEP_BUDGET_MS',
 ] as const
 
 /**
