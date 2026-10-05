@@ -8,6 +8,15 @@
  *
  * Reads system.tables + system.parts only — no system.part_log, no
  * create_table_query, no fictional system.tables.ttl column.
+ *
+ * The `system.tables` scan is restricted to local database engines via
+ * {@link LOCAL_DATABASES_FILTER}. `engine_full` is built table by table, and
+ * for a database on a remote engine ClickHouse builds it on the remote server,
+ * so an unrestricted scan of a cluster with a few thousand remote-engine tables
+ * takes seconds. Measured on a single-node 26.7.22.4 holding 3,600
+ * `PostgreSQL`-engine tables: this query went from 7,985 ms median (5,720 ms
+ * best, 9,877 ms worst) server-side to 34 ms median (30 ms best, 75 ms worst).
+ * See the fragment's module doc.
  */
 
 import {
@@ -15,6 +24,7 @@ import {
   PARTITION_COUNT_WARNING,
   PARTS_PER_PARTITION_WARNING,
 } from './ttl-partition-heuristics'
+import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 
 const SYSTEM_DATABASES = `'system', 'INFORMATION_SCHEMA', 'information_schema'`
 
@@ -114,6 +124,7 @@ function ttlPartitionInventoryCtes(): string {
         engine_full
       FROM system.tables
       WHERE is_temporary = 0
+        AND ${LOCAL_DATABASES_FILTER}
         AND database NOT IN (${SYSTEM_DATABASES})
         AND positionCaseInsensitive(engine, 'MergeTree') > 0
     ),
