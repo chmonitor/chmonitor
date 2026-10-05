@@ -47,7 +47,7 @@ export function CollapsedChartsRow({
       </div>
 
       {/* "Expand" affordance — visible on hover / keyboard focus */}
-      <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+      <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground opacity-40 pointer-fine:opacity-0 transition-opacity duration-200 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100">
         Expand
         <ChevronDownIcon className="size-3" />
       </span>
