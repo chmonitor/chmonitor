@@ -36,7 +36,7 @@ export const HEALTH_TAB_CHARTS: OverviewChartConfig[] = [
     title: 'ZooKeeper/Keeper Exceptions',
     className: 'w-full h-full',
     type: 'bar',
-    href: '/zookeeper',
+    href: '/keeper/overview',
   },
   {
     id: 'zookeeper-wait',
@@ -46,7 +46,7 @@ export const HEALTH_TAB_CHARTS: OverviewChartConfig[] = [
     interval: 'toStartOfHour',
     className: 'w-full h-full',
     type: 'bar',
-    href: '/zookeeper',
+    href: '/keeper/overview',
   },
   {
     id: 'zookeeper-requests',
@@ -56,7 +56,7 @@ export const HEALTH_TAB_CHARTS: OverviewChartConfig[] = [
     interval: 'toStartOfHour',
     className: 'w-full h-full',
     type: 'bar',
-    href: '/zookeeper',
+    href: '/keeper/overview',
   },
   {
     id: 'connections-pool',
@@ -112,7 +112,7 @@ export const HEALTH_TAB_CHARTS: OverviewChartConfig[] = [
     interval: 'toStartOfDay',
     className: 'w-full h-full',
     type: 'bar',
-    href: '/logs',
+    href: '/logs/crashes',
   },
   {
     id: 'error-rate-over-time',
@@ -122,7 +122,7 @@ export const HEALTH_TAB_CHARTS: OverviewChartConfig[] = [
     interval: 'toStartOfHour',
     className: 'w-full h-full',
     type: 'area',
-    href: '/logs',
+    href: '/logs/text-log',
   },
   {
     id: 'log-level-distribution',
@@ -130,6 +130,6 @@ export const HEALTH_TAB_CHARTS: OverviewChartConfig[] = [
     title: 'Log Level Distribution',
     className: 'w-full h-full',
     type: 'custom',
-    href: '/logs',
+    href: '/logs/text-log',
   },
 ]
