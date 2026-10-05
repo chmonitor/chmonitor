@@ -23,6 +23,11 @@
  * Both are reusable by the other PeerDB readers (the insights collector is the
  * obvious next caller), so they live outside `alert-collector.ts`.
  *
+ * A third reader here, {@link resolvePeerDBSweepMaxMirrors}, is NOT a bound on
+ * work but a coverage guard: the old hardcoded 50-mirror cap silently dropped
+ * the rest of the fleet, which is why it now defaults to no guard at all and
+ * reports any truncation as a partial result (#3687).
+ *
  * Deliberately dependency-free — no `@chm/logger`, no `peerdb-config` — so the
  * alert collector can import it statically without pulling in the
  * node-built-in-dependent fetch client. Env reads are therefore local and
@@ -80,6 +85,32 @@ export function resolvePeerDBSweepConcurrency(get?: PeerDBEnvLookup): number {
   const parsed = readInt(get, 'PEERDB_SWEEP_CONCURRENCY')
   if (parsed === null || parsed < 1) return DEFAULT_PEERDB_SWEEP_CONCURRENCY
   return Math.min(parsed, PEERDB_SWEEP_MAX_CONCURRENCY)
+}
+
+/**
+ * Optional guard on how many items one sweep reads, from
+ * `PEERDB_SWEEP_MAX_MIRRORS`. `null` means NO guard — the default (#3687).
+ *
+ * This is deliberately NOT a ceiling, and deliberately fails open:
+ *
+ *   - unset / unparseable / below 1 → `null` (read the whole listing);
+ *   - otherwise the parsed integer is used as an operator's ceiling.
+ *
+ * Fail-open is the right direction for a coverage bound: the wall-clock budget
+ * and the pool already cap the work, so a bad value cannot make this lane
+ * expensive, whereas a default cap silently drops mirrors and makes an outage
+ * invisible. There is also no hard maximum on the value, unlike
+ * {@link resolvePeerDBSweepConcurrency} — a large guard cannot restore
+ * unbounded fan-out, because concurrency is bounded independently. Any
+ * truncation this guard does cause is reported as a partial result (see
+ * `sweep-coverage.ts`), never silently.
+ */
+export function resolvePeerDBSweepMaxMirrors(
+  get?: PeerDBEnvLookup
+): number | null {
+  const parsed = readInt(get, 'PEERDB_SWEEP_MAX_MIRRORS')
+  if (parsed === null || parsed < 1) return null
+  return parsed
 }
 
 /**

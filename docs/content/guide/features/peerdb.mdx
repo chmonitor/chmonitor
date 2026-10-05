@@ -158,8 +158,8 @@ requires `CRON_SECRET` and an enabled `CHM_HEALTH_SWEEP_ENABLED`; delivery also
 requires `HEALTH_ALERT_ENABLED=true`. Per cycle,
 `lib/peerdb/alert-collector.ts` collects one
 read-only signal per mirror (status, ERROR-level log volume via the shared
-`mirror-logs` contract, slot lag mapped through `sourceName`; max 50
-mirrors, per-mirror failures isolated, never throws), then each firing
+`mirror-logs` contract, slot lag mapped through `sourceName`; every listed
+mirror, per-mirror failures isolated, never throws), then each firing
 mirror goes through classify → format → validate → a best-effort
 `peerdb-issue` audit attempt awaited **before** any delivery attempt →
 deterministic investigation → the existing sweep dispatcher (maintenance /
@@ -169,6 +169,13 @@ D1 it remains process-local for the lifetime of the Worker isolate. `ok`
 signals dispatch as recoveries only when the persistent store shows a
 previously firing condition and both the per-mirror status and error-log
 samples were readable.
+
+Fleet coverage is reported, not assumed: a collection that reads fewer mirrors
+than PeerDB listed says so on the sweep summary and writes a
+`peerdb-coverage:partial` audit row naming both counts. The shared contract is
+`summarizeSweepCoverage` / `formatSweepCoverage` in `lib/peerdb/sweep-coverage.ts`
+(`listed` / `checked` / `partial` / `unchecked`), which the mirror-logs feed
+reuses so both surfaces report coverage identically.
 PeerDB dedups under `peerdb-mirror-health:<flow>` on pseudo-host `-1`, so
 glob route patterns (`peerdb-*`) match and ClickHouse host keys never
 collide. Delivery defaults to dry-run (audit only); the sweep arms it with

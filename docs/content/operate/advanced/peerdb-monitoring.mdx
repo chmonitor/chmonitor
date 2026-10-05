@@ -65,6 +65,7 @@ PEERDB_API_URL=http://localhost:8113
 | `PEERDB_FETCH_TIMEOUT_MS` | `10000` | Upstream request timeout. |
 | `PEERDB_SWEEP_CONCURRENCY` | `8` | Max in-flight reads per alert-sweep tick. Lower it if PeerDB struggles under the sweep. |
 | `PEERDB_SWEEP_BUDGET_MS` | `60000` | Wall-clock budget for one alert-sweep collection. Mirrors left unread when it elapses are deferred to the next tick. |
+| `PEERDB_SWEEP_MAX_MIRRORS` | unset (no limit) | Optional cap on mirrors read per alert-sweep tick. Leave unset so every listed mirror is read; see [Partial coverage](#partial-coverage). |
 
 See the full list in [Environment Variables](/reference/environment-variables).
 </Step>
@@ -134,6 +135,28 @@ The alert sweep bounds its own load regardless of the index:
 On a 72-mirror fleet this turns ~100 log reads per tick into zero when the
 fleet is healthy.
 
+## Partial coverage
+
+The alert sweep reads every mirror PeerDB lists. There is no hidden ceiling on
+fleet size: concurrency and wall-clock budget limit how fast it reads, not
+which mirrors it is allowed to read, and the mirrors most likely to alert are
+the ones it reads first.
+
+A tick that could not read the whole fleet — because `PEERDB_SWEEP_BUDGET_MS`
+elapsed, or because `PEERDB_SWEEP_MAX_MIRRORS` is set — says so rather than
+reporting a clean result over a fleet it never looked at:
+
+- the sweep summary reports the mirrors checked out of the mirrors listed, and
+  flags the run as partial;
+- an `alert_events` audit row with decision `peerdb-coverage:partial` records
+  the counts, e.g. `50 of 72 mirrors checked — partial result: 22 unchecked`.
+
+A partial run is a coverage fact, not an incident: nothing is dispatched for it
+and no mirror's alert state is changed. The mirrors that *were* read are still
+classified normally. Mirrors left unread are retried on the next tick, so a
+fleet too large for one tick needs either a larger `PEERDB_SWEEP_BUDGET_MS` or
+a smaller fleet — not a cap.
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
@@ -143,6 +166,7 @@ fleet is healthy.
 | Pill shows **Unreachable** | `PEERDB_API_URL` host/port wrong, or the API is not reachable from the CHM server. |
 | Mirrors load but charts are empty | The mirror has no recent CDC graph/batch data yet, or the PeerDB version doesn't expose those endpoints. |
 | Large fleets show partial KPI totals | Per-row metrics load lazily above 24 mirrors; the Throughput/Rows-synced cards label how many mirrors are loaded. Expand a row to load its metrics. |
+| Alert sweep reports `peerdb-coverage:partial` | The tick ran out of budget (or `PEERDB_SWEEP_MAX_MIRRORS` is set) before reading every mirror. Raise `PEERDB_SWEEP_BUDGET_MS`, lower `PEERDB_SWEEP_CONCURRENCY` if reads are timing out, or unset `PEERDB_SWEEP_MAX_MIRRORS`. See [Partial coverage](#partial-coverage). |
 
 ## Related
 

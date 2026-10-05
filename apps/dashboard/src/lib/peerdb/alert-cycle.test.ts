@@ -4,6 +4,7 @@ import type { PeerDBAuditFn } from './alert-cycle'
 
 import {
   PEERDB_ALERT_HOST_ID,
+  PEERDB_COVERAGE_PARTIAL_DECISION,
   peerDBRuleIdForFlow,
   runPeerDBAlertCycle,
 } from './alert-cycle'
@@ -263,6 +264,171 @@ describe('runPeerDBAlertCycle', () => {
     })
     expect(res.dispatched).toBe(1)
     expect(t.dispatches[0]!.label).toContain('error count unavailable')
+  })
+
+  // -------------------------------------------------------------------------
+  // #3687 — coverage reaches the SWEEP OUTPUT and the AUDIT ROW
+  //
+  // An operator reads the sweep summary and the `alert_events` rows, not the
+  // collector's return value, so the partial signal is asserted at those two
+  // boundaries rather than inside the collector.
+  // -------------------------------------------------------------------------
+
+  test('a 72-mirror fleet reports complete coverage in the cycle result', async () => {
+    const mirrors = Array.from({ length: 72 }, (_, i) => ({
+      name: `cycle-fleet-${i}`,
+      status: 'STATUS_RUNNING' as const,
+    }))
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor(mirrors),
+      audit: async () => {},
+      budgetMs: 10_000,
+    })
+    expect(res.mirrorsListed).toBe(72)
+    expect(res.mirrorsChecked).toBe(72)
+    expect(res.partial).toBe(false)
+    expect(res.unchecked).toBe(0)
+  })
+
+  test('a mirror failing past 50 is classified and becomes a finding', async () => {
+    // The bug this issue closes: a failure at position 60 previously produced
+    // no signal at all, because the collector sliced the list to 50 and the
+    // cycle sliced signals to 50 again.
+    const mirrors = Array.from({ length: 72 }, (_, i) => ({
+      name: `cycle-deep-${i}`,
+      status:
+        i === 60 ? ('STATUS_FAILED' as const) : ('STATUS_RUNNING' as const),
+    }))
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor(mirrors),
+      audit: async () => {},
+      budgetMs: 10_000,
+    })
+    expect(res.findings).toHaveLength(1)
+    expect(res.findings[0]!.checkId).toBe(RULE('cycle-deep-60'))
+    expect(res.findings[0]!.severity).toBe('critical')
+  })
+
+  test('a guarded run reaches the sweep output as partial + unchecked', async () => {
+    const mirrors = Array.from({ length: 72 }, (_, i) => ({
+      name: `cycle-guard-${i}`,
+      status: 'STATUS_RUNNING' as const,
+    }))
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor(mirrors),
+      audit: async () => {},
+      maxMirrors: 50,
+      budgetMs: 10_000,
+    })
+    expect(res.mirrorsListed).toBe(72)
+    expect(res.mirrorsChecked).toBe(50)
+    expect(res.partial).toBe(true)
+    expect(res.unchecked).toBe(22)
+  })
+
+  test('a budget-truncated run reports partial at the sweep boundary', async () => {
+    // No guard, tight budget, slow reads: the budget is the only bound left,
+    // so this is the shape a huge fleet lands in.
+    const names = Array.from({ length: 120 }, (_, i) => ({
+      name: `cycle-slow-${i}`,
+    }))
+    const res = await runPeerDBAlertCycle({
+      reader: {
+        listMirrors: async () => names,
+        mirrorStatus: async () => {
+          await new Promise((r) => setTimeout(r, 40))
+          return { currentFlowState: 'STATUS_RUNNING' }
+        },
+        mirrorErrorCount: async () => ({
+          count: 0,
+          source: 'log-api' as const,
+        }),
+        peerSlots: async () => [],
+        listSourcePeers: async () => [],
+      },
+      audit: async () => {},
+      concurrency: 2,
+      budgetMs: 150,
+    })
+    expect(res.mirrorsListed).toBe(120)
+    expect(res.mirrorsChecked).toBeLessThan(120)
+    expect(res.partial).toBe(true)
+    expect(res.unchecked).toBe(120 - res.mirrorsChecked)
+  })
+
+  test('a partial run writes an audit row saying so, before any mirror is evaluated', async () => {
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor(
+        Array.from({ length: 72 }, (_, i) => ({
+          name: `cycle-audit-${i}`,
+          status: 'STATUS_RUNNING' as const,
+        }))
+      ),
+      audit: t.audit,
+      maxMirrors: 50,
+      budgetMs: 10_000,
+    })
+    const coverageRow = t.audits.find(
+      (a) => a.decisionKind === PEERDB_COVERAGE_PARTIAL_DECISION
+    )
+    expect(coverageRow).toBeDefined()
+    expect(coverageRow!.delivered).toBe(false)
+    expect(res.audited).toBe(1)
+    // Fleet-level, not attributed to one mirror.
+    expect(t.audits).toHaveLength(1)
+  })
+
+  test('a complete run writes no coverage audit row', async () => {
+    const t = tape()
+    await runPeerDBAlertCycle({
+      reader: readerFor([{ name: 'cycle-complete', status: 'STATUS_RUNNING' }]),
+      audit: t.audit,
+      budgetMs: 10_000,
+    })
+    expect(
+      t.audits.some((a) => a.decisionKind === PEERDB_COVERAGE_PARTIAL_DECISION)
+    ).toBe(false)
+  })
+
+  test('the coverage audit row names the counts and the shortfall', async () => {
+    const rows: Array<{ error?: string; value?: number | null }> = []
+    await runPeerDBAlertCycle({
+      reader: readerFor(
+        Array.from({ length: 72 }, (_, i) => ({
+          name: `cycle-row-${i}`,
+          status: 'STATUS_RUNNING' as const,
+        }))
+      ),
+      audit: async (a) => {
+        rows.push({ error: a.error, value: a.value })
+      },
+      maxMirrors: 50,
+      budgetMs: 10_000,
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.error).toContain('50 of 72 mirrors checked')
+    expect(rows[0]!.error).toContain('22 unchecked')
+    expect(rows[0]!.value).toBe(22)
+  })
+
+  test('a partial run still evaluates every mirror it did read', async () => {
+    // Truncation must not become "skip the whole tick": the readable mirrors
+    // are still classified, and the coverage row records what was missed.
+    const mirrors = Array.from({ length: 60 }, (_, i) => ({
+      name: `cycle-still-${i}`,
+      status:
+        i === 3 ? ('STATUS_FAILED' as const) : ('STATUS_RUNNING' as const),
+    }))
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor(mirrors),
+      audit: async () => {},
+      maxMirrors: 50,
+      budgetMs: 10_000,
+    })
+    expect(res.findings).toHaveLength(1)
+    expect(res.findings[0]!.checkId).toBe(RULE('cycle-still-3'))
+    expect(res.partial).toBe(true)
   })
 
   test('an exploding reader degrades to counters, never throws', async () => {

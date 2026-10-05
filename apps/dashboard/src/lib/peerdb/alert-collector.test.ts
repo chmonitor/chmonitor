@@ -1,10 +1,7 @@
 import type { PeerDBAlertSnapshotReader } from './alert-collector'
 import type { PeerDBFetchFailure } from './peerdb-config'
 
-import {
-  collectPeerDBSignals,
-  PEERDB_ALERT_MAX_MIRRORS,
-} from './alert-collector'
+import { collectPeerDBSignals } from './alert-collector'
 import { classifyPeerDBMirror } from './alerting'
 import {
   classifyPeerDBFetchFailure,
@@ -18,6 +15,7 @@ import {
   mapWithPool,
   PEERDB_SWEEP_MAX_CONCURRENCY,
   resolvePeerDBSweepConcurrency,
+  resolvePeerDBSweepMaxMirrors,
 } from './sweep-pool'
 import { afterEach, describe, expect, test } from 'bun:test'
 
@@ -172,13 +170,168 @@ describe('collectPeerDBSignals', () => {
     expect(out.metrics.errored).toBe(1)
   })
 
-  test('caps collection at 50 mirrors', async () => {
+  test('a 60-mirror fleet is collected whole — no fixed ceiling', async () => {
     const names = Array.from({ length: 60 }, (_, i) => ({ name: `m${i}` }))
     const out = await collectPeerDBSignals(
       stubReader({ listMirrors: async () => names })
     )
+    // Pre-fix this was 50 of 60 with `mirrorsChecked: 50` and no hint that 10
+    // mirrors were never read.
+    expect(out.metrics.mirrorsListed).toBe(60)
+    expect(out.metrics.mirrorsChecked).toBe(60)
+    expect(out.metrics.partial).toBe(false)
+    expect(out.metrics.unchecked).toBe(0)
+    expect(out.signals).toHaveLength(60)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// #3687 — no silent coverage ceiling; a short read must SAY it is short
+// ---------------------------------------------------------------------------
+
+describe('collectPeerDBSignals coverage (#3687)', () => {
+  test('a 72-mirror fleet reads all 72 (the cap this issue removed)', async () => {
+    const { reader, calls } = fleetReader({ count: 72 })
+    const out = await collectPeerDBSignals(reader, { budgetMs: 10_000 })
+    expect(out.metrics.mirrorsListed).toBe(72)
+    expect(out.metrics.mirrorsChecked).toBe(72)
+    expect(calls.status).toBe(72)
+    expect(out.metrics.partial).toBe(false)
+    expect(out.metrics.unchecked).toBe(0)
+  })
+
+  test('a mirror failing past any previous ceiling is now seen', async () => {
+    // Position 60 of 72: pre-fix this produced NO signal at all, because the
+    // list was sliced to 50 in list order.
+    const { reader } = fleetReader({
+      count: 72,
+      statusOf: (i) => ({
+        currentFlowState: i === 60 ? 'STATUS_FAILED' : 'STATUS_RUNNING',
+      }),
+    })
+    const out = await collectPeerDBSignals(reader, { budgetMs: 10_000 })
+    const atSixty = out.signals.find((s) => s.flowName === 'm60')!
+    expect(atSixty.status).toBe('STATUS_FAILED')
+    expect(classifyPeerDBMirror(atSixty).severity).toBe('error')
+    expect(out.metrics.partial).toBe(false)
+  })
+
+  test('an explicit guard truncates but reports the shortfall', async () => {
+    const { reader } = fleetReader({ count: 72 })
+    const out = await collectPeerDBSignals(reader, {
+      budgetMs: 10_000,
+      maxMirrors: 50,
+    })
+    // The guard is honoured, and the operator can see exactly what it cost.
+    expect(out.metrics.mirrorsListed).toBe(72)
     expect(out.metrics.mirrorsChecked).toBe(50)
-    expect(out.signals).toHaveLength(50)
+    expect(out.metrics.partial).toBe(true)
+    expect(out.metrics.unchecked).toBe(22)
+  })
+
+  test('a caller-supplied guard below 1 does not silently empty the fleet', async () => {
+    // `slice(0, 0)` would return zero signals — a fleet reported as fully
+    // covered while checking nothing.
+    const { reader } = fleetReader({ count: 4 })
+    const out = await collectPeerDBSignals(reader, {
+      budgetMs: 10_000,
+      maxMirrors: 0,
+    })
+    expect(out.metrics.mirrorsChecked).toBe(4)
+    expect(out.metrics.partial).toBe(false)
+  })
+
+  test('worst case: a 500-mirror fleet on a short budget reports partial, not clean', async () => {
+    // The load-bearing shape: with the ceiling gone, the budget is what stops
+    // a large fleet, and a budget-truncated tick MUST NOT look complete.
+    const names = Array.from({ length: 500 }, (_, i) => ({
+      name: `m${i}`,
+      sourceName: 'pg',
+      status: 'STATUS_RUNNING',
+    }))
+    const out = await collectPeerDBSignals(
+      stubReader({
+        listMirrors: async () => names,
+        mirrorStatus: async () => {
+          await sleep(50)
+          return { currentFlowState: 'STATUS_RUNNING' }
+        },
+      }),
+      { concurrency: 4, budgetMs: 200 }
+    )
+    expect(out.metrics.mirrorsListed).toBe(500)
+    expect(out.metrics.mirrorsChecked).toBeLessThan(500)
+    expect(out.metrics.partial).toBe(true)
+    expect(out.metrics.unchecked).toBe(500 - out.metrics.mirrorsChecked)
+    expect(out.metrics.unchecked).toBeGreaterThan(0)
+    // Deferral is not failure: an unread mirror must not be counted errored.
+    expect(out.metrics.budgetDeferred).toBeGreaterThan(0)
+    expect(out.metrics.errored).toBe(0)
+  })
+
+  test('budget deferral is never counted as an error', async () => {
+    // A mirror the budget never reached has no signal; calling that `errored`
+    // is what made every check look broken on a large fleet (#3677).
+    const names = Array.from({ length: 40 }, (_, i) => ({ name: `m${i}` }))
+    const out = await collectPeerDBSignals(
+      stubReader({
+        listMirrors: async () => names,
+        mirrorStatus: async () => {
+          await sleep(50)
+          return { currentFlowState: 'STATUS_RUNNING' }
+        },
+      }),
+      { concurrency: 2, budgetMs: 120 }
+    )
+    expect(out.metrics.budgetDeferred).toBeGreaterThan(0)
+    expect(out.metrics.errored).toBe(0)
+    // Every deferred signal is marked as having no readable status, so the
+    // cycle holds a recovery for it instead of declaring it healthy.
+    const unread = out.signals.filter((s) => !s.statusEndpointAvailable)
+    expect(unread.length).toBe(out.metrics.unchecked)
+  })
+
+  test('a listing with no readable name is partial, not an empty clean tick', async () => {
+    const out = await collectPeerDBSignals(
+      stubReader({ listMirrors: async () => [{ name: '   ' } as never] })
+    )
+    expect(out.signals).toEqual([])
+    expect(out.metrics.mirrorsListed).toBe(1)
+    expect(out.metrics.partial).toBe(true)
+    expect(out.metrics.unchecked).toBe(1)
+  })
+
+  test('env PEERDB_SWEEP_MAX_MIRRORS defaults to no guard and fails open', () => {
+    const orig = process.env.PEERDB_SWEEP_MAX_MIRRORS
+    try {
+      delete process.env.PEERDB_SWEEP_MAX_MIRRORS
+      expect(resolvePeerDBSweepMaxMirrors()).toBeNull()
+      process.env.PEERDB_SWEEP_MAX_MIRRORS = '10'
+      expect(resolvePeerDBSweepMaxMirrors()).toBe(10)
+      // Junk must not become a silent ceiling that drops mirrors.
+      process.env.PEERDB_SWEEP_MAX_MIRRORS = 'abc'
+      expect(resolvePeerDBSweepMaxMirrors()).toBeNull()
+      process.env.PEERDB_SWEEP_MAX_MIRRORS = '0'
+      expect(resolvePeerDBSweepMaxMirrors()).toBeNull()
+    } finally {
+      if (orig === undefined) delete process.env.PEERDB_SWEEP_MAX_MIRRORS
+      else process.env.PEERDB_SWEEP_MAX_MIRRORS = orig
+    }
+  })
+
+  test('the env guard is honoured by the collector', async () => {
+    const orig = process.env.PEERDB_SWEEP_MAX_MIRRORS
+    try {
+      process.env.PEERDB_SWEEP_MAX_MIRRORS = '5'
+      const { reader } = fleetReader({ count: 12 })
+      const out = await collectPeerDBSignals(reader, { budgetMs: 10_000 })
+      expect(out.metrics.mirrorsChecked).toBe(5)
+      expect(out.metrics.mirrorsListed).toBe(12)
+      expect(out.metrics.partial).toBe(true)
+    } finally {
+      if (orig === undefined) delete process.env.PEERDB_SWEEP_MAX_MIRRORS
+      else process.env.PEERDB_SWEEP_MAX_MIRRORS = orig
+    }
   })
 })
 
@@ -474,12 +627,15 @@ describe('collectPeerDBSignals healthy-skip rule (#3677)', () => {
       budgetMs: 10_000,
     })
 
-    // 72 reported, 50 collected: the pre-existing PEERDB_ALERT_MAX_MIRRORS cap
-    // bounds it. The point is the logs column — pre-fix this issued one
-    // `POST /v1/mirrors/logs` per collected mirror, i.e. 50 catalog scans per
-    // 10-minute tick; now it issues none.
-    expect(out.metrics.mirrorsChecked).toBe(PEERDB_ALERT_MAX_MIRRORS)
-    expect(calls.status).toBe(PEERDB_ALERT_MAX_MIRRORS)
+    // All 72 are read (the pre-existing PEERDB_ALERT_MAX_MIRRORS cap is gone,
+    // #3687) and the coverage answer says the tick was complete. The point is
+    // still the logs column — pre-fix this issued one `POST /v1/mirrors/logs`
+    // per collected mirror, i.e. 72 catalog scans per 10-minute tick; now it
+    // issues none.
+    expect(out.metrics.mirrorsListed).toBe(72)
+    expect(out.metrics.mirrorsChecked).toBe(72)
+    expect(out.metrics.partial).toBe(false)
+    expect(calls.status).toBe(72)
     expect(logsFor).toEqual([])
     expect(out.metrics.errored).toBe(0)
     expect(out.metrics.errorLogReads).toBe(0)
