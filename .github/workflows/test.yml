@@ -124,10 +124,19 @@ jobs:
   # still a loud red job. This job is simply not on the merge path, so the desk's
   # `local:red-jobs` job is what classifies it if it ever goes red. Moving the
   # step, not disabling it.
+  #
+  # `continue-on-error` closes the last gap. Being non-required is not enough on
+  # its own: a red job puts the PR in UNSTABLE state, and
+  # `enablePullRequestAutoMerge` REFUSES to arm on an UNSTABLE PR — so the outage
+  # still blocked every automatic merge in the repo, just one step later than
+  # before. Job-level continue-on-error is GitHub's mechanism for exactly this:
+  # the failure stays visible as an annotation with full logs, but it no longer
+  # counts toward the PR's mergeability.
   coverage-upload:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: unit-tests
+    continue-on-error: true
 
     steps:
       - name: Checkout
