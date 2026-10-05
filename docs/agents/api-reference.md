@@ -400,7 +400,7 @@ describe('POST /api/v1/agent', () => {
 All queries are validated before execution:
 
 ```typescript
-import { validateSqlQuery } from '@/lib/api/shared/validators/sql'
+import { validateSqlQuery } from '@chm/sql-builder'
 
 try {
   validateSqlQuery(sql) // Throws if unsafe
