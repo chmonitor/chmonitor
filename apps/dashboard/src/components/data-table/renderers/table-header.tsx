@@ -190,9 +190,22 @@ function DraggableTableHeader({
           variant="ghost"
           size="icon-sm"
           className={cn(
-            'absolute left-0 size-6 shrink-0 cursor-grab text-muted-foreground opacity-0 sm:inline-flex',
+            // `pointer-coarse:size-9` grows this icon-only grip to 36px for a
+            // finger. The sibling label wrapper carries the matching
+            // `pointer-coarse:pl-10` gutter, so the bigger handle never lands on
+            // top of the column name.
+            'absolute left-0 size-6 shrink-0 cursor-grab text-muted-foreground opacity-40 sm:inline-flex',
+            'pointer-coarse:size-9',
+            // Hover does not exist on touch and Tailwind v4 wraps a bare `hover:`
+            // in `@media (hover: hover)`, so a resting `opacity-0` here leaves
+            // the grip present, focusable, and invisible on every coarse
+            // pointer. Rest visible, hide only where a hover does (the contract
+            // components/cards/chart-action-classes.ts already ships).
+            'pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40',
+            // `!` because `pointer-fine:group-hover:opacity-40` shares this
+            // selector's specificity and is emitted later in the sheet.
+            'hover:!opacity-100 focus-visible:!opacity-100',
             'active:cursor-grabbing',
-            'group-hover:opacity-40 group-focus-within:opacity-40 hover:opacity-100 focus:opacity-100 focus-visible:opacity-100',
             'transition',
             'disabled:cursor-default disabled:opacity-50'
           )}
@@ -203,7 +216,7 @@ function DraggableTableHeader({
         >
           <GripVertical data-icon className="size-3" />
         </Button>
-        <div className="min-w-0 flex-1 pl-7">
+        <div className="min-w-0 flex-1 pl-7 pointer-coarse:pl-10">
           <div className="group flex min-w-0 items-center gap-1.5 justify-between">
             <span className="min-w-0 flex-1 truncate">
               {header.isPlaceholder
