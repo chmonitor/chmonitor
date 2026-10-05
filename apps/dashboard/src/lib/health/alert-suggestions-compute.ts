@@ -22,6 +22,7 @@ import type { MetricKey } from './rule-builder-schema'
 
 import { listDismissedSuggestionKeys } from './alert-suggestion-dismissals-store'
 import { buildSuggestions } from './alert-suggestions'
+import { getExistingTables } from './capability-cache'
 import { listCustomRules } from './custom-rules-store'
 import { METRIC_CATALOG } from './rule-builder-schema'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
@@ -95,17 +96,6 @@ async function runReadonly<T>(
   } catch {
     return null
   }
-}
-
-async function getExistingSystemTables(
-  hostId: number
-): Promise<Set<string> | null> {
-  const rows = await runReadonly<{ full: string }>(
-    `SELECT concat(database, '.', name) AS full FROM system.tables WHERE database = 'system'`,
-    hostId
-  )
-  if (!rows) return null
-  return new Set(rows.map((r) => String(r.full)))
 }
 
 async function probeClusterShape(hostId: number): Promise<ClusterShape | null> {
@@ -237,7 +227,10 @@ export async function computeAlertSuggestions(
   const hosts: HostSignals[] = []
   for (const config of configs) {
     const hostId = config.id
-    const tables = await getExistingSystemTables(hostId)
+    // Shared capability cache (#3682) — this module used to run its own copy of
+    // the `system.tables` probe, so the suggestion engine, the Active Alerts
+    // panel and the cron sweep each asked the same host the same question.
+    const tables = await getExistingTables(hostId)
     const [clusterShape, metricValues, baselines, recurringFindings] =
       await Promise.all([
         probeClusterShape(hostId),

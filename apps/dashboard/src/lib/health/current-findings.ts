@@ -13,8 +13,8 @@
  */
 
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
-import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 
+import { getExistingTables } from './capability-cache'
 import { resolveThresholdOverrides } from './declarative/thresholds'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
@@ -57,39 +57,16 @@ async function runRuleQuery(
   return Number.isFinite(num) ? num : null
 }
 
-async function getExistingSystemTables(
-  hostId: number
-): Promise<Set<string> | null> {
-  try {
-    const result = await fetchData<Array<{ full: string }>>({
-      query: `SELECT concat(database, '.', name) AS full FROM system.tables WHERE database = 'system'`,
-      hostId,
-      format: 'JSONEachRow',
-      clickhouse_settings: { readonly: '1' },
-    })
-    if (result.error) return null
-    const rows = result.data
-    if (!Array.isArray(rows)) return null
-    return new Set(rows.map((r) => String(r.full)))
-  } catch {
-    return null
-  }
-}
-
-function shouldRunRule(
-  rule: AlertRuleDef,
-  tables: Set<string> | null
-): boolean {
-  if (!rule.sql) return false
-  if (!rule.optional || !rule.tableCheck || tables === null) return true
-  return tables.has(rule.tableCheck)
-}
-
 /**
  * Compute currently-firing conditions across every configured host, without
  * touching dedup state, webhooks, or the alert-history audit log. Errors on a
  * single host/rule are caught and skipped (mirroring the sweep's per-rule
  * try/catch) rather than failing the whole snapshot.
+ *
+ * #3682: the `optional`/`tableCheck` gate reads the shared capability cache
+ * rather than re-running this module's own copy of the `system.tables` probe,
+ * so the Active Alerts panel and the cron sweep can no longer both ask the same
+ * server the same question on the same tick.
  */
 export async function getCurrentFindings(): Promise<CurrentFinding[]> {
   const rules = ruleRegistry.getAll()
@@ -102,11 +79,20 @@ export async function getCurrentFindings(): Promise<CurrentFinding[]> {
 
   for (const config of configs) {
     const name = hostLabel(config)
-    const tables = await getExistingSystemTables(config.id)
+    const tables = await getExistingTables(config.id)
 
     for (const rule of rules) {
       if (!rule.sql) continue
-      if (!shouldRunRule(rule, tables)) continue
+      // Same gate as the sweep: skip an optional rule only when we positively
+      // know its table is absent, and run everything when the probe failed.
+      if (
+        rule.optional &&
+        rule.tableCheck &&
+        tables !== null &&
+        !tables.has(rule.tableCheck)
+      ) {
+        continue
+      }
 
       try {
         const value = await runRuleQuery(rule.sql, rule.valueKey, config.id)
