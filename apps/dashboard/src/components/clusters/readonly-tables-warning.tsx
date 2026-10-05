@@ -7,6 +7,8 @@
  * Features:
  * - Hidden when count is 0 (cluster is healthy)
  * - Red/destructive styling to indicate urgency
+ * - Always visible: a readonly-table warning is a health signal, not a chart
+ *   action to declutter, so it is never gated behind a hover or focus reveal
  * - Popover with details on click
  * - Links to readonly tables page for full details
  */
@@ -29,8 +31,6 @@ interface ReadonlyTablesWarningProps {
   hostId: number
   /** Cluster name to check */
   cluster: string
-  /** Always show or only on hover */
-  alwaysVisible?: boolean
 }
 
 /**
@@ -42,7 +42,6 @@ interface ReadonlyTablesWarningProps {
 export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
   hostId,
   cluster,
-  alwaysVisible = true,
 }: ReadonlyTablesWarningProps) {
   const [isOpen, setIsOpen] = useState(false)
   const { count, isLoading, error, refresh } = useClusterCount(
@@ -68,18 +67,18 @@ export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
             className={cn(
               'gap-1.5 h-8 px-2.5',
               'text-destructive hover:text-destructive',
-              'hover:bg-destructive/10',
-              'transition-opacity',
-              alwaysVisible || isOpen
-                ? 'opacity-100'
-                : 'opacity-0 group-hover:opacity-100'
+              'hover:bg-destructive/10'
             )}
             aria-label={`${count} readonly tables - click for details`}
           />
         }
       >
         <AlertTriangle className="size-4" />
-        <span className="font-medium tabular-nums">{count}</span>
+        {/* The space is a real text node: `gap-1.5` only spaces the boxes, so
+            without it the rendered label is "3readonly" and the accessible name
+            no longer contains the visible text (WCAG 2.5.3). Whitespace between
+            flex items is not rendered, so this costs no layout. */}
+        <span className="font-medium tabular-nums">{count}</span>{' '}
         <span className="text-xs font-normal">readonly</span>
       </PopoverTrigger>
 
