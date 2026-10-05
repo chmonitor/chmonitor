@@ -47,6 +47,7 @@ import type {
   PeerDBInvestigation,
   PeerDBMirrorSignal,
 } from './alerting'
+import type { PeerDBSweepCoverage } from './sweep-coverage'
 
 import {
   auditPeerDBAlert,
@@ -58,6 +59,7 @@ import {
   validatePeerDBAlertMessage,
 } from './alerting'
 import { peerDBFlowSlug } from './flow-slug'
+import { formatSweepCoverage, summarizeSweepCoverage } from './sweep-coverage'
 import { debug } from '@chm/logger'
 import { alertStateStore } from '@/lib/health/alert-state-store'
 
@@ -70,8 +72,18 @@ export const PEERDB_ALERT_RULE_ID = 'peerdb-mirror-health'
 /** Rule type carried into route matching (glob `*` / `peerdb*` catch-alls). */
 export const PEERDB_ALERT_RULE_TYPE = 'peerdb'
 
-/** Cap on mirrors processed per cycle (mirrors the collector bound). */
-export const PEERDB_CYCLE_MAX_MIRRORS = 50
+/**
+ * Flow label used by the fleet-level coverage audit row, so a partial sweep is
+ * attributable to the fleet rather than to one mirror.
+ */
+const PEERDB_FLEET_AUDIT_FLOW = '(fleet)'
+
+/**
+ * Decision kind of the coverage audit row (#3687). Emitted whenever the
+ * collection read fewer mirrors than PeerDB listed — an operator reading alert
+ * history sees the exact shortfall instead of a tick that looks complete.
+ */
+export const PEERDB_COVERAGE_PARTIAL_DECISION = 'peerdb-coverage:partial'
 
 /**
  * Stable per-mirror rule id for the persistent dedup store. Slugged so D1
@@ -107,8 +119,22 @@ export interface PeerDBCycleFinding {
 }
 
 export interface PeerDBCycleResult {
-  /** Mirrors collected (before classification). */
+  /**
+   * Mirrors the collection actually read a status for this cycle (feeds the
+   * sweep summary's `checksRun`). A mirror that failed a read still counts; one
+   * the sweep never reached does not.
+   */
   mirrorsChecked: number
+  /** Mirrors PeerDB listed this cycle, before any bound (#3687). */
+  mirrorsListed: number
+  /**
+   * `mirrorsListed > mirrorsChecked`: this cycle did not see the whole fleet,
+   * so "nothing fired" cannot be read as "the fleet is healthy". Also recorded
+   * as an `alert_events` audit row and must be carried into any sweep output.
+   */
+  partial: boolean
+  /** `mirrorsListed - mirrorsChecked` — mirrors with no signal at all. */
+  unchecked: number
   /** Non-ok findings, shaped like sweep findings for the summary. */
   findings: PeerDBCycleFinding[]
   /** Mirrors for which dispatch was actually invoked. */
@@ -147,6 +173,12 @@ export interface PeerDBCycleOptions {
    * `PEERDB_FETCH_TIMEOUT_MS` ceiling can still overrun the sweep tick.
    */
   budgetMs?: number
+  /**
+   * Optional mirror-read guard for collection (defaults to
+   * `PEERDB_SWEEP_MAX_MIRRORS`; `null` = no guard). Only forwarded so the
+   * bound is injectable in tests and configurable in production (#3687).
+   */
+  maxMirrors?: number | null
 }
 
 // ---------------------------------------------------------------------------
@@ -162,6 +194,8 @@ interface DeterministicInvestigationInput {
   hasLagSample: boolean
   hasErrorSample: boolean
   hasSlotSample: boolean
+  /** Fleet coverage for this cycle (#3687). */
+  coverage: PeerDBSweepCoverage
   now?: number
 }
 
@@ -214,6 +248,20 @@ function runDeterministicPeerDBInvestigation(
     notes.push('no error-count sample — message must not claim "0 errors"')
   }
 
+  // Fleet coverage (#3687): an isolated mirror firing is a weaker claim when
+  // the cycle could not read the whole fleet, because the mirrors it did not
+  // read are equally unaccounted for.
+  checks.push(
+    `coverage:${input.coverage.checked}/${input.coverage.listed}${
+      input.coverage.partial ? '-partial' : ''
+    }`
+  )
+  if (input.coverage.partial) {
+    notes.push(
+      `partial coverage — ${formatSweepCoverage(input.coverage)}; mirrors outside this tick's read are unaccounted for`
+    )
+  }
+
   // Fleet context (already-collected — no extra upstream calls).
   checks.push(`fleet-firing:${input.fleetFiring}`)
   if (input.fleetFiring > 1) {
@@ -256,6 +304,9 @@ export async function runPeerDBAlertCycle(
   const now = opts.now
   const result: PeerDBCycleResult = {
     mirrorsChecked: 0,
+    mirrorsListed: 0,
+    partial: false,
+    unchecked: 0,
     findings: [],
     dispatched: 0,
     audited: 0,
@@ -267,7 +318,17 @@ export async function runPeerDBAlertCycle(
     const collection = await collectPeerDBSignals(opts.reader, {
       concurrency: opts.concurrency,
       budgetMs: opts.budgetMs,
+      maxMirrors: opts.maxMirrors,
     }).catch(() => null)
+    // Coverage is recorded from the collection itself, BEFORE the per-mirror
+    // loop, so it survives the early no-op returns and reaches both the result
+    // and the audit row (#3687).
+    if (collection) {
+      result.mirrorsChecked = collection.metrics.mirrorsChecked
+      result.mirrorsListed = collection.metrics.mirrorsListed
+      result.partial = collection.metrics.partial
+      result.unchecked = collection.metrics.unchecked
+    }
     if (!collection || collection.signals.length === 0) {
       // Distinguish "PeerDB unconfigured" from "configured but empty" only
       // via the metrics: zero collected with zero checked means nothing to do.
@@ -281,8 +342,34 @@ export async function runPeerDBAlertCycle(
     const thresholds = opts.thresholds ?? DEFAULT_PEERDB_ALERT_THRESHOLDS
     const dryRun = opts.dryRun !== false
     const audit: PeerDBAuditFn = opts.audit ?? auditPeerDBAlert
-    const signals = collection.signals.slice(0, PEERDB_CYCLE_MAX_MIRRORS)
-    result.mirrorsChecked = collection.metrics.mirrorsChecked
+
+    // AUDIT THE COVERAGE, not just the per-mirror decisions (#3687). A partial
+    // collection is written as its own fleet-level row, before any mirror is
+    // evaluated, so "nothing fired" on a fleet this cycle never fully read is
+    // never mistaken for a healthy fleet in alert history. It is a coverage
+    // fact, not an incident: no dispatch, no alert state, no severity claim
+    // about any individual mirror.
+    if (result.partial) {
+      await audit({
+        flowName: PEERDB_FLEET_AUDIT_FLOW,
+        severity: 'warning',
+        decisionKind: PEERDB_COVERAGE_PARTIAL_DECISION,
+        delivered: false,
+        error: formatSweepCoverage(
+          summarizeSweepCoverage(result.mirrorsListed, result.mirrorsChecked)
+        ),
+        channel: 'peerdb',
+        value: result.unchecked,
+        hostId: PEERDB_ALERT_HOST_ID,
+      }).catch(() => {})
+      result.audited++
+    }
+
+    // No per-mirror cap: every signal the collection produced is evaluated.
+    // Truncating here would reintroduce the same invisible-mirror bug one layer
+    // up (#3687) — a failing mirror past the cut would fire no alert and leave
+    // no row.
+    const signals = collection.signals
     result.errored = collection.metrics.errored
 
     // Fleet firing count first (investigation context, no extra I/O).
@@ -370,6 +457,10 @@ export async function runPeerDBAlertCycle(
           hasLagSample: collection.metrics.hasLagSample,
           hasErrorSample: collection.metrics.hasErrorSample,
           hasSlotSample: collection.metrics.hasSlotSample,
+          coverage: summarizeSweepCoverage(
+            collection.metrics.mirrorsListed,
+            collection.metrics.mirrorsChecked
+          ),
           now,
         })
 

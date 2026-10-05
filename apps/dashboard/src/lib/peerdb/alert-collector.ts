@@ -23,6 +23,12 @@
  * Collectors NEVER throw — unconfigured PeerDB, an unreachable flow-api, or a
  * single failed upstream call yields an empty/partial result so the health
  * sweep around the alert cycle degrades gracefully.
+ *
+ * Coverage is reported, never assumed (#3687): every collection returns
+ * `metrics.mirrorsListed` alongside `metrics.mirrorsChecked` plus an explicit
+ * `partial` / `unchecked` pair (see `./sweep-coverage`), so a tick that could
+ * not read the whole fleet says so instead of looking like a clean bill of
+ * health.
  */
 
 import type {
@@ -30,6 +36,7 @@ import type {
   PeerDBInvestigationMetrics,
   PeerDBMirrorSignal,
 } from './alerting'
+import type { PeerDBSweepCoverage } from './sweep-coverage'
 import type {
   ListMirrorsResponse,
   ListPeersResponse,
@@ -48,10 +55,12 @@ import {
   extractMirrorLogs,
   mirrorLogsRequestBody,
 } from './mirror-logs'
+import { summarizeSweepCoverage } from './sweep-coverage'
 import {
   mapWithPool,
   resolvePeerDBSweepBudgetMs,
   resolvePeerDBSweepConcurrency,
+  resolvePeerDBSweepMaxMirrors,
   startSweepBudget,
 } from './sweep-pool'
 
@@ -81,9 +90,6 @@ export interface PeerDBAlertSnapshotReader {
   /** Source peer names (from `GET /v1/peers/list`). */
   listSourcePeers(): Promise<string[]>
 }
-
-/** Maximum mirrors to fan out per-mirror status/logs reads to. */
-export const PEERDB_ALERT_MAX_MIRRORS = 50
 
 /**
  * Whether a mirror is worth the expensive per-mirror ERROR-log read (#3677).
@@ -115,6 +121,20 @@ export function isErrorLogWorthy(
   if (typeof status.currentFlowState !== 'string') return false
   if ((status.errorMessage ?? '').trim() !== '') return true
   return status.currentFlowState !== 'STATUS_RUNNING'
+}
+
+/**
+ * Clamp a caller/env-supplied mirror guard (#3687). Anything below 1 resolves
+ * to `null` — no guard — rather than to a fleet of zero: a guard that reads
+ * nothing must never look like a complete tick. `resolvePeerDBSweepMaxMirrors`
+ * already applies this to the env value; this repeats it for an injected
+ * option, which is how tests and any future caller pass the guard directly.
+ */
+function normalizeMirrorGuard(value: number | null): number | null {
+  if (value === null) return null
+  return Number.isFinite(value) && Math.floor(value) >= 1
+    ? Math.floor(value)
+    : null
 }
 
 /**
@@ -245,7 +265,25 @@ export interface PeerDBSignalCollection {
   signals: PeerDBMirrorSignal[]
   /** Collection stats feeding the deterministic investigation step. */
   metrics: PeerDBInvestigationMetrics & {
+    /**
+     * Mirrors PeerDB listed this tick (`GET /v1/mirrors/list`), before any
+     * bound — the size of the fleet this collection was asked to cover.
+     */
+    mirrorsListed: number
+    /**
+     * Mirrors this tick actually read a status for. A read that FAILED still
+     * counts (see `errored`); a mirror the budget or the guard skipped does not
+     * (#3687). Always `<= mirrorsListed`.
+     */
     mirrorsChecked: number
+    /**
+     * `mirrorsListed > mirrorsChecked`: at least one mirror produced NO signal
+     * this tick. The load-bearing flag — a caller that reports a green result
+     * without it is reporting over a fleet it never looked at (#3687).
+     */
+    partial: boolean
+    /** `mirrorsListed - mirrorsChecked` — mirrors with no signal at all. */
+    unchecked: number
     /** Mirrors missing a usable status state or error-log sample. */
     errored: number
     /**
@@ -269,6 +307,17 @@ export interface PeerDBSignalCollectionOptions {
   concurrency?: number
   /** Wall-clock budget for the whole collection (default `PEERDB_SWEEP_BUDGET_MS`). */
   budgetMs?: number
+  /**
+   * Optional guard on how many mirrors to read (default
+   * `PEERDB_SWEEP_MAX_MIRRORS`); `null` explicitly means no guard.
+   *
+   * This replaced the hardcoded 50-mirror cap, which was not a performance
+   * control (#3677 removed the problem it stood in for) and silently dropped
+   * every mirror past 50 — a failure at position 60 produced no alert and no
+   * signal of any kind (#3687). Any truncation it does cause is reported
+   * through `metrics.partial` / `metrics.unchecked`.
+   */
+  maxMirrors?: number | null
 }
 
 /**
@@ -290,6 +339,13 @@ export interface PeerDBSignalCollectionOptions {
  * parallel timeouts into 90s of sequential ones. Work is ordered
  * suspects-first so a budget-truncated tick still reads the mirrors most likely
  * to fire.
+ *
+ * Those two bounds decide how MUCH is read; nothing decides WHICH mirrors may
+ * be skipped. The old 50-mirror cap is gone (#3687) — every listed mirror is
+ * in scope unless the operator sets `PEERDB_SWEEP_MAX_MIRRORS` — and whenever
+ * fewer mirrors were read than listed, `metrics.partial` says so with the exact
+ * shortfall. There is no configuration of this lane that drops a mirror
+ * silently.
  */
 export async function collectPeerDBSignals(
   reader?: PeerDBAlertSnapshotReader,
@@ -297,14 +353,19 @@ export async function collectPeerDBSignals(
 ): Promise<PeerDBSignalCollection> {
   const budgetMs = opts?.budgetMs ?? resolvePeerDBSweepBudgetMs()
   const budget = startSweepBudget(budgetMs)
-  const empty = (): PeerDBSignalCollection => ({
+  const empty = (
+    coverage: PeerDBSweepCoverage = summarizeSweepCoverage(0, 0)
+  ): PeerDBSignalCollection => ({
     signals: [],
     metrics: {
       signalsCollected: 0,
       hasLagSample: false,
       hasErrorSample: false,
       hasSlotSample: false,
-      mirrorsChecked: 0,
+      mirrorsListed: coverage.listed,
+      mirrorsChecked: coverage.checked,
+      partial: coverage.partial,
+      unchecked: coverage.unchecked,
       errored: 0,
       budgetDeferred: 0,
       errorLogReads: 0,
@@ -319,10 +380,21 @@ export async function collectPeerDBSignals(
     const concurrency = opts?.concurrency ?? resolvePeerDBSweepConcurrency()
 
     const mirrors = await safe(() => r.listMirrors(), [])
-    const scoped = mirrors
-      .filter((m) => typeof m?.name === 'string' && m.name.trim() !== '')
-      .slice(0, PEERDB_ALERT_MAX_MIRRORS)
-    if (scoped.length === 0) return empty()
+    const named = mirrors.filter(
+      (m) => typeof m?.name === 'string' && m.name.trim() !== ''
+    )
+    // The fleet this tick is responsible for, before any bound. `listed` is the
+    // raw list length so an entry PeerDB returns that we cannot even name still
+    // counts as unchecked — it is a mirror with no signal.
+    const maxMirrors = normalizeMirrorGuard(
+      opts?.maxMirrors ?? resolvePeerDBSweepMaxMirrors()
+    )
+    const scoped = maxMirrors === null ? named : named.slice(0, maxMirrors)
+    if (scoped.length === 0) {
+      // Nothing readable in the list. Still answer the coverage question
+      // honestly: a listing we could not read is not a clean tick.
+      return empty(summarizeSweepCoverage(mirrors.length, 0))
+    }
 
     // Stage 1 — per-mirror status, pool-bounded and suspects-first. One
     // mirror's failure never blocks the rest.
@@ -335,9 +407,14 @@ export async function collectPeerDBSignals(
     )
     const statuses = new Map<string, MirrorStatusResponse | null>()
     const statusDeferred = new Set<string>()
+    // Counted from the outcomes, not from `statusDeferred.size`: two list
+    // entries can share a name, and the coverage answer must not drift when
+    // they do (#3687).
+    let statusRead = 0
     statusOutcomes.forEach((outcome, i) => {
       const name = statusOrder[i]!.name
       if (outcome.kind === 'done') {
+        statusRead++
         statuses.set(name, outcome.value)
       } else {
         statuses.set(name, null)
@@ -377,28 +454,31 @@ export async function collectPeerDBSignals(
     })
 
     // Slots across source peers → worst lag per mirror via `sourceName`.
+    // No cap here: a slot read is one cheap GET per peer, the pool and budget
+    // already bound it, and a peer the budget defers yields an empty slot list
+    // → `slotLagMb: null` (reported as unknown, never as a healthy zero).
     const peers = await safe(() => r.listSourcePeers(), [])
-    const slotOrder = peers.slice(0, PEERDB_ALERT_MAX_MIRRORS)
     const slotOutcomes = await mapWithPool(
-      slotOrder,
+      peers,
       concurrency,
       (peer) => safe(() => r.peerSlots(peer), [] as SlotInfo[]),
       budget.signal
     )
     const slotsByPeer = new Map<string, SlotInfo[]>()
     slotOutcomes.forEach((outcome, i) => {
-      slotsByPeer.set(
-        slotOrder[i]!,
-        outcome.kind === 'done' ? outcome.value : []
-      )
+      slotsByPeer.set(peers[i]!, outcome.kind === 'done' ? outcome.value : [])
     })
 
-    // Per-mirror accounting. `errored` counts only genuine read failures; a
-    // healthy-skip or a budget-deferred mirror is neither, and conflating them
-    // is what made every check look errored on a large fleet (#3677).
+    // Per-mirror accounting. `errored` counts only mirrors this tick actually
+    // read AND failed to read: a healthy-skip is not a failure, and neither is
+    // a mirror the budget never reached — counting the latter here is what made
+    // a time-limited tick read as a fleet of broken mirrors (#3677), and it
+    // would contradict `mirrorsChecked` now that skipped mirrors are excluded
+    // from that count (#3687).
     let errored = 0
     let errorLogsSkipped = 0
     for (const m of scoped) {
+      if (statusDeferred.has(m.name)) continue
       const st = statuses.get(m.name) ?? null
       if (st === null) errored++
       if (!isErrorLogWorthy(st)) {
@@ -474,6 +554,11 @@ export async function collectPeerDBSignals(
     const hasErrorSample = signals.some((s) => s.errorCountSource === 'log-api')
     const hasSlotSample = signals.some((s) => s.slotLagMb !== null)
 
+    // One coverage object, four reported facts (#3687). `checked` is what this
+    // tick actually read, so both the old 50-mirror truncation and a
+    // budget-truncated tick surface here as `partial`.
+    const coverage = summarizeSweepCoverage(mirrors.length, statusRead)
+
     return {
       signals,
       metrics: {
@@ -481,7 +566,10 @@ export async function collectPeerDBSignals(
         hasLagSample,
         hasErrorSample,
         hasSlotSample,
-        mirrorsChecked: scoped.length,
+        mirrorsListed: coverage.listed,
+        mirrorsChecked: coverage.checked,
+        partial: coverage.partial,
+        unchecked: coverage.unchecked,
         errored,
         budgetDeferred,
         errorLogReads: logTargets.length,

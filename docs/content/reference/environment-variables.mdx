@@ -529,6 +529,7 @@ the sidebar.
 | `PEERDB_FETCH_TIMEOUT_MS` | `10000` | Upstream PeerDB request timeout in milliseconds. |
 | `PEERDB_SWEEP_CONCURRENCY` | `8` | Max in-flight PeerDB reads per alert-sweep tick. |
 | `PEERDB_SWEEP_BUDGET_MS` | `60000` | Wall-clock budget for one alert-sweep collection in milliseconds. |
+| `PEERDB_SWEEP_MAX_MIRRORS` | unset (no limit) | Optional cap on mirrors read per alert-sweep tick. Unset means every listed mirror is read; any truncation is recorded as a partial result. |
 
 chmonitor proxies only a read-only allowlist of PeerDB endpoints; mutating
 operations (create/drop/pause, alert config) are rejected with `403`.
