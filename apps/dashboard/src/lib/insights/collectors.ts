@@ -618,8 +618,16 @@ const SCHEMA_OPT_MAX_QUERIES = 3
 /**
  * A few of the heaviest recent SELECTs, one per normalized query shape, so the
  * advisor analyzes distinct workloads rather than the same query repeated.
+ *
+ * The alias is `sample_query`, NOT `query`: `any(query) AS query` makes the
+ * SELECT's own alias visible to the WHERE clause, so `query NOT ILIKE …`
+ * resolves to the aggregate and the query fails with
+ * `Code: 184 ILLEGAL_AGGREGATION: Aggregate function any(query) AS query is
+ * found in WHERE` on every ClickHouse whose analyzer is on (24.3+). Renaming is
+ * the fix rather than qualifying `query_log.query`, because this string has a
+ * single in-module reader (below) and nothing else keys off the column name.
  */
-const HEAVY_QUERIES_SQL = `SELECT any(query) AS query
+const HEAVY_QUERIES_SQL = `SELECT any(query) AS sample_query
   FROM system.query_log
   WHERE type = 'QueryFinish'
     AND event_time > now() - INTERVAL 24 HOUR
@@ -644,7 +652,7 @@ async function collectSchemaOptimizations(
     if (!Array.isArray(rows) || rows.length === 0) return []
 
     const queries = rows
-      .map((r) => (r as Record<string, unknown>)?.query)
+      .map((r) => (r as Record<string, unknown>)?.sample_query)
       .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
     if (queries.length === 0) return []
 
