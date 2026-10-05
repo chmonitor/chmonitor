@@ -15,6 +15,60 @@ interface FetchCall {
 }
 const calls: FetchCall[] = []
 
+let batchedSchemaHits = 0
+
+/**
+ * `fetchTableSchema` reads `system.tables` + `system.columns` +
+ * `system.data_skipping_*` in ONE statement, so all three sources appear in the
+ * same SQL and the single-table branches below all match it. Recognise the
+ * batched statement on that combination, ahead of them, rather than relying on
+ * branch order (issue #3655).
+ */
+function isBatchedSchemaQuery(q: string): boolean {
+  return (
+    q.includes('system.tables') &&
+    q.includes('system.columns') &&
+    // Bare prefix so the check holds for the shipped identifier and for a
+    // corrected one (#3654) without changing what this mock matches today.
+    q.includes('system.data_skipping_ind')
+  )
+}
+
+/**
+ * Batched schema row, reusing the payload of
+ * `__tests__/table-schema-batch.test.ts` (same keys, same columns/indexes) with
+ * three rows added so the assertions in `describe('analyzeQuery — batched
+ * schema coverage')` have something the scorers can only get from the decoded
+ * arrays:
+ *   - `created_at` (DateTime, outside the partition key) — partition-key scoring
+ *   - `region` (cheap, unindexed, outside the sorting key) — PREWHERE ranking
+ *   - `payload` (large, indexed, outside the sorting key) — an existing skip
+ *     index must SUPPRESS the recommendation `region` gets
+ *
+ * `columns` and `skip_indexes` are `Array(Tuple)` values, so JSONEachRow hands
+ * them over as arrays of arrays in the SQL's field order
+ * (position, name, type, is_in_partition_key, is_in_sorting_key,
+ * data_compressed_bytes, data_uncompressed_bytes) and
+ * (name, type, expression, granularity). `tupleAt(...)` reads them by index, so
+ * a scrambled order pairs every column with the wrong name/type/bytes instead of
+ * failing.
+ */
+const BATCHED_SCHEMA_ROW = {
+  partition_key: 'toYYYYMM(event_date)',
+  sorting_key: '`event_date`, user_id',
+  columns: [
+    [1, 'event_date', 'Date', 1, 1, '500', 1000],
+    [2, 'user_id', 'UInt64', 0, '1', 1000, '2000'],
+    [3, 'payload', 'String', 0, 0, 50_000_000, 80_000_000],
+    [4, 'created_at', 'DateTime', 0, 0, 1_500, 3_000],
+    [5, 'region', 'String', 0, 0, 20, 40],
+  ],
+  skip_indexes: [
+    ['idx_user', 'bloom_filter', 'user_id', '4'],
+    ['idx_payload', 'minmax', 'payload', 1],
+  ],
+}
+
 /** Query-aware fixture responder — dispatches on substrings in the SQL text. */
 function respond(query: string): { data: unknown[]; error: null } {
   const q = query.toLowerCase()
@@ -23,6 +77,10 @@ function respond(query: string): { data: unknown[]; error: null } {
       data: [{ query: "SELECT * FROM default.events WHERE status = 'error'" }],
       error: null,
     }
+  }
+  if (isBatchedSchemaQuery(q)) {
+    batchedSchemaHits += 1
+    return { data: [BATCHED_SCHEMA_ROW], error: null }
   }
   if (q.includes('system.tables')) {
     if (q.includes('engine_full') || q.includes('engine,')) {
@@ -287,6 +345,69 @@ describe('analyzeQuery — orchestration', () => {
     if (result.ok) {
       expect(result.notes.some((n) => n.includes('events'))).toBe(true)
     }
+  })
+})
+
+// -------------------------------------------------------------------------
+// Coverage guards for the batched schema read (#3640, #3642). Before this
+// fixture knew the single batched statement, the `system.tables` branch matched
+// it first and answered `{ partition_key, sorting_key }` only — `columns` and
+// `skip_indexes` never reached the engine, and every test in this file stayed
+// green because the PREWHERE scorer alone produces a recommendation (issue
+// #3655). Each assertion below is pinned to data that exists only in the
+// batched `columns` / `skip_indexes` arrays.
+// -------------------------------------------------------------------------
+describe('analyzeQuery — batched schema coverage', () => {
+  async function analyze(sql: string) {
+    batchedSchemaHits = 0
+    calls.length = 0
+    const result = await analyzeQuery({ hostId: 0, sql })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error(result.error)
+    expect(batchedSchemaHits).toBe(1)
+    // The whole schema still costs exactly one statement.
+    expect(
+      calls.filter((c) =>
+        c.query.toLowerCase().includes('system.data_skipping_ind')
+      )
+    ).toHaveLength(1)
+    return result.recommendations
+  }
+
+  test('a range predicate on an unpartitioned DateTime column is scored from the batched columns', async () => {
+    const recs = await analyze(
+      'SELECT * FROM default.events WHERE created_at > now() - INTERVAL 7 DAY'
+    )
+    // `created_at` exists only in the batched `columns` array, and its `type`
+    // only decodes correctly from the right tuple position.
+    const partitionKey = recs.find((r) => r.kind === 'partition_key')
+    expect(partitionKey).toBeDefined()
+    expect(partitionKey.ddl).toContain('created_at')
+  })
+
+  test('existing skip indexes from the batched row suppress their own recommendation', async () => {
+    const recs = await analyze(
+      "SELECT * FROM default.events WHERE payload = 'raw' AND region = 'eu'"
+    )
+    const ddl = recs
+      .filter((r) => r.kind === 'skip_index')
+      .map((r) => r.ddl)
+      .join('\n')
+    // `region` is unindexed and outside the sorting key; `payload` already has
+    // `idx_payload` in the batched row, so it must get nothing.
+    expect(ddl).toContain('region')
+    expect(ddl).not.toContain('payload')
+  })
+
+  test('the PREWHERE candidate is picked from the batched column byte sizes', async () => {
+    const recs = await analyze(
+      "SELECT * FROM default.events WHERE payload = 'raw' AND region = 'eu'"
+    )
+    const prewhere = recs.find((r) => r.kind === 'prewhere')
+    expect(prewhere).toBeDefined()
+    // `region` is the cheap column by compressed size; with no column data the
+    // average is 0, every column looks cheap, and `payload` wins instead.
+    expect(prewhere.rewrittenSql).toContain('PREWHERE region')
   })
 })
 
