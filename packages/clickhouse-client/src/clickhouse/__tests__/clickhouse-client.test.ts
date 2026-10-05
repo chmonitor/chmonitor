@@ -210,6 +210,43 @@ describe('getClient', () => {
     )
   })
 
+  // Issue #3680: a client-level `readonly` must be sent as level 2, because
+  // this client also sends `max_execution_time` on every request and level 1
+  // rejects any setting changed in the same request (Code 164 READONLY).
+  it('sends client-level readonly as level 2 alongside max_execution_time', async () => {
+    mockCreateClient.mockReturnValue({})
+
+    await getClient({
+      web: false,
+      clickhouseSettings: { readonly: '1' },
+    })
+
+    const { clickhouse_settings } = mockCreateClient.mock.calls[0][0] as {
+      clickhouse_settings: Record<string, unknown>
+    }
+    expect(clickhouse_settings.max_execution_time).toBe(60)
+    expect(clickhouse_settings.readonly).not.toBe('1')
+    expect(clickhouse_settings.readonly).not.toBe(1)
+  })
+
+  it('normalizes readonly on a query() call through the pooled client', async () => {
+    const query = mock(() => ({}) as unknown)
+    mockCreateClient.mockReturnValue({ query })
+
+    const client = await getClient({ web: false })
+    await (client as unknown as { query: (p: unknown) => unknown }).query({
+      query: 'SELECT 1',
+      clickhouse_settings: { readonly: '1', max_result_rows: 5 },
+    })
+
+    expect(query).toHaveBeenCalled()
+    const params = query.mock.calls[0][0] as {
+      clickhouse_settings: Record<string, unknown>
+    }
+    expect(params.clickhouse_settings.readonly).not.toBe('1')
+    expect(params.clickhouse_settings.max_result_rows).toBe(5)
+  })
+
   it('creates separate clients for web and non-web', async () => {
     mockCreateClient.mockReturnValue({ query: () => {} })
     mockCreateClientWeb.mockReturnValue({ query: () => {} })
