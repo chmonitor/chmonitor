@@ -1,5 +1,6 @@
 import type { ColumnDef, RowData } from '@tanstack/react-table'
 
+import type { Announcements } from '@dnd-kit/core'
 import type { ExpandableConfig, QueryConfig } from '@/types/query-config'
 
 import { MobileSortMenu, MobileTableCards } from './mobile-table-cards'
@@ -7,6 +8,7 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -15,8 +17,9 @@ import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
 import {
   horizontalListSortingStrategy,
   SortableContext,
+  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
-import { memo, useCallback } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { UTILITY_COLUMN_IDS } from '@/components/data-table/column-defs'
 import {
   TableBody as TableBodyRenderer,
@@ -156,13 +159,89 @@ export const DataTableContent = memo(function DataTableContent<
 
   const tableVisibility =
     view === 'table' ? 'block' : view === 'cards' ? 'hidden' : 'sm:block hidden'
-  // Configure drag-and-drop sensors
+
+  // Extract column IDs for SortableContext.
+  // Exclude utility columns (__expand chevron, selection checkbox, row action
+  // menu) — they are pinned/fixed and must not be drag-reordered.
+  //
+  // Memoized on a value-stable key so `columnIds` keeps its identity while the
+  // order is unchanged. The announcements below read it to name a position, and
+  // they are memoized on it — a fresh array every render would rebuild them
+  // every render and re-register dnd-kit's drag monitor for nothing.
+  const columnOrderKey = table.getState().columnOrder.join(',')
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `table` is a stable instance; the only changing input is the column order, keyed via columnOrderKey
+  const columnIds = useMemo(
+    () =>
+      table
+        .getAllLeafColumns()
+        .map((col) => col.id)
+        .filter((id) => !UTILITY_COLUMN_IDS.has(id)),
+    // `table.getAllLeafColumns()` re-orders when the column order changes, and
+    // that is the only thing this reads.
+    [columnOrderKey]
+  )
+
+  // Configure drag-and-drop sensors.
+  //
+  // The grip spreads dnd-kit's `attributes`, which set role="button",
+  // aria-roledescription="sortable" and aria-describedby pointing at dnd-kit's
+  // own hidden "press the space bar to pick up" text. With only the
+  // PointerSensor registered, that instruction was a lie: a keyboard user was
+  // told to press Space and nothing happened (WCAG 2.1.1). The KeyboardSensor
+  // makes the already-announced control real — Space/Enter picks up, arrows
+  // move, Space/Enter drops, Escape cancels.
+  //
+  // Order matters for nothing here (each sensor binds its own activator), but
+  // the PointerSensor must keep its 8px distance constraint: it is what stops a
+  // click on the grip from being read as the start of a drag, for both mouse
+  // and touch. Adding the keyboard sensor changes no pointer behaviour.
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8, // 8px movement required to start drag (prevents accidental drags)
       },
+    }),
+    useSensor(KeyboardSensor, {
+      // A horizontal list: left/right step between columns. The default getter
+      // only understands vertical lists.
+      coordinateGetter: sortableKeyboardCoordinates,
     })
+  )
+
+  // Screen-reader announcements for a keyboard reorder.
+  //
+  // dnd-kit ships a live region and announces by default, but its default text
+  // is generic library wording — "Picked up draggable item a." and "Draggable
+  // item a was moved over droppable area b." That names an opaque column id and
+  // calls the neighbouring header a "droppable area". Naming the column and its
+  // new position is what actually tells a screen-reader user where they are
+  // mid-reorder, so these spell it out.
+  const announcements = useMemo<Announcements>(
+    () => ({
+      onDragStart: ({ active }) =>
+        `Picked up the ${active.id} column. Use the left and right arrow keys to move it, space or enter to drop it, escape to cancel.`,
+      onDragOver: ({ active, over }) => {
+        // dnd-kit fires `onDragOver` the instant the drag starts, when the
+        // column is still over itself. Announcing then would overwrite the
+        // pick-up message — and with it the only statement of WHICH KEYS move
+        // the column — before a screen reader could read it out. `announce`
+        // ignores a nullish value, so returning nothing leaves the current
+        // message standing and the first real move is what gets spoken.
+        if (!over || String(over.id) === String(active.id)) return undefined
+        return `The ${active.id} column is now in position ${
+          columnIds.indexOf(String(over.id)) + 1
+        } of ${columnIds.length}.`
+      },
+      onDragEnd: ({ active, over }) =>
+        over
+          ? `Dropped the ${active.id} column in position ${
+              columnIds.indexOf(String(over.id)) + 1
+            } of ${columnIds.length}.`
+          : `Dropped the ${active.id} column in its original position.`,
+      onDragCancel: ({ active }) =>
+        `Reordering cancelled. The ${active.id} column stayed in its original position.`,
+    }),
+    [columnIds]
   )
 
   // Handle drag end event for column reordering
@@ -175,14 +254,6 @@ export const DataTableContent = memo(function DataTableContent<
     },
     [onColumnOrderChange]
   )
-
-  // Extract column IDs for SortableContext.
-  // Exclude utility columns (__expand chevron, selection checkbox, row action
-  // menu) — they are pinned/fixed and must not be drag-reordered.
-  const columnIds = table
-    .getAllLeafColumns()
-    .map((col) => col.id)
-    .filter((id) => !UTILITY_COLUMN_IDS.has(id))
 
   // The memoized body reads row output from the stable `table` instance, so it
   // needs an explicit signal to re-render when that output changes. The parent
@@ -289,6 +360,7 @@ export const DataTableContent = memo(function DataTableContent<
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
                 modifiers={[restrictToHorizontalAxis]}
+                accessibility={{ announcements }}
               >
                 <SortableContext
                   items={columnIds}
