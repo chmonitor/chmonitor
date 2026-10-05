@@ -58,7 +58,9 @@ apps/dashboard/src/lib/query-config/declarative/schema.ts
 
 ## Safety rule: SELECT only
 
-All checks must be read-only. The schema validator and the SQL validator in `apps/dashboard/src/lib/api/shared/validators/sql.ts` reject DDL and DML (`CREATE`, `INSERT`, `DROP`, `ALTER`, `TRUNCATE`, etc.). Do not set `disableSqlValidation: true` on contributed checks.
+All checks must be read-only. The schema validator and `validateSqlQuery` in `packages/sql-builder` (`src/sql-validator.ts`) reject DDL and DML (`CREATE`, `INSERT`, `DROP`, `ALTER`, `TRUNCATE`, etc.).
+
+`disableSqlValidation` is stored on the config and surfaced in page views and the settings diff, but `validateSqlQuery` does not read it — setting it does **not** skip validation. Keep it off for contributed checks.
 
 ## Worked example
 
