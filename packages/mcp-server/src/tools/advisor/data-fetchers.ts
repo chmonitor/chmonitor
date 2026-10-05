@@ -49,44 +49,151 @@ export async function resolveSql(
   return rows[0]?.query?.trim() ?? null
 }
 
+const TABLE_SCHEMA_SQL = `
+SELECT
+  ifNull(tupleElement(table_meta, 1), '') AS partition_key,
+  ifNull(tupleElement(table_meta, 2), '') AS sorting_key,
+  columns,
+  skip_indexes
+FROM
+(
+  SELECT
+    (
+      SELECT tuple(partition_key, sorting_key)
+      FROM system.tables
+      WHERE database = {database:String} AND name = {table:String}
+      LIMIT 1
+    ) AS table_meta,
+    (
+      SELECT groupArray(tuple(
+        position,
+        name,
+        type,
+        is_in_partition_key,
+        is_in_sorting_key,
+        data_compressed_bytes,
+        data_uncompressed_bytes
+      ))
+      FROM
+      (
+        SELECT
+          position,
+          name,
+          type,
+          is_in_partition_key,
+          is_in_sorting_key,
+          data_compressed_bytes,
+          data_uncompressed_bytes
+        FROM system.columns
+        WHERE database = {database:String} AND table = {table:String}
+        ORDER BY position
+      )
+    ) AS columns,
+    (
+      SELECT groupArray(tuple(name, type, expression, granularity))
+      FROM system.data_skipping_indexes
+      WHERE database = {database:String} AND table = {table:String}
+    ) AS skip_indexes
+)
+`.trim()
+
+type ColumnTuple = {
+  position: number
+  name: string
+  type: string
+  is_in_partition_key: number | string
+  is_in_sorting_key: number | string
+  data_compressed_bytes: number | string
+  data_uncompressed_bytes: number | string
+}
+
+type IndexTuple = {
+  name: string
+  type: string
+  expression: string
+  granularity: number | string
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  return value as Record<string, unknown>
+}
+
+function readColumns(raw: unknown): ColumnTuple[] {
+  if (!Array.isArray(raw)) return []
+  const columns: ColumnTuple[] = []
+  for (const item of raw) {
+    if (Array.isArray(item)) {
+      columns.push({
+        position: Number(item[0] ?? 0),
+        name: String(item[1] ?? ''),
+        type: String(item[2] ?? ''),
+        is_in_partition_key: (item[3] ?? 0) as number | string,
+        is_in_sorting_key: (item[4] ?? 0) as number | string,
+        data_compressed_bytes: (item[5] ?? 0) as number | string,
+        data_uncompressed_bytes: (item[6] ?? 0) as number | string,
+      })
+      continue
+    }
+    const row = asRecord(item)
+    if (!row || typeof row.name !== 'string') continue
+    columns.push({
+      position: Number(row.position ?? 0),
+      name: row.name,
+      type: String(row.type ?? ''),
+      is_in_partition_key: (row.is_in_partition_key ?? 0) as number | string,
+      is_in_sorting_key: (row.is_in_sorting_key ?? 0) as number | string,
+      data_compressed_bytes: (row.data_compressed_bytes ?? 0) as
+        | number
+        | string,
+      data_uncompressed_bytes: (row.data_uncompressed_bytes ?? 0) as
+        | number
+        | string,
+    })
+  }
+  columns.sort((a, b) => a.position - b.position)
+  return columns
+}
+
+function readIndexes(raw: unknown): IndexTuple[] {
+  if (!Array.isArray(raw)) return []
+  const indexes: IndexTuple[] = []
+  for (const item of raw) {
+    if (Array.isArray(item)) {
+      indexes.push({
+        name: String(item[0] ?? ''),
+        type: String(item[1] ?? ''),
+        expression: String(item[2] ?? ''),
+        granularity: (item[3] ?? 0) as number | string,
+      })
+      continue
+    }
+    const row = asRecord(item)
+    if (!row || typeof row.name !== 'string') continue
+    indexes.push({
+      name: row.name,
+      type: String(row.type ?? ''),
+      expression: String(row.expression ?? ''),
+      granularity: (row.granularity ?? 0) as number | string,
+    })
+  }
+  return indexes
+}
+
 export async function fetchTableSchema(
   hostId: number,
   database: string,
   table: string
 ): Promise<TableSchema> {
-  const [tableRows, columnRows, indexRows] = await Promise.all([
-    readOnly<Array<{ partition_key: string; sorting_key: string }>>(
-      'SELECT partition_key, sorting_key FROM system.tables WHERE database = {database:String} AND name = {table:String}',
-      hostId,
-      { database, table }
-    ),
-    readOnly<
-      Array<{
-        name: string
-        type: string
-        is_in_partition_key: number | string
-        is_in_sorting_key: number | string
-        data_compressed_bytes: number | string
-        data_uncompressed_bytes: number | string
-      }>
-    >(
-      'SELECT name, type, is_in_partition_key, is_in_sorting_key, data_compressed_bytes, data_uncompressed_bytes FROM system.columns WHERE database = {database:String} AND table = {table:String} ORDER BY position',
-      hostId,
-      { database, table }
-    ),
-    readOnly<
-      Array<{
-        name: string
-        type: string
-        expression: string
-        granularity: number | string
-      }>
-    >(
-      'SELECT name, type, expression, granularity FROM system.data_skipping_indexes WHERE database = {database:String} AND table = {table:String}',
-      hostId,
-      { database, table }
-    ),
-  ])
+  const rows = await readOnly<
+    Array<{
+      partition_key?: string
+      sorting_key?: string
+      columns?: unknown
+      skip_indexes?: unknown
+    }>
+  >(TABLE_SCHEMA_SQL, hostId, { database, table })
+  const row = rows[0]
 
   const truthy = (v: number | string) => Number(v) === 1
   const splitKey = (key: string) =>
@@ -102,11 +209,9 @@ export async function fetchTableSchema(
   return {
     database,
     table,
-    partitionKeyColumns: extractIdentifierTokens(
-      tableRows[0]?.partition_key ?? ''
-    ),
-    sortingKeyColumns: splitKey(tableRows[0]?.sorting_key ?? ''),
-    columns: columnRows.map((c) => ({
+    partitionKeyColumns: extractIdentifierTokens(row?.partition_key ?? ''),
+    sortingKeyColumns: splitKey(row?.sorting_key ?? ''),
+    columns: readColumns(row?.columns).map((c) => ({
       name: c.name,
       type: c.type,
       isInPartitionKey: truthy(c.is_in_partition_key),
@@ -114,7 +219,7 @@ export async function fetchTableSchema(
       compressedBytes: Number(c.data_compressed_bytes),
       uncompressedBytes: Number(c.data_uncompressed_bytes),
     })),
-    existingSkipIndexes: indexRows.map((i) => ({
+    existingSkipIndexes: readIndexes(row?.skip_indexes).map((i) => ({
       name: i.name,
       type: i.type,
       expression: i.expression,
