@@ -146,7 +146,10 @@ export const ChartRow = function ChartRow({
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      'absolute z-50 h-6 px-3 gap-1 pointer-coarse:size-9',
+                      // `h-9`, not `size-9`: this pill carries the "Hide" label,
+                      // so a fixed 36px width clips the icon and label out of the
+                      // rounded background and shrinks the touch target.
+                      'absolute z-50 h-6 px-3 gap-1 pointer-coarse:h-9',
                       'bottom-2 left-1/2 -translate-x-1/2',
                       'opacity-40 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100 transition-opacity duration-200',
                       'bg-muted hover:bg-muted/80 text-muted-foreground',
