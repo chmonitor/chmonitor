@@ -522,7 +522,23 @@ function adHocVariants(): Variant[] {
   }
   for (const [group, registry] of Object.entries(registries)) {
     for (const [name, build] of Object.entries(registry)) {
+      // `ChartQueryBuilder` returns `ChartQueryResult | MultiChartQueryResult`,
+      // discriminated by the multi variant's `queries` array. None of these
+      // three registries ships a multi-chart entry today, so this branch is
+      // currently empty — but reading `built.query` off the bare union does
+      // not typecheck, and silently skipping the multi form would drop exactly
+      // the SQL this guard exists to inspect if one is ever added.
       const built = build({})
+      if ('queries' in built) {
+        for (const q of built.queries) {
+          variants.push({
+            configName: `${group}:${name}[${q.key}]`,
+            since: '-',
+            sql: q.query,
+          })
+        }
+        continue
+      }
       if (typeof built.query === 'string') {
         variants.push({
           configName: `${group}:${name}`,

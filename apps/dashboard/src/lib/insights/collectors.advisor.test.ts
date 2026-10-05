@@ -1,6 +1,15 @@
+import type { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
+
 import { describe, expect, mock, test } from 'bun:test'
 
-const readOnlyQueryMock = mock(async () => [] as unknown[])
+// Parameter and return types are taken from the real `readOnlyQuery` so this
+// stays a faithful double: a zero-arg stub would type `mock.calls` as `[][]`
+// and make reading the SQL the collector sent impossible without a cast.
+type ReadOnlyQueryOptions = Parameters<typeof readOnlyQuery>[0]
+
+const readOnlyQueryMock = mock(
+  async (_options: ReadOnlyQueryOptions): Promise<unknown> => []
+)
 
 mock.module('@/lib/ai/agent/tools/helpers', () => ({
   readOnlyQuery: readOnlyQueryMock,
@@ -37,7 +46,7 @@ describe('heavy-queries collector column name', () => {
     await collectAdvisorRecommendations(0)
 
     const heavyQueriesSql = readOnlyQueryMock.mock.calls
-      .map((call) => (call[0] as { query: string }).query)
+      .map((call) => call[0].query)
       .find((sql) => sql.includes('normalized_query_hash'))
 
     expect(heavyQueriesSql).toBeDefined()
