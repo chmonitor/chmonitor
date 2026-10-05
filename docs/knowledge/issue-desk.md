@@ -89,12 +89,13 @@ and its own manager, and it makes "which job is broken" answerable — one row o
 with no owner is a duty that silently rots, and adding capacity to the busiest
 job would only make the starvation worse.
 
-## Three ways a desk dies silently
+## Four ways a desk dies silently
 
 **A desk that fails looks exactly like a desk with nothing to do.** It has
-happened three times, for unrelated reasons, and `Fails` cannot tell you which
+happened four times, for unrelated reasons, and `Fails` cannot tell you which
 one you have. Read the error; the counter is not a diagnosis. Twice the error
-was there to read, and the third time it was not.
+was there to read, and the third time it was not. The fourth leaves nothing to
+read at all — no failure, and no number either.
 
 ### A directory where the run pointer belongs (EISDIR)
 
@@ -235,6 +236,110 @@ Six things a reader cannot guess:
 - **Nothing in this repo can fix it.** The repair belongs to the plugin, and is
   filed on duyet/herdr-desk. This note exists so the next reader recognises the
   shape from a green table instead of re-deriving it from a 27-hour silence.
+
+### The health gate holds a job, and six hours later the queue gives up
+
+Found 2026-10-05, and the quietest of the four: **no number at all.** A busy
+box is not a failing desk, so `Fails` reads `-` for the whole window and the
+slot simply does not run at its cron minute. Only a `daemon.log` line says
+anything, and it says it once, six hours late:
+
+```
+2026-10-05T01:17:05.806Z give up local:improve: held since 2026-10-04T19:17:05.263Z without running
+```
+
+That is `local:improve` on chmonitor — held from its own `02:17` slot, given up
+at **08:17 local**, `MAX_HELD_MS` to the second.
+
+#### The mechanism
+
+`tickOnce` checks health *immediately before each fire*, not once per tick,
+because a tick can run for minutes. `check()` in `health.ts` closes the gate on
+any of three readings, from `defaultBudget()`: load over **1.5/core**,
+`memAvailable()` under **3 GB** (or 15% of RAM, whichever is larger), or more
+than **24** live Herdr agents. Every entry currently in `queue.json` is held on
+that last reading alone — 26, 28 or 29 agents against the limit — which is what
+a desk that fans out children looks like from the outside.
+
+A closed gate is a *hold*, not a drop. `tickOnce` calls `hold()` and
+deliberately does **not** write the slot's `fires` key, so the slot stays due,
+and logs `hold <repo>/<task> slot <slot>: <breaches>` — which names the repo,
+unlike the line that follows. The queue's contract is that a held job is retried
+on later ticks, oldest first, one per tick in `retryHeld()`.
+
+Then the six hours end. `MAX_HELD_MS` in `queue.ts` is `6 * 60 * 60 * 1000`,
+and `hold()` deliberately **keeps the original `since`** when a job is re-held,
+so the age is the age rather than the most recent attempt — the `tries`
+counter alone would never reach the limit. `view()` moves anything past
+`MAX_HELD_MS` into `expired`, and writes the queue back **without it**.
+`retryHeld()` logs one line per expired entry:
+
+```
+give up <task>: held since <ISO> without running
+```
+
+Five things a reader cannot guess:
+
+- **The window is six hours, and a daily job cannot outrun it.** `MAX_HELD_MS`
+  is a quarter of the 24h between two daily slots, so a daily job's retry debt
+  always expires long before its next slot exists — the queue is sized to cover
+  a busy tick or two, not a busy morning. What the six hours buy is one line in
+  the log and, if the gate is still shut on the next tick, a fresh clock. Four
+  of chmonitor's audit jobs are daily and all morning — `local:docs` 03:46,
+  `local:secrets` 06:06, `local:red-jobs` 07:26, `local:stale-issues` 09:34 —
+  so they are the ones with a slot to lose, in the hours the host is busiest.
+- **Neither a hold nor an expiry writes anything `status` reads.** `hold()` goes
+  to `queue.json`; a run writes to `runs.jsonl`, and only a run writes there. So
+  `Fails`, which is `failureStreak()` counting `fail` records over
+  `loadRuns(200, job)`, has nothing to count and renders `-`. `Last` still
+  reads the previous successful fire. `desk status` shows `Fails -` and
+  `Last: ok` for the entire window, which is precisely the check AGENTS.md
+  tells you to run.
+- **The give-up line omits the repo.** `retryHeld()` interpolates `gone.task`
+  and nothing else, on a machine-wide desk where several repos run a job of the
+  same name — here two repos each run a `local:improve`. Two give-up lines six
+  minutes apart can belong to two different repos, and the log cannot say which.
+  `queue.json` *does* carry `repo` per entry, and so does `queueHtml()` in the
+  web dashboard; the `hold` lines carry it too. The give-up line is the one
+  place that does not.
+- **The ratio is not close.** Measured over the whole log on 2026-10-05:
+  **93 `give up` lines, 2 `held ran` lines.** The queue is built so a job is
+  retried until it runs, and in practice almost nothing gets that far.
+- **Nothing in this repo can fix it.** `MAX_HELD_MS` and the log wording belong
+  to the plugin. The repair is filed upstream on duyet/herdr-desk, and this
+  note exists so the next reader recognises the shape from a green row instead
+  of concluding the job ran.
+
+#### What to do when you are standing in it
+
+You are at 03:46, the box is over budget, and `local:docs` has not run.
+
+- **Do not wait for the give-up line, and do not read it as the end.** It
+  arrives six hours after the hold and says only that the queue stopped
+  retrying. The deadline that matters is **local midnight**: `cronSlotsToday()`
+  offers a slot only within its own day, and after midnight the job is not run
+  at all, with no line anywhere. Run it by hand at any point you do not intend
+  to wait out.
+- **Read `queue.json`, not `status`.** It is the only live view of what is
+  owed right now, and every entry carries `repo`, `task`, `slot`, `since`,
+  `tries`, and the `reason` — the reason is the host signal that is over
+  budget, which is the thing to fix. `dash` renders the same data in a `queue`
+  section. An entry that has already expired is gone from both, because the
+  daemon's own `view()` deletes it on the next tick, which is why the log line
+  is the record that survives.
+- **Count `hold` lines for your job, and compare the first `since` to now.** If
+  the gap is approaching six hours, run the job by hand; do not wait for the
+  give-up, and do not trust `status` to tell you it was lost.
+- **A give-up does not fire anything.** It deletes the queue entry. The slot
+  stays due because its `fires` key was never written, so the next tick
+  re-offers it and `hold()` starts a fresh six-hour clock — a daily job held
+  all morning can therefore be given up on and then run normally later the same
+  day. Two `give up local:improve` lines, six minutes apart, on 2026-10-05 are
+  two repos' jobs, not one job dying twice.
+- **Then fix the signal, not the job.** The agents count is the reason on every
+  entry currently in the queue, and it is self-inflicted: it is the desk's own
+  children, counted by `agentCounts()` from `herdr agent list`. A desk already
+  fanning out five worktrees is the load it is complaining about.
 
 ## When a job misbehaves, first ask whether the plugin is on a commit
 
