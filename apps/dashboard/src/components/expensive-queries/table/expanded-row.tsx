@@ -111,7 +111,10 @@ export function ExpandedRow({ d }: { d: DerivedQuery }) {
           showLineNumbers={lineCount > 1}
           className="max-h-[180px]"
         >
-          <CodeBlockCopyButton className="h-7 w-7 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity bg-background border border-border" />
+          {/* Coarse pointers never hover, so the control rests at 40% and only
+              hides where a hover exists — the same contract as
+              cards/chart-action-classes.ts. */}
+          <CodeBlockCopyButton className="h-7 w-7 opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100 focus-visible:opacity-100 bg-background border border-border" />
         </CodeBlock>
       </div>
 
