@@ -22,6 +22,7 @@
  *   threshold, since a genuine 3× spike is usually good news worth knowing.
  */
 
+import { logError as emitLogError } from './log'
 import { shiftDay } from './usage'
 
 /**
@@ -118,13 +119,21 @@ export function detectAnomaly(
  * Daily distinct-install counts for the baseline window plus the reference day.
  * Returns [] on any failure — the caller then simply skips detection rather
  * than alerting on a database error.
+ *
+ * The logger is a parameter so callers can capture it, and the default is
+ * aliased through `emitLogError` on purpose: a parameter named `logError` would
+ * shadow the import inside this very signature, so a default body calling
+ * `logError` would call itself. Because that self-call sits in tail position,
+ * JSC turns it into a loop rather than a stack overflow — it never throws and
+ * never returns, so it burns CPU until the platform kills the Worker. Keep both
+ * names.
  */
 export async function fetchDailySeries(
   db: D1SeriesDb,
   referenceDay: string,
   days: number = BASELINE_DAYS,
-  logError: (message: string, meta?: unknown) => void = (m, meta) =>
-    logError(m, meta)
+  log: (message: string, meta?: unknown) => void = (m, meta) =>
+    emitLogError(m, meta)
 ): Promise<DailyCount[]> {
   const from = shiftDay(referenceDay, -days)
   try {
@@ -140,7 +149,7 @@ export async function fetchDailySeries(
       .all<DailyCount>()
     return rows.results ?? []
   } catch (err) {
-    logError('[cloud-hooks] daily series query failed', err)
+    log('[cloud-hooks] daily series query failed', err)
     return []
   }
 }
