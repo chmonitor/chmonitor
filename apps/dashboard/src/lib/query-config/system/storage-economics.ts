@@ -11,6 +11,15 @@ import { ColumnFormat } from '@/types/column-format'
  * - Top tables by storage cost
  *
  * Higher compression_ratio means data compresses well (less disk needed).
+ *
+ * The `compression_ratio` numerator/denominator are qualified as
+ * `parts.data_uncompressed_bytes` / `parts.data_compressed_bytes`. The bare
+ * spelling is substituted with the sibling aliases of the same names, which
+ * nests an aggregate inside an aggregate and fails with
+ * `Code: 184 ILLEGAL_AGGREGATION` on every ClickHouse whose analyzer is on
+ * (24.3+). The qualifier leaves the OUTPUT column names unchanged, so
+ * `columns`/`columnFormats`/`sortingFns` below are unaffected. Guarded by
+ * `__tests__/alias-shadowing.test.ts`.
  */
 export const storageCompressionConfig: QueryConfig = {
   name: 'storage-compression',
@@ -27,7 +36,7 @@ export const storageCompressionConfig: QueryConfig = {
         sum(data_compressed_bytes) AS data_compressed_bytes,
         sum(data_uncompressed_bytes) AS data_uncompressed_bytes,
         round(
-          sum(data_uncompressed_bytes) / nullIf(sum(data_compressed_bytes), 0),
+          sum(parts.data_uncompressed_bytes) / nullIf(sum(parts.data_compressed_bytes), 0),
           2
         ) AS compression_ratio,
         sum(bytes_on_disk) AS bytes_on_disk

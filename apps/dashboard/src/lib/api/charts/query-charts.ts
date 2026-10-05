@@ -109,6 +109,14 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   // over the window shows the memory high-water mark across all queries over
   // time. optional + tableCheck: the table is opt-in and absent on many
   // servers, so the executor skips it gracefully rather than erroring.
+  //
+  // The two `readable_*` columns qualify their source as
+  // `query_metric_log.memory_usage` / `query_metric_log.peak_memory_usage`. The
+  // bare spelling is substituted with the sibling aliases of the same names,
+  // which nests an aggregate inside an aggregate and fails with
+  // `Code: 184 ILLEGAL_AGGREGATION` on every ClickHouse whose analyzer is on
+  // (24.3+). The qualifier leaves the OUTPUT column names unchanged, so the
+  // chart component keeps reading `readable_memory_usage`.
   'query-metric-log-memory': ({
     interval = 'toStartOfFiveMinutes',
     lastHours = 6,
@@ -121,8 +129,8 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     SELECT ${applyInterval(interval, 'event_time')},
            max(memory_usage) AS memory_usage,
            max(peak_memory_usage) AS peak_memory_usage,
-           formatReadableSize(max(memory_usage)) AS readable_memory_usage,
-           formatReadableSize(max(peak_memory_usage)) AS readable_peak_memory_usage
+           formatReadableSize(max(query_metric_log.memory_usage)) AS readable_memory_usage,
+           formatReadableSize(max(query_metric_log.peak_memory_usage)) AS readable_peak_memory_usage
     FROM system.query_metric_log
     ${timeFilter ? `WHERE ${timeFilter}` : ''}
     GROUP BY event_time

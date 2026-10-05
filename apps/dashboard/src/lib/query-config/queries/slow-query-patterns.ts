@@ -47,6 +47,15 @@ export const slowQueryPatternsFilterSchema = queryInsightsFilterSchema
  * insights detail endpoint (`/api/v1/insights/query-patterns/:hash`) reuses
  * this same aggregation scoped to one `normalized_query_hash` — a single
  * source of truth for the pattern metrics instead of duplicating the SQL.
+ *
+ * The `readable_*` columns qualify their source as `filtered.read_rows` rather
+ * than bare `read_rows`. Both spellings aggregate the same value, but the bare
+ * one is substituted with the sibling alias `read_rows` (= `sum(read_rows)`),
+ * which nests an aggregate inside an aggregate and fails with
+ * `Code: 184 ILLEGAL_AGGREGATION` on every ClickHouse whose analyzer is on
+ * (24.3+). The qualifier keeps the OUTPUT column names unchanged, so the
+ * `columns`/`columnFormats` below and every reader of `readable_read_rows` keep
+ * working. Guarded by `__tests__/alias-shadowing.test.ts`.
  */
 export function buildQueryPatternsSql(whereFragment: string): VersionedSql[] {
   return [
@@ -81,13 +90,13 @@ ${rawRowsSelect}
           max(memory_usage) AS peak_memory,
           formatReadableSize(max(memory_usage)) AS readable_peak_memory,
           sum(read_rows) AS read_rows,
-          formatReadableQuantity(sum(read_rows)) AS readable_read_rows,
+          formatReadableQuantity(sum(filtered.read_rows)) AS readable_read_rows,
           sum(read_bytes) AS read_bytes,
-          formatReadableSize(sum(read_bytes)) AS readable_read_bytes,
+          formatReadableSize(sum(filtered.read_bytes)) AS readable_read_bytes,
           sum(result_rows) AS result_rows,
-          formatReadableQuantity(sum(result_rows)) AS readable_result_rows,
+          formatReadableQuantity(sum(filtered.result_rows)) AS readable_result_rows,
           sum(written_bytes) AS written_bytes,
-          formatReadableSize(sum(written_bytes)) AS readable_written_bytes,
+          formatReadableSize(sum(filtered.written_bytes)) AS readable_written_bytes,
           countIf(exception_code != 0) AS errors,
           0 AS cache_hit_ratio
       FROM filtered
@@ -140,13 +149,13 @@ ${rawRowsSelect},
           max(memory_usage) AS peak_memory,
           formatReadableSize(max(memory_usage)) AS readable_peak_memory,
           sum(read_rows) AS read_rows,
-          formatReadableQuantity(sum(read_rows)) AS readable_read_rows,
+          formatReadableQuantity(sum(filtered.read_rows)) AS readable_read_rows,
           sum(read_bytes) AS read_bytes,
-          formatReadableSize(sum(read_bytes)) AS readable_read_bytes,
+          formatReadableSize(sum(filtered.read_bytes)) AS readable_read_bytes,
           sum(result_rows) AS result_rows,
-          formatReadableQuantity(sum(result_rows)) AS readable_result_rows,
+          formatReadableQuantity(sum(filtered.result_rows)) AS readable_result_rows,
           sum(written_bytes) AS written_bytes,
-          formatReadableSize(sum(written_bytes)) AS readable_written_bytes,
+          formatReadableSize(sum(filtered.written_bytes)) AS readable_written_bytes,
           countIf(exception_code != 0) AS errors,
           round(100 * countIf(query_cache_usage = 'Read') / count(), 2) AS cache_hit_ratio
       FROM filtered
