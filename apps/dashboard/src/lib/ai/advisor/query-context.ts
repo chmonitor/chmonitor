@@ -27,6 +27,61 @@ import {
   topologyFromDistributedTable,
 } from '@/lib/ddl/on-cluster'
 
+/** Same call shape as `readOnlyQuery`. Tests pass a stand-in; production uses the guard. */
+export type SchemaQuerier = (options: {
+  query: string
+  hostId: number
+  query_params?: Record<string, unknown>
+}) => Promise<unknown>
+
+/**
+ * One round trip for `system.tables` + `system.columns` (ordered by position)
+ * + `system.data_skipping_indexes`. Identifiers stay in `query_params`.
+ * Tuple fields are positional so JSONEachRow arrays and named-tuple objects
+ * both decode.
+ */
+const TABLE_SCHEMA_SQL = `
+SELECT
+  ifNull(
+    (SELECT partition_key FROM system.tables WHERE database = {database:String} AND name = {table:String} LIMIT 1),
+    ''
+  ) AS partition_key,
+  ifNull(
+    (SELECT sorting_key FROM system.tables WHERE database = {database:String} AND name = {table:String} LIMIT 1),
+    ''
+  ) AS sorting_key,
+  arraySort(t -> t.1, (
+    SELECT groupArray(tuple(
+      position,
+      name,
+      type,
+      is_in_partition_key,
+      is_in_sorting_key,
+      data_compressed_bytes,
+      data_uncompressed_bytes
+    ))
+    FROM system.columns
+    WHERE database = {database:String} AND table = {table:String}
+  )) AS columns,
+  (
+    SELECT groupArray(tuple(name, type, expression, granularity))
+    FROM system.data_skipping_indexes
+    WHERE database = {database:String} AND table = {table:String}
+  ) AS skip_indexes
+`.trim()
+
+function tupleAt(value: unknown, index: number, name: string): unknown {
+  if (Array.isArray(value)) return value[index]
+  if (value && typeof value === 'object') {
+    return (value as Record<string, unknown>)[name]
+  }
+  return undefined
+}
+
+function asTupleList(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
 /** Resolve the SQL to analyze: the caller's raw `sql`, or the query text behind a `query_id`. */
 export async function resolveSql(
   hostId: number,
@@ -49,46 +104,21 @@ export async function resolveSql(
 export async function fetchTableSchema(
   hostId: number,
   database: string,
-  table: string
+  table: string,
+  query: SchemaQuerier = readOnlyQuery
 ): Promise<TableSchema> {
-  const [tableRows, columnRows, indexRows] = await Promise.all([
-    readOnlyQuery({
-      query:
-        'SELECT partition_key, sorting_key FROM system.tables WHERE database = {database:String} AND name = {table:String}',
-      query_params: { database, table },
-      hostId,
-    }) as Promise<Array<{ partition_key: string; sorting_key: string }>>,
-    readOnlyQuery({
-      query:
-        'SELECT name, type, is_in_partition_key, is_in_sorting_key, data_compressed_bytes, data_uncompressed_bytes FROM system.columns WHERE database = {database:String} AND table = {table:String} ORDER BY position',
-      query_params: { database, table },
-      hostId,
-    }) as Promise<
-      Array<{
-        name: string
-        type: string
-        is_in_partition_key: number | string
-        is_in_sorting_key: number | string
-        data_compressed_bytes: number | string
-        data_uncompressed_bytes: number | string
-      }>
-    >,
-    readOnlyQuery({
-      query:
-        'SELECT name, type, expression, granularity FROM system.data_skipping_indexes WHERE database = {database:String} AND table = {table:String}',
-      query_params: { database, table },
-      hostId,
-    }) as Promise<
-      Array<{
-        name: string
-        type: string
-        expression: string
-        granularity: number | string
-      }>
-    >,
-  ])
+  const rows = (await query({
+    query: TABLE_SCHEMA_SQL,
+    query_params: { database, table },
+    hostId,
+  })) as Array<{
+    partition_key: string
+    sorting_key: string
+    columns: unknown
+    skip_indexes: unknown
+  }>
 
-  const truthy = (v: number | string) => Number(v) === 1
+  const truthy = (v: unknown) => Number(v) === 1
   const splitKey = (key: string) =>
     key
       ? key
@@ -106,30 +136,41 @@ export async function fetchTableSchema(
   const extractIdentifierTokens = (expr: string) =>
     [...expr.matchAll(/[a-zA-Z_][a-zA-Z0-9_]*/g)].map((m) => m[0])
 
+  const row = rows[0]
+  const columnTuples = asTupleList(row?.columns)
+    .map((entry) => ({
+      position: Number(tupleAt(entry, 0, 'position')),
+      name: String(tupleAt(entry, 1, 'name') ?? ''),
+      type: String(tupleAt(entry, 2, 'type') ?? ''),
+      isInPartitionKey: truthy(tupleAt(entry, 3, 'is_in_partition_key')),
+      isInSortingKey: truthy(tupleAt(entry, 4, 'is_in_sorting_key')),
+      compressedBytes: Number(tupleAt(entry, 5, 'data_compressed_bytes')),
+      uncompressedBytes: Number(tupleAt(entry, 6, 'data_uncompressed_bytes')),
+    }))
+    .sort((a, b) => a.position - b.position)
+
   return {
     database,
     table,
-    partitionKeyColumns: extractIdentifierTokens(
-      tableRows[0]?.partition_key ?? ''
-    ),
+    partitionKeyColumns: extractIdentifierTokens(row?.partition_key ?? ''),
     // sorting_key is matched by exact column equality (skip-index/projection
     // scorers) — this only recognizes bare column names, not expressions
     // (e.g. `toDate(created_at)`); a sorting key built from expressions is a
     // documented limitation, not a crash risk.
-    sortingKeyColumns: splitKey(tableRows[0]?.sorting_key ?? ''),
-    columns: columnRows.map((c) => ({
-      name: c.name,
-      type: c.type,
-      isInPartitionKey: truthy(c.is_in_partition_key),
-      isInSortingKey: truthy(c.is_in_sorting_key),
-      compressedBytes: Number(c.data_compressed_bytes),
-      uncompressedBytes: Number(c.data_uncompressed_bytes),
+    sortingKeyColumns: splitKey(row?.sorting_key ?? ''),
+    columns: columnTuples.map((column) => ({
+      name: column.name,
+      type: column.type,
+      isInPartitionKey: column.isInPartitionKey,
+      isInSortingKey: column.isInSortingKey,
+      compressedBytes: column.compressedBytes,
+      uncompressedBytes: column.uncompressedBytes,
     })),
-    existingSkipIndexes: indexRows.map((i) => ({
-      name: i.name,
-      type: i.type,
-      expression: i.expression,
-      granularity: Number(i.granularity),
+    existingSkipIndexes: asTupleList(row?.skip_indexes).map((entry) => ({
+      name: String(tupleAt(entry, 0, 'name') ?? ''),
+      type: String(tupleAt(entry, 1, 'type') ?? ''),
+      expression: String(tupleAt(entry, 2, 'expression') ?? ''),
+      granularity: Number(tupleAt(entry, 3, 'granularity')),
     })),
   }
 }
