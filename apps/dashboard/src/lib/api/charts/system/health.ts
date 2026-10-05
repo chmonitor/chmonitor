@@ -176,7 +176,7 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
     SELECT count() AS failed_count
     FROM system.backup_log
     WHERE event_time > now() - INTERVAL 24 HOUR
-      AND status = 'FAILED'
+      AND status IN ('BACKUP_FAILED', 'RESTORE_FAILED')
   `,
     optional: true,
     tableCheck: 'system.backup_log',
@@ -184,7 +184,7 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
 
   'health-mv-refresh-failures': () => ({
     query: `
-    SELECT countIf(status IN ('Error', 'Failed')) AS failed_count
+    SELECT countIf(exception != '' OR retry > 0) AS failed_count
     FROM system.view_refreshes
   `,
     optional: true,

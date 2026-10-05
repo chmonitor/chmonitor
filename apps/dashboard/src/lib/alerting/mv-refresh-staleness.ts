@@ -2,9 +2,10 @@
  * Materialized View Refresh Staleness (#1925)
  *
  * Computes staleness for MV refresh operations from system.view_refreshes.
- * A view is considered stale when:
- *   - status is 'Error' or 'Failed' (last refresh failed)
- *   - OR last_success_time is older than a staleness threshold
+ * A view is considered failed when exception is non-empty or retry > 0.
+ * A failed refresh stays Scheduled, so status labels are not the signal.
+ * A view is stale when last_success_time is older than a staleness threshold.
+ * An empty exception with no retry stays ok, even if it has never succeeded.
  *
  * Provides SQL to run on ClickHouse and pure helper functions
  * for threshold evaluation and badge rendering.
@@ -24,6 +25,7 @@ export interface MvRefreshRow {
   staleness_seconds: number
   is_failed: number
   exception: string | null
+  retry: number
   [key: string]: string | number | null
 }
 
@@ -46,8 +48,9 @@ export interface MvStalenessResult {
  * SQL to surface stale/failed MV refreshes.
  *
  * Thresholds:
- *   - failed: status IN ('Error', 'Failed') → always surfaced
- *   - stale: last_success_time is NULL or older than staleAfterSeconds
+ *   - failed: exception != '' OR retry > 0 → always surfaced
+ *   - stale: last_success_time older than staleAfterSeconds
+ *   - never succeeded with an empty exception stays out of the failed set
  *
  * The staleAfterSeconds default (3600 = 1 hour) is conservative; operators
  * with longer refresh intervals should increase it via the alert threshold.
@@ -63,14 +66,13 @@ SELECT
   next_refresh_time,
   dateDiff('second', coalesce(last_success_time, toDateTime(0)), now()) AS staleness_seconds,
   multiIf(
-    status IN ('Error', 'Failed'), 1,
-    isNull(last_success_time), 1,
+    exception != '' OR retry > 0, 1,
     dateDiff('second', last_success_time, now()) > ${staleAfterSeconds}, 1,
     0
   ) AS is_failed,
-  exception
+  exception,
+  retry
 FROM system.view_refreshes
-WHERE status NOT IN ('Running', 'Scheduled')
 ORDER BY is_failed DESC, staleness_seconds DESC
 `
 }
@@ -82,12 +84,11 @@ ORDER BY is_failed DESC, staleness_seconds DESC
 export function buildMvFailedCountSQL(staleAfterSeconds = 3600): string {
   return `
 SELECT countIf(
-  status IN ('Error', 'Failed')
-  OR isNull(last_success_time)
+  exception != ''
+  OR retry > 0
   OR dateDiff('second', last_success_time, now()) > ${staleAfterSeconds}
 ) AS failed_count
 FROM system.view_refreshes
-WHERE status NOT IN ('Running', 'Scheduled')
 `
 }
 
@@ -99,10 +100,13 @@ WHERE status NOT IN ('Running', 'Scheduled')
  * Classify a single MV refresh row into a staleness level.
  */
 export function classifyMvRefresh(
-  row: Pick<MvRefreshRow, 'status' | 'staleness_seconds' | 'is_failed'>,
+  row: Pick<
+    MvRefreshRow,
+    'status' | 'staleness_seconds' | 'is_failed' | 'exception' | 'retry'
+  >,
   staleAfterSeconds = 3600
 ): MvStalenessLevel {
-  if (row.status === 'Error' || row.status === 'Failed') return 'failed'
+  if ((row.exception ?? '') !== '' || (row.retry ?? 0) > 0) return 'failed'
   if (row.is_failed === 1) return 'failed'
   if (row.staleness_seconds > staleAfterSeconds) return 'stale'
   return 'ok'

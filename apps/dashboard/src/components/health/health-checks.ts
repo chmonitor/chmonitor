@@ -687,7 +687,7 @@ WHERE event_time > now() - INTERVAL 1 HOUR
     sql: `SELECT count() AS failed_count
 FROM system.backup_log
 WHERE event_time > now() - INTERVAL 24 HOUR
-  AND status = 'FAILED'`,
+  AND status IN ('BACKUP_FAILED', 'RESTORE_FAILED')`,
   },
   {
     id: 'mv-refresh-failures',
@@ -714,7 +714,7 @@ WHERE event_time > now() - INTERVAL 24 HOUR
         url: 'https://clickhouse.com/docs/en/operations/system-tables/view_refreshes',
       },
     ],
-    sql: `SELECT countIf(status IN ('Error', 'Failed')) AS failed_count
+    sql: `SELECT countIf(exception != '' OR retry > 0) AS failed_count
 FROM system.view_refreshes`,
   },
 ] as const
