@@ -26,10 +26,13 @@ is nothing to do, write that down and stop — an empty run is a good run.
    | Draft, abandoned | Close with a reason, link the issue |
 
 3. **Required checks are `unit-tests` and `dashboard`.** `e2e-test`,
-   `codecov/patch`, `promptfoo`, and `Claude Issues` are informational. Never
-   hold a PR for one of them, and never spend a run fixing one. Do not wait on
-   `e2e-test-tsr` or `component-test` either — those jobs were deleted in June
-   2026 (#1613 and #1623) and no longer exist.
+   `coverage-upload`, `promptfoo`, and `Claude Issues` are informational.
+   Never hold a PR for one of them, and never spend a run fixing one. Do not
+   wait on `e2e-test-tsr`, `component-test`, or `codecov/patch` either — those
+   names are all gone (`component-test` deleted in #1623, `e2e-test-tsr` in
+   #1613, `codecov/patch` superseded by the `coverage-upload` job in #3648).
+   `coverage-upload` going red usually means Codecov's CDN is unreachable, not
+   that the repo is broken (#3647).
 4. **Arming auto-merge.** Only when *both* required checks are green and the PR
    is not a draft:
 
