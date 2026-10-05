@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-09-30
+updated: 2026-10-05
 tags:
   - design-system
   - ui
@@ -1248,8 +1248,8 @@ the matching domain file (`queries.ts`, `tables.ts`, …).
 
 ## File / naming
 
-kebab-case files; PascalCase components; `use*` hooks; `'use client'` on
-interactive client components; shared types in `src/types/` or
+kebab-case files; PascalCase components; `use*` hooks. The dashboard
+declares no client directive. Shared types in `src/types/` or
 `src/lib/api/types.ts`; route pages under `src/routes/(dashboard)/`; nav in
 `src/menu/` (composed by `menu/index.ts`, re-exported from `src/menu.ts`).
 See `conventions.md`.

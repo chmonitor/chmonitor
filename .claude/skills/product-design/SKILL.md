@@ -577,7 +577,10 @@ is a full-width control under the hide-count line. Full detail:
 
 ## Adding a page
 
-1. `src/routes/(dashboard)/my-page.tsx` (`'use client'`, uses `useHostId()`).
+1. `src/routes/(dashboard)/my-page.tsx` exports a `Route` via
+   `createFileRoute('/(dashboard)/my-page')`. The route file has no
+   client directive and does not call `useHostId()`; the layout
+   and its charts read `hostId` from `?host=`.
 2. Add a `QueryConfig` in `src/lib/query-config/` if it needs data.
 3. Register in `src/menu/` (with feature gate / `tableCheck` if optional).
    `tableCheck` means the page is HIDDEN from the rail when the table is
@@ -629,8 +632,8 @@ Chat + SQL) — they remain restorable from the group heading
 ## File & naming conventions
 
 kebab-case files; PascalCase components; `use*` camelCase hooks; props as
-`interface XProps` colocated; client components declare `'use client'`, server
-components don't; shared types in `src/types/` or `src/lib/api/types.ts`. Details
+`interface XProps` colocated. The dashboard declares no client
+directive. Shared types in `src/types/` or `src/lib/api/types.ts`. Details
 in `docs/knowledge/conventions.md`.
 
 ## Keep this skill current
