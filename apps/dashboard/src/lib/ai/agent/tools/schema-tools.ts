@@ -178,7 +178,7 @@ export function createSchemaTools(hostId: number) {
           // Get indexes
           readOnlyQuery({
             query:
-              'SELECT name, type, expression, granularity FROM system.data_skipping_indexes WHERE database = {database:String} AND table = {table:String} ORDER BY name',
+              'SELECT name, type, expr, granularity FROM system.data_skipping_indices WHERE database = {database:String} AND table = {table:String} ORDER BY name',
             hostId: effectiveHostId,
             query_params: { database, table },
           }),

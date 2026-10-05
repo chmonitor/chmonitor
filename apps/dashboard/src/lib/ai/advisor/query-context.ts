@@ -36,7 +36,7 @@ export type SchemaQuerier = (options: {
 
 /**
  * One round trip for `system.tables` + `system.columns` (ordered by position)
- * + `system.data_skipping_indexes`. Identifiers stay in `query_params`.
+ * + `system.data_skipping_indices`. Identifiers stay in `query_params`.
  * Tuple fields are positional so JSONEachRow arrays and named-tuple objects
  * both decode.
  */
@@ -64,8 +64,8 @@ SELECT
     WHERE database = {database:String} AND table = {table:String}
   )) AS columns,
   (
-    SELECT groupArray(tuple(name, type, expression, granularity))
-    FROM system.data_skipping_indexes
+    SELECT groupArray(tuple(name, type, expr, granularity))
+    FROM system.data_skipping_indices
     WHERE database = {database:String} AND table = {table:String}
   ) AS skip_indexes
 `.trim()
@@ -169,7 +169,7 @@ export async function fetchTableSchema(
     existingSkipIndexes: asTupleList(row?.skip_indexes).map((entry) => ({
       name: String(tupleAt(entry, 0, 'name') ?? ''),
       type: String(tupleAt(entry, 1, 'type') ?? ''),
-      expression: String(tupleAt(entry, 2, 'expression') ?? ''),
+      expression: String(tupleAt(entry, 2, 'expr') ?? ''),
       granularity: Number(tupleAt(entry, 3, 'granularity')),
     })),
   }

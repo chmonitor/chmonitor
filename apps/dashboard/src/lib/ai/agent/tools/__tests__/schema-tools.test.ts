@@ -41,7 +41,7 @@ const indexes = [
   {
     name: 'idx_status',
     type: 'bloom_filter',
-    expression: 'status',
+    expr: 'status',
     granularity: 1,
   },
 ]
@@ -103,7 +103,7 @@ function setupSchemaMocks(overrides?: {
         return { data: columns, error: null }
       }
 
-      if (query.includes('system.data_skipping_indexes'))
+      if (query.includes('system.data_skipping_indices'))
         return { data: indexes, error: null }
 
       if (
@@ -374,7 +374,7 @@ describe('createSchemaTools', () => {
             query.includes('ORDER BY position')
           )
             return { data: columns, error: null }
-          if (query.includes('system.data_skipping_indexes'))
+          if (query.includes('system.data_skipping_indices'))
             return { data: indexes, error: null }
           if (query.includes('system.parts') && query.includes('active = 1'))
             return { data: partitions, error: null }

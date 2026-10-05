@@ -16,7 +16,7 @@ const HOST_ID = 0
 const COLUMNS_SQL =
   'SELECT name, type, is_in_partition_key, is_in_sorting_key, data_compressed_bytes, data_uncompressed_bytes FROM system.columns WHERE database = {database:String} AND table = {table:String} ORDER BY position'
 const INDEXES_SQL =
-  'SELECT name, type, expression, granularity FROM system.data_skipping_indexes WHERE database = {database:String} AND table = {table:String}'
+  'SELECT name, type, expr, granularity FROM system.data_skipping_indices WHERE database = {database:String} AND table = {table:String}'
 const TABLES_SQL =
   'SELECT partition_key, sorting_key FROM system.tables WHERE database = {database:String} AND name = {table:String}'
 
@@ -65,13 +65,13 @@ const indexRows = [
   {
     name: 'idx_user',
     type: 'bloom_filter',
-    expression: 'user_id',
+    expr: 'user_id',
     granularity: '4',
   },
   {
     name: 'idx_payload',
     type: 'minmax',
-    expression: 'payload',
+    expr: 'payload',
     granularity: 1,
   },
 ]
@@ -118,7 +118,7 @@ function baselineFromReads(
     existingSkipIndexes: indexes.map((index) => ({
       name: index.name,
       type: index.type,
-      expression: index.expression,
+      expression: index.expr,
       granularity: Number(index.granularity),
     })),
   }
@@ -177,13 +177,13 @@ test('fetchTableSchema reads one table schema in a single query', async () => {
   const sql = calls[0].query
   expect(calls[0].hostId).toBe(HOST_ID)
 
-  // One statement covering all three sources. The skip-index name is matched as
-  // a bare prefix so it holds for the shipped name and for a corrected one,
-  // while still rejecting a different system table.
+  // One statement covering all three sources. Every table name is matched in
+  // full: a prefix would have accepted `system.data_skipping_indexes`, which
+  // ClickHouse does not have (the real table is `..._indices`).
   expect(sql.trim().toUpperCase()).toMatch(/^SELECT\b/)
   expect(sql).toContain('FROM system.tables')
   expect(sql).toContain('FROM system.columns')
-  expect(sql).toContain('FROM system.data_skipping_index')
+  expect(sql).toContain('FROM system.data_skipping_indices')
   // Column order used to come from `ORDER BY position`; inside `groupArray` it
   // has to come from sorting the aggregate on the first tuple field instead.
   expect(sql).toMatch(/arraySort\(\s*\w+\s*->\s*\w+\.1/)
@@ -207,6 +207,9 @@ test('fetchTableSchema reads one table schema in a single query', async () => {
   // Four fields; the decoder anchors on `name` (0) and `granularity` (3).
   expect(skipIndexFields).toHaveLength(4)
   expect(skipIndexFields[0]).toBe('name')
+  // `expr` is the real column; `expression` does not exist in
+  // `system.data_skipping_indices` and throws UNKNOWN_IDENTIFIER.
+  expect(skipIndexFields[2]).toBe('expr')
   expect(skipIndexFields[3]).toBe('granularity')
 
   // Identifiers travel as bound parameters only — never interpolated.

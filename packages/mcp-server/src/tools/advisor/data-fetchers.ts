@@ -90,8 +90,8 @@ FROM
       )
     ) AS columns,
     (
-      SELECT groupArray(tuple(name, type, expression, granularity))
-      FROM system.data_skipping_indexes
+      SELECT groupArray(tuple(name, type, expr, granularity))
+      FROM system.data_skipping_indices
       WHERE database = {database:String} AND table = {table:String}
     ) AS skip_indexes
 )
@@ -110,7 +110,7 @@ type ColumnTuple = {
 type IndexTuple = {
   name: string
   type: string
-  expression: string
+  expr: string
   granularity: number | string
 }
 
@@ -163,7 +163,7 @@ function readIndexes(raw: unknown): IndexTuple[] {
       indexes.push({
         name: String(item[0] ?? ''),
         type: String(item[1] ?? ''),
-        expression: String(item[2] ?? ''),
+        expr: String(item[2] ?? ''),
         granularity: (item[3] ?? 0) as number | string,
       })
       continue
@@ -173,7 +173,7 @@ function readIndexes(raw: unknown): IndexTuple[] {
     indexes.push({
       name: row.name,
       type: String(row.type ?? ''),
-      expression: String(row.expression ?? ''),
+      expr: String(row.expr ?? ''),
       granularity: (row.granularity ?? 0) as number | string,
     })
   }
@@ -222,7 +222,7 @@ export async function fetchTableSchema(
     existingSkipIndexes: readIndexes(row?.skip_indexes).map((i) => ({
       name: i.name,
       type: i.type,
-      expression: i.expression,
+      expression: i.expr,
       granularity: Number(i.granularity),
     })),
   }

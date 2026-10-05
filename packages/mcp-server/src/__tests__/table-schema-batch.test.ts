@@ -52,13 +52,13 @@ const indexRows = [
   {
     name: 'idx_status',
     type: 'set(0)',
-    expression: 'status',
+    expr: 'status',
     granularity: '4',
   },
   {
     name: 'idx_user',
     type: 'bloom_filter',
-    expression: 'user_id',
+    expr: 'user_id',
     granularity: 1,
   },
 ]
@@ -68,13 +68,13 @@ const TABLES_SQL =
 const COLUMNS_SQL =
   'SELECT name, type, is_in_partition_key, is_in_sorting_key, data_compressed_bytes, data_uncompressed_bytes FROM system.columns WHERE database = {database:String} AND table = {table:String} ORDER BY position'
 const INDEXES_SQL =
-  'SELECT name, type, expression, granularity FROM system.data_skipping_indexes WHERE database = {database:String} AND table = {table:String}'
+  'SELECT name, type, expr, granularity FROM system.data_skipping_indices WHERE database = {database:String} AND table = {table:String}'
 
 function isCombinedSchemaQuery(query: string): boolean {
   return (
     query.includes('system.tables') &&
     query.includes('system.columns') &&
-    query.includes('system.data_skipping_indexes')
+    query.includes('system.data_skipping_indices')
   )
 }
 
@@ -111,7 +111,7 @@ function rowsFor(query: string): unknown[] {
         skip_indexes: indexRows.map((index) => [
           index.name,
           index.type,
-          index.expression,
+          index.expr,
           index.granularity,
         ]),
       },
@@ -120,7 +120,7 @@ function rowsFor(query: string): unknown[] {
   if (query.includes('system.columns')) {
     return [...columnRows].sort((a, b) => a.position - b.position)
   }
-  if (query.includes('system.data_skipping_indexes')) return indexRows
+  if (query.includes('system.data_skipping_indices')) return indexRows
   if (query.includes('system.tables')) return [tableRow]
   return []
 }
@@ -216,7 +216,7 @@ async function threeReadBaseline() {
     existingSkipIndexes: indexes.map((i) => ({
       name: i.name,
       type: i.type,
-      expression: i.expression,
+      expression: i.expr,
       granularity: Number(i.granularity),
     })),
   }

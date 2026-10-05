@@ -143,7 +143,7 @@ export type AnalyzeQueryResult = AnalyzeQueryOk | AnalyzeQueryError
 /**
  * Analyze a slow query and return ranked optimization recommendations.
  * Read-only end to end: EXPLAIN, `system.tables`/`system.columns`/
- * `system.data_skipping_indexes`/`system.parts` are all read via
+ * `system.data_skipping_indices`/`system.parts` are all read via
  * `readOnlyQuery` (forces `clickhouse_settings.readonly = '1'`). Degrades
  * gracefully — a missing/inaccessible table or a failed EXPLAIN reduces what
  * can be estimated rather than throwing.
