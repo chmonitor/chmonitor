@@ -74,7 +74,7 @@ export const memoryUsageBaselineConfig: QueryConfig = {
           max(memory_usage) as max_memory,
           quantile(0.95)(memory_usage) as p95_memory,
           quantile(0.99)(memory_usage) as p99_memory,
-          avg(CASE WHEN query_cache_usage = 'hit' THEN memory_usage ELSE 0 END) as avg_cache_hit_memory
+          avg(CASE WHEN query_cache_usage = 'Read' THEN memory_usage ELSE 0 END) as avg_cache_hit_memory
         FROM system.query_log
         WHERE type = 'QueryFinish'
           AND event_time >= now() - INTERVAL {baseline_hours: UInt32} HOUR

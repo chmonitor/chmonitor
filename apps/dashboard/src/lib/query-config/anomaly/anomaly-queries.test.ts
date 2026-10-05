@@ -159,6 +159,7 @@ describe('memoryUsageBaselineConfig', () => {
       sql: string
     }[]
     expect(versions[1].sql).toContain('avg_cache_hit_memory')
+    expect(versions[1].sql).toContain("query_cache_usage = 'Read'")
     expect(versions[0].sql).not.toContain('avg_cache_hit_memory')
   })
 
