@@ -65,7 +65,7 @@ Agents discover knowledge in this order:
 | **Specs** | [og-images.md](og-images.md) | spec | OG/social images: dune-plate compositor (`scripts/og-builder.ts`), centered title, logo top-left or bottom-right |
 | **Specs** | [cluster-topology.md](cluster-topology.md) | spec | Cluster topology SVG: layout pipeline, constant contracts, OKLCH gotcha, shared component, verification harness |
 | **Specs** | [table-availability.md](table-availability.md) | spec | Sidebar muting (table availability), permission GRANT + version-mismatch errors, `toEmptyStateVariant` gotcha |
-| **Development** | [component-ci-stability.md](component-ci-stability.md) | incident | Cypress component test fragility findings and fix direction |
+| **Development** | [component-ci-stability.md](component-ci-stability.md) | incident | Cypress component-testing lessons that still apply to the two local specs; the `component-test` CI job itself was decommissioned in #1623 |
 | **Development** | [conventions.md](conventions.md) | workflow | Coding conventions, file organization, component patterns |
 | **Design** | [product-design.md](product-design.md) | reference | Design system + UX conventions: OKLCH tokens, dark mode, shadcn rules, ChartCard/Container, EmptyState, graceful errors, ?host routing, file org (source of truth for the `product-design` skill) |
 | **Tools** | [standalone-cli.md](standalone-cli.md) | reference | `chm`/`chmonitor` Rust CLI: live TUI, local `add`/`ls`/`use`, dashboard API, `chm doctor`, channels |

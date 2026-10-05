@@ -117,8 +117,9 @@ green throughout. See [[deployment]].
    any workflow YAML, so read it directly:
    `gh api repos/chmonitor/chmonitor/branches/main/protection --jq '.required_status_checks.contexts'`
    → `["dashboard","unit-tests"]`. The other jobs in the tree (`e2e-test`,
-   `test-queries-config`, `test-postgres-integration`, `component-test`) are
-   **not** required.
+   `test-queries-config`, `test-postgres-integration`) are **not** required.
+   (`component-test` is not a job in the tree — it was removed in #1623 — and
+   `e2e-test-tsr` died with the legacy Next.js app in #1613.)
 7. **main moves under long PRs.** Rebase: git rename-detection auto-merges
    upstream edits to moved files; only `package.json`/`pnpm-lock.yaml` truly
    conflict — resolve by regenerating the split +

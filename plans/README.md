@@ -119,7 +119,8 @@ fixed the real root cause of the related `cloudflare:workers` pre-push-hook
 failures with a global `bun test` preload; [#2252](https://github.com/chmonitor/chmonitor/pull/2252)
 bumped remaining stray bun pins. `unit-tests` is a required merge check (PR
 [#2527](https://github.com/chmonitor/chmonitor/pull/2527), merged 2026-07-10);
-known non-required checks are `e2e-test`, `e2e-test-tsr`, and `component-test`.
+the known non-required check is `e2e-test` (`e2e-test-tsr` and `component-test`
+were deleted in June 2026 and no longer exist).
 
 **Note:** a separate long-running autonomous swarm (see `~/.claude` memory
 `chmonitor-swarm-ci-operating-context`) also works this backlog concurrently —

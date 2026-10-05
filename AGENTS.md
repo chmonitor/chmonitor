@@ -41,8 +41,11 @@ feeds step N+1, or two pieces touch the same file).
 auto-merge (`gh pr merge --auto --squash`) and babysit it (`/github:babysit-pr`):
 watch CI, fix failures, confirm the merge and production deploy. Do NOT ask the
 user whether to babysit — just do it. Known non-required checks (`e2e-test`,
-`e2e-test-tsr`, `component-test`) do not block auto-merge. `unit-tests` IS a
-required check (required alongside `dashboard` since 2026-07-10, plan 75).
+`coverage-upload`) do not block auto-merge. `unit-tests` IS a required check
+(required alongside `dashboard` since 2026-07-10, plan 75). `e2e-test-tsr` and
+`component-test` were deleted in June 2026 (#1613, #1623) — do not wait on them
+either. `coverage-upload` fails whenever Codecov's CDN is unreachable; that is
+an external outage, not a repo defect (#3647), so never hold a PR for it.
 
 **Stale bot-review gate (authorized override).** When a bot reviewer
 (CodeRabbit / `coderabbitai[bot]`, Sourcery, Gemini) leaves a
@@ -346,7 +349,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Specs | [agentstate-conversation-store.md](docs/knowledge/agentstate-conversation-store.md) | AgentState conversation backend: store priority, per-user external_id/tag isolation, append-only upsert, AI enrichment, backend/follow-ups routes |
 | Specs | [query-config-format.md](docs/knowledge/query-config-format.md) | QueryConfig type, versioned SQL, BackgroundBar |
 | Specs | [cluster-topology.md](docs/knowledge/cluster-topology.md) | Cluster topology SVG: layout pipeline, constant contracts, OKLCH `hsl(var())` gotcha, shared component, verification harness |
-| Development | [component-ci-stability.md](docs/knowledge/component-ci-stability.md) | Cypress component test fragility and fixes |
+| Development | [component-ci-stability.md](docs/knowledge/component-ci-stability.md) | Cypress component-testing lessons for the two local specs; the `component-test` CI job was decommissioned in #1623 |
 | Development | [conventions.md](docs/knowledge/conventions.md) | Coding conventions, file org, component patterns |
 | Tools | [standalone-cli.md](docs/knowledge/standalone-cli.md) | `chm`/`chmonitor` Rust CLI: live TUI, local `add`/`ls`/`use`, dashboard API, `chm doctor`, channels |
 | Development | [pstack-validation.md](docs/knowledge/pstack-validation.md) | Project-local pstack adapter, pinned upstream skills subtree, validation inventory, CI-first feature matrix, and evidence rules |
