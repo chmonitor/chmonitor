@@ -4,6 +4,14 @@
  * (the hidden demo host), while leaving OSS and anonymous-cloud callers
  * unaffected. Mirrors charts/__tests__/cloud-demo-host-guard.test.ts.
  */
+
+// Type-only, so it is erased at runtime and cannot disturb the `mock.module`
+// calls below, which must be installed before the route is dynamically
+// imported. Importing the handler's own response type (rather than restating
+// its shape inline) is what stops the two from drifting again — #3682 added a
+// field and the duplicated annotation is exactly what failed CI.
+import type { NotificationsResponse } from '../notifications'
+
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 let cloudMode = false
@@ -99,9 +107,13 @@ describe('GET /api/v1/notifications — cloud demo-host guard (#2172)', () => {
     const res = await get('0')
     expect(res.status).toBe(200)
     expect(mockGetClient).not.toHaveBeenCalled()
+    // `data` is typed with the route's own exported `NotificationsResponse`
+    // rather than a hand-written inline shape. #3682 added
+    // `clusterViewUnavailable` and the duplicated annotation is precisely what
+    // drifted, failing CI with TS2769 while the handler itself was correct.
     const body = (await res.json()) as {
       success: boolean
-      data: { notifications: unknown[]; totalCount: number }
+      data: NotificationsResponse
       unavailable: { reason: string }
     }
     expect(body.success).toBe(true)

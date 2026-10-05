@@ -50,7 +50,15 @@ export interface Notification {
   readonly severity: 'critical' | 'warning'
 }
 
-interface NotificationsResponse {
+/**
+ * The `data` payload every 200 response carries, healthy or degraded.
+ *
+ * Exported so the route-level test can type its assertion against the real
+ * shape instead of hand-writing one. #3682 added a field and a duplicated
+ * inline annotation in the test is exactly what let the two drift into a
+ * `TS2769` failure.
+ */
+export interface NotificationsResponse {
   readonly notifications: readonly Notification[]
   readonly totalCount: number
   /**
