@@ -190,16 +190,32 @@ function ResizeHandle() {
       tabIndex={0}
       onMouseDown={handleMouseDown}
       onKeyDown={handleKeyDown}
-      className="group fixed top-0 bottom-0 z-20 hidden w-4 -translate-x-1/2 cursor-col-resize items-center justify-center outline-none lg:flex"
+      // The handle is the drag surface. It is `lg`-only but a 16px strip is a
+      // thin finger target on a tablet in landscape, so give it 24px there.
+      className="group pointer-coarse:w-6 fixed top-0 bottom-0 z-20 hidden w-4 -translate-x-1/2 cursor-col-resize items-center justify-center outline-none lg:flex"
       style={{ left: leftPosition }}
     >
-      {/* Grip icon */}
+      {/* Grip icon — the affordance hint for a control that is focusable on the
+          PARENT (`role="separator" tabIndex={0}`), so every reveal has to be a
+          `group-` variant: a bare `focus-visible:` here would never match.
+          Hover does not exist on touch and Tailwind v4 wraps a bare `hover:` in
+          `@media (hover: hover)`, so a resting `opacity-0` left the grip
+          present, focusable and invisible on every coarse pointer. Rest at 40%,
+          hide only where a hover does — the contract
+          components/cards/chart-action-classes.ts already ships. */}
       <div
         className={cn(
-          'relative flex h-6 w-4 items-center justify-center rounded-sm opacity-0 transition-opacity',
-          'group-hover:opacity-100 group-focus-visible:opacity-100',
+          'relative flex h-6 w-4 items-center justify-center rounded-sm opacity-40 transition-opacity',
+          'pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40',
+          // `!` because `pointer-fine:group-hover:opacity-40` shares this
+          // selector's specificity and is emitted later in the sheet.
+          'group-hover:!opacity-100 group-focus-within:!opacity-100',
           'group-focus-visible:ring-2 group-focus-visible:ring-ring',
-          isResizing && 'opacity-100'
+          // Resizing must win over both hold-downs. A plain `opacity-100` loses
+          // to `pointer-fine:opacity-0` (later in the sheet, equal specificity);
+          // `hover:!opacity-100` wins because a resize drag has the pointer over
+          // the handle, and on a coarse pointer neither rule applies.
+          isResizing && 'opacity-100 hover:!opacity-100'
         )}
       >
         <GripVertical className="size-3 text-muted-foreground" aria-hidden />

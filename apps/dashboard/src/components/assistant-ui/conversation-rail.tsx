@@ -120,7 +120,7 @@ export function ThreadRow({ item, onSelect }: ThreadRowProps) {
   return (
     <div
       className={cn(
-        'group flex items-center gap-2 rounded-lg transition-colors',
+        'flex items-center gap-2 rounded-lg transition-colors',
         item.isActive ? 'bg-muted' : 'hover:bg-muted focus-within:bg-muted'
       )}
     >
@@ -136,17 +136,29 @@ export function ThreadRow({ item, onSelect }: ThreadRowProps) {
           </div>
         )}
       </button>
-      <div className="mr-1.5 flex items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      {/* Always visible, never gated. Archiving and deleting a conversation have no
+          other path in this UI — no context menu, no long-press, no "manage"
+          screen — so `group-hover:opacity-100` removed the actions outright on
+          touch: Tailwind v4 wraps a bare `hover:` in `@media (hover: hover)`, so
+          the old resting `opacity-0` left both present, focusable and invisible
+          on every coarse pointer. `ConversationRailBody` also renders inside a
+          mobile Drawer, where no hover ever happens. Decluttering was never the
+          goal here, so the gate is gone rather than re-armed under
+          `pointer-fine:`. */}
+      <div className="mr-1.5 flex items-center">
         <TooltipIconButton
           tooltip="Archive"
-          className="hover:text-foreground text-muted-foreground size-7 p-0"
+          // Icon-only: 28px for a mouse, 36px for a finger. Nothing to grow
+          // around it — this is a flex row whose neighbour is
+          // `min-w-0 flex-1 truncate`, so it absorbs the extra 16px.
+          className="hover:text-foreground text-muted-foreground size-7 p-0 pointer-coarse:size-9"
           onClick={() => void aui.threads.item({ id: item.id }).archive()}
         >
           <ArchiveIcon className="size-4" />
         </TooltipIconButton>
         <TooltipIconButton
           tooltip="Delete"
-          className="hover:text-destructive text-muted-foreground size-7 p-0"
+          className="hover:text-destructive text-muted-foreground size-7 p-0 pointer-coarse:size-9"
           onClick={() => void aui.threads.item({ id: item.id }).delete()}
         >
           <Trash2Icon className="size-4" />

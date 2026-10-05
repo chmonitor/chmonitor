@@ -83,7 +83,7 @@ function FavoriteItem({
   return (
     <li
       className={cn(
-        'group hover:bg-muted/60 rounded-md border p-2 transition-colors',
+        'hover:bg-muted/60 rounded-md border p-2 transition-colors',
         editing && 'border-primary/40 bg-muted/40'
       )}
     >
@@ -152,12 +152,19 @@ function FavoriteItem({
 
           <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-[11px]">
             <span>{relTime(fav.createdAt)}</span>
-            <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            {/* Always visible, never gated. Run, rename, remove and copy-link have no
+              other path in this panel — no context menu, no keyboard shortcut —
+              so `group-hover:opacity-100` deleted them on touch: Tailwind v4
+              wraps a bare `hover:` in `@media (hover: hover)`, so the old resting
+              `opacity-0` left all four present, focusable and invisible on every
+              coarse pointer. The panel is a Sheet on the SQL console and EXPLAIN
+              pages, which are read on phones, so decluttering was not the goal. */}
+            <span className="flex items-center gap-0.5">
               {fav.shareUrl && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-6"
+                  className="size-6 pointer-coarse:size-9"
                   title="Copy deep-link"
                   aria-label="Copy deep-link"
                   onClick={copyLink}
@@ -172,7 +179,7 @@ function FavoriteItem({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-6"
+                className="size-6 pointer-coarse:size-9"
                 title="Run"
                 aria-label="Run"
                 onClick={() => onSelect(fav.sql, true)}
@@ -182,7 +189,7 @@ function FavoriteItem({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-6"
+                className="size-6 pointer-coarse:size-9"
                 title="Edit name / tags"
                 aria-label="Edit name / tags"
                 onClick={startEdit}
@@ -192,7 +199,7 @@ function FavoriteItem({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-6"
+                className="size-6 pointer-coarse:size-9"
                 title="Remove"
                 aria-label="Remove"
                 onClick={() => onRemove(fav.id)}
