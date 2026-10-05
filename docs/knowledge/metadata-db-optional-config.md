@@ -333,7 +333,7 @@ example in the K8s guide:
 | `docs/content/operate/deploy/self-host.mdx` | 93 |
 | `docs/content/guide/features.mdx` | 136 |
 | `docs/content/guide/features/*.mdx` (16 pages) | one `# CHM_CONFIG_FILE (TOML)` section each |
-| `apps/docs/src/content/docs/**` (generated mirror) | regenerated on every docs build — fix the source, not the mirror |
+| `apps/docs/src/content/docs/**` | **dead** — a pre-move copy of generated output, not regenerated, nothing reads it. Fix `docs/content/**`; a `rg` that hits this path is a false lead |
 
 An operator following `deploy/k8s.md:261-268` today mounts a ConfigMap, sets
 `CHM_CONFIG_FILE`, and **nothing happens** — feature permissions silently ignore

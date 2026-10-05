@@ -137,3 +137,9 @@ apps/*/public/assets/
 
 # Mac-sourced 4K masters (encode before commit)
 assets/videos/*.source.mp4
+
+# Dead pre-move copy of the docs generator output. The generator writes to
+# apps/docs/content/docs/** (see apps/docs/scripts/sync-docs.mjs DEST_DIR) and
+# that path is gitignored. These 65 files were committed before the output dir
+# moved and nothing reads them (#3651).
+apps/docs/src/content/docs/
