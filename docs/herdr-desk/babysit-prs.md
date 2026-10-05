@@ -26,9 +26,10 @@ is nothing to do, write that down and stop — an empty run is a good run.
    | Draft, abandoned | Close with a reason, link the issue |
 
 3. **Required checks are `unit-tests` and `dashboard`.** `e2e-test`,
-   `e2e-test-tsr`, `component-test`, `codecov/patch`, `promptfoo`, and
-   `Claude Issues` are informational. Never hold a PR for one of them, and
-   never spend a run fixing one.
+   `codecov/patch`, `promptfoo`, and `Claude Issues` are informational. Never
+   hold a PR for one of them, and never spend a run fixing one. Do not wait on
+   `e2e-test-tsr` or `component-test` either — those jobs were deleted in June
+   2026 (#1613 and #1623) and no longer exist.
 4. **Arming auto-merge.** Only when *both* required checks are green and the PR
    is not a draft:
 

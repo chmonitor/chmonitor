@@ -204,7 +204,7 @@ We use **Cypress** for component and e2e testing, and **`bun:test`** for unit, i
 
 ## Continuous Integration
 
-Tests run automatically as part of the Continuous Integration (CI) pipeline on every pull request. The `unit-tests` job is a **required** check — it must pass before a PR can merge. `e2e-test`, `e2e-test-tsr`, and `component-test` are informational and do not block merge. See `CONTRIBUTING.md`'s "Pull requests" section for the full required-check list. Ensure your tests pass locally before submitting your pull request.
+Tests run automatically as part of the Continuous Integration (CI) pipeline on every pull request. The `unit-tests` job is a **required** check — it must pass before a PR can merge. `e2e-test` is informational and does not block merge. Cypress component tests do **not** run in CI — they are local-only, so run them yourself before opening a PR. See `CONTRIBUTING.md`'s "Pull requests" section for the full required-check list. Ensure your tests pass locally before submitting your pull request.
 
 ## Running Tests
 

@@ -198,8 +198,9 @@ jobs:
             - The PR body MUST contain a closing keyword so the issue auto-closes on
               merge: **`Resolves #${{ github.event.issue.number }}`**.
             - Per project policy, arm auto-merge after creating the PR:
-              `gh pr merge --auto --squash <pr-number>` (known non-required checks
-              `e2e-test`, `e2e-test-tsr`, `component-test` do not block).
+              `gh pr merge --auto --squash <pr-number>` (known non-required check
+              `e2e-test` does not block; `e2e-test-tsr` and `component-test` were
+              deleted in June 2026 and no longer exist).
             - Comment on the issue linking the PR:
               `gh issue comment ${{ github.event.issue.number }} --body "Opened #<pr-number> — Resolves this on merge."`
 
