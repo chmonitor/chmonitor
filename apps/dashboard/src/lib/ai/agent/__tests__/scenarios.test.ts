@@ -94,6 +94,18 @@ function routeQuery(query: string): unknown[] {
   if (query.includes('system.replicas')) return REPLICATION_LAG_ROWS
   if (query.includes('system.merges')) return MERGE_STATUS_ROWS
   if (query.includes('system.tables')) return TABLES_ROWS
+  if (
+    query.includes('version()') &&
+    query.includes('uptime()') &&
+    query.includes('system.metrics')
+  )
+    return [
+      {
+        version: METRICS_VERSION_ROWS[0].version,
+        uptime_seconds: METRICS_UPTIME_ROWS[0].uptime_seconds,
+        metric_values: METRICS_ROWS.map((row) => [row.metric, row.value]),
+      },
+    ]
   if (query.includes('version()')) return METRICS_VERSION_ROWS
   if (query.includes('uptime()')) return METRICS_UPTIME_ROWS
   if (query.includes('system.metrics')) return METRICS_ROWS
@@ -524,9 +536,9 @@ describe('agent golden scenarios — planning, visualization, skills', () => {
     const metricsResult = result.toolResults.find(
       (r) => r.toolName === 'get_metrics'
     )
-    // get_metrics fans out to three sub-queries internally (version, uptime,
-    // system.metrics) — assert all three actually round-tripped through the
-    // mocked fetchData rather than silently defaulting to [].
+    // get_metrics reads version, uptime, and system.metrics in ONE query —
+    // assert all three actually round-tripped through the mocked fetchData
+    // rather than silently defaulting to [].
     expect(metricsResult.output.version).toBe(METRICS_VERSION_ROWS[0].version)
     expect(metricsResult.output.uptime_seconds).toBe(
       METRICS_UPTIME_ROWS[0].uptime_seconds

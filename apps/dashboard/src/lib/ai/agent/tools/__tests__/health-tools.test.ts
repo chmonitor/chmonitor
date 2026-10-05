@@ -7,6 +7,28 @@ const { createHealthTools } = await import('../health-tools')
 
 function setupHealthMock() {
   mockFetchData.mockImplementation(async ({ query }: { query: string }) => {
+    // get_metrics reads version(), uptime(), and system.metrics in ONE query.
+    // Fold the three canned stores into the single snapshot row it gets back.
+    if (
+      query.includes('version()') &&
+      query.includes('uptime()') &&
+      query.includes('system.metrics')
+    )
+      return {
+        data: [
+          {
+            version: (queryStore.version?.[0] as { version?: string })?.version,
+            uptime_seconds: (
+              queryStore.uptime?.[0] as { uptime_seconds?: number }
+            )?.uptime_seconds,
+            metric_values: (queryStore.metrics ?? []).map((row: any) => [
+              row.metric,
+              row.value,
+            ]),
+          },
+        ],
+        error: null,
+      }
     if (query.includes('version()'))
       return { data: queryStore.version ?? [], error: null }
     if (query.includes('uptime()'))
