@@ -89,6 +89,8 @@ Required for a working dashboard: host, user, password. Name is optional.
 | `CLICKHOUSE_USER` | Yes | `default` | Comma-separated usernames, one per host. |
 | `CLICKHOUSE_PASSWORD` | Yes | `""` | Comma-separated passwords, one per host. |
 | `CLICKHOUSE_NAME` | No | — | Comma-separated display labels shown in the host selector. |
+| `CHM_ALLOW_PRIVATE_HOSTS` | No | `false` | SSRF opt-in. When `true`, `1`, `yes`, `on`, or `cloud`, self-hosted installs may connect to private, loopback, link-local, and Tailscale addresses. Cloud mode forces this off. |
+| `CLICKHOUSE_MANAGEMENT_ENABLED` | No | off | Gates `CREATE USER`, `ALTER USER`, `DROP USER`, `GRANT`, and `REVOKE` on `/api/v1/management`. Only the exact string `true` enables it. `1` stays off. |
 
 `CLICKHOUSE_HOST` defines the host count. `CLICKHOUSE_USER` and
 `CLICKHOUSE_PASSWORD` may be either a single value (applied to all hosts) or one
@@ -103,7 +105,7 @@ See [Multiple hosts](/operate/advanced/multiple-hosts) and
 | Variable | Default | Purpose |
 |---|---|---|
 | `CLICKHOUSE_MAX_EXECUTION_TIME` | `60` | Query timeout in seconds. |
-| `CLICKHOUSE_TZ` | server default | Time zone for date/time display. |
+| `CHM_TABLE_MAX_RESULT_ROWS` | `10000` | Server-side row cap for table queries (`max_result_rows`). `0` disables the cap. A non-numeric value also disables it. |
 | `CLICKHOUSE_DATABASE` | `system` | Database used for app-owned tables (self-tracking events, dashboards). |
 | `EVENTS_TABLE_NAME` | `system.monitoring_events` | Full table name override for self-tracking events. |
 
@@ -265,6 +267,7 @@ defaults to apply.
 | `CHM_GUEST_AI_REQUESTS_PER_DAY` | `3` | Cloud-only daily AI message cap for anonymous visitors. D1 `ai_usage_daily` per `guest:<ip-hash>`. OSS is not gated. |
 | `RATE_LIMIT_MCP_PER_MIN` | `30` | `/api/mcp` (POST/GET/DELETE), per IP. Same class of capability as the agent route — arbitrary read-only SQL via the `query` tool — over the MCP transport. |
 | `RATE_LIMIT_BROWSER_CONN_PER_MIN` | `10` | `POST /api/v1/browser-connections/{test,sessions}`, per IP. Both routes are unauthenticated and dial an attacker-supplied host on every request; each route gets its own bucket so a burst against one doesn't consume the other's budget. |
+| `CHM_TRUST_PROXY_HEADERS` | Cloudflare runtime only | When unset, `X-Real-IP` and `X-Forwarded-For` are trusted only on the Cloudflare runtime. `true`, `1`, or `cloud` trust them everywhere. `yes` is not true here. `false` and `0` turn trusting off, including on Cloudflare. `CF-Connecting-IP` is always trusted. |
 
 ## Authentication
 
@@ -546,8 +549,11 @@ Set the canonical `CHM_*` names. Client `VITE_*` is derived at build time.
 | `CHM_ANALYTICS_KEY` | — | PostHog project key for opt-in [Product Analytics](/operate/advanced/product-analytics). Empty = disabled. |
 | `CHM_ANALYTICS_HOST` | `https://us.i.posthog.com` | PostHog ingest host. |
 
-Build-time branding overrides (optional; do not set unless you custom-build):
-`VITE_TITLE_SHORT`, `VITE_LOGO`, `VITE_AUTOCOMPLETE_LIMIT`, `VITE_MEASUREMENT_ID`.
+Build-time client override (optional):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `VITE_AUTOCOMPLETE_LIMIT` | — | Max rows the SQL autocomplete loader requests. Set at build time. |
 
 ## CLI client
 

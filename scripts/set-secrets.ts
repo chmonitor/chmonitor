@@ -85,7 +85,6 @@ const DASHBOARD_SECRET_KEYS = [
   // Polar license product ids live in apps/cloud-hooks/.env.production, not dashboard.
   'POLAR_ACCESS_TOKEN',
   'POLAR_WEBHOOK_SECRET',
-  'CLICKHOUSE_TZ',
   'CLICKHOUSE_EXCLUDE_USER_DEFAULT',
   'NEXT_QUERY_CACHE_TTL',
 ] as const
@@ -103,7 +102,6 @@ const MCP_SECRET_KEYS = [
 // Defaults applied when a key is absent (mirrors the `|| 'UTC'` etc. that the
 // workflow used to inline).
 const DEFAULTS: Record<string, string> = {
-  CLICKHOUSE_TZ: 'UTC',
   NEXT_QUERY_CACHE_TTL: '3600',
 }
 
