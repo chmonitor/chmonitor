@@ -22,6 +22,10 @@ import {
   getPoolKey,
 } from './connection-pool'
 import { validateClickHouseEnv } from './env-schema'
+import {
+  normalizeReadonlySettings,
+  withReadonlyEnforcement,
+} from './readonly-settings'
 
 export const getClient = async ({
   web,
@@ -60,14 +64,23 @@ export const getClient = async ({
       // Default database for unqualified table names, when the config carries
       // one. Pooling is already scoped per-database via getPoolKey.
       ...(config.database ? { database: config.database } : {}),
-      clickhouse_settings: {
+      // Normalized here and again on every query below, because @clickhouse/client
+      // merges these client-level settings into each request itself, without going
+      // back through the client object. Level 1 rejects any setting changed in the
+      // same request, so pairing it with `max_execution_time` fails the query with
+      // Code 164 (#3680).
+      clickhouse_settings: normalizeReadonlySettings({
         max_execution_time:
           validateClickHouseEnv().CLICKHOUSE_MAX_EXECUTION_TIME,
         ...clickhouseSettings,
-      },
+      }),
     })
 
-    pooled = getPooledClient(newClient, config, isWeb)
+    // Call sites keep passing `readonly: '1'` — they state intent, and the rule
+    // lives here rather than at each call site, so a new caller cannot
+    // reintroduce the bug. `withReadonlyEnforcement` covers the settings passed
+    // per query() call, which is where most read-only call sites set theirs.
+    pooled = getPooledClient(withReadonlyEnforcement(newClient), config, isWeb)
   }
 
   // Update usage stats
