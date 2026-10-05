@@ -30,7 +30,11 @@ export function CopyButton({ text, className, label }: CopyButtonProps) {
       <Button
         variant="outline"
         size="sm"
-        className={cn('gap-1.5', className)}
+        // Labelled control: grow the HEIGHT only and let the width follow the
+        // label. A `pointer-coarse:size-9` here would pin the pill narrower than
+        // its own content, pushing the icon and the text outside the rounded
+        // background and leaving a smaller tappable area than the mouse one.
+        className={cn('gap-1.5 pointer-coarse:h-9', className)}
         onClick={handleCopy}
       >
         {copied ? (
@@ -49,7 +53,10 @@ export function CopyButton({ text, className, label }: CopyButtonProps) {
     <Button
       variant="ghost"
       size="sm"
-      className={cn('h-7 px-2', className)}
+      // Icon-only, so both axes grow: `size-9` (36px) for a finger. It is
+      // emitted after the plain `h-7 w-7` below and shares its specificity, so
+      // it wins both width and height inside `@media (pointer: coarse)`.
+      className={cn('h-7 w-7 p-0 pointer-coarse:size-9', className)}
       onClick={handleCopy}
       aria-label={copied ? 'Copied' : 'Copy'}
     >
@@ -71,11 +78,20 @@ interface CodeBlockProps {
 
 export function CodeBlock({ children, copyText, className }: CodeBlockProps) {
   return (
-    <div className={cn('relative group', className)}>
+    <div className={cn('relative', className)}>
       <pre className="rounded-md bg-muted p-3 text-xs overflow-x-auto leading-relaxed">
         <code>{children}</code>
       </pre>
-      <div className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      {/* Always visible, never gated. This is the only way to copy the snippet
+          — no context menu, no selection handler — so `group-hover:opacity-100`
+          deleted the feature on touch: Tailwind v4 wraps a bare `hover:` in
+          `@media (hover: hover)`, so the old resting `opacity-0` left the button
+          present, focusable and invisible on every coarse pointer. A copy
+          affordance on a code block is ordinary chrome, not something to
+          declutter, so the gate is gone rather than re-armed under
+          `pointer-fine:`. The wrapper is `absolute`, so nothing else needs to
+          move for the button's coarse-pointer `size-9`. */}
+      <div className="absolute right-1 top-1">
         <CopyButton text={copyText ?? children} />
       </div>
     </div>

@@ -254,7 +254,18 @@ const NotificationItem = function NotificationItem({
         </div>
 
         {/* External link icon */}
-        <ExternalLink className="size-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity mt-1" />
+        {/* External link icon — a decorative affordance hint. The row's own
+            `aria-label` supplies the accessible name, so the icon has to stay
+            out of it.
+            Hover does not exist on touch and Tailwind v4 wraps a bare `hover:` in
+            `@media (hover: hover)`, so the resting `opacity-0` meant every touch
+            user lost the "this row leaves the page" cue. Rest at 40% and hide
+            only where a hover does — the contract
+            components/cards/chart-action-classes.ts already ships. */}
+        <ExternalLink
+          aria-hidden
+          className="size-3.5 shrink-0 text-muted-foreground opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40 group-hover:!opacity-100 group-focus-within:!opacity-100 mt-1"
+        />
       </div>
     </Link>
   )

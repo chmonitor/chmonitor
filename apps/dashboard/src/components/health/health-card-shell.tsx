@@ -308,9 +308,18 @@ function HealthCheckCard({
           </AppLink>
         ))}
         {onExpand && (
+          // "The whole card opens details" hint — decorative, hence aria-hidden.
+          // `group` is on the card element above, so the reveal always has an
+          // ancestor to hang off.
+          //
+          // Hover does not exist on touch and Tailwind v4 wraps a bare `hover:`
+          // in `@media (hover: hover)`, so the resting `opacity-0` meant every
+          // touch user got a clickable card with no visible sign it opens
+          // anything. Rest at 40%, hide only where a hover does — the contract
+          // components/cards/chart-action-classes.ts already ships.
           <span
             aria-hidden
-            className="ml-auto inline-flex flex-none items-center gap-0.5 text-[11px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+            className="ml-auto inline-flex flex-none items-center gap-0.5 text-[11px] font-medium text-muted-foreground opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40 group-hover:!opacity-100 group-focus-within:!opacity-100"
           >
             Details
             <ArrowUpRight className="size-3" />

@@ -135,7 +135,19 @@ export const KpiCard = function KpiCard({
             />
           </div>
         ) : href ? (
-          <span className="ml-auto text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          // "This card is a link" hint. `group` lives on the wrapping <Link>
+          // (see the href branch at the bottom), and this arrow only renders
+          // when href is set, so the reveal always has a `group` ancestor.
+          //
+          // Hover does not exist on touch and Tailwind v4 wraps a bare `hover:`
+          // in `@media (hover: hover)`, so the resting `opacity-0` meant the
+          // arrow never appeared for anyone on a coarse pointer. Rest at 40%,
+          // hide only where a hover does — the contract
+          // components/cards/chart-action-classes.ts already ships.
+          <span
+            aria-hidden
+            className="ml-auto text-[11px] text-muted-foreground opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40 group-hover:!opacity-100 group-focus-within:!opacity-100"
+          >
             →
           </span>
         ) : null}
