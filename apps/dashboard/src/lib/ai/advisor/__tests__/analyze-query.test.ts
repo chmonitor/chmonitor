@@ -72,7 +72,7 @@ function respond(query: string): { data: unknown[]; error: null } {
       error: null,
     }
   }
-  if (q.includes('system.data_skipping_indexes')) {
+  if (q.includes('system.data_skipping_indices')) {
     return { data: [], error: null }
   }
   if (q.includes('system.parts')) {

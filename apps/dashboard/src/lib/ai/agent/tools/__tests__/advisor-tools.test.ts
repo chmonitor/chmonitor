@@ -12,7 +12,7 @@ function setupAdvisorMock() {
     if (q.includes('system.tables'))
       return { data: [{ partition_key: '', sorting_key: 'id' }], error: null }
     if (q.includes('system.columns')) return { data: [], error: null }
-    if (q.includes('system.data_skipping_indexes'))
+    if (q.includes('system.data_skipping_indices'))
       return { data: [], error: null }
     if (q.includes('system.parts'))
       return {
