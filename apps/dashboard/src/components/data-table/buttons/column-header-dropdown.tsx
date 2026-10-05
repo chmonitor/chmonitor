@@ -80,8 +80,17 @@ export const ColumnHeaderDropdown = function ColumnHeaderDropdown({
             variant="ghost"
             size="icon-sm"
             className={cn(
-              'size-10 sm:size-7',
-              'opacity-0 group-hover:opacity-40 group-focus-within:opacity-40 hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100',
+              // Icon-only round-ish target: 28px for a mouse, 36px for a finger.
+              'size-10 sm:size-7 pointer-coarse:size-9',
+              // Hover does not exist on touch, and Tailwind v4 wraps a bare
+              // `hover:` in `@media (hover: hover)` — so a resting `opacity-0`
+              // is never raised on a coarse pointer and this trigger is present,
+              // focusable, and invisible. Rest visible, hide only where a hover
+              // does (same contract as components/cards/chart-action-classes.ts).
+              'opacity-40 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40',
+              // `!` so a reveal wins over `pointer-fine:opacity-0`, whose position
+              // in the compiled sheet is not guaranteed to come later.
+              'hover:!opacity-100 focus-visible:!opacity-100 data-popup-open:!opacity-100',
               'transition'
             )}
             aria-label={`Column options for ${column.id}`}
