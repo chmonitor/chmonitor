@@ -1,4 +1,4 @@
-import { expect, mock, test } from 'bun:test'
+import { afterAll, expect, mock, test } from 'bun:test'
 
 const DATABASE = 'analytics'
 const TABLE = 'events_raw'
@@ -78,8 +78,23 @@ function isCombinedSchemaQuery(query: string): boolean {
   )
 }
 
+/**
+ * Model a table that is absent from `system.tables`. The batched query yields
+ * exactly one row with empty strings and empty arrays (the `system.tables`
+ * scalar subquery returns NULL -> `ifNull` -> ''), verified against ClickHouse
+ * 26.5; `no-row` models the zero-row shape the pre-batch `system.tables` read
+ * returned. Both must degrade to the same empty schema.
+ */
+let absentShape: 'empty-row' | 'no-row' | null = null
+
 function rowsFor(query: string): unknown[] {
   if (isCombinedSchemaQuery(query)) {
+    if (absentShape === 'empty-row') {
+      return [
+        { partition_key: '', sorting_key: '', columns: [], skip_indexes: [] },
+      ]
+    }
+    if (absentShape === 'no-row') return []
     return [
       {
         partition_key: tableRow.partition_key,
@@ -128,10 +143,23 @@ async function runReadonlyFetch(options: {
   return { data, error: null }
 }
 
-mock.module('../tools/helpers', () => ({ runReadonlyFetch }))
+// WHY the eager spread AND the restore: `mock.module` patches the registry for
+// the whole `bun test` process. Returning only `runReadonlyFetch` dropped
+// `toJsonResult`/`toErrorResult`/`capResultRows`/`truncationNote`, and keeping
+// the stub past this file made every other tool's read go through it instead of
+// its own `fetchData` mock — 17 tests across 7 files failed. Snapshot the real
+// exports now, override one function, and put the real module back in
+// `afterAll`, the same shape `server-sweep.test.ts` uses (issue #2672).
+const realHelpers = { ...(await import('../tools/helpers')) }
+
+mock.module('../tools/helpers', () => ({ ...realHelpers, runReadonlyFetch }))
 
 const { fetchTableSchema } = await import('../tools/advisor/data-fetchers')
 const helpers = await import('../tools/helpers')
+
+afterAll(() => {
+  mock.module('../tools/helpers', () => ({ ...realHelpers }))
+})
 
 function truthy(v: number | string) {
   return Number(v) === 1
@@ -196,6 +224,7 @@ async function threeReadBaseline() {
 
 test('fetchTableSchema reads one table schema in a single read-only query', async () => {
   calls.length = 0
+  absentShape = null
   const baseline = await threeReadBaseline()
   const baselineCalls = calls.splice(0, calls.length)
   expect(baselineCalls).toHaveLength(3)
@@ -234,4 +263,25 @@ test('fetchTableSchema reads one table schema in a single read-only query', asyn
   console.log(
     `table-schema batch ratios ${JSON.stringify(ratios)} unitDelaySumMs=${unitDelaySum.toFixed(1)}`
   )
+})
+
+test('fetchTableSchema degrades to an empty schema when the table is absent', async () => {
+  const empty = {
+    database: DATABASE,
+    table: TABLE,
+    partitionKeyColumns: [],
+    sortingKeyColumns: [],
+    columns: [],
+    existingSkipIndexes: [],
+  }
+  for (const shape of ['empty-row', 'no-row'] as const) {
+    calls.length = 0
+    absentShape = shape
+    try {
+      expect(await fetchTableSchema(0, DATABASE, TABLE)).toEqual(empty)
+      expect(calls).toHaveLength(1)
+    } finally {
+      absentShape = null
+    }
+  }
 })
