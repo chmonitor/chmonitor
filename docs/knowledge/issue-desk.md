@@ -306,7 +306,7 @@ Five things a reader cannot guess:
   **93 `give up` lines, 2 `held ran` lines.** The queue is built so a job is
   retried until it runs, and in practice almost nothing gets that far.
 - **Nothing in this repo can fix it.** `MAX_HELD_MS` and the log wording belong
-  to the plugin. The repair is filed upstream on duyet/herdr-desk, and this
+  to the plugin. The repair is filed upstream on [duyet/herdr-desk#91](https://github.com/duyet/herdr-desk/issues/91), and this
   note exists so the next reader recognises the shape from a green row instead
   of concluding the job ran.
 
