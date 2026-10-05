@@ -98,6 +98,47 @@ jobs:
         working-directory: apps/cloud-hooks
         run: bun test src/ --isolate
 
+      # The upload lives in its own non-required job (see `coverage-upload`).
+      # Hand the reports over instead of uploading from here, so a Codecov
+      # outage cannot fail the required gate.
+      - name: Hand coverage reports to the upload job
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-reports
+          path: |
+            apps/dashboard/coverage/lcov.info
+            coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 7
+
+  # Coverage upload, deliberately OUT of the required `unit-tests` gate.
+  #
+  # codecov-action downloads its own binary from cli.codecov.io and GPG-verifies
+  # it. When that CDN breaks, the download returns an empty file, verification
+  # fails, and `fail_ci_if_error` turns a telemetry outage into a red required
+  # check — which BLOCKED every open PR and turned `main` red even though every
+  # test passed (#3647). Coverage reporting is telemetry; it must not be able to
+  # hold the merge queue hostage.
+  #
+  # `fail_ci_if_error` stays ON here on purpose: a genuine upload misconfig is
+  # still a loud red job. This job is simply not on the merge path, so the desk's
+  # `local:red-jobs` job is what classifies it if it ever goes red. Moving the
+  # step, not disabling it.
+  coverage-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: unit-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-reports
+          path: .
+
       - name: Upload Bun coverage to Codecov
         uses: codecov/codecov-action@v7
         with:
