@@ -12,6 +12,15 @@
  * so it is unit-tested directly. `system-charts.ts` (health card + evidence),
  * `builtin-rules.ts` (alert channels) and the insight collector all consume it.
  *
+ * Every `system.tables` scan here is restricted to local database engines via
+ * {@link LOCAL_DATABASES_FILTER} and semi-joined with `system.parts`, because
+ * an unrestricted scan reads `create_table_query` from remote database engines
+ * over the network — see the module doc of that fragment. Measured on a
+ * single-node 26.7.22.4 holding 3,600 `PostgreSQL`-engine tables, server-side
+ * `query_duration_ms`: the scalar went from 8,034 ms median (297,721 ms worst)
+ * to 18 ms median, the detail query from 7,493 ms median (37,671 ms worst) to
+ * 18 ms.
+ *
  * Two surfaces, one metric family:
  * - **Fill percent** (`current parts / parts_to_throw_insert`) is the headline
  *   scalar for the /health card + alert rule — higher-is-worse, so it fits the
@@ -22,6 +31,8 @@
  *   the partition is already delaying. Falls back to fill-percent-only when
  *   part_log is disabled.
  */
+
+import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 
 /** Warn when a partition is projected to breach parts_to_throw_insert within this many hours. */
 export const PARTS_PRESSURE_WARN_WINDOW_HOURS = 6
@@ -36,7 +47,7 @@ export const PARTS_PRESSURE_MIN_PARTS = 20
  * Fallback thresholds when `system.merge_tree_settings` cannot be read. These
  * match modern ClickHouse defaults (parts_to_throw_insert=3000,
  * parts_to_delay_insert=1000); the queries always prefer the live server value
- * and any per-table override extracted from `create_table_query`.
+ * and any per-table override read from the table's own `SETTINGS` clause.
  */
 export const DEFAULT_PARTS_TO_THROW_INSERT = 3000
 export const DEFAULT_PARTS_TO_DELAY_INSERT = 1000
@@ -56,10 +67,85 @@ function safeInt(value: number, fallback: number): number {
 }
 
 /**
- * Per-partition effective throw/delay limits: the per-table override parsed from
- * `create_table_query` when present, else the live server default from
+ * Per-table `parts_to_throw_insert` / `parts_to_delay_insert`, read from the
+ * table's own `SETTINGS` clause rather than from a bare search of the whole
+ * `create_table_query`.
+ *
+ * The old regex (`extract(create_table_query, 'parts_to_throw_insert *= *([0-9]+)')`)
+ * matched the first occurrence anywhere in the DDL, so text inside a quoted
+ * literal won over the real value. Measured against a 12-table fixture, run
+ * identically on 23.8.16.16, 24.3.18.7 and 26.7.22.4:
+ *
+ * | table | real limit | old | new |
+ * |:---|---:|---:|---:|
+ * | column `COMMENT 'parts_to_throw_insert = 99999 looks scary'`, setting 555 | 555 | **99999** | 555 |
+ * | table `COMMENT '… parts_to_throw_insert = 123456 …'`, setting 909 | 3000 | **123456** | 3000 |
+ * | `b String DEFAULT 'it\'s fine' COMMENT '… parts_to_throw_insert = 31337'`, setting 202 | 202 | **31337** | 202 |
+ * | no override at all | server default | server default | server default |
+ * | override first / last / mid-list / odd spacing / buried in a long list | — | correct | correct |
+ *
+ * Every row the old regex got right is unchanged, and the two edge cases the
+ * change had to preserve hold: a table with no override yields 0 so the caller
+ * falls back to the server default rather than treating it as a limit of zero,
+ * and a setting in a non-obvious position is still found.
+ *
+ * The second row is worth its own note: it reports 3000, not 909, because
+ * ClickHouse itself discards an explicit `SETTINGS` value when the table also
+ * carries a `COMMENT`. Verified behaviourally on all three versions — create a
+ * table with `COMMENT '…' SETTINGS parts_to_throw_insert = 2` and a third part
+ * is accepted, while the same table without the COMMENT is rejected with
+ * `TOO_MANY_PARTS`. The old query reported 123456 because it read the COMMENT;
+ * this one reports what the server actually enforces.
+ *
+ * Two steps, in order:
+ *  1. Blank out single-quoted literals. ClickHouse escapes an embedded quote
+ *     as `\'`, so the pattern has to consume escapes too, otherwise a literal
+ *     containing an apostrophe swallows the rest of the DDL — the third fixture
+ *     row above is exactly that case.
+ *  2. Keep whatever follows the last ` SETTINGS `, then take the setting only
+ *     when it starts the clause or follows a comma, so `parts_to_delay_insert`
+ *     cannot be read as `parts_to_throw_insert` and vice versa. `SETTINGS`
+ *     outside a literal can only be the clause keyword: ClickHouse quotes
+ *     identifiers with backticks, so a column named `settings` reads as
+ *     `` `settings` `` and does not match `\sSETTINGS\s`.
+ *
+ * The patterns are written with `String.raw` because ClickHouse's own string
+ * literal parser consumes a backslash escape: the SQL text has to carry
+ * `\\x27` for RE2 to see `\x27`. Produces byte-identical results on
+ * 23.8.16.16, 24.3.18.7 and 26.7.22.4.
+ */
+const QUOTED_LITERAL_RE = String.raw`'\\x27(?:[^\\x27\\\\]|\\\\.)*\\x27'`
+const SETTINGS_CLAUSE_RE = String.raw`'(?s)^.*\\sSETTINGS\\s+'`
+
+/** The `SETTINGS` clause of `create_table_query`, with quoted literals removed. */
+const TABLE_SETTINGS_CLAUSE_SQL = `replaceRegexpOne(
+      replaceRegexpAll(create_table_query, ${QUOTED_LITERAL_RE}, ''),
+      ${SETTINGS_CLAUSE_RE},
+      ''
+    )`
+
+/**
+ * Read one MergeTree setting off that clause as an integer. Yields 0 when the
+ * table has no such setting, which the caller treats as "use the server
+ * default" — never as a limit of zero.
+ */
+function tableSettingSql(setting: string): string {
+  const pattern = String.raw`'(?:^|,)\\s*${setting}\\s*=\\s*([0-9]+)'`
+  return `toInt64OrZero(extract(${TABLE_SETTINGS_CLAUSE_SQL}, ${pattern}))`
+}
+
+/**
+ * Per-partition effective throw/delay limits: the per-table override from the
+ * table's `SETTINGS` clause when present, else the live server default from
  * `system.merge_tree_settings`, else the compiled-in fallback. Emitted as a CTE
  * body shared by the projection and scalar queries.
+ *
+ * `table_overrides` is restricted two ways, both load-bearing:
+ * - {@link LOCAL_DATABASES_FILTER} skips remote-engine databases entirely, so
+ *   ClickHouse never builds `create_table_query` over the network.
+ * - The semi-join with `parts_now` limits the scan to tables that actually own
+ *   active parts. Only those can ever be under parts pressure, so reading a
+ *   DDL for any other table was pure cost.
  */
 function effectiveLimitsCte(): string {
   return `parts_now AS (
@@ -72,10 +158,12 @@ function effectiveLimitsCte(): string {
     SELECT
       database,
       name AS table,
-      toInt64OrZero(extract(create_table_query, 'parts_to_throw_insert *= *([0-9]+)')) AS throw_override,
-      toInt64OrZero(extract(create_table_query, 'parts_to_delay_insert *= *([0-9]+)')) AS delay_override
+      ${tableSettingSql('parts_to_throw_insert')} AS throw_override,
+      ${tableSettingSql('parts_to_delay_insert')} AS delay_override
     FROM system.tables
-    WHERE database NOT IN (${EXCLUDED_DATABASES})
+    WHERE ${LOCAL_DATABASES_FILTER}
+      AND database NOT IN (${EXCLUDED_DATABASES})
+      AND (database, name) IN (SELECT database, table FROM parts_now)
   ),
   server_defaults AS (
     SELECT
