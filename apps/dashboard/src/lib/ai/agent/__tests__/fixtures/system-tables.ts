@@ -131,7 +131,7 @@ export const TABLES_ROWS = [
   },
 ]
 
-/** `get_metrics` — version() / uptime() / system.metrics (three sub-queries) */
+/** `get_metrics` — version() / uptime() / system.metrics (one batched query) */
 export const METRICS_VERSION_ROWS = [{ version: '24.8.4.13' }]
 export const METRICS_UPTIME_ROWS = [{ uptime_seconds: 864000 }]
 export const METRICS_ROWS = [
