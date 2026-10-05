@@ -27,8 +27,17 @@ export type PeerDBAlertSeverity = 'ok' | 'warning' | 'error'
  * error-count-zero bug) — so a zero MUST be labeled with its provenance and
  * never silently treated as "no errors". That root-cause fix lives elsewhere;
  * this contract just makes the ambiguity explicit at the boundary.
+ *
+ * - `log-api`     — the ERROR-log read ran and returned.
+ * - `unavailable` — the read ran and FAILED. Report "error count unavailable".
+ * - `skipped`     — the read was deliberately not issued (#3677): status said
+ *                   the mirror is `STATUS_RUNNING` with no `errorMessage`, so
+ *                   the expensive `flow_errors` scan was skipped. This is NOT a
+ *                   failure: it must never classify on its own, never hold a
+ *                   recovery in the cycle, and never render as
+ *                   "unavailable".
  */
-export type PeerDBErrorCountSource = 'log-api' | 'unavailable'
+export type PeerDBErrorCountSource = 'log-api' | 'unavailable' | 'skipped'
 
 export interface PeerDBMirrorSignal {
   /** Mirror / flow name, e.g. `pg_to_ch`. */
@@ -154,7 +163,12 @@ export function classifyPeerDBMirror(
     Number.isFinite(signal.recentErrorCount)
       ? signal.recentErrorCount
       : null
-  if (source === 'unavailable' || count === null) {
+  if (source === 'skipped') {
+    // Deliberate healthy-skip (#3677): no ERROR-log read was issued, so there is
+    // no count to reason about. Record why it is absent, but never classify and
+    // never claim the count was "unavailable".
+    reasons.push('error-count-skipped')
+  } else if (source === 'unavailable' || count === null) {
     // Ambiguous zero — surfaced for the message, never classified on.
     reasons.push('error-count-unavailable')
   } else if (count >= thresholds.errorErrorCount) {
@@ -245,6 +259,9 @@ export function formatPeerDBAlertMessage(
   const source = signal.errorCountSource ?? 'log-api'
   if (source === 'unavailable') {
     labelParts.push('error count unavailable')
+  } else if (source === 'skipped') {
+    // Deliberate skip (#3677) — say nothing. Claiming "unavailable" would send
+    // operators chasing a read that was never attempted.
   } else if (
     typeof signal.recentErrorCount === 'number' &&
     Number.isFinite(signal.recentErrorCount) &&

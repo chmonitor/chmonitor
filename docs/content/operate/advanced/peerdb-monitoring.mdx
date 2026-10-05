@@ -63,6 +63,8 @@ PEERDB_API_URL=http://localhost:8113
 | `PEERDB_CACHE_TTL_MS` | `10000` | TTL for the server-side response cache (set `0` to disable). |
 | `PEERDB_CACHE_MAX_ENTRIES` | `500` | Max cached responses before oldest entries are evicted. |
 | `PEERDB_FETCH_TIMEOUT_MS` | `10000` | Upstream request timeout. |
+| `PEERDB_SWEEP_CONCURRENCY` | `8` | Max in-flight reads per alert-sweep tick. Lower it if PeerDB struggles under the sweep. |
+| `PEERDB_SWEEP_BUDGET_MS` | `60000` | Wall-clock budget for one alert-sweep collection. Mirrors left unread when it elapses are deferred to the next tick. |
 
 See the full list in [Environment Variables](/reference/environment-variables).
 </Step>
@@ -104,10 +106,39 @@ pnpm run peerdb:mock                                  # serves :8113
 PEERDB_API_URL=http://localhost:8113 pnpm run dev     # → /peerdb
 ```
 
+## Large mirror fleets
+
+PeerDB's only index on `flow_errors` is `flow_name`, so the mirror-logs
+endpoint filtered by `level=ERROR` scans every error row for that mirror. On a
+fleet with a multi-million-row `flow_errors` (QRep writes most of it at `info`)
+that read is expensive and frequently returns nothing useful.
+
+To make it cheap, add a composite index to the PeerDB catalog Postgres:
+
+```sql
+CREATE INDEX CONCURRENTLY flow_errors_flow_name_error_type_idx
+  ON flow_errors (flow_name, error_type);
+```
+
+Without it, per-mirror ERROR-log reads degrade from a few hundred milliseconds
+to seconds, and enough of them in parallel will time out.
+
+The alert sweep bounds its own load regardless of the index:
+
+- it reads ERROR logs only for mirrors whose status is **not** `STATUS_RUNNING`,
+  or that report an `errorMessage` — a healthy running mirror costs no log read;
+- it runs at most `PEERDB_SWEEP_CONCURRENCY` reads at a time;
+- it stops starting new work after `PEERDB_SWEEP_BUDGET_MS`, deferring the
+  remaining mirrors to the next tick rather than overrunning the sweep.
+
+On a 72-mirror fleet this turns ~100 log reads per tick into zero when the
+fleet is healthy.
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
+| Every PeerDB check reports errored on a large fleet | The sweep is timing out against the PeerDB catalog. Add the `flow_errors (flow_name, error_type)` index above, and lower `PEERDB_SWEEP_CONCURRENCY`. |
 | Pill shows **Auth failed** | Wrong `PEERDB_PASSWORD`. For the PeerDB UI, use the UI login password; for a raw flow-api, match its configured password (or leave empty). |
 | Pill shows **Unreachable** | `PEERDB_API_URL` host/port wrong, or the API is not reachable from the CHM server. |
 | Mirrors load but charts are empty | The mirror has no recent CDC graph/batch data yet, or the PeerDB version doesn't expose those endpoints. |

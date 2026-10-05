@@ -527,6 +527,8 @@ the sidebar.
 | `PEERDB_CACHE_TTL_MS` | `10000` | Server-side response cache TTL in milliseconds. Set `0` to disable. |
 | `PEERDB_CACHE_MAX_ENTRIES` | `500` | Max cached PeerDB responses before oldest are evicted. |
 | `PEERDB_FETCH_TIMEOUT_MS` | `10000` | Upstream PeerDB request timeout in milliseconds. |
+| `PEERDB_SWEEP_CONCURRENCY` | `8` | Max in-flight PeerDB reads per alert-sweep tick. |
+| `PEERDB_SWEEP_BUDGET_MS` | `60000` | Wall-clock budget for one alert-sweep collection in milliseconds. |
 
 chmonitor proxies only a read-only allowlist of PeerDB endpoints; mutating
 operations (create/drop/pause, alert config) are rejected with `403`.
