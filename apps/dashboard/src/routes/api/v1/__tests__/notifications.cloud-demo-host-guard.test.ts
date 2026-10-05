@@ -37,6 +37,18 @@ const mockGetClient = mock(async () => ({
 
 mock.module('@chm/clickhouse-client', () => ({
   getClient: mockGetClient,
+  // #3682: the route now resolves the cluster fan-out capability before
+  // counting readonly replicas, and that capability reads the shared
+  // capability cache, which uses `fetchData`. The mock replaces the whole
+  // module, so `fetchData` has to be here or the import fails.
+  fetchData: async () => ({
+    data: [
+      { kind: 'table', name: 'system.replicas' },
+      { kind: 'cluster', name: 'default' },
+    ],
+    metadata: {},
+    error: undefined,
+  }),
 }))
 
 type GetHandler = (ctx: { request: Request }) => Promise<Response>
@@ -93,7 +105,14 @@ describe('GET /api/v1/notifications — cloud demo-host guard (#2172)', () => {
       unavailable: { reason: string }
     }
     expect(body.success).toBe(true)
-    expect(body.data).toEqual({ notifications: [], totalCount: 0 })
+    // #3682: `clusterViewUnavailable: null` — the demo host is hidden outright,
+    // so there is no cluster-wide view to degrade and nothing for a client to
+    // warn about.
+    expect(body.data).toEqual({
+      notifications: [],
+      totalCount: 0,
+      clusterViewUnavailable: null,
+    })
     expect(body.unavailable.reason).toBe('demo_hidden')
   })
 })

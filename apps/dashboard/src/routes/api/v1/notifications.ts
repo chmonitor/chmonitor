@@ -4,6 +4,22 @@
  *
  * Returns active alerts across all clusters.
  * Currently: readonly-tables warnings (via clusterAllReplicas on system.replicas).
+ *
+ * #3682 — this route was the 163-queries-a-day site. It fanned out one
+ * `clusterAllReplicas` per cluster name per request, and on a deployment where
+ * inter-server auth rejects the monitoring user every one of those failed with
+ * `516 Authentication failed`, was swallowed by a bare `catch`, and was retried
+ * on the next 30-second poll. It now goes through the shared cluster-fanout
+ * capability (`lib/health/cluster-fanout.ts`), which:
+ *
+ *  - picks ONE cluster from the cached `system.clusters` list instead of all of
+ *    them, so the count scales with poll frequency rather than cluster count;
+ *  - stops retrying a cluster that rejects inter-server auth, with exponential
+ *    backoff up to a 6-hour ceiling (see that module for why not "sticky
+ *    forever" and not a flat TTL);
+ *  - reports the degradation in the response body
+ *    (`clusterViewUnavailable`) so the UI says "cluster-wide view unavailable:
+ *    inter-server auth" once instead of silently showing a local-only count.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
@@ -14,6 +30,10 @@ import { error } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import {
+  clusterViewNotice,
+  getClusterFanout,
+} from '@/lib/health/cluster-fanout'
 
 // ---------------------------------------------------------------------------
 // Env helpers (mirrors healthz.ts)
@@ -33,6 +53,21 @@ export interface Notification {
 interface NotificationsResponse {
   readonly notifications: readonly Notification[]
   readonly totalCount: number
+  /**
+   * Why the cluster-wide view is degraded, or `null` when it is healthy.
+   * `cluster: null` means "could not even read the capability snapshot".
+   *
+   * This is the issue's "surface it once instead of silently degrading": the
+   * counts below are node-local when this is set, and an operator reading a
+   * readonly-tables count of 0 has no other way to tell that from "the whole
+   * cluster is fine".
+   */
+  readonly clusterViewUnavailable: {
+    readonly reason: string
+    readonly message: string
+    readonly cluster: string | null
+    readonly nextRetryAt: string
+  } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +103,9 @@ export const Route = createFileRoute('/api/v1/notifications')({
             data: {
               notifications: [],
               totalCount: 0,
+              // The demo host is hidden outright, so there is no cluster-wide
+              // view to degrade — nothing for a client to warn about.
+              clusterViewUnavailable: null,
             } satisfies NotificationsResponse,
             unavailable: {
               reason: 'demo_hidden',
@@ -102,68 +140,93 @@ export const Route = createFileRoute('/api/v1/notifications')({
         try {
           const client = await getClient({ web: true, clientConfig })
 
-          // Step 1: get all clusters
-          const clustersResult = await client.query({
-            query: `
-              SELECT DISTINCT cluster
-              FROM system.clusters
-              ORDER BY cluster ASC
+          // Step 1 (#3682): can this user fan out to a cluster at all? Reads the
+          // cached capability snapshot and probes at most once per TTL (or once
+          // per backoff window, for a cluster that rejects inter-server auth).
+          // This replaces the per-request `SELECT DISTINCT cluster FROM
+          // system.clusters` plus one doomed `clusterAllReplicas` per name.
+          const fanout = await getClusterFanout(hostId)
+          const clusterViewUnavailable = clusterViewNotice(fanout)
+
+          // Step 2: readonly replica count.
+          //
+          // When the fan-out is unavailable we fall back to THIS node's
+          // `system.replicas`, which is what the number used to be whenever a
+          // cluster silently failed. That is strictly better than reporting
+          // nothing — and `clusterViewUnavailable` is what tells the operator
+          // the number is node-local rather than cluster-wide.
+          const notifications: Notification[] = []
+          let clusterLabel = fanout.cluster ?? 'local'
+
+          if (fanout.status === 'supported' && fanout.cluster !== null) {
+            const readonlyResult = await client.query({
+              query: `
+              SELECT COUNT() as count
+              FROM clusterAllReplicas({cluster: String}, system.replicas)
+              WHERE is_readonly = 1
             `,
-            format: 'JSONEachRow',
-          })
-          const clusters = (await clustersResult.json()) as Array<{
-            cluster: string
-          }>
-
-          // Step 2: for each cluster check readonly replica count.
-          // Clusters are independent — fan out concurrently. Each query is
-          // best-effort: a failing cluster yields null and is skipped, so one
-          // failure never rejects the whole batch. Result order matches the
-          // cluster order (Promise.all preserves input order).
-          const perCluster = await Promise.all(
-            clusters.map(async ({ cluster }) => {
-              try {
-                const readonlyResult = await client.query({
-                  query: `
-                  SELECT COUNT() as count
-                  FROM clusterAllReplicas({cluster: String}, system.replicas)
-                  WHERE is_readonly = 1
-                `,
-                  format: 'JSONEachRow',
-                  query_params: { cluster },
-                })
-                const readonlyData = (await readonlyResult.json()) as Array<{
-                  count?: number | string
-                }>
-                const readonlyCount =
-                  readonlyData.length > 0 && readonlyData[0].count !== undefined
-                    ? Number(readonlyData[0].count)
-                    : 0
-
-                if (readonlyCount > 0) {
-                  return {
-                    type: 'readonly-tables',
-                    cluster,
-                    count: readonlyCount,
-                    severity: readonlyCount > 10 ? 'critical' : 'warning',
-                  } satisfies Notification
-                }
-                return null
-              } catch {
-                // Skip clusters that don't support this query
-                return null
-              }
+              format: 'JSONEachRow',
+              query_params: { cluster: fanout.cluster },
             })
-          )
-
-          const notifications: Notification[] = perCluster.filter(
-            (n): n is Notification => n !== null
-          )
+            const readonlyData = (await readonlyResult.json()) as Array<{
+              count?: number | string
+            }>
+            const readonlyCount =
+              readonlyData.length > 0 && readonlyData[0].count !== undefined
+                ? Number(readonlyData[0].count)
+                : 0
+            if (readonlyCount > 0) {
+              notifications.push({
+                type: 'readonly-tables',
+                cluster: fanout.cluster,
+                count: readonlyCount,
+                severity: readonlyCount > 10 ? 'critical' : 'warning',
+              })
+            }
+          } else {
+            // Node-local fallback. `clusterLabel` says so, so the notification
+            // text cannot be read as a cluster-wide count.
+            clusterLabel = `${clientConfig.customName || 'this node'} (local only)`
+            const localResult = await client.query({
+              query: `
+                SELECT COUNT() as count
+                FROM system.replicas
+                WHERE is_readonly = 1
+              `,
+              format: 'JSONEachRow',
+            })
+            const localData = (await localResult.json()) as Array<{
+              count?: number | string
+            }>
+            const localCount =
+              localData.length > 0 && localData[0].count !== undefined
+                ? Number(localData[0].count)
+                : 0
+            if (localCount > 0) {
+              notifications.push({
+                type: 'readonly-tables',
+                cluster: clusterLabel,
+                count: localCount,
+                severity: localCount > 10 ? 'critical' : 'warning',
+              })
+            }
+          }
 
           const totalCount = notifications.length
           const body = {
             success: true,
-            data: { notifications, totalCount } satisfies NotificationsResponse,
+            data: {
+              notifications,
+              totalCount,
+              clusterViewUnavailable: clusterViewUnavailable
+                ? {
+                    reason: fanout.status,
+                    message: clusterViewUnavailable,
+                    cluster: fanout.cluster,
+                    nextRetryAt: new Date(fanout.nextProbeAt).toISOString(),
+                  }
+                : null,
+            } satisfies NotificationsResponse,
           }
 
           return new Response(JSON.stringify(body), {

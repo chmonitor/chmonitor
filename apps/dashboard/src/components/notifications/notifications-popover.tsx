@@ -16,10 +16,13 @@ import {
   AlertTriangle,
   Bell,
   ExternalLink,
+  Info,
   RefreshCw,
   Trash2,
   X,
 } from 'lucide-react'
+
+import type { ClusterViewUnavailable } from '@/lib/swr/use-notifications'
 
 import { useState } from 'react'
 import { AppLink as Link } from '@/components/ui/app-link'
@@ -47,10 +50,20 @@ import { cn } from '@/lib/utils'
 export const NotificationsPopover = function NotificationsPopover() {
   const [isOpen, setIsOpen] = useState(false)
   const hostId = useHostId()
-  const { notifications, totalCount, isLoading, error, refresh, dismissAll } =
-    useNotifications(hostId)
+  const {
+    notifications,
+    totalCount,
+    clusterViewUnavailable,
+    isLoading,
+    error,
+    refresh,
+    dismissAll,
+  } = useNotifications(hostId)
 
-  // Don't render badge if no notifications and not loading
+  // Don't render badge if no notifications and not loading. A degraded cluster
+  // view is NOT a reason to show the bell: it is an explanation for a number
+  // the user has not asked about yet, not a new alert. It surfaces in the
+  // popover, which only opens once there is something to look at (#3682).
   if (!isLoading && !error && totalCount === 0) {
     return (
       <IconButton
@@ -141,6 +154,10 @@ export const NotificationsPopover = function NotificationsPopover() {
           </Button>
         </div>
 
+        {clusterViewUnavailable && (
+          <ClusterViewNoticeRow notice={clusterViewUnavailable} />
+        )}
+
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 px-4 text-center">
             <Bell className="size-6 text-muted-foreground/50 mb-2" />
@@ -185,6 +202,35 @@ export const NotificationsPopover = function NotificationsPopover() {
         )}
       </PopoverContent>
     </Popover>
+  )
+}
+
+/**
+ * "Cluster-wide view unavailable: inter-server auth" (#3682).
+ *
+ * Deliberately not a `Notification`: it is an explanation, not an alert, so it
+ * carries no count, cannot be dismissed, and does not badge the bell. It sits
+ * at the top of the popover because every row below it is a node-local number
+ * while this is showing — an operator comparing a readonly-replica count
+ * against the `/readonly-tables` page needs to know they are different scopes.
+ *
+ * Informational styling rather than a warning tint: the monitoring connection
+ * is fine and the local numbers are correct, only the cross-node view is
+ * missing. A red banner would train the reader to ignore banners.
+ */
+function ClusterViewNoticeRow({ notice }: { notice: ClusterViewUnavailable }) {
+  return (
+    <div className="flex items-start gap-2 border-b bg-muted/30 px-3 py-2">
+      <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 text-xs text-muted-foreground">
+        <p>{notice.message}</p>
+        {notice.cluster && (
+          <p className="mt-0.5 font-mono text-[11px] opacity-80">
+            cluster: {notice.cluster}
+          </p>
+        )}
+      </div>
+    </div>
   )
 }
 

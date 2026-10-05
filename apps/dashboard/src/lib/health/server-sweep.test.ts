@@ -330,10 +330,29 @@ const TEST_RULE_ID_2 = 'test-sweep-rule-2'
 let testValue = 50
 
 const mockFetchData = mock(async ({ query }: { query: string }) => {
+  // #3682: the sweep now folds its small scalar rules into ONE batched
+  // `UNION ALL` (`lib/health/batch-kpi.ts`), which reads values back as
+  // `{ rule_id, value }` rows rather than the rule's own `valueKey`. Both
+  // shapes must be answered or the synthetic rules would silently evaluate to
+  // 0 and this suite's dispatch assertions would stop meaning anything.
+  if (query.includes('AS rule_id')) {
+    // Answer every branch the batch actually contains, discovered from the
+    // `' <id> ' AS rule_id` labels. Hard-coding the two synthetic rules would
+    // silently return 0 for the extra firing rules the digest tests register,
+    // which would make a 5-finding assertion read as 1.
+    const ids = [...query.matchAll(/'([^']+)' AS rule_id/g)].map((m) => m[1])
+    return {
+      data: ids.map((rule_id) => ({
+        rule_id,
+        value: String(rule_id === TEST_RULE_ID_2 ? 0 : testValue),
+      })),
+      error: null,
+    }
+  }
   if (query.includes(TEST_RULE_MARKER)) {
     return { data: [{ test_value: testValue }], error: null }
   }
-  // Every builtin rule + the system.tables probe: an empty/zero-ish row,
+  // Every builtin rule + the capability probe: an empty/zero-ish row,
   // which classifies as 'ok' for every real rule's (>= 1) thresholds.
   return { data: [{}], error: null }
 })

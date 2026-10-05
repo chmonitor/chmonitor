@@ -36,6 +36,13 @@ export interface NotificationWithKey extends Omit<Notification, 'key'> {
 interface NotificationsResult {
   readonly notifications: readonly NotificationWithKey[]
   readonly totalCount: number
+  /**
+   * Set when the cluster-wide view is degraded (#3682): `clusterAllReplicas`
+   * cannot authenticate, so every count below is node-local. Rendered as a
+   * single explanatory row in the popover — "surface it once rather than
+   * silently degrading" is the whole point of carrying it.
+   */
+  readonly clusterViewUnavailable: ClusterViewUnavailable | null
   isLoading: boolean
   error?: Error
   /** Mutate function to manually refresh the data */
@@ -46,12 +53,31 @@ interface NotificationsResult {
   dismissAll: () => void
 }
 
+/**
+ * Why the cluster-wide view is degraded, when it is (#3682).
+ *
+ * The `notifications` counts are node-local while this is set:
+ * `clusterAllReplicas` needs inter-server auth the monitoring user may not
+ * have, so the route falls back to this node's `system.replicas`. Always
+ * present in the payload so a client never has to guess whether a zero means
+ * "cluster is fine" or "we could not look".
+ */
+export interface ClusterViewUnavailable {
+  readonly reason: string
+  readonly message: string
+  readonly cluster: string | null
+  readonly nextRetryAt: string
+}
+
+export interface NotificationResponseData {
+  readonly notifications: readonly Notification[]
+  readonly totalCount: number
+  readonly clusterViewUnavailable: ClusterViewUnavailable | null
+}
+
 interface NotificationsResponse {
   success: boolean
-  data: {
-    notifications: readonly Notification[]
-    totalCount: number
-  }
+  data: NotificationResponseData
   error?: { message: string }
 }
 
@@ -159,6 +185,10 @@ export function useNotifications(hostId: number): NotificationsResult {
   return {
     notifications,
     totalCount,
+    // Only meaningful once the request has landed; `undefined` on a failed
+    // fetch is deliberately not coerced to a "no problem" null, because a
+    // client cannot tell a degraded cluster view from a broken poll.
+    clusterViewUnavailable: data?.data?.clusterViewUnavailable ?? null,
     isLoading,
     error: error ?? undefined,
     refresh: () => mutate(),
