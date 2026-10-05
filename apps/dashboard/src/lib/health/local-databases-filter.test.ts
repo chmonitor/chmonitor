@@ -27,7 +27,8 @@
 
 import { describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   hasLocalDatabasesFilter,
   LOCAL_DATABASE_ENGINES,
@@ -44,7 +45,10 @@ import {
   buildTtlPartitionInventorySql,
 } from '@/lib/health/ttl-partition-sql'
 
-const HEALTH_DIR = join(import.meta.dir)
+// Portable form: `import.meta.dir` is a Bun-only field, and this file is type
+// checked by tsconfig.test.json, which does not declare it on ImportMeta.
+// Same shape as routes/api/__tests__/hostid-validation-contract.test.ts.
+const HEALTH_DIR = dirname(fileURLToPath(import.meta.url))
 
 /**
  * A scan is safe when it is restricted to local engines, or pinned to one
