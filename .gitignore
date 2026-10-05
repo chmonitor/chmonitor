@@ -74,6 +74,7 @@ next-env.d.ts
 
 # herdr-desk run state (config + extra.md stay tracked)
 .herdr-desk/runs/*/
+.herdr-desk/runs/LATEST
 !.herdr-desk/runs/.gitkeep
 
 # In-repo agent worktrees. A worktree is a full checkout, so it carries its own
