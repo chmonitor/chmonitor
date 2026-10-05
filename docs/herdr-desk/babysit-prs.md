@@ -58,15 +58,29 @@ is nothing to do, write that down and stop — an empty run is a good run.
 ## Worktree hygiene
 
 The desk is allowed to grow worktrees, so it is also responsible for not
-leaving them behind. After a PR merges and nothing remains for it:
+leaving them behind. After a PR merges and nothing remains for it, remove it
+**by class** — only desk-created worktrees have a Herdr Space, and the wrong
+command leaves a checkout on disk forever:
 
-```sh
-git worktree remove ~/.herdr/worktrees/chmonitor/<name>
-git branch -D <branch>          # only after the branch is merged
-```
+| Path | Has a Space? | Reached by `herdr worktree remove`? | How to remove |
+|---|---|---|---|
+| `~/.herdr/worktrees/chmonitor/desk-*` | yes | yes | **never** — live manager, reused across ticks |
+| `~/.herdr/worktrees/chmonitor/<task>` | yes | yes | `herdr worktree remove <name>` |
+| `.claude/worktrees/agent-*` | no | **no** | `git worktree remove <path>` |
+| `/tmp/claude-*/.../scratchpad/<branch>` (directory gone) | n/a | **no** | `git worktree prune` |
 
-Before removing, prove the branch landed — a squash merge changes the sha, so
-`git branch --merged main` is not enough:
+Plain `git worktree remove` is *correct* for the Space-less rows precisely
+because there is no Space to leave behind — the opposite of the warning in the
+desk manager prompt. That inversion is the reason this is easy to get backwards.
+
+The `agent-*` and `scratchpad` classes are plain git checkouts with no Space, so
+the desk's Herdr-only recipe never reached them. 16 of them survived four days of
+`local:babysit` (30 fires) on 2026-10-04, totalling 4.3 GB. `.gitignore` already
+declares `.claude/worktrees/`, and #3470 landed because Biome found nested root
+configs inside one of them.
+
+Before removing anything, prove the branch landed — a squash merge changes the
+sha, so `git branch --merged main` is not enough:
 
 ```sh
 git diff <branch> origin/main -- $(git diff --name-only \
@@ -75,6 +89,22 @@ git diff <branch> origin/main -- $(git diff --name-only \
 
 **Never remove a worktree with uncommitted work.** Commit it to its own branch
 first (a `wip(...)` commit is fine, local only) so the work cannot be lost.
+
+**Stale lock, owner process gone.** Run the clean and landed checks *first*, then
+unlock, then remove — unlocking first defeats the check. 4 of the 16 refused
+their first removal pass on exactly this:
+
+```sh
+git worktree unlock <path> && git worktree remove <path>
+```
+
+Finish a pass by confirming nothing dangling is left:
+
+```sh
+git worktree prune
+git fsck          # no missing objects
+git worktree list # only real checkouts
+```
 
 ## Report
 

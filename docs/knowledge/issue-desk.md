@@ -3,7 +3,7 @@ id: issue-desk
 title: Scheduled Herdr desk (external CLI)
 type: workflow
 status: active
-updated: 2026-09-30
+updated: 2026-10-05
 tags:
   - herdr
   - cron
@@ -310,6 +310,26 @@ AGENTS.md § Worktree hygiene is the rule it follows: never remove a worktree wi
 uncommitted work, and prove a branch landed with a `git diff` against
 `origin/main` rather than `git branch --merged`, because squash merges change the
 sha.
+
+That rule covers worktrees the desk *created*. It is not the full set — this
+repo also accumulates git worktrees from other tooling, and none of them have a
+Herdr Space, so `herdr worktree remove` does not reach them:
+
+| Path | Origin | Reclaimed by |
+|---|---|---|
+| `~/.herdr/worktrees/chmonitor/desk-*` | desk manager | never — live, reused |
+| `~/.herdr/worktrees/chmonitor/<task>` | desk child | `herdr worktree remove <name>` |
+| `.claude/worktrees/agent-*` | Claude Code subagent sessions | `git worktree remove <path>` |
+| `/tmp/claude-*/…/scratchpad/<branch>` | session scratchpad | `git worktree prune` |
+
+Treating the Herdr rows as the whole problem is what let 16 `agent-*` checkouts
+(4.3 GB) survive 30 `local:babysit` fires on 2026-10-04, plus 5 dead gitdir
+records pointing at a deleted scratchpad. `.gitignore` already excludes
+`.claude/worktrees/`, so nothing surfaces them; #3470 is what it cost when one
+leaked a nested Biome config into the main checkout and blocked every push.
+
+The full per-class recipe, including the stale-lock unlock order, is in
+`docs/herdr-desk/babysit-prs.md` § Worktree hygiene.
 
 ## What this job must never do
 
