@@ -170,7 +170,10 @@ async function runThreeReadBaseline() {
 }
 
 function makeTools() {
-  const tools = createHealthTools(0) as {
+  // createHealthTools returns the AI SDK's DynamicTool, whose execute takes a
+  // second options argument. The tests only need the first, so narrow through
+  // unknown rather than pretending the two signatures overlap.
+  const tools = createHealthTools(0) as unknown as {
     get_metrics: { execute: (input: unknown) => Promise<unknown> }
   }
   return tools

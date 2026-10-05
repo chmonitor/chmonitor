@@ -17,8 +17,10 @@ function setupHealthMock() {
       return {
         data: [
           {
-            version: (queryStore.version ?? [])[0]?.version,
-            uptime_seconds: (queryStore.uptime ?? [])[0]?.uptime_seconds,
+            version: (queryStore.version?.[0] as { version?: string })?.version,
+            uptime_seconds: (
+              queryStore.uptime?.[0] as { uptime_seconds?: number }
+            )?.uptime_seconds,
             metric_values: (queryStore.metrics ?? []).map((row: any) => [
               row.metric,
               row.value,
