@@ -59,6 +59,14 @@ import {
   validatePeerDBAlertMessage,
 } from './alerting'
 import { peerDBFlowSlug } from './flow-slug'
+import {
+  decidePeerDBLogPatternAlert,
+  formatPeerDBLogPatternLabel,
+  formatPeerDBLogPatternTitle,
+  groupPeerDBErrorPatterns,
+  PEERDB_LOG_PATTERN_RULE_ID,
+  PEERDB_LOG_PATTERN_SPIKE_COUNT,
+} from './log-pattern-alerts'
 import { formatSweepCoverage, summarizeSweepCoverage } from './sweep-coverage'
 import { debug } from '@chm/logger'
 import { alertStateStore } from '@/lib/health/alert-state-store'
@@ -394,6 +402,158 @@ async function evaluatePeerDBApiHealth(
 }
 
 // ---------------------------------------------------------------------------
+// Log patterns (#3700 — module-private, runs inside the cycle)
+// ---------------------------------------------------------------------------
+
+/** Host name the log-pattern findings are reported under. */
+export const PEERDB_LOG_PATTERN_HOST_NAME = 'peerdb:log-pattern'
+
+/**
+ * One finding per ERROR-log fingerprint, not per mirror: a root cause hitting
+ * 40 mirrors is one alert listing them. Fires on a pattern that is not
+ * currently firing (`new`, warning) and on a rate spike (critical); stays
+ * quiet while a known pattern persists below the spike threshold. The
+ * persisted alert state is the seen-set, so it survives restarts through the
+ * same D1 hydrate/flush as every other rule.
+ *
+ * Recovery: a firing pattern absent from this tick dispatches `ok` through
+ * the same path — but only when the tick's log picture is complete
+ * (`errorLogsComplete`); otherwise the recovery is held and audited, matching
+ * the per-mirror partial-read hold.
+ */
+async function evaluatePeerDBLogPatterns(
+  collection: import('./alert-collector').PeerDBSignalCollection,
+  ctx: {
+    result: PeerDBCycleResult
+    audit: PeerDBAuditFn
+    dispatch?: PeerDBDispatchFn
+    dryRun: boolean
+  }
+): Promise<void> {
+  const patterns = groupPeerDBErrorPatterns(collection.errorLogs)
+  const present = new Set(patterns.map((p) => p.ruleId))
+
+  const send = async (params: {
+    ruleId: string
+    flowName: string
+    severity: 'warning' | 'critical' | 'ok'
+    title: string
+    label: string
+    value: number
+  }): Promise<void> => {
+    const auditSeverity =
+      params.severity === 'critical'
+        ? ('error' as const)
+        : params.severity === 'warning'
+          ? ('warning' as const)
+          : ('ok' as const)
+    if (ctx.dryRun || !ctx.dispatch) {
+      await ctx
+        .audit({
+          flowName: params.flowName,
+          severity: auditSeverity,
+          decisionKind: 'peerdb-hold:dry-run',
+          delivered: false,
+          error: 'dry-run',
+          channel: 'peerdb',
+          value: params.value,
+          hostId: PEERDB_ALERT_HOST_ID,
+        })
+        .catch(() => {})
+      ctx.result.audited++
+      return
+    }
+    // AUDIT-BEFORE-DELIVERY, same contract as the per-mirror path.
+    await ctx
+      .audit({
+        flowName: params.flowName,
+        severity: auditSeverity,
+        decisionKind: 'peerdb-predelivery',
+        delivered: false,
+        channel: 'peerdb',
+        value: params.value,
+        hostId: PEERDB_ALERT_HOST_ID,
+      })
+      .catch(() => {})
+    ctx.result.audited++
+    await ctx.dispatch({
+      hostId: PEERDB_ALERT_HOST_ID,
+      hostName: PEERDB_LOG_PATTERN_HOST_NAME,
+      ruleId: params.ruleId,
+      ruleType: PEERDB_ALERT_RULE_TYPE,
+      ruleTitle: params.title,
+      severity: params.severity,
+      value: params.value,
+      label: params.label,
+      warnThreshold: 1,
+      critThreshold: PEERDB_LOG_PATTERN_SPIKE_COUNT,
+    })
+    ctx.result.dispatched++
+  }
+
+  for (const pattern of patterns) {
+    const prev = alertStateStore.get(
+      `${PEERDB_ALERT_HOST_ID}:${pattern.ruleId}`
+    )
+    const kind = decidePeerDBLogPatternAlert(pattern, prev)
+    if (kind === null) continue
+    const title = formatPeerDBLogPatternTitle(pattern, kind)
+    const label = formatPeerDBLogPatternLabel(pattern)
+    const severity = kind === 'spike' ? 'critical' : 'warning'
+    ctx.result.findings.push({
+      hostId: PEERDB_ALERT_HOST_ID,
+      hostName: PEERDB_LOG_PATTERN_HOST_NAME,
+      checkId: pattern.ruleId,
+      title,
+      severity,
+      value: pattern.count,
+      label,
+    })
+    await send({
+      ruleId: pattern.ruleId,
+      flowName: PEERDB_FLEET_AUDIT_FLOW,
+      severity,
+      title,
+      label,
+      value: pattern.count,
+    })
+  }
+
+  // Recovery: firing pattern records absent from this tick.
+  const prefix = `${PEERDB_ALERT_HOST_ID}:${PEERDB_LOG_PATTERN_RULE_ID}:`
+  const firing = [...alertStateStore.entries()]
+    .filter(([key, rec]) => key.startsWith(prefix) && rec.severity !== 'ok')
+    .map(([key]) => key.slice(`${PEERDB_ALERT_HOST_ID}:`.length))
+    .filter((ruleId) => !present.has(ruleId))
+  for (const ruleId of firing) {
+    if (!collection.errorLogsComplete) {
+      await ctx
+        .audit({
+          flowName: PEERDB_FLEET_AUDIT_FLOW,
+          severity: 'ok',
+          decisionKind: 'peerdb-hold:recovery-data-unavailable',
+          delivered: false,
+          error: `recovery held for ${ruleId}: incomplete error-log read`,
+          channel: 'peerdb',
+          value: 0,
+          hostId: PEERDB_ALERT_HOST_ID,
+        })
+        .catch(() => {})
+      ctx.result.audited++
+      continue
+    }
+    await send({
+      ruleId,
+      flowName: PEERDB_FLEET_AUDIT_FLOW,
+      severity: 'ok',
+      title: 'PeerDB error pattern',
+      label: 'error pattern no longer seen in mirror logs',
+      value: 0,
+    })
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Orchestrator (M3 — the only entry point that can reach delivery)
 // ---------------------------------------------------------------------------
 
@@ -666,6 +826,23 @@ export async function runPeerDBAlertCycle(
           err instanceof Error ? err.message : String(err)
         )
       }
+    }
+
+    // Log patterns (#3700): one finding per fingerprint, isolated so a failure
+    // here never affects the per-mirror results above or the caller's sweep.
+    try {
+      await evaluatePeerDBLogPatterns(collection, {
+        result,
+        audit,
+        dispatch: opts.dispatch,
+        dryRun,
+      })
+    } catch (err) {
+      result.errored++
+      debug(
+        '[peerdb-alerts] log-pattern evaluation failed',
+        err instanceof Error ? err.message : String(err)
+      )
     }
 
     // Keep the shared AlertPayload contract exercised on the firing path so

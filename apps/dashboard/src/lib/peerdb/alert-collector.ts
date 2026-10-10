@@ -55,6 +55,7 @@ import {
   countMirrorLogLevels,
   extractMirrorLogs,
   mirrorLogsRequestBody,
+  normalizeLogLevel,
 } from './mirror-logs'
 import { summarizeSweepCoverage } from './sweep-coverage'
 import {
@@ -91,6 +92,11 @@ export interface PeerDBAlertSnapshotReader {
   mirrorErrorCount(name: string): Promise<{
     count: number
     source: PeerDBErrorCountSource
+    /**
+     * Raw ERROR-log messages from the same read (#3700), for log-pattern
+     * alerting. Optional: a reader that omits it simply yields no patterns.
+     */
+    messages?: string[]
   }>
   /** Replication slots per source peer name. */
   peerSlots(peer: string): Promise<SlotInfo[]>
@@ -261,8 +267,13 @@ async function defaultReader(
           if (res === null || res === undefined) {
             return { count: 0, source: 'unavailable' as const }
           }
-          const count = countMirrorLogLevels(extractMirrorLogs(res)).error
-          return { count, source: 'log-api' as const }
+          const logs = extractMirrorLogs(res)
+          const count = countMirrorLogLevels(logs).error
+          const messages = logs
+            .filter((l) => normalizeLogLevel(l.errorType) === 'error')
+            .map((l) => l.errorMessage ?? '')
+            .filter((m) => m !== '')
+          return { count, source: 'log-api' as const, messages }
         },
         { count: 0, source: 'unavailable' as const }
       ),
@@ -307,6 +318,17 @@ export interface PeerDBSignalCollection {
    */
   listFailure: PeerDBListFailure | null
   signals: PeerDBMirrorSignal[]
+  /**
+   * Raw ERROR-log messages read this tick, one entry per message (#3700).
+   * Feeds per-pattern alerting; empty when no log read returned messages.
+   */
+  errorLogs: Array<{ flowName: string; message: string }>
+  /**
+   * True only when this tick's error-log picture is complete: full coverage,
+   * no log read deferred by the budget, and no log read unavailable. A
+   * pattern's absence is evidence of recovery only when this holds.
+   */
+  errorLogsComplete: boolean
   /** Collection stats feeding the deterministic investigation step. */
   metrics: PeerDBInvestigationMetrics & {
     /**
@@ -406,6 +428,8 @@ export async function collectPeerDBSignals(
   ): PeerDBSignalCollection => ({
     ...extra,
     signals: [],
+    errorLogs: [],
+    errorLogsComplete: false,
     metrics: {
       signalsCollected: 0,
       hasLagSample: false,
@@ -500,7 +524,7 @@ export async function collectPeerDBSignals(
     )
     const errorCounts = new Map<
       string,
-      { count: number; source: PeerDBErrorCountSource }
+      { count: number; source: PeerDBErrorCountSource; messages?: string[] }
     >()
     const logsDeferred = new Set<string>()
     logOutcomes.forEach((outcome, i) => {
@@ -622,10 +646,26 @@ export async function collectPeerDBSignals(
     // budget-truncated tick surface here as `partial`.
     const coverage = summarizeSweepCoverage(mirrors.length, statusRead)
 
+    const errorLogs: Array<{ flowName: string; message: string }> = []
+    for (const [flowName, ec] of errorCounts) {
+      if (ec.source !== 'log-api') continue
+      for (const message of ec.messages ?? []) {
+        if (typeof message === 'string' && message !== '') {
+          errorLogs.push({ flowName, message })
+        }
+      }
+    }
+    const errorLogsComplete =
+      !coverage.partial &&
+      logsDeferred.size === 0 &&
+      ![...errorCounts.values()].some((ec) => ec.source === 'unavailable')
+
     return {
       configured: true,
       listFailure: null,
       signals,
+      errorLogs,
+      errorLogsComplete,
       metrics: {
         signalsCollected: signals.length,
         hasLagSample,
