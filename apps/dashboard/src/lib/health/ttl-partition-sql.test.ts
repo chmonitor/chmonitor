@@ -5,6 +5,7 @@
  * exact whitespace. The inventory query-config test covers the page SQL.
  */
 
+import type { ChartQueryResult } from '@/types/chart-data'
 import { isBatchableRule } from './batch-kpi'
 import {
   PARTITION_COUNT_CRITICAL,
@@ -106,13 +107,13 @@ describe('TTL partition consumers carry max_execution_time', () => {
   })
 
   test('health scalar chart sends 15s', () => {
-    const def = healthCharts['health-ttl-partition-health']({})
+    const def = healthCharts['health-ttl-partition-health']({}) as ChartQueryResult
     expect(def.clickhouseSettings?.max_execution_time).toBe(15)
     expect(def.query).not.toMatch(/SETTINGS\s+max_execution_time/i)
   })
 
   test('health detail chart sends 15s', () => {
-    const def = healthDetailACharts['health-ttl-partition-health-detail']({})
+    const def = healthDetailACharts['health-ttl-partition-health-detail']({}) as ChartQueryResult
     expect(def.clickhouseSettings?.max_execution_time).toBe(15)
     expect(def.query).not.toMatch(/SETTINGS\s+max_execution_time/i)
   })
