@@ -107,7 +107,7 @@ describe('AI agent tool docs stay in sync with the code', () => {
     // CHM_FEATURE_POSTGRES_SOURCE, or CHM_FEATURE_PEERDB_AGENT was not
     // honored above and the gated-tool assertions below would silently
     // never run.
-    expect(toolNames.length).toBe(40)
+    expect(toolNames.length).toBe(41)
   })
 
   test('every agent tool is documented in ai-agent/capabilities.mdx', () => {

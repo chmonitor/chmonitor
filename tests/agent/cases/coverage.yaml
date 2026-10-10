@@ -175,6 +175,21 @@
         Offers a pattern or says it looked up a reference. Does not claim
         to have changed data.
 
+- description: 'Coverage — what a dashboard page shows'
+  tags: [extended]
+  metadata:
+    covers: [get_page_data]
+  vars:
+    prompt: 'What does the merges page show right now?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        Describes what the Merges page shows (running merges, recent merges,
+        or merge counts) from tool data, or says the data is empty. Does
+        not invent numbers.
+
 - description: 'Coverage — ask_user when the ask is underspecified'
   tags: [extended]
   metadata:

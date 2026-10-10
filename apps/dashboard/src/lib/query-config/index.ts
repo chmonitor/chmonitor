@@ -32,11 +32,14 @@ import {
   explorerTableUsageConfig,
 } from './explorer'
 import {
+  keeperChangelogsConfig,
+  keeperClusterConfig,
   keeperConnectionLogConfig,
   keeperConnectionsConfig,
   keeperInfoConfig,
   keeperLogConfig,
   keeperOverviewConfig,
+  keeperSnapshotsConfig,
   keeperWatchesConfig,
 } from './keeper'
 import { crashLogConfig } from './logs/crashes'
@@ -229,6 +232,9 @@ export const queries: Array<QueryConfig> = [
   keeperConnectionLogConfig,
   keeperLogConfig,
   keeperWatchesConfig,
+  keeperClusterConfig,
+  keeperSnapshotsConfig,
+  keeperChangelogsConfig,
 
   // System
   clustersConfig,

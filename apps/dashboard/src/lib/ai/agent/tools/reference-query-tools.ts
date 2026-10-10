@@ -105,7 +105,7 @@ export function createReferenceQueryTools() {
           matches,
           ...(matches.length === 0
             ? {
-                note: 'No reference query matched. Write the SQL with the query tool, guided by load_skill.',
+                note: 'No reference query matched. To see what a dashboard page shows, call get_page_data; otherwise write the SQL with the query tool, guided by load_skill.',
               }
             : {}),
         }

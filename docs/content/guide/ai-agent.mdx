@@ -33,6 +33,7 @@ The agent connects through the **same ClickHouse host and user** as the rest of 
 | Schema & data-type advice | ORDER BY/keys, codecs, skip indexes, column type right-sizing |
 | Tuning & upgrades | Hardware-based settings, version-upgrade guidance |
 | Charts & visualization | Run SQL and render an interactive chart inline |
+| Dashboard pages | Answer "what does the X page show?" by running that page's own queries (`get_page_data`) |
 | Cross-source Postgres (opt-in) | Read-only SELECT, health metrics, slow-query patterns, and per-table stats against a Postgres source, correlated with ClickHouse in one conversation |
 | PeerDB mirrors (opt-in) | Worst-first fleet status plus per-mirror detail (rows synced, table counts, batches, errors) from the read-only PeerDB proxy |
 
