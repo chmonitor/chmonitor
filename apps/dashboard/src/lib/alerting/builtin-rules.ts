@@ -124,7 +124,11 @@ FROM merge('system', '^error_log')
 WHERE error = 'KEEPER_EXCEPTION'
   AND event_time > now() - INTERVAL 1 HOUR`,
     valueKey: 'exception_count',
-    defaults: { warning: 1, critical: 20 },
+    // Warning starts at 5, not 1: a single KEEPER_EXCEPTION in an hour is
+    // routine (session reconnect, leader re-election, a transient network
+    // blip) and paged operators for nothing. Sustained exceptions are the
+    // quorum signal; 5+ per hour is where that pattern starts.
+    defaults: { warning: 5, critical: 20 },
     formatLabel: fmtCount('exception'),
     optional: true,
     tableCheck: 'system.error_log',
@@ -140,7 +144,7 @@ WHERE error = 'KEEPER_EXCEPTION'
     title: 'Failed Mutations',
     description:
       'Mutations that are not complete and have recorded a failure. Failed mutations block subsequent mutations on the same table.',
-    sql: `SELECT countIf(is_done = 0 AND isNotNull(latest_fail_time)) AS failed_count
+    sql: `SELECT countIf(is_done = 0 AND latest_fail_reason != '') AS failed_count
 FROM system.mutations`,
     valueKey: 'failed_count',
     defaults: { warning: 1, critical: 5 },
@@ -161,7 +165,7 @@ FROM system.mutations`,
         description: 'Incomplete mutations with a recorded failure.',
         sql: `SELECT database, table, mutation_id, command, latest_fail_reason, latest_fail_time
 FROM system.mutations
-WHERE is_done = 0 AND isNotNull(latest_fail_time)
+WHERE is_done = 0 AND latest_fail_reason != ''
 ORDER BY latest_fail_time DESC
 LIMIT 20`,
       },
@@ -327,6 +331,198 @@ GROUP BY database, table
 HAVING partitions >= 500
 ORDER BY partitions DESC
 LIMIT 20`,
+      },
+    ],
+  },
+
+  {
+    id: 'replication-queue-stuck',
+    type: 'replication-queue-stuck',
+    title: 'Stuck Replication Queue',
+    description:
+      'Replication queue entries retried more than 100 times or queued for over an hour. A stuck entry stops the replica from catching up and grows replication lag.',
+    sql: `SELECT count() AS stuck_count
+FROM system.replication_queue
+WHERE num_tries > 100 OR create_time < now() - INTERVAL 1 HOUR`,
+    valueKey: 'stuck_count',
+    defaults: { warning: 1, critical: 10 },
+    formatLabel: fmtCount('stuck queue entry', 'stuck queue entries'),
+    optional: true,
+    tableCheck: 'system.replication_queue',
+    remediationActions: [
+      {
+        id: 'replication-queue-stuck-detail',
+        label: 'Get stuck queue entries',
+        kind: 'diagnostic',
+        description:
+          'Oldest queue entries with their retry count and last exception. Fix the cause in last_exception (missing part, disk, Keeper), then let the queue retry.',
+        sql: `SELECT database, table, type, create_time, num_tries, last_exception, postpone_reason
+FROM system.replication_queue
+WHERE num_tries > 100 OR create_time < now() - INTERVAL 1 HOUR
+ORDER BY create_time ASC
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
+    id: 'replica-session-expired',
+    type: 'replica-session-expired',
+    title: 'Replica Keeper Session Expired',
+    description:
+      'Replicated tables whose ZooKeeper/Keeper session has expired. These tables are read-only until the session is re-established — check Keeper health and network to the Keeper ensemble.',
+    sql: `SELECT countIf(is_session_expired) AS expired_count
+FROM system.replicas`,
+    valueKey: 'expired_count',
+    defaults: { warning: 1, critical: 3 },
+    formatLabel: fmtCount('expired replica session'),
+    optional: true,
+    tableCheck: 'system.replicas',
+    remediationActions: [
+      {
+        id: 'replica-session-expired-detail',
+        label: 'Get replicas with an expired session',
+        kind: 'diagnostic',
+        description: 'Replicated tables whose Keeper session has expired.',
+        sql: `SELECT database, table, replica_name, is_readonly, zookeeper_path
+FROM system.replicas
+WHERE is_session_expired
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
+    id: 'delayed-inserts',
+    type: 'delayed-inserts',
+    title: 'Delayed Inserts',
+    description:
+      'INSERTs currently throttled because a partition exceeded parts_to_delay_insert. Merges are falling behind inserts — batch inserts into fewer, larger blocks or coarsen PARTITION BY.',
+    sql: `SELECT value AS delayed_inserts
+FROM system.metrics
+WHERE metric = 'DelayedInserts'`,
+    valueKey: 'delayed_inserts',
+    // Same thresholds as the `delayed-inserts` health check.
+    defaults: { warning: 1, critical: 5 },
+    formatLabel: fmtCount('delayed insert'),
+    optional: true,
+    tableCheck: 'system.metrics',
+    remediationActions: [
+      {
+        id: 'delayed-inserts-runbook',
+        label: 'Too many parts runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/too-many-parts',
+      },
+      {
+        id: 'delayed-inserts-detail',
+        label: 'Get partitions with the most parts',
+        kind: 'diagnostic',
+        description:
+          'DelayedInserts is a global gauge. These partitions carry the most active parts — the likely cause of the throttling.',
+        sql: `SELECT database, table, partition, count() AS parts
+FROM system.parts
+WHERE active
+GROUP BY database, table, partition
+ORDER BY parts DESC
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
+    id: 'rejected-inserts',
+    type: 'rejected-inserts',
+    title: 'Rejected Inserts (1h)',
+    description:
+      'INSERTs rejected with TOO_MANY_PARTS in the last hour. Data was not written — the client must retry. Reduce insert frequency or coarsen PARTITION BY.',
+    // `system.events.RejectedInserts` is a cumulative counter since server
+    // start, so its current value would keep firing long after the incident.
+    // The 1h query_log window gives a delta-like signal instead.
+    sql: `SELECT count() AS rejected_count
+FROM system.query_log
+WHERE event_time > now() - INTERVAL 1 HOUR
+  AND type IN ('ExceptionBeforeStart', 'ExceptionWhileProcessing')
+  AND exception_code = 252`,
+    valueKey: 'rejected_count',
+    // Any rejected insert is data loss on the client side — critical at 1.
+    defaults: { warning: 1, critical: 1 },
+    formatLabel: (v) =>
+      `${(v ?? 0).toLocaleString()} rejected inserts in last hour`,
+    optional: true,
+    tableCheck: 'system.query_log',
+    remediationActions: [
+      {
+        id: 'rejected-inserts-runbook',
+        label: 'Too many parts runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/too-many-parts',
+      },
+    ],
+  },
+
+  {
+    id: 'memory-pressure',
+    type: 'memory-pressure',
+    title: 'Memory Pressure',
+    description:
+      'Server memory tracked by ClickHouse (MemoryTracking) as a percentage of host RAM (OSMemoryTotal). Near 100% queries fail with MEMORY_LIMIT_EXCEEDED — find the heaviest queries and cap max_memory_usage.',
+    sql: `SELECT round(
+  (SELECT value FROM system.metrics WHERE metric = 'MemoryTracking') * 100.0
+  / nullIf((SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal'), 0),
+  1
+) AS memory_percent`,
+    valueKey: 'memory_percent',
+    defaults: { warning: 80, critical: 90 },
+    formatLabel: (v) => `${v ?? 0}% of host memory`,
+    optional: true,
+    tableCheck: 'system.asynchronous_metrics',
+    remediationActions: [
+      {
+        id: 'memory-pressure-runbook',
+        label: 'Memory limit runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/memory-limit-total-exceeded',
+      },
+      {
+        id: 'memory-pressure-detail',
+        label: 'Get top queries by memory',
+        kind: 'diagnostic',
+        description: 'Running queries using the most memory right now.',
+        sql: `SELECT query_id, user, elapsed, formatReadableSize(memory_usage) AS memory, substring(query, 1, 200) AS query
+FROM system.processes
+ORDER BY memory_usage DESC
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
+    id: 'broken-detached-parts',
+    type: 'broken-detached-parts',
+    title: 'Broken Detached Parts',
+    description:
+      'Parts ClickHouse detached because they were broken (checksum mismatch, corruption, unexpected files). On a replica the data is usually refetched; on a non-replicated table it may be lost — inspect before dropping.',
+    sql: `SELECT count() AS broken_count
+FROM system.detached_parts
+WHERE reason LIKE 'broken%'`,
+    valueKey: 'broken_count',
+    // Any broken part is possible data loss — critical at 1.
+    defaults: { warning: 1, critical: 1 },
+    formatLabel: fmtCount('broken detached part'),
+    optional: true,
+    tableCheck: 'system.detached_parts',
+    remediationActions: [
+      {
+        id: 'broken-detached-parts-detail',
+        label: 'Get broken detached parts',
+        kind: 'diagnostic',
+        description: 'Detached parts whose reason starts with "broken".',
+        sql: `SELECT database, table, name, reason
+FROM system.detached_parts
+WHERE reason LIKE 'broken%'
+ORDER BY database, table, name
+LIMIT 50`,
       },
     ],
   },

@@ -229,8 +229,14 @@ describe('keeper-unavailable rule', () => {
     expect(classifyValue(0, rule.defaults)).toBe('ok')
   })
 
-  test('warning at 1 exception', () => {
-    expect(classifyValue(1, rule.defaults)).toBe('warning')
+  // A lone reconnect/re-election exception is routine and must not page.
+  test('ok at 4 exceptions (below the sustained-exception threshold)', () => {
+    expect(classifyValue(1, rule.defaults)).toBe('ok')
+    expect(classifyValue(4, rule.defaults)).toBe('ok')
+  })
+
+  test('warning at 5 exceptions', () => {
+    expect(classifyValue(5, rule.defaults)).toBe('warning')
   })
 
   test('critical at 20 exceptions', () => {
@@ -255,6 +261,19 @@ describe('failed-mutations rule', () => {
 
   test('clears on null (table absent)', () => {
     expect(classifyValue(null, rule.defaults)).toBe('ok')
+  })
+
+  // latest_fail_time is a non-Nullable DateTime (1970-01-01 when there is no
+  // failure), so isNotNull(latest_fail_time) counted every running mutation
+  // as failed. A failure is a non-empty latest_fail_reason.
+  test('counts a failure by latest_fail_reason, not latest_fail_time', () => {
+    const diagnostic = rule.remediationActions?.find(
+      (a) => a.id === 'failed-mutations-detail'
+    )
+    for (const sql of [rule.sql, diagnostic?.sql]) {
+      expect(sql).toContain("is_done = 0 AND latest_fail_reason != ''")
+      expect(sql).not.toContain('isNotNull(latest_fail_time)')
+    }
   })
 })
 
@@ -443,5 +462,136 @@ describe('assertReadOnlyAction', () => {
       (r) => (r.remediationActions?.length ?? 0) > 0
     )
     expect(rulesWithActions.length).toBeGreaterThanOrEqual(4)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Replication, insert, memory and part-integrity rules
+// ---------------------------------------------------------------------------
+
+describe('new built-in rule ids', () => {
+  const ids = BUILTIN_RULES.map((r) => r.id)
+
+  test('are registered and unique', () => {
+    for (const id of [
+      'replication-queue-stuck',
+      'replica-session-expired',
+      'delayed-inserts',
+      'rejected-inserts',
+      'memory-pressure',
+      'broken-detached-parts',
+    ]) {
+      expect(ids).toContain(id)
+    }
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  test('every diagnostic action is read-only', () => {
+    for (const rule of BUILTIN_RULES) {
+      for (const action of rule.remediationActions ?? []) {
+        expect(() => assertReadOnlyAction(action)).not.toThrow()
+      }
+    }
+  })
+})
+
+describe('replication-queue-stuck rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'replication-queue-stuck')!
+
+  test('flags entries by retries or age', () => {
+    expect(rule.sql).toContain('num_tries > 100')
+    expect(rule.sql).toContain('create_time < now() - INTERVAL 1 HOUR')
+    expect(rule.tableCheck).toBe('system.replication_queue')
+    expect(rule.optional).toBe(true)
+  })
+
+  test('boundaries', () => {
+    expect(classifyValue(0, rule.defaults)).toBe('ok')
+    expect(classifyValue(1, rule.defaults)).toBe('warning')
+    expect(classifyValue(9, rule.defaults)).toBe('warning')
+    expect(classifyValue(10, rule.defaults)).toBe('critical')
+  })
+})
+
+describe('replica-session-expired rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'replica-session-expired')!
+
+  test('counts expired sessions from system.replicas', () => {
+    expect(rule.sql).toContain('countIf(is_session_expired)')
+    expect(rule.tableCheck).toBe('system.replicas')
+  })
+
+  test('boundaries', () => {
+    expect(classifyValue(0, rule.defaults)).toBe('ok')
+    expect(classifyValue(1, rule.defaults)).toBe('warning')
+    expect(classifyValue(3, rule.defaults)).toBe('critical')
+  })
+})
+
+describe('delayed-inserts rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'delayed-inserts')!
+
+  test('reads the DelayedInserts gauge', () => {
+    expect(rule.sql).toContain("metric = 'DelayedInserts'")
+  })
+
+  test('boundaries match the delayed-inserts health check', () => {
+    expect(classifyValue(0, rule.defaults)).toBe('ok')
+    expect(classifyValue(1, rule.defaults)).toBe('warning')
+    expect(classifyValue(4, rule.defaults)).toBe('warning')
+    expect(classifyValue(5, rule.defaults)).toBe('critical')
+  })
+})
+
+describe('rejected-inserts rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'rejected-inserts')!
+
+  // RejectedInserts in system.events is cumulative since server start; its
+  // raw value would keep firing forever after one rejection.
+  test('uses a 1h window, not the cumulative RejectedInserts counter', () => {
+    expect(rule.sql).toContain('exception_code = 252')
+    expect(rule.sql).toContain('INTERVAL 1 HOUR')
+    expect(rule.sql).not.toContain('system.events')
+  })
+
+  test('any rejected insert is critical', () => {
+    expect(classifyValue(0, rule.defaults)).toBe('ok')
+    expect(classifyValue(1, rule.defaults)).toBe('critical')
+  })
+})
+
+describe('memory-pressure rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'memory-pressure')!
+
+  test('divides MemoryTracking by OSMemoryTotal', () => {
+    expect(rule.sql).toContain("metric = 'MemoryTracking'")
+    expect(rule.sql).toContain("metric = 'OSMemoryTotal'")
+    expect(rule.sql).toContain('nullIf(')
+  })
+
+  test('boundaries', () => {
+    expect(classifyValue(79.9, rule.defaults)).toBe('ok')
+    expect(classifyValue(80, rule.defaults)).toBe('warning')
+    expect(classifyValue(89.9, rule.defaults)).toBe('warning')
+    expect(classifyValue(90, rule.defaults)).toBe('critical')
+    expect(classifyValue(null, rule.defaults)).toBe('ok')
+  })
+})
+
+describe('broken-detached-parts rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'broken-detached-parts')!
+
+  test('counts only broken detached parts', () => {
+    expect(rule.sql).toContain("reason LIKE 'broken%'")
+    expect(rule.tableCheck).toBe('system.detached_parts')
+    const diagnostic = rule.remediationActions?.find(
+      (a) => a.kind === 'diagnostic'
+    )
+    expect(diagnostic?.sql).toContain('database, table, name, reason')
+  })
+
+  test('critical at the first broken part', () => {
+    expect(classifyValue(0, rule.defaults)).toBe('ok')
+    expect(classifyValue(1, rule.defaults)).toBe('critical')
   })
 })
