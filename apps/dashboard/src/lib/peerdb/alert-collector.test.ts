@@ -39,6 +39,40 @@ describe('collectPeerDBSignals', () => {
     expect(out.metrics.mirrorsChecked).toBe(0)
   })
 
+  // #3675: "PeerDB said zero mirrors" and "we could not ask PeerDB" must not
+  // collapse into the same empty result — only the second is an outage.
+  test('zero mirrors is a clean listing, not a list failure', async () => {
+    const out = await collectPeerDBSignals(stubReader())
+    expect(out.configured).toBe(true)
+    expect(out.listFailure).toBeNull()
+  })
+
+  test('a failed list call is reported as listFailure with its kind', async () => {
+    const auth = await collectPeerDBSignals(
+      stubReader({
+        listMirrors: async () => {
+          throw new PeerDBError('PeerDB API error 401', 401, 'auth')
+        },
+      })
+    )
+    expect(auth.signals).toEqual([])
+    expect(auth.listFailure).toEqual({
+      kind: 'auth',
+      label: peerDBFailureLabel('auth'),
+    })
+
+    const refused = await collectPeerDBSignals(
+      stubReader({
+        listMirrors: async () => {
+          throw new TypeError('fetch failed', {
+            cause: { code: 'ECONNREFUSED' },
+          })
+        },
+      })
+    )
+    expect(refused.listFailure?.kind).toBe('refused')
+  })
+
   test('builds a signal from status + error count + slot lag via sourceName', async () => {
     // Not STATUS_RUNNING, so the ERROR-log read is issued (#3677 skip rule).
     const out = await collectPeerDBSignals(

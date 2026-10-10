@@ -73,6 +73,18 @@ export const PEERDB_ALERT_RULE_ID = 'peerdb-mirror-health'
 export const PEERDB_ALERT_RULE_TYPE = 'peerdb'
 
 /**
+ * Fleet-level rule for the PeerDB API itself (#3675). Fires when
+ * `GET /v1/mirrors/list` fails (unreachable, auth failed, upstream error) and
+ * recovers on the first tick the list call succeeds again. One stable dedup
+ * key for the whole deployment, so an outage is one incident, not one per
+ * mirror — and never a silent `skipped`.
+ */
+export const PEERDB_API_HEALTH_RULE_ID = 'peerdb-api-health'
+
+/** Host name the API-health finding is reported under. */
+export const PEERDB_API_HEALTH_HOST_NAME = 'peerdb'
+
+/**
  * Flow label used by the fleet-level coverage audit row, so a partial sweep is
  * attributable to the fleet rather than to one mirror.
  */
@@ -143,7 +155,11 @@ export interface PeerDBCycleResult {
   audited: number
   /** Collection/evaluation errors (bounded, never thrown). */
   errored: number
-  /** True when PeerDB is unconfigured (cycle no-op). */
+  /**
+   * True when there was nothing to evaluate: PeerDB unconfigured, or PeerDB
+   * answered with zero mirrors. A FAILED list call is never `skipped` — it is
+   * a `peerdb-api-health` finding (#3675).
+   */
   skipped: boolean
 }
 
@@ -284,6 +300,100 @@ function runDeterministicPeerDBInvestigation(
 }
 
 // ---------------------------------------------------------------------------
+// PeerDB API health (#3675 — module-private, runs inside the cycle)
+// ---------------------------------------------------------------------------
+
+/**
+ * One fleet-level finding for the PeerDB API, through the same
+ * audit-before-dispatch path as the per-mirror conditions. Recovery evidence
+ * is a successful `GET /v1/mirrors/list`, which is a complete read for this
+ * condition, so the partial-read hold does not apply to it — an absent
+ * collection (no evidence either way) never reaches this function.
+ */
+async function evaluatePeerDBApiHealth(
+  failure: import('./alert-collector').PeerDBListFailure | null,
+  ctx: {
+    result: PeerDBCycleResult
+    audit: PeerDBAuditFn
+    dispatch?: PeerDBDispatchFn
+    dryRun: boolean
+  }
+): Promise<void> {
+  const ruleId = PEERDB_API_HEALTH_RULE_ID
+  const flowName = PEERDB_FLEET_AUDIT_FLOW
+  const title =
+    failure?.kind === 'auth'
+      ? 'PeerDB API auth failed'
+      : 'PeerDB API unreachable'
+  const label = failure
+    ? `GET /v1/mirrors/list failed: ${failure.label} (${failure.kind})`
+    : 'GET /v1/mirrors/list answered'
+
+  if (failure) {
+    ctx.result.findings.push({
+      hostId: PEERDB_ALERT_HOST_ID,
+      hostName: PEERDB_API_HEALTH_HOST_NAME,
+      checkId: ruleId,
+      title,
+      severity: 'critical',
+      value: 1,
+      label,
+    })
+  } else {
+    // Success only matters as a recovery of a persisted firing state.
+    const prev = alertStateStore.get(`${PEERDB_ALERT_HOST_ID}:${ruleId}`)
+    if (!prev || prev.severity === 'ok') return
+  }
+
+  const severity = failure ? ('error' as const) : ('ok' as const)
+  if (ctx.dryRun || !ctx.dispatch) {
+    await ctx
+      .audit({
+        flowName,
+        severity,
+        decisionKind: 'peerdb-hold:dry-run',
+        delivered: false,
+        error: failure ? label : 'dry-run',
+        channel: 'peerdb',
+        value: failure ? 1 : 0,
+        hostId: PEERDB_ALERT_HOST_ID,
+      })
+      .catch(() => {})
+    ctx.result.audited++
+    return
+  }
+
+  // AUDIT-BEFORE-DELIVERY, same contract as the per-mirror path.
+  await ctx
+    .audit({
+      flowName,
+      severity,
+      decisionKind: 'peerdb-predelivery',
+      delivered: false,
+      ...(failure ? { error: label } : {}),
+      channel: 'peerdb',
+      value: failure ? 1 : 0,
+      hostId: PEERDB_ALERT_HOST_ID,
+    })
+    .catch(() => {})
+  ctx.result.audited++
+
+  await ctx.dispatch({
+    hostId: PEERDB_ALERT_HOST_ID,
+    hostName: PEERDB_API_HEALTH_HOST_NAME,
+    ruleId,
+    ruleType: PEERDB_ALERT_RULE_TYPE,
+    ruleTitle: failure ? title : 'PeerDB API',
+    severity: failure ? 'critical' : 'ok',
+    value: failure ? 1 : 0,
+    label,
+    warnThreshold: null,
+    critThreshold: 1,
+  })
+  ctx.result.dispatched++
+}
+
+// ---------------------------------------------------------------------------
 // Orchestrator (M3 — the only entry point that can reach delivery)
 // ---------------------------------------------------------------------------
 
@@ -329,6 +439,31 @@ export async function runPeerDBAlertCycle(
       result.partial = collection.metrics.partial
       result.unchecked = collection.metrics.unchecked
     }
+    const thresholds = opts.thresholds ?? DEFAULT_PEERDB_ALERT_THRESHOLDS
+    const dryRun = opts.dryRun !== false
+    const audit: PeerDBAuditFn = opts.audit ?? auditPeerDBAlert
+
+    // PeerDB API health (#3675): fire on a failed list call, recover on a
+    // successful one. Runs before the empty-fleet no-op so a zero-mirror
+    // deployment can still recover an earlier outage.
+    if (collection?.configured) {
+      try {
+        await evaluatePeerDBApiHealth(collection.listFailure, {
+          result,
+          audit,
+          dispatch: opts.dispatch,
+          dryRun,
+        })
+      } catch (err) {
+        result.errored++
+        debug(
+          '[peerdb-alerts] api-health evaluation failed',
+          err instanceof Error ? err.message : String(err)
+        )
+      }
+      if (collection.listFailure) return result
+    }
+
     if (!collection || collection.signals.length === 0) {
       // Distinguish "PeerDB unconfigured" from "configured but empty" only
       // via the metrics: zero collected with zero checked means nothing to do.
@@ -338,10 +473,6 @@ export async function runPeerDBAlertCycle(
       result.skipped = true
       return result
     }
-
-    const thresholds = opts.thresholds ?? DEFAULT_PEERDB_ALERT_THRESHOLDS
-    const dryRun = opts.dryRun !== false
-    const audit: PeerDBAuditFn = opts.audit ?? auditPeerDBAlert
 
     // AUDIT THE COVERAGE, not just the per-mirror decisions (#3687). A partial
     // collection is written as its own fleet-level row, before any mirror is

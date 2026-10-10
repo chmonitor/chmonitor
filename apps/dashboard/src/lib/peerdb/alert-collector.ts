@@ -36,6 +36,7 @@ import type {
   PeerDBInvestigationMetrics,
   PeerDBMirrorSignal,
 } from './alerting'
+import type { PeerDBFetchFailure } from './peerdb-config'
 import type { PeerDBSweepCoverage } from './sweep-coverage'
 import type {
   ListMirrorsResponse,
@@ -73,6 +74,12 @@ import {
  * regardless.
  */
 export interface PeerDBAlertSnapshotReader {
+  /**
+   * `GET /v1/mirrors/list`. The ONE method allowed to throw: a throw means the
+   * list call failed (unreachable / auth failed / upstream error), which the
+   * collection reports as `listFailure` — distinct from a fleet of zero
+   * mirrors, which resolves to `[]` (#3675).
+   */
   listMirrors(): Promise<MirrorListItem[]>
   /** Per-mirror `POST /v1/mirrors/status` payload, or null when unreadable. */
   mirrorStatus(name: string): Promise<MirrorStatusResponse | null>
@@ -150,6 +157,27 @@ function prioritiseSuspectMirrors(mirrors: MirrorListItem[]): MirrorListItem[] {
   ]
 }
 
+/**
+ * Map a thrown list-call error onto the shared fetch-failure taxonomy. The
+ * classifier lives in `peerdb-config`, imported dynamically for the same
+ * runtime reason as {@link defaultReader}; without it the failure is still
+ * reported, as `network`.
+ */
+async function classifyListFailure(err: unknown): Promise<PeerDBListFailure> {
+  const mod = await import('./peerdb-config').catch(() => null)
+  let kind: PeerDBFetchFailure = 'network'
+  try {
+    if (mod) kind = mod.classifyPeerDBFetchFailure(err)
+  } catch {
+    // keep `network`
+  }
+  // An explicit 503 "unconfigured" from a configured deployment is still a
+  // failed call from the sweep's point of view — report it as upstream.
+  if (kind === 'unconfigured') kind = 'upstream'
+  const label = mod ? mod.peerDBFailureLabel(kind) : 'network unreachable'
+  return { kind, label }
+}
+
 async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await fn()
@@ -179,7 +207,7 @@ function toNum(v: unknown): number | null {
  */
 async function defaultReader(
   signal?: AbortSignal
-): Promise<PeerDBAlertSnapshotReader> {
+): Promise<PeerDBAlertSnapshotReader | null> {
   const mod = await import('./peerdb-config').catch(() => null)
   const getConfig = mod?.getPeerDBConfig as
     | (() => { baseUrl: string } | null)
@@ -187,31 +215,27 @@ async function defaultReader(
   const fetchFn = mod?.peerdbFetch as
     | (<T>(path: string, init?: RequestInit) => Promise<T>)
     | undefined
-  const unconfigured: PeerDBAlertSnapshotReader = {
-    listMirrors: async () => [],
-    mirrorStatus: async () => null,
-    mirrorErrorCount: async () => ({ count: 0, source: 'unavailable' }),
-    peerSlots: async () => [],
-    listSourcePeers: async () => [],
-  }
-  if (!getConfig || !fetchFn) return unconfigured
+  // Unconfigured → no reader at all, so the collection reports
+  // `configured: false` instead of a listing that merely came back empty.
+  if (!getConfig || !fetchFn) return null
   let configured = false
   try {
     configured = getConfig() !== null
   } catch {
-    return unconfigured
+    return null
   }
-  if (!configured) return unconfigured
+  if (!configured) return null
 
   const fetchOptions = (body: string): RequestInit =>
     signal ? { method: 'POST', body, signal } : { method: 'POST', body }
 
   return {
-    listMirrors: () =>
-      safe(async () => {
-        const res = await fetchFn<ListMirrorsResponse>('/v1/mirrors/list')
-        return Array.isArray(res?.mirrors) ? res.mirrors : []
-      }, []),
+    // Deliberately NOT wrapped in `safe`: a failed list call must reach the
+    // collection as a failure, not as an empty fleet (#3675).
+    listMirrors: async () => {
+      const res = await fetchFn<ListMirrorsResponse>('/v1/mirrors/list')
+      return Array.isArray(res?.mirrors) ? res.mirrors : []
+    },
     mirrorStatus: (name) =>
       safe(
         () =>
@@ -261,7 +285,27 @@ async function defaultReader(
   }
 }
 
+/**
+ * Why `GET /v1/mirrors/list` failed this tick (#3675). `kind` reuses the
+ * fetch-failure taxonomy from `peerdb-config`; `label` is its human text.
+ */
+export interface PeerDBListFailure {
+  kind: PeerDBFetchFailure
+  label: string
+}
+
 export interface PeerDBSignalCollection {
+  /**
+   * False when PeerDB is not configured (no reader): the only case the cycle
+   * may treat as a no-op. A configured deployment always reports `true`.
+   */
+  configured: boolean
+  /**
+   * Non-null when the mirror list call itself failed — PeerDB unreachable,
+   * auth failed, or an upstream error. Null with zero signals means PeerDB
+   * answered with an empty fleet, which is NOT a failure (#3675).
+   */
+  listFailure: PeerDBListFailure | null
   signals: PeerDBMirrorSignal[]
   /** Collection stats feeding the deterministic investigation step. */
   metrics: PeerDBInvestigationMetrics & {
@@ -354,8 +398,13 @@ export async function collectPeerDBSignals(
   const budgetMs = opts?.budgetMs ?? resolvePeerDBSweepBudgetMs()
   const budget = startSweepBudget(budgetMs)
   const empty = (
-    coverage: PeerDBSweepCoverage = summarizeSweepCoverage(0, 0)
+    coverage: PeerDBSweepCoverage = summarizeSweepCoverage(0, 0),
+    extra: { configured: boolean; listFailure: PeerDBListFailure | null } = {
+      configured: true,
+      listFailure: null,
+    }
   ): PeerDBSignalCollection => ({
+    ...extra,
     signals: [],
     metrics: {
       signalsCollected: 0,
@@ -375,11 +424,22 @@ export async function collectPeerDBSignals(
   })
   try {
     const r = reader ?? (await defaultReader(budget.signal).catch(() => null))
-    if (!r) return empty()
+    if (!r) {
+      return empty(undefined, { configured: false, listFailure: null })
+    }
 
     const concurrency = opts?.concurrency ?? resolvePeerDBSweepConcurrency()
 
-    const mirrors = await safe(() => r.listMirrors(), [])
+    let mirrors: MirrorListItem[]
+    try {
+      const listed = await r.listMirrors()
+      mirrors = Array.isArray(listed) ? listed : []
+    } catch (err) {
+      return empty(undefined, {
+        configured: true,
+        listFailure: await classifyListFailure(err),
+      })
+    }
     const named = mirrors.filter(
       (m) => typeof m?.name === 'string' && m.name.trim() !== ''
     )
@@ -560,6 +620,8 @@ export async function collectPeerDBSignals(
     const coverage = summarizeSweepCoverage(mirrors.length, statusRead)
 
     return {
+      configured: true,
+      listFailure: null,
       signals,
       metrics: {
         signalsCollected: signals.length,
