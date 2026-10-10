@@ -5,6 +5,8 @@ import { Link } from '@tanstack/react-router'
 
 import type { AgentConnectionErrorView } from './agent-connection-error'
 
+import { keepHostSearch } from '@/routes/-root-search'
+
 /** Actionable notice for a mapped pre-stream agent connection error. */
 export function AgentConnectionErrorNotice({
   view,
@@ -27,6 +29,7 @@ export function AgentConnectionErrorNotice({
           {view.action ? (
             <Link
               to={view.action.to}
+              search={keepHostSearch}
               className="bg-primary text-primary-foreground mt-2 inline-flex h-8 items-center rounded-md px-3 text-xs font-medium"
             >
               {view.action.label}
