@@ -4,10 +4,12 @@ import type { PeerDBAuditFn } from './alert-cycle'
 
 import {
   PEERDB_ALERT_HOST_ID,
+  PEERDB_API_HEALTH_RULE_ID,
   PEERDB_COVERAGE_PARTIAL_DECISION,
   peerDBRuleIdForFlow,
   runPeerDBAlertCycle,
 } from './alert-cycle'
+import { PeerDBError } from './peerdb-config'
 import { afterEach, describe, expect, test } from 'bun:test'
 import { alertStateStore } from '@/lib/health/alert-state-store'
 
@@ -445,7 +447,115 @@ describe('runPeerDBAlertCycle', () => {
       reader: exploding,
       audit: async () => {},
     })
-    expect(res.skipped).toBe(true)
+    // A failed list call is an outage finding now, never a silent skip (#3675).
+    expect(res.skipped).toBe(false)
+    expect(res.findings.map((f) => f.checkId)).toEqual([
+      PEERDB_API_HEALTH_RULE_ID,
+    ])
     expect(res.dispatched).toBe(0)
+  })
+})
+
+// #3675: PeerDB unreachable / auth failed must fire an alert and recover, not
+// read as an empty fleet. One fleet-level key so an outage is one incident.
+describe('runPeerDBAlertCycle — PeerDB API health', () => {
+  const API_KEY = `${PEERDB_ALERT_HOST_ID}:${PEERDB_API_HEALTH_RULE_ID}`
+
+  function failingReader(err: unknown): PeerDBAlertSnapshotReader {
+    return {
+      ...readerFor([]),
+      listMirrors: async () => {
+        throw err
+      },
+    }
+  }
+
+  test('auth failure fires one critical fleet finding, audited before dispatch', async () => {
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: failingReader(new PeerDBError('401', 401, 'auth')),
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+    })
+    expect(res.skipped).toBe(false)
+    expect(res.findings).toHaveLength(1)
+    expect(res.findings[0]).toMatchObject({
+      hostName: 'peerdb',
+      checkId: PEERDB_API_HEALTH_RULE_ID,
+      severity: 'critical',
+      title: 'PeerDB API auth failed',
+    })
+    expect(t.order).toEqual([
+      'audit:peerdb-predelivery',
+      `dispatch:${PEERDB_API_HEALTH_RULE_ID}`,
+    ])
+    expect(t.dispatches[0]).toMatchObject({
+      hostId: PEERDB_ALERT_HOST_ID,
+      hostName: 'peerdb',
+      ruleId: PEERDB_API_HEALTH_RULE_ID,
+      severity: 'critical',
+    })
+  })
+
+  test('unreachable is labelled unreachable', async () => {
+    const res = await runPeerDBAlertCycle({
+      reader: failingReader(
+        new TypeError('fetch failed', { cause: { code: 'ENOTFOUND' } })
+      ),
+      audit: async () => {},
+    })
+    expect(res.findings[0]!.title).toBe('PeerDB API unreachable')
+    expect(res.findings[0]!.label).toContain('dns')
+  })
+
+  test('recovers when the list call answers again, even with zero mirrors', async () => {
+    alertStateStore.set(API_KEY, {
+      severity: 'critical',
+      updatedAt: Date.now() - 1000,
+      notifiedAt: Date.now() - 1000,
+    })
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor([]),
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+    })
+    expect(res.findings).toHaveLength(0)
+    expect(t.order).toEqual([
+      'audit:peerdb-predelivery',
+      `dispatch:${PEERDB_API_HEALTH_RULE_ID}`,
+    ])
+    expect(t.dispatches[0]).toMatchObject({
+      ruleId: PEERDB_API_HEALTH_RULE_ID,
+      severity: 'ok',
+    })
+  })
+
+  test('a healthy API with no prior incident sends nothing', async () => {
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor([{ name: 'api-ok', status: 'STATUS_RUNNING' }]),
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+    })
+    expect(
+      t.dispatches.some((d) => d.ruleId === PEERDB_API_HEALTH_RULE_ID)
+    ).toBe(false)
+    expect(res.findings).toHaveLength(0)
+  })
+
+  test('dry-run audits the failure but never dispatches', async () => {
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: failingReader(new PeerDBError('500', 500, 'upstream')),
+      dispatch: t.dispatch,
+      audit: t.audit,
+    })
+    expect(res.findings).toHaveLength(1)
+    expect(res.dispatched).toBe(0)
+    expect(t.order).toEqual(['audit:peerdb-hold:dry-run'])
   })
 })
