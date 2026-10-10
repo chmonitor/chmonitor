@@ -119,15 +119,15 @@ be burned. Usage is tracked in the same D1 `ai_usage_daily` table, keyed by a
 per-visitor `guest:<ip-hash>` id — not a single global `guest` bucket. Sign in
 to get the plan allowance (Free 5 / Pro 100 / …). Guests are limited to
 `anyrouter:auto` and the `anyrouter/free` aliases; any other model (or none) is
-forced to `anyrouter:auto` by the server. `anyrouter:auto` picks the top
-tool-capable model by usage, skipping models AnyRouter serves only through BYOK
-upstreams (the shared key cannot route them); if none qualify it falls back to
-the curated default. Self-hosted / OSS is unchanged
-(no guest gate).
+forced to `anyrouter:anyrouter/free` by the server. A guest may still pick
+`anyrouter:auto` explicitly, but it is not the default: it follows the top
+tool-capable model by usage, which can land on an upstream the shared key cannot
+serve. Self-hosted / OSS is unchanged (no guest gate).
 
 When `CHM_AGENT_ANYROUTER_SIGNIN_ENABLED=true` (on for the hosted product),
 guests can also **Sign in with AnyRouter**. Requests then run on their own
-AnyRouter account: any `anyrouter:` model, no daily cap. Rate limits and the
+AnyRouter account: they keep the `anyrouter:` model they chose (any
+`anyrouter:` model, not only the free one), no daily cap. Rate limits and the
 demo-host and MCP restrictions still apply. See
 [Sign in with AnyRouter](/guide/ai-agent/configuration#sign-in-with-anyrouter-bring-your-own-credits).
 

@@ -40,8 +40,11 @@ let anyRouterPresets = [
   },
 ]
 
+let prefixedAutoEntry: unknown[] = []
+
 mock.module('@/lib/ai/agent-model-registry', () => ({
   getModelRegistry: () => [
+    ...prefixedAutoEntry,
     {
       id: 'gpt-4o-mini',
       providers: ['openrouter'],
@@ -310,5 +313,24 @@ describe('GET /api/v1/agents/models', () => {
     expect(res.status).toBe(500)
     const body = (await res.json()) as { models: Array<{ id: string }> }
     expect(body.models.map((m) => m.id)).toContain('openrouter:gpt-4o-mini')
+  })
+
+  test('does not double the provider prefix on ids that already carry it', async () => {
+    prefixedAutoEntry = [
+      {
+        id: 'anyrouter:auto',
+        providers: ['anyrouter'],
+        description: 'auto-router (id already carries the provider prefix)',
+        contextLength: 1_000_000,
+      },
+    ]
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/agents/models')
+    )
+    const body = (await res.json()) as { models: Array<{ id: string }> }
+    const ids = body.models.map((m) => m.id)
+    expect(ids).toContain('anyrouter:auto')
+    expect(ids.filter((id) => /^(\w+):\1:/.test(id))).toEqual([])
+    prefixedAutoEntry = []
   })
 })

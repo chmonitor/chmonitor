@@ -267,8 +267,9 @@ The client (`agent-auth-gate.tsx`) treats Cloud + unsigned as a guest
 (`ensureAuthed()` true). Unsigned Cloud threads stay in localStorage —
 conversation APIs remain Clerk-only.
 
-Guests share the deploy `ANYROUTER_API_KEY`, defaulting to
-`anyrouter:auto` (top tool-capable models). Server hardening
+Guests share the deploy `ANYROUTER_API_KEY`, forced to
+`anyrouter:anyrouter/free` by default (`GUEST_DEFAULT_AGENT_MODEL`; `auto` is
+still allowed if picked explicitly). Server hardening
 (`hardenGuestAgentRequest`) strips body `apiKey` (no BYOK), ignores
 `mcpServers` / user-registered MCP, allowlists auto + `anyrouter/free`,
 and keeps `hostId` on env/demo (`>= 0`).

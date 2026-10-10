@@ -173,13 +173,21 @@ function filterByConfiguredProviders(
   return models.filter((m) => isProviderConfigured(m.provider))
 }
 
+/**
+ * Picker id `provider:model`. Some registry ids already carry the provider
+ * prefix (`anyrouter:auto`); re-adding it would yield `anyrouter:anyrouter:auto`.
+ */
+function pickerModelId(provider: string, entryId: string): string {
+  return entryId.startsWith(`${provider}:`) ? entryId : `${provider}:${entryId}`
+}
+
 function buildStaticModels(): ModelCapability[] {
   const registry = getModelRegistry()
   const full: ModelCapability[] = []
 
   for (const entry of registry) {
     for (const provider of entry.providers) {
-      const id = `${provider}:${entry.id}`
+      const id = pickerModelId(provider, entry.id)
       const isFree = isFreeAgentModel(entry.id)
 
       full.push({
@@ -215,7 +223,7 @@ async function buildRegistryModels(): Promise<ModelCapability[]> {
 
   for (const entry of registry) {
     for (const provider of entry.providers) {
-      const id = `${provider}:${entry.id}`
+      const id = pickerModelId(provider, entry.id)
       const isFree = isFreeAgentModel(entry.id)
       const orData = orCapabilities?.get(entry.id)
 
