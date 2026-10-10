@@ -22,7 +22,10 @@
  *    `POST https://anyrouter.dev/api/v1/mcp/oauth/register`
  *      `{ client_name, redirect_uris: string[], app_type: 'signin', origin_url }`
  *      → `{ client_id, ... }` — `client_id` is public, safe to reuse.
- *    Cached in module memory for the process lifetime, keyed by `origin_url`.
+ *    Cached in module memory per isolate, keyed by `origin_url`. The cache is
+ *    NOT shared across Worker isolates, so the `client_id` used at login is
+ *    carried to the callback in the signin cookie (`c`) and the callback never
+ *    registers again — a code is only redeemable by the client it was issued to.
  *    `ANYROUTER_OAUTH_CLIENT_ID` env var overrides/bypasses registration
  *    entirely, letting a deployment pin a pre-registered client.
  *
@@ -208,13 +211,15 @@ export interface StartSigninResult {
   authorizeUrl: string
   state: string
   codeVerifier: string
+  /** The OAuth client_id used in the authorize URL; must reach the callback. */
+  clientId: string
 }
 
 /**
  * Build the AnyRouter `authorize` URL for a fresh sign-in attempt: derives
  * the redirect URI from the request, registers (or reuses) a client, and
  * generates a fresh PKCE pair + CSRF state. Callers are responsible for
- * persisting `state` + `codeVerifier` (e.g. in the signin cookie) and never
+ * persisting `state` + `codeVerifier` + `clientId` (e.g. in the signin cookie) and never
  * returning `codeVerifier` to the browser.
  */
 export async function buildAuthorizeUrl(
@@ -237,7 +242,7 @@ export async function buildAuthorizeUrl(
   url.searchParams.set('code_challenge_method', 'S256')
   url.searchParams.set('state', state)
 
-  return { authorizeUrl: url.toString(), state, codeVerifier }
+  return { authorizeUrl: url.toString(), state, codeVerifier, clientId }
 }
 
 // ── PKCE/state cookie ─────────────────────────────────────────────────────
@@ -247,6 +252,8 @@ export interface SigninCookiePayload {
   v: string
   /** CSRF state. */
   s: string
+  /** OAuth client_id used at login; the callback exchanges the code with it. */
+  c: string
 }
 
 /** Build the `Set-Cookie` header value that stores the PKCE pair for the callback. */
@@ -296,8 +303,13 @@ export function parseSigninCookie(
       const parsed = JSON.parse(
         decodeURIComponent(raw)
       ) as Partial<SigninCookiePayload>
-      if (typeof parsed.v === 'string' && typeof parsed.s === 'string') {
-        return { v: parsed.v, s: parsed.s }
+      if (
+        typeof parsed.v === 'string' &&
+        typeof parsed.s === 'string' &&
+        typeof parsed.c === 'string' &&
+        parsed.c
+      ) {
+        return { v: parsed.v, s: parsed.s, c: parsed.c }
       }
     } catch {
       return null

@@ -14,11 +14,15 @@
  * chmonitor session/auth headers attached. Its only trust anchor is the
  * signin cookie minted by the (gated) login route, which the state check
  * enforces.
+ *
+ * The token exchange uses the `client_id` stored in that cookie at login and
+ * never registers a client: the registration cache is per Worker isolate, so
+ * registering here could yield a different client than the one the code was
+ * issued to.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
 
-import { env } from 'cloudflare:workers'
 import {
   AnyRouterSigninError,
   buildSigninResultHtml,
@@ -26,7 +30,6 @@ import {
   deriveOriginUrl,
   deriveRedirectUri,
   exchangeCodeForToken,
-  getOrRegisterClientId,
   parseSigninCookie,
 } from '@/lib/ai/anyrouter-signin'
 import {
@@ -98,16 +101,11 @@ async function handleGet(request: Request): Promise<Response> {
 
   try {
     const redirectUri = deriveRedirectUri(request)
-    const clientEnv = env as { ANYROUTER_OAUTH_CLIENT_ID?: string }
-    const clientId = await getOrRegisterClientId(redirectUri, originUrl, {
-      ANYROUTER_OAUTH_CLIENT_ID: clientEnv.ANYROUTER_OAUTH_CLIENT_ID,
-    })
-
     const token = await exchangeCodeForToken(
       code,
       cookiePayload.v,
       redirectUri,
-      clientId
+      cookiePayload.c
     )
 
     const html = buildSigninResultHtml(

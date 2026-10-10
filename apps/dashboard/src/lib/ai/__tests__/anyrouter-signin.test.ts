@@ -96,18 +96,18 @@ describe('redirect URI / origin derivation', () => {
 describe('signin cookie serialize/parse round trip', () => {
   test('round-trips a payload', () => {
     const header = serializeSigninCookie(
-      { v: 'verifier-1', s: 'state-1' },
+      { v: 'verifier-1', s: 'state-1', c: 'client-1' },
       { secure: true }
     )
     // Simulate the browser only sending back name=value in the Cookie header.
     const cookieHeader = header.split(';')[0]
     const parsed = parseSigninCookie(cookieHeader)
-    expect(parsed).toEqual({ v: 'verifier-1', s: 'state-1' })
+    expect(parsed).toEqual({ v: 'verifier-1', s: 'state-1', c: 'client-1' })
   })
 
   test('serialized cookie carries HttpOnly, SameSite=Lax and the configured Secure flag', () => {
     const secureHeader = serializeSigninCookie(
-      { v: 'v', s: 's' },
+      { v: 'v', s: 's', c: 'c' },
       { secure: true }
     )
     expect(secureHeader).toContain('HttpOnly')
@@ -115,7 +115,7 @@ describe('signin cookie serialize/parse round trip', () => {
     expect(secureHeader).toContain('Secure')
 
     const insecureHeader = serializeSigninCookie(
-      { v: 'v', s: 's' },
+      { v: 'v', s: 's', c: 'c' },
       { secure: false }
     )
     expect(insecureHeader).not.toContain('Secure')
@@ -131,6 +131,12 @@ describe('signin cookie serialize/parse round trip', () => {
     expect(
       parseSigninCookie(
         `${ANYROUTER_SIGNIN_COOKIE_NAME}=${encodeURIComponent('{"v":1}')}`
+      )
+    ).toBeNull()
+    // A cookie without the login's clientId is rejected, never defaulted.
+    expect(
+      parseSigninCookie(
+        `${ANYROUTER_SIGNIN_COOKIE_NAME}=${encodeURIComponent('{"v":"v","s":"s"}')}`
       )
     ).toBeNull()
   })
@@ -246,6 +252,7 @@ describe('client registration caching', () => {
     expect(url.searchParams.get('response_type')).toBe('code')
     expect(url.searchParams.get('code_challenge_method')).toBe('S256')
     expect(url.searchParams.get('state')).toBe(result.state)
+    expect(result.clientId).toBe('client-xyz')
     expect(typeof result.codeVerifier).toBe('string')
     expect(result.codeVerifier.length).toBeGreaterThan(20)
   })
