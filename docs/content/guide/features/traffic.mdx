@@ -1,4 +1,5 @@
 ---
+updated: 2026-10-11
 description: See how much data is flowing into your ClickHouse cluster — rows, bytes, and insert queries over time, per-table ingestion, compression, and (when relevant) replication, distribution, and PeerDB ingestion.
 icon: ArrowDownToLine
 title: Traffic
@@ -6,7 +7,11 @@ title: Traffic
 
 The Traffic page answers a single question: **how much data is flowing into this cluster?** It combines last-24h ingestion KPIs, rows/bytes/insert-query volume over time, per-table ingestion, and — only when the cluster actually replicates, shards, or runs a PeerDB pipeline — the matching write-amplification and data-movement views.
 
-![chmonitor Traffic page: rows ingested, data ingested, insert queries and compression KPIs with time-series charts for rows, insert queries, uncompressed ingest and compressed bytes written to disk](/assets/screenshots/traffic-overview-dark-with-bg.jpeg)
+<Screenshot
+  src="/assets/screenshots/traffic-overview-dark-with-bg.jpeg"
+  alt="chmonitor Traffic page: rows ingested, data ingested, insert queries and compression KPIs with time-series charts for rows, insert queries, uncompressed ingest and compressed bytes written to disk"
+  caption="The Traffic page: ingest KPIs and time-series charts."
+/>
 
 | | |
 |---|---|
@@ -81,7 +86,11 @@ The **View** button (top right) opens a popover where you choose what the page s
 | **Storage & merges** | On-disk volume, merge activity, and per-table breakdown |
 | **Everything** | Force-show every section, even when undetected |
 
-![Traffic View popover: preset chips (Auto, Ingest focus, Storage & merges, Everything) and per-section Auto / Show / Hide toggles for Bytes on Disk, Merges, Top Tables, Replication and PeerDB](/assets/screenshots/traffic-customize-dark.png)
+<Screenshot
+  src="/assets/screenshots/traffic-customize-dark.png"
+  alt="Traffic View popover: preset chips (Auto, Ingest focus, Storage & merges, Everything) and per-section Auto / Show / Hide toggles for Bytes on Disk, Merges, Top Tables, Replication and PeerDB"
+  caption="The View popover: presets and per-section toggles."
+/>
 
 Auto hides a section when its data source is unavailable — `part_log` disabled, no replication, PeerDB not detected — so a single-node server never shows empty cards. Applying a preset overwrites the current map; you can then fine-tune individual sections. Settings persist per browser (localStorage), no server configuration involved.
 

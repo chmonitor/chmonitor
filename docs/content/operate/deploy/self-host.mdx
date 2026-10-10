@@ -2,6 +2,7 @@
 title: Self-host (Node / standalone)
 description: Run chmonitor on any server using Node.js — bare VMs, dedicated servers, or any environment where you manage the process directly.
 icon: Server
+updated: 2026-10-11
 ---
 
 Run chmonitor on any server using Node.js — bare VMs, dedicated servers, or anywhere you manage the process.
@@ -85,13 +86,40 @@ curl -sf http://localhost:3000/api/healthz && echo OK
 
 ## Configure
 
-Required:
+Required — the same three names on every target:
+
+<ConfigTabs groupId="deploy" items={['.env', 'Docker', 'Kubernetes']}>
+<ConfigTab value=".env">
 
 ```bash
 CLICKHOUSE_HOST=https://clickhouse.example.com:8443
 CLICKHOUSE_USER=monitoring
 CLICKHOUSE_PASSWORD=change-me
 ```
+
+</ConfigTab>
+<ConfigTab value="Docker">
+
+```bash
+docker run -d -p 3000:3000 \
+  -e CLICKHOUSE_HOST='https://clickhouse.example.com:8443' \
+  -e CLICKHOUSE_USER='monitoring' \
+  -e CLICKHOUSE_PASSWORD='change-me' \
+  ghcr.io/chmonitor/chmonitor:X.Y.Z
+```
+
+</ConfigTab>
+<ConfigTab value="Kubernetes">
+
+```bash
+kubectl create secret generic chmonitor-clickhouse \
+  --from-literal=CLICKHOUSE_HOST='https://clickhouse.example.com:8443' \
+  --from-literal=CLICKHOUSE_USER='monitoring' \
+  --from-literal=CLICKHOUSE_PASSWORD='change-me'
+```
+
+</ConfigTab>
+</ConfigTabs>
 
 Put them in `apps/dashboard/.env.local`. Template:
 [`apps/dashboard/.env.example`](https://github.com/chmonitor/chmonitor/blob/main/apps/dashboard/.env.example).
