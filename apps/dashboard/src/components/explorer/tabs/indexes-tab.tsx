@@ -15,6 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  detectCardErrorVariant,
+  getCardErrorDescription,
+} from '@/lib/card-error-utils'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 import { cn } from '@/lib/utils'
@@ -174,7 +178,8 @@ export function IndexesTab() {
       <Card className="gap-3 py-4">
         <CardContent className="px-4">
           <div className="text-xs text-destructive">
-            Failed to load data: {error.message}
+            Failed to load data:{' '}
+            {getCardErrorDescription(error, detectCardErrorVariant(error))}
           </div>
         </CardContent>
       </Card>
