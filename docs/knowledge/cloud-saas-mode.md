@@ -46,9 +46,11 @@ give the same answer for the same env. So:
   flags as the literal `'true'`/`'false'` via `lib/config/client-env.ts`
   (`=1` → `'true'`; an unrecognised explicit value → `'false'`).
 - **Auth provider:** `getAuthProvider(getEnv?)` in `lib/auth/provider.ts` is
-  the only server resolver. Precedence: runtime `CHM_AUTH_PROVIDER` → runtime
-  `CHM_DEPLOYMENT_MODE` default → build-time `VITE_AUTH_PROVIDER` → build-time
-  `VITE_DEPLOYMENT_MODE` default. `vite.config.ts` bakes `VITE_AUTH_PROVIDER`
+  the only server resolver. Precedence: runtime `CHM_AUTH_PROVIDER` → build-time
+  `VITE_AUTH_PROVIDER` → runtime `CHM_DEPLOYMENT_MODE` default → build-time
+  `VITE_DEPLOYMENT_MODE` default. A provider baked at build time is never lowered
+  by a runtime mode: a clerk build run with `CHM_DEPLOYMENT_MODE=oss` stays clerk
+  (otherwise the client shows sign-in while every API route runs open). `vite.config.ts` bakes `VITE_AUTH_PROVIDER`
   only when it is set, so a prebuilt image run with just
   `CHM_DEPLOYMENT_MODE=cloud` gets `clerk`. The client reads
   `getBuildAuthProvider()` (baked value, else the baked mode default).

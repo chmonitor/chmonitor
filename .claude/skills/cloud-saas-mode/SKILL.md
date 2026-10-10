@@ -65,7 +65,8 @@ on mismatch. The reverse (cloud build, runtime unset) is safe — fail-closed.
 provider. Booleans go through `parseBool` (`lib/config/parse-bool.ts`:
 true/1/yes/on, false/0/no/off). The server auth provider is
 `getAuthProvider(getEnv?)` (`lib/auth/provider.ts`: runtime `CHM_AUTH_PROVIDER`
-→ runtime mode default → build-time value). Public read is
+→ baked `VITE_AUTH_PROVIDER` → runtime mode default → baked mode default; a
+baked provider is never lowered by a runtime mode). Public read is
 `resolveConfig(...).clerkPublicRead`. `NEXT_PUBLIC_*` is not read anywhere. See
 `docs/knowledge/cloud-saas-mode.md` § One resolver per setting.
 
