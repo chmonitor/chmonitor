@@ -31,6 +31,13 @@ mock.module('@/lib/health/maintenance-windows', () => ({
 
 const { __handleDeleteForTests: handleDelete } = await import('./maint-windows')
 
+type DeleteBody = {
+  success: boolean
+  deleted?: number
+  error?: { message: string }
+}
+const body = async (res: Response) => (await res.json()) as DeleteBody
+
 const del = (query: string) =>
   handleDelete(
     new Request(`http://localhost/api/v1/health/maint-windows${query}`, {
@@ -47,7 +54,7 @@ describe('DELETE /api/v1/health/maint-windows', () => {
   test('200 with the deleted count when the window existed', async () => {
     const res = await del('?id=w1')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ success: true, deleted: 1 })
+    expect(await body(res)).toEqual({ success: true, deleted: 1 })
     expect(deleteCalls).toEqual([['owner-1', 'w1']])
   })
 
@@ -55,7 +62,7 @@ describe('DELETE /api/v1/health/maint-windows', () => {
     deleteImpl = async () => 0
     const res = await del('?id=ghost')
     expect(res.status).toBe(404)
-    expect((await res.json()).success).toBe(false)
+    expect((await body(res)).success).toBe(false)
   })
 
   test('503 when no backend is configured', async () => {
@@ -72,7 +79,7 @@ describe('DELETE /api/v1/health/maint-windows', () => {
     }
     const res = await del('?id=w1')
     expect(res.status).toBe(500)
-    expect((await res.json()).error.message).toBe('D1 exploded')
+    expect((await body(res)).error?.message).toBe('D1 exploded')
   })
 
   test('400 without an id', async () => {
