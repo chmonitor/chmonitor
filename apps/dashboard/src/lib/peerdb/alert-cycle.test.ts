@@ -9,9 +9,14 @@ import {
   peerDBRuleIdForFlow,
   runPeerDBAlertCycle,
 } from './alert-cycle'
+import { fingerprintLogMessage } from './log-fingerprint'
+import {
+  PEERDB_LOG_PATTERN_SPIKE_COUNT,
+  peerDBLogPatternRuleId,
+} from './log-pattern-alerts'
 import { PeerDBError } from './peerdb-config'
 import { afterEach, describe, expect, test } from 'bun:test'
-import { alertStateStore } from '@/lib/health/alert-state-store'
+import { alertStateStore, evaluateAlert } from '@/lib/health/alert-state-store'
 
 function readerFor(
   mirrors: Array<{
@@ -557,5 +562,129 @@ describe('runPeerDBAlertCycle — PeerDB API health', () => {
     expect(res.findings).toHaveLength(1)
     expect(res.dispatched).toBe(0)
     expect(t.order).toEqual(['audit:peerdb-hold:dry-run'])
+  })
+})
+
+describe('runPeerDBAlertCycle — log patterns (#3700)', () => {
+  const MSG = (i: number) =>
+    `connection to 10.0.0.${i}:5432 refused after ${i + 1} retries`
+  const PATTERN_RULE = peerDBLogPatternRuleId(fingerprintLogMessage(MSG(0)))
+  const PATTERN_KEY = `${PEERDB_ALERT_HOST_ID}:${PATTERN_RULE}`
+
+  /** Failing mirrors whose ERROR-log reads return `perMirror` messages. */
+  function patternReader(
+    names: string[],
+    perMirror = 1,
+    source: 'log-api' | 'unavailable' = 'log-api'
+  ): PeerDBAlertSnapshotReader {
+    return {
+      ...readerFor(names.map((name) => ({ name, status: 'STATUS_FAILED' }))),
+      mirrorErrorCount: async (name) => {
+        const i = names.indexOf(name)
+        const messages = Array.from({ length: perMirror }, () => MSG(i))
+        return { count: messages.length, source, messages }
+      },
+    }
+  }
+
+  /** Dispatch that commits state like the real `dispatchFinding`. */
+  function committingTape() {
+    const t = tape()
+    return {
+      ...t,
+      dispatch: async (p: DispatchFindingParams) => {
+        await t.dispatch(p)
+        evaluateAlert(alertStateStore, {
+          hostId: p.hostId,
+          ruleId: p.ruleId,
+          severity: p.severity,
+        }).commit()
+      },
+    }
+  }
+  const patternDispatches = (t: Tape) =>
+    t.dispatches.filter((d) => d.ruleId.startsWith('peerdb-log-pattern:'))
+  const live = (
+    reader: PeerDBAlertSnapshotReader,
+    t: ReturnType<typeof committingTape>
+  ) =>
+    runPeerDBAlertCycle({
+      reader,
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+    })
+
+  test('40 mirrors with the same pattern yield exactly one pattern finding', async () => {
+    const t = committingTape()
+    const names = Array.from({ length: 40 }, (_, i) => `pat_${i}`)
+    const res = await live(patternReader(names), t)
+    const findings = res.findings.filter((f) => f.checkId === PATTERN_RULE)
+    expect(findings).toHaveLength(1)
+    expect(findings[0]!.value).toBe(40)
+    expect(findings[0]!.label).toContain('across 40 mirrors')
+    const pd = patternDispatches(t)
+    expect(pd).toHaveLength(1)
+    expect(pd[0]!.severity).toBe('warning')
+    // Audit-before-delivery holds for the pattern too.
+    const i = t.order.indexOf(`dispatch:${PATTERN_RULE}`)
+    expect(t.order[i - 1]).toBe('audit:peerdb-predelivery')
+  })
+
+  test('a new pattern fires once, then not again while it persists', async () => {
+    const t = committingTape()
+    for (let tick = 0; tick < 3; tick++) {
+      await live(patternReader(['once_a', 'once_b']), t)
+    }
+    expect(patternDispatches(t)).toHaveLength(1)
+    expect(alertStateStore.get(PATTERN_KEY)?.severity).toBe('warning')
+  })
+
+  test('spike boundary: threshold - 1 stays quiet, threshold escalates to critical', async () => {
+    const t = committingTape()
+    await live(patternReader(['spike_a'], 1), t)
+    await live(
+      patternReader(['spike_a'], PEERDB_LOG_PATTERN_SPIKE_COUNT - 1),
+      t
+    )
+    expect(patternDispatches(t).map((d) => d.severity)).toEqual(['warning'])
+    await live(patternReader(['spike_a'], PEERDB_LOG_PATTERN_SPIKE_COUNT), t)
+    expect(patternDispatches(t).map((d) => d.severity)).toEqual([
+      'warning',
+      'critical',
+    ])
+  })
+
+  test('recovers when the pattern disappears on a complete read', async () => {
+    const t = committingTape()
+    await live(patternReader(['rec_a']), t)
+    await live(patternReader(['rec_a'], 0), t)
+    expect(patternDispatches(t).map((d) => d.severity)).toEqual([
+      'warning',
+      'ok',
+    ])
+    expect(alertStateStore.get(PATTERN_KEY)).toBeUndefined()
+  })
+
+  test('an unavailable log read holds the pattern recovery', async () => {
+    const t = committingTape()
+    await live(patternReader(['hold_a']), t)
+    await live(patternReader(['hold_a'], 0, 'unavailable'), t)
+    expect(patternDispatches(t)).toHaveLength(1)
+    expect(t.audits.map((a) => a.decisionKind)).toContain(
+      'peerdb-hold:recovery-data-unavailable'
+    )
+    expect(alertStateStore.get(PATTERN_KEY)?.severity).toBe('warning')
+  })
+
+  test('dry-run audits the pattern but never dispatches it', async () => {
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: patternReader(['dry_a']),
+      dispatch: t.dispatch,
+      audit: t.audit,
+    })
+    expect(res.findings.some((f) => f.checkId === PATTERN_RULE)).toBe(true)
+    expect(t.dispatches).toHaveLength(0)
   })
 })
