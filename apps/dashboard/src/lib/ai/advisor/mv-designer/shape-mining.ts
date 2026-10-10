@@ -22,6 +22,12 @@ import {
   formatQualifiedTable,
 } from '@/lib/ai/agent/tools/sql-analysis'
 
+/**
+ * Sent as client settings, not a `SETTINGS` clause in the SQL text, so the
+ * client's central read-only rule normalizes the whole request (#3684).
+ */
+const ADVISOR_QUERY_SETTINGS = { max_execution_time: 25 }
+
 /** Row cap for the cardinality sample query — bounded so mining never triggers a full-table scan. */
 export const CARDINALITY_SAMPLE_SIZE = 100_000
 
@@ -49,10 +55,10 @@ export async function mineAggregationShapes(
       "WHERE type = 'QueryFinish' AND is_initial_query = 1 " +
       'AND event_time >= now() - INTERVAL {windowHours:UInt32} HOUR ' +
       "AND positionCaseInsensitive(query, 'GROUP BY') > 0 " +
-      'GROUP BY hash ORDER BY total_read_bytes DESC LIMIT {topN:UInt32} ' +
-      'SETTINGS max_execution_time = 25',
+      'GROUP BY hash ORDER BY total_read_bytes DESC LIMIT {topN:UInt32}',
     query_params: { windowHours, topN },
     hostId,
+    clickhouse_settings: ADVISOR_QUERY_SETTINGS,
   })) as Array<{
     hash: string
     calls: string | number
@@ -93,10 +99,10 @@ export async function getTableSizeStats(
   const rows = (await readOnlyQuery({
     query:
       'SELECT sum(rows) AS rows, sum(bytes_on_disk) AS bytes_on_disk FROM system.parts ' +
-      'WHERE active = 1 AND database = {database:String} AND table = {table:String} ' +
-      'SETTINGS max_execution_time = 25',
+      'WHERE active = 1 AND database = {database:String} AND table = {table:String}',
     query_params: { database, table },
     hostId,
+    clickhouse_settings: ADVISOR_QUERY_SETTINGS,
   })) as Array<{ rows: string | number; bytes_on_disk: string | number }>
 
   return {
@@ -145,10 +151,10 @@ export async function estimateGroupCardinality(
   const rows = (await readOnlyQuery({
     query:
       `SELECT uniqCombined(${cols}) AS distinct_combos FROM ` +
-      `(SELECT ${cols} FROM ${fullTable} LIMIT {sampleSize:UInt32}) ` +
-      'SETTINGS max_execution_time = 25',
+      `(SELECT ${cols} FROM ${fullTable} LIMIT {sampleSize:UInt32})`,
     query_params: { sampleSize },
     hostId,
+    clickhouse_settings: ADVISOR_QUERY_SETTINGS,
   })) as Array<{ distinct_combos: string | number }>
 
   const sampleDistinct = Number(rows[0]?.distinct_combos ?? 0)

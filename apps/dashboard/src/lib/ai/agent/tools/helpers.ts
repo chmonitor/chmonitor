@@ -86,6 +86,8 @@ export async function readOnlyQuery(options: {
   format?: DataFormat
   query_params?: Record<string, unknown>
   useCache?: boolean
+  /** Extra per-request settings (e.g. `max_execution_time`); `readonly` always wins. */
+  clickhouse_settings?: { max_execution_time?: number }
 }): Promise<unknown> {
   const {
     query,
@@ -93,6 +95,7 @@ export async function readOnlyQuery(options: {
     format = 'JSONEachRow',
     query_params,
     useCache = false,
+    clickhouse_settings,
   } = options
 
   // Check cache for metadata queries
@@ -108,7 +111,7 @@ export async function readOnlyQuery(options: {
     hostId,
     format,
     query_params,
-    clickhouse_settings: { readonly: '1' },
+    clickhouse_settings: { ...clickhouse_settings, readonly: '1' },
   })
 
   if (result.error) {

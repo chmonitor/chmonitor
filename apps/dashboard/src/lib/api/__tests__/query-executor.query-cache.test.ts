@@ -170,6 +170,21 @@ describe('query-executor ClickHouse query-cache wiring (#2182)', () => {
     expect(settings?.use_query_cache).toBeUndefined()
   })
 
+  // #3684: the chart timeout moved out of the SQL text into client settings.
+  // If the executor dropped it, every chart would silently fall back to the
+  // 60s client default and outlive the Worker's ~30s response budget.
+  test('executeChartQuery sends the chart clickhouseSettings alongside the cache settings', async () => {
+    await executeChartQuery('c', 'SELECT 1', 0, undefined, {
+      ttlSeconds: 10,
+      clickhouseSettings: { max_execution_time: 25 },
+    })
+
+    const settings = mockFetchJsonEachRow.mock.calls[0]?.[0]
+      ?.clickhouse_settings as Record<string, unknown> | undefined
+    expect(settings?.max_execution_time).toBe(25)
+    expect(settings?.use_query_cache).toBe(1)
+  })
+
   test('executeMultiChartQuery applies the same settings to every sub-query', async () => {
     await executeMultiChartQuery(
       [

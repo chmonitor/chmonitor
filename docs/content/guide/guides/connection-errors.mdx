@@ -71,6 +71,22 @@ GRANT SHOW TABLES, SHOW COLUMNS ON *.* TO monitoring;
 See [ClickHouse requirements](/guide/getting-started/clickhouse-requirements).
 
 </Accordion>
+<Accordion title="Cannot modify setting in readonly mode">
+
+**Symptom** — _Code: 164. Cannot modify 'max_execution_time' setting in readonly mode_ · _Cannot modify 'readonly' setting in readonly mode_
+
+The user's ClickHouse **profile** sets `readonly = 1`. That level refuses every per-query setting, and chmonitor sends settings such as `max_execution_time` with every request so a slow query cannot run past its time budget. The dashboard cannot work around this: any setting it sends is refused, including a lower `readonly` value.
+
+**A profile with `readonly = 1` is not supported.** Use `readonly = 2` instead. It still blocks every write and DDL statement, and it allows changing settings other than `readonly` itself:
+
+```sql
+CREATE SETTINGS PROFILE monitoring_ro SETTINGS readonly = 2;
+ALTER USER monitoring SETTINGS PROFILE 'monitoring_ro';
+```
+
+In `users.xml`, set `<readonly>2</readonly>` in the user's profile.
+
+</Accordion>
 <Accordion title="Host not found (DNS)">
 
 **Symptom** — _getaddrinfo ENOTFOUND_ · _could not resolve host_

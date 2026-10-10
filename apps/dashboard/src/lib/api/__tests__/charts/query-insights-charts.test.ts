@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { queryInsightsCharts } from '@/lib/api/charts/query-insights-charts'
+import { CHART_QUERY_SETTINGS } from '@/lib/api/charts/types'
 
 const defaultParams = { interval: 'toStartOfHour' as const, lastHours: 24 }
 
@@ -8,6 +9,31 @@ describe('queryInsightsCharts', () => {
 
   test('map is non-empty', () => {
     expect(entries.length).toBeGreaterThan(0)
+  })
+
+  // #3684: a `SETTINGS` clause in the SQL text is refused under read-only
+  // mode before the client can normalize the request, so the Worker timeout
+  // travels as a client setting instead.
+  test('no builder writes the timeout into its SQL text', () => {
+    for (const [, builder] of entries) {
+      const result = builder({}) as { query?: string; sql?: { sql: string }[] }
+      const texts = [
+        result.query ?? '',
+        ...(result.sql ?? []).map((v) => v.sql),
+      ]
+      for (const text of texts)
+        expect(text).not.toMatch(/SETTINGS\s+max_execution_time/i)
+    }
+  })
+
+  test('builders carry the shared chart timeout as a client setting', () => {
+    for (const [name, builder] of entries) {
+      const result = builder({}) as { clickhouseSettings?: unknown }
+      expect({ name, settings: result.clickhouseSettings }).toEqual({
+        name,
+        settings: CHART_QUERY_SETTINGS,
+      })
+    }
   })
 
   test('known chart names are present', () => {

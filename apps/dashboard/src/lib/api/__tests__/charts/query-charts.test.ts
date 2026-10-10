@@ -1,11 +1,45 @@
 import { describe, expect, test } from 'bun:test'
 import { queryCharts } from '@/lib/api/charts/query-charts'
+import { CHART_QUERY_SETTINGS } from '@/lib/api/charts/types'
+
+// Never carried a timeout before #3684; left on the client default.
+const NO_CHART_TIMEOUT = new Set([
+  'query-cache',
+  'slow-query-regressions',
+  'mv-staleness',
+])
 
 describe('queryCharts', () => {
   const entries = Object.entries(queryCharts)
 
   test('map is non-empty', () => {
     expect(entries.length).toBeGreaterThan(0)
+  })
+
+  // #3684: a `SETTINGS` clause in the SQL text is refused under read-only
+  // mode before the client can normalize the request, so the Worker timeout
+  // travels as a client setting instead.
+  test('no builder writes the timeout into its SQL text', () => {
+    for (const [, builder] of entries) {
+      const result = builder({}) as { query?: string; sql?: { sql: string }[] }
+      const texts = [
+        result.query ?? '',
+        ...(result.sql ?? []).map((v) => v.sql),
+      ]
+      for (const text of texts)
+        expect(text).not.toMatch(/SETTINGS\s+max_execution_time/i)
+    }
+  })
+
+  test('builders carry the shared chart timeout as a client setting', () => {
+    for (const [name, builder] of entries) {
+      if (NO_CHART_TIMEOUT.has(name)) continue
+      const result = builder({}) as { clickhouseSettings?: unknown }
+      expect({ name, settings: result.clickhouseSettings }).toEqual({
+        name,
+        settings: CHART_QUERY_SETTINGS,
+      })
+    }
   })
 
   describe.each(entries)('chart "%s"', (name, builder) => {
@@ -33,7 +67,6 @@ describe('queryCharts', () => {
         expect(scans).toHaveLength(1)
         expect(result.query).toContain('AS query_count')
         expect(result.query).toContain('AS breakdown')
-        expect(result.query).toContain('max_execution_time = 25')
       })
     }
 

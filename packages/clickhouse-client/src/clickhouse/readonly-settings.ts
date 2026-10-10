@@ -27,6 +27,15 @@
  * still refused with Code 164, and `SETTINGS readonly = 0` is refused with
  * `Cannot modify 'readonly' setting in readonly mode`.
  *
+ * What this rule cannot fix (#3684): a ClickHouse user whose PROFILE sets
+ * `readonly = 1`. That level refuses every setting the request carries,
+ * including the client-level `max_execution_time` and `readonly=2` itself
+ * (measured on 26.5: Code 164 for both; only a value equal to the profile's
+ * current one passes). Retrying without settings is not safe — the same code
+ * covers refused writes, and it would drop the Worker time cap — so that
+ * profile is documented as unsupported (use `readonly = 2`) in
+ * `docs/content/guide/guides/connection-errors.mdx`.
+ *
  * Call sites keep writing `readonly: '1'`: that is what they mean, and this
  * module upgrades it on the way out. Nothing at a call site can bypass the rule
  * because the wrapper is applied to the pooled client inside `getClient()` —

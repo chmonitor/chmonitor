@@ -177,6 +177,7 @@ export async function executeChartGrouping(
             columnCheck: queryDef.columnCheck,
             ttlSeconds: cachePolicyToQueryCacheTtlSeconds(queryDef.cachePolicy),
             disableQueryCache: queryDef.disableQueryCache,
+            clickhouseSettings: queryDef.clickhouseSettings,
           }
         )
 
