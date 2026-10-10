@@ -96,6 +96,32 @@ split-brain. Detection is pure and unit-tested (`cloud-mode.test.ts`); the
 | Auth | usually `none`; CLI device login **off** (`CHM_DEVICE_LOGIN=auto`) — opt in with `true` for device-only tokens on a trusted LAN | Clerk + `CHM_CLERK_PUBLIC_READ=true`; CLI device login **on** when `CHM_API_KEY_SECRET` is set |
 | Per-user conns | optional | on (`VITE_FEATURE_USER_CONNECTIONS_DB=true`) |
 | Agent (anon) | IP rate limit only, no daily cap | daily guest cap (default 3) + tighter RL (5/min); D1 `guest:<ip-hash>` |
+| Agent (signed-in) | env hosts; own saved connections if enabled | demo → 403 `demo_hidden`; own saved connection → queried directly |
+
+**The agent on a user's own connection.** `POST /api/v1/agent` accepts a
+negative `hostId`. After resolving the caller, the route calls
+`resolveAgentConnection` (`lib/ai/agent/host-query.ts`): `store.list(userId)`
+→ the entry with that `hostId` → `engine === 'clickhouse'` →
+`getCredentials(userId, id)`. Both store calls are scoped to the user, so a
+foreign id is a 404. Guests, browser-stored ids (`-1..-999`), Postgres
+connections and disabled storage are 400 `USER_CONNECTION_HOST_UNSUPPORTED`
+with an `error.reason`. The binding reaches every tool call through
+`AsyncLocalStorage` (`bindToolsToConnection` in `createAllTools`), and
+`readOnlyQuery` in `tools/helpers.ts` dispatches on it, so the advisor and
+forecaster libraries work unchanged. Rules: a bound call may only target the
+bound id (a model-supplied `hostId: 0` throws instead of reaching the demo); a
+negative id with no binding throws and never reaches `fetchData`; the
+connection path forces `readonly = 1`; the host-keyed metadata cache is skipped
+(every user's first connection is `-1000`). `CONNECTION_UNSUPPORTED_TOOLS`
+(`tools/index.ts`) return a clear error on a connection instead:
+`explain_anomaly_score` / `generate_cluster_report` (stores keyed by host id
+alone), `forecast_disk_capacity` / `suggest_ttl_adjustment` (gate on
+`checkTableExists(hostId)`, which probes the env host list), and the control
+tools (writes). `estimate_mutation_impact` runs but has no duration projection
+for the same `checkTableExists` reason. Never use a
+module-level "current connection": requests for different users share one
+isolate. Tests: `lib/ai/agent/__tests__/host-query.test.ts`,
+`routes/api/v1/__tests__/agent.user-connection.test.ts`.
 
 Read-only on the demo is *enforced* by the existing public-read gate: anonymous
 principals can only read, and signed-in users never see the demo. The `readOnly`

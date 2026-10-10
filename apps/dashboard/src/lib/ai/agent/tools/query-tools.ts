@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { assertBoundHost, currentAgentConnection } from '../host-query'
 import { hostIdSchema, readOnlyQuery, resolveHostId } from './helpers'
 import { validateSqlQuery } from '@chm/sql-builder'
 import { dynamicTool } from 'ai'
@@ -264,6 +265,20 @@ export function createQueryTools(hostId: number) {
         })
         if (!tableQuery) {
           throw new Error('slow-query-patterns query config not found')
+        }
+
+        const connection = currentAgentConnection()
+        if (connection) {
+          assertBoundHost(connection, resolvedHostId)
+          const { executeConnectionTableConfig } = await import(
+            '@/lib/connection-query/execute-connection-table'
+          )
+          const { data } = await executeConnectionTableConfig(
+            tableQuery.queryConfig,
+            connection.credentials,
+            tableQuery.queryParams
+          )
+          return data.slice(0, limit)
         }
 
         const { result } = await executeTableConfig(

@@ -8,6 +8,12 @@
 import { z } from 'zod'
 import type { DataFormat } from '@clickhouse/client'
 
+import {
+  AgentHostError,
+  assertBoundHost,
+  connectionReadOnlyQuery,
+  currentAgentConnection,
+} from '../host-query'
 import { fetchData } from '@chm/clickhouse-client'
 import { validateSqlQuery } from '@chm/sql-builder'
 
@@ -97,6 +103,27 @@ export async function readOnlyQuery(options: {
     useCache = false,
     clickhouse_settings,
   } = options
+
+  // A user's own connection, bound to this tool call by the agent route. The
+  // global metadata cache is keyed by host id, and every user's first
+  // connection is -1000, so it is skipped here to keep users isolated.
+  const binding = currentAgentConnection()
+  if (binding) {
+    assertBoundHost(binding, hostId)
+    return connectionReadOnlyQuery(binding, {
+      query,
+      format,
+      query_params,
+      clickhouse_settings,
+    })
+  }
+  // Negative ids are per-user connections: without a binding there is no
+  // ownership-checked credential, so never hand them to the env client.
+  if (hostId < 0) {
+    throw new AgentHostError(
+      `Host ${hostId} is a user connection that is not bound to this request.`
+    )
+  }
 
   // Check cache for metadata queries
   if (useCache) {
@@ -231,6 +258,13 @@ export async function writeQuery(options: {
   query_params?: Record<string, unknown>
 }): Promise<unknown> {
   const { query, hostId, query_params } = options
+
+  // Control actions only ever run on env hosts.
+  if (currentAgentConnection() || hostId < 0) {
+    throw new AgentHostError(
+      'Control actions are not available on your own connections.'
+    )
+  }
 
   const result = await fetchData({
     query,

@@ -15,6 +15,7 @@ import { z } from 'zod'
 
 import type { QueryConfig } from '@/types/query-config'
 
+import { assertBoundHost, currentAgentConnection } from '../host-query'
 import {
   NON_DATA_PAGES,
   normalizePageKey,
@@ -202,6 +203,24 @@ async function runTableSource(
     return { ...empty, truncated: false, error: 'Unknown query config' }
 
   try {
+    // On a user's own connection, run the same config via the connection
+    // executor the user-connection table route uses.
+    const connection = currentAgentConnection()
+    if (connection) {
+      const { executeConnectionTableConfig } = await import(
+        '@/lib/connection-query/execute-connection-table'
+      )
+      const { data } = await executeConnectionTableConfig(
+        tableQuery.queryConfig,
+        connection.credentials,
+        tableQuery.queryParams
+      )
+      return {
+        ...withRows(name, 'table', data as unknown[], limit),
+        ...(ignored.length > 0 ? { ignoredFilters: ignored } : {}),
+      }
+    }
+
     const { result } = await executeTableConfig(
       tableQuery.queryConfig,
       hostId,
@@ -273,6 +292,30 @@ async function runChartSource(
   }
 
   try {
+    const connection = currentAgentConnection()
+    if (connection) {
+      const { executeConnectionChartQuery } = await import(
+        '@/lib/connection-query/execute-connection-chart'
+      )
+      const { data } = await executeConnectionChartQuery(
+        name,
+        connection.credentials,
+        {
+          ...(lastHours ? { lastHours } : {}),
+          ...(Object.keys(filters).length > 0 ? { params: filters } : {}),
+        }
+      )
+      if ('queries' in built) {
+        const byKey = data as Record<string, unknown[]>
+        const rows = built.queries.map((q) => ({
+          key: q.key,
+          rows: (byKey[q.key] ?? []).slice(0, limit),
+        }))
+        return { ...withRows(name, 'chart', rows, limit) }
+      }
+      return withRows(name, 'chart', data as unknown[], limit)
+    }
+
     if ('queries' in built) {
       const { results } = await executeMultiChartQuery(built.queries, hostId)
       const rows = results.map((r) => ({
@@ -398,6 +441,8 @@ export function createPageDataTools(hostId: number) {
           hostId?: number
         }
         const resolvedHostId = resolveHostId(toolHostId, hostId)
+        const connection = currentAgentConnection()
+        if (connection) assertBoundHost(connection, resolvedHostId)
         const limit = Math.min(
           Math.max(1, Math.floor(rawLimit ?? PAGE_DATA_DEFAULT_LIMIT)),
           PAGE_DATA_MAX_LIMIT

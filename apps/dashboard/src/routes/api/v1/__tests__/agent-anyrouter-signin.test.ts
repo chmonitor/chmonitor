@@ -213,6 +213,9 @@ describe('POST /api/v1/agent — Sign in with AnyRouter', () => {
 
   test('signed-in, no request key: the stored token reaches the runtime, not metered', async () => {
     process.env[FLAG] = 'true'
+    // Self-hosted: a signed-in cloud user on the default host 0 is now
+    // refused by the demo-host rule (agent.host-id-guard.test.ts).
+    cloudMode = false
     signedInUser = 'user_a'
     storedToken = TOKEN
     await send({ model: 'anyrouter:openai/gpt-5' })
@@ -223,6 +226,9 @@ describe('POST /api/v1/agent — Sign in with AnyRouter', () => {
 
   test('signed-in, request key wins over the stored token', async () => {
     process.env[FLAG] = 'true'
+    // Self-hosted: a signed-in cloud user on the default host 0 is now
+    // refused by the demo-host rule (agent.host-id-guard.test.ts).
+    cloudMode = false
     signedInUser = 'user_a'
     storedToken = TOKEN
     await send({
@@ -235,6 +241,9 @@ describe('POST /api/v1/agent — Sign in with AnyRouter', () => {
 
   test('signed-in, flag off: stored token is never read; metered as usual', async () => {
     delete process.env[FLAG]
+    // Self-hosted: a signed-in cloud user on the default host 0 is now
+    // refused by the demo-host rule (agent.host-id-guard.test.ts).
+    cloudMode = false
     signedInUser = 'user_a'
     storedToken = TOKEN
     await send({ model: 'anyrouter:openai/gpt-5' })

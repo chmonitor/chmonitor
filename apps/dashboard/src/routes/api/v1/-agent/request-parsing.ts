@@ -12,6 +12,7 @@ import type { CustomMcpServerInput } from '@/lib/ai/agent/mcp/connect-custom-ser
 import { AGENT_DEBUG_LOGS } from './debug'
 import { parseByokApiKey } from '@/lib/ai/agent/byok'
 import { isAnyRouterProviderModel } from '@/lib/ai/anyrouter-signin-flag'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import {
   GUEST_DEFAULT_AGENT_MODEL,
   isGuestAllowedAgentModel,
@@ -91,6 +92,7 @@ export type ParseAgentRequestFailure = {
     | 'too_many_messages'
     | 'no_valid_messages'
     | 'message_required'
+    | 'invalid_host_id'
 }
 
 /** The validated, clamped request the handler works with. */
@@ -407,12 +409,17 @@ export async function parseAgentRequest(
     return { ok: false, reason: 'message_required' }
   }
 
-  const rawHostId =
-    typeof body.hostId === 'string' ? Number(body.hostId) : body.hostId
+  // A missing host id means the default host 0. Anything else must be a
+  // whole number: never truncate or clamp it, or a fraction / junk / negative
+  // (per-user connection) id would silently become host 0. Negative ids pass
+  // through; the route resolves them to the caller's own connection.
   const hostId =
-    typeof rawHostId === 'number' && Number.isFinite(rawHostId)
-      ? Math.max(0, Math.trunc(rawHostId))
-      : 0
+    body.hostId === undefined || body.hostId === null
+      ? 0
+      : parseHostIdParam(body.hostId)
+  if (!Number.isInteger(hostId)) {
+    return { ok: false, reason: 'invalid_host_id' }
+  }
 
   const disabledTools = Array.isArray(body.disabledTools)
     ? body.disabledTools.filter((t) => typeof t === 'string')

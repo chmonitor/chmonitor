@@ -63,47 +63,6 @@ interface TableClientProps {
 
 const tableRowFormatter = new Intl.NumberFormat('en-US')
 
-/**
- * An optional table whose backing system table is absent comes back as a
- * 200 with empty data and `metadata.unavailable` (routes/api/v1/tables/$name).
- * Turn that into a `table_not_found` card error so the page renders the same
- * "Table not available" state (with enable guidance) as a missing-table
- * error, instead of the generic "No Data" card (#3737).
- *
- * Accepts both shapes: the table route's `unavailable: true` +
- * `unavailableReason` + `missingTables`, and the chart route's
- * `unavailable: { message, missingTables }` object.
- */
-export function unavailableTableError(
-  metadata: ApiResponseMetadata | undefined
-): CardError | undefined {
-  const meta = metadata as
-    | (Omit<ApiResponseMetadata, 'unavailable'> & {
-        unavailable?: unknown
-        unavailableReason?: string
-      })
-    | undefined
-  if (!meta?.unavailable) return undefined
-  const note =
-    typeof meta.unavailable === 'object'
-      ? (meta.unavailable as {
-          message?: string
-          missingTables?: readonly string[]
-        })
-      : undefined
-  const missingTables = meta.missingTables?.length
-    ? meta.missingTables
-    : note?.missingTables
-  return {
-    type: 'table_not_found',
-    message:
-      meta.unavailableReason ||
-      note?.message ||
-      'This table is not available on this server.',
-    details: missingTables?.length ? { missingTables } : undefined,
-  }
-}
-
 // react-markdown + remark-gfm are only needed for the rare "table missing"
 // guidance branch below, so load them lazily to keep them out of the shared
 // table chunk used by every dashboard page.
@@ -239,19 +198,13 @@ export const TableClient = function TableClient({
     [JSON.stringify(searchParams), hostId]
   )
 
-  const {
-    data,
-    metadata,
-    error: fetchError,
-    isPending,
-    isValidating,
-    refresh,
-  } = useTableData<Record<string, unknown>>(
-    queryConfig.name,
-    hostId,
-    searchParams,
-    refreshInterval
-  )
+  const { data, metadata, error, isPending, isValidating, refresh } =
+    useTableData<Record<string, unknown>>(
+      queryConfig.name,
+      hostId,
+      searchParams,
+      refreshInterval
+    )
 
   // Keep the skeleton up until the query has actually settled. `isPending` is
   // true whenever no successful response has loaded yet — including the brief
@@ -265,10 +218,6 @@ export const TableClient = function TableClient({
   if (isInitialLoading) {
     return <TableSkeleton />
   }
-
-  const error =
-    fetchError ??
-    (!data || data.length === 0 ? unavailableTableError(metadata) : undefined)
 
   // Get SQL for display in toolbars
   const sql = queryConfig.sql ? getSqlForDisplay(queryConfig.sql) : undefined
