@@ -16,15 +16,18 @@
 import type { PartsPressureRow } from '../health/parts-pressure'
 
 import {
+  checkBrokenDetachedParts,
   checkDetachedParts,
   checkFailedDictionaries,
+  checkInsertBackpressure,
   checkLongRunningQuery,
   checkPartsPressure,
   checkStuckMutations,
+  checkStuckReplicationQueue,
   DETACHED_PARTS_MIN,
-  DETACHED_PARTS_WARN,
   LONG_QUERY_CRITICAL_SECONDS,
   LONG_QUERY_WARN_SECONDS,
+  REPLICATION_QUEUE_STUCK_CRITICAL,
   STUCK_MUTATIONS_CRITICAL,
 } from './operational-checks'
 import { describe, expect, test } from 'bun:test'
@@ -41,18 +44,74 @@ describe('checkDetachedParts', () => {
     expect(c?.category).toBe('storage')
     expect(c?.metric).toBe('detached_parts')
     expect(c?.value).toBe(DETACHED_PARTS_MIN)
-    expect(c?.action).toEqual({ label: 'View tables', href: '/tables' })
+    expect(c?.action).toEqual({
+      label: 'View detached parts',
+      href: '/detached-parts',
+    })
   })
 
-  test('at/above the warn threshold escalates to warning', () => {
-    expect(checkDetachedParts(DETACHED_PARTS_WARN)?.severity).toBe('warning')
-    expect(checkDetachedParts(DETACHED_PARTS_WARN + 100)?.severity).toBe(
-      'warning'
-    )
+  test('non-broken detached parts stay informational however many there are', () => {
+    // Housekeeping, not damage — broken parts have their own critical check.
+    expect(checkDetachedParts(10_000)?.severity).toBe('info')
   })
 
   test('non-finite input is ignored', () => {
     expect(checkDetachedParts(Number.NaN)).toBeNull()
+  })
+})
+
+describe('checkBrokenDetachedParts', () => {
+  test('zero is suppressed', () => {
+    expect(checkBrokenDetachedParts(0)).toBeNull()
+  })
+
+  test('a single broken part is critical with its own metric key', () => {
+    const c = checkBrokenDetachedParts(1)
+    expect(c?.severity).toBe('critical')
+    expect(c?.metric).toBe('broken_detached_parts')
+    expect(c?.action?.href).toBe('/detached-parts')
+    expect(c?.detail).toContain('What to do')
+  })
+})
+
+describe('checkStuckReplicationQueue', () => {
+  test('zero is suppressed', () => {
+    expect(checkStuckReplicationQueue(0, 0)).toBeNull()
+  })
+
+  test('stuck entries warn, and escalate to critical at the threshold', () => {
+    const c = checkStuckReplicationQueue(1, 150)
+    expect(c?.severity).toBe('warning')
+    expect(c?.metric).toBe('stuck_replication_queue')
+    expect(c?.action?.href).toBe('/replication-queue')
+    expect(c?.detail).toContain('150')
+    expect(
+      checkStuckReplicationQueue(REPLICATION_QUEUE_STUCK_CRITICAL, 0)?.severity
+    ).toBe('critical')
+  })
+})
+
+describe('checkInsertBackpressure', () => {
+  test('no delayed and no rejected inserts is suppressed', () => {
+    expect(checkInsertBackpressure(0, 0)).toBeNull()
+    expect(checkInsertBackpressure(Number.NaN, Number.NaN)).toBeNull()
+  })
+
+  test('delayed only is a warning', () => {
+    const c = checkInsertBackpressure(3, 0)
+    expect(c?.severity).toBe('warning')
+    expect(c?.metric).toBe('insert_backpressure')
+    expect(c?.action?.href).toBe('/merges')
+  })
+
+  test('any rejection is critical, since rejected inserts are lost writes', () => {
+    expect(checkInsertBackpressure(0, 1)?.severity).toBe('critical')
+  })
+
+  test('title has no counts so a dismissal survives regeneration', () => {
+    expect(checkInsertBackpressure(3, 0)?.title).toBe(
+      checkInsertBackpressure(9, 0)?.title
+    )
   })
 })
 

@@ -20,8 +20,12 @@ const DEFAULT_SINCE = '6 HOUR'
 
 const VALID_SEVERITY = new Set<InsightSeverity>(['info', 'warning', 'critical'])
 
-/** Re-derive a sensible action from the persisted metric/category. */
-function deriveAction(
+/**
+ * Re-derive a sensible action from the persisted metric/category. Every metric
+ * a collector emits must have a case here (`read-insights.derive-action.test.ts`
+ * enforces it), or the card loses its link after a reload.
+ */
+export function deriveAction(
   metric: string,
   category: string
 ): InsightAction | undefined {
@@ -32,14 +36,21 @@ function deriveAction(
       return { label: 'Open running queries', href: '/running-queries' }
     case 'max_active_parts':
     case 'worst_compression_ratio':
-    case 'detached_parts':
       return { label: 'View tables', href: '/tables' }
+    case 'detached_parts':
+    case 'broken_detached_parts':
+      return { label: 'View detached parts', href: '/detached-parts' }
+    case 'ttl_partition_health':
+      return { label: 'View TTL inventory', href: '/ttl-partition-health' }
     case 'readonly_replicas':
     case 'max_replication_delay':
       return { label: 'View replicas', href: '/replicas' }
+    case 'stuck_replication_queue':
+      return { label: 'View replication queue', href: '/replication-queue' }
     case 'stuck_mutations':
       return { label: 'View mutations', href: '/mutations' }
     case 'parts_pressure':
+    case 'insert_backpressure':
       return { label: 'View merges', href: '/merges' }
     case 'longest_running_query':
       return { label: 'Open running queries', href: '/running-queries' }
