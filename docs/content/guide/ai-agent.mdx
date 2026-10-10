@@ -125,6 +125,12 @@ upstreams (the shared key cannot route them); if none qualify it falls back to
 the curated default. Self-hosted / OSS is unchanged
 (no guest gate).
 
+When `CHM_AGENT_ANYROUTER_SIGNIN_ENABLED=true` (on for the hosted product),
+guests can also **Sign in with AnyRouter**. Requests then run on their own
+AnyRouter account: any `anyrouter:` model, no daily cap. Rate limits and the
+demo-host and MCP restrictions still apply. See
+[Sign in with AnyRouter](/guide/ai-agent/configuration#sign-in-with-anyrouter-bring-your-own-credits).
+
 ## Child pages
 
 <Cards>

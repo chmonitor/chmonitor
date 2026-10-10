@@ -136,4 +136,14 @@ export interface PublicFeaturePermissionConfig {
   userConnections?: UserConnectionsPublicConfig
   /** Metadata-database availability for state-persisting features. */
   metadataDb?: MetadataDbPublicConfig
+  /** AI agent capabilities the client needs to know about. */
+  agent?: AgentPublicConfig
+}
+
+export interface AgentPublicConfig {
+  /**
+   * `CHM_AGENT_ANYROUTER_SIGNIN_ENABLED`: show "Sign in with AnyRouter".
+   * False → the login/callback/token routes return 404.
+   */
+  anyrouterSignin: boolean
 }

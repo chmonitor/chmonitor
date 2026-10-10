@@ -74,6 +74,9 @@ export function createAgentStreamResponse(options: {
   /** BYOK key for this request, if any — redacted from any error text that
    * reaches the client (see `collectSecretsToRedact`). */
   byokApiKey?: string | null
+  /** True when `byokApiKey` is the user's own AnyRouter sign-in token, so an
+   * AnyRouter 401 is reported as `anyrouter_token_expired`. */
+  userAnyRouterToken?: boolean
 }): Response {
   const {
     agent,
@@ -86,7 +89,13 @@ export function createAgentStreamResponse(options: {
     resolvedPlan,
     releaseReservationOnce,
     byokApiKey = null,
+    userAnyRouterToken = false,
   } = options
+  const classifyContext = {
+    model,
+    provider: requestedProvider,
+    userAnyRouterToken,
+  }
 
   const usageSteps: LanguageModelUsage[] = []
   // Tracks the provider-reported model ID from the last completed step.
@@ -100,11 +109,7 @@ export function createAgentStreamResponse(options: {
   // structured AgentError, so those chunks never fall back to the SDK's
   // masked "An error occurred." default.
   const formatErrorText = (error: unknown) =>
-    formatAgentErrorText(
-      error,
-      { model, provider: requestedProvider },
-      secretsToRedact
-    )
+    formatAgentErrorText(error, classifyContext, secretsToRedact)
 
   const buildStats = (resolvedModel: string) => ({
     ...aggregateUsageWithCost(usageSteps, model),
@@ -224,7 +229,7 @@ export function createAgentStreamResponse(options: {
         }
       } catch (error) {
         const classified = sanitizeAgentError(
-          classifyError(error, { model, provider: requestedProvider }),
+          classifyError(error, classifyContext),
           secretsToRedact
         )
         console.error('[Agent API] Classified error:', classified)
@@ -256,7 +261,7 @@ export function createAgentStreamResponse(options: {
     },
     onError: (error) => {
       const classified = sanitizeAgentError(
-        classifyError(error, { model, provider: requestedProvider }),
+        classifyError(error, classifyContext),
         secretsToRedact
       )
       console.error('[Agent API] Classified error:', classified)

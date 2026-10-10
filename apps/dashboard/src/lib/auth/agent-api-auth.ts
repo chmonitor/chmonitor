@@ -8,7 +8,9 @@ import {
 /**
  * Cloud anonymous visitors may hit these agent surfaces only. Other write
  * routes (actions, SQL console, conversations, user-connections, MCP probe,
- * AnyRouter OAuth) stay Clerk-gated. Do not flip AGENT access to `public` —
+ * the stored AnyRouter token) stay Clerk-gated. The AnyRouter sign-in start
+ * route is listed because guests may bring their own AnyRouter token; it
+ * returns 404 unless CHM_AGENT_ANYROUTER_SIGNIN_ENABLED is on. Do not flip AGENT access to `public` —
  * Clerk public-read still 401s unsigned writes.
  */
 const CLOUD_GUEST_AGENT_PATHS = new Set([
@@ -16,6 +18,7 @@ const CLOUD_GUEST_AGENT_PATHS = new Set([
   '/api/v1/agents/models',
   '/api/v1/agents/config-check',
   '/api/v1/agent/followups',
+  '/api/v1/agents/anyrouter/login',
 ])
 
 function isCloudGuestAgentPath(request: Request): boolean {

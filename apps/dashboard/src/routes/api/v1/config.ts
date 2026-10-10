@@ -38,6 +38,10 @@ import type {
 } from '@/lib/feature-permissions/types'
 
 import { env } from 'cloudflare:workers'
+import {
+  ANYROUTER_SIGNIN_ENV,
+  parseAnyRouterSigninEnabled,
+} from '@/lib/ai/anyrouter-signin-flag'
 import { parseAuthProvider } from '@/lib/auth/provider'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
 import { getFileFeatureOverrides } from '@/lib/feature-permissions/config-file'
@@ -260,6 +264,11 @@ function getPublicFeaturePermissionConfig(): PublicFeaturePermissionConfig {
       requiresAuth: userConnections.requiresAuth,
     },
     metadataDb: { available: metadataDbAvailable },
+    agent: {
+      anyrouterSignin: parseAnyRouterSigninEnabled(
+        readEnv(ANYROUTER_SIGNIN_ENV)
+      ),
+    },
   }
 }
 

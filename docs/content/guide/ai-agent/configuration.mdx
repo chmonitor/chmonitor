@@ -89,17 +89,49 @@ prompt, and sampling settings.
 
 ### Sign in with AnyRouter (bring your own credits)
 
-Users can sign in to AnyRouter directly from the model picker (or the
-**Provider & Models** settings tab) instead of relying on the deployment's key.
-The server runs an OAuth 2.1 authorization-code + PKCE flow in a popup; the
-resulting token is held **in that browser only** and replayed per request
-through the existing BYOK path, so it is never persisted or logged
-server-side. AnyRouter tokens last about 30 days and have no refresh token —
-signing in again mints a fresh one.
+Users can sign in with their own AnyRouter account from the model picker (or
+the **Provider & Models** settings tab), so agent requests run on their
+AnyRouter credits instead of the deployment's key.
 
-Sign-in is offered **only when `ANYROUTER_API_KEY` is not set**. With a key
-configured the provider already works for everyone, so the flow is hidden;
-without one, it unlocks AnyRouter models that would otherwise be unavailable.
+The feature is controlled by one flag:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_AGENT_ANYROUTER_SIGNIN_ENABLED` | `false` | Turn on "Sign in with AnyRouter". The hosted product sets it to `true`. When `false`, the sign-in routes return `404` and the agent behaves exactly as before. |
+
+`GET /api/v1/config` reports it as `agent.anyrouterSignin`, and the UI only
+shows the sign-in button when it is `true`.
+
+How it works:
+
+- **Sign-in.** The server runs an OAuth 2.1 authorization-code + PKCE flow in
+  a popup (`GET /api/v1/agents/anyrouter/login` → AnyRouter →
+  `GET /api/v1/agents/anyrouter/callback`). The popup hands the token to the
+  page, which keeps it in that browser and sends it with each agent request
+  as the BYOK `apiKey`.
+- **Guests.** Anonymous visitors may sign in too. A guest request with their
+  own token runs on their AnyRouter account: it may use any `anyrouter:`
+  model and does not count toward the free daily cap. The per-IP rate limit,
+  the demo-host restriction, and the ban on custom MCP servers still apply.
+  Without a token, guests get the free demo model and the daily cap as usual.
+- **Signed-in users.** The token is also saved on the server, encrypted with
+  AES-256-GCM, so it follows the user to other devices
+  (`PUT` / `GET` / `DELETE /api/v1/agents/anyrouter/token`). The `GET` only
+  reports `{ connected, expiresAt }`; the token is never returned or logged.
+  Storage uses the `CHM_CLOUD_D1` binding (table `user_provider_tokens`) and
+  the same key as user connections: `CHM_USER_CONNECTIONS_ENCRYPTION_KEY`,
+  or one derived from `CLERK_SECRET_KEY`. Without a key or D1 binding, the
+  token route returns `503` and nothing is stored; the browser copy still
+  works.
+- **Which key is used.** The key sent with the request comes first. If there
+  is none, a signed-in user's stored AnyRouter token is used for
+  `anyrouter:` models. Otherwise the deployment key is used, with the normal
+  plan limits. A request that uses the user's own key is never metered
+  against included credits.
+- **Expiry.** AnyRouter tokens last about 30 days and have no refresh token.
+  When AnyRouter rejects a user token with `401`, the agent returns an
+  `auth_error` with `code: "anyrouter_token_expired"`, and the UI asks the
+  user to sign in again.
 
 ### AnyRouter dynamic models (usage ranking)
 

@@ -45,11 +45,14 @@
  *
  * ## Token handling
  *
- * The minted `access_token` is NEVER persisted server-side and NEVER logged —
+ * The minted `access_token` is NEVER logged and this flow never persists it —
  * mirrors the discipline documented in `lib/ai/agent/byok.ts`. It is handed to
  * the browser exactly once, via `postMessage` from the callback popup, and
  * from then on flows through the existing BYOK `apiKey` request field that the
- * client already sends per-request.
+ * client already sends per-request. A signed-in user may additionally save it
+ * (encrypted) via `PUT /api/v1/agents/anyrouter/token`
+ * (`lib/ai/agent/user-token-store.ts`). The whole feature is gated by
+ * `CHM_AGENT_ANYROUTER_SIGNIN_ENABLED` (`anyrouter-signin-flag.ts`).
  */
 
 export const ANYROUTER_OAUTH_BASE = 'https://anyrouter.dev/api/v1/mcp/oauth'

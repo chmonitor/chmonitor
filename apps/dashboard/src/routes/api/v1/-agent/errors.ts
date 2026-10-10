@@ -11,7 +11,11 @@ import {
   AGENT_MAX_REQUEST_SIZE_BYTES,
   type ParseAgentRequestFailure,
 } from './request-parsing'
-import { classifyError } from '@/lib/ai/agent/errors'
+import {
+  type ClassifyErrorContext,
+  classifyError,
+  sanitizeAgentError,
+} from '@/lib/ai/agent/errors'
 import { providerNotConfiguredMessage } from '@/lib/ai/providers'
 
 /** JSON error response with the endpoint's standard content-type. */
@@ -99,8 +103,15 @@ export function providerNotConfiguredResponse(
  * (title, cause, suggestion) and log the raw cause so the true origin is
  * visible in worker logs / Sentry.
  */
-export function unhandledErrorResponse(error: unknown): Response {
-  const classified = classifyError(error)
+export function unhandledErrorResponse(
+  error: unknown,
+  context: ClassifyErrorContext = {},
+  extraSecrets: readonly (string | null | undefined)[] = []
+): Response {
+  const classified =
+    extraSecrets.length > 0
+      ? sanitizeAgentError(classifyError(error, context), extraSecrets)
+      : classifyError(error, context)
   console.error('[Agent API] Unhandled error:', classified, error)
   const status =
     typeof classified.statusCode === 'number' && classified.statusCode >= 400
