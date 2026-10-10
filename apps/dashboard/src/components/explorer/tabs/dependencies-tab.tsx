@@ -10,6 +10,10 @@ import {
 import { useExplorerState } from '../hooks/use-explorer-state'
 import { CardToolbar } from '@/components/cards/card-toolbar'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  detectCardErrorVariant,
+  getCardErrorDescription,
+} from '@/lib/card-error-utils'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 
@@ -121,7 +125,8 @@ export function DependenciesTab() {
   if (error) {
     return (
       <div className="flex h-[400px] items-center justify-center rounded-lg border bg-muted/10 text-sm text-destructive">
-        Failed to load dependencies: {error.message}
+        Failed to load dependencies:{' '}
+        {getCardErrorDescription(error, detectCardErrorVariant(error))}
       </div>
     )
   }

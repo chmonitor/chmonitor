@@ -12,6 +12,10 @@ import { TreeSkeleton } from './tree-skeleton'
 import { useMemo, useState } from 'react'
 import { SidebarMenu } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import {
+  detectCardErrorVariant,
+  getCardErrorDescription,
+} from '@/lib/card-error-utils'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
@@ -90,7 +94,8 @@ export function DatabaseTree({
   if (error) {
     return (
       <div className="p-4 text-sm text-destructive">
-        Failed to load databases: {error.message}
+        Failed to load databases:{' '}
+        {getCardErrorDescription(error, detectCardErrorVariant(error))}
       </div>
     )
   }

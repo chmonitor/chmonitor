@@ -9,6 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import {
+  detectCardErrorVariant,
+  getCardErrorDescription,
+} from '@/lib/card-error-utils'
 import { formatSql } from '@/lib/sql-format'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
@@ -117,7 +121,8 @@ export function DdlTab() {
         </CardHeader>
         <CardContent>
           <div className="text-sm text-destructive">
-            Failed to load DDL: {error.message}
+            Failed to load DDL:{' '}
+            {getCardErrorDescription(error, detectCardErrorVariant(error))}
           </div>
         </CardContent>
       </Card>

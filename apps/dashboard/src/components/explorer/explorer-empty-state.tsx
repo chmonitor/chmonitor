@@ -16,6 +16,10 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { activateOnEnterOrSpace } from '@/lib/a11y'
+import {
+  detectCardErrorVariant,
+  getCardErrorDescription,
+} from '@/lib/card-error-utils'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { cn } from '@/lib/utils'
@@ -162,7 +166,8 @@ export function ExplorerEmptyState() {
 
         {error && (
           <div className="text-sm text-destructive">
-            Failed to load databases: {error.message}
+            Failed to load databases:{' '}
+            {getCardErrorDescription(error, detectCardErrorVariant(error))}
           </div>
         )}
 
