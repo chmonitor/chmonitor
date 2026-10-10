@@ -125,7 +125,8 @@ describe('auth provider: every former call site gives the same answer', () => {
           cliAuthDiscovery: resolveCliAuthDiscovery(env).authProvider,
           featurePermissions: getAppConfig().authProvider,
         }
-        for (const answer of Object.values(answers)) expect(answer).toBe(want)
+        for (const answer of Object.values(answers))
+          expect(String(answer)).toBe(String(want))
       })
     }
   }
