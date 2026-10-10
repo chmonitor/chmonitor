@@ -9,6 +9,7 @@
 
 import { QUERY_COMMENT } from '@chm/clickhouse-client/constants'
 import { EVENTS_TABLE } from '@/lib/app-tables'
+import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 
 export interface MenuCountQuery {
   query: string
@@ -28,7 +29,7 @@ export interface MenuCountQuery {
 export const menuCountRegistry: Record<string, MenuCountQuery> = {
   // Tables menu
   'tables-explorer': {
-    query: `SELECT COUNT() as count FROM system.tables WHERE lower(database) NOT IN ('system', 'information_schema') AND is_temporary = 0 AND engine LIKE '%MergeTree%'`,
+    query: `SELECT COUNT() as count FROM system.tables WHERE lower(database) NOT IN ('system', 'information_schema') AND ${LOCAL_DATABASES_FILTER} AND is_temporary = 0 AND engine LIKE '%MergeTree%'`,
   },
   'tables-overview': {
     query: `SELECT countDistinct(database, table) as count FROM system.parts WHERE active`,

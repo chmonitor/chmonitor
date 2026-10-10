@@ -44,11 +44,34 @@ import {
   buildTtlPartitionHealthDetailSql,
   buildTtlPartitionInventorySql,
 } from '@/lib/health/ttl-partition-sql'
+import {
+  CLUSTER_COLUMNS_QUERY,
+  CLUSTER_TABLES_QUERY,
+} from '@/lib/schema-diff/cluster-sql'
 
 // Portable form: `import.meta.dir` is a Bun-only field, and this file is type
 // checked by tsconfig.test.json, which does not declare it on ImportMeta.
 // Same shape as routes/api/__tests__/hostid-validation-contract.test.ts.
 const HEALTH_DIR = dirname(fileURLToPath(import.meta.url))
+const LIB_DIR = join(HEALTH_DIR, '..')
+const SRC_DIR = join(LIB_DIR, '..')
+
+/**
+ * Files outside lib/health/ whose catalog scans are unpinned and must be
+ * filtered. Deliberately absent: lib/ai/advisor/tuning/tuning-engine.ts and
+ * lib/query-config/explorer/dependencies.ts (pinned to the caller's
+ * `database = {database:String}`, so a remote-engine database is listed when
+ * the caller asked for it).
+ */
+const GUARDED_FILES = [
+  'lib/api/charts/overview-charts.ts',
+  'lib/api/menu-count-registry.ts',
+  'routes/api/v1/overview.ts',
+  'routes/api/v1/tables/index.ts',
+  'lib/query-config/explorer/databases.ts',
+  'lib/query-config/declarative/catalog/explorer/databases.ts',
+  'lib/schema-diff/cluster-sql.ts',
+].map((f) => join(SRC_DIR, f))
 
 /**
  * A scan is safe when it is restricted to local engines, or pinned to one
@@ -208,6 +231,25 @@ describe('lib/health source guard', () => {
       }
     }
     expect(offenders).toEqual([])
+  })
+
+  test('hot-path and explorer catalog scans outside lib/health are guarded', () => {
+    const offenders: string[] = []
+    for (const file of GUARDED_FILES) {
+      for (const scan of unguardedScans(readFileSync(file, 'utf8'))) {
+        offenders.push(
+          `${file.slice(SRC_DIR.length + 1)}: ${scan.slice(0, 90)}`
+        )
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  test('cluster diff renders the filter inside the per-node view body', () => {
+    for (const sql of [CLUSTER_TABLES_QUERY, CLUSTER_COLUMNS_QUERY]) {
+      const view = sql.slice(sql.indexOf('view('))
+      expect(view).toContain(LOCAL_DATABASES_FILTER)
+    }
   })
 
   test('a bare system.tables mention in a comment does not fail the guard', () => {
