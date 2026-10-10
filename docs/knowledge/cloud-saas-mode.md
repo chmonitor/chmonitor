@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-10-02
+updated: 2026-10-11
 tags:
   - saas
   - cloud
@@ -269,6 +269,18 @@ self-host skips this entirely (fail-closed to self-hosted).
   for guests (and signed-in users).
 - **AnyRouter attribution**: `openRouterUser` is `${guestOwnerId}/${sessionId}`
   so the usage explorer groups by guest hash, not a single `guest` string.
+- **Sign in with AnyRouter** (`CHM_AGENT_ANYROUTER_SIGNIN_ENABLED`, default
+  off, on in `.env.production`, `agent.anyrouterSignin` in `/api/v1/config`):
+  a guest's own AnyRouter token is kept by `hardenGuestAgentRequest` (any
+  `anyrouter:` model; a non-AnyRouter model falls back to the guest default)
+  and makes the request BYOK, so the daily cap is not charged. Rate limits,
+  MCP and host restrictions still apply. Signed-in users' tokens are stored
+  AES-256-GCM encrypted in D1 `user_provider_tokens` (owner+provider bound
+  into the GCM additional data; fail closed without key/D1). Key order:
+  request key → stored token → deployment key (`selectAgentApiKey`). An
+  AnyRouter 401 on a user token returns `code: 'anyrouter_token_expired'`.
+  `/api/v1/agents/anyrouter/login` is on the guest agent path list so
+  anonymous Cloud visitors can start sign-in.
 
 ## Billing (Polar) — not in the dashboard
 

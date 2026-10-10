@@ -29,6 +29,10 @@ import {
   getOrRegisterClientId,
   parseSigninCookie,
 } from '@/lib/ai/anyrouter-signin'
+import {
+  anyRouterSigninDisabledResponse,
+  isAnyRouterSigninEnabled,
+} from '@/lib/ai/anyrouter-signin-flag'
 import { secretsMatch } from '@/lib/auth/providers/constant-time'
 
 const HTML_HEADERS = { 'Content-Type': 'text/html; charset=utf-8' }
@@ -49,6 +53,9 @@ function errorResponse(
 }
 
 async function handleGet(request: Request): Promise<Response> {
+  // Feature off (default for self-hosted) → the route does not exist.
+  if (!isAnyRouterSigninEnabled()) return anyRouterSigninDisabledResponse()
+
   const url = new URL(request.url)
   const originUrl = deriveOriginUrl(request)
   const secure = url.protocol === 'https:'

@@ -11,6 +11,7 @@ import type { CustomMcpServerInput } from '@/lib/ai/agent/mcp/connect-custom-ser
 
 import { AGENT_DEBUG_LOGS } from './debug'
 import { parseByokApiKey } from '@/lib/ai/agent/byok'
+import { isAnyRouterProviderModel } from '@/lib/ai/anyrouter-signin-flag'
 import {
   GUEST_DEFAULT_AGENT_MODEL,
   isGuestAllowedAgentModel,
@@ -455,27 +456,54 @@ export async function parseAgentRequest(
   }
 }
 
+export interface GuestHardeningOptions {
+  /**
+   * `CHM_AGENT_ANYROUTER_SIGNIN_ENABLED`. When true, a guest who signed in
+   * with AnyRouter keeps their own token and may pick any AnyRouter model.
+   * Defaults to false: today's hardening, unchanged.
+   */
+  readonly anyrouterSigninEnabled?: boolean
+}
+
 /**
- * Cloud guest hardening: no BYOK, no custom MCP, demo/env hostId only,
- * model allowlist (auto default, free). Does not change message text.
+ * Cloud guest hardening: no custom MCP, demo/env hostId only, model allowlist
+ * (auto default, free), no BYOK.
+ *
+ * Exception (flag on only): a guest who sends their own AnyRouter token keeps
+ * it. Their request then runs on their AnyRouter account, so any
+ * `anyrouter:` model is allowed; a non-AnyRouter model falls back to the
+ * guest default (the token is AnyRouter-only and must never reach another
+ * provider). MCP and host restrictions still apply. Does not change message
+ * text.
  */
 export function hardenGuestAgentRequest(
-  parsed: ParsedAgentRequest
+  parsed: ParsedAgentRequest,
+  options: GuestHardeningOptions = {}
 ): ParsedAgentRequest {
   const requested = parsed.body.model
-  const model = isGuestAllowedAgentModel(requested)
-    ? requested!.trim()
-    : GUEST_DEFAULT_AGENT_MODEL
+  const keepUserToken =
+    options.anyrouterSigninEnabled === true && parsed.byokApiKey !== null
+
+  let model: string
+  if (keepUserToken) {
+    model = isAnyRouterProviderModel(requested)
+      ? requested!.trim()
+      : GUEST_DEFAULT_AGENT_MODEL
+  } else {
+    model = isGuestAllowedAgentModel(requested)
+      ? requested!.trim()
+      : GUEST_DEFAULT_AGENT_MODEL
+  }
 
   return {
     ...parsed,
     body: {
       ...parsed.body,
       model,
-      apiKey: undefined,
+      apiKey: keepUserToken ? parsed.body.apiKey : undefined,
       mcpServers: undefined,
     },
-    byokApiKey: null,
+    byokApiKey: keepUserToken ? parsed.byokApiKey : null,
     mcpServers: [],
     hostId: Math.max(0, parsed.hostId),
   }

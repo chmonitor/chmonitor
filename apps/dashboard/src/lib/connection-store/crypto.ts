@@ -24,7 +24,7 @@ function readEnv(key: string): string | undefined {
 //      is always present when this runs — no separate secret to provision. This
 //      keeps config simple; the trade-off is that rotating CLERK_SECRET_KEY
 //      re-keys stored connections (acceptable: it invalidates sessions anyway).
-async function deriveEncryptionKey(): Promise<CryptoKey | null> {
+export async function deriveEncryptionKey(): Promise<CryptoKey | null> {
   const explicit = readEnv('CHM_USER_CONNECTIONS_ENCRYPTION_KEY')
   if (explicit) {
     const raw = Uint8Array.from(atob(explicit.trim()), (c) => c.charCodeAt(0))

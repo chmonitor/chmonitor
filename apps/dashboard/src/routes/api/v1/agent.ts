@@ -36,6 +36,9 @@ import {
 } from './-agent/runtime'
 import { createAgentStreamResponse } from './-agent/stream'
 import { env } from 'cloudflare:workers'
+import { selectAgentApiKey } from '@/lib/ai/agent/byok'
+import { getUserProviderToken } from '@/lib/ai/agent/user-token-store'
+import { isAnyRouterSigninEnabled } from '@/lib/ai/anyrouter-signin-flag'
 import { isProviderConfigured, parseModelId } from '@/lib/ai/providers'
 import {
   checkRateLimitDurable,
@@ -91,15 +94,32 @@ async function handlePost(request: Request): Promise<Response> {
   const isGuest = clerkUserId === 'guest'
   const guestOwnerId =
     isGuest && isCloudModeServer() ? await guestOwnerIdFromIp(ip) : undefined
+  const anyrouterSigninEnabled = isAnyRouterSigninEnabled()
   const parsed =
-    guestOwnerId !== undefined ? hardenGuestAgentRequest(parsedRaw) : parsedRaw
+    guestOwnerId !== undefined
+      ? hardenGuestAgentRequest(parsedRaw, { anyrouterSigninEnabled })
+      : parsedRaw
 
   const model = await resolveAgentModel(parsed.body.model)
-  const byok = parsed.byokApiKey !== null
+  const { provider: requestedProvider } = parseModelId(model)
+
+  // Key order: request key → signed-in user's stored AnyRouter token →
+  // deployment key. Any user key is BYOK (no included-credit metering).
+  const { apiKey: userApiKey } = await selectAgentApiKey({
+    requestApiKey: parsed.byokApiKey,
+    signedIn: !isGuest,
+    anyrouterSigninEnabled,
+    anyrouterModel: requestedProvider === 'anyrouter',
+    loadStoredToken: async () =>
+      (await getUserProviderToken(clerkUserId, 'anyrouter'))?.token ?? null,
+  })
+  const byok = userApiKey !== null
+  // An AnyRouter 401 on a user's own token → `anyrouter_token_expired`.
+  const userAnyRouterToken =
+    anyrouterSigninEnabled && byok && requestedProvider === 'anyrouter'
 
   // Preflight: refuse early if the selected provider has no API key on this
   // deployment. Skipped for BYOK — the user brings the credential.
-  const { provider: requestedProvider } = parseModelId(model)
   if (!byok && !isProviderConfigured(requestedProvider)) {
     return providerNotConfiguredResponse(model, requestedProvider)
   }
@@ -146,19 +166,32 @@ async function handlePost(request: Request): Promise<Response> {
   const gate = await applyAiUsageGate(byok, { ip, guestOwnerId })
   if (!gate.ok) return gate.response
 
-  const { agent, mcpCloseAll } = await createAgentRuntime({
-    userId,
-    requestMcpServers: parsed.mcpServers,
-    hostId: parsed.hostId,
-    model,
-    disabledTools: parsed.disabledTools,
-    openRouterUser,
-    requestOrigin: request.headers.get('origin') ?? undefined,
-    includeControlTools,
-    sessionId: parsed.sessionId,
-    byokApiKey: parsed.byokApiKey,
-    releaseReservationOnce: gate.releaseReservationOnce,
-  })
+  let runtime: Awaited<ReturnType<typeof createAgentRuntime>>
+  try {
+    runtime = await createAgentRuntime({
+      userId,
+      requestMcpServers: parsed.mcpServers,
+      hostId: parsed.hostId,
+      model,
+      disabledTools: parsed.disabledTools,
+      openRouterUser,
+      requestOrigin: request.headers.get('origin') ?? undefined,
+      includeControlTools,
+      sessionId: parsed.sessionId,
+      byokApiKey: userApiKey,
+      releaseReservationOnce: gate.releaseReservationOnce,
+    })
+  } catch (error) {
+    // Only the user-AnyRouter-token path needs the typed expiry code here;
+    // everything else keeps the outer boundary's existing response.
+    if (!userAnyRouterToken) throw error
+    return unhandledErrorResponse(
+      error,
+      { model, provider: requestedProvider, userAnyRouterToken },
+      [userApiKey]
+    )
+  }
+  const { agent, mcpCloseAll } = runtime
 
   const uiMessages = buildUiMessages({
     safeIncomingMessages: parsed.safeIncomingMessages,
@@ -182,7 +215,8 @@ async function handlePost(request: Request): Promise<Response> {
     billingOwnerId: gate.billingOwnerId,
     resolvedPlan: gate.resolvedPlan,
     releaseReservationOnce: gate.releaseReservationOnce,
-    byokApiKey: parsed.byokApiKey,
+    byokApiKey: userApiKey,
+    userAnyRouterToken,
   })
 }
 

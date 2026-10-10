@@ -24,6 +24,41 @@ mock.module('@/lib/auth/agent-api-auth', () => ({
 const { __handleGetForTests: handleLoginGet } = await import('../login')
 const { __handleGetForTests: handleCallbackGet } = await import('../callback')
 
+// Both routes 404 unless the feature flag is on; these tests exercise the
+// enabled flow. The flag-off behaviour is covered in its own block below.
+const FLAG = 'CHM_AGENT_ANYROUTER_SIGNIN_ENABLED'
+const savedFlag = process.env[FLAG]
+beforeEach(() => {
+  process.env[FLAG] = 'true'
+})
+afterEach(() => {
+  if (savedFlag === undefined) delete process.env[FLAG]
+  else process.env[FLAG] = savedFlag
+})
+
+describe('flag off (default): sign-in routes do not exist', () => {
+  for (const value of [undefined, '', 'false', 'junk']) {
+    test(`${FLAG}=${String(value)} → login and callback 404 before auth`, async () => {
+      if (value === undefined) delete process.env[FLAG]
+      else process.env[FLAG] = value
+      authorizeAgentApiRequest.mockClear()
+
+      const login = await handleLoginGet(
+        new Request('https://dash.chmonitor.dev/api/v1/agents/anyrouter/login')
+      )
+      const callback = await handleCallbackGet(
+        new Request(
+          'https://dash.chmonitor.dev/api/v1/agents/anyrouter/callback?code=c&state=s'
+        )
+      )
+
+      expect(login.status).toBe(404)
+      expect(callback.status).toBe(404)
+      expect(authorizeAgentApiRequest).not.toHaveBeenCalled()
+    })
+  }
+})
+
 describe('GET /api/v1/agents/anyrouter/login', () => {
   beforeEach(() => {
     authGateResponse = null

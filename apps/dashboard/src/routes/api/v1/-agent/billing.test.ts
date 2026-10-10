@@ -157,3 +157,23 @@ describe('applyAiUsageGate — signed-in unchanged', () => {
     expect(getPlanForOwner).toHaveBeenCalledWith(OWNER_ID)
   })
 })
+
+describe('applyAiUsageGate — guest with own AnyRouter token (BYOK)', () => {
+  test('even over the guest cap: allowed, never reserves, never meters', async () => {
+    cloudMode = true
+    resolveBillingOwner.mockImplementation(unauthorized)
+    // Would be over the cap (usage-before 3) if this path metered at all.
+    reserveResult = 4
+
+    const gate = await applyAiUsageGate(true, { guestOwnerId: GUEST_ID })
+
+    expect(gate.ok).toBe(true)
+    if (!gate.ok) return
+    // billingOwnerId null → the stream path never meters overage.
+    expect(gate.billingOwnerId).toBeNull()
+    expect(gate.resolvedPlan).toBeNull()
+    expect(reserveAiUsage).not.toHaveBeenCalled()
+    await gate.releaseReservationOnce()
+    expect(releaseAiUsage).not.toHaveBeenCalled()
+  })
+})

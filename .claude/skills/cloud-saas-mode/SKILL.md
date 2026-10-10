@@ -142,6 +142,19 @@ only, no daily gate). Helpers: `lib/billing/guest-ai.ts`. Gate:
 `applyAiUsageGate` in `routes/api/v1/-agent/billing.ts`. 402 reason:
 `guest_daily_limit` (sign in for more — no Polar jargon).
 
+**Sign in with AnyRouter** (`CHM_AGENT_ANYROUTER_SIGNIN_ENABLED`, off by
+default, on in `.env.production`; exposed as `agent.anyrouterSignin` in
+`GET /api/v1/config`). Flag on: a guest who sends their own AnyRouter token
+keeps it (`hardenGuestAgentRequest(parsed, { anyrouterSigninEnabled })`),
+may use any `anyrouter:` model, and is BYOK → no daily cap metering. IP and
+guest rate limits, MCP and host restrictions stay. Signed-in users' tokens
+are stored encrypted (`lib/ai/agent/user-token-store.ts`, D1
+`user_provider_tokens`, route `/api/v1/agents/anyrouter/token`). Key order
+(`selectAgentApiKey` in `lib/ai/agent/byok.ts`): request key → stored token
+→ deployment key. AnyRouter 401 on a user token → `code:
+'anyrouter_token_expired'`. Flag off: login/callback/token 404, guest
+hardening unchanged.
+
 ## Connection-error help
 
 `lib/connection-errors.ts`:

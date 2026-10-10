@@ -35,7 +35,24 @@ export interface AgentError {
 export interface ClassifyErrorContext {
   readonly model?: string
   readonly provider?: string
+  /**
+   * True when the request ran on the user's own AnyRouter token ("Sign in with
+   * AnyRouter"), not the deployment key. An AnyRouter 401 then means that token
+   * expired or was revoked, and is reported as
+   * {@link ANYROUTER_TOKEN_EXPIRED_CODE}.
+   */
+  readonly userAnyRouterToken?: boolean
 }
+
+/**
+ * `AgentError.code` for an AnyRouter 401 on a user's own sign-in token.
+ * AnyRouter issues no refresh tokens, so the client should clear the stored
+ * token and prompt "Sign in with AnyRouter" again. `type` stays `auth_error`.
+ */
+export const ANYROUTER_TOKEN_EXPIRED_CODE = 'anyrouter_token_expired'
+
+const ANYROUTER_TOKEN_EXPIRED_SUGGESTION =
+  'Your AnyRouter sign-in expired or was revoked. Sign in with AnyRouter again.'
 
 type ParsedErrorEnvelope = {
   readonly message?: string
@@ -469,7 +486,14 @@ export function classifyError(
     type = 'tool_error'
   }
 
-  const suggestion = getErrorSuggestion(type, context.provider)
+  const anyrouterTokenExpired =
+    type === 'auth_error' &&
+    statusCode === 401 &&
+    context.provider === 'anyrouter' &&
+    context.userAnyRouterToken === true
+  const suggestion = anyrouterTokenExpired
+    ? ANYROUTER_TOKEN_EXPIRED_SUGGESTION
+    : getErrorSuggestion(type, context.provider)
 
   // First line of the message is the user-facing summary; multi-line messages
   // (e.g. with stack traces embedded) are demoted to details.
@@ -491,7 +515,7 @@ export function classifyError(
     timestamp: Date.now(),
     model: context.model,
     provider: context.provider,
-    code: parsed.code,
+    code: anyrouterTokenExpired ? ANYROUTER_TOKEN_EXPIRED_CODE : parsed.code,
     statusCode,
     upstreamBackend: parsed.upstreamBackend,
     upstreamStatus: parsed.upstreamStatus,

@@ -21,9 +21,16 @@ import {
   buildAuthorizeUrl,
   serializeSigninCookie,
 } from '@/lib/ai/anyrouter-signin'
+import {
+  anyRouterSigninDisabledResponse,
+  isAnyRouterSigninEnabled,
+} from '@/lib/ai/anyrouter-signin-flag'
 import { authorizeAgentApiRequest } from '@/lib/auth/agent-api-auth'
 
 async function handleGet(request: Request): Promise<Response> {
+  // Feature off (default for self-hosted) → the route does not exist.
+  if (!isAnyRouterSigninEnabled()) return anyRouterSigninDisabledResponse()
+
   const authResponse = await authorizeAgentApiRequest(request)
   if (authResponse) return authResponse
 
