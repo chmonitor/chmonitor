@@ -1,7 +1,7 @@
 import type { PeerDBAlertSnapshotReader } from './alert-collector'
 import type { PeerDBFetchFailure } from './peerdb-config'
 
-import { collectPeerDBSignals } from './alert-collector'
+import { collectPeerDBSignals, latestBatchEndMs } from './alert-collector'
 import { classifyPeerDBMirror } from './alerting'
 import {
   classifyPeerDBFetchFailure,
@@ -922,5 +922,47 @@ describe('defaultReader via mocked peerdbFetch', () => {
     expect(seenAuth.length).toBeGreaterThan(0)
     expect(seenAuth.every((auth) => auth === 'Bearer alert-token')).toBe(true)
     expect(s.slotLagMb).toBe(7)
+  })
+})
+
+describe('lastSyncedAtMs (#3675 stale-sync)', () => {
+  test('latestBatchEndMs takes the newest parseable endTime', () => {
+    expect(
+      latestBatchEndMs([
+        { endTime: '2026-10-01T00:00:00Z' },
+        { endTime: '2026-10-01T01:00:00Z' },
+        { endTime: 'junk' },
+        null,
+        {},
+      ])
+    ).toBe(Date.parse('2026-10-01T01:00:00Z'))
+    // numeric epoch seconds and ms
+    expect(latestBatchEndMs([{ endTime: '1000' }])).toBe(1_000_000)
+    expect(latestBatchEndMs([{ endTime: 1_800_000_000_000 }])).toBe(
+      1_800_000_000_000
+    )
+    expect(latestBatchEndMs([])).toBeNull()
+    expect(latestBatchEndMs([{ endTime: '' }])).toBeNull()
+  })
+
+  test('collector fills lastSyncedAtMs from cdcStatus.cdcBatches', async () => {
+    const end = '2026-10-01T01:00:00Z'
+    const read = (cdcStatus?: object) =>
+      collectPeerDBSignals(
+        stubReader({
+          listMirrors: async () => [{ name: 'm' }],
+          mirrorStatus: async () => ({
+            currentFlowState: 'STATUS_RUNNING',
+            cdcStatus,
+          }),
+        })
+      )
+    expect(
+      (await read({ cdcBatches: [{ endTime: end }] })).signals[0]!
+        .lastSyncedAtMs
+    ).toBe(Date.parse(end))
+    // no batches reported: unknown, never a fabricated timestamp
+    expect((await read({})).signals[0]!.lastSyncedAtMs).toBeNull()
+    expect((await read()).signals[0]!.lastSyncedAtMs).toBeNull()
   })
 })
