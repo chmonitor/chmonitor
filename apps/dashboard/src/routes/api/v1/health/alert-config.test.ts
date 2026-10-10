@@ -118,6 +118,37 @@ describe('GET /api/v1/health/alert-config', () => {
     expect(typeof body.env.opsgenie).toBe('boolean')
     expect(typeof body.env.webhook).toBe('boolean')
   })
+
+  test('reports whether alerts can be delivered (#3701)', async () => {
+    const saved = {
+      enabled: process.env.HEALTH_ALERT_ENABLED,
+      sweep: process.env.CHM_HEALTH_SWEEP_ENABLED,
+    }
+    try {
+      process.env.HEALTH_ALERT_ENABLED = 'false'
+      process.env.CHM_HEALTH_SWEEP_ENABLED = 'true'
+      let body = (await (await handleGet()).json()) as {
+        delivery: { alertingEnabled: boolean; sweepEnabled: boolean }
+      }
+      expect(body.delivery).toEqual({
+        alertingEnabled: false,
+        sweepEnabled: true,
+      })
+
+      process.env.HEALTH_ALERT_ENABLED = 'true'
+      process.env.CHM_HEALTH_SWEEP_ENABLED = 'false'
+      body = (await (await handleGet()).json()) as typeof body
+      expect(body.delivery).toEqual({
+        alertingEnabled: true,
+        sweepEnabled: false,
+      })
+    } finally {
+      if (saved.enabled === undefined) delete process.env.HEALTH_ALERT_ENABLED
+      else process.env.HEALTH_ALERT_ENABLED = saved.enabled
+      if (saved.sweep === undefined) delete process.env.CHM_HEALTH_SWEEP_ENABLED
+      else process.env.CHM_HEALTH_SWEEP_ENABLED = saved.sweep
+    }
+  })
 })
 
 describe('PUT /api/v1/health/alert-config — auth + validation', () => {
