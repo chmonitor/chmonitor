@@ -35,7 +35,8 @@ describe.each([
       ),
     })
     expect(res.status).toBe(400)
-    expect((await res.json()).success).toBe(false)
+    const body = (await res.json()) as { success: boolean }
+    expect(body.success).toBe(false)
   })
 
   test('filter-options returns 400', async () => {
@@ -46,6 +47,7 @@ describe.each([
       params: { name: 'history-queries' },
     })
     expect(res.status).toBe(400)
-    expect((await res.json()).success).toBe(false)
+    const body = (await res.json()) as { success: boolean }
+    expect(body.success).toBe(false)
   })
 })
