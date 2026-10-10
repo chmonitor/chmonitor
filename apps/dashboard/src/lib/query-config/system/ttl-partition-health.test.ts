@@ -39,9 +39,13 @@ describe('ttlPartitionHealthConfig', () => {
     expect(sql.split(systemFilter).length - 1).toBeGreaterThanOrEqual(2)
   })
 
-  test('caps execution under the Worker wall-clock', () => {
+  test('caps execution under the Worker wall-clock as a client setting', () => {
+    // #3684: sent as a request setting, never a SETTINGS clause in the SQL.
     const sql = getAllSqlStrings(ttlPartitionHealthConfig.sql)[0]
-    expect(sql).toContain('SETTINGS max_execution_time = 25')
+    expect(sql).not.toMatch(/SETTINGS\s+max_execution_time/i)
+    expect(
+      ttlPartitionHealthConfig.clickhouseSettings?.max_execution_time
+    ).toBe(25)
   })
 
   test('keeps inventory columns used by row highlighting and recommendations', () => {

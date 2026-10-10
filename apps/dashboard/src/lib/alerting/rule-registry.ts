@@ -68,6 +68,12 @@ export interface AlertRuleDef {
   description: string
   /** SQL to evaluate on the server. Must return a single row with `valueKey`. */
   sql?: string
+  /**
+   * Per-request ClickHouse settings sent with `sql` (e.g. `max_execution_time`).
+   * `readonly` is always forced on top. A rule that sets this runs on its own
+   * statement, never inside the batched sweep, so the settings are not lost.
+   */
+  clickhouseSettings?: Readonly<Record<string, string | number>>
   /** Column name to read the numeric value from the SQL result row. */
   valueKey: string
   /** Default thresholds. Overridable via thresholds-storage. */

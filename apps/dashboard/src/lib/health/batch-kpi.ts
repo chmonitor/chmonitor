@@ -76,6 +76,9 @@ export interface BatchedKpiRow {
 export function isBatchableRule(rule: AlertRuleDef): boolean {
   if (rule.id.startsWith('compound:')) return false
   if (BATCH_EXCLUDED_RULE_IDS.includes(rule.id)) return false
+  // The batch is one request with one settings bag; per-rule settings would
+  // be dropped there, so such a rule always runs on its own statement.
+  if (rule.clickhouseSettings) return false
   return isSubSelectSafe(rule.sql)
 }
 
@@ -83,7 +86,7 @@ export function isBatchableRule(rule: AlertRuleDef): boolean {
  * Whether `sql` can be used as `FROM ( <sql> )`.
  *
  * The checks are structural rather than clever: a `SELECT` that ends in a
- * `SETTINGS` clause (the `ttl-partition-sql.ts` builders do) is not an
+ * `SETTINGS` clause is not an
  * expression, and a trailing `;` terminates the statement before the closing
  * parenthesis. Both would turn a batched sweep into a sweep that errors on
  * every rule at once.

@@ -8,6 +8,17 @@ import {
   selectVersionedSql,
 } from '@chm/clickhouse-client/clickhouse-version'
 
+/** Keep the config's string/number settings (e.g. `max_execution_time`). */
+function primitiveSettings(
+  settings: QueryConfig['clickhouseSettings']
+): Record<string, string | number> {
+  const out: Record<string, string | number> = {}
+  for (const [key, value] of Object.entries(settings ?? {})) {
+    if (typeof value === 'string' || typeof value === 'number') out[key] = value
+  }
+  return out
+}
+
 async function selectSqlForConnection(
   sql: string | VersionedSql[],
   credentials: ConnectionCredentials
@@ -34,6 +45,7 @@ export async function executeConnectionTableConfig<
 
   const start = Date.now()
   const clickhouse_settings: Record<string, string | number> = {
+    ...primitiveSettings(queryConfig.clickhouseSettings),
     ...(timezone ? { session_timezone: timezone } : {}),
   }
 
