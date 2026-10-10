@@ -1,13 +1,12 @@
 import { X, ZoomIn } from 'lucide-react'
 
-import { isDarkDocument, pickThemeSrc } from './theme-src'
 import {
   closeZoom,
   openZoom,
   shouldCloseOnClick,
   shouldCloseOnKey,
 } from './zoom-controller'
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useId, useRef } from 'react'
 
 export interface ScreenshotProps {
   src: string
@@ -75,24 +74,21 @@ export function ZoomableFrame({
   imgClassName?: string
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const [zoomSrc, setZoomSrc] = useState(src)
+  const dialogId = useId()
 
-  const open = () => {
-    setZoomSrc(
-      pickThemeSrc(
-        isDarkDocument(typeof document === 'undefined' ? undefined : document),
-        src,
-        srcDark
-      )
-    )
-    openZoom(dialogRef.current)
-  }
+  // `command`/`commandfor` is the platform's declarative open, so a click that
+  // lands before hydration still opens the dialog. onClick covers engines
+  // without invoker commands; openZoom is a no-op when already open.
+  const open = () => openZoom(dialogRef.current)
+  // Lowercase custom attributes: React's DOM props do not know invoker commands.
+  const invoker = { command: 'show-modal', commandfor: dialogId }
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-fd-border bg-fd-card">
       <button
         type="button"
         onClick={open}
+        {...invoker}
         aria-label={`Zoom image: ${alt}`}
         className="block w-full cursor-zoom-in border-0 bg-transparent p-0"
       >
@@ -111,6 +107,7 @@ export function ZoomableFrame({
       </button>
       <dialog
         ref={dialogRef}
+        id={dialogId}
         aria-label={alt}
         onClick={(e) => {
           if (shouldCloseOnClick(e.target, dialogRef.current))
@@ -130,10 +127,18 @@ export function ZoomableFrame({
           <X className="size-5" />
         </button>
         <img
-          src={zoomSrc}
+          src={src}
           alt={alt}
-          className="m-auto block max-h-[90vh] w-auto max-w-[min(96vw,1400px)] rounded-lg"
+          className={`m-auto block max-h-[90vh] w-auto max-w-[min(96vw,1400px)] rounded-lg ${srcDark ? 'dark:hidden' : ''}`}
         />
+        {srcDark ? (
+          <img
+            src={srcDark}
+            alt=""
+            aria-hidden="true"
+            className="m-auto hidden max-h-[90vh] w-auto max-w-[min(96vw,1400px)] rounded-lg dark:block"
+          />
+        ) : null}
       </dialog>
     </div>
   )

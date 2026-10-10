@@ -176,12 +176,18 @@ body {
   font-weight: 600;
 }
 
-#nd-page .prose :where(a:not(.not-prose a)) {
+#nd-page .prose :where(a:not(.not-prose a, h1 a, h2 a, h3 a, h4 a, h5 a, h6 a)) {
   color: var(--brand-ink);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
   font-weight: inherit;
+}
+
+/* Heading anchors stay heading ink, no underline (blog headings are plain). */
+#nd-page .prose :where(h1, h2, h3, h4, h5, h6) a {
+  color: inherit;
+  text-decoration: none;
 }
 
 #nd-page .prose :where(li)::marker {
@@ -229,7 +235,15 @@ body {
   margin: 44px 0;
 }
 
+/* Never let an article child widen the page; wide tables scroll in place. */
+#nd-page .prose {
+  overflow-wrap: break-word;
+}
+
 #nd-page .prose :where(table) {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
   font-size: 14.5px;
   border-collapse: collapse;
 }
