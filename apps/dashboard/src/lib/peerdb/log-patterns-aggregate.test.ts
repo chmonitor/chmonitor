@@ -35,6 +35,30 @@ describe('parseLogWindow', () => {
 })
 
 describe('collectFleetLogPatterns', () => {
+  test('keeps lines written while the reads are in flight', async () => {
+    // Regression: the window used to end when the call started, so a line
+    // stamped during the fetch (or by a PeerDB clock slightly ahead) was dropped
+    // and a live fleet could report zero lines.
+    const out = await collectFleetLogPatterns({
+      parseTs,
+      window: '1h',
+      concurrency: 2,
+      budgetMs: 5_000,
+      mirrors: ['m1', 'm2'],
+      fetchLogs: async () => {
+        await new Promise((r) => setTimeout(r, 5))
+        return [
+          {
+            errorMessage: 'fresh',
+            errorType: 'error',
+            errorTimestamp: Date.now() + 2_000,
+          },
+        ]
+      },
+    })
+    expect(out.entries).toHaveLength(2)
+  })
+
   test('never has more upstream calls in flight than the pool width', async () => {
     // Protects the PeerDB catalog: the old client fan-out hit every mirror at once.
     let inFlight = 0
