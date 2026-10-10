@@ -23,10 +23,14 @@ import {
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { hasChart } from '@/lib/api/chart-registry'
 import { hasTable } from '@/lib/api/table-registry'
 
-const SRC = join(import.meta.dir, '..', '..', '..', '..')
+// tsc does not type Bun's import.meta.dir; use the portable form.
+const HERE = fileURLToPath(new URL('.', import.meta.url))
+
+const SRC = join(HERE, '..', '..', '..', '..')
 const ROUTES = join(SRC, 'routes', '(dashboard)')
 /** `relatedCharts` layout markers, not charts. */
 const LAYOUT_MARKERS = new Set(['break'])
