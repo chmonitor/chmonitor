@@ -64,6 +64,11 @@ export interface PeerDBMirrorSignal {
   slotLagMb?: number | null
   /** Whether the snapshot/initial-load phase looks stalled (caller-detected). */
   snapshotStalled?: boolean
+  /**
+   * Epoch ms of the latest CDC batch `endTime` from the status payload, if
+   * any. Used for the stale-running check when no `lagSec` is reported.
+   */
+  lastSyncedAtMs?: number | null
 }
 
 export interface PeerDBAlertThresholds {
@@ -79,6 +84,13 @@ export interface PeerDBAlertThresholds {
   errorWarnCount: number
   /** Recent error count at/above which the mirror is `error`. Default 5. */
   errorErrorCount: number
+  /**
+   * Seconds since `lastSyncedAtMs` at/above which a RUNNING mirror with no
+   * `lagSec` is `warning`. Default 1800.
+   */
+  staleSyncWarnSec: number
+  /** Same, for `error`. Default 7200. */
+  staleSyncErrorSec: number
 }
 
 export const DEFAULT_PEERDB_ALERT_THRESHOLDS: PeerDBAlertThresholds = {
@@ -88,6 +100,8 @@ export const DEFAULT_PEERDB_ALERT_THRESHOLDS: PeerDBAlertThresholds = {
   slotLagErrorMb: 2048,
   errorWarnCount: 1,
   errorErrorCount: 5,
+  staleSyncWarnSec: 1800,
+  staleSyncErrorSec: 7200,
 }
 
 /** Statuses that always classify `error`, regardless of numeric signals. */
@@ -127,7 +141,8 @@ function finiteOrNull(v: number | null | undefined): number | null {
  */
 export function classifyPeerDBMirror(
   signal: PeerDBMirrorSignal,
-  thresholds: PeerDBAlertThresholds = DEFAULT_PEERDB_ALERT_THRESHOLDS
+  thresholds: PeerDBAlertThresholds = DEFAULT_PEERDB_ALERT_THRESHOLDS,
+  now: number = Date.now()
 ): PeerDBClassification {
   const reasons: string[] = []
   let severity: PeerDBAlertSeverity = 'ok'
@@ -150,6 +165,17 @@ export function classifyPeerDBMirror(
   const lag = finiteOrNull(signal.lagSec)
   if (lag !== null && lag >= thresholds.lagErrorSec) {
     escalate('error', 'cdc-lag-error')
+  }
+
+  // Stale running mirror: lagSec is the primary freshness signal; fall back to
+  // last-sync age only when lag is not reported, so the two never double-fire.
+  const lastSynced = finiteOrNull(signal.lastSyncedAtMs)
+  const syncAgeSec =
+    status === 'STATUS_RUNNING' && lag === null && lastSynced !== null
+      ? Math.max(0, (now - lastSynced) / 1000)
+      : null
+  if (syncAgeSec !== null && syncAgeSec >= thresholds.staleSyncErrorSec) {
+    escalate('error', 'sync-stale-error')
   }
 
   const slotLag = finiteOrNull(signal.slotLagMb)
@@ -189,6 +215,13 @@ export function classifyPeerDBMirror(
   }
   if (signal.snapshotStalled) {
     escalate('warning', 'snapshot-stalled')
+  }
+  if (
+    syncAgeSec !== null &&
+    syncAgeSec >= thresholds.staleSyncWarnSec &&
+    severity === 'ok'
+  ) {
+    escalate('warning', 'sync-stale-warning')
   }
   if (WARN_STATUSES.has(status) && severity === 'ok') {
     escalate('warning', `status:${status}`)

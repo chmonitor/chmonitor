@@ -5,6 +5,7 @@ import {
   boundStatusText,
   buildPeerDBAlertPayload,
   classifyPeerDBMirror,
+  DEFAULT_PEERDB_ALERT_THRESHOLDS,
   formatPeerDBAlertMessage,
   investigatePeerDBAlert,
   peerDBDedupKey,
@@ -46,6 +47,7 @@ describe('classifyPeerDBMirror', () => {
     const c = classifyPeerDBMirror(
       { flowName: 'm', status: 'STATUS_RUNNING', lagSec: 3600 },
       {
+        ...DEFAULT_PEERDB_ALERT_THRESHOLDS,
         lagWarnSec: 300,
         lagErrorSec: 1800,
         slotLagWarnMb: 512,
@@ -365,5 +367,53 @@ describe('peerDBPayloadValue', () => {
     const v = peerDBPayloadValue(signal, classifyPeerDBMirror(signal))
     expect(v.value).toBe(1)
     expect(v.critThreshold).toBe(5)
+  })
+})
+
+describe('classifyPeerDBMirror — blind spots (#3675)', () => {
+  const NOW = 1_800_000_000_000
+  const T = DEFAULT_PEERDB_ALERT_THRESHOLDS
+  const ago = (sec: number) => NOW - sec * 1000
+  const running = { flowName: 'm', status: 'STATUS_RUNNING' }
+
+  test('stale running mirror with no lagSec: warn/error at boundaries', () => {
+    const at = (sec: number) =>
+      classifyPeerDBMirror({ ...running, lastSyncedAtMs: ago(sec) }, T, NOW)
+    expect(at(T.staleSyncWarnSec - 1).severity).toBe('ok')
+    expect(at(T.staleSyncWarnSec).severity).toBe('warning')
+    expect(at(T.staleSyncWarnSec).reasons).toContain('sync-stale-warning')
+    expect(at(T.staleSyncErrorSec - 1).severity).toBe('warning')
+    expect(at(T.staleSyncErrorSec).severity).toBe('error')
+    expect(at(T.staleSyncErrorSec).reasons).toContain('sync-stale-error')
+  })
+
+  test('last-sync age is ignored when lagSec is reported (no double-fire)', () => {
+    const c = classifyPeerDBMirror(
+      { ...running, lagSec: 10, lastSyncedAtMs: ago(T.staleSyncErrorSec) },
+      T,
+      NOW
+    )
+    expect(c.severity).toBe('ok')
+  })
+
+  test('last-sync age only applies to RUNNING mirrors', () => {
+    const c = classifyPeerDBMirror(
+      {
+        flowName: 'm',
+        status: 'STATUS_PAUSED',
+        lastSyncedAtMs: ago(T.staleSyncErrorSec),
+      },
+      T,
+      NOW
+    )
+    expect(c.severity).toBe('warning')
+    expect(c.reasons).not.toContain('sync-stale-error')
+  })
+
+  test('without the new fields, classification is unchanged', () => {
+    expect(classifyPeerDBMirror(running, T, NOW)).toEqual({
+      severity: 'ok',
+      reasons: ['error-count-unavailable'],
+    })
   })
 })

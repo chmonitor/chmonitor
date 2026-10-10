@@ -603,6 +603,9 @@ export async function collectPeerDBSignals(
           (st?.cdcStatus?.rowsSynced as number | string | undefined) ??
             (st as { totalRowsSynced?: unknown } | undefined)?.totalRowsSynced
         ),
+        lastSyncedAtMs: Array.isArray(st?.cdcStatus?.cdcBatches)
+          ? latestBatchEndMs(st.cdcStatus.cdcBatches)
+          : null,
         recentErrorCount: ec.count,
         errorCountSource: ec.source,
         slotLagMb: slotLagByMirror.get(m.name) ?? null,
@@ -644,4 +647,28 @@ export async function collectPeerDBSignals(
   } finally {
     budget.dispose()
   }
+}
+
+/**
+ * Epoch ms of the most recent CDC batch `endTime` in a status payload, or null
+ * when no batch reports a parseable one. Accepts ISO strings and numeric epoch
+ * seconds/ms (values below 1e11 are seconds), matching the mirror detail page.
+ */
+export function latestBatchEndMs(
+  batches: ReadonlyArray<{ endTime?: string | number | null } | null>
+): number | null {
+  let latest: number | null = null
+  for (const b of batches) {
+    const raw = b?.endTime
+    if (raw == null || raw === '') continue
+    const n =
+      typeof raw === 'number' || /^\d+$/.test(raw) ? Number(raw) : Number.NaN
+    const ms = Number.isFinite(n)
+      ? n < 1e11
+        ? n * 1000
+        : n
+      : Date.parse(String(raw))
+    if (Number.isFinite(ms) && (latest === null || ms > latest)) latest = ms
+  }
+  return latest
 }
