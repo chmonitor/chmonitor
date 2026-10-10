@@ -123,25 +123,28 @@ export function buildBatchedKpiSql(kpis: readonly BatchedKpi[]): string | null {
 /**
  * Parse the batched result into `ruleId -> numeric value`.
  *
- * Missing rows, `NULL` values and non-numeric text all collapse to `0`, which
- * is exactly what the unbatched `runRuleQuery` returned for an empty result
- * set. A rule therefore reports the same number it always did; what changed is
- * how many statements it took to find out.
+ * A missing row reads as `0`, matching the unbatched `runRuleQuery` for an
+ * empty result set. A `NULL`, empty or non-numeric value reads as `null`
+ * (unknown) — the sweep skips it instead of classifying it as healthy and
+ * sending a false "resolved".
  */
 export function parseBatchedKpiRows(
   rows: readonly BatchedKpiRow[] | null | undefined,
   kpis: readonly BatchedKpi[]
-): Map<string, number> {
-  const out = new Map<string, number>()
+): Map<string, number | null> {
+  const out = new Map<string, number | null>()
   for (const kpi of kpis) out.set(kpi.ruleId, 0)
   if (!Array.isArray(rows)) return out
   for (const row of rows) {
     const ruleId = row?.rule_id
     if (typeof ruleId !== 'string' || !out.has(ruleId)) continue
     const raw = row.value
-    if (raw === null || raw === undefined || raw === '') continue
+    if (raw === null || raw === undefined || raw === '') {
+      out.set(ruleId, null)
+      continue
+    }
     const num = Number(raw)
-    if (Number.isFinite(num)) out.set(ruleId, num)
+    out.set(ruleId, Number.isFinite(num) ? num : null)
   }
   return out
 }

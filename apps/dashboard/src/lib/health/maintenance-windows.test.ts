@@ -108,9 +108,13 @@ let fakeDb: ReturnType<typeof makeFakeD1> | null
 
 installHealthPlatformMock(() => fakeDb)
 
-const { isSuppressed, listWindows, createWindow, deleteWindow } = await import(
-  './maintenance-windows'
-)
+const {
+  isSuppressed,
+  listWindows,
+  createWindow,
+  deleteWindow,
+  MaintenanceStoreUnavailableError,
+} = await import('./maintenance-windows')
 
 function window(over: Partial<MaintenanceWindow> = {}): MaintenanceWindow {
   return {
@@ -234,16 +238,16 @@ describe('maintenance-windows d1 store', () => {
       createdBy: 'user_1',
     })
 
-    await deleteWindow('owner-delete-b', created.id)
+    expect(await deleteWindow('owner-delete-b', created.id)).toBe(0)
     expect((await listWindows('owner-delete-a')).map((w) => w.id)).toEqual([
       created.id,
     ])
 
-    await deleteWindow('owner-delete-a', created.id)
+    expect(await deleteWindow('owner-delete-a', created.id)).toBe(1)
     expect(await listWindows('owner-delete-a')).toEqual([])
   })
 
-  test('degrades to [] / throws-on-create (never crashes the caller) when no D1 binding is present', async () => {
+  test('degrades to [] on read, throws on create/delete when no D1 binding is present', async () => {
     fakeDb = null
 
     expect(await listWindows('owner-no-binding')).toEqual([])
@@ -257,9 +261,9 @@ describe('maintenance-windows d1 store', () => {
         createdBy: 'user_1',
       })
     ).rejects.toThrow()
-    // delete swallows the failure rather than throwing (fail-open).
-    await expect(
-      deleteWindow('owner-no-binding', 'missing')
-    ).resolves.toBeUndefined()
+    // delete must not look like success when nothing could be deleted.
+    await expect(deleteWindow('owner-no-binding', 'missing')).rejects.toThrow(
+      MaintenanceStoreUnavailableError
+    )
   })
 })

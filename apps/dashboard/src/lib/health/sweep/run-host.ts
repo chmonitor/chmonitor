@@ -92,7 +92,9 @@ export async function runRuleQuery(
   const rows = result.data
   if (!Array.isArray(rows) || rows.length === 0) return 0
   const raw = rows[0]?.[valueKey]
-  if (raw === null || raw === undefined) return 0
+  // A NULL / missing value is *unknown*, not healthy: returning 0 here would
+  // classify as ok and send a false "resolved" for a firing alert.
+  if (raw === null || raw === undefined || raw === '') return null
   const num = Number(raw)
   return Number.isFinite(num) ? num : null
 }
@@ -127,9 +129,10 @@ export async function getExistingSystemTables(
 export async function runBatchedKpis(
   kpis: readonly BatchedKpi[],
   hostId: number
-): Promise<{ values: Map<string, number>; failed: boolean }> {
+): Promise<{ values: Map<string, number | null>; failed: boolean }> {
   const sql = buildBatchedKpiSql(kpis)
-  if (sql === null) return { values: new Map<string, number>(), failed: false }
+  if (sql === null)
+    return { values: new Map<string, number | null>(), failed: false }
 
   try {
     const result = await fetchData<BatchedKpiRow[]>({
@@ -148,7 +151,7 @@ export async function runBatchedKpis(
       `[health-sweep] batched KPI query failed on host ${hostId}; falling back to per-rule queries`,
       err instanceof Error ? err.message : String(err)
     )
-    return { values: new Map<string, number>(), failed: true }
+    return { values: new Map<string, number | null>(), failed: true }
   }
 }
 
@@ -184,6 +187,11 @@ export async function runHostSweep(
     rule: AlertRuleDef,
     value: number | null
   ): Promise<void> => {
+    // Unknown value (NULL / non-numeric): no classification, no finding, no
+    // dispatch — so a firing alert is neither re-fired nor falsely resolved.
+    // Leaving it out of `perHostResults` also makes dependent compound rules
+    // treat it as a missing dependency.
+    if (value === null || !Number.isFinite(value)) return
     const thresholds = {
       ...rule.defaults,
       ...(ctx.thresholdOverrides[rule.id] ?? {}),
@@ -244,7 +252,7 @@ export async function runHostSweep(
     if (batch.failed) continue
     checksRun++
     try {
-      await evaluateRule(rule, batch.values.get(kpi.ruleId) ?? 0)
+      await evaluateRule(rule, batch.values.get(kpi.ruleId) ?? null)
     } catch (err) {
       errored++
       debug(

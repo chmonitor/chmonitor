@@ -342,6 +342,12 @@ export async function createDigestPipeline(
    * gated on whether ANY of its channels — immediate or grouped — delivered.
    */
   async function flushDigests(): Promise<void> {
+    // Time-window entries were already removed from the buffer (and their
+    // findings' dedup committed) when they were parked, so a failed send here
+    // would drop them for good. Collect them and park them again, due now, so
+    // the next sweep retries the delivery.
+    const failedBuffered: BufferedDigestEntry[] = []
+
     // Webhook targets grouped by URL.
     const byUrl = new Map<string, WebhookDigestEntry[]>()
     for (const entry of webhookDigestEntries) {
@@ -389,6 +395,17 @@ export async function createDigestPipeline(
         for (const e of entries) {
           if (e.pending) e.pending.groupableDelivered = true
         }
+      } else {
+        for (const e of entries) {
+          if (e.pending) continue
+          failedBuffered.push({
+            kind: 'webhook',
+            url: e.url,
+            text: e.text,
+            payload: e.payload,
+            ...(e.slackAck ? { slackAck: e.slackAck } : {}),
+          })
+        }
       }
       await recordDigestHistory(entries, adapterId, result)
     }
@@ -420,13 +437,37 @@ export async function createDigestPipeline(
         for (const e of entries) {
           if (e.pending) e.pending.groupableDelivered = true
         }
+      } else {
+        for (const e of entries) {
+          if (e.pending) continue
+          failedBuffered.push({
+            kind: 'telegram',
+            botToken: e.botToken,
+            chatId: e.chatId,
+            payload: e.payload,
+          })
+        }
       }
       await recordDigestHistory(entries, 'telegram', result)
     }
 
+    if (failedBuffered.length > 0) {
+      const now = Date.now()
+      const rebuffered = await bufferDigestEntries(
+        SWEEP_ROUTING_OWNER_ID,
+        failedBuffered,
+        now
+      )
+      if (!rebuffered) {
+        debug(
+          `[health-sweep] could not re-buffer ${failedBuffered.length} undelivered digest entries; they are lost`
+        )
+      }
+    }
+
     // Commit + count each distinct in-pass finding once. Buffered entries have
     // no `pending` (already committed when they were parked), so they only
-    // deliver here — no double commit/count.
+    // deliver here — no double commit/count; a failed one was re-parked above.
     const pendings = new Set<PendingDigestCommit>()
     for (const e of webhookDigestEntries) if (e.pending) pendings.add(e.pending)
     for (const e of telegramDigestEntries)

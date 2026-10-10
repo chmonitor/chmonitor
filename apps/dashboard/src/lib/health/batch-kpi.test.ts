@@ -148,7 +148,7 @@ describe('parseBatchedKpiRows', () => {
     expect(out.get('c')).toBe(0)
   })
 
-  test('null and empty values read as 0', () => {
+  test('null and empty values read as null (unknown), not healthy 0', () => {
     const out = parseBatchedKpiRows(
       [
         { rule_id: 'a', value: null },
@@ -156,8 +156,8 @@ describe('parseBatchedKpiRows', () => {
       ],
       kpis
     )
-    expect(out.get('a')).toBe(0)
-    expect(out.get('b')).toBe(0)
+    expect(out.get('a')).toBeNull()
+    expect(out.get('b')).toBeNull()
   })
 
   test('a null result set yields every KPI at 0', () => {
@@ -169,9 +169,9 @@ describe('parseBatchedKpiRows', () => {
     expect(out.has('ghost')).toBe(false)
   })
 
-  test('a non-numeric value leaves the default 0 in place', () => {
+  test('a non-numeric value reads as null (unknown)', () => {
     const out = parseBatchedKpiRows([{ rule_id: 'a', value: 'nan' }], kpis)
-    expect(out.get('a')).toBe(0)
+    expect(out.get('a')).toBeNull()
   })
 })
 
