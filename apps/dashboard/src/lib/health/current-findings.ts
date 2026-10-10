@@ -54,7 +54,7 @@ async function runRuleQuery(
   const rows = result.data
   if (!Array.isArray(rows) || rows.length === 0) return 0
   const raw = rows[0]?.[valueKey]
-  if (raw === null || raw === undefined) return 0
+  if (raw === null || raw === undefined || raw === '') return null
   const num = Number(raw)
   return Number.isFinite(num) ? num : null
 }
@@ -103,6 +103,8 @@ export async function getCurrentFindings(): Promise<CurrentFinding[]> {
           config.id,
           rule.clickhouseSettings
         )
+        // Unknown (NULL / non-numeric) is not a finding.
+        if (value === null) continue
         const thresholds = {
           ...rule.defaults,
           ...(thresholdOverrides[rule.id] ?? {}),

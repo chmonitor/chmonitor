@@ -273,27 +273,39 @@ export async function createWindow(
   return window
 }
 
+/** Thrown by {@link deleteWindow} when no alert state backend is configured. */
+export class MaintenanceStoreUnavailableError extends Error {
+  constructor() {
+    super(
+      'No alert state backend configured (D1 binding MAINTENANCE_D1 / CHM_CLOUD_D1, or Postgres DATABASE_URL)'
+    )
+    this.name = 'MaintenanceStoreUnavailableError'
+  }
+}
+
 /**
  * Delete a maintenance window, scoped to its owner (an owner can never delete
- * another owner's window even by guessing an id). Best-effort: a D1 failure
- * is swallowed (logged) rather than thrown, matching the rest of this store's
- * fail-open posture — the window simply persists until the next attempt.
+ * another owner's window even by guessing an id). Returns the number of rows
+ * deleted — `0` means no such window for this owner. Throws
+ * {@link MaintenanceStoreUnavailableError} with no backend and rethrows a
+ * backend failure, so the CRUD route never reports a delete that did not
+ * happen as a success.
  */
-export async function deleteWindow(ownerId: string, id: string): Promise<void> {
-  try {
-    const db = getDb()
-    if (!db) return
-    await ensureMigrated(db)
+export async function deleteWindow(
+  ownerId: string,
+  id: string
+): Promise<number> {
+  const db = getDb()
+  if (!db) throw new MaintenanceStoreUnavailableError()
+  await ensureMigrated(db)
 
-    await db
-      .prepare(`DELETE FROM ${TABLE} WHERE id = ?1 AND owner_id = ?2`)
-      .bind(id, ownerId)
-      .run()
+  const res = await db
+    .prepare(`DELETE FROM ${TABLE} WHERE id = ?1 AND owner_id = ?2`)
+    .bind(id, ownerId)
+    .run()
 
-    invalidateCache(ownerId)
-  } catch (err) {
-    warn(`failed to delete window ${id} for owner ${ownerId}: ${err}`)
-  }
+  invalidateCache(ownerId)
+  return res.meta?.changes ?? 0
 }
 
 // ---------------------------------------------------------------------------

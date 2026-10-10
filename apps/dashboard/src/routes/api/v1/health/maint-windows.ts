@@ -26,6 +26,7 @@ import {
   createWindow,
   deleteWindow,
   listWindows,
+  MaintenanceStoreUnavailableError,
 } from '@/lib/health/maintenance-windows'
 
 /** OSS single-tenant fallback when Clerk is not configured / no session. */
@@ -128,9 +129,27 @@ async function handleDelete(request: Request): Promise<Response> {
   }
 
   const ownerId = await resolveOwnerId()
-  await deleteWindow(ownerId, id)
-  return Response.json({ success: true })
+  let deleted: number
+  try {
+    deleted = await deleteWindow(ownerId, id)
+  } catch (err) {
+    if (err instanceof MaintenanceStoreUnavailableError) {
+      return jsonError(err.message, 503)
+    }
+    return jsonError(
+      err instanceof Error
+        ? err.message
+        : 'Failed to delete maintenance window',
+      500
+    )
+  }
+  if (deleted === 0) {
+    return jsonError(`Maintenance window "${id}" not found`, 404)
+  }
+  return Response.json({ success: true, deleted })
 }
+
+export const __handleDeleteForTests = handleDelete
 
 export const Route = createFileRoute('/api/v1/health/maint-windows')({
   server: {
