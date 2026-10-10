@@ -70,7 +70,9 @@ export const ANYROUTER_CALLBACK_PATH = `${ANYROUTER_SIGNIN_COOKIE_PATH}/callback
 /** `postMessage` type tag the callback page sends to `window.opener`. */
 export const ANYROUTER_SIGNIN_MESSAGE_TYPE = 'chm:anyrouter-signin'
 
-const OAUTH_CLIENT_NAME = 'chmonitor'
+// AnyRouter reserves the bare name "chmonitor" and rejects registration with
+// 400 invalid_client_metadata ("This client name is reserved").
+export const OAUTH_CLIENT_NAME = 'chmonitor dashboard'
 const DEFAULT_EXPIRES_IN_SECONDS = 30 * 24 * 60 * 60 // 30 days, per the docs
 
 /** Raised for any AnyRouter sign-in failure with a message safe to surface to the user. */

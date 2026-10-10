@@ -22,6 +22,7 @@ import {
   generateCodeVerifier,
   generateState,
   getOrRegisterClientId,
+  OAUTH_CLIENT_NAME,
   parseSigninCookie,
   serializeSigninCookie,
 } from '../anyrouter-signin'
@@ -175,6 +176,27 @@ describe('client registration caching', () => {
     expect(first).toBe('client-abc')
     expect(second).toBe('client-abc')
     expect(callCount).toBe(1)
+  })
+
+  test('registers under a client name AnyRouter accepts', async () => {
+    // AnyRouter reserves the bare "chmonitor" name: registration failed with
+    // 400 invalid_client_metadata and production sign-in returned 502.
+    let body: { client_name?: string } = {}
+    global.fetch = mock(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        body = JSON.parse(String(init?.body))
+        return new Response(JSON.stringify({ client_id: 'client-abc' }), {
+          status: 201,
+        })
+      }
+    ) as unknown as typeof fetch
+
+    await getOrRegisterClientId(
+      'https://dash.chmonitor.dev/api/v1/agents/anyrouter/callback',
+      'https://dash.chmonitor.dev'
+    )
+    expect(body.client_name).toBe(OAUTH_CLIENT_NAME)
+    expect(OAUTH_CLIENT_NAME).not.toBe('chmonitor')
   })
 
   test('ANYROUTER_OAUTH_CLIENT_ID env override skips registration entirely', async () => {
