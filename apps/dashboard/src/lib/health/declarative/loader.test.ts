@@ -331,3 +331,81 @@ describe('getHealthConfigLayers', () => {
     })
   })
 })
+
+describe('loadHealthConfigFiles — alerts.yaml peerdbRules (#3699)', () => {
+  test('a valid rule loads keyed by id, with defaults filled', () => {
+    write(
+      'alerts.yaml',
+      `peerdbRules:
+  - id: fleet-lag
+    check: lag
+    match: qrep_sg_fleetreporting1_*
+    warning: 3600
+    critical: 14400
+    muteUntil: 2026-10-12T00:00:00Z
+`
+    )
+    const { data, skipped } = loadHealthConfigFiles(dir)
+    expect(skipped).toEqual([])
+    expect(data.peerdbRules['fleet-lag']).toEqual({
+      id: 'fleet-lag',
+      check: 'lag',
+      matchKind: 'glob',
+      match: 'qrep_sg_fleetreporting1_*',
+      warning: 3600,
+      critical: 14400,
+      severity: 'critical',
+      enabled: true,
+      muteUntil: '2026-10-12T00:00:00Z',
+    })
+  })
+
+  test('bad entries are skipped one by one; siblings still load', () => {
+    write(
+      'alerts.yaml',
+      `peerdbRules:
+  - id: ok
+    check: errors
+    matchKind: exact
+    match: pg_to_ch
+    warning: 2
+    critical: 10
+  - id: inverted
+    check: lag
+    match: x
+    warning: 100
+    critical: 10
+  - id: unknown-check
+    check: cpu
+    match: x
+    warning: 1
+    critical: 2
+  - id: typo
+    check: lag
+    match: x
+    warning: 1
+    critical: 2
+    severty: warning
+  - check: lag
+    match: no-id
+    warning: 1
+    critical: 2
+  - id: bad-mute
+    check: lag
+    match: x
+    warning: 1
+    critical: 2
+    muteUntil: tomorrow
+`
+    )
+    const { data, skipped } = loadHealthConfigFiles(dir)
+    expect(Object.keys(data.peerdbRules)).toEqual(['ok'])
+    expect(skipped.map((s) => s.entry)).toEqual([
+      'peerdbRules[1]',
+      'peerdbRules[2]',
+      'peerdbRules[3]',
+      'peerdbRules[4]',
+      'peerdbRules[5]',
+    ])
+  })
+})

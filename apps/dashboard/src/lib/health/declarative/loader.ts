@@ -35,6 +35,7 @@ import {
   declarativeChannelSchema,
   declarativeCustomRuleSchema,
   declarativeMaintenanceWindowSchema,
+  declarativePeerDBRuleSchema,
   declarativeQuietHoursSchema,
   declarativeRouteSchema,
   declarativeThresholdSchema,
@@ -134,8 +135,9 @@ function applyConcern(
   const v = envelope.data
   switch (concern) {
     case 'alerts': {
-      const { rules, thresholds } = v as {
+      const { rules, peerdbRules, thresholds } = v as {
         rules: unknown[]
+        peerdbRules: unknown[]
         thresholds: Record<string, unknown>
       }
       data.customRules = collect(
@@ -144,6 +146,14 @@ function applyConcern(
         (r) => r.id,
         file,
         'rules',
+        skipped
+      )
+      data.peerdbRules = collect(
+        peerdbRules,
+        declarativePeerDBRuleSchema,
+        (r) => r.id,
+        file,
+        'peerdbRules',
         skipped
       )
       for (const [rule, raw] of Object.entries(thresholds)) {

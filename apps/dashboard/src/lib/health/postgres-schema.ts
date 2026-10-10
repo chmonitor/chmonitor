@@ -1,5 +1,6 @@
 /**
- * Postgres schema for the twelve health/alert stores (#3493).
+ * Postgres schema for the twelve health/alert stores (#3493) plus the PeerDB
+ * alert rules store (#3699).
  *
  * The D1 schema lives in `db/conversations-migrations/*.sql` (and in a few
  * stores' lazy `MIGRATION_SQL`); this is its Postgres twin, bootstrapped once
@@ -185,4 +186,20 @@ CREATE TABLE IF NOT EXISTS quiet_hours (
 );
 CREATE INDEX IF NOT EXISTS idx_quiet_hours_owner
   ON quiet_hours (owner_id);
+
+CREATE TABLE IF NOT EXISTS peerdb_alert_rules (
+  id         TEXT NOT NULL PRIMARY KEY,
+  owner_id   TEXT NOT NULL,
+  check_type TEXT NOT NULL,
+  match_kind TEXT NOT NULL,
+  match      TEXT NOT NULL,
+  warning    DOUBLE PRECISION NOT NULL,
+  critical   DOUBLE PRECISION NOT NULL,
+  severity   TEXT NOT NULL DEFAULT 'critical',
+  enabled    INTEGER NOT NULL DEFAULT 1,
+  mute_until BIGINT,
+  created_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_peerdb_alert_rules_owner
+  ON peerdb_alert_rules (owner_id);
 `

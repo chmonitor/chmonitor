@@ -35,6 +35,7 @@ describe.skipIf(!url)('health stores on Postgres (#3493)', () => {
       'custom_alert_rules',
       'maintenance_windows',
       'quiet_hours',
+      'peerdb_alert_rules',
     ]) {
       await sql.unsafe(`DELETE FROM ${table} WHERE owner_id = $1`, [OWNER])
     }

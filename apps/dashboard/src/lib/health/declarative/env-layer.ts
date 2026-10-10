@@ -36,6 +36,7 @@ export function loadHealthConfigEnv(
   const data: HealthConfigEnvData = {
     customRules: {},
     thresholds: {},
+    peerdbRules: {},
     routes: {},
     channels: {},
     webhookTargets: {},

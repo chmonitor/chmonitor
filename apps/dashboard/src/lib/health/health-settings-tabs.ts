@@ -29,6 +29,7 @@ export type AdvancedSectionId =
   | 'digest'
   | 'suggested'
   | 'custom-rules'
+  | 'peerdb-rules'
 
 /**
  * The three groups the seven former Advanced sections are sorted into (#3438).
@@ -45,6 +46,7 @@ export const ADVANCED_SECTION_PLACEMENT: Readonly<
 > = {
   suggested: { tab: 'alerts', group: 'define' },
   'custom-rules': { tab: 'alerts', group: 'define' },
+  'peerdb-rules': { tab: 'alerts', group: 'define' },
   routing: { tab: 'alerts', group: 'delivery' },
   webhooks: { tab: 'alerts', group: 'delivery' },
   digest: { tab: 'alerts', group: 'delivery' },
@@ -87,6 +89,7 @@ export const LEGACY_TAB_MAP: Readonly<
   digest: section('digest'),
   suggested: section('suggested'),
   'custom-rules': section('custom-rules'),
+  'peerdb-rules': section('peerdb-rules'),
   // Group ids (#3438) — link to a whole group without naming one section.
   define: { tab: 'alerts' },
   delivery: { tab: 'alerts' },

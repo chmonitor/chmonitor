@@ -688,3 +688,87 @@ describe('runPeerDBAlertCycle — log patterns (#3700)', () => {
     expect(t.dispatches).toHaveLength(0)
   })
 })
+
+describe('runPeerDBAlertCycle — per-mirror rules (#3699)', () => {
+  const FLEET_RULE = {
+    id: 'fleet-lag',
+    check: 'lag' as const,
+    matchKind: 'glob' as const,
+    match: 'qrep_sg_fleetreporting1_*',
+    warning: 3600,
+    critical: 14400,
+    severity: 'critical' as const,
+    enabled: true,
+    muteUntil: null,
+  }
+  // 10 minutes of lag: above the 300s default warning, below the rule's 3600s.
+  const mirrors = [
+    { name: 'qrep_sg_fleetreporting1_orders', lagSec: 600 },
+    { name: 'pg_to_ch_rules', lagSec: 600 },
+  ]
+
+  test('a rule raises thresholds only for the mirrors it matches', async () => {
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor(mirrors),
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+      rules: [FLEET_RULE],
+    })
+    expect(res.findings.map((f) => f.checkId)).toEqual([RULE('pg_to_ch_rules')])
+    expect(t.dispatches.map((d) => d.ruleId)).toEqual([RULE('pg_to_ch_rules')])
+  })
+
+  test('no rules = defaults: both mirrors fire, dedup keys unchanged', async () => {
+    const t = tape()
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor(mirrors),
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+      rules: [],
+    })
+    const expected = [
+      RULE('pg_to_ch_rules'),
+      RULE('qrep_sg_fleetreporting1_orders'),
+    ].sort()
+    expect(res.findings.map((f) => f.checkId).sort()).toEqual(expected)
+    expect(t.dispatches.map((d) => d.ruleId).sort()).toEqual(expected)
+  })
+
+  test('a muted mirror is still reported and audited, never dispatched', async () => {
+    const t = tape()
+    const now = Date.now()
+    const res = await runPeerDBAlertCycle({
+      reader: readerFor([
+        { name: 'qrep_sg_fleetreporting1_orders', status: 'STATUS_FAILED' },
+        { name: 'pg_to_ch_muted', status: 'STATUS_FAILED' },
+      ]),
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+      now,
+      rules: [{ ...FLEET_RULE, muteUntil: now + 60_000 }],
+    })
+    expect(res.findings).toHaveLength(2)
+    expect(t.dispatches.map((d) => d.ruleId)).toEqual([RULE('pg_to_ch_muted')])
+    expect(t.audits.map((a) => a.decisionKind)).toContain('peerdb-hold:muted')
+  })
+
+  test('a warning-only rule never sends critical and never leaks Infinity', async () => {
+    const t = tape()
+    await runPeerDBAlertCycle({
+      reader: readerFor([
+        { name: 'qrep_sg_fleetreporting1_x', lagSec: 99_999 },
+      ]),
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+      rules: [{ ...FLEET_RULE, severity: 'warning' }],
+    })
+    expect(t.dispatches).toHaveLength(1)
+    expect(t.dispatches[0]!.severity).toBe('warning')
+    expect(t.dispatches[0]!.critThreshold).toBeNull()
+  })
+})
