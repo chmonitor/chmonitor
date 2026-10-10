@@ -571,7 +571,8 @@ export function isAnyAlertChannelEnabled(): boolean {
     on('telegram', getServerTelegramConfig() !== null) ||
     on('ntfy', getServerNtfyConfig() !== null) ||
     on('pushover', getServerPushoverConfig() !== null) ||
-    on('twilio', getServerTwilioConfig() !== null) ||
+    // Twilio has no per-channel toggle, so configured means on.
+    getServerTwilioConfig() !== null ||
     on('healthchecks', Boolean(getServerHealthchecksUrl()))
   )
 }
