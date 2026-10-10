@@ -8,7 +8,7 @@ Plans 001–017 and 019–023 were completed, merged to `main`, and their plan f
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| [018](018-remove-deprecated-variants-query-config.md) | Remove Deprecated variants Property from QueryConfig Type Schema | P3 | S | — | DONE |
+| 018 | Remove Deprecated variants Property from QueryConfig Type Schema | P3 | S | — | DONE |
 
 *Status values: TODO \| IN PROGRESS \| DONE \| BLOCKED (with one-line reason) \| REJECTED (with one-line rationale — finding fixed independently or approach abandoned)*
 
@@ -35,7 +35,7 @@ Standard-depth audit weighted toward `apps/dashboard/src`. Verification gates (b
 | 024 | Constant-time CRON_SECRET comparison in health-sweep | P1 | S | — | DONE (#1893) |
 | 025 | Centralized ClickHouse error sanitizer for API responses | P1 | M | — | DONE (#1894) |
 | 026 | Memoize Overview render (OverviewChart + tab filters) | P2 | S | — | DONE (#1895) |
-| [027](027-conversation-export.md) | Conversation export (JSONL, all storage backends) | P3 | M | — | TODO |
+| 027 | Conversation export (JSONL, all storage backends) | P3 | M | — | DONE |
 
 No hard dependencies among 024–027. Do 024 (cheapest) then 025 (highest-value security). 026 is an isolated perf win. 027 is an additive feature.
 
