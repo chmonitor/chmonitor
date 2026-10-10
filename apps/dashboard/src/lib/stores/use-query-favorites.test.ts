@@ -21,6 +21,25 @@ describe('LocalFavoritesBackend', () => {
     backend = new LocalFavoritesBackend(mockLocalStorage)
   })
 
+  test('save throws when storage rejects the write (quota)', () => {
+    const full = new LocalFavoritesBackend({
+      ...mockLocalStorage,
+      setItem: () => {
+        throw new Error('QuotaExceededError')
+      },
+    })
+    expect(() =>
+      full.save({
+        title: 't',
+        sql: 'SELECT 1',
+        tags: [],
+        hostId: 0,
+        database: null,
+        shareUrl: '',
+      })
+    ).toThrow(/Could not save favorite/)
+  })
+
   test('list returns empty initially', () => {
     expect(backend.list()).toEqual([])
   })

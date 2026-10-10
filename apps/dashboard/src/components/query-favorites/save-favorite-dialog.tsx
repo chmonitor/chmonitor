@@ -31,20 +31,28 @@ export function SaveFavoriteDialog({
   const defaultTitle = sql.replace(/\s+/g, ' ').trim().slice(0, 60)
   const [title, setTitle] = useState(defaultTitle)
   const [tagsInput, setTagsInput] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const handleSave = () => {
     const tags = tagsInput
       .split(',')
       .map((t) => t.trim())
       .filter(Boolean)
-    save({
-      title: title.trim() || defaultTitle,
-      sql: sql.trim(),
-      tags,
-      hostId,
-      database,
-      shareUrl: '',
-    })
+    try {
+      save({
+        title: title.trim() || defaultTitle,
+        sql: sql.trim(),
+        tags,
+        hostId,
+        database,
+        shareUrl: '',
+      })
+    } catch (err) {
+      // Keep the dialog open so the user's input is not lost.
+      setSaveError(err instanceof Error ? err.message : String(err))
+      return
+    }
+    setSaveError(null)
     onOpenChange(false)
     // Reset for next open.
     setTitle(defaultTitle)
@@ -56,6 +64,7 @@ export function SaveFavoriteDialog({
       // Re-derive title each time the dialog opens so it reflects the current SQL.
       setTitle(sql.replace(/\s+/g, ' ').trim().slice(0, 60))
       setTagsInput('')
+      setSaveError(null)
     }
     onOpenChange(next)
   }
@@ -94,6 +103,12 @@ export function SaveFavoriteDialog({
               Optional. Separate multiple tags with commas.
             </p>
           </div>
+
+          {saveError && (
+            <p role="alert" className="text-destructive text-sm">
+              {saveError}
+            </p>
+          )}
         </div>
 
         <DialogFooter>

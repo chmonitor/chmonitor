@@ -89,11 +89,13 @@ export class LocalFavoritesBackend implements FavoritesBackend {
     }
   }
 
-  private write(entries: QueryFavorite[]): void {
+  /** Returns false on quota/serialization failure so callers can surface it. */
+  private write(entries: QueryFavorite[]): boolean {
     try {
       this.s.setItem(STORAGE_KEY, JSON.stringify(entries))
+      return true
     } catch {
-      // Quota or serialization failure — favorites are best-effort, ignore.
+      return false
     }
   }
 
@@ -107,7 +109,11 @@ export class LocalFavoritesBackend implements FavoritesBackend {
     const shareUrl = entry.shareUrl || buildShareUrl(entry.sql, entry.hostId)
     const fav: QueryFavorite = { ...entry, id, createdAt, shareUrl }
     const prev = this.read()
-    this.write([fav, ...prev])
+    if (!this.write([fav, ...prev])) {
+      throw new Error(
+        'Could not save favorite: browser storage is unavailable or full'
+      )
+    }
     return fav
   }
 
