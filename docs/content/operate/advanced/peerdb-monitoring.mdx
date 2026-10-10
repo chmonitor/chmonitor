@@ -157,6 +157,33 @@ classified normally. Mirrors left unread are retried on the next tick, so a
 fleet too large for one tick needs either a larger `PEERDB_SWEEP_BUDGET_MS` or
 a smaller fleet — not a cap.
 
+## Logs
+
+**Show fleet logs & alerts** on `/peerdb` opens one feed for every mirror. The
+server reads `POST /v1/mirrors/logs` for each mirror PeerDB lists, through the
+same bounded pool as the alert sweep (`PEERDB_SWEEP_CONCURRENCY`), so a large
+fleet does not flood the PeerDB catalog and no mirror is left out by a fixed
+cap. The browser makes one request: `GET /api/v1/peerdb/log-patterns`.
+
+| Control | Options | What it does |
+|---|---|---|
+| Window | `1h` · `24h` (default) · `7d` | Keeps only lines whose timestamp falls inside the window. Lines with no timestamp are dropped. |
+| View | Patterns (default) · Raw | **Patterns** folds repeated lines into one row with a count, a sparkline, last seen, and the mirrors that hit it. Expand a row to see its raw lines. **Raw** lists every line, newest first. |
+| Group by | Pattern · Mirror · Table | **Pattern** groups lines whose text matches once numbers, ids, LSNs, and timestamps are masked. **Mirror** gives one row per mirror. **Table** groups by the table a message names (`... table public.orders`), with `(no table)` for the rest. |
+| Sort | Level · Last seen · Count | **Level** puts errors and warnings first. The other two sort by recency or by volume. |
+| Level | All · ERROR · WARN · INFO | Filters lines before grouping. When errors or warnings exist, info patterns are collapsed behind a "Show N info patterns" button. |
+
+The header shows how many mirrors were read out of how many PeerDB lists. A
+note appears under it when coverage is incomplete:
+
+- some mirrors failed or did not answer within the request budget (25s);
+- some mirrors have more lines in the window than one read returns (100 per
+  mirror). Open the mirror to see all of its logs.
+
+Responses for the deployment's own PeerDB are cached in memory for 30 seconds
+per window. Requests for a per-user connection (`?connection=<id>`) are never
+cached.
+
 ## Alerting
 
 The scheduled health sweep also evaluates every PeerDB mirror and sends alerts

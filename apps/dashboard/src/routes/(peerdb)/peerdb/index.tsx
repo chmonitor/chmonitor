@@ -807,7 +807,7 @@ function PeerDBMirrorsPage() {
             )}
             {logsOpen ? 'Hide fleet logs' : 'Show fleet logs & alerts'}
           </button>
-          {logsOpen && <FleetLogsFeed mirrors={mirrors.map((m) => m.name)} />}
+          {logsOpen && <FleetLogsFeed />}
         </div>
       )}
     </div>
