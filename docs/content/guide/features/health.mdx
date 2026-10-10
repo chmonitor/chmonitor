@@ -197,7 +197,8 @@ thresholds:
 ```
 
 `alerts.yaml` also accepts `peerdbRules:`, per-mirror PeerDB thresholds and
-mutes. Each entry sets one `check` (`lag`, `slot-lag`, `errors`, `stale-sync`)
+mutes. Each entry sets one `check` (`lag`, `slot-lag`, `errors`, `stale-sync`,
+`throughput-zero`)
 for the mirrors that match `match` (`matchKind`: `exact`, `prefix`, or `glob`,
 the default). `warning` must not be above `critical`. `severity: warning` stops
 that check from going past warning. `muteUntil` (ISO-8601) mutes the matching

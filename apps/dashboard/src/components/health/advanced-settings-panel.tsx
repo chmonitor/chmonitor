@@ -133,7 +133,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
     group: 'define',
     title: 'PeerDB mirror rules',
     description:
-      'Per-mirror lag, slot lag, error and stale-sync thresholds, or mute a mirror for a while.',
+      'Per-mirror lag, slot lag, error, stale-sync and throughput thresholds, or mute a mirror for a while.',
     icon: Cable,
     wide: true,
     render: () => <PeerDBRulesPanel />,

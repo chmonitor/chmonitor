@@ -70,6 +70,11 @@ import {
   PEERDB_LOG_PATTERN_SPIKE_COUNT,
 } from './log-pattern-alerts'
 import { formatSweepCoverage, summarizeSweepCoverage } from './sweep-coverage'
+import {
+  computePeerDBThroughput,
+  healthDbThroughputStore,
+  type PeerDBThroughputStore,
+} from './throughput-samples'
 import { debug } from '@chm/logger'
 import { alertStateStore } from '@/lib/health/alert-state-store'
 
@@ -213,6 +218,12 @@ export interface PeerDBCycleOptions {
    * bound is injectable in tests and configurable in production (#3687).
    */
   maxMirrors?: number | null
+  /**
+   * Where the previous `rowsSynced` sample per mirror lives between ticks
+   * (#3728). Defaults to `peerdb_throughput_samples` on the shared health
+   * DB; `null`, no DB, or a failed read skips the throughput-zero check.
+   */
+  throughputStore?: PeerDBThroughputStore | null
 }
 
 // ---------------------------------------------------------------------------
@@ -676,7 +687,24 @@ export async function runPeerDBAlertCycle(
     result.errored = collection.metrics.errored
 
     // Fleet firing count first (investigation context, no extra I/O).
-    const classified = signals.map((signal) => {
+    const throughputStore =
+      opts.throughputStore === undefined
+        ? healthDbThroughputStore
+        : opts.throughputStore
+    const samples = throughputStore
+      ? await throughputStore.load().catch(() => null)
+      : null
+    const throughput = computePeerDBThroughput(signals, samples, clock)
+    if (throughputStore && samples) {
+      await throughputStore
+        .save(throughput.upserts, throughput.deletes, clock)
+        .catch(() => {})
+    }
+    const classified = signals.map((raw, i) => {
+      const signal: PeerDBMirrorSignal = {
+        ...raw,
+        rowsFlatSec: throughput.flatSec[i] ?? null,
+      }
       const thresholds =
         rules.length > 0
           ? thresholdsForMirror(signal.flowName, rules, baseThresholds)

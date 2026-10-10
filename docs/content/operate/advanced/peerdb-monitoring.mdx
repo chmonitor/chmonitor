@@ -203,6 +203,7 @@ Each mirror is classified **ok / warning / error** from its read-only status:
 | Replication slot lag | at least 512 MB | at least 2048 MB |
 | Recent ERROR log entries | at least 1 | at least 5 |
 | Snapshot (initial load) | not finished 24 hours after it started | — |
+| CDC throughput (`rowsSynced`) | unchanged for at least 1800 s | — (set one with a rule) |
 
 When the error-log count could not be read, the alert says "error count
 unavailable" instead of reporting zero errors. Mirrors that are
@@ -212,6 +213,18 @@ unavailable" instead of reporting zero errors. Mirrors that are
 The thresholds above are the defaults. A stale running mirror (no CDC lag
 reported, last sync batch too old) is a warning after 1800 s and an error
 after 7200 s.
+
+**Throughput zero.** `rowsSynced` is a running total, so the sweep keeps the
+previous total for each mirror between runs, in a small
+`peerdb_throughput_samples` table on the same database the PeerDB rules use.
+Without that database the check is off. A `STATUS_RUNNING` CDC mirror whose
+total has not grown for 1800 s is a warning (reason `throughput-zero-warning`,
+or `throughput-zero-error` once a rule's critical threshold is reached). The
+first sweep after a mirror appears only records a sample, so it never fires.
+QRep mirrors and mirrors that are not running are not checked, and a paused
+mirror starts a fresh window when it resumes. A quiet source table with no
+changes also reads as zero throughput: raise the threshold or mute it with a
+`throughput-zero` rule.
 
 ### Configure thresholds and mutes
 
@@ -228,7 +241,7 @@ mute them for a while. Rules live in two places, and both apply:
 ```yaml
 peerdbRules:
   - id: fleetreporting-lag
-    check: lag            # lag | slot-lag | errors | stale-sync
+    check: lag            # lag | slot-lag | errors | stale-sync | throughput-zero
     matchKind: glob       # exact | prefix | glob (default)
     match: qrep_sg_fleetreporting1_*
     warning: 3600

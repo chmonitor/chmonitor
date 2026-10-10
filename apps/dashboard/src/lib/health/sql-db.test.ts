@@ -175,6 +175,7 @@ describe('HEALTH_POSTGRES_SCHEMA_SQL', () => {
     'maintenance_windows',
     'quiet_hours',
     'peerdb_alert_rules',
+    'peerdb_throughput_samples',
   ]
 
   test('creates every table the twelve stores use, idempotently', () => {

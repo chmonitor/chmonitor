@@ -74,6 +74,18 @@ export interface PeerDBMirrorSignal {
    * any. Used for the stale-running check when no `lagSec` is reported.
    */
   lastSyncedAtMs?: number | null
+  /**
+   * `true` for a CDC mirror, `false` for QRep / initial-load only. Unknown
+   * (`undefined`) is treated as not-CDC by the throughput check.
+   */
+  isCdc?: boolean
+  /**
+   * Seconds the `rowsSynced` total has stayed unchanged across sweep ticks
+   * (#3728). Set by the alert cycle from the persisted previous sample; `null`
+   * / absent when there is no earlier sample, the store is unavailable, or the
+   * mirror is not a running CDC mirror. Never classifies on its own otherwise.
+   */
+  rowsFlatSec?: number | null
 }
 
 export {
@@ -193,6 +205,17 @@ export function classifyPeerDBMirror(
   if (signal.snapshotStalled) {
     escalate('warning', 'snapshot-stalled')
   }
+  // Throughput zero (#3728): only a RUNNING CDC mirror, and only when the
+  // cycle measured a flat total against a persisted earlier sample.
+  const flatSec =
+    status === 'STATUS_RUNNING' && signal.isCdc === true
+      ? finiteOrNull(signal.rowsFlatSec)
+      : null
+  if (flatSec !== null && flatSec >= thresholds.throughputZeroErrorSec) {
+    escalate('error', 'throughput-zero-error')
+  } else if (flatSec !== null && flatSec >= thresholds.throughputZeroWarnSec) {
+    escalate('warning', 'throughput-zero-warning')
+  }
   if (
     syncAgeSec !== null &&
     syncAgeSec >= thresholds.staleSyncWarnSec &&
@@ -284,6 +307,10 @@ export function formatPeerDBAlertMessage(
   const slotLag = finiteOrNull(signal.slotLagMb)
   if (slotLag !== null) labelParts.push(`slot ${Math.round(slotLag)}MB`)
   if (signal.snapshotStalled) labelParts.push('snapshot stalled')
+  if (classification.reasons.some((r) => r.startsWith('throughput-zero-'))) {
+    const flatMin = Math.round((finiteOrNull(signal.rowsFlatSec) ?? 0) / 60)
+    labelParts.push(`no new rows for ${flatMin}m`)
+  }
   const label = labelParts.join(' · ')
 
   const title = `[${severity}] PeerDB mirror ${flow}`
@@ -388,6 +415,16 @@ export function peerDBPayloadValue(
       value: lag,
       warnThreshold: thresholds.lagWarnSec,
       critThreshold: thresholds.lagErrorSec,
+    }
+  }
+  if (
+    reasons.includes('throughput-zero-error') ||
+    reasons.includes('throughput-zero-warning')
+  ) {
+    return {
+      value: finiteOrNull(signal.rowsFlatSec),
+      warnThreshold: thresholds.throughputZeroWarnSec,
+      critThreshold: thresholds.throughputZeroErrorSec,
     }
   }
   if (reasons.includes('snapshot-stalled')) {

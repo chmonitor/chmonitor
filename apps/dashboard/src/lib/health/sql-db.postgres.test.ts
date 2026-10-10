@@ -40,10 +40,29 @@ describe.skipIf(!url)('health stores on Postgres (#3493)', () => {
       await sql.unsafe(`DELETE FROM ${table} WHERE owner_id = $1`, [OWNER])
     }
     await sql.unsafe('DELETE FROM alert_state WHERE host_id = $1', [HOST])
+    await sql.unsafe(
+      'DELETE FROM peerdb_throughput_samples WHERE flow_slug = $1',
+      [OWNER]
+    )
     await sql.unsafe('DELETE FROM alert_events WHERE host_id = $1', [HOST])
     await sql.end()
     if (saved === undefined) delete process.env.DATABASE_URL
     else process.env.DATABASE_URL = saved
+  })
+
+  test('peerdb throughput samples: save / load / delete', async () => {
+    const { healthDbThroughputStore: store } = await import(
+      '@/lib/peerdb/throughput-samples'
+    )
+    const big = 2 ** 40
+    await store.save(
+      new Map([[OWNER, { rowsSynced: big, sinceMs: Date.now() }]]),
+      [],
+      Date.now()
+    )
+    expect((await store.load())?.get(OWNER)?.rowsSynced).toBe(big)
+    await store.save(new Map(), [OWNER], Date.now())
+    expect((await store.load())?.has(OWNER)).toBe(false)
   })
 
   test('resolver picks Postgres', async () => {
