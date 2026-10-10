@@ -68,12 +68,12 @@ describe('hardenGuestAgentRequest — Sign in with AnyRouter', () => {
     }
   })
 
-  test('flag on + token: MCP servers and host clamp still apply', async () => {
+  test('flag on + token: MCP servers are still dropped and the host id kept', async () => {
     const hardened = hardenGuestAgentRequest(
       await parse({
         apiKey: GUEST_TOKEN,
         model: 'anyrouter:openai/gpt-5',
-        hostId: -2,
+        hostId: 2,
         mcpServers: [
           { id: 'evil', name: 'evil', endpoint: 'https://mcp.example.com' },
         ],
@@ -82,7 +82,7 @@ describe('hardenGuestAgentRequest — Sign in with AnyRouter', () => {
     )
     expect(hardened.mcpServers).toEqual([])
     expect(hardened.body.mcpServers).toBeUndefined()
-    expect(hardened.hostId).toBe(0)
+    expect(hardened.hostId).toBe(2)
   })
 
   test('flag on, no token: the free demo default and allowlist are unchanged', async () => {

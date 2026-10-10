@@ -5,6 +5,7 @@
  * Extracted from `handlePost` in issue #2885 — no behavioural change.
  */
 
+import type { AgentConnectionBinding } from '@/lib/ai/agent/host-query'
 import type { SafeAgentMessage, SafePageContext } from './request-parsing'
 
 import { buildPageContextLine } from './request-parsing'
@@ -186,6 +187,8 @@ export async function createAgentRuntime(options: {
   userId: string
   requestMcpServers: CustomMcpServerInput[]
   hostId: number
+  /** Resolved user connection when `hostId` is negative. */
+  connection?: AgentConnectionBinding
   model: string
   disabledTools: string[]
   openRouterUser: string
@@ -226,6 +229,7 @@ export async function createAgentRuntime(options: {
 
     const agent = createClickHouseAgent({
       hostId: options.hostId,
+      ...(options.connection ? { connection: options.connection } : {}),
       model: options.model,
       disabledTools: options.disabledTools,
       systemPrompt: AGENT_JSON_RENDER_INLINE_PROMPT,

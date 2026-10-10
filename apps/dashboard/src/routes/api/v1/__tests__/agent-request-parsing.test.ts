@@ -51,6 +51,40 @@ describe('parseAgentRequest', () => {
     expect(result.pageContext).toEqual({ route: '/merges', label: 'Merges' })
   })
 
+  test('rejects a fractional or junk hostId instead of clamping it to host 0', async () => {
+    for (const hostId of [1.5, '1.5', '1abc', '']) {
+      const result = await parseAgentRequest(
+        postRequest({ message: 'hi', hostId })
+      )
+      expect(result.ok).toBe(false)
+      if (result.ok) continue
+      expect(result.reason).toBe('invalid_host_id')
+    }
+  })
+
+  test('keeps a negative (per-user connection) hostId as-is, never clamped to host 0', async () => {
+    // The route resolves it to the caller's own connection; parsing must not
+    // turn it into the demo host.
+    for (const [hostId, expected] of [
+      [-3, -3],
+      ['-1001', -1001],
+    ] as const) {
+      const result = await parseAgentRequest(
+        postRequest({ message: 'hi', hostId })
+      )
+      expect(result.ok).toBe(true)
+      if (!result.ok) continue
+      expect(result.hostId).toBe(expected)
+    }
+  })
+
+  test('a missing hostId defaults to host 0', async () => {
+    const result = await parseAgentRequest(postRequest({ message: 'hi' }))
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.hostId).toBe(0)
+  })
+
   test('rejects a body whose declared content-length exceeds the cap', async () => {
     const result = await parseAgentRequest(
       postRequest(
@@ -194,7 +228,7 @@ describe('parseAgentRequest', () => {
             endpoint: 'https://mcp.example.com',
           },
         ],
-        hostId: -3,
+        hostId: 3,
       })
     )
     expect(result.ok).toBe(true)
@@ -205,7 +239,7 @@ describe('parseAgentRequest', () => {
     expect(hardened.mcpServers).toEqual([])
     expect(hardened.body.apiKey).toBeUndefined()
     expect(hardened.body.model).toBe(GUEST_DEFAULT_AGENT_MODEL)
-    expect(hardened.hostId).toBe(0)
+    expect(hardened.hostId).toBe(3)
   })
 
   test('hardenGuestAgentRequest keeps anyrouter:auto', async () => {

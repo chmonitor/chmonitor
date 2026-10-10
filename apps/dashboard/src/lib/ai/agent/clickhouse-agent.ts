@@ -7,6 +7,7 @@
  */
 
 import type { ProviderOptions } from '@ai-sdk/provider-utils'
+import type { AgentConnectionBinding } from './host-query'
 
 import { CLICKHOUSE_AGENT_INSTRUCTIONS } from './prompts/clickhouse-instructions'
 import { DEFAULT_MODEL, resolveAgentChatModel } from './provider-chat-model'
@@ -45,6 +46,12 @@ export function createClickHouseAgent(options: {
   model?: string | LanguageModel
   maxSteps?: number
   hostId: number
+  /**
+   * The signed-in user's own connection for a negative `hostId`, resolved
+   * (ownership-checked) by the agent route. Tools query it instead of the
+   * env hosts. See `host-query.ts`.
+   */
+  connection?: AgentConnectionBinding
   disabledTools?: string[]
   systemPrompt?: string
   providerOptions?: ProviderOptions
@@ -66,6 +73,7 @@ export function createClickHouseAgent(options: {
     model = DEFAULT_MODEL,
     maxSteps = DEFAULT_MAX_STEPS,
     hostId,
+    connection,
     disabledTools = [],
     systemPrompt = CLICKHOUSE_AGENT_INSTRUCTIONS,
     providerOptions,
@@ -76,7 +84,7 @@ export function createClickHouseAgent(options: {
     apiKey,
   } = options
 
-  const allTools = createAllTools(hostId, includeControlTools)
+  const allTools = createAllTools(hostId, includeControlTools, connection)
   // Built-in schemas are static per tool name: reuse their JSON Schema across
   // steps and requests instead of re-converting zod every step (#3560).
   const filteredTools = withCachedInputSchemas(

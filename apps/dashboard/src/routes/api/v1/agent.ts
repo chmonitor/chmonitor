@@ -20,6 +20,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { applyAiUsageGate } from './-agent/billing'
 import { AGENT_DEBUG_LOGS } from './-agent/debug'
 import {
+  agentConnectionFailureResponse,
+  demoHostBlockedResponse,
   parseFailureResponse,
   providerNotConfiguredResponse,
   unhandledErrorResponse,
@@ -37,6 +39,10 @@ import {
 import { createAgentStreamResponse } from './-agent/stream'
 import { env } from 'cloudflare:workers'
 import { selectAgentApiKey } from '@/lib/ai/agent/byok'
+import {
+  type AgentConnectionBinding,
+  resolveAgentConnection,
+} from '@/lib/ai/agent/host-query'
 import { getUserProviderToken } from '@/lib/ai/agent/user-token-store'
 import { isAnyRouterSigninEnabled } from '@/lib/ai/anyrouter-signin-flag'
 import { isProviderConfigured, parseModelId } from '@/lib/ai/providers'
@@ -54,6 +60,7 @@ import {
   guestOwnerIdFromIp,
 } from '@/lib/billing/guest-ai'
 import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
+import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { parseBool } from '@/lib/config/parse-bool'
 import { ACTIONS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
@@ -91,8 +98,34 @@ async function handlePost(request: Request): Promise<Response> {
   const parsedRaw = await parseAgentRequest(request)
   if (!parsedRaw.ok) return parseFailureResponse(parsedRaw)
 
+  // Cloud demo-hiding invariant (#2172), same rule as the chart/table routes:
+  // a signed-in cloud user never reaches the hidden env/demo host. No-op for
+  // OSS and anonymous cloud callers (both legitimately use the read-only demo).
+  if (
+    await isDemoHostBlockedForRequest(
+      parsedRaw.hostId,
+      env as Record<string, string | undefined>
+    )
+  ) {
+    return demoHostBlockedResponse()
+  }
+
   const clerkUserId = await resolveAgentUserId()
   const isGuest = clerkUserId === 'guest'
+
+  // A negative host id is the caller's own saved connection. Resolve it once,
+  // scoped to this user (a foreign id is 404), and bind every tool to it.
+  // Guests have no saved connections, and hardening would clamp the id to 0.
+  let connection: AgentConnectionBinding | undefined
+  if (parsedRaw.hostId < 0) {
+    if (isGuest) return agentConnectionFailureResponse('not_signed_in')
+    const resolved = await resolveAgentConnection({
+      hostId: parsedRaw.hostId,
+      userId: clerkUserId,
+    })
+    if (!resolved.ok) return agentConnectionFailureResponse(resolved.reason)
+    connection = resolved.binding
+  }
   const guestOwnerId =
     isGuest && isCloudModeServer() ? await guestOwnerIdFromIp(ip) : undefined
   const anyrouterSigninEnabled = isAnyRouterSigninEnabled()
@@ -186,6 +219,7 @@ async function handlePost(request: Request): Promise<Response> {
       userId,
       requestMcpServers: parsed.mcpServers,
       hostId: parsed.hostId,
+      connection,
       model,
       disabledTools: parsed.disabledTools,
       openRouterUser,

@@ -7,6 +7,10 @@
  * returns its tools for a given host.
  */
 
+import {
+  type AgentConnectionBinding,
+  bindToolsToConnection,
+} from '../host-query'
 import { createAdvisorTools } from './advisor-tools'
 import { createAskUserTools } from './ask-user-tools'
 import { createSearchTools } from './catalog-tools'
@@ -31,6 +35,27 @@ import { createSkillTools } from './skill-tools'
 import { createStorageTools } from './storage-tools'
 import { createVisualizationTools } from './visualization-tools'
 import { parseBool } from '@/lib/config/parse-bool'
+
+/**
+ * Tools that cannot run on a user's own connection yet:
+ * - `explain_anomaly_score`, `generate_cluster_report`: their stores (anomaly
+ *   baselines, insights) are keyed by host id alone, and every user's first
+ *   connection shares id -1000, so reading them would mix users.
+ * - `forecast_disk_capacity`, `suggest_ttl_adjustment`: they gate on
+ *   `checkTableExists(hostId, …)` from `@chm/clickhouse-client`, which probes
+ *   the ENV host list and caches by host id. On a connection it would wrongly
+ *   answer "enable part_log".
+ * - control tools: writes stay on env hosts.
+ */
+export const CONNECTION_UNSUPPORTED_TOOLS: ReadonlySet<string> = new Set([
+  'explain_anomaly_score',
+  'generate_cluster_report',
+  'forecast_disk_capacity',
+  'suggest_ttl_adjustment',
+  'kill_query',
+  'optimize_table',
+  'kill_mutation',
+])
 
 /**
  * Create all agent tools for a given host.
@@ -69,7 +94,18 @@ import { parseBool } from '@/lib/config/parse-bool'
  *  - PeerDB (env-gated): get_peerdb_mirror_status, get_peerdb_metrics
  *  - Discovery (always): search_tools
  */
-export function createAllTools(hostId: number, includeControlTools = false) {
+export function createAllTools(
+  hostId: number,
+  includeControlTools = false,
+  /**
+   * The signed-in user's own connection, resolved by the agent route. When
+   * set, every tool call runs bound to it (see `host-query.ts`).
+   */
+  connection?: AgentConnectionBinding
+) {
+  if (connection && connection.hostId !== hostId) {
+    throw new Error('Agent connection binding does not match hostId')
+  }
   const enableControlTools =
     parseBool(process.env.AGENT_ENABLE_CONTROL_TOOLS) === true
   // Postgres cross-source tools stay ABSENT (not merely failing) unless the
@@ -162,5 +198,8 @@ export function createAllTools(hostId: number, includeControlTools = false) {
   // only ever advertise a tool that is actually registered this request — the
   // Postgres / PeerDB / control gates are inherited rather than re-checked.
   // It is not a gate: the whole tool set is still sent (see catalog.ts).
-  return { ...tools, ...createSearchTools(tools) }
+  const all = { ...tools, ...createSearchTools(tools) }
+  return connection
+    ? bindToolsToConnection(all, connection, CONNECTION_UNSUPPORTED_TOOLS)
+    : all
 }

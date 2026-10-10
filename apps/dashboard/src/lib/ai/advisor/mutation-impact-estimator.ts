@@ -233,6 +233,9 @@ async function fetchMutationThroughput(
   database: string,
   table: string
 ): Promise<{ bytesPerMs: number } | null> {
+  // The table-existence cache only knows env hosts; a user's own connection
+  // (negative id) has no entry, so skip the probe and the duration estimate.
+  if (hostId < 0) return null
   const partLogEnabled = await checkTableExists(hostId, 'system', 'part_log')
   if (partLogEnabled !== true) return null
 

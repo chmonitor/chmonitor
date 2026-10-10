@@ -17,6 +17,7 @@ import {
   sanitizeAgentError,
 } from '@/lib/ai/agent/errors'
 import { providerNotConfiguredMessage } from '@/lib/ai/providers'
+import { demoHiddenUnavailable } from '@/lib/cloud/reject-demo-host'
 
 /** JSON error response with the endpoint's standard content-type. */
 export function jsonErrorResponse(body: unknown, status: number): Response {
@@ -71,7 +72,78 @@ export function parseFailureResponse(
         { error: { message: 'Message is required and must be a string' } },
         400
       )
+    case 'invalid_host_id':
+      return jsonErrorResponse(
+        {
+          error: {
+            message: 'Invalid hostId: must be an integer',
+            code: 'INVALID_HOST_ID',
+          },
+        },
+        400
+      )
   }
+}
+
+/**
+ * Why a negative (per-user connection) host id could not be used: the caller
+ * is not signed in, or `resolveAgentConnection` refused it. A foreign or
+ * missing connection is a 404 that never says whether the id exists.
+ */
+export type AgentConnectionFailure =
+  | 'not_signed_in'
+  | 'storage_disabled'
+  | 'browser_connection'
+  | 'not_found'
+  | 'unsupported_engine'
+
+export function agentConnectionFailureResponse(
+  reason: AgentConnectionFailure
+): Response {
+  if (reason === 'not_found') {
+    return jsonErrorResponse(
+      {
+        error: {
+          message: 'Connection not found',
+          code: 'CONNECTION_NOT_FOUND',
+        },
+      },
+      404
+    )
+  }
+  const messages: Record<
+    Exclude<AgentConnectionFailure, 'not_found'>,
+    string
+  > = {
+    not_signed_in: 'Sign in to use the assistant on your own connections.',
+    storage_disabled:
+      'Saved connections are not enabled on this deployment. Switch to a configured host.',
+    browser_connection:
+      'The assistant can only query connections saved to your account, not ones stored in this browser.',
+    unsupported_engine:
+      'The assistant can only query ClickHouse connections. Switch to a ClickHouse host.',
+  }
+  return jsonErrorResponse(
+    {
+      error: {
+        message: messages[reason],
+        code: 'USER_CONNECTION_HOST_UNSUPPORTED',
+        reason,
+      },
+    },
+    400
+  )
+}
+
+/**
+ * 403 when a signed-in cloud user targets the hidden env/demo host. The body
+ * carries the same `demo_hidden` reason the data routes use.
+ */
+export function demoHostBlockedResponse(): Response {
+  return jsonErrorResponse(
+    { error: { code: 'demo_hidden', ...demoHiddenUnavailable() } },
+    403
+  )
 }
 
 /**
