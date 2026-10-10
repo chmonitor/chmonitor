@@ -104,6 +104,16 @@ export const queriesItems: MenuItem[] = [
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_metric_log',
         tableCheck: 'system.query_metric_log',
       },
+      {
+        subgroup: 'History',
+        title: 'Common Errors',
+        href: '/common-errors',
+        description:
+          'Server error codes ranked by occurrence count with the last error message',
+        icon: CrossCircledIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/errors',
+        tableCheck: 'system.errors',
+      },
       // Performance
       {
         subgroup: 'Performance',
@@ -136,6 +146,15 @@ export const queriesItems: MenuItem[] = [
       },
       {
         subgroup: 'Performance',
+        title: 'Expensive Queries (Memory)',
+        href: '/expensive-queries-by-memory',
+        description: 'Finished queries ranked by peak memory usage',
+        icon: CircleDollarSignIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+      },
+      {
+        subgroup: 'Performance',
         title: 'Query Insights',
         href: '/queries/insights',
         description:
@@ -153,6 +172,16 @@ export const queriesItems: MenuItem[] = [
           'Thread-level performance breakdown and parallel execution analysis',
         icon: CpuIcon,
         isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_thread_log',
+        tableCheck: 'system.query_thread_log',
+      },
+      {
+        subgroup: 'Performance',
+        title: 'Query Parallelization',
+        href: '/queries/parallelization',
+        description:
+          'How many threads each query used versus the threads it could have used',
+        icon: CpuIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_thread_log',
         tableCheck: 'system.query_thread_log',
       },

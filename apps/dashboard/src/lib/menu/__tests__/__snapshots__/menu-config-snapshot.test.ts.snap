@@ -70,6 +70,12 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/common-errors",
+    "section": undefined,
+    "title": "Common Errors",
+  },
+  {
+    "depth": 1,
     "href": "/slow-queries",
     "section": undefined,
     "title": "Slow Queries",
@@ -88,6 +94,12 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/expensive-queries-by-memory",
+    "section": undefined,
+    "title": "Expensive Queries (Memory)",
+  },
+  {
+    "depth": 1,
     "href": "/queries/insights",
     "section": undefined,
     "title": "Query Insights",
@@ -97,6 +109,12 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "href": "/queries/thread-analysis",
     "section": undefined,
     "title": "Thread & Parallelization",
+  },
+  {
+    "depth": 1,
+    "href": "/queries/parallelization",
+    "section": undefined,
+    "title": "Query Parallelization",
   },
   {
     "depth": 1,
@@ -139,6 +157,18 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "href": "/dictionaries",
     "section": undefined,
     "title": "Dictionaries",
+  },
+  {
+    "depth": 1,
+    "href": "/top-usage-tables",
+    "section": undefined,
+    "title": "Top Usage Tables",
+  },
+  {
+    "depth": 1,
+    "href": "/top-usage-columns",
+    "section": undefined,
+    "title": "Top Usage Columns",
   },
   {
     "depth": 1,
@@ -205,6 +235,12 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "href": "/index-analytics",
     "section": undefined,
     "title": "Index & Projection Analytics",
+  },
+  {
+    "depth": 1,
+    "href": "/projections",
+    "section": undefined,
+    "title": "Projections",
   },
   {
     "depth": 1,

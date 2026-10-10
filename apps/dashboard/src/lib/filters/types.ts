@@ -89,6 +89,12 @@ export interface FilterField {
    * (`?key=`) overrides this back to "no filter".
    */
   defaultValue?: FilterValue
+  /**
+   * Minimum ClickHouse version (e.g. `'26.6'`) whose SQL selects this column.
+   * The filter bar hides the field on older servers, so it cannot offer a
+   * filter on a column the query does not return.
+   */
+  since?: string
 }
 
 /** A one-click bundle of filters. */

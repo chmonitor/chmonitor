@@ -21,18 +21,37 @@ function segmentToTitle(segment: string): string {
     .join(' ')
 }
 
+function collectHrefs(items: MenuItem[], out = new Set<string>()) {
+  for (const item of items) {
+    if (item.href) out.add(item.href.split('?')[0])
+    if (item.items) collectHrefs(item.items, out)
+  }
+  return out
+}
+
 /**
  * Build a breadcrumb path from raw URL segments when no menu match is found.
- * Each segment becomes a breadcrumb item with its cumulative href.
+ * The last segment links to the current path. An ancestor segment links only
+ * when its cumulative path is a real menu page (e.g. `/tables` for
+ * `/tables/db.table`); otherwise it is a plain-text label, because a folder
+ * such as `/queries` has no route and would 404.
  */
-function buildFallbackPath(normalizedPath: string): BreadcrumbItem[] {
+function buildFallbackPath(
+  normalizedPath: string,
+  items: MenuItem[]
+): BreadcrumbItem[] {
   const segments = normalizedPath.split('/').filter(Boolean)
   if (segments.length === 0) return []
 
-  return segments.map((segment, index) => ({
-    title: segmentToTitle(segment),
-    href: `/${segments.slice(0, index + 1).join('/')}`,
-  }))
+  const known = collectHrefs(items)
+  return segments.map((segment, index) => {
+    const href = `/${segments.slice(0, index + 1).join('/')}`
+    const isLast = index === segments.length - 1
+    return {
+      title: segmentToTitle(segment),
+      href: isLast || known.has(href) ? href : '',
+    }
+  })
 }
 
 /**
@@ -86,7 +105,7 @@ export function getBreadcrumbPath(
 
   if (!found) {
     // Fallback: derive breadcrumbs from URL path segments
-    return buildFallbackPath(normalizedPath)
+    return buildFallbackPath(normalizedPath, items)
   }
 
   return result

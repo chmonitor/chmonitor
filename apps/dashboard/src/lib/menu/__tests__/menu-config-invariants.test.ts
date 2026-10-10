@@ -27,6 +27,7 @@ import {
   resolveUnavailable,
   type UnavailableState,
 } from '@/lib/menu/unavailable-visibility'
+import { ROUTE_TITLE_MAP } from '@/lib/page-title'
 
 /** A settled host under the shipped default (Hide), at the demo's permissions. */
 function unavailableState(
@@ -148,6 +149,34 @@ describe('menu.ts hrefs resolve to a real route file', () => {
       .filter(({ path }) => !knownRoutePaths.has(path))
     expect(offenders).toEqual([])
   })
+
+  // WHY (#3736): six titled catalog pages shipped with a route but no menu
+  // entry, so they were reachable only by typing the URL. A page with a tab
+  // title is a user-facing page; it must be in the menu or deliberately off it.
+  const NOT_IN_MENU: Readonly<Record<string, string>> = {
+    '/': 'redirects to /overview',
+    '/part-info': 'drill-down opened from Part Log rows, not a browse page',
+    '/peerdb/mirror': 'detail page opened from the PeerDB Mirrors list',
+    '/peerdb/peer': 'detail page opened from the PeerDB Peers list',
+    '/zookeeper': 'no menu entry yet; the Keeper group covers it (follow-up)',
+    '/hub/queries': 'reached via the group hubHref',
+    '/hub/data-storage': 'reached via the group hubHref',
+    '/hub/cluster-replication': 'reached via the group hubHref',
+    '/hub/server': 'reached via the group hubHref',
+  }
+
+  test('every titled (dashboard) route is in the menu or on the allow-list', () => {
+    const menuPaths = new Set(
+      leaves.map((item) => item.href.split('?')[0]).filter(Boolean)
+    )
+    const missing = Object.keys(ROUTE_TITLE_MAP).filter(
+      (path) =>
+        knownRoutePaths.has(path) &&
+        !menuPaths.has(path) &&
+        !(path in NOT_IN_MENU)
+    )
+    expect(missing).toEqual([])
+  })
 })
 
 const topGroup = (title: string) =>
@@ -211,11 +240,14 @@ describe('task-group layout (#3565)', () => {
       '/failed-queries',
       '/query-views-log',
       '/query-metric-log',
+      '/common-errors',
       '/slow-queries',
       '/slow-query-patterns',
       '/expensive-queries',
+      '/expensive-queries-by-memory',
       '/queries/insights',
       '/queries/thread-analysis',
+      '/queries/parallelization',
       '/query-cache',
       '/query-condition-cache',
     ])
@@ -224,6 +256,8 @@ describe('task-group layout (#3565)', () => {
       '/tables-overview',
       '/explorer',
       '/dictionaries',
+      '/top-usage-tables',
+      '/top-usage-columns',
       '/merges',
       '/merge-performance',
       '/mutations',
@@ -235,6 +269,7 @@ describe('task-group layout (#3565)', () => {
       '/readonly-tables',
       '/view-refreshes',
       '/index-analytics',
+      '/projections',
       '/asynchronous-inserts',
       '/kafka-consumers',
       '/rabbitmq-consumers',

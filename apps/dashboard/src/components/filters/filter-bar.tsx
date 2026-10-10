@@ -16,6 +16,9 @@ import {
   parseFiltersFromParams,
   serializeFilter,
 } from '@/lib/filters/url-state'
+import { filterSchemaForVersion } from '@/lib/filters/version-gate'
+import { useHostId } from '@/lib/swr/use-host'
+import { useHostStatus } from '@/lib/swr/use-host-status'
 import { splitHref } from '@/lib/url/url-builder'
 
 interface FilterBarProps {
@@ -30,7 +33,10 @@ interface FilterBarProps {
  * state lives entirely in the URL so it is shareable and survives reloads.
  */
 export function FilterBar({ queryConfig }: FilterBarProps) {
+  const hostStatus = useHostStatus(useHostId())
   const schema = queryConfig.filterSchema
+    ? filterSchemaForVersion(queryConfig.filterSchema, hostStatus.data?.version)
+    : undefined
   const searchParams = useUrlSearchParams()
   const navigate = useNavigate()
   const pathname = useLocation({ select: (l) => l.pathname })
