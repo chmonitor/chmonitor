@@ -75,13 +75,14 @@ export function hostLabel(config: ClickHouseConfig): string {
 export async function runRuleQuery(
   sql: string,
   valueKey: string,
-  hostId: number
+  hostId: number,
+  settings?: AlertRuleDef['clickhouseSettings']
 ): Promise<number | null> {
   const result = await fetchData<Array<Record<string, unknown>>>({
     query: sql,
     hostId,
     format: 'JSONEachRow',
-    clickhouse_settings: { readonly: '1' },
+    clickhouse_settings: { ...settings, readonly: '1' },
   })
 
   if (result.error) {
@@ -263,7 +264,12 @@ export async function runHostSweep(
     if (!rule.sql) continue
     checksRun++
     try {
-      const value = await runRuleQuery(rule.sql, rule.valueKey, config.id)
+      const value = await runRuleQuery(
+        rule.sql,
+        rule.valueKey,
+        config.id,
+        rule.clickhouseSettings
+      )
       await evaluateRule(rule, value)
     } catch (err) {
       errored++

@@ -20,9 +20,12 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test'
 interface FetchArgs {
   query: string
   hostId?: number
+  clickhouse_settings?: Record<string, unknown>
 }
 
 const queries: string[] = []
+/** Settings sent with each entry of `queries`, same index. */
+const settingsSent: Array<Record<string, unknown> | undefined> = []
 /** Ids whose `system.*` table the fake capability probe reports as present. */
 let presentTables = new Set<string>()
 /** Make the batched statement fail, to exercise the per-rule fallback. */
@@ -33,8 +36,9 @@ const isCapabilityProbe = (q: string) =>
   q.includes('system.tables') && q.includes("'table' AS kind")
 
 mock.module('@chm/clickhouse-client', () => ({
-  fetchData: async ({ query }: FetchArgs) => {
+  fetchData: async ({ query, clickhouse_settings }: FetchArgs) => {
     queries.push(query)
+    settingsSent.push(clickhouse_settings)
 
     if (query.includes('AS rule_id')) {
       if (batchFails) {
@@ -128,6 +132,7 @@ beforeEach(() => {
 /** Run one tick and count the statements it issued. */
 async function tick(): Promise<{ total: number; summary: SweepHostSummary }> {
   queries.length = 0
+  settingsSent.length = 0
   const result = await runHostSweep(config, sweepContext, noopDispatch)
   return { total: queries.length, summary: result.summary }
 }
@@ -302,5 +307,32 @@ describe('classification is unchanged by batching', () => {
     expect(classifyValue(Number('3'), { warning: 1, critical: 3 })).toBe(
       'critical'
     )
+  })
+})
+
+describe('per-rule settings (#3684)', () => {
+  const ttlRule = BUILTIN_RULES.find((r) => r.id === 'ttl-partition-health')
+
+  function ttlSettings(): Array<Record<string, unknown> | undefined> {
+    const sql = ttlRule!.sql!.trim()
+    return queries
+      .map((q, i) => (q.includes(sql) ? settingsSent[i] : null))
+      .filter((s) => s !== null)
+  }
+
+  test('the TTL scan is sent with its 15s cap and readonly', async () => {
+    await tick()
+    const sent = ttlSettings()
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toEqual({ max_execution_time: 15, readonly: '1' })
+    expect(ttlRule!.sql).not.toMatch(/SETTINGS\s+max_execution_time/i)
+  })
+
+  test('the TTL scan keeps its cap when the batch fails', async () => {
+    batchFails = true
+    await tick()
+    const sent = ttlSettings()
+    expect(sent).toHaveLength(1)
+    expect(sent[0]?.max_execution_time).toBe(15)
   })
 })

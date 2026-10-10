@@ -8,7 +8,10 @@
 import type { ChartQueryBuilder } from '../types'
 
 import { buildPartsPressurePercentSql } from '@/lib/health/parts-pressure'
-import { buildTtlPartitionFlaggedCountSql } from '@/lib/health/ttl-partition-sql'
+import {
+  buildTtlPartitionFlaggedCountSql,
+  TTL_PARTITION_HEALTH_SETTINGS,
+} from '@/lib/health/ttl-partition-sql'
 
 export const healthCharts: Record<string, ChartQueryBuilder> = {
   'health-readonly-replicas': () => ({
@@ -57,6 +60,7 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
   // recommend-only next step (bloat, missing TTL, merge backlog).
   'health-ttl-partition-health': () => ({
     query: buildTtlPartitionFlaggedCountSql(),
+    clickhouseSettings: TTL_PARTITION_HEALTH_SETTINGS,
     optional: true,
     tableCheck: 'system.parts',
   }),

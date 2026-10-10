@@ -1,7 +1,10 @@
 import type { QueryConfig } from '@/types/query-config'
 
 import { ttlPartitionRowClassName } from '@/lib/health/ttl-partition-heuristics'
-import { buildTtlPartitionInventorySql } from '@/lib/health/ttl-partition-sql'
+import {
+  buildTtlPartitionInventorySql,
+  TTL_PARTITION_INVENTORY_SETTINGS,
+} from '@/lib/health/ttl-partition-sql'
 import { ColumnFormat } from '@/types/column-format'
 
 /**
@@ -35,6 +38,7 @@ export const ttlPartitionHealthConfig: QueryConfig = {
   docs: 'https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree#table_engine-mergetree-ttl', // pragma: allowlist secret
   tableCheck: 'system.parts',
   sql: ttlPartitionInventorySql,
+  clickhouseSettings: TTL_PARTITION_INVENTORY_SETTINGS,
   columns: [
     'full_table',
     'engine',

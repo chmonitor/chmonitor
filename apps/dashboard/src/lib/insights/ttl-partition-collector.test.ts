@@ -1,12 +1,33 @@
 import { describe, expect, mock, test } from 'bun:test'
 
+const readOnlyCalls: Array<Record<string, unknown>> = []
+
 mock.module('../ai/agent/tools/helpers', () => ({
-  readOnlyQuery: async () => [],
+  readOnlyQuery: async (opts: Record<string, unknown>) => {
+    readOnlyCalls.push(opts)
+    return []
+  },
 }))
 
-const { insightFromTtlInventoryRows, rowFromTtlInventoryRecord } = await import(
-  './ttl-partition-collector'
-)
+const {
+  collectTtlPartitionHealth,
+  insightFromTtlInventoryRows,
+  rowFromTtlInventoryRecord,
+} = await import('./ttl-partition-collector')
+
+describe('collectTtlPartitionHealth', () => {
+  test('sends the 25s inventory cap as a client setting (#3684)', async () => {
+    readOnlyCalls.length = 0
+    await collectTtlPartitionHealth(0)
+    expect(readOnlyCalls).toHaveLength(1)
+    expect(readOnlyCalls[0]?.clickhouse_settings).toEqual({
+      max_execution_time: 25,
+    })
+    expect(String(readOnlyCalls[0]?.query)).not.toMatch(
+      /SETTINGS\s+max_execution_time/i
+    )
+  })
+})
 
 describe('rowFromTtlInventoryRecord', () => {
   test('maps QueryConfig inventory columns', () => {

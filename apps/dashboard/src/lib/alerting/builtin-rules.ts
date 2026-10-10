@@ -18,7 +18,10 @@ import {
   PARTS_PRESSURE_PERCENT_CRITICAL,
   PARTS_PRESSURE_PERCENT_WARNING,
 } from '../health/parts-pressure'
-import { buildTtlPartitionFlaggedCountSql } from '../health/ttl-partition-sql'
+import {
+  buildTtlPartitionFlaggedCountSql,
+  TTL_PARTITION_HEALTH_SETTINGS,
+} from '../health/ttl-partition-sql'
 import { atLeast, compoundRuleRegistry } from './compound-rules'
 import { ruleRegistry } from './rule-registry'
 
@@ -295,6 +298,7 @@ LIMIT 20`,
     description:
       'MergeTree tables with partition bloat, a time-based PARTITION BY and no table TTL, or a merge backlog. Recommend-only — never applies ALTER TTL or DROP PARTITION.',
     sql: buildTtlPartitionFlaggedCountSql(),
+    clickhouseSettings: TTL_PARTITION_HEALTH_SETTINGS,
     valueKey: 'flagged_count',
     defaults: { warning: 1, critical: 5 },
     formatLabel: fmtCount('table to review', 'tables to review'),

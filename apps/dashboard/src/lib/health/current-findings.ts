@@ -13,6 +13,7 @@
  */
 
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
+import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 
 import { getExistingTables } from './capability-cache'
 import { resolveThresholdOverrides } from './declarative/thresholds'
@@ -40,13 +41,14 @@ function hostLabel(config: ClickHouseConfig): string {
 async function runRuleQuery(
   sql: string,
   valueKey: string,
-  hostId: number
+  hostId: number,
+  settings?: AlertRuleDef['clickhouseSettings']
 ): Promise<number | null> {
   const result = await fetchData<Array<Record<string, unknown>>>({
     query: sql,
     hostId,
     format: 'JSONEachRow',
-    clickhouse_settings: { readonly: '1' },
+    clickhouse_settings: { ...settings, readonly: '1' },
   })
   if (result.error) throw new Error(result.error.message)
   const rows = result.data
@@ -95,7 +97,12 @@ export async function getCurrentFindings(): Promise<CurrentFinding[]> {
       }
 
       try {
-        const value = await runRuleQuery(rule.sql, rule.valueKey, config.id)
+        const value = await runRuleQuery(
+          rule.sql,
+          rule.valueKey,
+          config.id,
+          rule.clickhouseSettings
+        )
         const thresholds = {
           ...rule.defaults,
           ...(thresholdOverrides[rule.id] ?? {}),

@@ -8,7 +8,10 @@
 import type { ChartQueryBuilder } from '../types'
 
 import { buildPartsPressureProjectionSql } from '@/lib/health/parts-pressure'
-import { buildTtlPartitionHealthDetailSql } from '@/lib/health/ttl-partition-sql'
+import {
+  buildTtlPartitionHealthDetailSql,
+  TTL_PARTITION_HEALTH_SETTINGS,
+} from '@/lib/health/ttl-partition-sql'
 
 export const healthDetailACharts: Record<string, ChartQueryBuilder> = {
   'health-readonly-replicas-detail': () => ({
@@ -69,6 +72,7 @@ export const healthDetailACharts: Record<string, ChartQueryBuilder> = {
 
   'health-ttl-partition-health-detail': () => ({
     query: buildTtlPartitionHealthDetailSql({ limit: 20 }),
+    clickhouseSettings: TTL_PARTITION_HEALTH_SETTINGS,
     optional: true,
     tableCheck: 'system.parts',
   }),

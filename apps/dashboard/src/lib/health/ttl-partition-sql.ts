@@ -28,10 +28,24 @@ import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 
 const SYSTEM_DATABASES = `'system', 'INFORMATION_SCHEMA', 'information_schema'`
 
-/** Cap the /health batched scalar so one check cannot hang the grid. */
+/** Cap the /health scalar, detail, and alert rule so one check cannot hang the grid. */
 export const TTL_PARTITION_HEALTH_MAX_EXECUTION_TIME = 15
 /** Inventory page can afford a slightly longer scan. */
 export const TTL_PARTITION_INVENTORY_MAX_EXECUTION_TIME = 25
+
+/**
+ * Client settings every consumer of the health builders must send (#3684).
+ * The cap travels as a request setting, not a `SETTINGS` clause in the SQL,
+ * so the SQL nests cleanly and the client's read-only rule normalizes it.
+ */
+export const TTL_PARTITION_HEALTH_SETTINGS = {
+  max_execution_time: TTL_PARTITION_HEALTH_MAX_EXECUTION_TIME,
+} as const
+
+/** Client settings for {@link buildTtlPartitionInventorySql} consumers. */
+export const TTL_PARTITION_INVENTORY_SETTINGS = {
+  max_execution_time: TTL_PARTITION_INVENTORY_MAX_EXECUTION_TIME,
+} as const
 
 /** Table TTL is the clause after ` TTL ` in engine_full, before SETTINGS. */
 const TTL_FROM_ENGINE_FULL = `
@@ -105,11 +119,6 @@ function safeInt(value: number, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback
 }
 
-function withMaxExecutionTime(sql: string, seconds: number): string {
-  return `${sql}
-    SETTINGS max_execution_time = ${seconds}`
-}
-
 /**
  * MergeTree tables + live part counts + recommend-only next step.
  * Shared by the inventory page, health scalar, and health detail.
@@ -170,17 +179,11 @@ function ttlPartitionInventoryCtes(): string {
 
 /**
  * Full inventory for `/ttl-partition-health` (every MergeTree table).
- * Includes BackgroundBar pct_* columns and a Worker wall-clock cap.
+ * Includes BackgroundBar pct_* columns. Send
+ * {@link TTL_PARTITION_INVENTORY_SETTINGS} with it.
  */
-export function buildTtlPartitionInventorySql(opts?: {
-  maxExecutionTime?: number
-}): string {
-  const maxExecutionTime = safeInt(
-    opts?.maxExecutionTime ?? TTL_PARTITION_INVENTORY_MAX_EXECUTION_TIME,
-    TTL_PARTITION_INVENTORY_MAX_EXECUTION_TIME
-  )
-  return withMaxExecutionTime(
-    `WITH ${ttlPartitionInventoryCtes()},
+export function buildTtlPartitionInventorySql(): string {
+  return `WITH ${ttlPartitionInventoryCtes()},
     retention_keys AS (
       SELECT
         database,
@@ -257,46 +260,31 @@ export function buildTtlPartitionInventorySql(opts?: {
     FROM inventory
     LEFT JOIN part_retention AS r
       ON r.database = inventory.database AND r.table = inventory.table
-    ORDER BY partitions DESC, bytes_on_disk DESC`,
-    maxExecutionTime
-  )
+    ORDER BY partitions DESC, bytes_on_disk DESC`
 }
 
 /**
  * Scalar for the /health card + alert rule: count of MergeTree tables whose
  * recommend-only next step is non-empty (partition bloat, missing TTL on a
- * time-based key, or merge backlog). Higher-is-worse.
+ * time-based key, or merge backlog). Higher-is-worse. Send
+ * {@link TTL_PARTITION_HEALTH_SETTINGS} with it.
  */
-export function buildTtlPartitionFlaggedCountSql(opts?: {
-  maxExecutionTime?: number
-}): string {
-  const maxExecutionTime = safeInt(
-    opts?.maxExecutionTime ?? TTL_PARTITION_HEALTH_MAX_EXECUTION_TIME,
-    TTL_PARTITION_HEALTH_MAX_EXECUTION_TIME
-  )
-  return withMaxExecutionTime(
-    `WITH ${ttlPartitionInventoryCtes()}
+export function buildTtlPartitionFlaggedCountSql(): string {
+  return `WITH ${ttlPartitionInventoryCtes()}
 SELECT count() AS flagged_count
 FROM inventory
-WHERE recommendation != ''`,
-    maxExecutionTime
-  )
+WHERE recommendation != ''`
 }
 
 /**
  * Flagged tables for the health-detail dialog. Worst partition counts first.
+ * Send {@link TTL_PARTITION_HEALTH_SETTINGS} with it.
  */
 export function buildTtlPartitionHealthDetailSql(opts?: {
   limit?: number
-  maxExecutionTime?: number
 }): string {
   const limit = safeInt(opts?.limit ?? 20, 20)
-  const maxExecutionTime = safeInt(
-    opts?.maxExecutionTime ?? TTL_PARTITION_HEALTH_MAX_EXECUTION_TIME,
-    TTL_PARTITION_HEALTH_MAX_EXECUTION_TIME
-  )
-  return withMaxExecutionTime(
-    `WITH ${ttlPartitionInventoryCtes()}
+  return `WITH ${ttlPartitionInventoryCtes()}
 SELECT
   full_table,
   partition_key,
@@ -307,7 +295,5 @@ SELECT
 FROM inventory
 WHERE recommendation != ''
 ORDER BY partitions DESC, active_parts DESC
-LIMIT ${limit}`,
-    maxExecutionTime
-  )
+LIMIT ${limit}`
 }

@@ -12,6 +12,7 @@ import {
   type TtlPartitionInventoryRow,
   ttlPartitionFlagsLabel,
 } from '../health/ttl-partition-heuristics'
+import { TTL_PARTITION_INVENTORY_SETTINGS } from '../health/ttl-partition-sql'
 import { ttlPartitionInventorySql } from '../query-config/system/ttl-partition-health'
 
 export function rowFromTtlInventoryRecord(
@@ -76,6 +77,7 @@ export async function collectTtlPartitionHealth(
     const rows = await readOnlyQuery({
       query: ttlPartitionInventorySql,
       hostId,
+      clickhouse_settings: TTL_PARTITION_INVENTORY_SETTINGS,
     })
     return insightFromTtlInventoryRows(rows)
   } catch {
