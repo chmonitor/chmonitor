@@ -38,7 +38,7 @@ for the client. For example, set `CHM_AUTH_PROVIDER` — not also
 Precedence per variable:
 
 ```text
-explicit VITE_* → canonical CHM_* → legacy NEXT_PUBLIC_* → built-in default
+explicit VITE_* → canonical CHM_* → deployment-mode default
 ```
 
 See [Environment variables — one canonical name per setting](/reference/environment-variables#one-canonical-name-per-setting).
@@ -50,7 +50,7 @@ and redeploy** — it is not a runtime-only change.
 </Callout>
 
 If you are migrating from a v0.2 Next.js deployment, the legacy `NEXT_PUBLIC_*`
-prefix still works as a fallback.
+prefix is no longer read — rename to the canonical `CHM_*` name.
 
 ## Configuration categories
 

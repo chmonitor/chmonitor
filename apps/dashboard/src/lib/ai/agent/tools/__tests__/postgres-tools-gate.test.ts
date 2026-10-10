@@ -54,8 +54,8 @@ describe('createAllTools — Postgres source gate', () => {
     for (const name of POSTGRES_TOOLS) expect(tools).toHaveProperty(name)
   })
 
-  test('a non-"true" flag value does not enable Postgres tools', () => {
-    process.env.CHM_FEATURE_POSTGRES_SOURCE = '1'
+  test('a junk flag value does not enable Postgres tools', () => {
+    process.env.CHM_FEATURE_POSTGRES_SOURCE = 'maybe'
     const tools = createAllTools(0)
     for (const name of POSTGRES_TOOLS) expect(tools).not.toHaveProperty(name)
   })

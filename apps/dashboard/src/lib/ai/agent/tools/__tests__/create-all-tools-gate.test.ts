@@ -64,8 +64,16 @@ describe('createAllTools — control-tool gate', () => {
     for (const name of CONTROL_TOOLS) expect(tools).not.toHaveProperty(name)
   })
 
-  test('a non-truthy env value does not enable control tools', () => {
-    process.env.AGENT_ENABLE_CONTROL_TOOLS = '1'
+  test('=1 / =yes enable control tools (shared parseBool grammar)', () => {
+    for (const value of ['1', 'yes']) {
+      process.env.AGENT_ENABLE_CONTROL_TOOLS = value
+      const tools = createAllTools(0, true)
+      for (const name of CONTROL_TOOLS) expect(tools).toHaveProperty(name)
+    }
+  })
+
+  test('a junk flag value does not enable control tools', () => {
+    process.env.AGENT_ENABLE_CONTROL_TOOLS = 'maybe'
     const tools = createAllTools(0, true)
     for (const name of CONTROL_TOOLS) expect(tools).not.toHaveProperty(name)
   })

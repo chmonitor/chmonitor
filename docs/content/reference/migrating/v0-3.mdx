@@ -4,7 +4,7 @@ description: Upgrade chmonitor from v0.2 (Next.js) to v0.3 (TanStack Start) — 
 icon: ArrowRightLeft
 ---
 
-v0.3 rebuilds the dashboard on TanStack Start. Features, routes, and ClickHouse setup are unchanged. Browser-exposed environment variables now standardize on the `VITE_*` prefix, with `NEXT_PUBLIC_*` kept as a compatibility fallback. For most deployments, the upgrade is a redeploy plus an optional rename.
+v0.3 rebuilds the dashboard on TanStack Start. Features, routes, and ClickHouse setup are unchanged. Browser-exposed environment variables now standardize on the `VITE_*` prefix. The old `NEXT_PUBLIC_*` names are no longer read, so the upgrade is a redeploy plus a rename.
 
 ## What changed
 
@@ -20,8 +20,8 @@ Variables exposed to the browser now use the `VITE_` prefix. Server-side and sec
 | `NEXT_PUBLIC_AUTOCOMPLETE_LIMIT` | `VITE_AUTOCOMPLETE_LIMIT` |
 | `NEXT_PUBLIC_RUNNING_QUERIES_REFRESH_MS` | `VITE_RUNNING_QUERIES_REFRESH_MS` |
 
-<Callout type="info" title="The rename is optional">
-The old `NEXT_PUBLIC_*` names still work as a fallback. The rename is recommended but not required — nothing breaks if you skip it.
+<Callout type="warn" title="The rename is required">
+The old `NEXT_PUBLIC_*` names are no longer read. Set the canonical `CHM_*` name (for example `CHM_AUTH_PROVIDER`) and the build derives the `VITE_*` value.
 </Callout>
 
 <Callout type="warn" title="Browser variables are build-time only">

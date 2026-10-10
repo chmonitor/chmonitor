@@ -232,7 +232,11 @@ edit `.env.production`.**
 (default) `| cloud` resolves good defaults for cloud mode, auth provider,
 public-read, and per-user storage — so a cloud deploy is just `CHM_DEPLOYMENT_MODE=cloud`
 and an OSS deploy is the default (set `CHM_AUTH_PROVIDER=clerk|trusted` to add
-auth). Each individual `CHM_*` flag still overrides its mode default.
+auth). Each individual `CHM_*` flag still overrides its mode default. Every
+reader goes through one resolver: booleans via `lib/config/parse-bool.ts`
+(true/1/yes/on), the server auth provider via `getAuthProvider()` (runtime
+`CHM_AUTH_PROVIDER` → runtime mode default → build-time value), public read via
+`resolveConfig().clerkPublicRead`.
 Source: `lib/config/deployment-mode.ts` (`parseDeploymentMode` / `modeDefaults` /
 `resolveConfig`). Fail-closed to oss, like `lib/cloud` / `lib/edition`.
 

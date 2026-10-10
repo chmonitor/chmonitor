@@ -30,6 +30,7 @@ import { createSchemaTools } from './schema-tools'
 import { createSkillTools } from './skill-tools'
 import { createStorageTools } from './storage-tools'
 import { createVisualizationTools } from './visualization-tools'
+import { parseBool } from '@/lib/config/parse-bool'
 
 /**
  * Create all agent tools for a given host.
@@ -69,18 +70,20 @@ import { createVisualizationTools } from './visualization-tools'
  *  - Discovery (always): search_tools
  */
 export function createAllTools(hostId: number, includeControlTools = false) {
-  const enableControlTools = process.env.AGENT_ENABLE_CONTROL_TOOLS === 'true'
+  const enableControlTools =
+    parseBool(process.env.AGENT_ENABLE_CONTROL_TOOLS) === true
   // Postgres cross-source tools stay ABSENT (not merely failing) unless the
   // source engine is enabled — a pure env gate, no Clerk, so OSS has equal
   // support. Server reads the canonical CHM_* name (VITE_* is the client mirror).
-  const enablePostgresTools = process.env.CHM_FEATURE_POSTGRES_SOURCE === 'true'
+  const enablePostgresTools =
+    parseBool(process.env.CHM_FEATURE_POSTGRES_SOURCE) === true
   // PeerDB mirror-status tool — explicit opt-in (a URL-presence gate would
   // silently advertise PeerDB reads to the model on every deployment whose
   // operator only wanted the UI section). Execution still fail-closes when
   // PEERDB_API_URL is unset. No Clerk involvement, so OSS has equal support.
   const enablePeerDBTools =
-    process.env.CHM_FEATURE_PEERDB_AGENT === 'true' &&
-    process.env.CHM_FEATURE_PEERDB_ENABLED !== 'false'
+    parseBool(process.env.CHM_FEATURE_PEERDB_AGENT) === true &&
+    parseBool(process.env.CHM_FEATURE_PEERDB_ENABLED) !== false
 
   const tools = {
     // Schema & exploration

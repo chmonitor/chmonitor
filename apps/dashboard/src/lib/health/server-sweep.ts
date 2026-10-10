@@ -8,6 +8,7 @@ import { resolveSweepContext } from './sweep/resolve-config'
 import { runHostSweep } from './sweep/run-host'
 import { debug } from '@chm/logger'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
+import { parseBool } from '@/lib/config/parse-bool'
 import { generatePeerDBInsights } from '@/lib/insights/generate-peerdb-insights'
 import { generatePostgresInsights } from '@/lib/insights/generate-postgres-insights'
 
@@ -221,7 +222,8 @@ async function runPeerDBAlertSweep(
   })
   // Feature kill-switch: same raw env check as the agent tool gate
   // (`isPeerDBAgentEnabled`, tools/index.ts). Only the literal `false` disables.
-  if (process.env.CHM_FEATURE_PEERDB_ENABLED === 'false') return empty()
+  if (parseBool(process.env.CHM_FEATURE_PEERDB_ENABLED) === false)
+    return empty()
   try {
     const { getPeerDBConfig } = await import('@/lib/peerdb/peerdb-config')
     if (getPeerDBConfig() === null) return empty()
@@ -273,7 +275,7 @@ async function runPeerDBAlertSweep(
  * Postgres failure can never break the ClickHouse sweep.
  */
 async function runPostgresInsightSweep(): Promise<number> {
-  if (process.env.CHM_FEATURE_POSTGRES_SOURCE !== 'true') return 0
+  if (parseBool(process.env.CHM_FEATURE_POSTGRES_SOURCE) !== true) return 0
   let generated = 0
   try {
     const { getPostgresConfigs } = await import('@chm/postgres-client')

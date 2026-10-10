@@ -700,12 +700,6 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
-      "name": "NEXT_PUBLIC_AUTH_PROVIDER",
-      "prefix": "NEXT"
-    },
-    {
-      "exampleDefault": null,
-      "inEnvExample": false,
       "name": "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
       "prefix": "NEXT"
     },

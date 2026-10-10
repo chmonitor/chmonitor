@@ -22,10 +22,16 @@ describe('parseCloudMode', () => {
     expect(parseCloudMode('   ')).toBe(false)
   })
 
-  test('junk → false', () => {
-    expect(parseCloudMode('yes')).toBe(false)
-    expect(parseCloudMode('on')).toBe(false)
+  test('junk / explicit off → false', () => {
     expect(parseCloudMode('enterprise')).toBe(false)
+    expect(parseCloudMode('saas-ish')).toBe(false)
+    expect(parseCloudMode('no')).toBe(false)
+    expect(parseCloudMode('off')).toBe(false)
+  })
+
+  test('yes / on use the shared boolean grammar → true', () => {
+    expect(parseCloudMode('yes')).toBe(true)
+    expect(parseCloudMode('ON')).toBe(true)
   })
 
   test('true / 1 / cloud (case-insensitive, trimmed) → true', () => {

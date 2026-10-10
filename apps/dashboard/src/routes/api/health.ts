@@ -3,6 +3,15 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
 import { bridgeApiKeyEnv, isAuthenticatedRequest } from '@/lib/auth/api-guard'
+import { getAuthProvider } from '@/lib/auth/provider'
+
+function safeAuthProvider(getEnv: (key: string) => string | undefined) {
+  try {
+    return getAuthProvider(getEnv)
+  } catch {
+    return null
+  }
+}
 
 function getDeploymentInfo(bindings: Record<string, string | undefined>) {
   // Determine runtime: in workerd the CLOUDFLARE_WORKERS binding is set to '1'
@@ -10,15 +19,14 @@ function getDeploymentInfo(bindings: Record<string, string | undefined>) {
 
   // Build-time metadata + client config are inlined via import.meta.env.VITE_*
   // (the Next NEXT_PUBLIC_* equivalent). Runtime auth comes from the worker
-  // binding CHM_AUTH_PROVIDER, with the build-time VITE_AUTH_PROVIDER fallback.
+  // shared getAuthProvider() resolver (runtime var → runtime mode → build).
   return {
     gitSha: import.meta.env.VITE_GIT_SHA || null,
     gitRef: import.meta.env.VITE_GIT_REF || null,
     buildTimestamp: import.meta.env.VITE_BUILD_TIMESTAMP || null,
     ci: import.meta.env.VITE_CI === 'true',
     runtime,
-    authProvider:
-      bindings.CHM_AUTH_PROVIDER ?? import.meta.env.VITE_AUTH_PROVIDER ?? null,
+    authProvider: safeAuthProvider((key) => bindings[key]),
     clientAuthProvider: import.meta.env.VITE_AUTH_PROVIDER || null,
     agentAccess: bindings.CHM_FEATURE_AGENT_ACCESS ?? 'public',
     clerkPublishableKeyPrefix:
