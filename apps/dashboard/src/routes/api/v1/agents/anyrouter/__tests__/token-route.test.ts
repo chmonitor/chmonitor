@@ -63,6 +63,7 @@ const {
 const FLAG = 'CHM_AGENT_ANYROUTER_SIGNIN_ENABLED'
 const savedFlag = process.env[FLAG]
 const TOKEN = 'ar-user-token-abcdef123456'
+type TokenStatus = { connected: boolean; expiresAt: number | null }
 
 function put(body: unknown): Request {
   return new Request(
@@ -109,7 +110,10 @@ describe('/api/v1/agents/anyrouter/token', () => {
     const expiresAt = Date.now() + 86_400_000
     const putRes = await handlePut(put({ token: TOKEN, expiresAt }))
     expect(putRes.status).toBe(200)
-    expect(await putRes.json()).toEqual({ connected: true, expiresAt })
+    expect((await putRes.json()) as TokenStatus).toEqual({
+      connected: true,
+      expiresAt,
+    })
     expect(saved.get('user_a')).toEqual({ token: TOKEN, expiresAt })
 
     const getRes = await handleGet()
@@ -135,7 +139,10 @@ describe('/api/v1/agents/anyrouter/token', () => {
   test('DELETE revokes the stored token', async () => {
     await handlePut(put({ token: TOKEN }))
     const res = await handleDelete()
-    expect(await res.json()).toEqual({ connected: false, expiresAt: null })
+    expect((await res.json()) as TokenStatus).toEqual({
+      connected: false,
+      expiresAt: null,
+    })
     expect(saved.has('user_a')).toBe(false)
   })
 

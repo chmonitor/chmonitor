@@ -103,11 +103,16 @@ async function handlePost(request: Request): Promise<Response> {
   const model = await resolveAgentModel(parsed.body.model)
   const { provider: requestedProvider } = parseModelId(model)
 
-  // A guest's key is only ever an AnyRouter token. Model resolution can move
-  // `anyrouter:auto` to another provider when AnyRouter has no deployment key;
-  // drop the guest key then so it never reaches a different provider.
+  // A Cloud guest's key is only ever an AnyRouter token (hardening drops any
+  // other). Model resolution can move `anyrouter:auto` to another provider when
+  // AnyRouter has no deployment key; drop the guest key then so it never
+  // reaches a different provider. Scoped to Cloud guests: on self-hosted
+  // without Clerk every caller is 'guest', and their BYOK key may target any
+  // provider.
   const requestApiKey =
-    isGuest && requestedProvider !== 'anyrouter' ? null : parsed.byokApiKey
+    guestOwnerId !== undefined && requestedProvider !== 'anyrouter'
+      ? null
+      : parsed.byokApiKey
 
   // Key order: request key → signed-in user's stored AnyRouter token →
   // deployment key. Any user key is BYOK (no included-credit metering).
