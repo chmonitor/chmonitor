@@ -157,6 +157,64 @@ classified normally. Mirrors left unread are retried on the next tick, so a
 fleet too large for one tick needs either a larger `PEERDB_SWEEP_BUDGET_MS` or
 a smaller fleet — not a cap.
 
+## Alerting
+
+The scheduled health sweep also evaluates every PeerDB mirror and sends alerts
+through the same pipeline as ClickHouse alerts (dedup, cooldown, recovery
+notices, maintenance windows, quiet hours, ACKs, channel fan-out). It is
+read-only: it never pauses, resumes, or restarts a mirror.
+
+### What is checked
+
+Each mirror is classified **ok / warning / error** from its read-only status:
+
+| Signal | Warning | Error |
+|---|---|---|
+| Mirror status | `STATUS_PAUSING`, `STATUS_PAUSED`, `STATUS_TERMINATING`, `STATUS_UNKNOWN` | `STATUS_FAILED`, `STATUS_TERMINATED` |
+| Mirror `errorMessage` | — | present |
+| CDC lag | at least 300 s | at least 1800 s |
+| Replication slot lag | at least 512 MB | at least 2048 MB |
+| Recent ERROR log entries | at least 1 | at least 5 |
+| Snapshot (initial load) | not finished 24 hours after it started | — |
+
+When the error-log count could not be read, the alert says "error count
+unavailable" instead of reporting zero errors. Mirrors that are
+`STATUS_RUNNING` with no `errorMessage` skip the log read (see
+[Large mirror fleets](#large-mirror-fleets)).
+
+The thresholds above are the defaults and **are not configurable yet**; there
+is no environment variable or settings UI for them.
+
+### Requirements
+
+- `PEERDB_API_URL` is set (and `PEERDB_PASSWORD` if your API needs it).
+- The sweep runs on a schedule: call `GET /api/cron/health-sweep` with
+  `Authorization: Bearer $CRON_SECRET` (for example from Cloudflare Cron). See
+  [Health-sweep cron alerting](/guide/features/health#health-sweep-cron-alerting).
+- `HEALTH_ALERT_ENABLED=true`.
+- At least one notification channel (webhook, email, Slack, and so on).
+
+### Routing
+
+Each mirror alert uses the host name `peerdb:<mirror>`, so an alert route can
+target PeerDB with a host glob: `peerdb:*` for all mirrors, or
+`peerdb:orders_*` for a group. A route matches by host with `*` and `?` globs,
+case-insensitive. A mirror that matches no route falls back to the global
+webhook.
+
+### Dry run
+
+When `HEALTH_ALERT_ENABLED` is not `true`, the PeerDB cycle still runs in dry
+run: mirrors are evaluated and an `alert_events` audit row is written for each
+one, but nothing is sent. Findings still appear in the sweep summary.
+
+### Turn it off
+
+Set `CHM_FEATURE_PEERDB_ENABLED=false` to disable PeerDB entirely. This hides
+the section, blocks the proxy, and skips the PeerDB alert cycle in the sweep.
+The ClickHouse sweep is unaffected. See
+[Feature Permissions](/operate/advanced/feature-permissions).
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
