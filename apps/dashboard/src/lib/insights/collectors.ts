@@ -20,11 +20,16 @@ import {
   projectHoursToThreshold,
 } from '../health/parts-pressure'
 import {
+  checkBrokenDetachedParts,
   checkDetachedParts,
   checkFailedDictionaries,
+  checkInsertBackpressure,
   checkLongRunningQuery,
   checkPartsPressure,
   checkStuckMutations,
+  checkStuckReplicationQueue,
+  REPLICATION_QUEUE_STUCK_AGE_SECONDS,
+  REPLICATION_QUEUE_STUCK_TRIES,
 } from './operational-checks'
 import {
   type AnalyzedQuery,
@@ -107,6 +112,11 @@ interface AnomalyCheck {
    * meaningless z-score.
    */
   sampleQuery: string
+  /**
+   * "What to do" sentence appended to the detail in both the baseline and the
+   * static-threshold paths, so every anomaly card ends with a next step.
+   */
+  advice: string
   /** Render the change into a human detail string (static-threshold fallback path). */
   format: (recent: number, baseline: number, changePct: number) => string
   classify: (changePct: number) => InsightSeverity
@@ -123,6 +133,8 @@ const ANOMALY_CHECKS: AnomalyCheck[] = [
     recentQuery: `SELECT countIf(type = 'ExceptionWhileProcessing') * 100.0 / nullIf(count(), 0) as value FROM system.query_log WHERE event_time > now() - INTERVAL 1 HOUR`,
     baselineQuery: `SELECT countIf(type = 'ExceptionWhileProcessing') * 100.0 / nullIf(count(), 0) as value FROM system.query_log WHERE event_time BETWEEN now() - INTERVAL 25 HOUR AND now() - INTERVAL 1 HOUR`,
     sampleQuery: `SELECT toStartOfHour(event_time) AS bucket, countIf(type = 'ExceptionWhileProcessing') * 100.0 / nullIf(count(), 0) AS value FROM system.query_log WHERE event_time > now() - INTERVAL 7 DAY GROUP BY bucket HAVING isNotNull(value) ORDER BY bucket`,
+    advice:
+      'What to do: open the failed queries to find the top exception codes and the users or tables behind them.',
     format: (recent, baseline) =>
       `Error rate in the last hour is ${formatMetricValue(recent, 'percent')} vs a ${formatMetricValue(baseline, 'percent')} 24h baseline.`,
     classify: (pct) => (pct > 100 ? 'critical' : pct > 50 ? 'warning' : 'info'),
@@ -135,6 +147,8 @@ const ANOMALY_CHECKS: AnomalyCheck[] = [
     recentQuery: `SELECT quantile(0.95)(query_duration_ms) as value FROM system.query_log WHERE type = 'QueryFinish' AND event_time > now() - INTERVAL 1 HOUR`,
     baselineQuery: `SELECT quantile(0.95)(query_duration_ms) as value FROM system.query_log WHERE type = 'QueryFinish' AND event_time BETWEEN now() - INTERVAL 25 HOUR AND now() - INTERVAL 1 HOUR`,
     sampleQuery: `SELECT toStartOfHour(event_time) AS bucket, quantile(0.95)(query_duration_ms) AS value FROM system.query_log WHERE type = 'QueryFinish' AND event_time > now() - INTERVAL 7 DAY GROUP BY bucket ORDER BY bucket`,
+    advice:
+      'What to do: look at the slowest recent query patterns, and check for heavy merges or a new workload competing for CPU and disk.',
     format: (recent, baseline, pct) =>
       `p95 query duration rose ${round(pct)}% — now ${formatMetricValue(recent, 'ms')} vs ${formatMetricValue(baseline, 'ms')} baseline.`,
     classify: (pct) =>
@@ -153,6 +167,8 @@ const ANOMALY_CHECKS: AnomalyCheck[] = [
     recentQuery: `SELECT avg(value) as value FROM system.asynchronous_metric_log WHERE metric = 'MemoryResident' AND event_time > now() - INTERVAL 1 HOUR`,
     baselineQuery: `SELECT avg(value) as value FROM system.asynchronous_metric_log WHERE metric = 'MemoryResident' AND event_time BETWEEN now() - INTERVAL 25 HOUR AND now() - INTERVAL 1 HOUR`,
     sampleQuery: `SELECT toStartOfHour(event_time) AS bucket, avg(value) AS value FROM system.asynchronous_metric_log WHERE metric = 'MemoryResident' AND event_time > now() - INTERVAL 7 DAY GROUP BY bucket ORDER BY bucket`,
+    advice:
+      'What to do: find the queries using the most memory, and cap them with max_memory_usage or let large JOINs and GROUP BYs spill to disk.',
     format: (_recent, _baseline, pct) =>
       `Tracked memory is ${round(pct)}% above the 24h average — watch for OOM risk on memory-heavy queries.`,
     classify: (pct) => (pct > 80 ? 'critical' : pct > 40 ? 'warning' : 'info'),
@@ -328,14 +344,16 @@ async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
             check,
             usedBaseline ? (decision.z as number) : changePct
           ),
-          detail: usedBaseline
-            ? formatBaselineDetail(
-                check,
-                recent,
-                fittedBaseline as Baseline,
-                decision.z as number
-              )
-            : check.format(recent, baselineAvg, changePct),
+          detail: `${
+            usedBaseline
+              ? formatBaselineDetail(
+                  check,
+                  recent,
+                  fittedBaseline as Baseline,
+                  decision.z as number
+                )
+              : check.format(recent, baselineAvg, changePct)
+          } ${check.advice}`,
           value: round(usedBaseline ? (decision.z as number) : changePct),
           action: {
             label: 'Open running queries',
@@ -392,7 +410,7 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
         category: 'storage',
         metric: 'max_active_parts',
         title: `${parts.database}.${parts.table} is fragmented`,
-        detail: `${parts.database}.${parts.table} has ${partCount} active parts (${parts.size}). Consider OPTIMIZE or reviewing the partition key to cut merge overhead.`,
+        detail: `${parts.database}.${parts.table} has ${partCount} active parts (${parts.size}). What to do: batch inserts into larger blocks, review the partition key, and run OPTIMIZE only off-peak if merges cannot catch up.`,
         value: partCount,
         action: { label: 'View tables', href: '/tables' },
       })
@@ -409,7 +427,7 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
         category: 'storage',
         metric: 'worst_compression_ratio',
         title: `Poor compression on ${compression.database}.${compression.table}`,
-        detail: `${compression.database}.${compression.table} (${compression.uncompressed} uncompressed) compresses to ${Math.round(ratio * 100)}% of its size. A better codec (ZSTD/Delta) or column ordering could reclaim storage.`,
+        detail: `${compression.database}.${compression.table} (${compression.uncompressed} uncompressed) compresses to ${Math.round(ratio * 100)}% of its size. What to do: try a better codec (ZSTD, or Delta/DoubleDelta for sequences) and an ORDER BY that groups similar values to reclaim storage.`,
         value: ratio,
         action: {
           label: 'Ask the agent',
@@ -454,7 +472,7 @@ async function collectReliability(hostId: number): Promise<InsightCandidate[]> {
         category: 'reliability',
         metric: 'readonly_replicas',
         title: `${count} replica${count > 1 ? 's are' : ' is'} read-only`,
-        detail: `${count} replicated table${count > 1 ? 's' : ''} entered read-only mode — usually a ZooKeeper/Keeper connectivity problem. Writes to these tables are blocked.`,
+        detail: `${count} replicated table${count > 1 ? 's' : ''} entered read-only mode — usually a ZooKeeper/Keeper connectivity problem. Writes to these tables are blocked. What to do: check Keeper connectivity and session expiry in the server log; once Keeper is healthy, run SYSTEM RESTART REPLICA on the affected tables.`,
         value: count,
         action: { label: 'View replicas', href: '/replicas' },
       })
@@ -470,7 +488,7 @@ async function collectReliability(hostId: number): Promise<InsightCandidate[]> {
         category: 'reliability',
         metric: 'max_replication_delay',
         title: 'Replication is lagging',
-        detail: `The most-delayed replica is ${Math.round(seconds)}s behind. Sustained lag risks stale reads and growing replication queues.`,
+        detail: `The most-delayed replica is ${Math.round(seconds)}s behind. Sustained lag risks stale reads and growing replication queues. What to do: check the replication queue for stuck entries, and look at network, disk, and merge load on the lagging replica.`,
         value: Math.round(seconds),
         action: { label: 'View replicas', href: '/replicas' },
       })
@@ -496,8 +514,15 @@ async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
     longRunningSettled,
     dictionariesSettled,
     pressureSettled,
+    replicationQueueSettled,
+    delayedSettled,
+    rejectedSettled,
   ] = await Promise.allSettled([
-    firstRow(`SELECT count() AS value FROM system.detached_parts`, hostId),
+    // `reason` has existed on system.detached_parts since well before 23.8.
+    firstRow(
+      `SELECT countIf(startsWith(reason, 'broken')) AS broken, countIf(NOT startsWith(reason, 'broken')) AS other FROM system.detached_parts`,
+      hostId
+    ),
     firstRow(
       `SELECT count() AS value FROM system.mutations WHERE is_done = 0 AND latest_fail_reason != ''`,
       hostId
@@ -511,12 +536,54 @@ async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
       hostId
     ),
     collectPartsPressure(hostId),
+    // system.replication_queue only has rows on replicated tables; an empty
+    // table yields count 0 and no finding.
+    firstRow(
+      `SELECT count() AS value, max(num_tries) AS max_tries FROM system.replication_queue WHERE num_tries > ${REPLICATION_QUEUE_STUCK_TRIES} OR create_time < now() - INTERVAL ${REPLICATION_QUEUE_STUCK_AGE_SECONDS} SECOND`,
+      hostId
+    ),
+    firstRow(
+      `SELECT sum(value) AS value FROM system.metrics WHERE metric = 'DelayedInserts'`,
+      hostId
+    ),
+    // system.metric_log is optional (metric_log config); firstRow swallows the
+    // error when it is absent and the delayed gauge still drives the check.
+    firstRow(
+      `SELECT sum(ProfileEvent_RejectedInserts) AS value FROM system.metric_log WHERE event_time > now() - INTERVAL 1 HOUR`,
+      hostId
+    ),
   ])
 
   const detached =
     detachedSettled.status === 'fulfilled' ? detachedSettled.value : null
   if (detached) {
-    const candidate = checkDetachedParts(Number(detached.value) || 0)
+    const broken = checkBrokenDetachedParts(Number(detached.broken) || 0)
+    if (broken) out.push(broken)
+    const other = checkDetachedParts(Number(detached.other) || 0)
+    if (other) out.push(other)
+  }
+
+  const queue =
+    replicationQueueSettled.status === 'fulfilled'
+      ? replicationQueueSettled.value
+      : null
+  if (queue) {
+    const candidate = checkStuckReplicationQueue(
+      Number(queue.value) || 0,
+      Number(queue.max_tries) || 0
+    )
+    if (candidate) out.push(candidate)
+  }
+
+  const delayed =
+    delayedSettled.status === 'fulfilled' ? delayedSettled.value : null
+  const rejected =
+    rejectedSettled.status === 'fulfilled' ? rejectedSettled.value : null
+  if (delayed || rejected) {
+    const candidate = checkInsertBackpressure(
+      Number(delayed?.value) || 0,
+      Number(rejected?.value) || 0
+    )
     if (candidate) out.push(candidate)
   }
 

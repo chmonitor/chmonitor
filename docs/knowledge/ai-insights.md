@@ -3,7 +3,7 @@ id: ai-insights
 title: AI Insights Engine
 type: spec
 status: active
-updated: 2026-09-30
+updated: 2026-10-11
 tags:
   - insights
   - findings
@@ -85,16 +85,34 @@ is fragmented", "replication is lagging" — generated and **cached server-side*
   ~2.07 GiB).` — the mean/stddev/n fit belongs in the detail dialog, not the card
   body. Older raw-number findings age out on the next regeneration sweep.
 - **Operational collectors** (`collectOperational` in `collectors.ts`) add cheap
-  point-in-time checks across categories — detached parts (`storage`), stuck /
-  failing mutations + FAILED dictionaries (`reliability`), and the longest
-  running live query (`performance`) — each a single count/aggregate on a small
-  system table. Their **classification is split into pure functions** in
+  point-in-time checks across categories — each a single count/aggregate on a
+  small system table:
+
+  | Metric | Category | Severity | Source | Link |
+  |---|---|---|---|---|
+  | `broken_detached_parts` | storage | critical (any) | `system.detached_parts`, `reason` starts with `broken` | `/detached-parts` |
+  | `detached_parts` | storage | info (≥10, non-broken) | `system.detached_parts`, other reasons | `/detached-parts` |
+  | `stuck_mutations` | reliability | warning / critical ≥10 | `system.mutations` | `/mutations` |
+  | `failed_dictionaries` | reliability | warning | `system.dictionaries` | `/dictionaries` |
+  | `stuck_replication_queue` | reliability | warning / critical ≥50 | `system.replication_queue`, `num_tries > 100` or `create_time` > 1h old | `/replication-queue` |
+  | `longest_running_query` | performance | warning ≥5m / critical ≥30m | `system.processes` | `/running-queries` |
+  | `insert_backpressure` | performance | warning (delayed) / critical (any rejected) | `DelayedInserts` gauge in `system.metrics` + `ProfileEvent_RejectedInserts` summed over 1h in `system.metric_log` (optional; skipped when absent) | `/merges` |
+  | `parts_pressure` | storage | per `classifyPartsPressure` | `system.parts` (+ `part_log`) | `/merges` |
+
+  Their **classification is split into pure functions** in
   `operational-checks.ts` (thresholds → `InsightCandidate | null`), mirroring the
   anomaly collector's `decideSeverity`, so severity logic is unit-tested without
-  ClickHouse I/O (`operational-checks.test.ts`). Adding a metric here **must** be
-  paired with a `deriveAction` case in `read-insights.ts` — the findings store
+  ClickHouse I/O (`operational-checks.test.ts`). Every card's `detail` ends with
+  a "What to do:" next step (anomaly checks carry it in `AnomalyCheck.advice`,
+  appended in both the baseline and static paths). Adding a metric here **must**
+  be paired with a `deriveAction` case in `read-insights.ts` — the findings store
   keeps scalars only, so the action link is re-derived from `metric`/`category`
   on every read; an unmatched metric silently loses its link after a reload.
+  `read-insights.derive-action.test.ts` enforces this: it scans
+  `collectors.ts`, `operational-checks.ts`, and `ttl-partition-collector.ts`
+  for every literal `metric: '...'` and fails when `deriveAction` returns no
+  `href` for one. Dynamic `schema_opt:*` metrics are outside the scan (they map
+  to the agent deep-link by category).
 - **Enrichment is optional.** When a provider key resolves
   (`isProviderConfigured(resolveProvider(DEFAULT_MODEL).providerId)`), candidates
   pass through one `generateObject` call that tightens wording. With no key (or

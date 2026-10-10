@@ -17,10 +17,15 @@ import {
   type PartsPressureRow,
 } from '../health/parts-pressure'
 
-/** Detached parts: below this many, don't surface at all. */
+/** Detached parts (non-broken reasons): below this many, don't surface at all. */
 export const DETACHED_PARTS_MIN = 10
-/** At/above this many detached parts, escalate from notice to warning. */
-export const DETACHED_PARTS_WARN = 50
+
+/** Replication-queue entries retried more than this many times count as stuck. */
+export const REPLICATION_QUEUE_STUCK_TRIES = 100
+/** Replication-queue entries older than this (seconds) count as stuck. */
+export const REPLICATION_QUEUE_STUCK_AGE_SECONDS = 3600
+/** At/above this many stuck queue entries the finding is critical. */
+export const REPLICATION_QUEUE_STUCK_CRITICAL = 50
 
 /** At/above this many stuck+failing mutations, escalate warning → critical. */
 export const STUCK_MUTATIONS_CRITICAL = 10
@@ -38,20 +43,93 @@ function formatDuration(seconds: number): string {
 }
 
 /**
- * Detached parts accumulate from failed merges, ATTACH/DETACH operations, or
- * corruption. They consume disk without being queryable, so a growing count is a
- * cleanup signal.
+ * Detached parts that are NOT broken (user DETACH, `ignored`, `clone`, ...).
+ * They occupy disk without being queryable, so a growing count is a cleanup
+ * signal — informational only. Broken parts are split out into
+ * `checkBrokenDetachedParts` because they mean damaged data, not housekeeping.
  */
 export function checkDetachedParts(count: number): InsightCandidate | null {
   if (!Number.isFinite(count) || count < DETACHED_PARTS_MIN) return null
   return {
-    severity: count >= DETACHED_PARTS_WARN ? 'warning' : 'info',
+    severity: 'info',
     category: 'storage',
     metric: 'detached_parts',
     title: `${count} detached parts need review`,
-    detail: `This cluster has ${count} detached parts — usually leftovers from failed merges, ATTACH/DETACH operations, or corruption. They occupy disk without being queryable. Review them and DROP DETACHED PART once you have confirmed they are safe to remove.`,
+    detail: `This cluster has ${count} detached parts that are not broken — usually leftovers from ALTER ... DETACH, replica clones, or ignored parts. They occupy disk without being queryable. What to do: check each part's reason, ATTACH the ones you still need, and run ALTER TABLE ... DROP DETACHED PART for the rest.`,
     value: count,
-    action: { label: 'View tables', href: '/tables' },
+    action: { label: 'View detached parts', href: '/detached-parts' },
+  }
+}
+
+/**
+ * Detached parts whose reason starts with `broken` (`broken`,
+ * `broken-on-start`, ...) were detached because ClickHouse found them damaged —
+ * checksum mismatch, missing files, failed load. Any one is possible data loss
+ * on that replica, so this is critical.
+ */
+export function checkBrokenDetachedParts(
+  count: number
+): InsightCandidate | null {
+  if (!Number.isFinite(count) || count < 1) return null
+  const plural = count > 1
+  return {
+    severity: 'critical',
+    category: 'storage',
+    metric: 'broken_detached_parts',
+    title: `${count} broken part${plural ? 's were' : ' was'} detached`,
+    detail: `${count} part${plural ? 's were' : ' was'} detached with a "broken" reason — ClickHouse found ${plural ? 'them' : 'it'} damaged (checksum mismatch, missing files, or a failed load), so those rows are not queryable. What to do: check disk health and the server log for the cause. On a replicated table the data is usually re-fetched from another replica — confirm it is there before dropping the broken part. On a non-replicated table, restore it from a backup.`,
+    value: count,
+    action: { label: 'View detached parts', href: '/detached-parts' },
+  }
+}
+
+/**
+ * Replication-queue entries that keep retrying (num_tries over the threshold)
+ * or have waited over an hour are not making progress: the replica falls
+ * behind and merges/fetches pile up behind them.
+ */
+export function checkStuckReplicationQueue(
+  count: number,
+  maxTries: number
+): InsightCandidate | null {
+  if (!Number.isFinite(count) || count < 1) return null
+  const plural = count > 1
+  const tries = Number.isFinite(maxTries) ? Math.round(maxTries) : 0
+  return {
+    severity:
+      count >= REPLICATION_QUEUE_STUCK_CRITICAL ? 'critical' : 'warning',
+    category: 'reliability',
+    metric: 'stuck_replication_queue',
+    title: `${count} replication queue entr${plural ? 'ies are' : 'y is'} stuck`,
+    detail: `${count} replication queue entr${plural ? 'ies have' : 'y has'} been retried more than ${REPLICATION_QUEUE_STUCK_TRIES} times or waited over an hour (most retries: ${tries}). The replica cannot apply ${plural ? 'them' : 'it'}, so it falls behind. What to do: read last_exception and postpone_reason in system.replication_queue. Common causes are a part missing on every replica, Keeper trouble, or a full disk. Fix the cause, then run SYSTEM RESTART REPLICA if the entry still does not move.`,
+    value: count,
+    action: { label: 'View replication queue', href: '/replication-queue' },
+  }
+}
+
+/**
+ * Insert back-pressure. `DelayedInserts` (current gauge) counts INSERTs slowed
+ * because a partition is past parts_to_delay_insert; `RejectedInserts`
+ * (ProfileEvent, summed over the last hour) counts INSERTs refused with
+ * TOO_MANY_PARTS. A rejection is a lost write for a client that does not retry.
+ */
+export function checkInsertBackpressure(
+  delayed: number,
+  rejected: number
+): InsightCandidate | null {
+  const d = Number.isFinite(delayed) ? Math.max(0, Math.round(delayed)) : 0
+  const r = Number.isFinite(rejected) ? Math.max(0, Math.round(rejected)) : 0
+  if (d < 1 && r < 1) return null
+  // Title carries no counts so a dismissal survives regeneration (stable key
+  // is host:category:metric:title); the counts ride in detail/value.
+  return {
+    severity: r > 0 ? 'critical' : 'warning',
+    category: 'performance',
+    metric: 'insert_backpressure',
+    title: r > 0 ? 'Inserts are being rejected' : 'Inserts are being delayed',
+    detail: `${d} insert${d === 1 ? ' is' : 's are'} delayed right now and ${r} ${r === 1 ? 'was' : 'were'} rejected with TOO_MANY_PARTS in the last hour — a partition has more active parts than merges can keep up with. What to do: batch inserts into fewer, larger blocks (or enable async_insert), find the partition with the most parts on the merges page, and check that merges are not stalled by disk or a too-fine partition key.`,
+    value: r > 0 ? r : d,
+    action: { label: 'View merges', href: '/merges' },
   }
 }
 
