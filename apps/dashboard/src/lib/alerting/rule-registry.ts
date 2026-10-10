@@ -30,6 +30,12 @@ export type AlertRuleType =
   | 'slow-query-regression'
   | 'parts-pressure'
   | 'ttl-partition-health'
+  | 'replication-queue-stuck'
+  | 'replica-session-expired'
+  | 'delayed-inserts'
+  | 'rejected-inserts'
+  | 'memory-pressure'
+  | 'broken-detached-parts'
   | 'custom'
 
 /**

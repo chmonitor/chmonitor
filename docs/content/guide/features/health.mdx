@@ -329,6 +329,41 @@ The health-sweep endpoint runs checks over all configured hosts and sends a webh
 | `HEALTH_ALERT_PUSHOVER_USER` | (unset = Pushover disabled) | Target Pushover user or group key. Both this and `HEALTH_ALERT_PUSHOVER_TOKEN` must be set for the global Pushover channel to fire. |
 | `HEALTH_ALERT_DIGEST_MINUTES` | `0` (off) | Optional **time-window digest** for alert batching. `0`/unset dispatches every finding on the sweep tick (in-pass grouping still applies — see the callout below). A positive value buffers **non-critical** findings and flushes them together once the window elapses, collapsing a burst into one message per target; **critical** findings always bypass the buffer and page immediately. Requires a D1 binding for the buffer; with none it degrades to `0` (off). Overridable from **Health → Settings → Alerts → Digest batching**. |
 
+#### Built-in alert rules
+
+The sweep evaluates these rules on every host. Thresholds are the defaults;
+override them per rule from the UI, `alerts.yaml` `thresholds:`, or
+`HEALTH_THRESHOLD_<RULE>_WARNING` / `_CRITICAL`. A rule whose system table is
+missing (for example no `system.backup_log`) is skipped, not failed.
+
+| Rule id | Source | Warning | Critical |
+|---|---|---|---|
+| `readonly-replicas` | `system.replicas` with `is_readonly = 1` | 1 | 3 |
+| `replication-lag` | max `absolute_delay` in `system.replicas` (seconds) | 30 | 300 |
+| `replication-queue-stuck` | `system.replication_queue` entries with `num_tries > 100` or older than 1 hour | 1 | 10 |
+| `replica-session-expired` | `system.replicas` with `is_session_expired` | 1 | 3 |
+| `disk-usage` | worst disk in `system.disks` (% used) | 80 | 95 |
+| `memory-pressure` | `MemoryTracking` as % of `OSMemoryTotal` | 80 | 90 |
+| `keeper-unavailable` | `KEEPER_EXCEPTION` count in `system.error_log`, last hour | 5 | 20 |
+| `failed-mutations` | incomplete mutations with a non-empty `latest_fail_reason` | 1 | 5 |
+| `stuck-merges` | merges running longer than 10 minutes | 1 | 3 |
+| `delayed-inserts` | `DelayedInserts` gauge in `system.metrics` | 1 | 5 |
+| `rejected-inserts` | `TOO_MANY_PARTS` (code 252) insert errors in `system.query_log`, last hour | 1 | 1 |
+| `parts-pressure` | worst partition's parts as % of `parts_to_throw_insert` | 80 | 95 |
+| `broken-detached-parts` | `system.detached_parts` with `reason LIKE 'broken%'` | 1 | 1 |
+| `ttl-partition-health` | MergeTree tables with partition bloat, no TTL, or merge backlog | 1 | 5 |
+| `query-timeout` | `TIMEOUT_EXCEEDED` query errors, last hour | 1 | 10 |
+| `failed-backups` | failed backups or restores in `system.backup_log`, last 24 hours | 1 | 3 |
+| `mv-refresh-failures` | refreshable MVs whose last refresh failed | 1 | 3 |
+| `fatal-log-entries` | `Fatal` rows in `system.text_log`, last hour | 1 | 5 |
+
+`keeper-unavailable` warns at 5, not 1: one `KEEPER_EXCEPTION` an hour is
+routine (a session reconnect or leader re-election). Sustained exceptions are
+the quorum signal. `rejected-inserts` reads a one-hour `query_log` window
+because the `RejectedInserts` event in `system.events` is cumulative since
+server start and would keep firing after the incident ended. A rejected insert
+or a broken part is possible data loss, so both go straight to critical.
+
 <Callout type="info" title="Alert grouping & digest batching">
 When one sweep finds several alerts bound for the **same** delivery target (e.g. disk filling on 8 hosts, all routed to one Slack channel), they are combined into **one** message — a summary line (`3 critical, 2 warning on 4 hosts`) followed by a line per finding — instead of N separate pings. This in-pass grouping is **always on** and needs no configuration; it applies to the generic webhook, Slack, and Telegram channels (every other channel keeps per-finding sends). To also batch across time, enable the optional **time-window digest** (`HEALTH_ALERT_DIGEST_MINUTES` or the Alerts tab): non-critical findings wait up to the window and flush together, while criticals still page immediately.
 </Callout>
