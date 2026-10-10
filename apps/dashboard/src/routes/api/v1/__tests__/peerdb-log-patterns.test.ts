@@ -73,7 +73,7 @@ const get = (q = '') =>
 
 describe('GET /api/v1/peerdb/log-patterns', () => {
   test('reads every mirror and reports full coverage', async () => {
-    const body = await (await get()).json()
+    const body = (await (await get()).json()) as { data: any }
     expect(logCalls).toBe(40)
     expect(body.data).toMatchObject({
       window: '24h',
@@ -85,7 +85,7 @@ describe('GET /api/v1/peerdb/log-patterns', () => {
   })
 
   test('applies the window: a 2h-old line is outside 1h', async () => {
-    const body = await (await get('?window=1h')).json()
+    const body = (await (await get('?window=1h')).json()) as { data: any }
     expect(body.data.window).toBe('1h')
     expect(body.data.entries).toHaveLength(0)
   })
