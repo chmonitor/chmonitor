@@ -17,6 +17,7 @@
 import type { ClickHouseSettings } from '@clickhouse/client'
 
 import type { VersionedSql } from '@chm/sql-builder'
+import type { FeaturePermission } from '@/lib/feature-permissions/types'
 import type { FilterSchema } from '@/lib/filters/types'
 
 // Re-export the version-compat SQL primitives from the shared package so
@@ -93,6 +94,12 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
   disableSqlValidation?: boolean
   /** Optional docs URL surfaced on query error. */
   docs?: string
+  /**
+   * Deployment-level feature gate. The table / data API routes pass it to
+   * `authorizeFeatureRequest` so CHM_DISABLED_FEATURES and
+   * CHM_AUTH_REQUIRED_FEATURES apply to direct API calls, not just the menu.
+   */
+  permission?: FeaturePermission
 }
 
 /** Map a column-name tuple to a permissive row-data shape. */

@@ -15,6 +15,7 @@ import {
 import { ApiErrorType } from '@/lib/api/types'
 import { executeConnectionTableConfig } from '@/lib/connection-query/execute-connection-table'
 import { resolveProxyCredentials } from '@/lib/connection-query/resolve-credentials'
+import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import { getQueryConfigByName } from '@/lib/query-config'
 import { ensurePacksLoaded } from '@/lib/query-config/declarative/pack-registry'
 
@@ -30,7 +31,7 @@ interface TableProxyBody {
   timezone?: string
 }
 
-async function handlePost(
+export async function handlePost(
   request: Request,
   tableName: string
 ): Promise<Response> {
@@ -48,6 +49,15 @@ async function handlePost(
       ROUTE_CONTEXT
     )
   }
+
+  // Callers bring their own credentials, but a feature the deployment
+  // disabled or restricted (CHM_DISABLED_FEATURES / CHM_AUTH_REQUIRED_FEATURES)
+  // stays gated here too, matching /api/v1/tables/$name.
+  const permissionResponse = await authorizeFeatureRequest(
+    queryConfig.permission,
+    request
+  )
+  if (permissionResponse) return permissionResponse
 
   let body: Partial<TableProxyBody>
   try {
