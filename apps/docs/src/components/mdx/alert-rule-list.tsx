@@ -75,14 +75,14 @@ function RuleCard({ rule }: { rule: AlertRule }) {
           </span>
         </span>
       </div>
-      <p className="mt-1 text-sm text-fd-muted-foreground">
+      <p className="mt-1 text-[13.5px] leading-snug text-fd-muted-foreground">
         {rule.description}
       </p>
-      <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+      <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-[13px]">
         {rule.tableCheck && (
           <>
             <dt className="text-fd-muted-foreground">Requires</dt>
-            <dd>
+            <dd className="min-w-0 break-words">
               <code>{rule.tableCheck}</code>
               {rule.optional && (
                 <span className="text-fd-muted-foreground">
@@ -96,19 +96,19 @@ function RuleCard({ rule }: { rule: AlertRule }) {
         {rule.sampleLabel && (
           <>
             <dt className="text-fd-muted-foreground">Alert reads</dt>
-            <dd>{rule.sampleLabel}</dd>
+            <dd className="min-w-0 break-words">{rule.sampleLabel}</dd>
           </>
         )}
       </dl>
       {rule.commonCauses.length > 0 && (
-        <ul className="mt-1.5 list-disc pl-5 text-xs text-fd-muted-foreground">
+        <ul className="mt-1.5 list-disc pl-5 text-[13px] text-fd-muted-foreground">
           {rule.commonCauses.map((c) => (
             <li key={c}>{c}</li>
           ))}
         </ul>
       )}
       {rule.fix.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[13px]">
           {rule.fix
             .filter((f) => f.url)
             .map((f) => (
@@ -168,10 +168,10 @@ export function AlertRuleList({
                     {c.id}
                   </code>
                 </div>
-                <p className="mt-1 text-sm text-fd-muted-foreground">
+                <p className="mt-1 text-[13.5px] leading-snug text-fd-muted-foreground">
                   {c.description}
                 </p>
-                <p className="mt-1 text-xs text-fd-muted-foreground">
+                <p className="mt-1 text-[13px] text-fd-muted-foreground">
                   Fires when all of:{' '}
                   {c.depends.map((d, i) => (
                     <span key={d}>
