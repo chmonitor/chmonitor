@@ -1,4 +1,5 @@
 ---
+updated: 2026-10-11
 title: v0.3 — What's New
 description: What's new in chmonitor v0.3 — TanStack Start framework, Cloud (SaaS) mode, Postgres monitoring beta, pluggable auth, alerting rules, AI insights, MCP server, and dozens of new monitoring views.
 icon: Tag
@@ -40,7 +41,12 @@ See [Migrate to v0.3](/reference/migrating/v0-3) for upgrade steps.
 
 Postgres joins ClickHouse as a monitored source — one dashboard for both engines, with the same read-only guarantees.
 
-![Add Postgres source dialog: read-only connection with pg_stat_* requirements](/assets/screenshots/add-pg-source-dark.png)
+<Screenshot
+  src="/assets/screenshots/add-pg-source-light.png"
+  srcDark="/assets/screenshots/add-pg-source-dark.png"
+  alt="Add Postgres source dialog: read-only connection with pg_stat_* requirements"
+  caption="Add a read-only Postgres source."
+/>
 
 - Postgres as a monitored source: query insights from `pg_stat_statements`, live activity from `pg_stat_activity`, and AI agent tools — behind `CHM_FEATURE_POSTGRES_SOURCE` (epic [#2264](https://github.com/chmonitor/chmonitor/issues/2264), [#2570](https://github.com/chmonitor/chmonitor/issues/2570)).
 - Engine-aware navigation and `?pg=` routing alongside `?host=` ([#2570](https://github.com/chmonitor/chmonitor/issues/2570)).

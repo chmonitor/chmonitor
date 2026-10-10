@@ -1,4 +1,5 @@
 ---
+updated: 2026-10-11
 description: Full reference for every chmonitor environment variable, grouped by category with build-time vs runtime notes.
 icon: Variable
 ---
@@ -7,15 +8,48 @@ icon: Variable
 
 Self-hosters need three vars. Everything else is optional and listed here.
 
+<ConfigTabs groupId="deploy" items={['.env', 'Docker', 'Kubernetes']}>
+<ConfigTab value=".env">
+
 ```bash
 CLICKHOUSE_HOST=http://localhost:8123
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=
+CLICKHOUSE_USER=monitoring
+CLICKHOUSE_PASSWORD=change-me
 ```
+
+</ConfigTab>
+<ConfigTab value="Docker">
+
+```bash
+docker run -d -p 3000:3000 \
+  -e CLICKHOUSE_HOST='http://localhost:8123' \
+  -e CLICKHOUSE_USER='monitoring' \
+  -e CLICKHOUSE_PASSWORD='change-me' \
+  ghcr.io/chmonitor/chmonitor:X.Y.Z
+```
+
+</ConfigTab>
+<ConfigTab value="Kubernetes">
+
+```bash
+kubectl create secret generic chmonitor-clickhouse \
+  --from-literal=CLICKHOUSE_HOST='http://localhost:8123' \
+  --from-literal=CLICKHOUSE_USER='monitoring' \
+  --from-literal=CLICKHOUSE_PASSWORD='change-me'
+```
+
+</ConfigTab>
+</ConfigTabs>
 
 Copy [`apps/dashboard/.env.example`](https://github.com/chmonitor/chmonitor/blob/main/apps/dashboard/.env.example)
 for a short template. Polar license checkout belongs on landing / `apps/cloud-hooks`,
 not the standalone monitor.
+
+## All variables
+
+Search or filter every variable the dashboard reads. The list is generated from the code, so it stays current. Descriptions for each group follow below.
+
+<EnvVarTable />
 
 ## One canonical name per setting
 
@@ -399,7 +433,6 @@ Provider-specific keys take priority over the generic `LLM_API_KEY` /
 | `AGENT_ENABLE_CONTROL_TOOLS` | `false` | Enable kill-query, optimize, and other write actions. Keep `false` unless users are trusted. |
 | `CHM_AGENT_FIRECRAWL_MCP` | `true` | Connect Firecrawl's hosted MCP (no API key) on every agent request. Set `false` to disable. |
 | `CHM_AGENT_FIRECRAWL_ALLOW_DOMAINS` | (empty) | Comma-separated hostnames Firecrawl may scrape/crawl/map. Empty / unset = unrestricted. Apex tokens also match subdomains; `*.example.com` is subdomain-only (not the apex). Search-only calls (no URL) stay allowed. |
-| `CHM_AGENT_ANYROUTER_SIGNIN_ENABLED` | `false` | Turn on "Sign in with AnyRouter": users (guests included) can run the agent on their own AnyRouter token, and signed-in users' tokens are stored encrypted (needs `CHM_CLOUD_D1` and `CLERK_SECRET_KEY` or `CHM_USER_CONNECTIONS_ENCRYPTION_KEY`). Off = the sign-in routes return 404. |
 
 See [AI agent — configuration](/guide/ai-agent/configuration) for full details.
 

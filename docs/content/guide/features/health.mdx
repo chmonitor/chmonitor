@@ -1,4 +1,5 @@
 ---
+updated: 2026-10-11
 description: At-a-glance cluster health dashboard with automated headless health-sweep alerts via webhook and Cloudflare Cron.
 icon: HeartPulse
 title: Health
@@ -362,26 +363,7 @@ override them per rule from the UI, `alerts.yaml` `thresholds:`, or
 `HEALTH_THRESHOLD_<RULE>_WARNING` / `_CRITICAL`. A rule whose system table is
 missing (for example no `system.backup_log`) is skipped, not failed.
 
-| Rule id | Source | Warning | Critical |
-|---|---|---|---|
-| `readonly-replicas` | `system.replicas` with `is_readonly = 1` | 1 | 3 |
-| `replication-lag` | max `absolute_delay` in `system.replicas` (seconds) | 30 | 300 |
-| `replication-queue-stuck` | `system.replication_queue` entries with `num_tries > 100` or older than 1 hour | 1 | 10 |
-| `replica-session-expired` | `system.replicas` with `is_session_expired` | 1 | 3 |
-| `disk-usage` | worst disk in `system.disks` (% used) | 80 | 95 |
-| `memory-pressure` | `MemoryTracking` as % of `OSMemoryTotal` | 80 | 90 |
-| `keeper-unavailable` | `KEEPER_EXCEPTION` count in `system.error_log`, last hour | 5 | 20 |
-| `failed-mutations` | incomplete mutations with a non-empty `latest_fail_reason` | 1 | 5 |
-| `stuck-merges` | merges running longer than 10 minutes | 1 | 3 |
-| `delayed-inserts` | `DelayedInserts` gauge in `system.metrics` | 1 | 5 |
-| `rejected-inserts` | `TOO_MANY_PARTS` (code 252) insert errors in `system.query_log`, last hour | 1 | 1 |
-| `parts-pressure` | worst partition's parts as % of `parts_to_throw_insert` | 80 | 95 |
-| `broken-detached-parts` | `system.detached_parts` with `reason LIKE 'broken%'` | 1 | 1 |
-| `ttl-partition-health` | MergeTree tables with partition bloat, no TTL, or merge backlog | 1 | 5 |
-| `query-timeout` | `TIMEOUT_EXCEEDED` query errors, last hour | 1 | 10 |
-| `failed-backups` | failed backups or restores in `system.backup_log`, last 24 hours | 1 | 3 |
-| `mv-refresh-failures` | refreshable MVs whose last refresh failed | 1 | 3 |
-| `fatal-log-entries` | `Fatal` rows in `system.text_log`, last hour | 1 | 5 |
+<AlertRuleList />
 
 `keeper-unavailable` warns at 5, not 1: one `KEEPER_EXCEPTION` an hour is
 routine (a session reconnect or leader re-election). Sustained exceptions are
