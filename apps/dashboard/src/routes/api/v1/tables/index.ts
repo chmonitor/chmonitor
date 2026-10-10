@@ -16,6 +16,7 @@ import { debug, error } from '@chm/logger'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 const DEFAULT_LIMIT = 500
@@ -46,6 +47,7 @@ const TABLES_AUTOCOMPLETE_CONFIG: QueryConfig = {
       toString(total_rows) AS total_rows
     FROM system.tables
     WHERE database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')
+      AND ${LOCAL_DATABASES_FILTER}
       AND NOT is_temporary
     ORDER BY total_bytes DESC NULLS LAST
     LIMIT {limit: UInt32}

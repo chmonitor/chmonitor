@@ -5,6 +5,8 @@
 
 import type { ChartQueryBuilder } from './types'
 
+import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
+
 export const overviewCharts: Record<string, ChartQueryBuilder> = {
   'running-queries-count': () => ({
     query: `
@@ -16,6 +18,7 @@ export const overviewCharts: Record<string, ChartQueryBuilder> = {
     query: `
       SELECT countDistinct(database) as count FROM system.tables
       WHERE lower(database) NOT IN ('system', 'information_schema')
+        AND ${LOCAL_DATABASES_FILTER}
     `,
   }),
 
@@ -23,6 +26,7 @@ export const overviewCharts: Record<string, ChartQueryBuilder> = {
     query: `
       SELECT countDistinct(format('{}.{}', database, table)) as count FROM system.tables
       WHERE lower(database) NOT IN ('system', 'information_schema')
+        AND ${LOCAL_DATABASES_FILTER}
     `,
   }),
 

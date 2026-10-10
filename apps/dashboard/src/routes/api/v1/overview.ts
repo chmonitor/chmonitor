@@ -17,6 +17,7 @@ import {
 } from '@/lib/api/error-handler'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { statusForFetchDataError } from '@/lib/api/shared/fetch-data-error'
+import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 const ROUTE_CONTEXT = { route: '/api/v1/overview' }
@@ -97,6 +98,7 @@ export const Route = createFileRoute('/api/v1/overview')({
               SELECT 'database_count' as metric, countDistinct(database) as value, countDistinct(database) as value_num
               FROM system.tables
               WHERE lower(database) NOT IN ('system', 'information_schema')
+                AND ${LOCAL_DATABASES_FILTER}
 
               UNION ALL
 
@@ -104,6 +106,7 @@ export const Route = createFileRoute('/api/v1/overview')({
               SELECT 'table_count' as metric, countDistinct(format('{}.{}', database, table)) as value, countDistinct(format('{}.{}', database, table)) as value_num
               FROM system.tables
               WHERE lower(database) NOT IN ('system', 'information_schema')
+                AND ${LOCAL_DATABASES_FILTER}
 
               UNION ALL
 

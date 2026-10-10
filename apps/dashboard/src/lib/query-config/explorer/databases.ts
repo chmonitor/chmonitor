@@ -1,5 +1,7 @@
 import type { QueryConfig } from '@/types/query-config'
 
+import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
+
 // Sidebar tree + empty-state gate. Deliberately does NOT join system.tables:
 // the tree renders only `name` and the empty-state renders `name` + `engine`,
 // so enumerating every table in the cluster to compute a per-database count
@@ -28,6 +30,7 @@ export const explorerDatabaseCountsConfig: QueryConfig = {
     SELECT database AS name, count() AS item_count
     FROM system.tables
     WHERE database NOT IN ('INFORMATION_SCHEMA', 'information_schema')
+      AND ${LOCAL_DATABASES_FILTER}
     GROUP BY database
   `,
   columns: ['name', 'item_count'],
