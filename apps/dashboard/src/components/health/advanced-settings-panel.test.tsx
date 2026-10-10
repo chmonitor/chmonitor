@@ -24,6 +24,9 @@ mock.module('./digest-settings-panel', () => ({
 mock.module('./maintenance-windows-panel', () => ({
   MaintenanceWindowsPanel: stub('maintenance'),
 }))
+mock.module('./peerdb-rules-panel', () => ({
+  PeerDBRulesPanel: stub('peerdb-rules'),
+}))
 mock.module('./quiet-hours-panel', () => ({
   QuietHoursPanel: stub('quiet-hours'),
 }))
@@ -38,7 +41,7 @@ beforeAll(() => GlobalRegistrator.register())
 afterAll(() => GlobalRegistrator.unregister())
 
 const TITLES: Record<string, string[]> = {
-  define: ['Suggested alerts', 'Custom rules'],
+  define: ['Suggested alerts', 'Custom rules', 'PeerDB mirror rules'],
   delivery: ['Routing rules', 'Webhook subscriptions', 'Digest'],
   silencing: ['Quiet hours', 'Maintenance windows'],
 }
@@ -63,7 +66,7 @@ async function mount(element: unknown) {
 }
 
 describe('AlertSectionGroup', () => {
-  test('all seven sections are reachable, each in one group', async () => {
+  test('all eight sections are reachable, each in one group', async () => {
     const { AlertSectionGroup } = await import('./advanced-settings-panel')
     const seen: string[] = []
     for (const [group, titles] of Object.entries(TITLES)) {
@@ -76,7 +79,7 @@ describe('AlertSectionGroup', () => {
       seen.push(...titles)
       await view.unmount()
     }
-    expect(new Set(seen).size).toBe(7)
+    expect(new Set(seen).size).toBe(8)
   })
 
   test('a deep link opens its dialog only in the owning group', async () => {

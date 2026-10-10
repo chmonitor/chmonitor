@@ -230,7 +230,13 @@ async function runPeerDBAlertSweep(
   }
   try {
     const { runPeerDBAlertCycle } = await import('@/lib/peerdb/alert-cycle')
+    // Per-mirror rules (#3699): Alert Settings + alerts.yaml `peerdbRules`,
+    // OSS single-tenant owner like the other sweep-side settings reads.
+    // `listPeerDBRules` never throws; no rules = default thresholds.
+    const { listPeerDBRules } = await import('@/lib/peerdb/alert-rules-store')
+    const rules = await listPeerDBRules('')
     const cycle = await runPeerDBAlertCycle({
+      rules,
       // Real delivery: the sweep dispatcher (persistent dedup via the
       // hydrated alert-state store, suppression gates, channel fan-out).
       // `dryRun: false` is what arms it — the default (true) only audits.

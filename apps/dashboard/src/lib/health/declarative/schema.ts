@@ -4,6 +4,7 @@
  * One YAML file per concern under `CHM_HEALTH_CONFIG_DIRECTORY`:
  *
  *   alerts.yaml       custom rules (`id`) + threshold overrides (rule name)
+ *                     + PeerDB mirror rules (`peerdbRules`, `id`)
  *   routing.yaml      alert routes (`id`)
  *   channels.yaml     channel config (`channel`) + custom webhook targets (`id`)
  *   quiet-hours.yaml  quiet-hours windows (`id`)
@@ -35,6 +36,12 @@ import {
   METRIC_CATALOG,
   type MetricKey,
 } from '../rule-builder-schema'
+import {
+  PEERDB_RULE_CHECKS,
+  PEERDB_RULE_MATCH_KINDS,
+  PEERDB_RULE_SEVERITIES,
+  peerDBRuleFieldsSchema,
+} from '@/lib/peerdb/alert-rules'
 
 /** The six concerns, in load order. The file name is `<concern>.yaml`. */
 export const HEALTH_CONFIG_CONCERNS = [
@@ -97,6 +104,37 @@ export const declarativeCustomRuleSchema = z
     // warning/critical ordering per operator) so both paths agree.
     const { id: _id, enabled: _enabled, ...input } = value
     const result = customRuleInputSchema.safeParse(input)
+    if (!result.success) {
+      for (const issue of result.error.issues) {
+        ctx.addIssue({
+          code: 'custom',
+          message: issue.message,
+          path: issue.path,
+        })
+      }
+    }
+  })
+
+/**
+ * A PeerDB mirror rule (#3699). Same fields as the Alert Settings form, with
+ * `muteUntil` as an ISO-8601 timestamp; the warn/crit ordering check is the
+ * one the API uses (`peerDBRuleFieldsSchema`).
+ */
+export const declarativePeerDBRuleSchema = z
+  .strictObject({
+    id: idSchema,
+    check: z.enum(PEERDB_RULE_CHECKS),
+    matchKind: z.enum(PEERDB_RULE_MATCH_KINDS).default('glob'),
+    match: z.string(),
+    warning: z.number(),
+    critical: z.number(),
+    severity: z.enum(PEERDB_RULE_SEVERITIES).default('critical'),
+    enabled: z.boolean().default(true),
+    muteUntil: z.iso.datetime({ offset: true }).nullable().default(null),
+  })
+  .superRefine((value, ctx) => {
+    const { id: _id, muteUntil: _muteUntil, ...fields } = value
+    const result = peerDBRuleFieldsSchema.safeParse(fields)
     if (!result.success) {
       for (const issue of result.error.issues) {
         ctx.addIssue({
@@ -198,6 +236,7 @@ export const declarativeDigestSchema = z.strictObject({
 })
 
 export type DeclarativeCustomRule = z.infer<typeof declarativeCustomRuleSchema>
+export type DeclarativePeerDBRule = z.infer<typeof declarativePeerDBRuleSchema>
 export type DeclarativeThreshold = z.infer<typeof declarativeThresholdSchema>
 export type DeclarativeRoute = z.infer<typeof declarativeRouteSchema>
 export type DeclarativeChannel = z.infer<typeof declarativeChannelSchema>
@@ -220,6 +259,7 @@ const list = z.array(z.unknown()).default([])
 export const HEALTH_CONFIG_FILE_SCHEMAS = {
   alerts: z.strictObject({
     rules: list,
+    peerdbRules: list,
     thresholds: z.record(z.string(), z.unknown()).default({}),
   }),
   routing: z.strictObject({ routes: list }),
@@ -242,6 +282,7 @@ export interface HealthConfigData {
   customRules: Record<string, DeclarativeCustomRule>
   /** Keyed by rule name (the `ThresholdsMap` key). */
   thresholds: Record<string, DeclarativeThreshold>
+  peerdbRules: Record<string, DeclarativePeerDBRule>
   routes: Record<string, DeclarativeRoute>
   /** Keyed by channel name. */
   channels: Record<string, DeclarativeChannel>
@@ -279,6 +320,7 @@ export function emptyHealthConfigData(): HealthConfigData {
   return {
     customRules: {},
     thresholds: {},
+    peerdbRules: {},
     routes: {},
     channels: {},
     webhookTargets: {},

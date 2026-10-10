@@ -34,6 +34,7 @@ import {
   resolveSecretEnv,
   warnOnce,
 } from './declarative/sources'
+import { globToRegExp } from './glob'
 import { PAGERDUTY_EVENTS_API_URL } from './pagerduty-config'
 import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
@@ -334,19 +335,6 @@ export async function deleteRoute(
 }
 
 // --- Pure matching core ------------------------------------------------------
-
-/**
- * Convert a `*`/`?`-glob into a case-insensitive `RegExp`. `*` matches any
- * sequence (including empty), `?` matches exactly one character; everything
- * else is matched literally. A bare `*` (the common "any" case) short-circuits
- * to `/^.*$/` rather than compiling, but is handled by the caller anyway (see
- * {@link matchesPattern}).
- */
-function globToRegExp(glob: string): RegExp {
-  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&')
-  const pattern = escaped.replace(/\*/g, '.*').replace(/\?/g, '.')
-  return new RegExp(`^${pattern}$`, 'i')
-}
 
 /** `*` always matches; otherwise glob-match against every candidate value. */
 function matchesPattern(

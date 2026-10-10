@@ -50,6 +50,7 @@ const ADVANCED_SECTION_IDS = [
   'digest',
   'suggested',
   'custom-rules',
+  'peerdb-rules',
 ] as const
 
 describe('resolveHealthSettingsTab', () => {
@@ -80,6 +81,7 @@ describe('resolveHealthSettingsTab', () => {
     > = {
       suggested: { tab: 'alerts', section: 'suggested' },
       'custom-rules': { tab: 'alerts', section: 'custom-rules' },
+      'peerdb-rules': { tab: 'alerts', section: 'peerdb-rules' },
       routing: { tab: 'alerts', section: 'routing' },
       webhooks: { tab: 'alerts', section: 'webhooks' },
       digest: { tab: 'alerts', section: 'digest' },

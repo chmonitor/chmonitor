@@ -209,8 +209,52 @@ unavailable" instead of reporting zero errors. Mirrors that are
 `STATUS_RUNNING` with no `errorMessage` skip the log read (see
 [Large mirror fleets](#large-mirror-fleets)).
 
-The thresholds above are the defaults and **are not configurable yet**; there
-is no environment variable or settings UI for them.
+The thresholds above are the defaults. A stale running mirror (no CDC lag
+reported, last sync batch too old) is a warning after 1800 s and an error
+after 7200 s.
+
+### Configure thresholds and mutes
+
+Add **PeerDB mirror rules** to change the thresholds for some mirrors, or to
+mute them for a while. Rules live in two places, and both apply:
+
+- **Settings → Alerts → PeerDB mirror rules.** List, add, edit, enable, and
+  mute rules. Saving needs a database backend (cloud, or self-hosted with a D1
+  database or a Postgres `DATABASE_URL`); without one the panel says so and
+  stays read-only.
+- **`alerts.yaml` `peerdbRules`**, for a deploy with no database. See
+  [Run alerts without a metadata database](/guide/features/health#run-alerts-without-a-metadata-database).
+
+```yaml
+peerdbRules:
+  - id: fleetreporting-lag
+    check: lag            # lag | slot-lag | errors | stale-sync
+    matchKind: glob       # exact | prefix | glob (default)
+    match: qrep_sg_fleetreporting1_*
+    warning: 3600
+    critical: 14400
+    severity: critical    # or warning: never escalate past warning
+    enabled: true
+    muteUntil: null       # ISO-8601 time to mute the matching mirrors until
+```
+
+A rule replaces the warn/crit pair of one check for the mirrors it matches.
+The other checks keep the defaults. When several enabled rules for the same
+check match a mirror, the most specific one wins:
+
+1. `exact` (the mirror name),
+2. then `prefix` (the longest prefix),
+3. then `glob` (the one with the most characters other than `*` and `?`).
+
+If two rules are still tied, the one with the lower `id` wins. Matching is not
+case-sensitive. Status checks (`STATUS_FAILED` and others) and the
+`errorMessage` check are not changed by rules.
+
+A **muted** mirror is still checked, shown in the sweep summary, and written
+to alert history (`peerdb-hold:muted`), but no notification is sent, not even
+a recovery. A recovery is sent on the first sweep after the mute ends. Disabled
+rules are ignored, mute included. With no rules, every mirror uses the
+defaults, and alert keys stay the same.
 
 ### Requirements
 

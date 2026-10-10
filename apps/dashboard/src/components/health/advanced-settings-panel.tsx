@@ -3,6 +3,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Braces,
+  Cable,
   ChevronRight,
   Mails,
   MoonStar,
@@ -22,6 +23,7 @@ import { AlertRoutingPanel } from './alert-routing-dialog'
 import { AlertSuggestionsPanel } from './alert-suggestions-panel'
 import { DigestSettingsPanel } from './digest-settings-panel'
 import { MaintenanceWindowsPanel } from './maintenance-windows-panel'
+import { PeerDBRulesPanel } from './peerdb-rules-panel'
 import { QuietHoursPanel } from './quiet-hours-panel'
 import { RuleBuilderPanel } from './rule-builder'
 import { WebhookSubscriptionsPanel } from './webhook-subscriptions-panel'
@@ -125,6 +127,16 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
     icon: Braces,
     wide: true,
     render: () => <RuleBuilderPanel />,
+  },
+  {
+    id: 'peerdb-rules',
+    group: 'define',
+    title: 'PeerDB mirror rules',
+    description:
+      'Per-mirror lag, slot lag, error and stale-sync thresholds, or mute a mirror for a while.',
+    icon: Cable,
+    wide: true,
+    render: () => <PeerDBRulesPanel />,
   },
 ]
 

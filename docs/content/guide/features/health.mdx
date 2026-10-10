@@ -147,7 +147,7 @@ other names are skipped with a warning.
 
 | File | Top-level keys | Entry key |
 |---|---|---|
-| `alerts.yaml` | `rules`, `thresholds` | `id` (rules), rule name (thresholds) |
+| `alerts.yaml` | `rules`, `thresholds`, `peerdbRules` | `id` (rules, peerdbRules), rule name (thresholds) |
 | `routing.yaml` | `routes` | `id` |
 | `channels.yaml` | `channels`, `webhookTargets` | `channel`, `id` |
 | `quiet-hours.yaml` | `windows` | `id` |
@@ -194,6 +194,32 @@ sweep. Only built-in rule ids are honoured by the current-findings snapshot.
 thresholds:
   disk-usage:
     warning: 70
+```
+
+`alerts.yaml` also accepts `peerdbRules:`, per-mirror PeerDB thresholds and
+mutes. Each entry sets one `check` (`lag`, `slot-lag`, `errors`, `stale-sync`)
+for the mirrors that match `match` (`matchKind`: `exact`, `prefix`, or `glob`,
+the default). `warning` must not be above `critical`. `severity: warning` stops
+that check from going past warning. `muteUntil` (ISO-8601) mutes the matching
+mirrors until then. Rules from the file show as read-only in Alert Settings.
+See [PeerDB monitoring](/operate/advanced/peerdb-monitoring#configure-thresholds-and-mutes)
+for how matches are ranked.
+
+```yaml
+peerdbRules:
+  - id: fleetreporting-lag
+    check: lag
+    match: qrep_sg_fleetreporting1_*
+    warning: 3600
+    critical: 14400
+  - id: orders-errors-quiet
+    check: errors
+    matchKind: exact
+    match: pg_orders
+    warning: 3
+    critical: 20
+    severity: warning
+    muteUntil: 2026-10-12T06:00:00Z
 ```
 
 **`routing.yaml`** declares routes. `provider` is `webhook`, `pagerduty`,

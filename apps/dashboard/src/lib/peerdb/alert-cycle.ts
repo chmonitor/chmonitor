@@ -40,6 +40,7 @@
  */
 
 import type { DispatchFindingParams } from '@/lib/health/sweep/dispatch/types'
+import type { PeerDBRule } from './alert-rules'
 import type {
   PeerDBAlertThresholds,
   PeerDBClassification,
@@ -49,6 +50,7 @@ import type {
 } from './alerting'
 import type { PeerDBSweepCoverage } from './sweep-coverage'
 
+import { mutingPeerDBRule, thresholdsForMirror } from './alert-rules'
 import {
   auditPeerDBAlert,
   buildPeerDBAlertPayload,
@@ -180,7 +182,15 @@ export interface PeerDBCycleOptions {
   dispatch?: PeerDBDispatchFn
   /** Audit sink; defaults to the best-effort `alert_events` writer. */
   audit?: PeerDBAuditFn
+  /** Base thresholds; defaults to `DEFAULT_PEERDB_ALERT_THRESHOLDS`. */
   thresholds?: PeerDBAlertThresholds
+  /**
+   * Per-mirror rules (#3699): each mirror's thresholds are `thresholds` with
+   * its matching rules applied (`thresholdsForMirror`), and a mirror muted by
+   * a rule is evaluated and audited but never dispatched. Empty/omitted =
+   * every mirror uses `thresholds`.
+   */
+  rules?: readonly PeerDBRule[]
   /** Default true: evaluate + audit, never dispatch. */
   dryRun?: boolean
   /** Injectable clock for tests. */
@@ -599,7 +609,9 @@ export async function runPeerDBAlertCycle(
       result.partial = collection.metrics.partial
       result.unchecked = collection.metrics.unchecked
     }
-    const thresholds = opts.thresholds ?? DEFAULT_PEERDB_ALERT_THRESHOLDS
+    const baseThresholds = opts.thresholds ?? DEFAULT_PEERDB_ALERT_THRESHOLDS
+    const rules = opts.rules ?? []
+    const clock = now ?? Date.now()
     const dryRun = opts.dryRun !== false
     const audit: PeerDBAuditFn = opts.audit ?? auditPeerDBAlert
 
@@ -664,25 +676,36 @@ export async function runPeerDBAlertCycle(
     result.errored = collection.metrics.errored
 
     // Fleet firing count first (investigation context, no extra I/O).
-    const classified = signals.map((signal) => ({
-      signal,
-      classification: classifyPeerDBMirror(signal, thresholds),
-    }))
+    const classified = signals.map((signal) => {
+      const thresholds =
+        rules.length > 0
+          ? thresholdsForMirror(signal.flowName, rules, baseThresholds)
+          : baseThresholds
+      return {
+        signal,
+        thresholds,
+        classification: classifyPeerDBMirror(signal, thresholds),
+      }
+    })
     const fleetFiring = classified.filter(
       (c) => c.classification.severity !== 'ok'
     ).length
 
-    for (const { signal, classification } of classified) {
+    for (const { signal, thresholds, classification } of classified) {
       try {
         const message = formatPeerDBAlertMessage(signal, classification)
         const validation = validatePeerDBAlertMessage(message)
         const ruleId = peerDBRuleIdForFlow(signal.flowName)
         const hostName = `peerdb:${signal.flowName.trim().slice(0, 120) || '(unnamed mirror)'}`
-        const { value, warnThreshold, critThreshold } = peerDBPayloadValue(
-          signal,
-          classification,
-          thresholds
-        )
+        const payload = peerDBPayloadValue(signal, classification, thresholds)
+        const { value, warnThreshold } = payload
+        // A `severity: warning` rule disables the critical threshold
+        // (Infinity); never put that in a payload.
+        const critThreshold =
+          typeof payload.critThreshold === 'number' &&
+          !Number.isFinite(payload.critThreshold)
+            ? null
+            : payload.critThreshold
         const dispatchSeverity =
           classification.severity === 'error'
             ? ('critical' as const)
@@ -737,6 +760,28 @@ export async function runPeerDBAlertCycle(
             result.audited++
             continue
           }
+        }
+
+        // Mute (#3699): still evaluated, reported and audited — never
+        // dispatched, recoveries included (a recovery is delivered on the
+        // first tick after the mute ends).
+        const muting =
+          rules.length > 0
+            ? mutingPeerDBRule(signal.flowName, rules, clock)
+            : null
+        if (muting) {
+          await audit({
+            flowName: signal.flowName,
+            severity: classification.severity,
+            decisionKind: 'peerdb-hold:muted',
+            delivered: false,
+            error: `muted by rule ${muting.id} until ${new Date(muting.muteUntil ?? clock).toISOString()}`,
+            channel: 'peerdb',
+            value,
+            hostId: PEERDB_ALERT_HOST_ID,
+          }).catch(() => {})
+          result.audited++
+          continue
         }
 
         const investigation = runDeterministicPeerDBInvestigation({
