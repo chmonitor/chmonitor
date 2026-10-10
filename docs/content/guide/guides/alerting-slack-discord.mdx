@@ -49,7 +49,6 @@ and each platform reads the field it understands.
 
 ```bash
 CRON_SECRET=<random-secret>
-HEALTH_ALERT_ENABLED=true
 HEALTH_ALERT_MIN_SEVERITY=warning   # or "critical" to only page on the worst checks
 HEALTH_ALERT_WEBHOOK_URL=<the URL you copied above>
 ```
@@ -60,6 +59,12 @@ On Cloudflare Workers, set the secrets rather than plain vars:
 wrangler secret put CRON_SECRET
 wrangler secret put HEALTH_ALERT_WEBHOOK_URL
 ```
+
+`HEALTH_ALERT_ENABLED` is optional. Alerting defaults to on as soon as
+`HEALTH_ALERT_WEBHOOK_URL` is set; set `HEALTH_ALERT_ENABLED=false` to pause
+alerts without removing the URL. The same rule applies to email
+(`HEALTH_ALERT_EMAIL_ENABLED`): it is on once the provider URL, from and to
+addresses are set.
 
 ## Custom formats and multiple targets
 

@@ -122,6 +122,7 @@ describe('GET /api/v1/health/alert-config', () => {
   test('reports whether alerts can be delivered (#3701)', async () => {
     const saved = {
       enabled: process.env.HEALTH_ALERT_ENABLED,
+      url: process.env.HEALTH_ALERT_WEBHOOK_URL,
       sweep: process.env.CHM_HEALTH_SWEEP_ENABLED,
     }
     try {
@@ -142,7 +143,15 @@ describe('GET /api/v1/health/alert-config', () => {
         alertingEnabled: true,
         sweepEnabled: false,
       })
+
+      // Flag unset + webhook URL set → on (same resolution as the sweep).
+      delete process.env.HEALTH_ALERT_ENABLED
+      process.env.HEALTH_ALERT_WEBHOOK_URL = 'https://hooks.slack.com/test'
+      body = (await (await handleGet()).json()) as typeof body
+      expect(body.delivery.alertingEnabled).toBe(true)
     } finally {
+      if (saved.url === undefined) delete process.env.HEALTH_ALERT_WEBHOOK_URL
+      else process.env.HEALTH_ALERT_WEBHOOK_URL = saved.url
       if (saved.enabled === undefined) delete process.env.HEALTH_ALERT_ENABLED
       else process.env.HEALTH_ALERT_ENABLED = saved.enabled
       if (saved.sweep === undefined) delete process.env.CHM_HEALTH_SWEEP_ENABLED

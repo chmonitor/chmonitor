@@ -61,7 +61,7 @@ flowchart TD
 <Accordion title="Health alerting">
 
 - [ ] Set `CRON_SECRET` to protect `/api/cron/health-sweep`.
-- [ ] Set `HEALTH_ALERT_ENABLED=true` and `HEALTH_ALERT_WEBHOOK_URL` (Slack or Discord).
+- [ ] Set `HEALTH_ALERT_WEBHOOK_URL` (Slack or Discord). Alerting turns on once a channel is configured; `HEALTH_ALERT_ENABLED` is optional.
 - [ ] Choose `HEALTH_ALERT_MIN_SEVERITY=warning` or `critical`.
 - [ ] Verify the cron trigger (Cloudflare Cron, k8s CronJob, or external cron).
 

@@ -40,7 +40,6 @@ import {
   resolveAlertRoutingOwnerId,
 } from '@/lib/health/alert-routing-auth'
 import {
-  getServerAlertConfig,
   getServerEmailConfig,
   getServerHealthchecksUrl,
   getServerNtfyConfig,
@@ -48,6 +47,7 @@ import {
   getServerPushoverConfig,
   getServerTelegramConfig,
   getServerTwilioConfig,
+  isAnyAlertChannelEnabled,
 } from '@/lib/health/server-alert-config'
 import { isHealthSweepEnabled } from '@/lib/health/sweep-schedule'
 
@@ -110,14 +110,15 @@ function envConfiguredMap(): Record<AlertConfigChannel, boolean> {
  * Whether the scheduled sweep can deliver an alert at all (#3701), so the UI
  * can say so instead of the sweep silently running dry-run. Booleans only.
  *
- * - `alertingEnabled` — `HEALTH_ALERT_ENABLED`; when false the sweep (PeerDB
- *   cycle included) only audits and dispatches nothing.
+ * - `alertingEnabled` — `isAnyAlertChannelEnabled()` — true when any channel
+ *   is configured (or `HEALTH_ALERT_ENABLED` forces it); when false the sweep
+ *   (PeerDB cycle included) only audits and dispatches nothing.
  * - `sweepEnabled` — whether the scheduled sweep runs (`CHM_HEALTH_SWEEP_ENABLED`,
  *   else whether `CRON_SECRET` is set — the same rule the cron route applies).
  */
 function deliveryStatus(): { alertingEnabled: boolean; sweepEnabled: boolean } {
   return {
-    alertingEnabled: getServerAlertConfig().webhookEnabled,
+    alertingEnabled: isAnyAlertChannelEnabled(),
     sweepEnabled: isHealthSweepEnabled((key) => process.env[key]),
   }
 }

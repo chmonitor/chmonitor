@@ -8,6 +8,7 @@ import {
   getServerPushoverConfig,
   getServerTelegramConfig,
   getServerTwilioConfig,
+  isAnyAlertChannelEnabled,
 } from './server-alert-config'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
@@ -74,12 +75,42 @@ describe('getServerAlertConfig', () => {
     expect(config.webhookEnabled).toBe(false)
   })
 
-  it('keeps webhookEnabled=false when HEALTH_ALERT_ENABLED is an arbitrary string', () => {
-    process.env.HEALTH_ALERT_ENABLED = '1'
+  it('stays off when nothing is set', () => {
+    expect(getServerAlertConfig().webhookEnabled).toBe(false)
+  })
 
+  it('defaults on when only the webhook URL is set', () => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL = 'https://hooks.slack.com/test'
+    expect(getServerAlertConfig().webhookEnabled).toBe(true)
+  })
+
+  it('stays disabled when the URL is set but the flag is explicitly false-like', () => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL = 'https://hooks.slack.com/test'
+    for (const v of ['false', '0', 'No', 'OFF']) {
+      process.env.HEALTH_ALERT_ENABLED = v
+      expect(getServerAlertConfig().webhookEnabled).toBe(false)
+    }
+  })
+
+  it('parses true-like values leniently', () => {
+    for (const v of ['1', 'yes', 'ON', 'True']) {
+      process.env.HEALTH_ALERT_ENABLED = v
+      expect(getServerAlertConfig().webhookEnabled).toBe(true)
+    }
+  })
+
+  it('explicit true without a URL keeps the flag true (URL still required to send)', () => {
+    process.env.HEALTH_ALERT_ENABLED = 'true'
     const config = getServerAlertConfig()
+    expect(config.webhookEnabled).toBe(true)
+    expect(config.webhookUrl).toBe('')
+  })
 
-    expect(config.webhookEnabled).toBe(false)
+  it('treats an unrecognised flag value as unset', () => {
+    process.env.HEALTH_ALERT_ENABLED = 'maybe'
+    expect(getServerAlertConfig().webhookEnabled).toBe(false)
+    process.env.HEALTH_ALERT_WEBHOOK_URL = 'https://hooks.slack.com/test'
+    expect(getServerAlertConfig().webhookEnabled).toBe(true)
   })
 
   it('trims leading and trailing whitespace from webhook URL', () => {
@@ -294,12 +325,26 @@ describe('getServerEmailConfig', () => {
     expect(getServerEmailConfig()).toBeNull()
   })
 
-  it('returns null when HEALTH_ALERT_EMAIL_ENABLED is not exactly "true"', () => {
-    process.env.HEALTH_ALERT_EMAIL_ENABLED = '1'
+  it('defaults on when provider URL, from and to are set', () => {
     process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
     process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
     process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'mailgun://key@example.com'
 
+    expect(getServerEmailConfig()).not.toBeNull()
+  })
+
+  it('returns null when configured but HEALTH_ALERT_EMAIL_ENABLED is false-like', () => {
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'mailgun://key@example.com'
+    for (const v of ['false', '0', 'no', 'OFF']) {
+      process.env.HEALTH_ALERT_EMAIL_ENABLED = v
+      expect(getServerEmailConfig()).toBeNull()
+    }
+  })
+
+  it('stays off with only the provider URL set (needs from + to)', () => {
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'mailgun://key@example.com'
     expect(getServerEmailConfig()).toBeNull()
   })
 
@@ -730,5 +775,55 @@ describe('getServerHysteresisConfig', () => {
       minConsecutiveBreaches: 1,
       minConsecutiveClears: 2,
     })
+  })
+})
+
+describe('isAnyAlertChannelEnabled', () => {
+  const keys = [
+    'HEALTH_ALERT_ENABLED',
+    'HEALTH_ALERT_WEBHOOK_URL',
+    'HEALTH_ALERT_PAGERDUTY_ROUTING_KEY',
+    'HEALTH_ALERT_PAGERDUTY_ENABLED',
+    'HEALTH_ALERT_NTFY_URL',
+  ]
+  let saved: Record<string, string | undefined> = {}
+  beforeEach(() => {
+    saved = {}
+    for (const k of keys) {
+      saved[k] = process.env[k]
+      delete process.env[k]
+    }
+  })
+  afterEach(() => {
+    for (const k of keys) {
+      if (saved[k] === undefined) delete process.env[k]
+      else process.env[k] = saved[k]
+    }
+  })
+
+  it('is false when nothing is set', () => {
+    expect(isAnyAlertChannelEnabled()).toBe(false)
+  })
+
+  it('is true when any channel is configured', () => {
+    process.env.HEALTH_ALERT_NTFY_URL = 'https://ntfy.sh/t'
+    expect(isAnyAlertChannelEnabled()).toBe(true)
+  })
+
+  it('ignores a configured channel whose own flag is false', () => {
+    process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY = 'R'
+    process.env.HEALTH_ALERT_PAGERDUTY_ENABLED = 'off'
+    expect(isAnyAlertChannelEnabled()).toBe(false)
+  })
+
+  it('explicit false is the master off switch', () => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL = 'https://hooks.slack.com/x'
+    process.env.HEALTH_ALERT_ENABLED = '0'
+    expect(isAnyAlertChannelEnabled()).toBe(false)
+  })
+
+  it('explicit true forces it on', () => {
+    process.env.HEALTH_ALERT_ENABLED = 'yes'
+    expect(isAnyAlertChannelEnabled()).toBe(true)
   })
 })

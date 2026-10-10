@@ -478,6 +478,9 @@ const ENV_KEYS = [
   'HEALTH_ALERT_WEBHOOK_URL',
   'HEALTH_ALERT_MIN_SEVERITY',
   'HEALTH_ALERT_PAGERDUTY_ROUTING_KEY',
+  'HEALTH_ALERT_EMAIL_PROVIDER_URL',
+  'HEALTH_ALERT_EMAIL_FROM',
+  'HEALTH_ALERT_EMAIL_TO',
   'HEALTH_ALERT_HEALTHCHECKS_URL',
   'HEALTH_ALERT_DIGEST_MINUTES',
   'HEALTH_HYSTERESIS_BREACHES',
@@ -505,6 +508,9 @@ beforeEach(() => {
   process.env.HEALTH_HYSTERESIS_BREACHES = '1'
   process.env.HEALTH_HYSTERESIS_CLEARS = '1'
   delete process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY
+  delete process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL
+  delete process.env.HEALTH_ALERT_EMAIL_FROM
+  delete process.env.HEALTH_ALERT_EMAIL_TO
   delete process.env.HEALTH_ALERT_HEALTHCHECKS_URL
   delete process.env.HEALTH_ALERT_DIGEST_MINUTES
   delete process.env.PEERDB_API_URL
@@ -628,6 +634,48 @@ describe('buildAlertEventRecord', () => {
 // ---------------------------------------------------------------------------
 // runHealthSweep — end-to-end hook wiring
 // ---------------------------------------------------------------------------
+describe('runHealthSweep — HEALTH_ALERT_ENABLED is optional', () => {
+  beforeEach(() => {
+    delete process.env.HEALTH_ALERT_ENABLED
+    process.env.HEALTH_ALERT_WEBHOOK_URL = ''
+    globalThis.fetch = mock(async () => {
+      fetchCalls.push({ status: 200 })
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+  })
+
+  test('pagerduty-only deployment dispatches with the flag unset', async () => {
+    process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY = 'R-env'
+    const summary = await runHealthSweep()
+    expect(summary.enabled).toBe(true)
+    expect(summary.alertsDispatched).toBe(1)
+  })
+
+  test('email-only deployment dispatches with the flag unset', async () => {
+    process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL = 'mailgun://key@example.com'
+    process.env.HEALTH_ALERT_EMAIL_FROM = 'alerts@example.com'
+    process.env.HEALTH_ALERT_EMAIL_TO = 'ops@example.com'
+    const summary = await runHealthSweep()
+    expect(summary.enabled).toBe(true)
+    expect(summary.alertsDispatched).toBe(1)
+  })
+
+  test('nothing configured stays dry-run', async () => {
+    const summary = await runHealthSweep()
+    expect(summary.enabled).toBe(false)
+    expect(summary.alertsDispatched).toBe(0)
+    expect(fetchCalls).toEqual([])
+  })
+
+  test('explicit false disables a configured channel', async () => {
+    process.env.HEALTH_ALERT_PAGERDUTY_ROUTING_KEY = 'R-env'
+    process.env.HEALTH_ALERT_ENABLED = 'false'
+    const summary = await runHealthSweep()
+    expect(summary.enabled).toBe(false)
+    expect(summary.alertsDispatched).toBe(0)
+  })
+})
+
 describe('runHealthSweep — alert-history hook', () => {
   test('a dispatched (delivered) alert produces exactly one alert_events row', async () => {
     globalThis.fetch = mock(async () => {
