@@ -13,6 +13,7 @@ import type { Plan } from '@/lib/billing/plans'
 import type { AgentRuntime, AgentUiMessage } from './runtime'
 
 import { AGENT_DEBUG_LOGS } from './debug'
+import { compactHistoricalToolParts } from './request-parsing'
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -123,8 +124,10 @@ export function createAgentStreamResponse(options: {
       let modelMessages: ModelMessage[] = []
 
       try {
+        // Compact earlier turns' tool outputs for the model only;
+        // `originalMessages` below keeps the full list for the UI.
         modelMessages = await convertToModelMessages(
-          uiMessages as Array<
+          compactHistoricalToolParts(uiMessages) as Array<
             Omit<UIMessage<unknown, UIDataTypes, UITools>, 'id'>
           >,
           {

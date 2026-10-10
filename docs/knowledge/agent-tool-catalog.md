@@ -157,6 +157,26 @@ returns a `truncationNote` telling the model to narrow the query.
 `query_and_visualize` keeps 1,000 rows and no byte cap because it renders
 client-side.
 
+### History compaction (earlier turns' tool outputs)
+
+Tool parts keep their full `output` in the UI history, and
+`convertToModelMessages` resends every one of them on every later step and
+turn. `compactHistoricalToolParts` (`routes/api/v1/-agent/request-parsing.ts`)
+runs just before `convertToModelMessages` in `-agent/stream.ts`. For tool
+parts before the latest user message whose output is over 2,048 JSON bytes,
+it replaces `output` with
+`{summary?, rowCount, columns, truncated: true, note}`. `summary` takes the
+output's `summary` / `message` / `error` string. The current turn is never
+touched, small outputs and `output-error` parts stay as they are, and the
+part keeps its `toolCallId` / `input` / `state`, so call/result pairing holds.
+`originalMessages` on the UI stream is still the uncompacted list, so the
+client keeps showing full results.
+
+Measured with a fixture of 3 turns, each with a 1,000-row query result
+(`-agent/compact-tool-parts.test.ts`): model-input JSON goes from 302,299 B to
+101,817 B (-66%). Only turn 3 keeps its rows. The saving grows with each
+extra turn.
+
 ## Gotchas
 
 - **Never `git checkout <path>` in a shared worktree.** A concurrent session had
