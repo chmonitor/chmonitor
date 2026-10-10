@@ -28,7 +28,10 @@ function filterTools<T extends Record<string, unknown>>(
 }
 
 /** Bound wandering. Override per request via `maxSteps`. */
-export const DEFAULT_MAX_STEPS = 16
+export const DEFAULT_MAX_STEPS = 10
+
+/** Per-step output cap so one runaway completion cannot drive cost. */
+export const DEFAULT_MAX_OUTPUT_TOKENS = 4096
 
 export function createClickHouseAgent(options: {
   /**
@@ -97,6 +100,7 @@ export function createClickHouseAgent(options: {
     model: modelInstance,
     tools,
     instructions: systemPrompt,
+    maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
     // Cap wandering at maxSteps, but never treat a step that emitted
     // tool calls as terminal. Some OpenAI-compat providers (Gemma) send
     // finishReason "stop" on the same step as a tool call; the SDK still

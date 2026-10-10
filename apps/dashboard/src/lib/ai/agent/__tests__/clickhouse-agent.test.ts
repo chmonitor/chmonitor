@@ -95,8 +95,8 @@ describe('createClickHouseAgent', () => {
     expect(typeof agent.tools).toBe('object')
   })
 
-  test('default maxSteps is 16 when not specified', () => {
-    expect(DEFAULT_MAX_STEPS).toBe(16)
+  test('default maxSteps is 10 when not specified', () => {
+    expect(DEFAULT_MAX_STEPS).toBe(10)
     const agent = createClickHouseAgent({ hostId: 0 })
     expect(agent).toBeDefined()
   })
