@@ -18,7 +18,7 @@ import { z } from 'zod'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
-import { generateText, Output } from 'ai'
+import { generateText, type LanguageModel, Output } from 'ai'
 import { classifyError } from '@/lib/ai/agent/errors'
 import {
   DEFAULT_MODEL,
@@ -263,6 +263,46 @@ function normalizeSuggestions(values: readonly string[]): string[] {
   return suggestions
 }
 
+/** Free OpenRouter model (resolved to the configured free fallback). */
+const FOLLOWUPS_CHEAP_MODEL = 'openrouter:openrouter/free'
+export const FOLLOWUPS_MAX_OUTPUT_TOKENS = 200
+
+/**
+ * Try each model in order and return the first valid set of suggestions.
+ * Throws the last error when every model fails.
+ */
+export async function generateFollowupSuggestions({
+  context,
+  models,
+}: {
+  context: string
+  models: LanguageModel[]
+}): Promise<string[]> {
+  let lastError: unknown
+  for (const model of models) {
+    try {
+      const result = await generateText({
+        model,
+        maxOutputTokens: FOLLOWUPS_MAX_OUTPUT_TOKENS,
+        system:
+          'Generate concise ClickHouse monitoring follow-up questions. Return only useful next questions a database operator would click. Do not include markdown, numbering, or explanations.',
+        prompt: `Conversation context:\n${context}\n\nReturn 2 or 3 short follow-up questions that naturally continue this investigation.`,
+        output: Output.object({
+          schema: FollowupsOutputSchema,
+        }),
+      })
+      const suggestions = normalizeSuggestions(result.output.suggestions)
+      if (suggestions.length < 2) {
+        throw new Error('Follow-up generation returned too few suggestions.')
+      }
+      return suggestions
+    } catch (error) {
+      lastError = error
+    }
+  }
+  throw lastError
+}
+
 async function handlePost(request: Request): Promise<Response> {
   bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
@@ -335,22 +375,21 @@ async function handlePost(request: Request): Promise<Response> {
     hasTools: false,
     referer: request.headers.get('origin') ?? undefined,
   })
+  // Follow-ups are cheap filler: try the free model first when OpenRouter is
+  // configured, and fall back to the requested model if it fails.
+  const cheapModel = isProviderConfigured('openrouter')
+    ? resolveAgentChatModel({
+        model: FOLLOWUPS_CHEAP_MODEL,
+        hasTools: false,
+        referer: request.headers.get('origin') ?? undefined,
+      }).model
+    : null
 
   try {
-    const result = await generateText({
-      model: modelInstance,
-      system:
-        'Generate concise ClickHouse monitoring follow-up questions. Return only useful next questions a database operator would click. Do not include markdown, numbering, or explanations.',
-      prompt: `Conversation context:\n${context}\n\nReturn 2 or 3 short follow-up questions that naturally continue this investigation.`,
-      output: Output.object({
-        schema: FollowupsOutputSchema,
-      }),
+    const suggestions = await generateFollowupSuggestions({
+      context,
+      models: cheapModel ? [cheapModel, modelInstance] : [modelInstance],
     })
-
-    const suggestions = normalizeSuggestions(result.output.suggestions)
-    if (suggestions.length < 2) {
-      throw new Error('Follow-up generation returned too few suggestions.')
-    }
 
     return Response.json({ suggestions })
   } catch (error) {
