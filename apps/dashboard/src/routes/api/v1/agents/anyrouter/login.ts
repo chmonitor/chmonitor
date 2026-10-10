@@ -36,16 +36,14 @@ async function handleGet(request: Request): Promise<Response> {
 
   try {
     const clientEnv = env as { ANYROUTER_OAUTH_CLIENT_ID?: string }
-    const { authorizeUrl, state, codeVerifier } = await buildAuthorizeUrl(
-      request,
-      {
+    const { authorizeUrl, state, codeVerifier, clientId } =
+      await buildAuthorizeUrl(request, {
         ANYROUTER_OAUTH_CLIENT_ID: clientEnv.ANYROUTER_OAUTH_CLIENT_ID,
-      }
-    )
+      })
 
     const secure = new URL(request.url).protocol === 'https:'
     const cookie = serializeSigninCookie(
-      { v: codeVerifier, s: state },
+      { v: codeVerifier, s: state, c: clientId },
       { secure }
     )
 

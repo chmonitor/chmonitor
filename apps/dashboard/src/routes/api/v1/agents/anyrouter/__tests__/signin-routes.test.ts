@@ -21,6 +21,9 @@ mock.module('@/lib/auth/agent-api-auth', () => ({
   authorizeAgentApiRequest: () => authorizeAgentApiRequest(),
 }))
 
+const { __resetClientIdCacheForTests } = await import(
+  '@/lib/ai/anyrouter-signin'
+)
 const { __handleGetForTests: handleLoginGet } = await import('../login')
 const { __handleGetForTests: handleCallbackGet } = await import('../callback')
 
@@ -150,8 +153,12 @@ describe('GET /api/v1/agents/anyrouter/callback', () => {
     global.fetch = undefined
   })
 
-  function cookieHeaderFor(state: string, verifier = 'verifier-123'): string {
-    return `chm_anyrouter_pkce=${encodeURIComponent(JSON.stringify({ v: verifier, s: state }))}`
+  function cookieHeaderFor(
+    state: string,
+    verifier = 'verifier-123',
+    clientId: string | null = 'client-abc'
+  ): string {
+    return `chm_anyrouter_pkce=${encodeURIComponent(JSON.stringify({ v: verifier, s: state, c: clientId }))}`
   }
 
   test('rejects when the cookie is missing (expired/no session)', async () => {
@@ -254,5 +261,72 @@ describe('GET /api/v1/agents/anyrouter/callback', () => {
     const html = await response.text()
     expect(html).toContain('"ok":false')
     expect(html).not.toContain('must-not-leak')
+  })
+
+  test('exchanges with the login cookie clientId and never re-registers (cross-isolate)', async () => {
+    // Login on "isolate A" registers client-A and stores it in the cookie.
+    let registerCalls = 0
+    let registeredId = 'client-A'
+    let tokenBody: { client_id?: string } = {}
+    global.fetch = mock(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        if (url.includes('/register')) {
+          registerCalls++
+          return new Response(JSON.stringify({ client_id: registeredId }), {
+            status: 200,
+          })
+        }
+        if (url.includes('/token')) {
+          tokenBody = JSON.parse(String(init?.body))
+          return new Response(
+            JSON.stringify({ access_token: 'sk-ar-v1-x', expires_in: 60 }),
+            { status: 200 }
+          )
+        }
+        throw new Error(`unexpected fetch: ${url}`)
+      }
+    ) as unknown as typeof fetch
+
+    authGateResponse = null
+    __resetClientIdCacheForTests()
+    const login = await handleLoginGet(
+      new Request('https://dash.chmonitor.dev/api/v1/agents/anyrouter/login')
+    )
+    const { state } = (await login.json()) as { state: string }
+    const cookie = login.headers.get('Set-Cookie')?.split(';')[0] ?? ''
+    expect(registerCalls).toBe(1)
+
+    // Callback lands on "isolate B": empty cache, registration would yield B.
+    __resetClientIdCacheForTests()
+    registeredId = 'client-B'
+
+    const response = await handleCallbackGet(
+      new Request(
+        `https://dash.chmonitor.dev/api/v1/agents/anyrouter/callback?code=c&state=${state}`,
+        { headers: { Cookie: cookie } }
+      )
+    )
+
+    expect(await response.text()).toContain('"ok":true')
+    expect(tokenBody.client_id).toBe('client-A')
+    expect(registerCalls).toBe(1)
+  })
+
+  test('rejects a cookie without a clientId and does not call AnyRouter', async () => {
+    const fetchMock = mock(async () => new Response('{}', { status: 200 }))
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    const response = await handleCallbackGet(
+      new Request(
+        'https://dash.chmonitor.dev/api/v1/agents/anyrouter/callback?code=c&state=match',
+        { headers: { Cookie: cookieHeaderFor('match', 'v', null) } }
+      )
+    )
+
+    const html = await response.text()
+    expect(html).toContain('"ok":false')
+    expect(html).toContain('expired')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
