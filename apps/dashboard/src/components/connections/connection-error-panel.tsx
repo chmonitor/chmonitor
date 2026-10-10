@@ -50,7 +50,7 @@ export function ConnectionErrorPanel({
           </span>
         </p>
       )}
-      {e.kind !== 'unknown' && e.raw && (
+      {e.raw && (
         <pre className="overflow-x-auto rounded bg-muted/60 p-2 text-[11px] text-muted-foreground">
           <code>{e.raw}</code>
         </pre>

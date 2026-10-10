@@ -24,9 +24,10 @@ interface AiUsageMeterProps {
 function useQuotaState() {
   const quota = useAiQuota()
   if (!quota.show || quota.limit === null) return null
-  const { used, limit, remaining } = quota
-  const depleted = remaining !== null && remaining <= 0
-  const low = remaining !== null && remaining > 0 && remaining <= 1
+  const { used, limit } = quota
+  const remaining = quota.remaining ?? Math.max(0, limit - used)
+  const depleted = remaining <= 0
+  const low = remaining > 0 && remaining <= 1
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
   const usedColor = depleted
     ? 'text-destructive'
@@ -37,7 +38,7 @@ function useQuotaState() {
 }
 
 /**
- * Subtle "Sign in with AnyRouter for unlimited use" link beside the daily
+ * "Sign in with AnyRouter for unlimited use" link beside the daily
  * limit. Only when `agent.anyrouterSignin` is on and no token is connected —
  * AnyRouter requests bill the user's own credits instead of the allowance.
  */
@@ -51,7 +52,7 @@ export function AnyRouterUnlimitedLink({
   return (
     <button
       type="button"
-      className="text-muted-foreground hover:text-foreground text-[10.5px] underline-offset-2 hover:underline disabled:opacity-60"
+      className="text-primary text-[10.5px] font-medium underline-offset-2 hover:underline focus-visible:underline disabled:opacity-60"
       disabled={anyRouter.isSigningIn}
       onClick={anyRouter.signIn}
       title="Sign in with AnyRouter for unlimited use"
@@ -71,7 +72,7 @@ export function AiUsageMeter({
 }: AiUsageMeterProps) {
   const state = useQuotaState()
   if (!state) return null
-  const { used, limit, remaining, depleted, low, pct, usedColor } = state
+  const { limit, remaining, depleted, low, pct, usedColor } = state
 
   if (variant === 'chip') {
     return (
@@ -86,8 +87,8 @@ export function AiUsageMeter({
             : `${remaining} of ${limit} daily AI messages left`
         }
       >
-        <span className={cn('font-medium', usedColor)}>{used}</span>
-        <span>/{limit} today</span>
+        <span className={cn('font-medium', usedColor)}>{remaining}</span>
+        <span>left today</span>
         <AnyRouterUnlimitedLink compact />
       </span>
     )
@@ -118,11 +119,11 @@ export function AiUsageMeter({
   )
 }
 
-/** The count badge shown in a sidebar section header (`used / limit`). */
+/** The count badge shown in a sidebar section header (`N left`). */
 export function AiUsageMeterBadge({ className }: { className?: string }) {
   const state = useQuotaState()
   if (!state) return null
-  const { used, limit, usedColor } = state
+  const { remaining, usedColor } = state
   return (
     <span
       className={cn(
@@ -130,7 +131,7 @@ export function AiUsageMeterBadge({ className }: { className?: string }) {
         className
       )}
     >
-      <span className={cn('font-medium', usedColor)}>{used}</span>/{limit}
+      <span className={cn('font-medium', usedColor)}>{remaining}</span> left
     </span>
   )
 }

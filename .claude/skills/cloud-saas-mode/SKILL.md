@@ -77,7 +77,7 @@ baked provider is never lowered by a runtime mode). Public read is
 | Env hosts | real, full access | `source:'demo'`, read-only |
 | Anonymous | env hosts | the demo |
 | Signed-in | env hosts | demo HIDDEN → own D1 connections; zero → welcome/setup |
-| Agent (anon) | Clerk-gated if access=authenticated | reachable on demo host via `authorizeAgentApiRequest` guest wrapper (not `CHM_FEATURE_AGENT_ACCESS=public`); daily cap 3 + RL 5/min; D1 `guest:<ip-hash>`; deploy `ANYROUTER_API_KEY` + `anyrouter:anyrouter/free` |
+| Agent (anon) | Clerk-gated if access=authenticated | reachable on demo host via `authorizeAgentApiRequest` guest wrapper (not `CHM_FEATURE_AGENT_ACCESS=public`); daily cap 3 + RL 5/min; D1 `guest:<ip-hash>`; deploy `ANYROUTER_API_KEY`; forced to `anyrouter:anyrouter/free` (auto allowed if picked), kept `anyrouter:` model after AnyRouter sign-in |
 | CLI device login (`CHM_DEVICE_LOGIN`) | **off** by default (`auto`); set `true` for device-only tokens when `auth=none` (trusted LAN) | **on** when `CHM_API_KEY_SECRET` is set; `/device` needs Clerk session |
 
 Resolver: `lib/auth/device-login-config.ts`. Store: D1 or in-memory
