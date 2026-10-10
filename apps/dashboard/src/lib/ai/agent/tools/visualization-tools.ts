@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   capResultRows,
   hostIdSchema,
+  MAX_VISUALIZATION_ROWS,
   resolveHostId,
   truncationNote,
   validatedReadOnlyQuery,
@@ -88,7 +89,11 @@ export function createVisualizationTools(hostId: number) {
           sql,
           hostId: effectiveHostId,
         })) as Record<string, unknown>[]
-        const { data: rows, truncated } = capResultRows(rawRows)
+        const { data: rows, truncated } = capResultRows(
+          rawRows,
+          MAX_VISUALIZATION_ROWS,
+          Number.POSITIVE_INFINITY
+        )
 
         const columns = rows.length > 0 ? Object.keys(rows[0]) : []
         const firstRow = rows[0] ?? {}
@@ -143,7 +148,7 @@ export function createVisualizationTools(hostId: number) {
           rowCount: rows.length,
           columns,
           truncated,
-          ...(truncated && { note: truncationNote() }),
+          ...(truncated && { note: truncationNote(MAX_VISUALIZATION_ROWS) }),
           viz: {
             chartType: resolvedChartType,
             xKey: resolvedXKey,

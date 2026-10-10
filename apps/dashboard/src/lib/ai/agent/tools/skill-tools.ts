@@ -3,14 +3,22 @@ import { z } from 'zod'
 import { getAllSkills } from '../skills/dynamic-loader'
 import { dynamicTool } from 'ai'
 
+const MAX_PURPOSE_CHARS = 60
+
+/** First sentence of a skill description, cut at a word boundary. */
+function shortPurpose(description: string): string {
+  const first = description.split(/\.\s|\.$/)[0].trim()
+  if (first.length <= MAX_PURPOSE_CHARS) return first
+  const cut = first.slice(0, MAX_PURPOSE_CHARS)
+  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:\s]+$/, '')}…`
+}
+
 export function createSkillTools() {
   return {
     load_skill: dynamicTool({
-      description: `Load specialized knowledge to provide expert-level guidance on specific topics.\n\nAvailable skills:\n${getAllSkills()
-        .map((s) => `- ${s.name}: ${s.description}`)
-        .join(
-          '\n'
-        )}\n\nWhen to use:\n- User asks about best practices, design patterns, or optimization strategies\n- You need expert-level knowledge beyond your built-in instructions\n\nThe skill content will be returned as text that you should follow as expert guidance.`,
+      description: `Load expert guidance by skill name (best practices, recipes, tuning). Skills:\n${getAllSkills()
+        .map((s) => `- ${s.name}: ${shortPurpose(s.description)}`)
+        .join('\n')}`,
       inputSchema: z.object({
         name: z.string().describe('Name of the skill to load'),
       }),
