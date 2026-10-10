@@ -16,6 +16,7 @@ import { debug, error } from '@chm/logger'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
@@ -63,7 +64,19 @@ export const Route = createFileRoute('/api/v1/tables/')({
 
         const { searchParams } = new URL(request.url)
         const rawHostId = searchParams.get('hostId') ?? '0'
-        const hostId = Number.parseInt(rawHostId, 10)
+        const hostId = parseHostIdParam(rawHostId)
+        if (!Number.isInteger(hostId) || hostId < 0) {
+          return Response.json(
+            {
+              success: false,
+              error: {
+                type: 'validation',
+                message: 'Invalid hostId',
+              },
+            },
+            { status: 400 }
+          )
+        }
 
         const rawLimit = searchParams.get('limit')
         const parsedLimit = rawLimit
@@ -104,7 +117,7 @@ export const Route = createFileRoute('/api/v1/tables/')({
 
         const { result } = await executeTableConfig(
           TABLES_AUTOCOMPLETE_CONFIG,
-          Number.isFinite(hostId) ? hostId : 0,
+          hostId,
           { limit },
           { bindings: env as Record<string, string | undefined> }
         )

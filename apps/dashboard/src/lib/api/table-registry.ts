@@ -18,6 +18,7 @@
 import type { QueryConfig } from '@/lib/query-config'
 
 import { parseFiltersFromParams } from '@/lib/filters/url-state'
+import { filterSchemaForVersion } from '@/lib/filters/version-gate'
 import {
   applyFilterPlaceholder,
   buildWhereClause,
@@ -30,6 +31,13 @@ export interface TableQueryParams {
   hostId: number | string
   /** URL search params (filters + query params), minus hostId. */
   searchParams?: Record<string, string>
+  /**
+   * Server ClickHouse version, used to ignore filter params whose field
+   * `since` is newer than the server (a stale `?client_agent=` URL).
+   * `undefined` skips gating; `null` means the version is unknown, so gated
+   * fields are dropped (matches the client-side gate).
+   */
+  serverVersion?: string | null
 }
 
 /** Result of resolving a table query. */
@@ -78,12 +86,16 @@ export function getTableQuery(
   // not the bare template.
   if (queryConfig.filterSchema) {
     const urlParams = new URLSearchParams(params.searchParams ?? {})
-    const activeFilters = parseFiltersFromParams(
-      queryConfig.filterSchema,
-      urlParams
-    )
+    const filterSchema =
+      params.serverVersion === undefined
+        ? queryConfig.filterSchema
+        : filterSchemaForVersion(
+            queryConfig.filterSchema,
+            params.serverVersion ?? undefined
+          )
+    const activeFilters = parseFiltersFromParams(filterSchema, urlParams)
     const { clause, params: filterParams } = buildWhereClause(
-      queryConfig.filterSchema,
+      filterSchema,
       activeFilters
     )
     const resolvedConfig: QueryConfig = {

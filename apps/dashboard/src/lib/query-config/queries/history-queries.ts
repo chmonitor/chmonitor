@@ -294,6 +294,7 @@ export const historyQueryFilterSchema: FilterSchema = {
       operators: ['in', 'contains', 'eq', 'ne'],
       dynamicOptions: queryLogDynamicOptions('client_agent'),
       icon: BotIcon,
+      since: '26.6',
       description: 'AI coding agent that issued the query (CH 26.6+).',
     },
   ],
