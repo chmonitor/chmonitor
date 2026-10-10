@@ -54,11 +54,25 @@ import {
   peerdbRequest,
 } from './peerdb-helpers'
 import { dynamicTool } from 'ai'
+import { parseTs } from '@/components/peerdb/peerdb-utils'
 import { summarizePeerDBFleet } from '@/lib/peerdb/fleet-metrics'
+import { groupLogsByPattern } from '@/lib/peerdb/log-fingerprint'
+import { toLogFeedEntry } from '@/lib/peerdb/log-groups'
+import {
+  collectFleetLogPatterns,
+  LOG_PATTERNS_PER_MIRROR,
+  LOG_WINDOWS,
+  type LogPatternSummary,
+} from '@/lib/peerdb/log-patterns-aggregate'
+import {
+  extractMirrorLogs,
+  mirrorLogsRequestBody,
+} from '@/lib/peerdb/mirror-logs'
 import {
   SLOT_LAG_CRITICAL_MB,
   SLOT_LAG_WARN_MB,
 } from '@/lib/peerdb/slot-lag-thresholds'
+import { resolvePeerDBSweepConcurrency } from '@/lib/peerdb/sweep-pool'
 
 /** Caps — every list the tool returns is bounded before serialization. */
 export const PEERDB_FLEET_LIMIT = 50
@@ -71,6 +85,11 @@ export const PEERDB_PEER_FANOUT_LIMIT = 25
 export const PEERDB_PEER_QUERIES_LIMIT = 20
 /** Time-series points (CDC graph buckets, slot-lag samples) returned. */
 export const PEERDB_SERIES_LIMIT = 240
+/** Log patterns returned per call; the rest are counted, not listed. */
+export const PEERDB_PATTERNS_LIMIT = 15
+/** Mirrors named per pattern. */
+export const PEERDB_PATTERN_MIRRORS_LIMIT = 5
+const LOG_PATTERNS_BUDGET_MS = 20_000
 const ERROR_PREVIEW_CHARS = 300
 /** Peer `pg_stat_activity` query text is unbounded; truncate like query-tools. */
 const PEER_QUERY_PREVIEW_CHARS = 500
@@ -195,6 +214,72 @@ async function getFleetMirrors() {
   }
 }
 
+/** Compact pattern row for the model: fingerprint, level, count, lastSeen, mirrors. */
+function toPatternRow(p: LogPatternSummary) {
+  return {
+    fingerprint: errorPreview(p.fingerprint),
+    level: p.level,
+    count: p.count,
+    last_seen: p.lastSeen == null ? null : new Date(p.lastSeen).toISOString(),
+    mirrors: p.mirrors.slice(0, PEERDB_PATTERN_MIRRORS_LIMIT),
+    mirrors_truncated: p.mirrors.length > PEERDB_PATTERN_MIRRORS_LIMIT,
+  }
+}
+
+/**
+ * Fleet-wide repeating log patterns: the same `collectFleetLogPatterns` the
+ * `/api/v1/peerdb/log-patterns` route uses, so the agent and the UI group
+ * identically. Answers "what errors are repeating across mirrors?".
+ */
+async function getLogPatterns(
+  window: (typeof LOG_WINDOWS)[number],
+  mirrorName?: string
+) {
+  let mirrors: string[]
+  if (mirrorName !== undefined) {
+    assertValidMirrorName(mirrorName)
+    mirrors = [mirrorName]
+  } else {
+    const list = await peerdbRequest<ListMirrorsResponse>('/v1/mirrors/list')
+    mirrors = (Array.isArray(list.mirrors) ? list.mirrors : [])
+      .map((m) => m?.name)
+      .filter((n): n is string => typeof n === 'string' && n !== '')
+  }
+  const res = await collectFleetLogPatterns({
+    mirrors,
+    window,
+    parseTs,
+    perMirror: LOG_PATTERNS_PER_MIRROR,
+    concurrency: resolvePeerDBSweepConcurrency(),
+    budgetMs: LOG_PATTERNS_BUDGET_MS,
+    fetchLogs: async (mirror) =>
+      extractMirrorLogs(
+        await peerdbRequest<unknown>('/v1/mirrors/logs', {
+          method: 'POST',
+          body: mirrorLogsRequestBody(mirror, 'all', {
+            numPerPage: LOG_PATTERNS_PER_MIRROR,
+          }),
+        })
+      ),
+  })
+  const { data: patterns, truncated } = capResultRows(
+    res.patterns.map(toPatternRow),
+    PEERDB_PATTERNS_LIMIT
+  )
+  return {
+    mode: 'log_patterns' as const,
+    window: res.window,
+    total_lines: res.entries.length,
+    total_patterns: res.patterns.length,
+    patterns,
+    patterns_truncated: truncated,
+    mirrors_read: res.mirrorsRead,
+    mirrors_total: res.mirrorsTotal,
+    mirrors_truncated: res.mirrorsTruncated,
+    partial: res.partial,
+  }
+}
+
 async function getMirrorDetail(mirrorName: string) {
   assertValidMirrorName(mirrorName)
   const encoded = encodeURIComponent(mirrorName)
@@ -274,6 +359,15 @@ async function getMirrorDetail(mirrorName: string) {
     PEERDB_LOGS_LIMIT
   )
 
+  // Same grouping the /peerdb feed uses; pairs with the raw preview above.
+  const recentErrorPatterns = groupLogsByPattern(
+    logEntries.map((l) =>
+      toLogFeedEntry(l, mirrorName, parseTs(l.errorTimestamp))
+    )
+  )
+    .slice(0, PEERDB_PATTERNS_LIMIT)
+    .map(({ entries: _e, sample: _s, ...p }) => toPatternRow(p))
+
   const authoritativeTotal =
     totalSynced?.totalCount ?? totalSynced?.totalRowsSynced
   const partitions = status.qrepStatus?.partitions ?? []
@@ -294,6 +388,7 @@ async function getMirrorDetail(mirrorName: string) {
     recent_batches: recentBatches,
     batches_truncated: batchesTruncated,
     recent_errors: recentErrors,
+    recent_error_patterns: recentErrorPatterns,
     logs_truncated: logsTruncated,
   }
 }
@@ -317,6 +412,7 @@ export const METRIC_NAMES = [
   'rows_synced',
   'snapshot',
   'peer_stats',
+  'log_patterns',
 ] as const
 
 type SlotHealth = 'critical' | 'warn' | 'ok' | 'unknown'
@@ -792,7 +888,7 @@ export function createPeerDBTools() {
 
     get_peerdb_metrics: dynamicTool({
       description:
-        'PeerDB pipeline metrics beyond per-mirror status (read-only), selected by `metric`. `fleet` (default): fleet aggregates — mirrors by status, failed/paused names, CDC vs QRep split, total rows synced, and the worst replication-slot lag — plus the worst-first slot table. `slots`: replication-slot health (lag in MiB, active flag, WAL status) across all peers or one `peerName`, worst-first, classified ok/warn/critical. `slot_lag_history`: a lag time series for one `peerName`+`slotName` over `window`, with a growing/recovering/flat trend verdict. `rows_synced`: CDC rows-synced time series for one `mirrorName` with current and peak rows/sec. `snapshot`: initial-load progress for one `mirrorName`, per table with partition completion. `peer_stats`: one `peerName`\'s active queries plus its type and PeerDB version. Prefer get_peerdb_mirror_status for "which mirrors are failing?"; use this for "which slot lags, is it recovering, how fast is it syncing, how far along is the snapshot?". Only fixed read-only PeerDB endpoints are queried; mirror and peer configs (which may embed secrets) are never returned. Available only when PeerDB monitoring is configured.',
+        'PeerDB pipeline metrics beyond per-mirror status (read-only), selected by `metric`. `fleet` (default): fleet aggregates — mirrors by status, failed/paused names, CDC vs QRep split, total rows synced, and the worst replication-slot lag — plus the worst-first slot table. `slots`: replication-slot health (lag in MiB, active flag, WAL status) across all peers or one `peerName`, worst-first, classified ok/warn/critical. `slot_lag_history`: a lag time series for one `peerName`+`slotName` over `window`, with a growing/recovering/flat trend verdict. `rows_synced`: CDC rows-synced time series for one `mirrorName` with current and peak rows/sec. `snapshot`: initial-load progress for one `mirrorName`, per table with partition completion. `peer_stats`: one `peerName`\'s active queries plus its type and PeerDB version. `log_patterns`: repeating log messages grouped by pattern across every mirror (or one `mirrorName`) within `logWindow` — fingerprint, level, count, last seen, affected mirrors — the answer to "what errors are repeating across mirrors?". Prefer get_peerdb_mirror_status for "which mirrors are failing?"; use this for "which slot lags, is it recovering, how fast is it syncing, how far along is the snapshot?". Only fixed read-only PeerDB endpoints are queried; mirror and peer configs (which may embed secrets) are never returned. Available only when PeerDB monitoring is configured.',
       inputSchema: z.object({
         metric: z
           .enum(METRIC_NAMES)
@@ -825,6 +921,10 @@ export function createPeerDBTools() {
           .describe(
             'Lookback window for `slot_lag_history`. Defaults to `1day`.'
           ),
+        logWindow: z
+          .enum(LOG_WINDOWS)
+          .optional()
+          .describe('Lookback window for `log_patterns`. Defaults to `24h`.'),
         aggregate: z
           .enum(GRAPH_AGGREGATES)
           .optional()
@@ -840,6 +940,7 @@ export function createPeerDBTools() {
           slotName,
           window = '1day',
           aggregate = '1min',
+          logWindow = '24h',
         } = input as {
           metric?: (typeof METRIC_NAMES)[number]
           peerName?: string
@@ -847,6 +948,7 @@ export function createPeerDBTools() {
           slotName?: string
           window?: (typeof LAG_WINDOWS)[number]
           aggregate?: (typeof GRAPH_AGGREGATES)[number]
+          logWindow?: (typeof LOG_WINDOWS)[number]
         }
         switch (metric) {
           case 'slots':
@@ -884,6 +986,8 @@ export function createPeerDBTools() {
               )
             }
             return getPeerStats(peerName)
+          case 'log_patterns':
+            return getLogPatterns(logWindow, mirrorName)
           default:
             return getFleetMetrics()
         }
