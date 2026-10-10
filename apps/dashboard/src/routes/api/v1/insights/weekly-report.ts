@@ -27,6 +27,7 @@ import type { WeeklyReportSummary } from '@/lib/insights/types'
 
 import { env } from 'cloudflare:workers'
 import { error, generateRequestId } from '@chm/logger'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { requirePlanCapability } from '@/lib/billing/plan-capability'
 import { renderReportPdf, reportPdfFilename } from '@/lib/insights/report-pdf'
 import { renderWeeklyReportHtml } from '@/lib/insights/weekly-report-html'
@@ -55,7 +56,7 @@ export const Route = createFileRoute('/api/v1/insights/weekly-report')({
         try {
           const params = new URL(request.url).searchParams
 
-          const hostId = Number.parseInt(params.get('host') ?? '0', 10)
+          const hostId = parseHostIdParam(params.get('host') ?? '0')
           if (!Number.isInteger(hostId) || hostId < 0) {
             return Response.json(
               {

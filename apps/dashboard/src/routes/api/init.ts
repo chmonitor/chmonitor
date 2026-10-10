@@ -14,6 +14,7 @@ import { env } from 'cloudflare:workers'
 import { getClickHouseConfigs, getClient } from '@chm/clickhouse-client'
 import { error } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { bridgeApiKeyEnv, isAuthenticatedRequest } from '@/lib/auth/api-guard'
 import { initTrackingTable } from '@/lib/tracking'
 
@@ -43,7 +44,7 @@ export const Route = createFileRoute('/api/init')({
           )
         }
 
-        const hostId = parseInt(hostIdRaw, 10)
+        const hostId = parseHostIdParam(hostIdRaw)
         const hostCount = getClickHouseConfigs().length
         if (!Number.isInteger(hostId) || hostId < 0 || hostId >= hostCount) {
           return Response.json(

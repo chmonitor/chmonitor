@@ -17,6 +17,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { error, generateRequestId } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { readInsights } from '@/lib/insights/read-insights'
 
@@ -31,7 +32,7 @@ export const Route = createFileRoute('/api/v1/insights')({
         try {
           const searchParams = new URL(request.url).searchParams
 
-          const hostId = Number.parseInt(searchParams.get('host') ?? '0', 10)
+          const hostId = parseHostIdParam(searchParams.get('host') ?? '0')
           if (!Number.isInteger(hostId) || hostId < 0) {
             return Response.json(
               {

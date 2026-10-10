@@ -15,6 +15,7 @@ import { env } from 'cloudflare:workers'
 import { getClient } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { EVENTS_TABLE } from '@/lib/app-tables'
 import { bridgeApiKeyEnv, isAuthenticatedRequest } from '@/lib/auth/api-guard'
 
@@ -186,7 +187,7 @@ export const Route = createFileRoute('/api/clean')({
           )
         }
 
-        const hostId = parseInt(hostIdRaw, 10)
+        const hostId = parseHostIdParam(hostIdRaw)
         if (Number.isNaN(hostId) || hostId < 0) {
           return Response.json(
             { error: 'Invalid hostId: must be a non-negative number' },

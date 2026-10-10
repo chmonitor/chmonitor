@@ -30,6 +30,7 @@ import {
   RATE_LIMIT_BINDING_API,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
@@ -106,8 +107,7 @@ export async function handler(request: Request): Promise<Response> {
   }
   const groupingId = groupingIdRaw
 
-  const hostId =
-    typeof hostIdRaw === 'string' ? Number.parseInt(hostIdRaw, 10) : hostIdRaw
+  const hostId = parseHostIdParam(hostIdRaw)
   if (typeof hostId !== 'number' || !Number.isInteger(hostId) || hostId < 0) {
     return Response.json(
       {

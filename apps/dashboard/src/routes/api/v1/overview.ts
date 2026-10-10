@@ -17,6 +17,7 @@ import {
 } from '@/lib/api/error-handler'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { statusForFetchDataError } from '@/lib/api/shared/fetch-data-error'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
@@ -47,7 +48,7 @@ export const Route = createFileRoute('/api/v1/overview')({
           )
         }
 
-        const hostId = Number.parseInt(hostIdRaw, 10)
+        const hostId = parseHostIdParam(hostIdRaw)
         if (!Number.isInteger(hostId) || hostId < 0) {
           return Response.json(
             {

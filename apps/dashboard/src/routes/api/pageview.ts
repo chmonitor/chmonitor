@@ -25,6 +25,7 @@ import { getClient } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
 import { clientIpKey } from '@/lib/api/rate-limiter'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { EVENTS_TABLE } from '@/lib/app-tables'
 import { bridgeApiKeyEnv, enforceAuth } from '@/lib/auth/api-guard'
 
@@ -75,7 +76,7 @@ export const Route = createFileRoute('/api/pageview')({
 
         const searchParams = new URL(request.url).searchParams
         const rawUrl = searchParams.get('url') || request.headers.get('referer')
-        const hostId = parseInt(searchParams.get('hostId') || '0', 10)
+        const hostId = parseHostIdParam(searchParams.get('hostId') || '0')
         if (!Number.isInteger(hostId) || hostId < 0) {
           return Response.json({ error: 'Invalid hostId' }, { status: 400 })
         }

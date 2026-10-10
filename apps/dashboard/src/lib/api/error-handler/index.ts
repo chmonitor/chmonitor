@@ -52,6 +52,7 @@ import {
   createErrorResponse,
   getStatusCodeForErrorType,
 } from './error-response-builder'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 
 /**
  * Wraps an API route handler with automatic error handling
@@ -128,6 +129,6 @@ export function getHostIdFromParams(
     throw new Error('Missing required parameter: hostId')
   }
 
-  const parsed = parseInt(hostId, 10)
+  const parsed = parseHostIdParam(hostId)
   return Number.isNaN(parsed) ? hostId : parsed
 }

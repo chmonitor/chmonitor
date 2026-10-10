@@ -16,6 +16,7 @@ import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import {
   requiresSignInForWrite,
@@ -52,7 +53,7 @@ async function handlePost(request: Request): Promise<Response> {
     // Empty body is fine — defaults below.
   }
 
-  const hostId = Number.parseInt(String(body.host ?? 0), 10)
+  const hostId = parseHostIdParam(body.host ?? 0)
   if (!Number.isInteger(hostId) || hostId < 0) {
     return jsonError('host must be a non-negative integer', 400)
   }
