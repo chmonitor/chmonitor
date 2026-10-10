@@ -158,6 +158,7 @@ in `__tests__/tool-docs-sync.test.ts`.
 | `advisor-tools` | `get_optimization_recommendations`, `get_tuning_suggestions` |
 | `mv-designer-tools` | `recommend_materialized_view` |
 | `dashboard-tools` | `suggest_dashboard` |
+| `page-data-tools` | `get_page_data` |
 | `control-tools` (gated) | `kill_query`, `optimize_table`, `kill_mutation` |
 | `postgres-query-tools` (gated) | `run_postgres_select_query`, `list_postgres_slow_query_patterns` |
 | `postgres-health-tools` (gated) | `get_postgres_metrics` |

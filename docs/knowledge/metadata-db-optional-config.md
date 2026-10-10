@@ -2,7 +2,7 @@
 id: metadata-db-optional-config
 type: spec
 status: active
-updated: 2026-09-30
+updated: 2026-10-11
 related:
   - cloud-saas-mode
   - deployment
@@ -236,6 +236,9 @@ whole point is that there is currently one lie and we are not adding two.
 | `custom-rules-store.ts` (267 L) | `custom_alert_rules` | `:59-68` | **no — throws `NOT_CONFIGURED`** |
 | `maintenance-windows.ts` | `maintenance_windows` | `:107` | yes |
 | `quiet-hours.ts` | `quiet_hours` | `:329-332` | yes (write throws) |
+| `peerdb/alert-rules-store.ts` | `peerdb_alert_rules` | `:100`, `:111` | yes for reads (`[]`, merged with declarative `alerts.yaml` `peerdbRules`); **writes throw** via `requireDb()` (`:99-107`) |
+| `peerdb/throughput-samples.ts` | `peerdb_throughput_samples` | `:153`, `:176` | yes — no DB or a failed read/write means the throughput-zero check is off for that tick (no sample, no finding) |
+| `ai/agent/user-token-store.ts` | `user_provider_tokens` | `:57-66` (own `getDb()`, **not** `getHealthDb`) | **no — throws `UserTokenStoreError('UNAVAILABLE')`** without `CHM_CLOUD_D1` or an encryption key; the agent route catches it in `selectAgentApiKey` and falls back to the deployment key |
 
 Binding selection: `CHM_CLOUD_D1` primary, with optional `MAINTENANCE_D1`
 (`maintenance-windows.ts:34`, `quiet-hours.ts:36`) and `INSIGHTS_D1`
