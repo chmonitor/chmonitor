@@ -1,16 +1,24 @@
-import type { LogGroupBy } from '@/lib/peerdb/log-groups'
-import type { ListMirrorLogsResponse, MirrorLog } from '@/lib/peerdb/types'
+import { useQuery } from '@tanstack/react-query'
+
+import type { ApiResponse } from '@/lib/api/types'
+import type { LogPatternGroup } from '@/lib/peerdb/log-fingerprint'
+import type { LogFeedEntry, LogGroupBy } from '@/lib/peerdb/log-groups'
+import type {
+  FleetLogPatterns,
+  LogWindow,
+} from '@/lib/peerdb/log-patterns-aggregate'
 
 import { LogLine, LogPatternList, segmentClass } from './log-pattern-list'
-import { parseTs } from './peerdb-utils'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { groupLogs, toLogFeedEntry } from '@/lib/peerdb/log-groups'
-import {
-  countMirrorLogLevels,
-  extractMirrorLogs,
-  mirrorLogsRequestBody,
-} from '@/lib/peerdb/mirror-logs'
-import { usePeerDB } from '@/lib/swr'
+import { useMemo, useState } from 'react'
+import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { groupLogs } from '@/lib/peerdb/log-groups'
+import { DEFAULT_LOG_WINDOW } from '@/lib/peerdb/log-patterns-aggregate'
+import { countMirrorLogLevels } from '@/lib/peerdb/mirror-logs'
+import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
+import { apiFetch } from '@/lib/swr/api-fetch'
+import { visibilityAwareInterval } from '@/lib/swr/config'
+
+const EMPTY: LogFeedEntry[] = []
 
 type Level = 'all' | 'error' | 'warn' | 'info'
 const LEVELS: Level[] = ['all', 'error', 'warn', 'info']
@@ -24,69 +32,80 @@ const GROUP_BYS: { id: LogGroupBy; label: string }[] = [
   { id: 'table', label: 'Table' },
 ]
 
-/** Bound the fan-out: only the first N mirrors contribute to the feed. */
-const MAX_SOURCES = 25
-const PAGE = 12
+const WINDOWS: LogWindow[] = ['1h', '24h', '7d']
 
-/**
- * Hidden per-mirror log fetcher (POST /v1/mirrors/logs). Reports its entries up
- * so the feed can merge across the fleet without a bespoke aggregate endpoint.
- */
-function LogSource({
-  mirror,
-  onLogs,
-}: {
-  mirror: string
-  onLogs: (mirror: string, logs: MirrorLog[]) => void
-}) {
-  const { data } = usePeerDB<ListMirrorLogsResponse>('/mirrors/logs', {
-    body: mirrorLogsRequestBody(mirror, 'all', { numPerPage: 50 }),
-    refreshInterval: 60_000,
+type Sort = 'level' | 'last' | 'count'
+const SORTS: { id: Sort; label: string }[] = [
+  { id: 'level', label: 'Level' },
+  { id: 'last', label: 'Last seen' },
+  { id: 'count', label: 'Count' },
+]
+
+const PAGE = 12
+const PATTERNS_URL = '/api/v1/peerdb/log-patterns'
+
+type FleetLogPatternsPayload = FleetLogPatterns & { generatedAt: string }
+
+async function fetchPatterns(url: string): Promise<FleetLogPatternsPayload> {
+  const response = await apiFetch(url)
+  if (!response.ok) {
+    throw new Error(`PeerDB log patterns request failed (${response.status})`)
+  }
+  const json = (await response.json()) as ApiResponse<FleetLogPatternsPayload>
+  if (!json?.data || !Array.isArray(json.data.entries)) {
+    throw new Error('Malformed PeerDB log patterns response')
+  }
+  return json.data
+}
+
+/** Server-side fleet read (`GET /api/v1/peerdb/log-patterns`) for one window. */
+function useFleetLogPatterns(window: LogWindow) {
+  const searchParams = useUrlSearchParams()
+  const connection = searchParams.get(PEERDB_CONNECTION_PARAM) ?? ''
+  const qs = new URLSearchParams({ window })
+  if (connection) qs.set(PEERDB_CONNECTION_PARAM, connection)
+  return useQuery({
+    queryKey: [PATTERNS_URL, window, connection],
+    queryFn: () => fetchPatterns(`${PATTERNS_URL}?${qs.toString()}`),
+    refetchInterval: visibilityAwareInterval(60_000),
+    retry: false,
   })
-  const errors = data ? extractMirrorLogs(data) : undefined
-  const key = errors?.length ?? -1
-  // Re-report whenever the returned set changes size (cheap change signal).
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errors tracked via key
-  useEffect(() => {
-    if (errors) onLogs(mirror, errors)
-  }, [mirror, key, onLogs])
-  return null
+}
+
+const SEVERITY = { error: 2, warn: 1, info: 0 } as const
+
+function sortGroups<G extends LogPatternGroup<LogFeedEntry>>(
+  groups: G[],
+  sort: Sort
+): G[] {
+  if (sort === 'level') return groups // grouping already sorts by severity
+  return [...groups].sort((a, b) =>
+    sort === 'count'
+      ? b.count - a.count || (b.lastSeen ?? 0) - (a.lastSeen ?? 0)
+      : (b.lastSeen ?? 0) - (a.lastSeen ?? 0) ||
+        SEVERITY[b.level] - SEVERITY[a.level]
+  )
 }
 
 /**
- * Unified logs / alerts feed across all mirrors on the index page. Aggregates
- * `POST /v1/mirrors/logs` per mirror, merges newest-first, and filters by level
- * (error / warn / info). The default Patterns view groups repeats (by message
- * pattern, mirror, or table) with info groups collapsed behind errors and
- * warnings; Raw shows every line. Rows deep-link to the mirror detail page.
+ * Unified logs / alerts feed across all mirrors on the index page. The server
+ * reads every mirror's `POST /v1/mirrors/logs` with bounded concurrency and
+ * returns in-window lines (1h / 24h / 7d) plus coverage; this view filters by
+ * level (error / warn / info). The default Patterns view groups repeats (by
+ * message pattern, mirror, or table, sorted by level, last seen, or count)
+ * with info groups collapsed behind errors and warnings; Raw shows every line.
+ * Rows deep-link to the mirror detail page.
  */
-export function FleetLogsFeed({ mirrors }: { mirrors: string[] }) {
+export function FleetLogsFeed() {
   const [view, setView] = useState<View>('patterns')
   const [groupBy, setGroupBy] = useState<LogGroupBy>('pattern')
   const [level, setLevel] = useState<Level>('all')
+  const [window, setWindow] = useState<LogWindow>(DEFAULT_LOG_WINDOW)
+  const [sort, setSort] = useState<Sort>('level')
   const [showAll, setShowAll] = useState(false)
-  const [byMirror, setByMirror] = useState<Record<string, MirrorLog[]>>({})
 
-  const sources = mirrors.slice(0, MAX_SOURCES)
-  const droppedMirrors = mirrors.length - sources.length
-
-  const onLogs = useCallback((mirror: string, logs: MirrorLog[]) => {
-    setByMirror((prev) => {
-      const cur = prev[mirror]
-      if (cur && cur.length === logs.length) return prev
-      return { ...prev, [mirror]: logs }
-    })
-  }, [])
-
-  const all = useMemo(() => {
-    const out = []
-    for (const m of sources) {
-      for (const l of byMirror[m] ?? []) {
-        out.push(toLogFeedEntry(l, m, parseTs(l.errorTimestamp)))
-      }
-    }
-    return out.sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))
-  }, [sources, byMirror])
+  const { data, error, isLoading } = useFleetLogPatterns(window)
+  const all = data?.entries ?? EMPTY
 
   const counts = useMemo(() => countMirrorLogLevels(all), [all])
 
@@ -95,28 +114,43 @@ export function FleetLogsFeed({ mirrors }: { mirrors: string[] }) {
     [all, level]
   )
   const groups = useMemo(
-    () => groupLogs(filtered, groupBy),
-    [filtered, groupBy]
+    () => sortGroups(groupLogs(filtered, groupBy), sort),
+    [filtered, groupBy, sort]
   )
 
   const rawRows = showAll ? filtered : filtered.slice(0, PAGE)
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      {sources.map((m) => (
-        <LogSource key={m} mirror={m} onLogs={onLogs} />
-      ))}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Fleet logs & alerts
           </span>
           <span className="font-mono text-[10.5px] text-muted-foreground">
-            POST /v1/mirrors/logs · {sources.length} mirror
-            {sources.length === 1 ? '' : 's'}
+            POST /v1/mirrors/logs
+            {data &&
+              ` · ${data.mirrorsRead}/${data.mirrorsTotal} mirror${data.mirrorsTotal === 1 ? '' : 's'}`}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
+          <div
+            role="group"
+            aria-label="Time window"
+            className="flex items-center gap-0.5 rounded bg-muted p-0.5"
+          >
+            {WINDOWS.map((w) => (
+              <button
+                key={w}
+                type="button"
+                aria-pressed={window === w}
+                onClick={() => setWindow(w)}
+                className={segmentClass(window === w)}
+              >
+                {w}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-0.5 rounded bg-muted p-0.5">
             {VIEWS.map((v) => (
               <button
@@ -149,6 +183,25 @@ export function FleetLogsFeed({ mirrors }: { mirrors: string[] }) {
               ))}
             </div>
           )}
+          {view === 'patterns' && (
+            <div
+              role="group"
+              aria-label="Sort by"
+              className="flex items-center gap-0.5 rounded bg-muted p-0.5"
+            >
+              {SORTS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  aria-pressed={sort === o.id}
+                  onClick={() => setSort(o.id)}
+                  className={segmentClass(sort === o.id)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-0.5 rounded bg-muted p-0.5">
             {LEVELS.map((lvl) => (
               <button
@@ -168,20 +221,33 @@ export function FleetLogsFeed({ mirrors }: { mirrors: string[] }) {
         </div>
       </div>
 
-      {droppedMirrors > 0 && (
+      {data && (data.partial || data.mirrorsTruncated > 0) && (
         <div className="border-b border-border px-3 py-1.5 text-[10.5px] text-muted-foreground">
-          Showing logs from {sources.length} of {mirrors.length} mirrors. The
-          other {droppedMirrors} are not read here; open a mirror to see its
-          logs.
+          {data.partial &&
+            `Read logs from ${data.mirrorsRead} of ${data.mirrorsTotal} mirrors; the rest failed or timed out. `}
+          {data.mirrorsTruncated > 0 &&
+            `${data.mirrorsTruncated} mirror${data.mirrorsTruncated === 1 ? ' has' : 's have'} more lines in this window than one read returns; open a mirror to see all of them.`}
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
         <div className="px-3 py-8 text-center text-[11.5px] text-muted-foreground">
-          No log entries at this level
+          Reading mirror logs…
+        </div>
+      ) : error && !data ? (
+        <div className="px-3 py-8 text-center text-[11.5px] text-muted-foreground">
+          Could not read fleet logs: {error.message}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="px-3 py-8 text-center text-[11.5px] text-muted-foreground">
+          No log entries at this level in the last {window}
         </div>
       ) : view === 'patterns' ? (
-        <LogPatternList key={groupBy} groups={groups} pageSize={PAGE} />
+        <LogPatternList
+          key={`${groupBy}-${sort}`}
+          groups={groups}
+          pageSize={PAGE}
+        />
       ) : (
         <>
           <ul className="divide-y divide-border">
