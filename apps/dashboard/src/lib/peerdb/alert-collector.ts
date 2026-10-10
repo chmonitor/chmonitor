@@ -627,6 +627,8 @@ export async function collectPeerDBSignals(
           (st?.cdcStatus?.rowsSynced as number | string | undefined) ??
             (st as { totalRowsSynced?: unknown } | undefined)?.totalRowsSynced
         ),
+        // CDC vs QRep from the status payload shape, else the list flag.
+        isCdc: st?.cdcStatus ? true : st?.qrepStatus ? false : m.isCdc,
         lastSyncedAtMs: Array.isArray(st?.cdcStatus?.cdcBatches)
           ? latestBatchEndMs(st.cdcStatus.cdcBatches)
           : null,

@@ -24,6 +24,16 @@ export interface PeerDBAlertThresholds {
   staleSyncWarnSec: number
   /** Same, for `error`. Default 7200. */
   staleSyncErrorSec: number
+  /**
+   * Seconds a RUNNING CDC mirror's `rowsSynced` total may stay unchanged
+   * before it is `warning` (#3728). Default 1800.
+   */
+  throughputZeroWarnSec: number
+  /**
+   * Same, for `error`. Default `Infinity`: a flat total only ever warns
+   * unless a PeerDB rule sets a critical threshold.
+   */
+  throughputZeroErrorSec: number
 }
 
 export const DEFAULT_PEERDB_ALERT_THRESHOLDS: PeerDBAlertThresholds = {
@@ -35,4 +45,6 @@ export const DEFAULT_PEERDB_ALERT_THRESHOLDS: PeerDBAlertThresholds = {
   errorErrorCount: 5,
   staleSyncWarnSec: 1800,
   staleSyncErrorSec: 7200,
+  throughputZeroWarnSec: 1800,
+  throughputZeroErrorSec: Number.POSITIVE_INFINITY,
 }

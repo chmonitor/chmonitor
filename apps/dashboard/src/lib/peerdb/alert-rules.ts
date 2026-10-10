@@ -2,7 +2,7 @@
  * PeerDB alert rules (#3699) — per-mirror thresholds and mutes.
  *
  * A rule targets one mirror-health check (`lag`, `slot-lag`, `errors`,
- * `stale-sync`) on the mirrors whose name matches `match`, and replaces that
+ * `stale-sync`, `throughput-zero`) on the mirrors whose name matches `match`, and replaces that
  * check's warn/crit pair from `DEFAULT_PEERDB_ALERT_THRESHOLDS`. Rules come
  * from Alert Settings (D1/Postgres) and from `alerts.yaml` `peerdbRules`; the
  * store (`alert-rules-store.ts`) merges both. Everything in this module is
@@ -39,6 +39,7 @@ export const PEERDB_RULE_CHECKS = [
   'slot-lag',
   'errors',
   'stale-sync',
+  'throughput-zero',
 ] as const
 export type PeerDBRuleCheck = (typeof PEERDB_RULE_CHECKS)[number]
 
@@ -96,6 +97,12 @@ export const PEERDB_RULE_CHECK_FIELDS: Record<
     crit: 'staleSyncErrorSec',
     label: 'Stale sync',
     unit: 'seconds since last batch',
+  },
+  'throughput-zero': {
+    warn: 'throughputZeroWarnSec',
+    crit: 'throughputZeroErrorSec',
+    label: 'Throughput zero',
+    unit: 'seconds with no new rows',
   },
 }
 

@@ -69,9 +69,13 @@ function defaultsFor(check: PeerDBRuleCheck): {
   critical: number
 } {
   const f = PEERDB_RULE_CHECK_FIELDS[check]
+  const warning = DEFAULT_PEERDB_ALERT_THRESHOLDS[f.warn]
+  const critical = DEFAULT_PEERDB_ALERT_THRESHOLDS[f.crit]
+  // A warn-only default (`throughput-zero`) has no finite critical; offer
+  // 4x the warning so the form starts from a value the API accepts.
   return {
-    warning: DEFAULT_PEERDB_ALERT_THRESHOLDS[f.warn],
-    critical: DEFAULT_PEERDB_ALERT_THRESHOLDS[f.crit],
+    warning,
+    critical: Number.isFinite(critical) ? critical : warning * 4,
   }
 }
 
