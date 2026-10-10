@@ -176,14 +176,39 @@ describe('POST /api/v1/agent — Sign in with AnyRouter', () => {
     autoAlias = true
     try {
       await send({ apiKey: TOKEN, model: 'anyrouter:auto' })
-      const calls = createClickHouseAgent.mock.calls
-      if (calls.length > 0) expect(calls[0]?.[0]?.apiKey).not.toBe(TOKEN)
+      expect(runtimeApiKey()).not.toBe(TOKEN)
       expect(reserveAiUsage).toHaveBeenCalledTimes(1)
     } finally {
       autoAlias = false
       if (savedOpenRouter === undefined) delete process.env.OPENROUTER_API_KEY
       else process.env.OPENROUTER_API_KEY = savedOpenRouter
     }
+  })
+
+  test('self-hosted, anyrouter:auto resolved to openrouter: the AnyRouter token is dropped', async () => {
+    cloudMode = false
+    delete process.env.ANYROUTER_API_KEY
+    const savedOpenRouter = process.env.OPENROUTER_API_KEY
+    process.env.OPENROUTER_API_KEY = 'or-deployment-key-000000'
+    autoAlias = true
+    try {
+      await send({ apiKey: TOKEN, model: 'anyrouter:auto' })
+      expect(runtimeApiKey()).not.toBe(TOKEN)
+    } finally {
+      autoAlias = false
+      if (savedOpenRouter === undefined) delete process.env.OPENROUTER_API_KEY
+      else process.env.OPENROUTER_API_KEY = savedOpenRouter
+    }
+  })
+
+  test('self-hosted, openrouter model with own key: the key is kept (BYOK)', async () => {
+    cloudMode = false
+    await send({
+      apiKey: 'sk-or-own-key-123456',
+      model: 'openrouter:openai/gpt-5',
+    })
+    expect(runtimeApiKey()).toBe('sk-or-own-key-123456')
+    expect(reserveAiUsage).not.toHaveBeenCalled()
   })
 
   test('signed-in, no request key: the stored token reaches the runtime, not metered', async () => {
