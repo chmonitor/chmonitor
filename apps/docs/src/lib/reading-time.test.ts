@@ -1,6 +1,5 @@
-import { describe, expect, test } from 'bun:test'
-
 import { countWords, readingMinutes, WORDS_PER_MINUTE } from './reading-time'
+import { describe, expect, test } from 'bun:test'
 
 const words = (n: number) => Array.from({ length: n }, () => 'word').join(' ')
 
