@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { error } from '@chm/logger'
 import { bridgeApiKeyEnv, isAuthenticatedRequest } from '@/lib/auth/api-guard'
-import { getAuthProvider } from '@/lib/auth/provider'
+import { getAuthProvider, getBuildAuthProvider } from '@/lib/auth/provider'
 
 function safeAuthProvider(getEnv: (key: string) => string | undefined) {
   try {
@@ -27,7 +27,7 @@ function getDeploymentInfo(bindings: Record<string, string | undefined>) {
     ci: import.meta.env.VITE_CI === 'true',
     runtime,
     authProvider: safeAuthProvider((key) => bindings[key]),
-    clientAuthProvider: import.meta.env.VITE_AUTH_PROVIDER || null,
+    clientAuthProvider: getBuildAuthProvider(),
     agentAccess: bindings.CHM_FEATURE_AGENT_ACCESS ?? 'public',
     clerkPublishableKeyPrefix:
       import.meta.env.VITE_CLERK_PUBLISHABLE_KEY?.slice(0, 8) || null,

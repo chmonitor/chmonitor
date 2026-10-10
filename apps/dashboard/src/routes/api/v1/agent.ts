@@ -54,6 +54,7 @@ import {
   guestOwnerIdFromIp,
 } from '@/lib/billing/guest-ai'
 import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
+import { parseBool } from '@/lib/config/parse-bool'
 import { ACTIONS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
@@ -166,7 +167,8 @@ async function handlePost(request: Request): Promise<Response> {
     console.log('[Agent API] OpenRouter user:', openRouterUser)
   }
 
-  const controlToolsEnabled = process.env.AGENT_ENABLE_CONTROL_TOOLS === 'true'
+  const controlToolsEnabled =
+    parseBool(process.env.AGENT_ENABLE_CONTROL_TOOLS) === true
   const actionsPermissionResponse = controlToolsEnabled
     ? await authorizeFeatureRequest(ACTIONS_FEATURE_PERMISSION, request, {
         allowAgentBearerToken: true,

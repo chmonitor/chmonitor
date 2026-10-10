@@ -235,3 +235,23 @@ describe('vite build bakes canonical client values', () => {
     expect(out.VITE_FEATURE_USER_CONNECTIONS_DB).toBe('false')
   })
 })
+
+describe('a baked provider is never lowered by a runtime mode', () => {
+  // Review finding on the resolver PR: a self-build baked with clerk and run
+  // with only CHM_DEPLOYMENT_MODE=oss used to resolve the server to `none`
+  // (every API route open) while the client still showed sign-in.
+  test('baked clerk + runtime oss → clerk', () => {
+    const saved = process.env.VITE_AUTH_PROVIDER
+    process.env.VITE_AUTH_PROVIDER = 'clerk'
+    try {
+      const env: Record<string, string> = { CHM_DEPLOYMENT_MODE: 'oss' }
+      expect(getAuthProvider((k) => env[k])).toBe('clerk')
+      // An explicit runtime provider still wins.
+      env.CHM_AUTH_PROVIDER = 'none'
+      expect(getAuthProvider((k) => env[k])).toBe('none')
+    } finally {
+      if (saved === undefined) delete process.env.VITE_AUTH_PROVIDER
+      else process.env.VITE_AUTH_PROVIDER = saved
+    }
+  })
+})

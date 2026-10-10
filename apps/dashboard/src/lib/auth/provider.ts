@@ -11,9 +11,9 @@ export const AUTH_PROVIDER_ENV_VARS = [
   'VITE_AUTH_PROVIDER',
 ] as const
 
-export const AUTH_PROVIDERS = ['none', 'clerk', 'proxy', 'trusted'] as const
+import { AUTH_PROVIDERS, type AuthProvider } from './auth-providers'
 
-export type AuthProvider = (typeof AUTH_PROVIDERS)[number]
+export { AUTH_PROVIDERS, type AuthProvider }
 
 export class AuthProviderConfigError extends Error {
   constructor(value: string) {
@@ -61,10 +61,14 @@ function processEnvGetter(key: string): string | undefined {
  *
  * Precedence (first non-empty wins):
  *   1. runtime `CHM_AUTH_PROVIDER`
- *   2. runtime `CHM_DEPLOYMENT_MODE` → its mode default (cloud → clerk, oss → none)
- *   3. build-time `VITE_AUTH_PROVIDER` (baked only when explicitly set)
+ *   2. build-time `VITE_AUTH_PROVIDER` (baked only when explicitly set)
+ *   3. runtime `CHM_DEPLOYMENT_MODE` → its mode default (cloud → clerk, oss → none)
  *   4. build-time `VITE_DEPLOYMENT_MODE` → its mode default
- * So a prebuilt image run with only `CHM_DEPLOYMENT_MODE=cloud` gets clerk.
+ * An explicitly baked provider beats a runtime mode, so a build made with
+ * clerk can never be lowered to `none` by setting `CHM_DEPLOYMENT_MODE=oss`
+ * (the client would still show sign-in while every API route ran open).
+ * The published image bakes no provider, so a prebuilt image run with only
+ * `CHM_DEPLOYMENT_MODE=cloud` still gets clerk.
  *
  * `getEnv` defaults to `process.env`; pass a Worker-binding reader on the edge.
  * Throws AuthProviderConfigError on an unrecognised explicit value.
@@ -76,6 +80,8 @@ export function getAuthProvider(
 ): AuthProvider {
   const runtime = getEnv('CHM_AUTH_PROVIDER')
   if (runtime) return parseAuthProvider(runtime)
+  const baked = import.meta.env.VITE_AUTH_PROVIDER
+  if (baked) return parseAuthProvider(baked)
   const runtimeMode = getEnv('CHM_DEPLOYMENT_MODE')
   if (runtimeMode) {
     return modeDefaults(parseDeploymentMode(runtimeMode)).authProvider
