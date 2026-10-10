@@ -7,12 +7,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
+import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { error } from '@chm/logger'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { executeTableConfig } from '@/lib/api/query-executor'
 import { detectTableTruncation } from '@/lib/api/table-query-settings'
 import {
   getAvailableTables,
+  getTableConfig,
   getTableQuery,
   hasTable,
 } from '@/lib/api/table-registry'
@@ -87,9 +89,19 @@ export async function handler(
     if (key === 'hostId') continue
     searchParamsObj[key] = value
   }
+  // Ignore filter params for fields newer than the server (#3739): a stale
+  // `?client_agent=` must not reach a server without that column. The version
+  // lookup (cached per host) only runs for configs that declare a `since`.
+  const hasGatedFilters = getTableConfig(name)?.filterSchema?.fields.some(
+    (f) => f.since
+  )
+  const serverVersion = hasGatedFilters
+    ? ((await getClickHouseVersion(hostId))?.raw ?? null)
+    : undefined
   const queryDef = getTableQuery(name, {
     hostId,
     searchParams: searchParamsObj,
+    serverVersion,
   })
   if (!queryDef) {
     return Response.json(

@@ -18,6 +18,7 @@ import { QUERY_COMMENT } from '@chm/clickhouse-client/constants'
 import { error } from '@chm/logger'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { getTableConfig } from '@/lib/api/table-registry'
 import { ApiErrorType } from '@/lib/api/types'
 
@@ -36,7 +37,19 @@ export const Route = createFileRoute('/api/v1/tables/$name/filter-options')({
         const { searchParams } = new URL(request.url)
 
         const rawHostId = searchParams.get('hostId') ?? '0'
-        const hostId = Number.parseInt(rawHostId, 10)
+        const hostId = parseHostIdParam(rawHostId)
+        if (!Number.isInteger(hostId) || hostId < 0) {
+          return Response.json(
+            {
+              success: false,
+              error: {
+                type: ApiErrorType.ValidationError,
+                message: 'Invalid hostId',
+              },
+            },
+            { status: 400 }
+          )
+        }
         const key = searchParams.get('key')
 
         if (!key) {
