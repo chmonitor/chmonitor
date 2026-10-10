@@ -31,7 +31,7 @@ import { z } from 'zod'
 import {
   DEFAULT_PEERDB_ALERT_THRESHOLDS,
   type PeerDBAlertThresholds,
-} from './alerting'
+} from './alerting-thresholds'
 import { globToRegExp } from '@/lib/health/glob'
 
 export const PEERDB_RULE_CHECKS = [

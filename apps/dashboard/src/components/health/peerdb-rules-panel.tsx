@@ -48,7 +48,7 @@ import {
   PEERDB_RULE_CHECKS,
   PEERDB_RULE_MATCH_KINDS,
 } from '@/lib/peerdb/alert-rules'
-import { DEFAULT_PEERDB_ALERT_THRESHOLDS } from '@/lib/peerdb/alerting'
+import { DEFAULT_PEERDB_ALERT_THRESHOLDS } from '@/lib/peerdb/alerting-thresholds'
 import { describeError } from '@/lib/swr/fetch-error'
 import { cn } from '@/lib/utils'
 
