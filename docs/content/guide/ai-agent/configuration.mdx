@@ -14,7 +14,9 @@ These three variables cover most deployments.
 |---|---|---|
 | `LLM_API_KEY` | — | Provider API key. Required to enable the agent. |
 | `LLM_API_BASE` | `https://openrouter.ai/api/v1` | OpenAI-compatible base URL. |
-| `LLM_MODEL` | `openrouter:openrouter/free` | Model identifier (`provider:modelId`). |
+| `LLM_MODEL` | picked automatically | Model identifier (`provider:modelId`). Optional. |
+
+You do not need to set `LLM_MODEL`. The default model is picked from whichever provider key is present (AnyRouter first, then OpenRouter, then NVIDIA NIM). If `LLM_MODEL` names a provider that has no key, the agent logs one warning and uses that automatic default instead of failing.
 
 ```bash
 LLM_API_KEY=sk-or-...

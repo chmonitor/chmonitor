@@ -12,13 +12,32 @@ import {
   resolveDefaultAgentModel,
 } from '../agent-model-registry'
 import { isAnyRouterAutoModelId } from '../anyrouter-dynamic-models'
-import { parseModelId, resolveProvider } from '../providers'
+import {
+  isProviderConfigured,
+  parseModelId,
+  resolveProvider,
+} from '../providers'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createAnyRouter } from '@anyr/ai-sdk-provider'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 
-export const DEFAULT_MODEL =
-  process.env.LLM_MODEL?.trim() || resolveDefaultAgentModel()
+/**
+ * Model from `LLM_MODEL`, or the auto-picked default. When `LLM_MODEL` names a
+ * provider with no key, warn once and use the default instead of 503ing.
+ */
+export function resolveEnvAgentModel(): string {
+  const requested = process.env.LLM_MODEL?.trim()
+  if (!requested) return resolveDefaultAgentModel()
+  const { provider } = parseModelId(requested)
+  if (isProviderConfigured(provider)) return requested
+  const fallback = resolveDefaultAgentModel()
+  console.warn(
+    `[Agent] LLM_MODEL=${requested} names provider "${provider}" which has no API key; using ${fallback}`
+  )
+  return fallback
+}
+
+export const DEFAULT_MODEL = resolveEnvAgentModel()
 
 export const DEFAULT_APP_REFERER = 'https://chmonitor.dev'
 export const DEFAULT_APP_NAME = 'chmonitor'
