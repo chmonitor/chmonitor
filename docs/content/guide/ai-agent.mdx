@@ -224,6 +224,14 @@ curl https://your-host/api/v1/conversations/backend
 # => { "backend": "agentstate", "supportsAiEnrichment": true }
 ```
 
+#### Export your history
+
+`GET /api/v1/conversations/export` downloads the signed-in user's conversations as JSONL (`application/x-ndjson`): one conversation per line, with its messages. It works with every server-side backend and only returns your own conversations (up to 1000, newest first).
+
+```bash
+curl -OJ https://your-host/api/v1/conversations/export
+```
+
 #### AI enrichment
 
 When AgentState is active **and** `AGENTSTATE_AI_ENRICH=true`:
