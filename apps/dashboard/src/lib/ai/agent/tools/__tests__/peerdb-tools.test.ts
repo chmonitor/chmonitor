@@ -669,3 +669,104 @@ describe('get_peerdb_metrics — peer_stats', () => {
     expect(String(err?.message)).toContain('requires `peerName`')
   })
 })
+
+describe('get_peerdb_metrics — log_patterns', () => {
+  const nowIso = () => new Date().toISOString()
+  const bodyOf = (init?: RequestInit) =>
+    JSON.parse(String(init?.body)) as { flowJobName: string }
+
+  test('groups repeating messages across mirrors into compact rows', async () => {
+    stubFetch((url, init) => {
+      if (url.endsWith('/v1/mirrors/list')) {
+        return jsonResponse({ mirrors: [{ name: 'm1' }, { name: 'm2' }] })
+      }
+      if (url.endsWith('/v1/mirrors/logs')) {
+        return jsonResponse({
+          errors: [17, 99].map((n) => ({
+            errorMessage: `slot lag for table orders batch ${n} on ${bodyOf(init).flowJobName}`,
+            errorType: 'error',
+            errorTimestamp: nowIso(),
+          })),
+        })
+      }
+      return jsonResponse({}, 404)
+    })
+    const tools = createPeerDBTools() as any
+    const result = await tools.get_peerdb_metrics.execute({
+      metric: 'log_patterns',
+      logWindow: '1h',
+    })
+    expect(result.mode).toBe('log_patterns')
+    expect(result.window).toBe('1h')
+    expect(result.total_lines).toBe(4)
+    expect(result.mirrors_read).toBe(2)
+    expect(result.partial).toBe(false)
+    expect(result.patterns.length).toBeGreaterThan(0)
+    const [p] = result.patterns
+    expect(Object.keys(p).sort()).toEqual([
+      'count',
+      'fingerprint',
+      'last_seen',
+      'level',
+      'mirrors',
+      'mirrors_truncated',
+    ])
+    expect(p.level).toBe('error')
+    // Raw lines are not shipped alongside the groups.
+    expect(result.entries).toBeUndefined()
+  })
+
+  test('flags partial coverage when a mirror fails', async () => {
+    stubFetch((url, init) => {
+      if (url.endsWith('/v1/mirrors/list')) {
+        return jsonResponse({ mirrors: [{ name: 'ok' }, { name: 'bad' }] })
+      }
+      if (url.endsWith('/v1/mirrors/logs')) {
+        if (bodyOf(init).flowJobName === 'bad') return jsonResponse({}, 500)
+        return jsonResponse({
+          errors: [
+            {
+              errorMessage: 'boom',
+              errorType: 'error',
+              errorTimestamp: nowIso(),
+            },
+          ],
+        })
+      }
+      return jsonResponse({}, 404)
+    })
+    const tools = createPeerDBTools() as any
+    const result = await tools.get_peerdb_metrics.execute({
+      metric: 'log_patterns',
+    })
+    expect(result.window).toBe('24h')
+    expect(result.mirrors_read).toBe(1)
+    expect(result.mirrors_total).toBe(2)
+    expect(result.partial).toBe(true)
+  })
+
+  test('mirror detail carries recent_error_patterns', async () => {
+    stubFetch((url) => {
+      if (url.endsWith('/v1/mirrors/status')) {
+        return jsonResponse({ currentFlowState: 'STATUS_RUNNING' })
+      }
+      if (url.endsWith('/v1/mirrors/logs')) {
+        return jsonResponse({
+          errors: [1, 2, 3].map((n) => ({
+            errorMessage: `connection reset after ${n} retries`,
+            errorType: 'error',
+            errorTimestamp: nowIso(),
+          })),
+        })
+      }
+      return jsonResponse({}, 404)
+    })
+    const tools = createPeerDBTools() as any
+    const result = await tools.get_peerdb_mirror_status.execute({
+      mirrorName: 'm1',
+    })
+    expect(result.recent_error_patterns).toHaveLength(1)
+    expect(result.recent_error_patterns[0].count).toBe(3)
+    expect(result.recent_error_patterns[0].mirrors).toEqual(['m1'])
+  })
+})
