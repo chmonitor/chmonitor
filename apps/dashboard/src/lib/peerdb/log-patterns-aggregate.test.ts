@@ -48,7 +48,11 @@ describe('collectFleetLogPatterns', () => {
       fetchLogs: async () => {
         await new Promise((r) => setTimeout(r, 5))
         return [
-          { errorMessage: 'fresh', errorType: 'error', errorTimestamp: Date.now() + 2_000 },
+          {
+            errorMessage: 'fresh',
+            errorType: 'error',
+            errorTimestamp: Date.now() + 2_000,
+          },
         ]
       },
     })
