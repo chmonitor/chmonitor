@@ -10,6 +10,10 @@ import { deriveAction } from './read-insights'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// tsc does not type Bun's import.meta.dir; use the portable form.
+const HERE = fileURLToPath(new URL('.', import.meta.url))
 
 const COLLECTOR_SOURCES = [
   'collectors.ts',
@@ -20,7 +24,7 @@ const COLLECTOR_SOURCES = [
 function collectorMetrics(): Map<string, string> {
   const out = new Map<string, string>()
   for (const file of COLLECTOR_SOURCES) {
-    const src = readFileSync(join(import.meta.dir, file), 'utf8')
+    const src = readFileSync(join(HERE, file), 'utf8')
     // Candidates declare `category` then `metric` on adjacent lines.
     for (const m of src.matchAll(
       /category: '([a-z]+)',\s*metric: '([a-z0-9_]+)'/g
