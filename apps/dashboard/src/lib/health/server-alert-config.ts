@@ -8,6 +8,19 @@ import type { AlertSettings } from './alert-settings-storage'
 
 import { detectEmailProvider } from './adapters/email'
 import { DEFAULT_ALERT_SETTINGS } from './alert-settings-storage'
+import { getPagerDutyFallbackRoutingKey } from './pagerduty-config'
+
+/**
+ * Lenient env boolean: true/1/yes/on and false/0/no/off (case-insensitive).
+ * Returns `undefined` for unset/empty/unrecognised values so callers can
+ * apply their own default.
+ */
+function parseEnvBool(value: string | undefined): boolean | undefined {
+  const v = value?.trim().toLowerCase()
+  if (v === 'true' || v === '1' || v === 'yes' || v === 'on') return true
+  if (v === 'false' || v === '0' || v === 'no' || v === 'off') return false
+  return undefined
+}
 
 /**
  * Server-side alert configuration sourced from environment variables.
@@ -15,7 +28,9 @@ import { DEFAULT_ALERT_SETTINGS } from './alert-settings-storage'
  * The client persists {@link AlertSettings} in localStorage (tab-scoped); the
  * autonomous cron sweep cannot read that, so it reads the same shape from env:
  *
- *   - HEALTH_ALERT_ENABLED      → webhookEnabled (default false)
+ *   - HEALTH_ALERT_ENABLED      → webhookEnabled (default: on iff the webhook
+ *                                 URL is set; explicit false/0/no/off disables).
+ *                                 The sweep's overall gate is {@link isAnyAlertChannelEnabled}.
  *   - HEALTH_ALERT_WEBHOOK_URL  → webhookUrl     (default '')
  *   - HEALTH_ALERT_MIN_SEVERITY → minSeverity    (default 'warning')
  *
@@ -36,7 +51,8 @@ import { DEFAULT_ALERT_SETTINGS } from './alert-settings-storage'
  */
 export function getServerAlertConfig(): AlertSettings {
   const webhookUrl = process.env.HEALTH_ALERT_WEBHOOK_URL?.trim() || ''
-  const enabled = process.env.HEALTH_ALERT_ENABLED === 'true'
+  // Optional flag: unset → on when a webhook URL is configured.
+  const enabled = parseEnvBool(process.env.HEALTH_ALERT_ENABLED) ?? !!webhookUrl
   const minSeverityEnv = process.env.HEALTH_ALERT_MIN_SEVERITY?.trim()
   const minSeverity: AlertSettings['minSeverity'] =
     minSeverityEnv === 'critical' || minSeverityEnv === 'warning'
@@ -55,7 +71,8 @@ export function getServerAlertConfig(): AlertSettings {
 /**
  * Server-side email alert configuration, sourced from environment variables:
  *
- *   - HEALTH_ALERT_EMAIL_ENABLED       → boolean (default false)
+ *   - HEALTH_ALERT_EMAIL_ENABLED       → optional boolean; defaults on once the
+ *                                        settings below are present, false/0/no/off disables
  *   - HEALTH_ALERT_EMAIL_TO            → comma-separated recipients (default '')
  *   - HEALTH_ALERT_EMAIL_FROM          → from address (default '')
  *   - HEALTH_ALERT_EMAIL_PROVIDER_URL  → mailgun://KEY@DOMAIN | sendgrid://KEY |
@@ -76,8 +93,11 @@ export function getServerAlertConfig(): AlertSettings {
  * exactly as {@link getServerThresholdOverrides} is a companion today.
  */
 export function getServerEmailConfig(): EmailConfig | null {
-  const enabled = process.env.HEALTH_ALERT_EMAIL_ENABLED === 'true'
-  if (!enabled) return null
+  // Optional flag: only an explicit false-like value disables; the checks
+  // below decide whether the channel is configured at all.
+  if (parseEnvBool(process.env.HEALTH_ALERT_EMAIL_ENABLED) === false) {
+    return null
+  }
 
   const providerUrl = process.env.HEALTH_ALERT_EMAIL_PROVIDER_URL?.trim() || ''
   const provider = providerUrl ? detectEmailProvider(providerUrl) : null
@@ -136,14 +156,13 @@ const CHANNEL_ENV_PREFIX: Partial<Record<AlertChannelId, string>> = {
 export function getServerChannelSettings(): ChannelSettingsMap {
   const out: ChannelSettingsMap = {}
   for (const [channelId, prefix] of Object.entries(CHANNEL_ENV_PREFIX)) {
-    const enabledRaw = process.env[`${prefix}_ENABLED`]?.trim().toLowerCase()
+    const enabled = parseEnvBool(process.env[`${prefix}_ENABLED`])
     const minSeverityRaw = process.env[`${prefix}_MIN_SEVERITY`]?.trim()
     const override: {
       enabled?: boolean
       minSeverity?: 'warning' | 'critical'
     } = {}
-    if (enabledRaw === 'false') override.enabled = false
-    else if (enabledRaw === 'true') override.enabled = true
+    if (enabled !== undefined) override.enabled = enabled
     if (minSeverityRaw === 'warning' || minSeverityRaw === 'critical') {
       override.minSeverity = minSeverityRaw
     }
@@ -528,4 +547,31 @@ export function getServerAlertCooldownMs(): number {
     return DEFAULT_ALERT_COOLDOWN_MINUTES * 60 * 1000
   }
   return minutes * 60 * 1000
+}
+
+/**
+ * Whether the sweep should dispatch alerts at all (env-resolved): true when
+ * ANY channel is configured and not disabled, so `HEALTH_ALERT_ENABLED` is
+ * optional. An explicit false-like `HEALTH_ALERT_ENABLED` is the master off
+ * switch; an explicit true forces dispatch on, as before. Nothing configured
+ * → false (the sweep stays in dry-run/audit mode).
+ */
+export function isAnyAlertChannelEnabled(): boolean {
+  const master = parseEnvBool(process.env.HEALTH_ALERT_ENABLED)
+  if (master !== undefined) return master
+
+  const channelSettings = getServerChannelSettings()
+  const on = (id: AlertChannelId, configured: boolean) =>
+    configured && channelSettings[id]?.enabled !== false
+  return (
+    on('webhook', Boolean(getServerAlertConfig().webhookUrl)) ||
+    on('email', getServerEmailConfig() !== null) ||
+    on('opsgenie', getServerOpsgenieConfig() !== null) ||
+    on('pagerduty', Boolean(getPagerDutyFallbackRoutingKey())) ||
+    on('telegram', getServerTelegramConfig() !== null) ||
+    on('ntfy', getServerNtfyConfig() !== null) ||
+    on('pushover', getServerPushoverConfig() !== null) ||
+    on('twilio', getServerTwilioConfig() !== null) ||
+    on('healthchecks', Boolean(getServerHealthchecksUrl()))
+  )
 }

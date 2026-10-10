@@ -262,8 +262,7 @@ defaults, and alert keys stay the same.
 - The sweep runs on a schedule: call `GET /api/cron/health-sweep` with
   `Authorization: Bearer $CRON_SECRET` (for example from Cloudflare Cron). See
   [Health-sweep cron alerting](/guide/features/health#health-sweep-cron-alerting).
-- `HEALTH_ALERT_ENABLED=true`.
-- At least one notification channel (webhook, email, Slack, and so on).
+- At least one notification channel (webhook, email, Slack, and so on). `HEALTH_ALERT_ENABLED` is optional and defaults on once a channel is configured.
 
 ### Routing
 
@@ -275,7 +274,7 @@ webhook.
 
 ### Dry run
 
-When `HEALTH_ALERT_ENABLED` is not `true`, the PeerDB cycle still runs in dry
+When no channel is configured, or `HEALTH_ALERT_ENABLED` is set to `false`, the PeerDB cycle still runs in dry
 run: mirrors are evaluated and an `alert_events` audit row is written for each
 one, but nothing is sent. Findings still appear in the sweep summary.
 

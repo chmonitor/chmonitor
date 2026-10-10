@@ -132,7 +132,7 @@ helm upgrade --install chmonitor chmonitor/chmonitor -f values.yaml
 
 <Callout type="info" title="Notes">
 - Adding or removing a host requires a restart (env change).
-- Health alerts run over all configured hosts when `HEALTH_ALERT_ENABLED=true`.
+- Health alerts run over all configured hosts once an alert channel is configured (unless `HEALTH_ALERT_ENABLED=false`).
 - The agent API accepts a `hostId` parameter to target a specific host.
 </Callout>
 

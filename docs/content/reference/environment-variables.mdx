@@ -126,15 +126,14 @@ browser tab open.
 | Variable | Default | Purpose |
 |---|---|---|
 | `CRON_SECRET` | — | **Required** shared secret guarding the cron endpoints `/api/cron/health-sweep` and `/api/cron/retention-prune`. Send as `Authorization: Bearer <secret>` only (`?secret=` is rejected). When unset/empty the endpoints **fail closed and return HTTP 503** (they do not run) — `retention-prune` is destructive, so it must not be reachable unauthenticated. |
-| `HEALTH_ALERT_ENABLED` | `false` | Set `true` to POST webhook alerts. Checks run regardless; alerts only fire when `true`. |
-| `HEALTH_ALERT_WEBHOOK_URL` | — | Slack- or Discord-compatible webhook URL. Required for alerts to be dispatched. |
+| `HEALTH_ALERT_ENABLED` | on when any alert channel is configured | Optional master switch. Alerts dispatch as soon as a channel is configured (webhook URL, email, PagerDuty, and so on); set `false` (also `0`, `no`, `off`) to pause all dispatch. Checks run regardless. Accepts `true/1/yes/on` and `false/0/no/off`, case-insensitive. |
+| `HEALTH_ALERT_WEBHOOK_URL` | — | Slack- or Discord-compatible webhook URL. Setting it is enough to enable webhook alerts. |
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Minimum severity to alert: `warning` (warning + critical) or `critical` (critical only). |
 | `CHM_HEALTH_CONFIG_DIRECTORY` | `/etc/chmonitor/health.d` | Self-hosted only (needs a filesystem; a no-op on Cloudflare Workers). Directory of declarative alert definitions, one YAML file per concern: `alerts.yaml`, `routing.yaml`, `channels.yaml`, `quiet-hours.yaml`, `maintenance.yaml`, `digest.yaml`. Read once per process, so a changed file needs a restart. Bad files and entries are skipped with a warning, never fatal. Secret fields name an env var (`secretEnv`, `urlEnv`, `headersEnv`); secrets are never written in the files. Definitions merge D1/Postgres > file > env > default. Files, examples and merge rules: [Run alerts without a metadata database](/guide/features/health#run-alerts-without-a-metadata-database). |
 
 ```bash
 # Alert Slack on warning-or-worse
 CRON_SECRET=a-long-random-string
-HEALTH_ALERT_ENABLED=true
 HEALTH_ALERT_WEBHOOK_URL=https://hooks.slack.com/services/T000/B000/XXXX
 HEALTH_ALERT_MIN_SEVERITY=warning
 ```

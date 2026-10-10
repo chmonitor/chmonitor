@@ -37,6 +37,7 @@ import {
   getServerAlertConfig,
   getServerAlertCooldownMs,
   getServerHysteresisConfig,
+  isAnyAlertChannelEnabled,
 } from './../server-alert-config'
 import { resolveServerChannels } from './../server-channel-resolve'
 import { getClickHouseConfigs } from '@chm/clickhouse-client'
@@ -110,7 +111,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
   // regardless of whether webhook/routes/PagerDuty/Opsgenie/email/Telegram/
   // ntfy/Twilio/Pushover happen to be set up; those per-channel loops inside
   // `dispatchFinding` already no-op cleanly (empty target lists).
-  const alertingEnabled = settings.webhookEnabled
+  const alertingEnabled = isAnyAlertChannelEnabled()
   const cooldownMs = getServerAlertCooldownMs()
 
   // Re-sync custom alert rules (plan 32) every sweep tick: unregisters stale

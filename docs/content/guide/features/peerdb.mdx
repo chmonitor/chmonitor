@@ -155,7 +155,7 @@ The runtime is `lib/peerdb/alert-cycle.ts` — the single orchestrator
 host loop. The authenticated `GET /api/cron/health-sweep` route bridges the
 `PEERDB_*` Worker bindings before starting that sweep. Scheduled execution
 requires `CRON_SECRET` and an enabled `CHM_HEALTH_SWEEP_ENABLED`; delivery also
-requires `HEALTH_ALERT_ENABLED=true`. Per cycle,
+requires at least one configured alert channel (`HEALTH_ALERT_ENABLED` is optional; `false` pauses delivery). Per cycle,
 `lib/peerdb/alert-collector.ts` collects one
 read-only signal per mirror (status, ERROR-level log volume via the shared
 `mirror-logs` contract, slot lag mapped through `sourceName`; every listed

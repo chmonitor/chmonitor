@@ -83,8 +83,8 @@ export interface SweepSummary {
  *  4. Aggregation into {@link SweepSummary}.
  *
  * Destinations, fail-open contracts and the D1-absent (OSS/env-only) path are
- * documented on each stage's module. Disabled (`HEALTH_ALERT_ENABLED` not
- * `true`) → rules still run, alerts (including the webhook-subscriptions bus)
+ * documented on each stage's module. Disabled (no channel configured, or
+ * `HEALTH_ALERT_ENABLED` explicitly false) → rules still run, alerts (including the webhook-subscriptions bus)
  * are skipped entirely.
  */
 export async function runHealthSweep(): Promise<SweepSummary> {
@@ -131,7 +131,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
 
   return {
     ranAt,
-    enabled: ctx.settings.webhookEnabled,
+    enabled: ctx.alertingEnabled,
     webhookConfigured: Boolean(ctx.channels.webhookUrl),
     emailConfigured: ctx.channels.email !== null,
     minSeverity: ctx.settings.minSeverity,
