@@ -27,7 +27,11 @@ import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { resolveThreadListAdapter } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
 import { useAgentModel } from '@/lib/hooks/use-agent-model'
-import { getAnyRouterToken } from '@/lib/hooks/use-anyrouter-token'
+import {
+  getAnyRouterToken,
+  handleAnyRouterTokenExpired,
+  isAnyRouterTokenExpiredError,
+} from '@/lib/hooks/use-anyrouter-token'
 import { useMcpConfig } from '@/lib/hooks/use-mcp-config'
 import { useToolConfig } from '@/lib/hooks/use-tool-config'
 import { apiFetch } from '@/lib/swr/api-fetch'
@@ -127,10 +131,10 @@ function useAgentChatRuntime() {
           // per request. Read live (not from the transport body) so signing in
           // or out takes effect on the next message without a rebuild. Only
           // sent for AnyRouter models — it is not a key for other providers.
+          // Guests send it too: with `agent.anyrouterSignin` on the server
+          // keeps it for `anyrouter:` models, and strips it otherwise.
           const byokApiKey =
-            !cloudGuest &&
-            typeof model === 'string' &&
-            model.startsWith('anyrouter:')
+            typeof model === 'string' && model.startsWith('anyrouter:')
               ? getAnyRouterToken()
               : null
 
@@ -165,7 +169,26 @@ function useAgentChatRuntime() {
     ]
   )
 
-  return useChatRuntime({ transport })
+  return useChatRuntime({
+    transport,
+    // AnyRouter rejected the user's token — either before the stream (JSON
+    // error body → onError) or inside it (`data-error` part → onData). Clear
+    // it everywhere and prompt a fresh sign-in; the alert in the thread still
+    // shows the route's suggestion.
+    onError: (error) => {
+      if (isAnyRouterTokenExpiredError(error)) handleAnyRouterTokenExpired()
+    },
+    onData: (part) => {
+      if (
+        part.type === 'data-error' &&
+        isAnyRouterTokenExpiredError(
+          Array.isArray(part.data) ? part.data[0] : part.data
+        )
+      ) {
+        handleAnyRouterTokenExpired()
+      }
+    },
+  })
 }
 
 /**

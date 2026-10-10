@@ -14,7 +14,8 @@
 
 import { CheckIcon, ChevronDownIcon, ClockIcon, SearchIcon } from 'lucide-react'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useClerkIsSignedIn as useClerkIsSignedInImpl } from '@/components/assistant-ui/use-clerk-is-signed-in'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,12 +25,34 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { getAllModelOptions } from '@/lib/ai/agent-model-registry'
+import { isClerkEnabled } from '@/lib/clerk/clerk-client'
+import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import {
   type ModelDisplayInfo,
   useAgentModel,
 } from '@/lib/hooks/use-agent-model'
 import { useAnyRouterToken } from '@/lib/hooks/use-anyrouter-token'
 import { cn } from '@/lib/utils'
+
+// Same build-time gating as `agent-runtime-provider.tsx`.
+const useClerkIsSignedIn: () => boolean = isClerkEnabled()
+  ? useClerkIsSignedInImpl
+  : () => true
+
+/**
+ * The model a guest's AnyRouter token should run on: the current one when it
+ * is already an AnyRouter model, otherwise the first AnyRouter model listed.
+ * The server only keeps a guest's token for `anyrouter:` models.
+ *
+ * @returns The model id to switch to, or `null` to keep the current one
+ */
+export function pickGuestAnyRouterModel(
+  current: string,
+  models: readonly Pick<ModelDisplayInfo, 'id' | 'provider'>[]
+): string | null {
+  if (current.startsWith('anyrouter:')) return null
+  return models.find((m) => m.provider === 'anyrouter')?.id ?? null
+}
 
 /** Set of model IDs that are part of the curated static registry. */
 export const CURATED_MODEL_IDS = new Set(getAllModelOptions())
@@ -174,6 +197,7 @@ export function AgentModelPicker({
     configuredProviders,
   } = useAgentModel()
   const anyRouter = useAnyRouterToken()
+  const cloudGuest = isCloudModeClient() && !useClerkIsSignedIn()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [customInput, setCustomInput] = useState('')
@@ -220,10 +244,32 @@ export function AgentModelPicker({
    * offer sign-in on a properly configured deployment during an upstream blip.
    */
   const showAnyRouterSignIn =
-    modelsLoaded &&
-    (anyRouter.isSignedIn ||
-      (configuredProviders.length > 0 &&
-        !configuredProviders.includes('anyrouter')))
+    anyRouter.isSignedIn ||
+    anyRouter.signinEnabled ||
+    (modelsLoaded &&
+      configuredProviders.length > 0 &&
+      !configuredProviders.includes('anyrouter'))
+
+  // A guest's token only counts on an `anyrouter:` model, so switch to one
+  // once after sign-in. Later picks are the user's own choice.
+  const guestDefaultApplied = useRef(false)
+  useEffect(() => {
+    if (!cloudGuest || anyRouter.connectedVia !== 'browser') {
+      guestDefaultApplied.current = false
+      return
+    }
+    if (guestDefaultApplied.current || !modelsLoaded) return
+    guestDefaultApplied.current = true
+    const next = pickGuestAnyRouterModel(model, models)
+    if (next) setModel(next)
+  }, [
+    cloudGuest,
+    anyRouter.connectedVia,
+    modelsLoaded,
+    model,
+    models,
+    setModel,
+  ])
 
   const submitCustomModel = () => {
     const error = addCustomModel(customInput)
@@ -332,6 +378,14 @@ export function AgentModelPicker({
                       : ''}
                 </div>
               </div>
+              {anyRouter.isSignedIn && selected.provider === 'anyrouter' ? (
+                <Badge
+                  variant="outline"
+                  className="h-4 shrink-0 px-1.5 text-[10px] font-normal text-[var(--chart-green)]"
+                >
+                  Signed in with AnyRouter
+                </Badge>
+              ) : null}
               {(() => {
                 const tone = badgeTone(selected)
                 if (!tone) return null
@@ -458,8 +512,10 @@ export function AgentModelPicker({
             <div className="flex items-center justify-between gap-2 px-1 pt-1.5">
               <span className="text-muted-foreground text-[10.5px]">
                 {anyRouter.isSignedIn
-                  ? 'Using your AnyRouter credits'
-                  : 'No AnyRouter key on this deployment'}
+                  ? 'Signed in with AnyRouter — your credits'
+                  : anyRouter.expired
+                    ? 'AnyRouter sign-in expired'
+                    : 'Use your own AnyRouter credits — no daily limit'}
               </span>
               <Button
                 type="button"
@@ -475,7 +531,9 @@ export function AgentModelPicker({
                   ? 'Signing in…'
                   : anyRouter.isSignedIn
                     ? 'Sign out'
-                    : 'Sign in with AnyRouter'}
+                    : anyRouter.expired
+                      ? 'Sign in again'
+                      : 'Sign in with AnyRouter'}
               </Button>
             </div>
           ) : null}

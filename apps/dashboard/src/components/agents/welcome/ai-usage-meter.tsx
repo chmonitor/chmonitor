@@ -11,6 +11,7 @@
  */
 
 import { useAiQuota } from '@/lib/ai/agent/use-ai-quota'
+import { useAnyRouterToken } from '@/lib/hooks/use-anyrouter-token'
 import { cn } from '@/lib/utils'
 
 interface AiUsageMeterProps {
@@ -33,6 +34,35 @@ function useQuotaState() {
       ? 'text-[var(--chart-yellow)]'
       : 'text-foreground'
   return { used, limit, remaining, depleted, low, pct, usedColor }
+}
+
+/**
+ * Subtle "Sign in with AnyRouter for unlimited use" link beside the daily
+ * limit. Only when `agent.anyrouterSignin` is on and no token is connected —
+ * AnyRouter requests bill the user's own credits instead of the allowance.
+ */
+export function AnyRouterUnlimitedLink({
+  compact = false,
+}: {
+  compact?: boolean
+}) {
+  const anyRouter = useAnyRouterToken()
+  if (!anyRouter.signinEnabled || anyRouter.isSignedIn) return null
+  return (
+    <button
+      type="button"
+      className="text-muted-foreground hover:text-foreground text-[10.5px] underline-offset-2 hover:underline disabled:opacity-60"
+      disabled={anyRouter.isSigningIn}
+      onClick={anyRouter.signIn}
+      title="Sign in with AnyRouter for unlimited use"
+    >
+      {anyRouter.isSigningIn
+        ? 'Signing in…'
+        : compact
+          ? 'Go unlimited'
+          : 'Sign in with AnyRouter for unlimited use'}
+    </button>
+  )
 }
 
 export function AiUsageMeter({
@@ -58,6 +88,7 @@ export function AiUsageMeter({
       >
         <span className={cn('font-medium', usedColor)}>{used}</span>
         <span>/{limit} today</span>
+        <AnyRouterUnlimitedLink compact />
       </span>
     )
   }
@@ -82,6 +113,7 @@ export function AiUsageMeter({
           ? "You've used all of today's messages. The limit resets tomorrow."
           : `${remaining} message${remaining === 1 ? '' : 's'} left today`}
       </p>
+      <AnyRouterUnlimitedLink />
     </div>
   )
 }
