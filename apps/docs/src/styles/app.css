@@ -4,51 +4,258 @@
 @import 'fumadocs-twoslash/twoslash.css';
 
 /*
- * shadcn/ui-matched theme.
+ * Blog-matched theme (apps/blog/src/styles/globals.css).
  *
- * Fumadocs drives its UI from `--color-fd-*` variables. We remap those to the
- * shadcn "neutral" OKLCH palette (the same tokens ui.shadcn.com ships) so the
- * docs site visually matches a shadcn app. Overrides come after the Fumadocs
- * imports above so they take precedence.
+ * Fumadocs drives its UI from `--color-fd-*` variables. We map those onto the
+ * blog's warm palette: warm ink on a white floor, a #0a0a0a dark floor, hairline
+ * borders, no shadows, and orange used scarcely by role:
+ *   --brand        vivid accent: fills, rings, non-text marks only
+ *   --brand-strong filled-CTA background
+ *   --brand-ink    orange as small text (links, active nav, TOC)
+ * Overrides come after the Fumadocs imports above so they take precedence.
  */
-:root {
-  --radius: 0.625rem;
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/geist-latin.woff2') format('woff2');
+}
 
-  --color-fd-background: oklch(1 0 0);
-  --color-fd-foreground: oklch(0.145 0 0);
-  --color-fd-card: oklch(1 0 0);
-  --color-fd-card-foreground: oklch(0.145 0 0);
-  --color-fd-popover: oklch(1 0 0);
-  --color-fd-popover-foreground: oklch(0.145 0 0);
-  --color-fd-primary: oklch(0.205 0 0);
-  --color-fd-primary-foreground: oklch(0.985 0 0);
-  --color-fd-secondary: oklch(0.97 0 0);
-  --color-fd-secondary-foreground: oklch(0.205 0 0);
-  --color-fd-muted: oklch(0.97 0 0);
-  --color-fd-muted-foreground: oklch(0.556 0 0);
-  --color-fd-accent: oklch(0.97 0 0);
-  --color-fd-accent-foreground: oklch(0.205 0 0);
-  --color-fd-border: oklch(0.922 0 0);
-  --color-fd-ring: oklch(0.708 0 0);
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin.woff2') format('woff2');
+}
+
+:root {
+  --radius: 0.5rem;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --canvas-soft: #fafafa;
+  --surface-strong: #eceae5;
+  --hairline-strong: #cfcdc4;
+  --brand: #f54e00;
+  --brand-strong: #d04200;
+  --brand-ink: #b03800;
+  --brand-soft: rgba(245, 78, 0, 0.09);
+
+  --color-fd-background: #ffffff;
+  --color-fd-foreground: #26251e;
+  --color-fd-card: #ffffff;
+  --color-fd-card-foreground: #26251e;
+  --color-fd-popover: #ffffff;
+  --color-fd-popover-foreground: #26251e;
+  --color-fd-primary: #26251e;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-secondary: #fafafa;
+  --color-fd-secondary-foreground: #26251e;
+  --color-fd-muted: #f1f0ed;
+  --color-fd-muted-foreground: #5a5852;
+  --color-fd-accent: #f1f0ed;
+  --color-fd-accent-foreground: #26251e;
+  --color-fd-border: #e7e6e2;
+  --color-fd-ring: #f54e00;
 }
 
 .dark {
-  --color-fd-background: oklch(0.145 0 0);
-  --color-fd-foreground: oklch(0.985 0 0);
-  --color-fd-card: oklch(0.205 0 0);
-  --color-fd-card-foreground: oklch(0.985 0 0);
-  --color-fd-popover: oklch(0.205 0 0);
-  --color-fd-popover-foreground: oklch(0.985 0 0);
-  --color-fd-primary: oklch(0.922 0 0);
-  --color-fd-primary-foreground: oklch(0.205 0 0);
-  --color-fd-secondary: oklch(0.269 0 0);
-  --color-fd-secondary-foreground: oklch(0.985 0 0);
-  --color-fd-muted: oklch(0.269 0 0);
-  --color-fd-muted-foreground: oklch(0.708 0 0);
-  --color-fd-accent: oklch(0.269 0 0);
-  --color-fd-accent-foreground: oklch(0.985 0 0);
-  --color-fd-border: oklch(1 0 0 / 10%);
-  --color-fd-ring: oklch(0.556 0 0);
+  --canvas-soft: #0d0d0d;
+  --surface-strong: #1c1c1c;
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --brand: #f97316;
+  --brand-strong: #f97316;
+  --brand-ink: #fb923c;
+  --brand-soft: rgba(249, 115, 22, 0.1);
+
+  --color-fd-background: #0a0a0a;
+  --color-fd-foreground: #ffffff;
+  --color-fd-card: #141414;
+  --color-fd-card-foreground: #f4f4f5;
+  --color-fd-popover: #141414;
+  --color-fd-popover-foreground: #f4f4f5;
+  --color-fd-primary: #ffffff;
+  --color-fd-primary-foreground: #0a0a0a;
+  --color-fd-secondary: #1a1a1a;
+  --color-fd-secondary-foreground: #f4f4f5;
+  --color-fd-muted: #1a1a1a;
+  --color-fd-muted-foreground: #9ca3af;
+  --color-fd-accent: #1f1f1f;
+  --color-fd-accent-foreground: #ffffff;
+  --color-fd-border: rgba(255, 255, 255, 0.08);
+  --color-fd-ring: #f97316;
+}
+
+html,
+body {
+  font-family: var(--font-sans);
+}
+
+body {
+  background: var(--color-fd-background);
+}
+
+/* Active sidebar item + TOC highlight read in brand ink, not ink-on-ink.
+   Fumadocs styles both from --color-fd-primary, so rescope it there only. */
+#nd-sidebar,
+#nd-sidebar-mobile,
+#nd-toc {
+  --color-fd-primary: var(--brand-ink);
+}
+
+/* Depth is carried by hairlines, not shadows (blog convention). */
+#nd-page .shadow,
+#nd-page .shadow-sm,
+#nd-page .shadow-md,
+#nd-page .shadow-lg {
+  box-shadow: none;
+}
+
+/* ── article column: ~760px measure, TOC/sidebar unchanged ── */
+#nd-page {
+  max-width: 760px;
+}
+
+#nd-page[data-full='true'] {
+  max-width: 1168px;
+}
+
+/* ── hero eyebrow: mono pill with the top-level section ── */
+.doc-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-fd-muted);
+  color: var(--color-fd-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── prose (mirrors apps/blog/src/layouts/Base.astro) ── */
+#nd-page .prose {
+  font-size: 16.5px;
+  line-height: 1.75;
+  color: var(--color-fd-muted-foreground);
+}
+
+#nd-page .prose :where(h2) {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--color-fd-foreground);
+  margin-top: 52px;
+  padding-top: 12px;
+}
+
+#nd-page .prose :where(h3) {
+  font-size: 19.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--color-fd-foreground);
+  margin-top: 36px;
+}
+
+#nd-page .prose :where(h2 + p, h3 + p) {
+  margin-top: 12px;
+}
+
+#nd-page .prose :where(p) {
+  text-wrap: pretty;
+}
+
+#nd-page .prose :where(strong) {
+  color: var(--color-fd-foreground);
+  font-weight: 600;
+}
+
+#nd-page .prose :where(a:not(.not-prose a)) {
+  color: var(--brand-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  font-weight: inherit;
+}
+
+#nd-page .prose :where(li)::marker {
+  color: var(--color-fd-muted-foreground);
+}
+
+#nd-page .prose :where(:not(pre) > code) {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  background: var(--color-fd-muted);
+  color: var(--color-fd-foreground);
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 0;
+}
+
+#nd-page .prose :where(figure.shiki, pre) {
+  background: var(--surface-strong);
+  border: 1px solid var(--color-fd-border);
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+#nd-page .prose :where(pre code) {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+#nd-page .prose :where(blockquote) {
+  border-left: 3px solid var(--color-fd-border);
+  padding: 6px 0 6px 20px;
+  color: var(--color-fd-muted-foreground);
+  font-style: normal;
+}
+
+#nd-page .prose :where(blockquote p)::before,
+#nd-page .prose :where(blockquote p)::after {
+  content: none;
+}
+
+#nd-page .prose :where(hr) {
+  border: 0;
+  border-top: 1px solid var(--color-fd-border);
+  margin: 44px 0;
+}
+
+#nd-page .prose :where(table) {
+  font-size: 14.5px;
+  border-collapse: collapse;
+}
+
+#nd-page .prose :where(th) {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-fd-muted-foreground);
+  background: var(--canvas-soft);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-fd-border);
+}
+
+#nd-page .prose :where(td) {
+  padding: 11px 14px;
+  border-top: 1px solid var(--color-fd-border);
+  vertical-align: top;
+  color: var(--color-fd-muted-foreground);
+}
+
+#nd-page .prose :where(td:first-child) {
+  color: var(--color-fd-foreground);
+  font-weight: 500;
 }
 
 html {
@@ -60,7 +267,7 @@ html > body[data-scroll-locked] {
   --removed-body-scroll-bar-size: 0px !important;
 }
 
-/* Rounded corners on the cards/code blocks to match shadcn's radius scale. */
+/* Overall layout width (sidebar + article + TOC). */
 :root {
   --fd-layout-width: 1400px;
 }

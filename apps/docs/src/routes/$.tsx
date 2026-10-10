@@ -6,17 +6,17 @@ import { useFumadocsLoader } from 'fumadocs-core/source/client'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import {
   DocsBody,
-  DocsDescription,
   DocsPage,
-  DocsTitle,
   MarkdownCopyButton,
   ViewOptionsPopover,
 } from 'fumadocs-ui/layouts/docs/page'
 import { Suspense } from 'react'
+import { DocHero } from '@/components/doc-hero'
 import { getMDXComponents } from '@/components/mdx'
 import { SidebarFooter } from '@/components/sidebar-footer'
 import { legacyDocsPath } from '@/lib/canonical-path'
 import { baseOptions } from '@/lib/layout.shared'
+import { readingMinutes } from '@/lib/reading-time'
 import { gitConfig, siteUrl } from '@/lib/shared'
 import { getPageImage, slugsToMarkdownPath, source } from '@/lib/source'
 
@@ -83,32 +83,62 @@ const serverLoader = createServerFn({ method: 'GET' })
       title: page.data.title,
       description: page.data.description,
       canonicalUrl: `${siteUrl}${page.url}`,
+      section: sectionLabel(page.slugs[0]),
+      minutes: readingMinutes(await page.data.getText('processed')),
+      updated: frontmatterDate(page.data),
     }
   })
+
+// Top-level content folder (guide/operate/reference) as the hero eyebrow.
+function sectionLabel(slug?: string): string | undefined {
+  if (!slug) return undefined
+  return slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ')
+}
+
+// Optional `updated:` frontmatter; omitted from the hero when absent.
+function frontmatterDate(data: object): string | undefined {
+  const value = (data as { updated?: unknown }).updated
+  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  return typeof value === 'string' ? value : undefined
+}
+
+type HeroData = {
+  markdownUrl: string
+  path: string
+  section?: string
+  minutes: number
+  updated?: string
+}
 
 const clientLoader = browserCollections.docs.createClientLoader({
   component(
     { toc, frontmatter, default: MDX },
-    { markdownUrl, path }: { markdownUrl: string; path: string }
+    { markdownUrl, path, section, minutes, updated }: HeroData
   ) {
     return (
       <DocsPage toc={toc}>
-        <DocsTitle>{frontmatter.title}</DocsTitle>
-        <DocsDescription>{frontmatter.description}</DocsDescription>
-        <div
-          data-article-actions
-          className="flex flex-row flex-wrap items-center gap-2 border-b -mt-4 pb-6"
+        <DocHero
+          section={section}
+          title={frontmatter.title}
+          description={frontmatter.description}
+          minutes={minutes}
+          updated={updated}
         >
-          <MarkdownCopyButton
-            markdownUrl={markdownUrl}
-            className="max-md:min-h-11"
-          />
-          <ViewOptionsPopover
-            markdownUrl={markdownUrl}
-            githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/docs/content/${path}`}
-            className="max-md:min-h-11 max-md:min-w-11"
-          />
-        </div>
+          <div
+            data-article-actions
+            className="flex flex-row flex-wrap items-center gap-2 border-b pb-6"
+          >
+            <MarkdownCopyButton
+              markdownUrl={markdownUrl}
+              className="max-md:min-h-11"
+            />
+            <ViewOptionsPopover
+              markdownUrl={markdownUrl}
+              githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/docs/content/${path}`}
+              className="max-md:min-h-11 max-md:min-w-11"
+            />
+          </div>
+        </DocHero>
         <DocsBody>
           <MDX components={getMDXComponents()} />
         </DocsBody>
@@ -118,9 +148,8 @@ const clientLoader = browserCollections.docs.createClientLoader({
 })
 
 function Page() {
-  const { path, pageTree, markdownUrl } = useFumadocsLoader(
-    Route.useLoaderData()
-  )
+  const { path, pageTree, markdownUrl, section, minutes, updated } =
+    useFumadocsLoader(Route.useLoaderData())
   return (
     <DocsLayout
       {...baseOptions()}
@@ -137,7 +166,13 @@ function Page() {
       }}
     >
       <Suspense>
-        {clientLoader.useContent(path, { markdownUrl, path })}
+        {clientLoader.useContent(path, {
+          markdownUrl,
+          path,
+          section,
+          minutes,
+          updated,
+        })}
       </Suspense>
     </DocsLayout>
   )
