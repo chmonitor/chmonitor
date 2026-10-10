@@ -49,6 +49,14 @@
       "since": ["22.8", "25.12"]
     },
     {
+      "name": "keeper-changelogs",
+      "since": ["26.6"]
+    },
+    {
+      "name": "keeper-cluster",
+      "since": ["26.6"]
+    },
+    {
       "name": "keeper-connection-log",
       "since": ["25.8"]
     },
@@ -67,6 +75,10 @@
     {
       "name": "keeper-overview",
       "since": ["26.1"]
+    },
+    {
+      "name": "keeper-snapshots",
+      "since": ["26.6"]
     },
     {
       "name": "latency-log",

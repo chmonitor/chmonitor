@@ -170,6 +170,14 @@
       "summary": "Ranked skip-index, projection, partition-key, and PREWHERE recommendations for one slow query, with DDL and estimated savings."
     },
     {
+      "category": "discovery",
+      "core": false,
+      "description": "Return the live data a dashboard page shows, by running that page's own table and chart queries (same SQL, version handling, and filters as the UI). Pass `page` as a route (\"/merges\", \"/keeper/watches\", \"/overview?tab=storage\"), a page title (\"Merges\"), or a single query-config / chart name (\"merge-count\"). Omit `page` (or pass an unknown one) to get the page list. Use this when the user asks what a page, chart, or panel shows; use dedicated tools for deeper analysis. Read-only.",
+      "envGate": null,
+      "name": "get_page_data",
+      "summary": "Run a dashboard page’s own table and chart queries and return what that page shows; lists the pages when none is given."
+    },
+    {
       "category": "peerdb",
       "core": false,
       "description": "PeerDB pipeline metrics beyond per-mirror status (read-only), selected by `metric`. `fleet` (default): fleet aggregates — mirrors by status, failed/paused names, CDC vs QRep split, total rows synced, and the worst replication-slot lag — plus the worst-first slot table. `slots`: replication-slot health (lag in MiB, active flag, WAL status) across all peers or one `peerName`, worst-first, classified ok/warn/critical. `slot_lag_history`: a lag time series for one `peerName`+`slotName` over `window`, with a growing/recovering/flat trend verdict. `rows_synced`: CDC rows-synced time series for one `mirrorName` with current and peak rows/sec. `snapshot`: initial-load progress for one `mirrorName`, per table with partition completion. `peer_stats`: one `peerName`'s active queries plus its type and PeerDB version. `log_patterns`: repeating log messages grouped by pattern across every mirror (or one `mirrorName`) within `logWindow` — fingerprint, level, count, last seen, affected mirrors — the answer to \"what errors are repeating across mirrors?\". Prefer get_peerdb_mirror_status for \"which mirrors are failing?\"; use this for \"which slot lags, is it recovering, how fast is it syncing, how far along is the snapshot?\". Only fixed read-only PeerDB endpoints are queried; mirror and peer configs (which may embed secrets) are never returned. Available only when PeerDB monitoring is configured.",
