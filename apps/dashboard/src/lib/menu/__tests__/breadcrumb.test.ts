@@ -130,3 +130,29 @@ describe('getBreadcrumbPath (hub pages)', () => {
     })
   })
 })
+
+describe('getBreadcrumbPath fallback (#3736)', () => {
+  test('an unregistered nested path never links a folder with no route', () => {
+    const crumbs = getBreadcrumbPath('/queries/not-in-menu')
+    expect(crumbs).toEqual([
+      { title: 'Queries', href: '' },
+      { title: 'Not In Menu', href: '/queries/not-in-menu' },
+    ])
+  })
+
+  test('an ancestor that is a real menu page stays linked', () => {
+    expect(getBreadcrumbPath('/tables/db.tbl')[0]).toEqual({
+      title: 'Tables',
+      href: '/tables',
+    })
+  })
+
+  test('/queries/parallelization resolves through the menu, not the fallback', () => {
+    const crumbs = getBreadcrumbPath('/queries/parallelization')
+    expect(crumbs.some((c) => c.href === '/queries')).toBe(false)
+    expect(crumbs.at(-1)).toEqual({
+      title: 'Query Parallelization',
+      href: '/queries/parallelization',
+    })
+  })
+})

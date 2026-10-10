@@ -83,6 +83,7 @@ export const runningQueriesFilterSchema: FilterSchema = {
       operators: ['in', 'contains', 'eq', 'ne'],
       icon: BotIcon,
       description: 'AI coding agent that issued the query (CH 26.6+).',
+      since: '26.6',
     },
   ],
   presets: [

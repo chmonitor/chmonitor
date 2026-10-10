@@ -84,6 +84,26 @@ export const dataStorageItems: MenuItem[] = [
         tableCheck: 'system.dictionaries',
         permission: { feature: 'tables' },
       },
+      {
+        subgroup: 'Tables',
+        title: 'Top Usage Tables',
+        href: '/top-usage-tables',
+        description: 'Most queried tables in the query log',
+        icon: TableIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+        permission: { feature: 'tables' },
+      },
+      {
+        subgroup: 'Tables',
+        title: 'Top Usage Columns',
+        href: '/top-usage-columns',
+        description: 'Most queried columns in the query log',
+        icon: TableIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+        permission: { feature: 'tables' },
+      },
       // Merges & parts
       {
         subgroup: 'Merges & Parts',
@@ -218,6 +238,16 @@ export const dataStorageItems: MenuItem[] = [
         isNew: true,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/data_skipping_indices',
         tableCheck: 'system.data_skipping_indices',
+        permission: { feature: 'tables' },
+      },
+      {
+        subgroup: 'Table Health',
+        title: 'Projections',
+        href: '/projections',
+        description: 'Projection parts with size and row counts per table',
+        icon: LayersIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/projection_parts',
+        tableCheck: 'system.projection_parts',
         permission: { feature: 'tables' },
       },
       // Ingestion
