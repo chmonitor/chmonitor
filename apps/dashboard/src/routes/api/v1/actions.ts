@@ -15,6 +15,7 @@ import { ErrorLogger, log } from '@chm/logger'
 import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { quoteTableIdentifier } from '@/lib/api/shared/sql-identifier'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { ACTIONS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
@@ -197,7 +198,7 @@ export const Route = createFileRoute('/api/v1/actions')({
           )
         }
 
-        const hostId = Number.parseInt(hostIdRaw, 10)
+        const hostId = parseHostIdParam(hostIdRaw)
         if (!Number.isInteger(hostId) || hostId < 0) {
           return Response.json(
             {

@@ -9,6 +9,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   getAndValidateHostId,
+  parseHostIdParam,
   validateHostId,
   validateHostIdWithError,
 } from '@/lib/api/shared/validators/host-id'
@@ -184,5 +185,52 @@ describe('getAndValidateHostId', () => {
       type: ApiErrorType.ValidationError,
       message: 'Invalid hostId: must be a non-negative number',
     })
+  })
+})
+
+// #3741: one strict parser for every route. `parseInt` truncated `1.5` / `1abc`
+// to host 1, silently answering from a different host than the caller asked.
+describe('parseHostIdParam', () => {
+  const ok: Array<[unknown, number]> = [
+    ['0', 0],
+    ['2', 2],
+    ['-1001', -1001],
+    [0, 0],
+    [3, 3],
+    [-1, -1],
+  ]
+  for (const [raw, want] of ok) {
+    test(`accepts ${JSON.stringify(raw)} as ${want}`, () => {
+      expect(parseHostIdParam(raw)).toBe(want)
+    })
+  }
+
+  const bad: unknown[] = [
+    '1.5',
+    '1abc',
+    '',
+    ' 1',
+    '1 ',
+    '0x1',
+    '1e2',
+    '+1',
+    '-',
+    '99999999999999999999',
+    1.5,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    null,
+    undefined,
+    true,
+    {},
+  ]
+  for (const raw of bad) {
+    test(`rejects ${String(JSON.stringify(raw))} as NaN, never a truncated host`, () => {
+      expect(parseHostIdParam(raw)).toBeNaN()
+    })
+  }
+
+  test('validateHostId still rejects a negative string', () => {
+    expect(() => validateHostId('-1')).toThrow()
   })
 })

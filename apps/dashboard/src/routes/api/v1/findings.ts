@@ -19,6 +19,7 @@ import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { FINDINGS_TABLE } from '@/lib/app-tables'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { clampLimit } from '@/lib/insights/store/types'
@@ -147,7 +148,7 @@ export const Route = createFileRoute('/api/v1/findings')({
         try {
           const searchParams = new URL(request.url).searchParams
 
-          const hostId = Number.parseInt(searchParams.get('host') ?? '0', 10)
+          const hostId = parseHostIdParam(searchParams.get('host') ?? '0')
           if (!Number.isInteger(hostId) || hostId < 0) {
             return Response.json(
               {

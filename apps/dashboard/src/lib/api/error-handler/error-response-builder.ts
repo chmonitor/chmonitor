@@ -9,6 +9,7 @@ import type { ApiResponse } from '@/lib/api/types'
 import type { ErrorDetails, RouteContext, StatusCodeMap } from './types'
 
 import { ErrorLogger, error } from '@chm/logger'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { ApiErrorType } from '@/lib/api/types'
 
 /**
@@ -243,7 +244,7 @@ function parseHostId(hostId?: string | number): number | undefined {
   }
 
   if (typeof hostId === 'string') {
-    const parsed = parseInt(hostId, 10)
+    const parsed = parseHostIdParam(hostId)
     return Number.isNaN(parsed) ? undefined : parsed
   }
 

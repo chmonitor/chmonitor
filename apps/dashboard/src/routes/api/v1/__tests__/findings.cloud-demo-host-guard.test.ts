@@ -98,4 +98,13 @@ describe('GET /api/v1/findings — cloud demo-host guard (#2172)', () => {
     expect(body.count).toBe(0)
     expect(body.unavailable.reason).toBe('demo_hidden')
   })
+
+  // #3741: `parseInt` used to truncate these to host 1.
+  for (const bad of ['1.5', '1abc', '-1']) {
+    test(`host=${bad} is a 400, never a truncated host`, async () => {
+      const res = await get(bad)
+      expect(res.status).toBe(400)
+      expect(mockFetchData).not.toHaveBeenCalled()
+    })
+  }
 })

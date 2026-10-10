@@ -25,6 +25,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { error, generateRequestId } from '@chm/logger'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { authorizeInsightsGenerateRequest } from '@/lib/auth/insights-api-auth'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { generateInsights } from '@/lib/insights/generate-insights'
@@ -48,7 +49,7 @@ async function handlePost(request: Request): Promise<Response> {
 
   try {
     const searchParams = new URL(request.url).searchParams
-    const hostId = Number.parseInt(searchParams.get('host') ?? '0', 10)
+    const hostId = parseHostIdParam(searchParams.get('host') ?? '0')
     if (!Number.isInteger(hostId) || hostId < 0) {
       return Response.json(
         { error: 'Invalid host parameter: must be a non-negative integer' },

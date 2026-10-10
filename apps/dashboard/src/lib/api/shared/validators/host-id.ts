@@ -11,16 +11,33 @@ import type { ApiError } from '@/lib/api/types'
 import { ApiErrorType } from '@/lib/api/types'
 
 /**
- * Strictly parse a hostId string as a non-negative integer.
+ * Strictly parse a host id from a query param, form field, or JSON body.
  *
- * Unlike `parseInt`, this rejects strings with trailing non-digit characters
- * (e.g. `"2abc"` would otherwise parse as `2`) by requiring the entire string
- * to be digits before converting.
+ * The single shared host id parser (#3741). Accepts only a whole number:
+ * a safe-integer `number`, or a string of digits with an optional leading
+ * `-`. Everything else — fractions (`"1.5"`, `1.5`), trailing junk
+ * (`"1abc"`), whitespace, hex, exponents, `""`, `null`, other types —
+ * returns `NaN`, so it is never truncated to a different host the way
+ * `parseInt` would.
  *
- * @returns The parsed integer, or `NaN` if `raw` is not a valid integer string.
+ * Sign is NOT checked here: negative ids are per-user connections, and
+ * each route decides whether it accepts them (most reject `< 0`).
+ *
+ * @returns The parsed integer, or `NaN` when `raw` is not a whole number.
  */
+export function parseHostIdParam(raw: unknown): number {
+  if (typeof raw === 'number') {
+    return Number.isSafeInteger(raw) ? raw : NaN
+  }
+  if (typeof raw !== 'string' || !/^-?\d+$/.test(raw)) return NaN
+  const n = Number(raw)
+  return Number.isSafeInteger(n) ? n : NaN
+}
+
+/** Non-negative-only variant used by the validators below. */
 function parseStrictHostId(raw: string): number {
-  return /^\d+$/.test(raw) ? Number(raw) : NaN
+  const n = parseHostIdParam(raw)
+  return n >= 0 ? n : NaN
 }
 
 /**

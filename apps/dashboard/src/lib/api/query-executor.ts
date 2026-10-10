@@ -37,6 +37,7 @@ import {
 import { error } from '@chm/logger'
 import { runWithQueryCache } from '@/lib/api/query-cache-settings'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import {
   getTableClickHouseSettings,
   resolveTableResultRowLimit,
@@ -93,7 +94,7 @@ export function isValidInterval(value: string): value is ClickHouseInterval {
 
 /** Coerce a hostId (string|number) to a finite number or throw. */
 function toNumericHostId(hostId: number | string): number {
-  const n = typeof hostId === 'string' ? Number.parseInt(hostId, 10) : hostId
+  const n = parseHostIdParam(hostId)
   if (!Number.isFinite(n)) {
     throw new Error(`Invalid hostId: ${String(hostId)}. Must be a number.`)
   }
