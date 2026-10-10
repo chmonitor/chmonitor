@@ -124,7 +124,7 @@ runner; prompts in `prompts/`; the skill registry/loader in `skills/` (the
 skills themselves live at repo-root `.agents/skills/`); MCP glue in `mcp/`.
 
 Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 22
-tool modules exposing 40 tools total (31 by default; the 3 destructive
+tool modules exposing 40 tools total (32 by default; the 3 destructive
 `control-tools` are gated off unless `AGENT_ENABLE_CONTROL_TOOLS=true`, the 4
 cross-source `postgres-*-tools` are gated off unless
 `CHM_FEATURE_POSTGRES_SOURCE=true`, and the PeerDB `peerdb-tools` module is

@@ -16,6 +16,7 @@ import { createHealthTools } from './health-tools'
 import { createInsightTools } from './insight-tools'
 import { createMergeTools } from './merge-tools'
 import { createMvDesignerTools } from './mv-designer-tools'
+import { createPageDataTools } from './page-data-tools'
 import { createPeerDBTools } from './peerdb-tools'
 import { createPlanTools } from './plan-tools'
 import { createPostgresHealthTools } from './postgres-health-tools'
@@ -108,6 +109,9 @@ export function createAllTools(hostId: number, includeControlTools = false) {
 
     // Reference-query retrieval (built-in QueryConfig catalog, read-only)
     ...createReferenceQueryTools(),
+
+    // Page data (replays a dashboard page's own table + chart queries, read-only)
+    ...createPageDataTools(hostId),
 
     // User interaction
     ...createAskUserTools(),

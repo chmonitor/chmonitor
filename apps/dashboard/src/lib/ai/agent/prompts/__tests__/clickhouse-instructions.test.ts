@@ -96,7 +96,7 @@ describe('ClickHouse agent system prompt — every tool is named', () => {
     delete process.env.CHM_FEATURE_POSTGRES_SOURCE
     const { createAllTools } = await import('../../tools/index')
     const toolNames = Object.keys(createAllTools(0, false))
-    expect(toolNames.length).toBe(31)
+    expect(toolNames.length).toBe(32)
     for (const name of toolNames) {
       expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(name)
     }
@@ -107,7 +107,7 @@ describe('ClickHouse agent system prompt — every tool is named', () => {
     process.env.CHM_FEATURE_POSTGRES_SOURCE = 'true'
     const { createAllTools } = await import('../../tools/index')
     const toolNames = Object.keys(createAllTools(0, true))
-    expect(toolNames.length).toBe(38)
+    expect(toolNames.length).toBe(39)
     for (const name of toolNames) {
       expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(name)
     }

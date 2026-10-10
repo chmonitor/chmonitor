@@ -355,6 +355,33 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ],
     true
   ),
+  get_page_data: e(
+    'get_page_data',
+    'discovery',
+    'Run a dashboard page’s own table and chart queries and return what that page shows; lists the pages when none is given.',
+    [
+      'page',
+      'dashboard page',
+      'what does the page show',
+      'page show',
+      'chart',
+      'panel',
+      'widget',
+      'screen',
+      'overview',
+      'queries',
+      'data storage',
+      'cluster replication',
+      'server',
+      'alerts insights',
+      'merges',
+      'keeper',
+      'logs',
+      'security',
+      'traffic',
+      'insights',
+    ]
+  ),
 
   // ── Visualization ──
   query_and_visualize: e(

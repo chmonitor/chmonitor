@@ -115,6 +115,19 @@ describe('search_tools — routing', () => {
     }
   })
 
+  test('routes "what does this page show" questions to get_page_data', async () => {
+    const tools = createAllTools(0, false) as ToolMap
+    for (const q of [
+      'what does the merges page show',
+      'what is on the keeper dashboard page',
+      'show me the traffic page data',
+    ]) {
+      const result = await run(tools, { query: q })
+      const names = result.results.map((r: { name: string }) => r.name)
+      expect(names.slice(0, 3)).toContain('get_page_data')
+    }
+  })
+
   test('prefers a name match over a keyword-only match', async () => {
     const tools = createAllTools(0, false) as ToolMap
     const result = await run(tools, { query: 'get_merge_status' })

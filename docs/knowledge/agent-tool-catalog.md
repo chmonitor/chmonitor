@@ -3,7 +3,7 @@ id: agent-tool-catalog
 title: Agent tool catalog, core set, and search_tools
 type: spec
 status: active
-updated: 2026-09-26
+updated: 2026-10-11
 tags:
   - ai
   - agent
@@ -20,7 +20,7 @@ related:
 
 # Agent tool catalog
 
-The agent ships 40 tools in one flat namespace (31 by default, plus 3
+The agent ships 41 tools in one flat namespace (32 by default, plus 3
 env-gated control, 4 Postgres, 2 PeerDB). The per-tool metadata lives in
 `src/lib/ai/agent/tools/catalog.ts`.
 
@@ -52,6 +52,42 @@ That last one lives **outside** `apps/dashboard` and scans `tools/*.ts` with
 up automatically. Its `GATED` set lists tools that are intentionally excluded
 from default-gate golden coverage (all the env-gated ones, including both
 PeerDB tools).
+
+## `get_page_data` and the page map
+
+`get_page_data` (discovery, not core) answers "what does the X page show?" by
+running the page's own sources: table configs through `getTableQuery` →
+`executeTableConfig`, charts through `getChartQuery` → `executeChartQuery`
+(or `executeMultiChartQuery` for keyed multi-query charts). `find_reference_query`
+only returns SQL; this tool executes it, so filters, versioned SQL, the row
+cap, and the optional-table check behave exactly like the UI.
+
+- **The map is static**: `src/lib/ai/agent/page-data-map.ts` lists
+  route → `{ title, section, configs, charts }`. Route files are React and must
+  not be imported by the server tool. Overview has one entry per tab
+  (`/overview/<tab>`, also reachable as `/overview?tab=<tab>`), because its 60
+  charts would not fit one call.
+- **`NON_DATA_PAGES`** lists pages with nothing to replay (forms, redirects,
+  hub pages, Postgres/PeerDB pages owned by other tools), each with a reason.
+- **Coverage gate**: `src/lib/ai/agent/__tests__/page-data-map.test.ts` scans
+  `routes/(dashboard)/**` for imported `QueryConfig`s (and their
+  `relatedCharts`) and literal `chartName`s, and fails when one is missing
+  from that route's entry, when a mapped name does not resolve in the live
+  registries, or when a route file or menu href is in neither table. Pages
+  whose data lives in components (overview tabs, health, running queries,
+  part log) are maintained by hand: the test checks only that their names
+  resolve.
+- **Filters**: with a `filterSchema`, only schema keys are accepted (plain
+  values become `eq:`); without one, only keys in `defaultParams`. Anything
+  else comes back as `ignoredFilters`. `lastHours` maps to the first
+  `datetime` filter field, a `last_hours` default param, or a chart builder's
+  `lastHours`.
+- **Bounds**: rows per source default 20, max 200 (re-clamped in `execute`);
+  at most 24 sources per call (the rest are named in `skipped`); total output
+  about 16 KB, trimmed by halving the largest source and flagging `truncated`.
+- A config must be in `queries` (`lib/query-config/index.ts`) to be runnable.
+  The three Keeper deep-dive configs were missing from it and were added with
+  this tool.
 
 ## `search_tools` is bound to the post-gate map
 
@@ -93,7 +129,7 @@ What the core marker buys today: an accurate answer to "what can I do?" (a bare
 `search_tools` call returns the core set), a routing taxonomy, and a ready-made
 subsetting lever. `longTailToolNames()` + the existing `filterTools` /
 `disabledTools` seam in `clickhouse-agent.ts` is the path to take when the SDK
-gains mid-loop injection: the long tail is 27 of the 31 default tools and ~54%
+gains mid-loop injection: the long tail is 28 of the 32 default tools and ~54%
 of the tool-schema bytes.
 
 ## Measured schema cost
