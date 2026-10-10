@@ -92,8 +92,6 @@ export interface CollectFleetLogPatternsOptions {
 export async function collectFleetLogPatterns(
   opts: CollectFleetLogPatternsOptions
 ): Promise<FleetLogPatterns> {
-  const to = opts.now ?? Date.now()
-  const from = to - logWindowMs(opts.window)
   const perMirror = opts.perMirror ?? LOG_PATTERNS_PER_MIRROR
 
   const budget = startSweepBudget(opts.budgetMs)
@@ -115,6 +113,11 @@ export async function collectFleetLogPatterns(
     budget.dispose()
   }
 
+  // The window ends when the reads finish, not when they start: a line
+  // written during the fetch is still "in the last hour".
+  const to = opts.now ?? Date.now()
+  const from = to - logWindowMs(opts.window)
+
   const entries: LogFeedEntry[] = []
   let mirrorsRead = 0
   let mirrorsTruncated = 0
@@ -128,7 +131,8 @@ export async function collectFleetLogPatterns(
       const ts = opts.parseTs(log.errorTimestamp)
       if (ts != null && ts < oldest) oldest = ts
       // Untimestamped lines cannot be placed in a window; drop them.
-      if (ts == null || ts < from || ts > to) continue
+      // A line newer than `to` (PeerDB clock slightly ahead) still belongs.
+      if (ts == null || ts < from) continue
       entries.push(toLogFeedEntry(log, mirror, ts))
     }
     if (logs.length >= perMirror && oldest >= from) mirrorsTruncated++
