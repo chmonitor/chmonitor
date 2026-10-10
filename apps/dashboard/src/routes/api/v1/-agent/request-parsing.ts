@@ -515,3 +515,138 @@ export function hardenGuestAgentRequest(
     hostId: Math.max(0, parsed.hostId),
   }
 }
+
+/** Max JSON bytes kept for one tool output from an earlier turn. */
+export const AGENT_MAX_HISTORICAL_TOOL_OUTPUT_BYTES = 2_048
+const COMPACTED_TOOL_NOTE =
+  'older tool result compacted; re-run the tool if you need the rows'
+const ROW_KEYS = ['rows', 'data', 'result', 'results', 'items'] as const
+const SUMMARY_KEYS = ['summary', 'message', 'error'] as const
+
+function jsonBytes(value: unknown): number {
+  try {
+    return textEncoder.encode(JSON.stringify(value) ?? '').byteLength
+  } catch {
+    return Number.POSITIVE_INFINITY
+  }
+}
+
+function isToolPartWithOutput(
+  part: unknown
+): part is Record<string, unknown> & { output: unknown } {
+  return (
+    isObject(part) &&
+    typeof part.type === 'string' &&
+    (part.type.startsWith('tool-') || part.type === 'dynamic-tool') &&
+    'output' in part
+  )
+}
+
+function findRows(output: unknown): unknown[] | null {
+  if (Array.isArray(output)) return output
+  if (!isObject(output)) return null
+  for (const key of ROW_KEYS) {
+    const value = output[key]
+    if (Array.isArray(value)) return value
+  }
+  return null
+}
+
+function findColumns(output: unknown, rows: unknown[] | null): string[] {
+  if (isObject(output) && Array.isArray(output.columns)) {
+    return output.columns
+      .map((c) =>
+        typeof c === 'string' ? c : isObject(c) ? String(c.name ?? '') : ''
+      )
+      .filter(Boolean)
+  }
+  const first = rows?.[0]
+  return isObject(first) ? Object.keys(first) : []
+}
+
+/**
+ * Build the compact stand-in for one large tool output. The result always
+ * fits in `AGENT_MAX_HISTORICAL_TOOL_OUTPUT_BYTES` of JSON.
+ */
+export function compactToolOutput(output: unknown): Record<string, unknown> {
+  const rows = findRows(output)
+  let columns = findColumns(output, rows)
+  let summary: string | undefined
+  if (isObject(output)) {
+    for (const key of SUMMARY_KEYS) {
+      const value = output[key]
+      if (typeof value === 'string') {
+        summary = value
+        break
+      }
+    }
+  } else if (typeof output === 'string') {
+    summary = output
+  }
+
+  const declaredCount =
+    isObject(output) && typeof output.rowCount === 'number'
+      ? output.rowCount
+      : undefined
+  const build = () => ({
+    ...(summary !== undefined ? { summary } : {}),
+    rowCount: declaredCount ?? rows?.length ?? 0,
+    columns,
+    truncated: true as const,
+    note: COMPACTED_TOOL_NOTE,
+  })
+  const overBudget = () =>
+    jsonBytes(build()) > AGENT_MAX_HISTORICAL_TOOL_OUTPUT_BYTES
+
+  if (summary !== undefined && overBudget()) {
+    summary = clampText(summary, 512)
+  }
+  while (columns.length > 0 && overBudget()) {
+    columns = columns.slice(0, Math.floor(columns.length / 2))
+  }
+  if (summary !== undefined && overBudget()) {
+    summary = clampText(summary, 128)
+  }
+  return build()
+}
+
+/**
+ * Shrink tool outputs from EARLIER turns before history goes to the model.
+ *
+ * Without this, every tool part's full `output` is resent on every later
+ * step and turn. Parts at or after the latest user message (the current turn
+ * and its in-progress assistant steps) are left untouched, as are outputs
+ * that already fit the byte budget and parts with no `output` (error parts
+ * keep their `errorText`). The part keeps its `type`, `toolCallId`, `state`
+ * and `input`, so tool-call/tool-result pairing survives
+ * `convertToModelMessages`.
+ *
+ * Model input only: the UI stream's `originalMessages` must stay the
+ * uncompacted list. Idempotent, since a compacted output is under budget.
+ */
+export function compactHistoricalToolParts<
+  M extends { role: string; parts: ReadonlyArray<unknown> },
+>(messages: ReadonlyArray<M>): M[] {
+  let currentTurnStart = -1
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') {
+      currentTurnStart = i
+      break
+    }
+  }
+  if (currentTurnStart <= 0) return [...messages]
+
+  return messages.map((msg, index) => {
+    if (index >= currentTurnStart || msg.role !== 'assistant') return msg
+    let changed = false
+    const parts = msg.parts.map((part) => {
+      if (!isToolPartWithOutput(part)) return part
+      if (jsonBytes(part.output) <= AGENT_MAX_HISTORICAL_TOOL_OUTPUT_BYTES) {
+        return part
+      }
+      changed = true
+      return { ...part, output: compactToolOutput(part.output) }
+    })
+    return changed ? { ...msg, parts } : msg
+  })
+}
