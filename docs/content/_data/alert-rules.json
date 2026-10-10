@@ -1,0 +1,531 @@
+{
+  "compound": [
+    {
+      "category": "compound",
+      "depends": ["replication-lag", "readonly-replicas"],
+      "description": "Replication lag AND readonly replicas both firing at once — a stronger signal of a stuck/diverging replica than either metric alone.",
+      "id": "replica-split-brain",
+      "title": "Replica Split-Brain Risk"
+    },
+    {
+      "category": "compound",
+      "depends": ["stuck-merges", "disk-usage"],
+      "description": "Stuck merges AND high disk usage both firing at once — merges are likely stalled fighting for disk headroom rather than transient load.",
+      "id": "merge-pressure",
+      "title": "Merge Pressure"
+    }
+  ],
+  "rules": [
+    {
+      "category": "replication",
+      "commonCauses": [
+        "ZooKeeper / ClickHouse Keeper unavailable or laggy",
+        "Replica metadata corruption (force_restore_data required)",
+        "Disk full on the replica"
+      ],
+      "description": "Replicas in read-only mode cannot accept writes.",
+      "fix": [],
+      "id": "readonly-replicas",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 readonly replica",
+      "sql": "SELECT count() AS readonly_count\nFROM system.replicas\nWHERE is_readonly = 1",
+      "tableCheck": "system.replicas",
+      "thresholds": {
+        "critical": 3,
+        "warning": 1
+      },
+      "title": "Readonly Replicas"
+    },
+    {
+      "category": "replication",
+      "commonCauses": [
+        "Slow network or saturated inter-server connections",
+        "Large fetch backlog in `replication_queue`",
+        "ZooKeeper / Keeper latency"
+      ],
+      "description": "Maximum absolute_delay across all replicas (seconds behind leader).",
+      "fix": [
+        {
+          "description": null,
+          "id": "replication-lag-runbook",
+          "kind": "runbook",
+          "label": "Replication lag runbook",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/replication-lag-runbook"
+        },
+        {
+          "description": "Replicas ordered by absolute_delay, worst first.",
+          "id": "lagging-replicas",
+          "kind": "diagnostic",
+          "label": "Get lagging replicas",
+          "sql": "SELECT database, table, replica_name, absolute_delay, is_readonly\nFROM system.replicas\nORDER BY absolute_delay DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "replication-lag",
+      "link": "https://docs.chmonitor.dev/guide/guides/replication-lag-runbook",
+      "optional": true,
+      "sampleLabel": "30s max delay",
+      "sql": "SELECT max(absolute_delay) AS max_lag\nFROM system.replicas",
+      "tableCheck": "system.replicas",
+      "thresholds": {
+        "critical": 300,
+        "warning": 30
+      },
+      "title": "Replication Lag"
+    },
+    {
+      "category": "storage",
+      "commonCauses": [],
+      "description": "Worst-case disk utilization across all configured volumes.",
+      "fix": [
+        {
+          "description": null,
+          "id": "disk-usage-runbook",
+          "kind": "runbook",
+          "label": "Disk usage runbook",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/disk-usage-runbook"
+        }
+      ],
+      "id": "disk-usage",
+      "link": "https://docs.chmonitor.dev/guide/guides/disk-usage-runbook",
+      "optional": true,
+      "sampleLabel": "80% used (worst disk)",
+      "sql": "SELECT round(max((total_space - free_space) * 100.0 / nullIf(total_space, 0)), 1) AS disk_percent\nFROM system.disks",
+      "tableCheck": "system.disks",
+      "thresholds": {
+        "critical": 95,
+        "warning": 80
+      },
+      "title": "Disk Usage"
+    },
+    {
+      "category": "logs",
+      "commonCauses": [],
+      "description": "Recent KEEPER_EXCEPTION events. Sustained exceptions indicate quorum issues.",
+      "fix": [],
+      "id": "keeper-unavailable",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "5 exceptions",
+      "sql": "SELECT coalesce(max(value) - min(value), 0) AS exception_count\nFROM merge('system', '^error_log')\nWHERE error = 'KEEPER_EXCEPTION'\n  AND event_time > now() - INTERVAL 1 HOUR",
+      "tableCheck": "system.error_log",
+      "thresholds": {
+        "critical": 20,
+        "warning": 5
+      },
+      "title": "Keeper Exceptions"
+    },
+    {
+      "category": "parts & merges",
+      "commonCauses": [
+        "Mutation references a column that no longer exists",
+        "Disk full on a replica preventing part writes",
+        "Hardware / network fault during part rewrite"
+      ],
+      "description": "Mutations that are not complete and have recorded a failure. Failed mutations block subsequent mutations on the same table.",
+      "fix": [
+        {
+          "description": null,
+          "id": "failed-mutations-runbook",
+          "kind": "runbook",
+          "label": "Failed mutations runbook",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/failed-mutations-runbook"
+        },
+        {
+          "description": "Incomplete mutations with a recorded failure.",
+          "id": "failed-mutations-detail",
+          "kind": "diagnostic",
+          "label": "Get failed mutations",
+          "sql": "SELECT database, table, mutation_id, command, latest_fail_reason, latest_fail_time\nFROM system.mutations\nWHERE is_done = 0 AND latest_fail_reason != ''\nORDER BY latest_fail_time DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "failed-mutations",
+      "link": "https://docs.chmonitor.dev/guide/guides/failed-mutations-runbook",
+      "optional": true,
+      "sampleLabel": "1 failed mutation",
+      "sql": "SELECT countIf(is_done = 0 AND latest_fail_reason != '') AS failed_count\nFROM system.mutations",
+      "tableCheck": "system.mutations",
+      "thresholds": {
+        "critical": 5,
+        "warning": 1
+      },
+      "title": "Failed Mutations"
+    },
+    {
+      "category": "parts & merges",
+      "commonCauses": [
+        "Very large parts requiring many hours to merge",
+        "Disk I/O saturation or slow storage",
+        "Insufficient background_pool_size"
+      ],
+      "description": "Merges running for more than 10 minutes. Stuck merges block table inserts and consume resources.",
+      "fix": [
+        {
+          "description": null,
+          "id": "stuck-merges-runbook",
+          "kind": "runbook",
+          "label": "Stuck merges runbook",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/stuck-merges-runbook"
+        },
+        {
+          "description": "Merges running longer than 10 minutes, slowest first.",
+          "id": "stuck-merges-detail",
+          "kind": "diagnostic",
+          "label": "Get stuck merges",
+          "sql": "SELECT database, table, elapsed, progress, num_parts, total_size_bytes_compressed\nFROM system.merges\nWHERE elapsed > 600\nORDER BY elapsed DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "stuck-merges",
+      "link": "https://docs.chmonitor.dev/guide/guides/stuck-merges-runbook",
+      "optional": true,
+      "sampleLabel": "1 stuck merge",
+      "sql": "SELECT count() AS stuck_count\nFROM system.merges\nWHERE elapsed > 600",
+      "tableCheck": "system.merges",
+      "thresholds": {
+        "critical": 3,
+        "warning": 1
+      },
+      "title": "Stuck Merges"
+    },
+    {
+      "category": "queries",
+      "commonCauses": [
+        "max_execution_time set too low for heavy analytical queries",
+        "Missing sort key for the filter predicate",
+        "Cross-shard queries without proper distribution settings"
+      ],
+      "description": "Queries killed due to timeout (TIMEOUT_EXCEEDED) in the last hour.",
+      "fix": [],
+      "id": "query-timeout",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 timeout kills in last hour",
+      "sql": "SELECT count() AS timeout_count\nFROM system.query_log\nWHERE event_time > now() - INTERVAL 1 HOUR\n  AND type IN ('ExceptionWhileProcessing', 'ExceptionBeforeStart')\n  AND (exception_code = 159 OR exception LIKE '%TIMEOUT_EXCEEDED%')",
+      "tableCheck": "system.query_log",
+      "thresholds": {
+        "critical": 10,
+        "warning": 1
+      },
+      "title": "Query Timeout Breaches (1h)"
+    },
+    {
+      "category": "backups",
+      "commonCauses": [
+        "Remote storage unavailable or credentials expired",
+        "Disk full on backup destination",
+        "Network interruption during backup transfer"
+      ],
+      "description": "Backup operations that ended in FAILED status in the last 24 hours.",
+      "fix": [],
+      "id": "failed-backups",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 failed backup",
+      "sql": "SELECT count() AS failed_count\nFROM system.backup_log\nWHERE event_time > now() - INTERVAL 24 HOUR\n  AND status IN ('BACKUP_FAILED', 'RESTORE_FAILED')",
+      "tableCheck": "system.backup_log",
+      "thresholds": {
+        "critical": 3,
+        "warning": 1
+      },
+      "title": "Failed Backups (24h)"
+    },
+    {
+      "category": "views",
+      "commonCauses": [
+        "Source table schema changed incompatibly",
+        "MV query references a missing table or column",
+        "Resource exhaustion during refresh"
+      ],
+      "description": "Materialized views with REFRESH schedule that have failed or errored their last refresh cycle.",
+      "fix": [],
+      "id": "mv-refresh-failures",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 failed MV refresh",
+      "sql": "SELECT countIf(exception != '' OR retry > 0) AS failed_count\nFROM system.view_refreshes",
+      "tableCheck": "system.view_refreshes",
+      "thresholds": {
+        "critical": 3,
+        "warning": 1
+      },
+      "title": "MV Refresh Failures"
+    },
+    {
+      "category": "parts & merges",
+      "commonCauses": [
+        "Frequent small inserts producing parts faster than merges consume them",
+        "Background merges starved (low background_pool_size, slow disk)",
+        "Partition key too granular, spreading inserts across many partitions",
+        "`parts_to_throw_insert` / `parts_to_delay_insert` lowered per table"
+      ],
+      "description": "Worst partition’s active parts as a percentage of parts_to_throw_insert. A predictive \"too many parts\" signal — sustained pressure leads to throttled then rejected inserts.",
+      "fix": [
+        {
+          "description": null,
+          "id": "parts-pressure-runbook",
+          "kind": "runbook",
+          "label": "Too many parts runbook",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/max-parts-runbook"
+        },
+        {
+          "description": "Partitions with the most active parts, worst first.",
+          "id": "parts-pressure-detail",
+          "kind": "diagnostic",
+          "label": "Get partitions near the throw limit",
+          "sql": "SELECT database, table, partition, count() AS parts\nFROM system.parts\nWHERE active\nGROUP BY database, table, partition\nORDER BY parts DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "parts-pressure",
+      "link": "https://docs.chmonitor.dev/guide/guides/max-parts-runbook",
+      "optional": true,
+      "sampleLabel": "80% of parts_to_throw_insert",
+      "sql": "WITH parts_now AS (\n    SELECT database, table, partition, count() AS parts\n    FROM system.parts\n    WHERE active AND database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')\n    GROUP BY database, table, partition\n  ),\n  table_overrides AS (\n    SELECT\n      database,\n      name AS table,\n      toInt64OrZero(extract(replaceRegexpOne(\n      replaceRegexpAll(create_table_query, '\\\\x27(?:[^\\\\x27\\\\\\\\]|\\\\\\\\.)*\\\\x27', ''),\n      '(?s)^.*\\\\sSETTINGS\\\\s+',\n      ''\n    ), '(?:^|,)\\\\s*parts_to_throw_insert\\\\s*=\\\\s*([0-9]+)')) AS throw_override,\n      toInt64OrZero(extract(replaceRegexpOne(\n      replaceRegexpAll(create_table_query, '\\\\x27(?:[^\\\\x27\\\\\\\\]|\\\\\\\\.)*\\\\x27', ''),\n      '(?s)^.*\\\\sSETTINGS\\\\s+',\n      ''\n    ), '(?:^|,)\\\\s*parts_to_delay_insert\\\\s*=\\\\s*([0-9]+)')) AS delay_override\n    FROM system.tables\n    WHERE database IN (SELECT name FROM system.databases WHERE engine IN ('Atomic', 'Lazy', 'Memory', 'Ordinary', 'Replicated', 'Shared'))\n      AND database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')\n      AND (database, name) IN (SELECT database, table FROM parts_now)\n  ),\n  server_defaults AS (\n    SELECT\n      coalesce((SELECT toInt64OrNull(value) FROM system.merge_tree_settings WHERE name = 'parts_to_throw_insert'), 3000) AS throw_default,\n      coalesce((SELECT toInt64OrNull(value) FROM system.merge_tree_settings WHERE name = 'parts_to_delay_insert'), 1000) AS delay_default\n  ),\n  limits AS (\n    SELECT\n      p.database AS database,\n      p.table AS table,\n      p.partition AS partition,\n      p.parts AS parts,\n      if(o.throw_override > 0, o.throw_override, (SELECT throw_default FROM server_defaults)) AS throw_limit,\n      if(o.delay_override > 0, o.delay_override, (SELECT delay_default FROM server_defaults)) AS delay_limit\n    FROM parts_now p\n    LEFT JOIN table_overrides o ON p.database = o.database AND p.table = o.table\n    WHERE p.parts >= 20\n  )\nSELECT round(max(parts * 100.0 / nullIf(throw_limit, 0)), 1) AS pressure_percent\nFROM limits",
+      "tableCheck": "system.parts",
+      "thresholds": {
+        "critical": 95,
+        "warning": 80
+      },
+      "title": "Parts Pressure"
+    },
+    {
+      "category": "parts & merges",
+      "commonCauses": [
+        "PARTITION BY too granular (hourly or high-cardinality keys)",
+        "Time-series table with no table-level TTL, so old partitions never drop",
+        "Inserts producing parts faster than background merges consume them"
+      ],
+      "description": "MergeTree tables with partition bloat, a time-based PARTITION BY and no table TTL, or a merge backlog. Recommend-only — never applies ALTER TTL or DROP PARTITION.",
+      "fix": [
+        {
+          "description": null,
+          "id": "ttl-partition-health-runbook",
+          "kind": "runbook",
+          "label": "TTL & partition workflow",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/dba-workflows"
+        },
+        {
+          "description": "MergeTree-family tables with the most active partitions, worst first.",
+          "id": "ttl-partition-health-detail",
+          "kind": "diagnostic",
+          "label": "Get tables with 500+ partitions",
+          "sql": "SELECT\n  concat(database, '.', table) AS full_table,\n  uniqExact(partition) AS partitions,\n  count() AS active_parts\nFROM system.parts\nWHERE active\nGROUP BY database, table\nHAVING partitions >= 500\nORDER BY partitions DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "ttl-partition-health",
+      "link": "https://docs.chmonitor.dev/guide/guides/dba-workflows",
+      "optional": true,
+      "sampleLabel": "1 table to review",
+      "sql": "WITH mergetree_tables AS (\n      SELECT\n        database,\n        name,\n        engine,\n        partition_key,\n        engine_full\n      FROM system.tables\n      WHERE is_temporary = 0\n        AND database IN (SELECT name FROM system.databases WHERE engine IN ('Atomic', 'Lazy', 'Memory', 'Ordinary', 'Replicated', 'Shared'))\n        AND database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')\n        AND positionCaseInsensitive(engine, 'MergeTree') > 0\n    ),\n    part_stats AS (\n      SELECT\n        database,\n        table,\n        uniqExact(partition) AS partitions,\n        count() AS active_parts,\n        if(\n          uniqExact(partition) = 0,\n          0,\n          round(count() / uniqExact(partition), 2)\n        ) AS parts_per_partition,\n        sum(bytes_on_disk) AS bytes_on_disk,\n        sum(rows) AS rows\n      FROM system.parts\n      WHERE active\n        AND database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema')\n      GROUP BY database, table\n    ),\n    inventory AS (\n      SELECT\n        t.database,\n        t.name AS table,\n        concat(t.database, '.', t.name) AS full_table,\n        t.database AS _database,\n        t.name AS _table,\n        t.engine,\n        t.partition_key,\n        \n      if(\n        positionCaseInsensitive(t.engine_full, ' TTL ') > 0,\n        trim(BOTH ' ' FROM replaceRegexpOne(\n          substring(\n            t.engine_full,\n            positionCaseInsensitive(t.engine_full, ' TTL ') + 5\n          ),\n          '\\\\s+SETTINGS\\\\s+.*$',\n          ''\n        )),\n        ''\n      ) AS ttl_expression,\n        \n      multiIf(\n        ifNull(p.partitions, 0) >= 1000,\n          'Rebuild with coarser PARTITION BY',\n        ifNull(p.partitions, 0) >= 500,\n          'Consider monthly partitions',\n        (\n        positionCaseInsensitive(t.partition_key, 'toYYYYMM') > 0\n        OR positionCaseInsensitive(t.partition_key, 'toStartOf') > 0\n        OR positionCaseInsensitive(t.partition_key, 'toDate') > 0\n        OR positionCaseInsensitive(t.partition_key, 'toMonday') > 0\n        OR positionCaseInsensitive(t.partition_key, 'toYearWeek') > 0\n        OR positionCaseInsensitive(t.partition_key, 'toISOWeek') > 0\n      )\n          AND positionCaseInsensitive(t.engine_full, ' TTL ') = 0,\n          'Add table TTL',\n        ifNull(p.partitions, 0) > 0\n          AND ifNull(p.active_parts, 0) / ifNull(p.partitions, 1)\n            >= 10,\n          'Check merge backlog',\n        ''\n      ) AS recommendation,\n        ifNull(p.partitions, 0) AS partitions,\n        ifNull(p.active_parts, 0) AS active_parts,\n        ifNull(p.parts_per_partition, 0) AS parts_per_partition,\n        ifNull(p.bytes_on_disk, 0) AS bytes_on_disk,\n        ifNull(p.rows, 0) AS rows\n      FROM mergetree_tables AS t\n      LEFT JOIN part_stats AS p\n        ON p.database = t.database AND p.table = t.name\n    )\nSELECT count() AS flagged_count\nFROM inventory\nWHERE recommendation != ''",
+      "tableCheck": "system.parts",
+      "thresholds": {
+        "critical": 5,
+        "warning": 1
+      },
+      "title": "TTL & Partition Health"
+    },
+    {
+      "category": "replication",
+      "commonCauses": [],
+      "description": "Replication queue entries retried more than 100 times or queued for over an hour. A stuck entry stops the replica from catching up and grows replication lag.",
+      "fix": [
+        {
+          "description": "Oldest queue entries with their retry count and last exception. Fix the cause in last_exception (missing part, disk, Keeper), then let the queue retry.",
+          "id": "replication-queue-stuck-detail",
+          "kind": "diagnostic",
+          "label": "Get stuck queue entries",
+          "sql": "SELECT database, table, type, create_time, num_tries, last_exception, postpone_reason\nFROM system.replication_queue\nWHERE num_tries > 100 OR create_time < now() - INTERVAL 1 HOUR\nORDER BY create_time ASC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "replication-queue-stuck",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 stuck queue entry",
+      "sql": "SELECT count() AS stuck_count\nFROM system.replication_queue\nWHERE num_tries > 100 OR create_time < now() - INTERVAL 1 HOUR",
+      "tableCheck": "system.replication_queue",
+      "thresholds": {
+        "critical": 10,
+        "warning": 1
+      },
+      "title": "Stuck Replication Queue"
+    },
+    {
+      "category": "replication",
+      "commonCauses": [],
+      "description": "Replicated tables whose ZooKeeper/Keeper session has expired. These tables are read-only until the session is re-established — check Keeper health and network to the Keeper ensemble.",
+      "fix": [
+        {
+          "description": "Replicated tables whose Keeper session has expired.",
+          "id": "replica-session-expired-detail",
+          "kind": "diagnostic",
+          "label": "Get replicas with an expired session",
+          "sql": "SELECT database, table, replica_name, is_readonly, zookeeper_path\nFROM system.replicas\nWHERE is_session_expired\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "replica-session-expired",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 expired replica session",
+      "sql": "SELECT countIf(is_session_expired) AS expired_count\nFROM system.replicas",
+      "tableCheck": "system.replicas",
+      "thresholds": {
+        "critical": 3,
+        "warning": 1
+      },
+      "title": "Replica Keeper Session Expired"
+    },
+    {
+      "category": "other",
+      "commonCauses": [
+        "Too-small batches producing many parts (recommend ≥ 1000 rows / insert)",
+        "Background merges starved (low background pool size, slow disk)",
+        "`parts_to_delay_insert` / `parts_to_throw_insert` tuned too low"
+      ],
+      "description": "INSERTs currently throttled because a partition exceeded parts_to_delay_insert. Merges are falling behind inserts — batch inserts into fewer, larger blocks or coarsen PARTITION BY.",
+      "fix": [
+        {
+          "description": null,
+          "id": "delayed-inserts-runbook",
+          "kind": "runbook",
+          "label": "Too many parts runbook",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/too-many-parts"
+        },
+        {
+          "description": "DelayedInserts is a global gauge. These partitions carry the most active parts — the likely cause of the throttling.",
+          "id": "delayed-inserts-detail",
+          "kind": "diagnostic",
+          "label": "Get partitions with the most parts",
+          "sql": "SELECT database, table, partition, count() AS parts\nFROM system.parts\nWHERE active\nGROUP BY database, table, partition\nORDER BY parts DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "delayed-inserts",
+      "link": "https://docs.chmonitor.dev/guide/guides/too-many-parts",
+      "optional": true,
+      "sampleLabel": "1 delayed insert",
+      "sql": "SELECT value AS delayed_inserts\nFROM system.metrics\nWHERE metric = 'DelayedInserts'",
+      "tableCheck": "system.metrics",
+      "thresholds": {
+        "critical": 5,
+        "warning": 1
+      },
+      "title": "Delayed Inserts"
+    },
+    {
+      "category": "queries",
+      "commonCauses": [],
+      "description": "INSERTs rejected with TOO_MANY_PARTS in the last hour. Data was not written — the client must retry. Reduce insert frequency or coarsen PARTITION BY.",
+      "fix": [
+        {
+          "description": null,
+          "id": "rejected-inserts-runbook",
+          "kind": "runbook",
+          "label": "Too many parts runbook",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/too-many-parts"
+        }
+      ],
+      "id": "rejected-inserts",
+      "link": "https://docs.chmonitor.dev/guide/guides/too-many-parts",
+      "optional": true,
+      "sampleLabel": "1 rejected inserts in last hour",
+      "sql": "SELECT count() AS rejected_count\nFROM system.query_log\nWHERE event_time > now() - INTERVAL 1 HOUR\n  AND type IN ('ExceptionBeforeStart', 'ExceptionWhileProcessing')\n  AND exception_code = 252",
+      "tableCheck": "system.query_log",
+      "thresholds": {
+        "critical": 1,
+        "warning": 1
+      },
+      "title": "Rejected Inserts (1h)"
+    },
+    {
+      "category": "other",
+      "commonCauses": [],
+      "description": "Server memory tracked by ClickHouse (MemoryTracking) as a percentage of host RAM (OSMemoryTotal). Near 100% queries fail with MEMORY_LIMIT_EXCEEDED — find the heaviest queries and cap max_memory_usage.",
+      "fix": [
+        {
+          "description": null,
+          "id": "memory-pressure-runbook",
+          "kind": "runbook",
+          "label": "Memory limit runbook",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/memory-limit-total-exceeded"
+        },
+        {
+          "description": "Running queries using the most memory right now.",
+          "id": "memory-pressure-detail",
+          "kind": "diagnostic",
+          "label": "Get top queries by memory",
+          "sql": "SELECT query_id, user, elapsed, formatReadableSize(memory_usage) AS memory, substring(query, 1, 200) AS query\nFROM system.processes\nORDER BY memory_usage DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "memory-pressure",
+      "link": "https://docs.chmonitor.dev/guide/guides/memory-limit-total-exceeded",
+      "optional": true,
+      "sampleLabel": "80% of host memory",
+      "sql": "SELECT round(\n  (SELECT value FROM system.metrics WHERE metric = 'MemoryTracking') * 100.0\n  / nullIf((SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal'), 0),\n  1\n) AS memory_percent",
+      "tableCheck": "system.asynchronous_metrics",
+      "thresholds": {
+        "critical": 90,
+        "warning": 80
+      },
+      "title": "Memory Pressure"
+    },
+    {
+      "category": "other",
+      "commonCauses": [],
+      "description": "Parts ClickHouse detached because they were broken (checksum mismatch, corruption, unexpected files). On a replica the data is usually refetched; on a non-replicated table it may be lost — inspect before dropping.",
+      "fix": [
+        {
+          "description": "Detached parts whose reason starts with \"broken\".",
+          "id": "broken-detached-parts-detail",
+          "kind": "diagnostic",
+          "label": "Get broken detached parts",
+          "sql": "SELECT database, table, name, reason\nFROM system.detached_parts\nWHERE reason LIKE 'broken%'\nORDER BY database, table, name\nLIMIT 50",
+          "url": null
+        }
+      ],
+      "id": "broken-detached-parts",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 broken detached part",
+      "sql": "SELECT count() AS broken_count\nFROM system.detached_parts\nWHERE reason LIKE 'broken%'",
+      "tableCheck": "system.detached_parts",
+      "thresholds": {
+        "critical": 1,
+        "warning": 1
+      },
+      "title": "Broken Detached Parts"
+    },
+    {
+      "category": "logs",
+      "commonCauses": [],
+      "description": "Fatal errors in the server text log in the last hour.",
+      "fix": [],
+      "id": "fatal-log-entries",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 fatal log entries",
+      "sql": "SELECT count() AS fatal_count\nFROM system.text_log\nWHERE level = 'Fatal'\n  AND event_time >= now() - INTERVAL 1 HOUR",
+      "tableCheck": "system.text_log",
+      "thresholds": {
+        "critical": 5,
+        "warning": 1
+      },
+      "title": "Fatal Log Entries"
+    }
+  ]
+}

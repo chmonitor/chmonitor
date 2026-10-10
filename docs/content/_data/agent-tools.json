@@ -1,0 +1,389 @@
+{
+  "mcpTools": [
+    {
+      "description": "Get a structured performance analysis snapshot with severity ratings. Returns slow queries, high part counts, merge backlog, memory pressure, and disk utilization in one call.",
+      "name": "analyze_performance",
+      "title": "Analyze Performance"
+    },
+    {
+      "description": "Comprehensive schema exploration with relationship discovery. Three modes: no params (list databases), database only (summarize tables), database+table (full schema with relationships)",
+      "name": "explore_table_schema",
+      "title": "Explore Table Schema"
+    },
+    {
+      "description": "Get currently running merge operations with progress, size, and elapsed time.",
+      "name": "get_merge_status",
+      "title": "Get Merge Status"
+    },
+    {
+      "description": "Get key ClickHouse server metrics: version, uptime, active connections, and memory usage.",
+      "name": "get_metrics",
+      "title": "Get Server Metrics"
+    },
+    {
+      "description": "Analyze a slow query (by `queryId` from system.query_log, or raw `sql`) and return RANKED optimization recommendations — skip-index, projection, partition key, or a PREWHERE rewrite — each with DDL/rewrite text, rationale, risk, effort, and an estimated granules/bytes saved. Read-only and recommend-only: it never executes or applies any DDL or rewrite.",
+      "name": "get_optimization_recommendations",
+      "title": "Get Optimization Recommendations"
+    },
+    {
+      "description": "List currently running queries on the ClickHouse server, ordered by elapsed time.",
+      "name": "get_running_queries",
+      "title": "Get Running Queries"
+    },
+    {
+      "description": "Get the slowest completed queries from the query log, ordered by duration.",
+      "name": "get_slow_queries",
+      "title": "Get Slow Queries"
+    },
+    {
+      "description": "Get column definitions for a specific ClickHouse table including types, defaults, and comments.",
+      "name": "get_table_schema",
+      "title": "Get Table Schema"
+    },
+    {
+      "description": "List all databases on the ClickHouse server with their engines and comments.",
+      "name": "list_databases",
+      "title": "List Databases"
+    },
+    {
+      "description": "List tables in a ClickHouse database with row counts and sizes, ordered by size descending.",
+      "name": "list_tables",
+      "title": "List Tables"
+    },
+    {
+      "description": "Execute a read-only SQL query against ClickHouse. Only SELECT and WITH (CTE) queries are allowed.",
+      "name": "query",
+      "title": "Run SQL Query"
+    }
+  ],
+  "tools": [
+    {
+      "category": "planning",
+      "core": true,
+      "description": "Ask the user a question to gather information needed for analysis. Use this tool when you need clarification, user preferences, or structured input before proceeding. Supports multiple input types:\n- single_choice: Present options for the user to pick one (e.g., \"Which database?\", \"What time range?\")\n- multi_choice: Checkboxes for selecting multiple items (e.g., \"Which metrics to include?\")\n- confirm: Yes/no confirmation with context (e.g., \"Analyze all 5 slow queries or just the top one?\")\n- free_text: Open-ended text input (e.g., \"Describe the symptoms you're seeing\")\n- rating: Numeric scale (e.g., \"Rate the usefulness of this analysis 1-5\")",
+      "envGate": null,
+      "name": "ask_user",
+      "summary": "Ask the user a question when a request has several valid readings, or when a needed parameter is genuinely ambiguous."
+    },
+    {
+      "category": "storage",
+      "core": false,
+      "description": "Pre-flight impact estimate for an ALTER TABLE ... UPDATE/DELETE mutation: rows matched by the WHERE clause, parts/bytes ClickHouse will rewrite, a projected duration from recent mutation throughput history, and whether free disk can hold the rewrite. Read-only and recommend-only — parses the statement as text and only ever runs derived read-only queries (SELECT count(), system.parts/part_log/disks); never executes the mutation itself.",
+      "envGate": null,
+      "name": "estimate_mutation_impact",
+      "summary": "Dry-run an ALTER TABLE ... UPDATE/DELETE: rows matched, parts and bytes to rewrite, projected duration, and whether free disk can hold the rewrite."
+    },
+    {
+      "category": "query",
+      "core": false,
+      "description": "Pre-flight cost estimate for a query from EXPLAIN alone: estimated rows scanned, bytes read, peak memory, and wall time, plus a confidence level and any caveats. Read-only and recommend-only — runs EXPLAIN only and never executes the analyzed query. Use this before running a query you suspect might be expensive, or to rank optimization impact.",
+      "envGate": null,
+      "name": "estimate_query_cost",
+      "summary": "Pre-flight cost of a query (rows scanned, bytes read, peak memory, wall time) from EXPLAIN alone, without running it."
+    },
+    {
+      "category": "insights",
+      "core": false,
+      "description": "Explain a per-host/per-metric statistical anomaly baseline (fitted mean/stddev/median/MAD over ~7 days). Given a current value, also returns its z-score and whether it's flagged as anomalous (|z| > 2). Read-only — never fits, refits, or applies anything; reports when no baseline has been fitted yet (cold start).",
+      "envGate": null,
+      "name": "explain_anomaly_score",
+      "summary": "Explain a per-host/per-metric anomaly baseline (mean, stddev, median, MAD) and score a current value against it."
+    },
+    {
+      "category": "query",
+      "core": false,
+      "description": "Get the execution plan for a query (EXPLAIN PLAN / PIPELINE / PLAN indexes=1). Useful for understanding query optimization and identifying performance issues.",
+      "envGate": null,
+      "name": "explain_query",
+      "summary": "EXPLAIN PLAN / PIPELINE / PLAN indexes=1 for a query — the plan, so you can see why it is slow."
+    },
+    {
+      "category": "schema",
+      "core": true,
+      "description": "Comprehensive schema exploration. With no parameters, lists all databases. With database only, lists tables. With both, returns full schema with columns, indexes, primary keys, and foreign keys.",
+      "envGate": null,
+      "name": "explore_table_schema",
+      "summary": "Three-mode schema exploration: no args lists databases, a database lists its tables, database + table returns the full schema with indexes and keys."
+    },
+    {
+      "category": "knowledge",
+      "core": true,
+      "description": "Search the dashboard's built-in library of 100+ vetted, version-aware ClickHouse monitoring queries and return the closest matches (name, description, and SQL). Use this BEFORE hand-writing system.* SQL for a monitoring question — adapt a known-good reference query instead of reinventing it. Read-only catalog lookup; no query is executed.",
+      "envGate": null,
+      "name": "find_reference_query",
+      "summary": "Search the dashboard library of 100+ vetted, version-aware monitoring queries and return the closest matches with their SQL."
+    },
+    {
+      "category": "capacity",
+      "core": false,
+      "description": "Forecast when this host's disks will run out of free space, projecting from system.part_log NewPart write volume over the last 30 days (plus top contributing tables). Read-only and recommend-only. Reports a clear 'enable part_log' message instead of a fabricated forecast when system.part_log isn't available.",
+      "envGate": null,
+      "name": "forecast_disk_capacity",
+      "summary": "Project when disks run out of free space from recent write growth, plus the top contributing tables."
+    },
+    {
+      "category": "reports",
+      "core": false,
+      "description": "Generate a cluster health report (top insight findings, severity/category breakdown, statistical baselines count, disk-capacity outlook) over a weekly (7-day) or monthly (30-day) window. Returns structured summary + markdown for you to narrate or answer questions from. Read-only.",
+      "envGate": null,
+      "name": "generate_cluster_report",
+      "summary": "Deterministic cluster health report over a weekly or monthly window, as structured summary plus markdown to narrate."
+    },
+    {
+      "category": "health",
+      "core": true,
+      "description": "Get per-disk space usage including free and total space.",
+      "envGate": null,
+      "name": "get_disk_usage",
+      "summary": "Free and total space per disk. First call for any disk-space question."
+    },
+    {
+      "category": "query",
+      "core": false,
+      "description": "Get recent failed queries from the last 24 hours by default (override with lastHours). Query text is truncated to 2000 chars.",
+      "envGate": null,
+      "name": "get_failed_queries",
+      "summary": "Recent failed queries in a time window (default last 24 hours), with the error text."
+    },
+    {
+      "category": "merges",
+      "core": false,
+      "description": "Get currently active merges with progress and elapsed time.",
+      "envGate": null,
+      "name": "get_merge_status",
+      "summary": "Merges running right now with progress and elapsed time."
+    },
+    {
+      "category": "health",
+      "core": true,
+      "description": "Get server health metrics including version, uptime, and connection counts.",
+      "envGate": null,
+      "name": "get_metrics",
+      "summary": "Server health: version, uptime, active connections, memory. The first call on an unfamiliar host."
+    },
+    {
+      "category": "advisor",
+      "core": false,
+      "description": "Analyze a slow query (by `queryId` from system.query_log, or raw `sql`) and return RANKED optimization recommendations — skip-index, projection, partition key, or a PREWHERE rewrite — each with DDL/rewrite text, rationale, risk, effort, and an estimated granules/bytes saved. Read-only and recommend-only: it never executes or applies any DDL or rewrite. Always present the DDL/rewrite text for the user to review and run themselves.",
+      "envGate": null,
+      "name": "get_optimization_recommendations",
+      "summary": "Ranked skip-index, projection, partition-key, and PREWHERE recommendations for one slow query, with DDL and estimated savings."
+    },
+    {
+      "category": "discovery",
+      "core": false,
+      "description": "Return the live data a dashboard page shows, by running that page's own table and chart queries (same SQL, version handling, and filters as the UI). Pass `page` as a route (\"/merges\", \"/keeper/watches\", \"/overview?tab=storage\"), a page title (\"Merges\"), or a single query-config / chart name (\"merge-count\"). Omit `page` (or pass an unknown one) to get the page list. Use this when the user asks what a page, chart, or panel shows; use dedicated tools for deeper analysis. Read-only.",
+      "envGate": null,
+      "name": "get_page_data",
+      "summary": "Run a dashboard page’s own table and chart queries and return what that page shows; lists the pages when none is given."
+    },
+    {
+      "category": "peerdb",
+      "core": false,
+      "description": "PeerDB pipeline metrics beyond per-mirror status (read-only), selected by `metric`. `fleet` (default): fleet aggregates — mirrors by status, failed/paused names, CDC vs QRep split, total rows synced, and the worst replication-slot lag — plus the worst-first slot table. `slots`: replication-slot health (lag in MiB, active flag, WAL status) across all peers or one `peerName`, worst-first, classified ok/warn/critical. `slot_lag_history`: a lag time series for one `peerName`+`slotName` over `window`, with a growing/recovering/flat trend verdict. `rows_synced`: CDC rows-synced time series for one `mirrorName` with current and peak rows/sec. `snapshot`: initial-load progress for one `mirrorName`, per table with partition completion. `peer_stats`: one `peerName`'s active queries plus its type and PeerDB version. `log_patterns`: repeating log messages grouped by pattern across every mirror (or one `mirrorName`) within `logWindow` — fingerprint, level, count, last seen, affected mirrors — the answer to \"what errors are repeating across mirrors?\". Prefer get_peerdb_mirror_status for \"which mirrors are failing?\"; use this for \"which slot lags, is it recovering, how fast is it syncing, how far along is the snapshot?\". Only fixed read-only PeerDB endpoints are queried; mirror and peer configs (which may embed secrets) are never returned. Available only when PeerDB monitoring is configured.",
+      "envGate": "CHM_FEATURE_PEERDB_AGENT",
+      "name": "get_peerdb_metrics",
+      "summary": "PeerDB pipeline metrics by `metric`: replication-slot lag and its history, CDC rows-synced throughput, snapshot progress, per-peer queries, fleet aggregates."
+    },
+    {
+      "category": "peerdb",
+      "core": false,
+      "description": "Inspect PeerDB replication mirrors (read-only). With no arguments, list every mirror with per-mirror state, lag, and rows synced, sorted worst-first (failed > non-running > highest lag) — the first step of any \"which mirrors are lagging or failing?\" investigation. With `mirrorName`, return one mirror's state, authoritative rows-synced total, per-table insert/update/delete counts, recent CDC batches, and recent errors. Only fixed read-only PeerDB endpoints are queried; mirror configs (which may embed secrets) are stripped. Available only when PeerDB monitoring is configured.",
+      "envGate": "CHM_FEATURE_PEERDB_AGENT",
+      "name": "get_peerdb_mirror_status",
+      "summary": "PeerDB mirror state: no arguments for a worst-first fleet overview, or one mirrorName for its rows-synced total, per-table counts, batches, and errors."
+    },
+    {
+      "category": "postgres",
+      "core": false,
+      "description": "Get health metrics for a Postgres source: version and uptime, connection counts by state with max_connections and saturation percentage (pg_stat_activity + pg_settings), buffer-cache hit ratio (pg_stat_database), transaction commit/rollback and deadlock counts, current database size, and replication status (lag on a replica, connected standbys on a primary). The Postgres analog of ClickHouse `get_metrics`. Requires `pgHostId`.",
+      "envGate": "CHM_FEATURE_POSTGRES_SOURCE",
+      "name": "get_postgres_metrics",
+      "summary": "Postgres health for a source: version, uptime, connection saturation, cache hit ratio, transactions, replication."
+    },
+    {
+      "category": "postgres",
+      "core": false,
+      "description": "Get per-table health for a Postgres source: the tables with the worst dead-tuple bloat (dead vs live tuples, dead %, and last vacuum/autovacuum/analyze times from pg_stat_user_tables) and the unused indexes (idx_scan = 0, excluding primary-key and unique-constraint indexes, with their on-disk size from pg_stat_user_indexes). Use this to plan VACUUM / autovacuum tuning and index cleanup. The per-table companion to `get_postgres_metrics`. Requires `pgHostId`.",
+      "envGate": "CHM_FEATURE_POSTGRES_SOURCE",
+      "name": "get_postgres_table_stats",
+      "summary": "Per-table Postgres health: worst dead-tuple bloat and unused indexes, with last vacuum/analyze times."
+    },
+    {
+      "category": "replication",
+      "core": true,
+      "description": "Get per-table replication status including delay, queue size, and replica counts.",
+      "envGate": null,
+      "name": "get_replication_status",
+      "summary": "Per-table replication delay, queue size, and replica counts."
+    },
+    {
+      "category": "query",
+      "core": false,
+      "description": "Get currently running queries ordered by elapsed time. Query text is truncated to 2000 chars so it can be passed to explain_query.",
+      "envGate": null,
+      "name": "get_running_queries",
+      "summary": "Queries executing right now, ordered by elapsed time."
+    },
+    {
+      "category": "query",
+      "core": false,
+      "description": "Get the slowest completed queries from the last 1 hour by default (override with lastHours). Individual executions ranked by duration — not grouped patterns. Query text is truncated to 2000 chars so it can be passed to explain_query.",
+      "envGate": null,
+      "name": "get_slow_queries",
+      "summary": "Slowest completed queries in a time window (default last hour), ranked per execution. Use list_slow_query_patterns instead for \"which query shape is expensive overall\"."
+    },
+    {
+      "category": "storage",
+      "core": false,
+      "description": "Get part-level information for a specific table including compression ratios.",
+      "envGate": null,
+      "name": "get_table_parts",
+      "summary": "Part-level detail for one table: rows, bytes, compression ratio."
+    },
+    {
+      "category": "schema",
+      "core": true,
+      "description": "Get the column schema for a specific table.",
+      "envGate": null,
+      "name": "get_table_schema",
+      "summary": "Column definitions, types, and defaults for one table. Call this before hand-writing SQL against system.* tables."
+    },
+    {
+      "category": "advisor",
+      "core": false,
+      "description": "Scan a database (or one `table`) for RANKED, recommend-only schema + settings tuning findings: needless Nullable columns, oversized integers, compression-codec opportunities, LowCardinality candidates (column lint ranked by on-disk bytes), table-level TTL / PARTITION BY bloat / non-replicated MergeTree / missing Distributed wrappers / UUID-leading ORDER BY, plus server/merge-tree settings that differ from defaults in risky ways. Each finding carries evidence (bytes/rows/ratios or partition counts), an estimated benefit, a ready-to-review DDL/settings statement (including local + Distributed / ON CLUSTER variants when topology is known), and (for heuristic rules) a verification query. Read-only and recommend-only: it never executes or applies any DDL or settings change. Always present the DDL/verification text for the user to review and run themselves.",
+      "envGate": null,
+      "name": "get_tuning_suggestions",
+      "summary": "Ranked schema and settings lint for a database or table: needless Nullable, oversized ints, codecs, LowCardinality, TTL/PARTITION BY bloat, risky server settings."
+    },
+    {
+      "category": "control",
+      "core": false,
+      "description": "Cancel a running mutation on a table. DESTRUCTIVE — confirm with user before executing.",
+      "envGate": "AGENT_ENABLE_CONTROL_TOOLS",
+      "name": "kill_mutation",
+      "summary": "Cancel a running mutation on a table. Destructive."
+    },
+    {
+      "category": "control",
+      "core": false,
+      "description": "Kill a running query by its query_id. DESTRUCTIVE — confirm with user before executing.",
+      "envGate": "AGENT_ENABLE_CONTROL_TOOLS",
+      "name": "kill_query",
+      "summary": "Cancel a running query by query_id. Destructive."
+    },
+    {
+      "category": "schema",
+      "core": true,
+      "description": "List all databases in ClickHouse with their engine and comment metadata.",
+      "envGate": null,
+      "name": "list_databases",
+      "summary": "List every database with engine and comment metadata."
+    },
+    {
+      "category": "postgres",
+      "core": false,
+      "description": "List the slowest NORMALIZED query patterns on a Postgres source — `pg_stat_statements` aggregated per normalized statement, ranked by total execution time, with calls, total/mean exec time (ms), rows, shared-buffer cache-hit ratio, and WAL bytes. The Postgres analog of ClickHouse `list_slow_query_patterns`; use it as the first step of a \"why is this Postgres database slow?\" investigation. Requires `pgHostId`. Returns an informative message (not an error) when the `pg_stat_statements` extension is not installed.",
+      "envGate": "CHM_FEATURE_POSTGRES_SOURCE",
+      "name": "list_postgres_slow_query_patterns",
+      "summary": "Top normalized slow-query patterns on a Postgres source from pg_stat_statements."
+    },
+    {
+      "category": "query",
+      "core": false,
+      "description": "List NORMALIZED slow query patterns — system.query_log aggregated by normalized_query_hash, one row per distinct query shape, with calls, total/avg/p50/p95/p99/max duration, CPU time, peak memory, read/write bytes, error count, and cache-hit ratio. Use this (not `get_slow_queries`) when the question is about which *kind* of query is expensive overall or runs often, or as the first step of a \"why is my database slow?\" investigation — `get_slow_queries` instead returns individual query executions ranked by single-run duration and does not group repeated queries together.",
+      "envGate": null,
+      "name": "list_slow_query_patterns",
+      "summary": "Normalized slow-query patterns from system.query_log grouped by query hash: calls, duration percentiles, CPU, memory, bytes, cache hit ratio."
+    },
+    {
+      "category": "schema",
+      "core": true,
+      "description": "List tables in a specific database with row counts and size information.",
+      "envGate": null,
+      "name": "list_tables",
+      "summary": "List the tables in one database with row counts and on-disk size."
+    },
+    {
+      "category": "knowledge",
+      "core": true,
+      "description": "Load expert guidance by skill name (best practices, recipes, tuning). Skills:\n- replication-guide: ReplicatedMergeTree operations, failover procedures, lag…\n- incident-response: Structured triage recipes for common ClickHouse incidents…\n- anomaly-detection: Detect cluster abnormalities by comparing recent activity…\n- plan-and-verify: Decompose multi-step tasks into an explicit update_plan…\n- query-optimization: Advanced query tuning: join algorithms, skip index…\n- version-upgrade-advisor: Advises whether and how to upgrade ClickHouse — versioning…\n- cluster-operations: Cluster management: distributed tables, ON CLUSTER DDL…\n- troubleshooting: Diagnose and resolve ClickHouse issues: OOM, slow merges…\n- hardware-tuning: Detect server cores/RAM/disk from system tables, then…\n- concept-explainer: Explains core ClickHouse concepts with accurate mental…\n- query-tuning-advisor: Diagnose a slow or expensive query with EXPLAIN and…\n- security-hardening: RBAC configuration, row policies, quotas, network security…\n- schema-design-advisor: Recommend table ORDER BY keys, partition strategies, column…\n- migration-patterns: Schema migrations: ALTER patterns, engine changes…\n- data-analysis: Analyze cluster data and metrics using raw SQL recipes…\n- system-tables-reference: Exact column names for the system tables the agent queries…\n- storage-optimization: Compression codecs, TTL policies, tiered storage, part…\n- clickhouse-best-practices: Production operational practices: insert batching, async…",
+      "envGate": null,
+      "name": "load_skill",
+      "summary": "Load one expert skill guide with column-accurate system.* SQL recipes. The step between a primitive and raw SQL."
+    },
+    {
+      "category": "control",
+      "core": false,
+      "description": "Trigger an OPTIMIZE operation on a table to force merges. DESTRUCTIVE — confirm with user before executing.",
+      "envGate": "AGENT_ENABLE_CONTROL_TOOLS",
+      "name": "optimize_table",
+      "summary": "Run OPTIMIZE on a table to force merges. Destructive."
+    },
+    {
+      "category": "schema",
+      "core": true,
+      "description": "Execute read-only SQL queries on ClickHouse. Use this to fetch data, analyze metrics, and explore the database structure.",
+      "envGate": null,
+      "name": "query",
+      "summary": "Run read-only SQL on ClickHouse (SELECT / WITH / DESCRIBE / EXPLAIN). The general escape hatch once a primitive or skill does not cover it."
+    },
+    {
+      "category": "visualization",
+      "core": false,
+      "description": "Execute a SQL query and return structured visualization config. Automatically detects chart dimensions and measures from the result columns.",
+      "envGate": null,
+      "name": "query_and_visualize",
+      "summary": "Run a SQL query and return an interactive chart; chart type is auto-detected from the result columns."
+    },
+    {
+      "category": "advisor",
+      "core": false,
+      "description": "Mine frequent aggregation queries (GROUP BY + aggregate functions) from system.query_log and design a materialized view (Summing/AggregatingMergeTree) or projection to pre-aggregate them, with a size estimate, estimated read-bytes-saved impact, and an explicit risk note (added write-path/storage cost). Recommend-only — returns DDL text to review and copy; nothing is ever executed or applied.",
+      "envGate": null,
+      "name": "recommend_materialized_view",
+      "summary": "Mine frequent GROUP BY shapes and design a Summing/AggregatingMergeTree materialized view or projection, with DDL, size estimate, and risk."
+    },
+    {
+      "category": "postgres",
+      "core": false,
+      "description": "Execute a read-only SQL query against a Postgres source. Only a single SELECT / WITH / SHOW / EXPLAIN / TABLE / VALUES statement is allowed (writes, DDL, and multi-statement strings are rejected, and the session is pinned read-only server-side). Use this to inspect a Postgres database and, in the same conversation, correlate its data with ClickHouse results from the `query` tool. Requires `pgHostId` (the Postgres source index).",
+      "envGate": "CHM_FEATURE_POSTGRES_SOURCE",
+      "name": "run_postgres_select_query",
+      "summary": "Run one read-only SQL statement against a Postgres source, to correlate with ClickHouse in the same conversation."
+    },
+    {
+      "category": "discovery",
+      "core": true,
+      "description": "Find the agent tool that fits a task, when the tool name is not obvious. Describe what you want to do in plain language and get back the matching tools, each with a one-line summary and when to use it. Use this BEFORE falling back to hand-writing `query` SQL, and before concluding a capability does not exist. Only tools actually available in this conversation are returned — a gated-off tool (destructive control actions, cross-source Postgres, PeerDB) never appears.",
+      "envGate": null,
+      "name": "search_tools",
+      "summary": "Find agent tools by what you want to do, when you are not sure which tool fits. Returns the matching tool names with when to use each one."
+    },
+    {
+      "category": "dashboards",
+      "core": false,
+      "description": "Suggest a dashboard layout built ONLY from existing registry charts for a natural-language request (e.g. \"show me everything about replication health\"). Returns a proposed set of chart widgets on the plan-57 grid layout. Recommend-only — never persisted; the UI shows an 'Apply to dashboard' action the user must click to load it into the dashboard builder, and the user still has to save it explicitly afterwards.",
+      "envGate": null,
+      "name": "suggest_dashboard",
+      "summary": "Propose a dashboard layout built only from charts that already exist in the chart registry, for a natural-language request."
+    },
+    {
+      "category": "capacity",
+      "core": false,
+      "description": "Recommend a TTL/retention change for a table that keeps projected disk utilization at or under 80%, never suggesting less than retentionRequirementDays (defaults to 30 if omitted). Returns a suggested `ALTER TABLE ... MODIFY TTL ...` string plus a risk note — a suggestion only, never executed. Reports a clear 'enable part_log' message instead of a fabricated suggestion when system.part_log isn't available.",
+      "envGate": null,
+      "name": "suggest_ttl_adjustment",
+      "summary": "Recommend a TTL / retention change that keeps projected disk use at or under 80% without dropping below a stated retention floor."
+    },
+    {
+      "category": "planning",
+      "core": true,
+      "description": "Create or update a step-by-step workflow plan for the current investigation. Use this as a lightweight planning harness:\n- Call it ONCE at the start of any multi-step task (3+ steps) to lay out the plan with all steps set to \"pending\".\n- Call it AGAIN after completing each step to mark that step \"completed\" and the next one \"in_progress\".\n- Keep exactly ONE step \"in_progress\" at a time; everything before it should be \"completed\" and everything after \"pending\".\n- Keep step titles short and action-oriented (e.g. \"Scan query_log for slow queries\", \"Check merge backlog\", \"Summarize findings\").\nDo NOT use this for single-step answers — only when the work genuinely spans multiple tool calls or phases.",
+      "envGate": null,
+      "name": "update_plan",
+      "summary": "Publish a step-by-step plan for a 3+ step investigation and keep it current. Skip it for one-tool answers."
+    }
+  ]
+}

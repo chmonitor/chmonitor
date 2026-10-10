@@ -13,3 +13,6 @@ src/routeTree.gen.ts
 # Per-page OG images generated at build time by scripts/generate-og.mjs
 # Rebuilt each CI/deploy run from content/docs frontmatter; not committed.
 public/og/docs/
+
+# Copied by scripts/sync-docs.mjs from docs/content/_data/*.json
+src/generated/
