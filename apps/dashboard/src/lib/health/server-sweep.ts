@@ -195,6 +195,8 @@ export { runPeerDBInsightSweep as __runPeerDBInsightSweepForTests }
  * cycle itself) can never break the ClickHouse/Postgres sweeps: every failure
  * mode degrades to counters.
  *
+ * `CHM_FEATURE_PEERDB_ENABLED=false` skips the cycle entirely.
+ *
  * Delivery (`dispatch`) is only passed when the sweep's master alerting
  * switch is on; otherwise the cycle evaluates + audits dry-run and the
  * findings still surface in the summary.
@@ -217,6 +219,9 @@ async function runPeerDBAlertSweep(
       skipped: 0,
     },
   })
+  // Feature kill-switch: same raw env check as the agent tool gate
+  // (`isPeerDBAgentEnabled`, tools/index.ts). Only the literal `false` disables.
+  if (process.env.CHM_FEATURE_PEERDB_ENABLED === 'false') return empty()
   try {
     const { getPeerDBConfig } = await import('@/lib/peerdb/peerdb-config')
     if (getPeerDBConfig() === null) return empty()

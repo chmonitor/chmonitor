@@ -486,6 +486,7 @@ const ENV_KEYS = [
   // configure a real flow-api globally; without an explicit reset its
   // collector calls would appear as extra fetches in every legacy route test.
   'PEERDB_API_URL',
+  'CHM_FEATURE_PEERDB_ENABLED',
 ] as const
 const savedEnv: Record<string, string | undefined> = {}
 
@@ -507,6 +508,7 @@ beforeEach(() => {
   delete process.env.HEALTH_ALERT_HEALTHCHECKS_URL
   delete process.env.HEALTH_ALERT_DIGEST_MINUTES
   delete process.env.PEERDB_API_URL
+  delete process.env.CHM_FEATURE_PEERDB_ENABLED
 
   alertStateStore.clear()
   fakeDb = makeFakeD1()
@@ -1643,5 +1645,39 @@ describe('runHealthSweep — digest grouping (#2663)', () => {
     expect(summary.digestBuffered).toBe(0)
     expect(posted).toHaveLength(1)
     expect(posted[0]).toBe('https://hooks.slack.com/services/T000/B000/XXXX')
+  })
+
+  describe('PeerDB off switch', () => {
+    async function peerdbCalls(flag: string | undefined) {
+      process.env.PEERDB_API_URL = 'http://peerdb.invalid:9900'
+      if (flag === undefined) delete process.env.CHM_FEATURE_PEERDB_ENABLED
+      else process.env.CHM_FEATURE_PEERDB_ENABLED = flag
+      testValue = 15 // warning
+      const urls: string[] = []
+      globalThis.fetch = mock(async (url: string | URL | Request) => {
+        urls.push(String(url))
+        return new Response(null, { status: 200 })
+      }) as unknown as typeof fetch
+      const summary = await runHealthSweep()
+      return {
+        summary,
+        peerdb: urls.filter((u) => u.includes('peerdb.invalid')),
+      }
+    }
+
+    test('CHM_FEATURE_PEERDB_ENABLED=false skips the PeerDB cycle, ClickHouse sweep unaffected', async () => {
+      const { summary, peerdb } = await peerdbCalls('false')
+      expect(peerdb).toHaveLength(0)
+      const pd = summary.hosts.find((h) => h.hostName === 'peerdb')
+      expect(pd?.checksRun).toBe(0)
+      expect(pd?.errored).toBe(0)
+      expect(summary.findings.length).toBeGreaterThan(0)
+      expect(summary.alertsDispatched).toBeGreaterThan(0)
+    })
+
+    test('flag unset: the PeerDB cycle still reaches the flow-api', async () => {
+      const { peerdb } = await peerdbCalls(undefined)
+      expect(peerdb.length).toBeGreaterThan(0)
+    })
   })
 })

@@ -464,6 +464,7 @@ Subscriptions live in the `report_subscriptions` D1 table (owner-scoped, like al
 - If a system table is missing (e.g., no `system.replicas` on a standalone node), that check is skipped with an "unavailable" state rather than a false positive.
 - The webhook payload is a plain Slack/Discord-compatible JSON object (`{"text": "...", "content": "..."}`). Custom payload shapes are not supported in v1.
 - The health-sweep endpoint queries all configured `CLICKHOUSE_HOST` entries. High host counts increase sweep latency.
+- If PeerDB is configured (`PEERDB_API_URL`), the sweep also checks every PeerDB mirror and alerts as `peerdb:<mirror>` through the same channels and routes. Set `CHM_FEATURE_PEERDB_ENABLED=false` to skip it. See [PeerDB Monitoring](/operate/advanced/peerdb-monitoring#alerting).
 
 ## Related
 
