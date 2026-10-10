@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * PeerDB items on the Health Summary page (#3439).
+ * PeerDB items on the Health Summary page (#3439, #3701).
  *
  * ## Why this is a bespoke item, not a `HEALTH_CHECKS` entry
  *
@@ -14,28 +14,41 @@
  *
  * Instead this follows the pattern `mutations-cards.tsx` already established: a
  * local `HealthCheckDef`-shaped def (so the card reuses the shared shell, the
- * detail dialog, and the configure-alert affordance for free) plus a `computeX`
- * in `lib/health/health-status.ts`. Data comes from `usePeerDBMetrics` — the
- * same hook the `/peerdb` page uses, already cached for 30s server-side.
+ * detail dialog, and the configure-alert affordance for free) plus
+ * `computePeerDBCheck` in `lib/health/health-status.ts`. Data comes from
+ * `usePeerDBMetrics` — the same hook the `/peerdb` page uses, already cached
+ * for 30s server-side.
+ *
+ * ## One status per card
+ *
+ * Each card has its own status, and names the worst mirror(s) as links to
+ * `/peerdb/mirror?name=…`, so "Needs attention" says which mirror to open.
+ * Paused age, snapshot stalled, zero throughput and last-sync age have no card:
+ * the metrics payload does not carry the per-mirror timestamps they need.
  *
  * ## Gating
  *
  * The items are **absent**, not empty, when `PEERDB_API_URL` is unset:
  * `usePeerDBMetrics` resolves a `configured: false` payload rather than an
  * error, and `HealthGrid` drops the whole group in that case. A green "0 failed"
- * card for a product the deployment does not run would be a lie.
+ * card for a product the deployment does not run would be a lie. A request that
+ * errors is shown (the not-configured branch never errors), so an unreachable
+ * PeerDB turns the API card red instead of hiding the group.
  *
  * `chartName` is deliberately empty: it is never resolved through the chart
  * registry (see above) and exists only so the shared shell and detail dialog get
  * the `HealthCheckDef` shape they expect.
  */
 
-import { Database, Timer, XCircle } from 'lucide-react'
+import { Database, PauseCircle, PlugZap, Timer, XCircle } from 'lucide-react'
 
 import type { MetricAlertSignals } from '@/lib/health/alert-capability'
-import type { PeerDBHealthSource } from '@/lib/health/health-status'
+import type {
+  PeerDBCheckId,
+  PeerDBHealthSource,
+} from '@/lib/health/health-status'
 import type { HealthCardVariant } from './health-card-shell'
-import type { HealthCheckDef } from './health-checks'
+import type { HealthCheckDef, RelatedLink } from './health-checks'
 import type { AlertRuleStoreAvailability } from './use-alert-signals'
 
 import { AlertConfiguredBadge } from './alert-configured-badge'
@@ -43,7 +56,7 @@ import { HealthCardShell } from './health-card-shell'
 import { HealthDetailDialog } from './health-detail-dialog'
 import { NO_ALERT_SIGNALS } from './use-alert-signals'
 import { useState } from 'react'
-import { computePeerDBHealth } from '@/lib/health/health-status'
+import { computePeerDBCheck } from '@/lib/health/health-status'
 import {
   SLOT_LAG_CRITICAL_MB,
   SLOT_LAG_WARN_MB,
@@ -67,14 +80,15 @@ const PEERDB_FLEET_DEF: HealthCheckDef = {
   docsLinks: [{ label: 'PeerDB', url: 'https://docs.peerdb.io/' }],
 }
 
-const PEERDB_SLOT_LAG_DEF: HealthCheckDef = {
+const PEERDB_API_DEF: HealthCheckDef = {
   ...PEERDB_FLEET_DEF,
-  id: 'peerdb-slot-lag',
-  title: 'PeerDB Slot Lag',
-  icon: Timer,
-  defaults: { warning: SLOT_LAG_WARN_MB, critical: SLOT_LAG_CRITICAL_MB },
-  description: `Worst unreplicated WAL held by any PeerDB replication slot, in MiB. Warn at ${SLOT_LAG_WARN_MB.toLocaleString()} MiB, critical at ${SLOT_LAG_CRITICAL_MB.toLocaleString()} MiB — the same thresholds the PeerDB slot-health table uses.`,
-  relatedLinks: [{ label: 'PeerDB Peers', href: '/peerdb/peers' }],
+  id: 'peerdb-api',
+  title: 'PeerDB API',
+  icon: PlugZap,
+  defaults: { warning: 1, critical: 1 },
+  description:
+    'Whether the dashboard can reach the PeerDB API with the configured credentials. Critical when the request fails: a 401/403 means PeerDB rejected the credentials, anything else means the API is unreachable or timed out. While this is red, every other PeerDB card is unknown, not healthy.',
+  relatedLinks: [{ label: 'PeerDB Mirrors', href: '/peerdb' }],
 }
 
 const PEERDB_MIRROR_FAILURES_DEF: HealthCheckDef = {
@@ -87,13 +101,36 @@ const PEERDB_MIRROR_FAILURES_DEF: HealthCheckDef = {
   relatedLinks: [{ label: 'PeerDB Mirrors', href: '/peerdb' }],
 }
 
+const PEERDB_PAUSED_DEF: HealthCheckDef = {
+  ...PEERDB_FLEET_DEF,
+  id: 'peerdb-paused',
+  title: 'PeerDB Paused Mirrors',
+  icon: PauseCircle,
+  defaults: { warning: 1, critical: 1 },
+  description:
+    'Paused or pausing PeerDB mirrors. A paused CDC mirror still holds its replication slot, so WAL keeps growing on the source. Warning only: the API does not report when the pause started, so a deliberate pause and a forgotten one look the same.',
+  relatedLinks: [{ label: 'PeerDB Mirrors', href: '/peerdb' }],
+}
+
+const PEERDB_SLOT_LAG_DEF: HealthCheckDef = {
+  ...PEERDB_FLEET_DEF,
+  id: 'peerdb-slot-lag',
+  title: 'PeerDB Slot Lag',
+  icon: Timer,
+  defaults: { warning: SLOT_LAG_WARN_MB, critical: SLOT_LAG_CRITICAL_MB },
+  description: `Worst unreplicated WAL held by any PeerDB replication slot, in MiB. Warn at ${SLOT_LAG_WARN_MB.toLocaleString()} MiB, critical at ${SLOT_LAG_CRITICAL_MB.toLocaleString()} MiB — the same thresholds the PeerDB slot-health table uses.`,
+  relatedLinks: [{ label: 'PeerDB Peers', href: '/peerdb/peers' }],
+}
+
 const mb = (n: number) => `${Math.round(n).toLocaleString()} MiB`
 
-/** The three PeerDB items, in display order. */
+/** The PeerDB items, in display order. */
 export const PEERDB_HEALTH_DEFS: readonly HealthCheckDef[] = [
   PEERDB_FLEET_DEF,
-  PEERDB_SLOT_LAG_DEF,
+  PEERDB_API_DEF,
   PEERDB_MIRROR_FAILURES_DEF,
+  PEERDB_PAUSED_DEF,
+  PEERDB_SLOT_LAG_DEF,
 ]
 
 export const PEERDB_HEALTH_IDS: readonly string[] = PEERDB_HEALTH_DEFS.map(
@@ -104,15 +141,19 @@ export const PEERDB_HEALTH_IDS: readonly string[] = PEERDB_HEALTH_DEFS.map(
  * The one number this item is about — the card's headline, and the value the
  * grid appends to the shared sparkline history.
  *
- * Each card shows the number an operator would act on first, while
- * {@link computePeerDBHealth} supplies the shared status from all three
- * conditions — so the fleet card can be green while the lag card is red.
- * `null` while loading/unavailable, which leaves the history untouched.
+ * Each card shows the number an operator would act on first, and
+ * `computePeerDBCheck` gives each card its own status — so the failures card
+ * can be green while the lag card is red. `null` while loading/unavailable,
+ * which leaves the history untouched.
  */
 export function peerDBHeadlineValue(
   defId: string,
   source: PeerDBHealthSource
 ): number | null {
+  if (defId === 'peerdb-api') {
+    if (source.kind === 'loading') return null
+    return source.kind === 'error' ? 1 : 0
+  }
   if (source.kind !== 'data') return null
   const m = source.metrics
   switch (defId) {
@@ -120,12 +161,34 @@ export function peerDBHeadlineValue(
       return m.maxSlotLagMb === null ? null : Math.round(m.maxSlotLagMb)
     case 'peerdb-mirror-failures':
       return m.failedMirrors.length + m.terminatedMirrors.length
+    case 'peerdb-paused':
+      return m.pausedMirrors.length
     default:
       return m.totalMirrors
   }
 }
 
+/**
+ * Links for a card: the worst mirrors it names first (straight to their
+ * `/peerdb/mirror` page), then the card's static links, capped at the three the
+ * shell renders.
+ */
+export function peerDBCardLinks(
+  def: HealthCheckDef,
+  mirrors: readonly string[]
+): readonly RelatedLink[] {
+  const mirrorLinks = mirrors.slice(0, 2).map((name) => ({
+    label: name,
+    href: `/peerdb/mirror?name=${encodeURIComponent(name)}`,
+  }))
+  return [...mirrorLinks, ...(def.relatedLinks ?? [])].slice(0, 3)
+}
+
 function displayValueFor(defId: string, source: PeerDBHealthSource): string {
+  if (defId === 'peerdb-api') {
+    if (source.kind === 'loading') return '—'
+    return source.kind === 'error' ? 'Down' : 'OK'
+  }
   const value = peerDBHeadlineValue(defId, source)
   if (value === null) return '—'
   return defId === 'peerdb-slot-lag' ? mb(value) : value.toLocaleString()
@@ -149,7 +212,7 @@ export function PeerDBHealthCard({
   availability?: AlertRuleStoreAvailability
 }) {
   const [detailOpen, setDetailOpen] = useState(false)
-  const computed = computePeerDBHealth(source)
+  const computed = computePeerDBCheck(def.id as PeerDBCheckId, source)
 
   return (
     <>
@@ -160,7 +223,7 @@ export function PeerDBHealthCard({
         displayValue={displayValueFor(def.id, source)}
         sublabel={computed.label}
         spark={spark}
-        links={def.relatedLinks}
+        links={peerDBCardLinks(def, computed.mirrors)}
         hostId={hostId}
         onExpand={() => setDetailOpen(true)}
         variant={variant}
@@ -183,7 +246,7 @@ export function PeerDBHealthCard({
   )
 }
 
-/** The three PeerDB items, in display order. Exported for the grid's id list. */
+/** Every PeerDB item, in display order. */
 export function PeerDBHealthCards({
   hostId,
   source,

@@ -49,6 +49,16 @@ interface AlertConfigResponse {
   configs: AlertChannelConfigInfo[]
   /** Which channels are configured via server env (for env-fallback display). */
   env: Record<AlertConfigChannel, boolean>
+  /** Whether the scheduled sweep can deliver alerts (absent on older servers). */
+  delivery?: AlertDeliveryStatus
+}
+
+/** Server-side alert delivery switches, from `GET /api/v1/health/alert-config`. */
+export interface AlertDeliveryStatus {
+  /** `HEALTH_ALERT_ENABLED`: false = the sweep runs dry-run, sends nothing. */
+  alertingEnabled: boolean
+  /** Whether the scheduled health sweep runs at all. */
+  sweepEnabled: boolean
 }
 
 export function useAlertChannelConfig(enabled = true) {
@@ -61,6 +71,7 @@ export function useAlertChannelConfig(enabled = true) {
       return {
         configs: json.configs ?? [],
         env: json.env ?? ({} as Record<AlertConfigChannel, boolean>),
+        delivery: json.delivery ?? null,
       }
     },
     enabled,
@@ -70,6 +81,8 @@ export function useAlertChannelConfig(enabled = true) {
   return {
     configs: query.data?.configs ?? [],
     env: query.data?.env ?? ({} as Record<AlertConfigChannel, boolean>),
+    /** `null` while loading, on error, or from a server without the field. */
+    delivery: query.data?.delivery ?? null,
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,

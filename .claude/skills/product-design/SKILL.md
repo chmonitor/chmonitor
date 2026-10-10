@@ -249,6 +249,13 @@ undefined `var()` renders the series black. Radius: `rounded-md` (9px) default,
 - **Numeric threshold input:** `components/health/threshold-field.tsx` — severity
   dot + label, `−`/`+` steppers around a centered `tabular-nums` input, step
   derived from magnitude. Clamp `critical ≥ warning` on change, not at save.
+- **Name the offender, say when alerts are dry:** a Health card about a set
+  (mirrors, tables) names the worst member(s) in its sublabel and links each to
+  its detail page ahead of the static links (`peerDBCardLinks` in
+  `components/health/peerdb-cards.tsx`); each card owns its own status. When the
+  server cannot deliver alerts (`delivery` on `GET /api/v1/health/alert-config`:
+  sweep off or `HEALTH_ALERT_ENABLED` false), show
+  `components/health/alert-delivery-notice.tsx` — an `Alert`, silent when unknown.
 - **Act on the thing you are looking at:** a card reporting a problem must let
   you act on *that* problem. The health detail dialog owns a **Configure alert**
   footer action (`components/health/configure-alert-form.tsx`) pre-filled with

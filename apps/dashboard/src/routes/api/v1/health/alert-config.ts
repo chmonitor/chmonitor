@@ -40,6 +40,7 @@ import {
   resolveAlertRoutingOwnerId,
 } from '@/lib/health/alert-routing-auth'
 import {
+  getServerAlertConfig,
   getServerEmailConfig,
   getServerHealthchecksUrl,
   getServerNtfyConfig,
@@ -48,6 +49,7 @@ import {
   getServerTelegramConfig,
   getServerTwilioConfig,
 } from '@/lib/health/server-alert-config'
+import { isHealthSweepEnabled } from '@/lib/health/sweep-schedule'
 
 /** Channels whose `target.url` is a caller-supplied outbound URL → SSRF sink. */
 const URL_TARGET_CHANNELS: ReadonlySet<AlertConfigChannel> = new Set([
@@ -104,6 +106,22 @@ function envConfiguredMap(): Record<AlertConfigChannel, boolean> {
   }
 }
 
+/**
+ * Whether the scheduled sweep can deliver an alert at all (#3701), so the UI
+ * can say so instead of the sweep silently running dry-run. Booleans only.
+ *
+ * - `alertingEnabled` — `HEALTH_ALERT_ENABLED`; when false the sweep (PeerDB
+ *   cycle included) only audits and dispatches nothing.
+ * - `sweepEnabled` — whether the scheduled sweep runs (`CHM_HEALTH_SWEEP_ENABLED`,
+ *   else whether `CRON_SECRET` is set — the same rule the cron route applies).
+ */
+function deliveryStatus(): { alertingEnabled: boolean; sweepEnabled: boolean } {
+  return {
+    alertingEnabled: getServerAlertConfig().webhookEnabled,
+    sweepEnabled: isHealthSweepEnabled((key) => process.env[key]),
+  }
+}
+
 async function handleGet(): Promise<Response> {
   const ownerId = await resolveAlertRoutingOwnerId()
   const configs = await listChannelConfigs(ownerId)
@@ -112,6 +130,7 @@ async function handleGet(): Promise<Response> {
       success: true,
       configs: configs.map(toPublicChannelConfig),
       env: envConfiguredMap(),
+      delivery: deliveryStatus(),
     },
     { status: 200 }
   )

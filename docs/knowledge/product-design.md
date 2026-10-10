@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-10-05
+updated: 2026-10-11
 tags:
   - design-system
   - ui
@@ -729,6 +729,23 @@ source badges.
 `LEGACY_TAB_MAP` from every retired `?tab=` id to `{ tab, advancedSection? }`,
 so an old link lands on the right tab with the right dialog already open
 (`health-settings-panel.tsx`).
+
+### Name the offender; say when alerts cannot be delivered
+
+A Health card about a set (PeerDB mirrors, tables, …) names the worst member(s)
+in its sublabel and links each one to its detail page ahead of the card's static
+links, capped at the three the shell renders (`peerDBCardLinks` in
+`components/health/peerdb-cards.tsx`, linking `/peerdb/mirror?name=…`). Each card
+owns its own status (`computePeerDBCheck` in `lib/health/health-status.ts`), so a
+red lag card does not paint the failures card red. A check whose data does not
+reach the browser gets no card rather than a guessed one.
+
+When the server cannot deliver alerts — `delivery.sweepEnabled` or
+`delivery.alertingEnabled` is false on `GET /api/v1/health/alert-config` — render
+`components/health/alert-delivery-notice.tsx` (a plain `Alert` with a link to
+Alert settings) where the alerts would come from: the Health page when PeerDB is
+shown, and `/peerdb`. It renders nothing while loading, on error, or when the
+field is absent: an unknown state is not a banner.
 
 ### Act on the thing you are looking at (health detail dialog)
 

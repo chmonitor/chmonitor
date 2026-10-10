@@ -21,6 +21,7 @@ import type {
 } from '@/lib/peerdb/types'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AlertDeliveryNotice } from '@/components/health/alert-delivery-notice'
 import { CountingNumber } from '@/components/peerdb/counting-number'
 import { FleetLagTriage } from '@/components/peerdb/fleet-lag-triage'
 import { FleetLogsFeed } from '@/components/peerdb/fleet-logs-feed'
@@ -487,6 +488,8 @@ function PeerDBMirrorsPage() {
           )}
         </div>
       </div>
+
+      <AlertDeliveryNotice className="mb-4" />
 
       <PeerDBInsightsPanel className="mb-4" />
 

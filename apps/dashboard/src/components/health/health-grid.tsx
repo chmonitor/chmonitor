@@ -6,6 +6,7 @@ import type { HistoryMap } from '@/lib/health/history-storage'
 import type { HealthCardVariant } from './health-card-shell'
 import type { HealthCounts } from './health-summary-banner'
 
+import { AlertDeliveryNotice } from './alert-delivery-notice'
 import { HealthCard } from './health-card'
 import { HEALTH_CHECKS } from './health-checks'
 import { HealthSummaryBanner } from './health-summary-banner'
@@ -32,9 +33,10 @@ import {
 } from '@/lib/health/alert-dispatcher'
 import {
   computeCheckStatus,
-  computePeerDBHealth,
+  computePeerDBCheck,
   computeRunningMutations,
   computeStuckMutations,
+  type PeerDBCheckId,
   type PeerDBHealthSource,
   SEVERITY_RANK,
 } from '@/lib/health/health-status'
@@ -137,7 +139,10 @@ export function HealthGrid() {
   // group is then ABSENT rather than a row of green zeros for a product this
   // deployment does not run.
   const peerDB = usePeerDBMetrics()
-  const peerDBConfigured = peerDB.data?.configured === true
+  // A failed request is shown too: the not-configured branch answers 200, so an
+  // error only happens on a configured deployment — and an unreachable PeerDB
+  // must turn the API card red, not hide the group.
+  const peerDBShown = peerDB.data?.configured === true || Boolean(peerDB.error)
   const peerDBSource: PeerDBHealthSource = peerDB.isPending
     ? { kind: 'loading' }
     : peerDB.error
@@ -250,18 +255,21 @@ export function HealthGrid() {
     // PeerDB group — omitted entirely when PeerDB is not configured (#3439).
     // One grid item per card, so each sorts, counts, and filters on its own:
     // a climbing slot lag promotes its own card even while the fleet is green.
-    if (peerDBConfigured) {
-      const peerDBStatus = computePeerDBHealth(peerDBSource).status
+    if (peerDBShown) {
       for (const def of PEERDB_HEALTH_DEFS) {
+        const peerDBCheck = computePeerDBCheck(
+          def.id as PeerDBCheckId,
+          peerDBSource
+        )
         list.push({
           id: def.id,
-          status: peerDBStatus,
+          status: peerDBCheck.status,
           sparkValue: peerDBHeadlineValue(def.id, peerDBSource),
           order: order++,
           alert: {
             title: def.title,
             value: peerDBHeadlineValue(def.id, peerDBSource),
-            label: def.title,
+            label: peerDBCheck.label,
           },
           render: (spark, variant) => (
             <PeerDBHealthCard
@@ -287,7 +295,7 @@ export function HealthGrid() {
     hostId,
     signalsByCheck,
     alertStoreAvailability,
-    peerDBConfigured,
+    peerDBShown,
     peerDBSource,
   ])
 
@@ -399,6 +407,9 @@ export function HealthGrid() {
   return (
     <div className="flex flex-col gap-4">
       <HealthSummaryBanner counts={counts} />
+
+      {/* PeerDB alerts only reach a channel through the scheduled sweep. */}
+      {peerDBShown ? <AlertDeliveryNotice hostId={hostId} /> : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>

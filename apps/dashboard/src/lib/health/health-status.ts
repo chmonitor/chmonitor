@@ -284,3 +284,143 @@ export function computePeerDBHealth(
   // The headline value is the count an operator acts on first.
   return { status, value: failed + terminated, label }
 }
+
+/** The PeerDB Health cards, one per check (`components/health/peerdb-cards.tsx`). */
+export type PeerDBCheckId =
+  | 'peerdb-fleet'
+  | 'peerdb-api'
+  | 'peerdb-mirror-failures'
+  | 'peerdb-paused'
+  | 'peerdb-slot-lag'
+
+/** One PeerDB card's result, plus the mirrors it is about (worst first). */
+export interface PeerDBCheckResult extends ComputedMutations {
+  mirrors: string[]
+}
+
+/**
+ * Why `GET /api/v1/peerdb-metrics` failed, from the client-side error message.
+ *
+ * The route answers 401/403 when PeerDB rejects the credentials and 502 when it
+ * cannot be reached or timed out; `usePeerDBMetrics` keeps that status in its
+ * message as `(NNN)`. Anything without a 401/403 reads as unreachable.
+ */
+export function classifyPeerDBApiError(
+  message: string
+): 'auth' | 'unreachable' {
+  return /\b(401|403)\b/.test(message) ? 'auth' : 'unreachable'
+}
+
+const worseOf = (a: HealthStatus, b: HealthStatus): HealthStatus =>
+  SEVERITY_RANK[b] < SEVERITY_RANK[a] ? b : a
+
+const nameList = (names: readonly string[]) =>
+  names.length <= 3
+    ? names.join(', ')
+    : `${names.slice(0, 3).join(', ')} +${names.length - 3} more`
+
+/**
+ * Per-card PeerDB status, so each card sorts and alerts on its own condition
+ * instead of every card sharing the fleet's worst status.
+ *
+ * Only checks whose data already reaches the browser are here. Paused age,
+ * snapshot-stalled duration, zero throughput and last-sync age need per-mirror
+ * timestamps that `/api/v1/peerdb-metrics` does not return yet, so they have no
+ * card rather than a guessed one.
+ */
+export function computePeerDBCheck(
+  id: PeerDBCheckId,
+  source: PeerDBHealthSource
+): PeerDBCheckResult {
+  if (source.kind === 'loading') {
+    return { status: 'loading', value: 0, label: 'Loading…', mirrors: [] }
+  }
+
+  if (id === 'peerdb-api') {
+    if (source.kind === 'error') {
+      const auth = classifyPeerDBApiError(source.message) === 'auth'
+      return {
+        status: 'critical',
+        value: 1,
+        label: auth
+          ? 'PeerDB rejected the credentials — check the PeerDB API username and password'
+          : 'PeerDB API unreachable — check PEERDB_API_URL and the network path',
+        mirrors: [],
+      }
+    }
+    return {
+      status: 'ok',
+      value: 0,
+      label: 'PeerDB API reachable',
+      mirrors: [],
+    }
+  }
+
+  if (source.kind === 'error') {
+    return { status: 'error', value: 0, label: 'Unavailable', mirrors: [] }
+  }
+
+  const m = source.metrics
+  switch (id) {
+    case 'peerdb-fleet':
+      return {
+        ...computePeerDBHealth(source),
+        mirrors: [
+          ...m.failedMirrors,
+          ...m.terminatedMirrors,
+          ...m.pausedMirrors,
+        ],
+      }
+    case 'peerdb-mirror-failures': {
+      const failed = m.failedMirrors.length
+      const terminated = m.terminatedMirrors.length
+      const status = worseOf(
+        classifyValue(failed, { warning: 1, critical: 3 }),
+        classifyValue(terminated, { warning: 1, critical: 5 })
+      )
+      const mirrors = [...m.failedMirrors, ...m.terminatedMirrors]
+      const label =
+        mirrors.length === 0
+          ? 'No failed or terminated mirrors'
+          : `${failed} failed · ${terminated} terminated: ${nameList(mirrors)}`
+      return { status, value: mirrors.length, label, mirrors }
+    }
+    case 'peerdb-paused': {
+      const paused = m.pausedMirrors.length
+      // Warning only: without a paused-since timestamp a deliberate pause and a
+      // forgotten one look the same, so this never escalates to critical.
+      const status: HealthStatus = paused > 0 ? 'warning' : 'ok'
+      const label =
+        paused === 0
+          ? 'No paused mirrors'
+          : `${paused} paused: ${nameList(m.pausedMirrors)}`
+      return { status, value: paused, label, mirrors: [...m.pausedMirrors] }
+    }
+    case 'peerdb-slot-lag': {
+      const lag = m.maxSlotLagMb
+      if (lag === null) {
+        return {
+          status: 'ok',
+          value: 0,
+          label: 'No replication-slot lag reported',
+          mirrors: [],
+        }
+      }
+      const status = classifyValue(lag, {
+        warning: SLOT_LAG_WARN_MB,
+        critical: SLOT_LAG_CRITICAL_MB,
+      })
+      // `maxSlotLagLabel` is `peer/slot`; the peer is the mirror to open.
+      const peer = m.maxSlotLagLabel?.split('/')[0] ?? ''
+      const mbText = `${Math.round(lag).toLocaleString()} MiB`
+      return {
+        status,
+        value: Math.round(lag),
+        label: m.maxSlotLagLabel
+          ? `Worst slot ${m.maxSlotLagLabel}: ${mbText}`
+          : `Worst slot lag ${mbText}`,
+        mirrors: peer ? [peer] : [],
+      }
+    }
+  }
+}
