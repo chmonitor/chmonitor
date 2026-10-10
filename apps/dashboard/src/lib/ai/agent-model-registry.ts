@@ -5,6 +5,8 @@
  * The dropdown generates `provider:model` combinations from this.
  */
 
+import { isProviderConfigured, PROVIDERS } from './providers'
+
 export interface ModelEntry {
   /** Provider-agnostic model ID (e.g., 'qwen/qwen3.5-397b-a17b') */
   id: string
@@ -33,6 +35,13 @@ export const DEFAULT_AGENT_MODEL = 'anyrouter:google/gemma-4-26b-a4b-it'
  */
 export const FALLBACK_AGENT_MODEL = 'openrouter/free'
 
+/** Default model per provider, used when that provider is the first configured. */
+const PROVIDER_DEFAULT_MODELS: Readonly<Record<string, string>> = {
+  openrouter: FALLBACK_AGENT_MODEL,
+  nvidia: 'nvidia:nvidia/nemotron-3-super-120b-a12b',
+  anyrouter: DEFAULT_AGENT_MODEL,
+}
+
 /**
  * Resolve the best default model for the current deployment.
  *
@@ -43,17 +52,21 @@ export const FALLBACK_AGENT_MODEL = 'openrouter/free'
  * AnyRouter usage (`request_count`), falling back to {@link DEFAULT_AGENT_MODEL}
  * (curated Gemma) if the dynamic catalog is unavailable.
  *
- * If AnyRouter is not configured, fall back to OpenRouter's free auto-router
- * which works with the documented `LLM_API_KEY`-only setup.
+ * Otherwise the first configured provider in `PROVIDERS` order wins
+ * (OpenRouter's free auto-router for the documented `LLM_API_KEY`-only setup,
+ * then NVIDIA NIM).
  */
 export function resolveDefaultAgentModel(): string {
-  if (process.env.ANYROUTER_API_KEY) {
+  if (isProviderConfigured('anyrouter')) {
     // Lazy import-free constant — keep registry free of the dynamic module
     // cycle (dynamic-models imports isFreeAgentModel from this file).
     return 'anyrouter:auto'
   }
-  if (process.env.LLM_API_KEY || process.env.OPENROUTER_API_KEY) {
-    return FALLBACK_AGENT_MODEL
+  // Otherwise the first configured provider, in PROVIDERS priority order, so a
+  // deployment with only (say) NVIDIA_API_KEY gets a model it can actually call.
+  for (const providerId of Object.keys(PROVIDERS)) {
+    const model = PROVIDER_DEFAULT_MODELS[providerId]
+    if (model && isProviderConfigured(providerId)) return model
   }
   // No provider configured — return the curated static default; the caller's
   // provider preflight will surface a clear 503 if it actually runs.

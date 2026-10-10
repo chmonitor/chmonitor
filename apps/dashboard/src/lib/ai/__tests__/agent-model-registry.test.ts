@@ -137,8 +137,41 @@ describe('resolveDefaultAgentModel', () => {
     expect(resolveDefaultAgentModel()).toBe('anyrouter:auto')
   })
 
+  test('returns the NVIDIA model when only NVIDIA_API_KEY is set', () => {
+    setEnv({
+      ANYROUTER_API_KEY: undefined,
+      LLM_API_KEY: undefined,
+      OPENROUTER_API_KEY: undefined,
+      NVIDIA_API_KEY: 'nv-key',
+    })
+    expect(resolveDefaultAgentModel()).toBe(
+      'nvidia:nvidia/nemotron-3-super-120b-a12b'
+    )
+  })
+
+  test('OpenRouter wins over NVIDIA (PROVIDERS order) when both are set', () => {
+    setEnv({
+      ANYROUTER_API_KEY: undefined,
+      LLM_API_KEY: undefined,
+      OPENROUTER_API_KEY: 'or-key',
+      NVIDIA_API_KEY: 'nv-key',
+    })
+    expect(resolveDefaultAgentModel()).toBe(FALLBACK_AGENT_MODEL)
+  })
+
+  test('AnyRouter keeps priority when all three providers are set', () => {
+    setEnv({
+      ANYROUTER_API_KEY: 'ar-key',
+      LLM_API_KEY: undefined,
+      OPENROUTER_API_KEY: 'or-key',
+      NVIDIA_API_KEY: 'nv-key',
+    })
+    expect(resolveDefaultAgentModel()).toBe('anyrouter:auto')
+  })
+
   test('falls back to DEFAULT_AGENT_MODEL when no keys are configured', () => {
     setEnv({
+      NVIDIA_API_KEY: undefined,
       ANYROUTER_API_KEY: undefined,
       LLM_API_KEY: undefined,
       OPENROUTER_API_KEY: undefined,
