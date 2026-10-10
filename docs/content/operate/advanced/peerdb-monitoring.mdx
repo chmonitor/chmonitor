@@ -169,9 +169,21 @@ cap. The browser makes one request: `GET /api/v1/peerdb/log-patterns`.
 |---|---|---|
 | Window | `1h` · `24h` (default) · `7d` | Keeps only lines whose timestamp falls inside the window. Lines with no timestamp are dropped. |
 | View | Patterns (default) · Raw | **Patterns** folds repeated lines into one row with a count, a sparkline, last seen, and the mirrors that hit it. Expand a row to see its raw lines. **Raw** lists every line, newest first. |
-| Group by | Pattern · Mirror · Table | **Pattern** groups lines whose text matches once numbers, ids, LSNs, and timestamps are masked. **Mirror** gives one row per mirror. **Table** groups by the table a message names (`... table public.orders`), with `(no table)` for the rest. |
+| Group by | Pattern · Mirror · Prefix · Table | **Pattern** groups lines whose text matches once numbers, ids, LSNs, and timestamps are masked. **Mirror** gives one row per mirror. **Prefix** groups mirrors by the same prefix groups `/peerdb` shows (for example `qrep_sg_fleetreporting1_*`); a mirror in no group keeps its own row. **Table** groups by the table a message names (`... table public.orders`), with `(no table)` for the rest. |
 | Sort | Level · Last seen · Count | **Level** puts errors and warnings first. The other two sort by recency or by volume. |
 | Level | All · ERROR · WARN · INFO | Filters lines before grouping. When errors or warnings exist, info patterns are collapsed behind a "Show N info patterns" button. |
+
+### Muting a pattern
+
+In the Pattern group-by, each row has a **Mute...** control: 1 hour, 24 hours,
+or until unmuted. A muted pattern is hidden from the list, and a **Show N
+muted** button at the bottom reveals it with an **Unmute** action. Expired
+mutes disappear on their own.
+
+Muting is per browser: it is stored in that browser's local storage, is not
+shared with other people or devices, and is lost if site data is cleared. It
+only hides a pattern from this feed and does not affect alerts. To silence
+alerting on a pattern, use the PeerDB alert rules.
 
 The header shows how many mirrors were read out of how many PeerDB lists. A
 note appears under it when coverage is incomplete:

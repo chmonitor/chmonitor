@@ -18,6 +18,12 @@ import {
   splitInfoGroups,
   timeRange,
 } from '@/lib/peerdb/log-groups'
+import {
+  isMuted,
+  MUTE_DURATIONS,
+  type MuteDuration,
+  type MuteMap,
+} from '@/lib/peerdb/log-mute'
 import { cn } from '@/lib/utils'
 
 /** Mirror chips shown on a pattern row before collapsing into "+N". */
@@ -149,15 +155,67 @@ function Sparkline({
   )
 }
 
+const MUTE_HINT =
+  'Muting hides this pattern in this browser only. It does not affect alerts; alert muting lives in PeerDB alert rules.'
+
+/** Mute (pick a duration) or, for a muted row, unmute. Per browser only. */
+function MuteControl({
+  fingerprint,
+  muted,
+  onMute,
+  onUnmute,
+}: {
+  fingerprint: string
+  muted: boolean
+  onMute: (fingerprint: string, duration: MuteDuration) => void
+  onUnmute: (fingerprint: string) => void
+}) {
+  if (muted) {
+    return (
+      <button
+        type="button"
+        title={MUTE_HINT}
+        onClick={() => onUnmute(fingerprint)}
+        className="mt-0.5 shrink-0 rounded border border-border px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+      >
+        Unmute
+      </button>
+    )
+  }
+  return (
+    <select
+      aria-label="Mute this pattern"
+      title={MUTE_HINT}
+      value=""
+      onChange={(e) => {
+        const ms = MUTE_DURATIONS[Number(e.target.value)]?.ms
+        if (ms !== undefined) onMute(fingerprint, ms)
+      }}
+      className="mt-0.5 h-4 shrink-0 rounded border border-border bg-transparent px-1 text-[10px] text-muted-foreground"
+    >
+      <option value="" disabled>
+        Mute…
+      </option>
+      {MUTE_DURATIONS.map((d, i) => (
+        <option key={d.label} value={i}>
+          {d.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 /** One group: level, count, sparkline, last seen, mirrors, newest sample. */
 function PatternRow({
   group,
   range,
   showMirrors,
+  muteControl,
 }: {
   group: LogPatternGroup<LogFeedEntry>
   range: { from: number; to: number } | null
   showMirrors: boolean
+  muteControl?: ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const chips = group.mirrors.slice(0, MAX_CHIPS)
@@ -213,6 +271,7 @@ function PatternRow({
           </div>
         </div>
         {spark && <Sparkline values={spark} level={group.level} />}
+        {muteControl}
       </div>
       <CollapsibleContent>
         <div className="ml-6 divide-y divide-border border-l border-border bg-muted/20">
@@ -244,19 +303,34 @@ export function LogPatternList({
   groups,
   pageSize,
   showMirrors = true,
+  mutes,
+  onMute,
+  onUnmute,
 }: {
   groups: LogPatternGroup<LogFeedEntry>[]
   pageSize: number
   showMirrors?: boolean
+  /** Per-browser mutes keyed by group fingerprint; muting is off without these. */
+  mutes?: MuteMap
+  onMute?: (fingerprint: string, duration: MuteDuration) => void
+  onUnmute?: (fingerprint: string) => void
 }) {
   const [showInfo, setShowInfo] = useState(false)
   const [showAll, setShowAll] = useState(false)
+  const [showMuted, setShowMuted] = useState(false)
+  const canMute = Boolean(mutes && onMute && onUnmute)
   const range = useMemo(
     () => timeRange(groups.flatMap((g) => g.entries)),
     [groups]
   )
-  const { visible, collapsed } = splitInfoGroups(groups)
-  const list = showInfo ? groups : visible
+  const mutedGroups = canMute
+    ? groups.filter((g) => isMuted(mutes as MuteMap, g.fingerprint))
+    : []
+  const live = canMute
+    ? groups.filter((g) => !isMuted(mutes as MuteMap, g.fingerprint))
+    : groups
+  const { visible, collapsed } = splitInfoGroups(live)
+  const list = showInfo ? live : visible
   const rows = showAll ? list : list.slice(0, pageSize)
 
   return (
@@ -264,10 +338,57 @@ export function LogPatternList({
       <ul className="divide-y divide-border">
         {rows.map((g) => (
           <li key={`${g.level}-${g.fingerprint}`}>
-            <PatternRow group={g} range={range} showMirrors={showMirrors} />
+            <PatternRow
+              group={g}
+              range={range}
+              showMirrors={showMirrors}
+              muteControl={
+                canMute && onMute && onUnmute ? (
+                  <MuteControl
+                    fingerprint={g.fingerprint}
+                    muted={false}
+                    onMute={onMute}
+                    onUnmute={onUnmute}
+                  />
+                ) : undefined
+              }
+            />
           </li>
         ))}
       </ul>
+      {mutedGroups.length > 0 && (
+        <div className="border-t border-border px-3 py-1.5 text-center">
+          <button
+            type="button"
+            title={MUTE_HINT}
+            onClick={() => setShowMuted((v) => !v)}
+            className="text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            {showMuted ? 'Hide muted' : `Show ${mutedGroups.length} muted`}
+          </button>
+        </div>
+      )}
+      {showMuted && onMute && onUnmute && (
+        <ul className="divide-y divide-border border-t border-border opacity-70">
+          {mutedGroups.map((g) => (
+            <li key={`muted-${g.level}-${g.fingerprint}`}>
+              <PatternRow
+                group={g}
+                range={range}
+                showMirrors={showMirrors}
+                muteControl={
+                  <MuteControl
+                    fingerprint={g.fingerprint}
+                    muted
+                    onMute={onMute}
+                    onUnmute={onUnmute}
+                  />
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      )}
       {collapsed.length > 0 && (
         <div className="border-t border-border px-3 py-1.5 text-center">
           <button

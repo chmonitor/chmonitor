@@ -7,7 +7,7 @@ import { normalizeLogLevel } from './mirror-logs'
 /** A mirror log line normalised for grouping. */
 export interface LogFeedEntry extends MirrorLog, FingerprintInput {}
 
-export type LogGroupBy = 'pattern' | 'mirror' | 'table'
+export type LogGroupBy = 'pattern' | 'mirror' | 'prefix' | 'table'
 
 export const NO_TABLE_LABEL = '(no table)'
 
@@ -38,11 +38,19 @@ export function toLogFeedEntry(
   }
 }
 
+/**
+ * `prefixOf` maps a mirror name to its prefix-group label (see
+ * `mirrorPrefixResolver`). Without it, `prefix` falls back to per-mirror rows.
+ */
 export function groupLogs<T extends FingerprintInput>(
   entries: readonly T[],
-  by: LogGroupBy
+  by: LogGroupBy,
+  prefixOf?: (mirror: string) => string
 ): LogPatternGroup<T>[] {
   if (by === 'mirror') return groupLogsByKey(entries, (e) => e.mirror)
+  if (by === 'prefix') {
+    return groupLogsByKey(entries, (e) => prefixOf?.(e.mirror) ?? e.mirror)
+  }
   if (by === 'table') {
     return groupLogsByKey(
       entries,

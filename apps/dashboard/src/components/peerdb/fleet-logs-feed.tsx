@@ -9,6 +9,8 @@ import type {
 } from '@/lib/peerdb/log-patterns-aggregate'
 
 import { LogLine, LogPatternList, segmentClass } from './log-pattern-list'
+import { mirrorPrefixResolver } from './log-prefix'
+import { useLogMutes } from './use-log-mutes'
 import { useMemo, useState } from 'react'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { groupLogs } from '@/lib/peerdb/log-groups'
@@ -29,6 +31,7 @@ const VIEWS: View[] = ['patterns', 'raw']
 const GROUP_BYS: { id: LogGroupBy; label: string }[] = [
   { id: 'pattern', label: 'Pattern' },
   { id: 'mirror', label: 'Mirror' },
+  { id: 'prefix', label: 'Prefix' },
   { id: 'table', label: 'Table' },
 ]
 
@@ -92,7 +95,7 @@ function sortGroups<G extends LogPatternGroup<LogFeedEntry>>(
  * reads every mirror's `POST /v1/mirrors/logs` with bounded concurrency and
  * returns in-window lines (1h / 24h / 7d) plus coverage; this view filters by
  * level (error / warn / info). The default Patterns view groups repeats (by
- * message pattern, mirror, or table, sorted by level, last seen, or count)
+ * message pattern, mirror, mirror prefix group, or table, sorted by level, last seen, or count)
  * with info groups collapsed behind errors and warnings; Raw shows every line.
  * Rows deep-link to the mirror detail page.
  */
@@ -113,10 +116,15 @@ export function FleetLogsFeed() {
     () => (level === 'all' ? all : all.filter((l) => l.level === level)),
     [all, level]
   )
-  const groups = useMemo(
-    () => sortGroups(groupLogs(filtered, groupBy), sort),
-    [filtered, groupBy, sort]
+  const prefixOf = useMemo(
+    () => mirrorPrefixResolver(all.map((l) => l.mirror)),
+    [all]
   )
+  const groups = useMemo(
+    () => sortGroups(groupLogs(filtered, groupBy, prefixOf), sort),
+    [filtered, groupBy, prefixOf, sort]
+  )
+  const { mutes, mute, unmute } = useLogMutes()
 
   const rawRows = showAll ? filtered : filtered.slice(0, PAGE)
 
@@ -247,6 +255,9 @@ export function FleetLogsFeed() {
           key={`${groupBy}-${sort}`}
           groups={groups}
           pageSize={PAGE}
+          {...(groupBy === 'pattern'
+            ? { mutes, onMute: mute, onUnmute: unmute }
+            : {})}
         />
       ) : (
         <>
