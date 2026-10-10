@@ -14,6 +14,8 @@
 import type { ReactNode } from 'react'
 
 import { SuggestedPrompts } from '@/components/agents/welcome/suggested-prompts-view'
+import { ADD_CONNECTION_VIEW } from '@/components/assistant-ui/-thread/agent-connection-error'
+import { AgentConnectionErrorNotice } from '@/components/assistant-ui/-thread/agent-connection-error-notice'
 import { AgentGreetingIllustration } from '@/components/illustrations/agent-greeting-illustration'
 import { useAgentGreeting } from '@/lib/hooks/use-agent-greeting'
 
@@ -30,9 +32,15 @@ interface AgentWelcomeScreenProps {
   activeToolCount: number
   /** Called when the user picks a suggested prompt — fills the composer. */
   onPickPrompt?: (prompt: string) => void
+  /**
+   * Signed-in cloud user with no connection of their own: show the
+   * add-connection prompt instead of a composer whose message would be refused.
+   */
+  needsConnection?: boolean
 }
 
 export function AgentWelcomeScreen({
+  needsConnection = false,
   firstName,
   clusterName,
   hasClusterIssue,
@@ -64,10 +72,22 @@ export function AgentWelcomeScreen({
       </div>
 
       {/* Composer (parent-owned) */}
-      <div className="mb-8">{composer}</div>
+      <div className="mb-8">
+        {needsConnection ? (
+          <AgentConnectionErrorNotice view={ADD_CONNECTION_VIEW} />
+        ) : (
+          composer
+        )}
+      </div>
 
       {/* Suggested questions — example-prompt tile grid (issue #2800) */}
-      <SuggestedPrompts variant="grid" onPickPrompt={onPickPrompt} limit={6} />
+      {needsConnection ? null : (
+        <SuggestedPrompts
+          variant="grid"
+          onPickPrompt={onPickPrompt}
+          limit={6}
+        />
+      )}
 
       {/* Footer status */}
       <div className="text-muted-foreground mt-4 flex items-center justify-center gap-2 text-center text-[11px] tracking-[0.02em]">

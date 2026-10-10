@@ -1,5 +1,7 @@
 'use client'
 
+import { mapAgentConnectionError } from './agent-connection-error'
+import { AgentConnectionErrorNotice } from './agent-connection-error-notice'
 import { AgentErrorAlert, resolveRuntimeAgentError } from './agent-error-alert'
 import { MessagePrimitive, useAuiState } from '@assistant-ui/react'
 
@@ -20,9 +22,15 @@ export function MessageError() {
     rawError ?? 'An unexpected error occurred'
   )
 
+  const connectionError = mapAgentConnectionError(rawError)
+
   return (
     <MessagePrimitive.Error>
-      <AgentErrorAlert agentError={agentError} />
+      {connectionError ? (
+        <AgentConnectionErrorNotice view={connectionError} />
+      ) : (
+        <AgentErrorAlert agentError={agentError} />
+      )}
     </MessagePrimitive.Error>
   )
 }

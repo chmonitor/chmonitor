@@ -96,7 +96,7 @@ split-brain. Detection is pure and unit-tested (`cloud-mode.test.ts`); the
 | Auth | usually `none`; CLI device login **off** (`CHM_DEVICE_LOGIN=auto`) — opt in with `true` for device-only tokens on a trusted LAN | Clerk + `CHM_CLERK_PUBLIC_READ=true`; CLI device login **on** when `CHM_API_KEY_SECRET` is set |
 | Per-user conns | optional | on (`VITE_FEATURE_USER_CONNECTIONS_DB=true`) |
 | Agent (anon) | IP rate limit only, no daily cap | daily guest cap (default 3) + tighter RL (5/min); D1 `guest:<ip-hash>` |
-| Agent (signed-in) | env hosts; own saved connections if enabled | demo → 403 `demo_hidden`; own saved connection → queried directly |
+| Agent (signed-in) | env hosts; own saved connections if enabled | demo → 403 `demo_hidden`; own saved connection → queried directly. Errors render as actionable notices (`mapAgentConnectionError`); zero hosts → add-connection prompt on the welcome screen |
 
 **The agent on a user's own connection.** `POST /api/v1/agent` accepts a
 negative `hostId`. After resolving the caller, the route calls
