@@ -8,7 +8,8 @@
  * simple UI controls.
  */
 
-import { BookmarkIcon, TrashIcon } from '@radix-ui/react-icons'
+import { BookmarkIcon } from '@radix-ui/react-icons'
+import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { DashboardLayout } from '@/types/dashboard-layout'
@@ -164,7 +165,7 @@ export function SavedDashboardsToolbar({
             title={`Delete "${activeName}"`}
             className="text-destructive hover:text-destructive"
           >
-            <TrashIcon className="mr-1 size-3" />
+            <Trash2 className="mr-1 size-3" />
             Delete
           </Button>
 

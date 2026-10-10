@@ -19,7 +19,6 @@ import { SegmentedControl } from '@/components/filters/segmented-control'
 import { PageHeader } from '@/components/layout/page-header'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import {
   collectBrowserDiffSessions,
@@ -112,13 +111,7 @@ export function SettingsDiffPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Settings Diff" description={PAGE_DESCRIPTION} />
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-              Loading settings…
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState variant="loading" compact />
       </div>
     )
   }
@@ -131,11 +124,11 @@ export function SettingsDiffPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Settings Diff" description={PAGE_DESCRIPTION} />
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-sm text-destructive">{message}</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          variant="error"
+          title="Failed to load settings diff"
+          description={message}
+        />
       </div>
     )
   }
