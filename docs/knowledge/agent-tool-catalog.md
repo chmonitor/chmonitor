@@ -111,6 +111,16 @@ Measured on this branch (default gate, `z.toJSONSchema` over each tool's
 `load_skill`, `ask_user`, and `update_plan`. It is the one deliberate
 regression, in exchange for the routing help and the drift guard.
 
+`load_skill` description: 3,366 chars before (18 skills, full descriptions
+inlined) and 1,504 chars after (name plus a first-sentence purpose capped at 60
+chars). Unknown names still error with the full skill-name list.
+
+Query results sent to the model are capped at 200 rows (`MAX_QUERY_RESULT_ROWS`)
+and 16,384 JSON bytes (`MAX_RESULT_BYTES`, `capResultBytes`); `capResultRows`
+returns a `truncationNote` telling the model to narrow the query.
+`query_and_visualize` keeps 1,000 rows and no byte cap because it renders
+client-side.
+
 ## Gotchas
 
 - **Never `git checkout <path>` in a shared worktree.** A concurrent session had

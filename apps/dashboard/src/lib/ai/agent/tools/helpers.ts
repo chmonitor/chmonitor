@@ -149,28 +149,66 @@ export async function validatedReadOnlyQuery(options: {
 }
 
 /**
- * Max rows returned to the model by the freeform-SQL tools (`query`,
- * `query_and_visualize`). Dedicated tools cap independently (e.g. list_tables
- * at 500 rows); this bounds agent-authored SQL that has no LIMIT, matching
- * the "default to 1000 rows" guidance in SEC_PERFORMANCE_CONSTRAINTS.
- * Mirrored in packages/mcp-server/src/tools/helpers.ts for the standalone
- * MCP server's own `query` tool (separate implementation, no shared code).
+ * Max rows returned to the model by the freeform-SQL tools (`query`). Dedicated
+ * tools cap independently (e.g. list_tables at 500 rows); this bounds
+ * agent-authored SQL that has no LIMIT. Kept low because every row is paid for
+ * in model input tokens. Mirrored (at 1000) in packages/mcp-server for its own
+ * `query` tool (separate implementation, no shared code).
  */
-export const MAX_QUERY_RESULT_ROWS = 1000
+export const MAX_QUERY_RESULT_ROWS = 200
 
 /**
- * Cap an array of query result rows to `maxRows`, flagging truncation so the
- * caller can surface a visible note to the model instead of silently
- * dropping rows.
+ * Rows kept for `query_and_visualize`: the rows render client-side in a chart,
+ * so the model-facing row budget does not apply.
+ */
+export const MAX_VISUALIZATION_ROWS = 1000
+
+/** Max serialized JSON bytes of rows returned to the model. */
+export const MAX_RESULT_BYTES = 16_384
+
+/**
+ * Drop trailing rows until the JSON-serialized rows fit in `maxBytes`. Wide
+ * rows (long SQL text, arrays) can blow the token budget well under the row cap.
+ */
+export function capResultBytes<T>(
+  data: T[],
+  maxBytes: number = MAX_RESULT_BYTES
+): { data: T[]; truncated: boolean } {
+  if (!Array.isArray(data) || !Number.isFinite(maxBytes)) {
+    return { data, truncated: false }
+  }
+  const encoder = new TextEncoder()
+  // 2 bytes for the enclosing brackets, 1 per separating comma.
+  let size = 2
+  for (let i = 0; i < data.length; i++) {
+    size +=
+      encoder.encode(JSON.stringify(data[i]) ?? 'null').length + (i > 0 ? 1 : 0)
+    if (size > maxBytes) return { data: data.slice(0, i), truncated: true }
+  }
+  return { data, truncated: false }
+}
+
+/**
+ * Cap an array of query result rows to `maxRows` and `maxBytes`, flagging
+ * truncation so the caller can surface a visible note to the model instead of
+ * silently dropping rows. `truncationNote` is set whenever `truncated` is.
  */
 export function capResultRows<T>(
   data: T[],
-  maxRows: number = MAX_QUERY_RESULT_ROWS
-): { data: T[]; truncated: boolean } {
-  if (!Array.isArray(data) || data.length <= maxRows) {
-    return { data, truncated: false }
+  maxRows: number = MAX_QUERY_RESULT_ROWS,
+  maxBytes: number = MAX_RESULT_BYTES
+): { data: T[]; truncated: boolean; truncationNote?: string } {
+  if (!Array.isArray(data)) return { data, truncated: false }
+  const byRows = data.length > maxRows ? data.slice(0, maxRows) : data
+  const { data: capped, truncated: byBytes } = capResultBytes(byRows, maxBytes)
+  if (!byBytes && byRows === data) return { data, truncated: false }
+  return {
+    data: capped,
+    truncated: true,
+    truncationNote: byBytes
+      ? `Results truncated to ${capped.length} of ${data.length} rows to fit the ${maxBytes}-byte limit. Select fewer columns, add a LIMIT clause, or aggregate the query.`
+      : truncationNote(maxRows),
   }
-  return { data: data.slice(0, maxRows), truncated: true }
 }
 
 /**

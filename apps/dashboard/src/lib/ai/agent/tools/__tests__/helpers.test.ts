@@ -9,6 +9,7 @@ const {
   requiredHostIdSchema,
   capResultRows,
   truncationNote,
+  capResultBytes,
   MAX_QUERY_RESULT_ROWS,
 } = await import('../helpers')
 
@@ -111,12 +112,49 @@ describe('capResultRows', () => {
     expect(result.truncated).toBe(true)
   })
 
-  test('defaults maxRows to MAX_QUERY_RESULT_ROWS (1000)', () => {
-    expect(MAX_QUERY_RESULT_ROWS).toBe(1000)
-    const data = Array.from({ length: 1200 }, (_, i) => i)
+  test('defaults maxRows to MAX_QUERY_RESULT_ROWS (200)', () => {
+    expect(MAX_QUERY_RESULT_ROWS).toBe(200)
+    const data = Array.from({ length: 300 }, (_, i) => i)
     const result = capResultRows(data)
-    expect(result.data).toHaveLength(1000)
+    expect(result.data).toHaveLength(200)
     expect(result.truncated).toBe(true)
+    expect(result.truncationNote).toContain('200 rows')
+  })
+
+  test('drops trailing wide rows to fit maxBytes and tells the model to narrow', () => {
+    const data = Array.from({ length: 50 }, (_, i) => ({
+      i,
+      q: 'x'.repeat(1000),
+    }))
+    const result = capResultRows(data, 200, 16_384)
+    expect(result.truncated).toBe(true)
+    expect(result.data.length).toBeGreaterThan(0)
+    expect(result.data.length).toBeLessThan(50)
+    expect(JSON.stringify(result.data).length).toBeLessThanOrEqual(16_384)
+    expect(result.data[0]).toBe(data[0])
+    expect(result.truncationNote).toContain('Select fewer columns')
+  })
+
+  test('does not flag truncation when rows fit both limits', () => {
+    const result = capResultRows([{ a: 1 }, { a: 2 }])
+    expect(result.truncated).toBe(false)
+    expect(result.truncationNote).toBeUndefined()
+  })
+})
+
+describe('capResultBytes', () => {
+  test('returns rows unchanged under the limit', () => {
+    expect(capResultBytes([{ a: 1 }])).toEqual({
+      data: [{ a: 1 }],
+      truncated: false,
+    })
+  })
+  test('keeps at least a prefix and flags truncation over the limit', () => {
+    const rows = Array.from({ length: 10 }, () => ({ v: 'y'.repeat(100) }))
+    const r = capResultBytes(rows, 350)
+    expect(r.truncated).toBe(true)
+    expect(JSON.stringify(r.data).length).toBeLessThanOrEqual(350)
+    expect(r.data.length).toBe(3)
   })
 })
 

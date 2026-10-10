@@ -5,7 +5,6 @@ import {
   hostIdSchema,
   readOnlyQuery,
   resolveHostId,
-  truncationNote,
   validatedReadOnlyQuery,
 } from './helpers'
 import { dynamicTool } from 'ai'
@@ -28,11 +27,11 @@ export function createSchemaTools(hostId: number) {
           sql,
           hostId: paramHostId ?? hostId,
         })) as unknown[]
-        const { data, truncated } = capResultRows(result)
+        const { data, truncated, truncationNote } = capResultRows(result)
         return {
           data,
           truncated,
-          ...(truncated && { note: truncationNote() }),
+          ...(truncated && { note: truncationNote }),
         }
       },
     }),
