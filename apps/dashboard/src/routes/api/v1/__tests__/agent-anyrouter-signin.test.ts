@@ -50,8 +50,9 @@ mock.module('@clerk/tanstack-react-start/server', () => ({
 mock.module('@/lib/feature-permissions/server', () => ({
   authorizeFeatureRequest: async () => null,
 }))
+let autoAlias = false
 mock.module('@/lib/ai/anyrouter-dynamic-models', () => ({
-  isAnyRouterAutoModelId: () => false,
+  isAnyRouterAutoModelId: (id: string) => autoAlias && id === 'anyrouter:auto',
   resolveAnyRouterAutoModelId: async () => null,
   loadAnyRouterDynamicModelEntries: async () => [],
 }))
@@ -163,6 +164,26 @@ describe('POST /api/v1/agent — Sign in with AnyRouter', () => {
     expect(runtimeApiKey()).toBeUndefined()
     expect(reserveAiUsage).toHaveBeenCalledTimes(1)
     expect(reserveAiUsage.mock.calls[0]?.[0]).toStartWith('guest:')
+  })
+
+  test('cloud guest, flag on, anyrouter:auto resolved to another provider: token never leaves for it', async () => {
+    // No AnyRouter deployment key → `anyrouter:auto` resolves to the fallback
+    // provider. The guest's AnyRouter token must not be sent there.
+    process.env[FLAG] = 'true'
+    delete process.env.ANYROUTER_API_KEY
+    const savedOpenRouter = process.env.OPENROUTER_API_KEY
+    process.env.OPENROUTER_API_KEY = 'or-deployment-key-000000'
+    autoAlias = true
+    try {
+      await send({ apiKey: TOKEN, model: 'anyrouter:auto' })
+      const calls = createClickHouseAgent.mock.calls
+      if (calls.length > 0) expect(calls[0]?.[0]?.apiKey).not.toBe(TOKEN)
+      expect(reserveAiUsage).toHaveBeenCalledTimes(1)
+    } finally {
+      autoAlias = false
+      if (savedOpenRouter === undefined) delete process.env.OPENROUTER_API_KEY
+      else process.env.OPENROUTER_API_KEY = savedOpenRouter
+    }
   })
 
   test('signed-in, no request key: the stored token reaches the runtime, not metered', async () => {
