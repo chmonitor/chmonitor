@@ -21,7 +21,7 @@
 //    Fumadocs sidebar order and display names.
 
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, posix, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -29,6 +29,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, '../../..')
 const SRC_DIR = resolve(REPO_ROOT, 'docs/content')
 const DEST_DIR = resolve(__dirname, '../content/docs')
+// Generated data (scripts/gen-docs-data.ts) for the MDX data components, which
+// import it as `@/generated/docs-data/<name>.json`. `_data` holds no pages.
+const DATA_SRC_DIR = join(SRC_DIR, '_data')
+const DATA_DEST_DIR = resolve(__dirname, '../src/generated/docs-data')
 const RAW_BASE = 'https://raw.githubusercontent.com/chmonitor/chmonitor/main'
 
 // Information architecture: three top-level tabs (Fumadocs "Layout Tabs"),
@@ -317,6 +321,18 @@ async function collectDirs(root, base = root, out = new Set()) {
   return out
 }
 
+// Copy docs/content/_data/*.json → src/generated/docs-data/ (replaced whole).
+async function syncData() {
+  await rm(DATA_DEST_DIR, { recursive: true, force: true })
+  await mkdir(DATA_DEST_DIR, { recursive: true })
+  if (!existsSync(DATA_SRC_DIR)) return 0
+  const names = (await readdir(DATA_SRC_DIR)).filter((n) => n.endsWith('.json'))
+  for (const name of names) {
+    await copyFile(join(DATA_SRC_DIR, name), join(DATA_DEST_DIR, name))
+  }
+  return names.length
+}
+
 async function main() {
   if (!existsSync(SRC_DIR)) {
     throw new Error(`Source docs not found at ${SRC_DIR}`)
@@ -392,9 +408,12 @@ async function main() {
     )
   }
 
+  const dataFiles = await syncData()
+
   console.log(
     `[sync-docs] ${total} page(s) → content/docs (Fumadocs, served at /)`,
   )
+  console.log(`[sync-docs] ${dataFiles} data file(s) → src/generated/docs-data`)
 }
 
 await main()

@@ -7,13 +7,17 @@ import { Step, Steps } from 'fumadocs-ui/components/steps'
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import { TypeTable } from 'fumadocs-ui/components/type-table'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
+import { AlertRuleList } from '@/components/mdx/alert-rule-list'
 import { Badge } from '@/components/mdx/badge'
 import { ConfigTab, ConfigTabs } from '@/components/mdx/config-tabs'
+import { EnvVarTable } from '@/components/mdx/env-var-table'
 import { FeatureCard } from '@/components/mdx/feature-card'
 import { GrantBuilder } from '@/components/mdx/grant-builder'
 import { ImageRow } from '@/components/mdx/image-row'
 import { Mermaid } from '@/components/mdx/mermaid'
 import { Screenshot } from '@/components/mdx/screenshot'
+import { ToolCatalog } from '@/components/mdx/tool-catalog'
+import { VersionMatrix } from '@/components/mdx/version-matrix'
 
 // Components made globally available to every MDX page (no per-file imports).
 // `defaultMdxComponents` already provides Card, Cards, Callout, Tabs, and code
@@ -42,7 +46,11 @@ export function getMDXComponents(components?: MDXComponents) {
     ConfigTabs,
     ConfigTab,
     FeatureCard,
+    AlertRuleList,
     Badge,
+    EnvVarTable,
+    ToolCatalog,
+    VersionMatrix,
     // Twoslash UI: renders TypeScript hover popups for ```ts twoslash blocks.
     ...Twoslash,
     ...components,

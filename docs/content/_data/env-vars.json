@@ -1,0 +1,935 @@
+{
+  "scanned": ["apps/dashboard/src", "packages"],
+  "vars": [
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "AGENTSTATE_AI_ENRICH",
+      "prefix": "AGENTSTATE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "AGENTSTATE_API_KEY",
+      "prefix": "AGENTSTATE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "AGENT_API_TOKEN",
+      "prefix": "AGENT"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "AGENT_DEBUG",
+      "prefix": "AGENT"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "AGENT_ENABLE_CONTROL_TOOLS",
+      "prefix": "AGENT"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "AGENT_JSON_RENDER_PATCH_GUARD_DEBUG",
+      "prefix": "AGENT"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "ANYROUTER_API_BASE",
+      "prefix": "ANYROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "ANYROUTER_API_KEY",
+      "prefix": "ANYROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "ANYROUTER_DYNAMIC_MODELS",
+      "prefix": "ANYROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "ANYROUTER_METRICS_CANDIDATE_CAP",
+      "prefix": "ANYROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "ANYROUTER_OAUTH_CLIENT_ID",
+      "prefix": "ANYROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "ANYROUTER_PRESETS",
+      "prefix": "ANYROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "ANYROUTER_PRESETS_MAX",
+      "prefix": "ANYROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "ANYROUTER_TOP_MODELS_N",
+      "prefix": "ANYROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "APP_CATEGORY",
+      "prefix": "APP"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "APP_NAME",
+      "prefix": "APP"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "APP_REFERER",
+      "prefix": "APP"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "APP_SOURCE",
+      "prefix": "APP"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "APP_VERSION",
+      "prefix": "APP"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CF_PAGES",
+      "prefix": "CF"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_AGENT_FIRECRAWL_MCP",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_ALLOW_PRIVATE_HOSTS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_API_KEY_SECRET",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_AUTH_PROVIDER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_AUTH_REQUIRED_FEATURES",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_CF_ACCESS_AUD",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_CF_ACCESS_TEAM_DOMAIN",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_CLERK_PUBLIC_READ",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_CLOUD_MODE",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_CONFIG_FILE",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_DEPLOYMENT_MODE",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_DISABLED_FEATURES",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_EDITION",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_EVENTS_INGEST_TOKEN",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_EVENTS_REEMIT_WEBHOOK_URL",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_FEATURE_CONVERSATION_DB",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_FEATURE_PEERDB_AGENT",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_FEATURE_PEERDB_ENABLED",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_FEATURE_POSTGRES_SOURCE",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_FEATURE_USER_CONNECTIONS_DB",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_FEATURE_WEBHOOK_SUBSCRIPTIONS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_GUEST_AI_REQUESTS_PER_DAY",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_HEALTH_SWEEP_ENABLED",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_LICENSE_KEY",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_MCP_PUBLIC",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_POLAR_SERVER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_PROXY_AUTH_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_PROXY_AUTH_SECRET",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_PROXY_SHARED_SECRET_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_TABLE_MAX_RESULT_ROWS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TELEMETRY_ENDPOINT",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_ALLOWED_GROUPS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_ALLOW_INSECURE",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_AUTH_SECRET",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_AVATAR_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_CUSTOM_HEADERS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_EMAIL_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_GROUPS_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_NAME_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_ROLE_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_SHARED_SECRET_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_TRUSTED_USER_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_USER_CONNECTIONS_ENCRYPTION_KEY",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_WEEKLY_REPORT_HOSTS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLERK_API_URL",
+      "prefix": "CLERK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLERK_OAUTH_ISSUER",
+      "prefix": "CLERK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLERK_PUBLISHABLE_KEY",
+      "prefix": "CLERK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CLERK_SECRET_KEY",
+      "prefix": "CLERK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLERK_WEBHOOK_SECRET",
+      "prefix": "CLERK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_DATABASE",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_EXCLUDE_USER_DEFAULT",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": "http://localhost:8123",
+      "inEnvExample": true,
+      "name": "CLICKHOUSE_HOST",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CLICKHOUSE_MANAGEMENT_ENABLED",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_MAX_EXECUTION_TIME",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CLICKHOUSE_NAME",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CLICKHOUSE_PASSWORD",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_POOL_CLEANUP_INTERVAL",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_POOL_SIZE",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_POOL_TIMEOUT",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": "default",
+      "inEnvExample": true,
+      "name": "CLICKHOUSE_USER",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLOUDFLARE_WORKERS",
+      "prefix": "CLOUDFLARE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CRON_SECRET",
+      "prefix": "CRON"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "DATABASE_URL",
+      "prefix": "DATABASE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "EVENTS_TABLE_NAME",
+      "prefix": "EVENTS"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "GITHUB_WEBHOOK_SECRET",
+      "prefix": "GITHUB"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_COOLDOWN_MINUTES",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_DIGEST_MINUTES",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_EMAIL_ENABLED",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_EMAIL_FROM",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_EMAIL_PROVIDER_URL",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_EMAIL_TO",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_ENABLED",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_HEALTHCHECKS_URL",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_MIN_SEVERITY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_NTFY_TOKEN",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_NTFY_URL",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_OPSGENIE_API_KEY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_OPSGENIE_REGION",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_PAGERDUTY_API_KEY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_PAGERDUTY_ROUTING_KEY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_PUSHOVER_TOKEN",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_PUSHOVER_USER",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_TELEGRAM_BOT_TOKEN",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_TELEGRAM_CHAT_ID",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_TWILIO_ACCOUNT_SID",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_TWILIO_AUTH_TOKEN",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_TWILIO_FROM",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_TWILIO_MIN_SEVERITY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_TWILIO_TO",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_WEBHOOK_URL",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_HYSTERESIS_BREACHES",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_HYSTERESIS_CLEARS",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "LLM_API_BASE",
+      "prefix": "LLM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "LLM_API_KEY",
+      "prefix": "LLM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "LLM_EXTRA_MODELS",
+      "prefix": "LLM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "LLM_MODEL",
+      "prefix": "LLM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "NEXT_PUBLIC_AUTH_PROVIDER",
+      "prefix": "NEXT"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      "prefix": "NEXT"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "NVIDIA_API_BASE",
+      "prefix": "NVIDIA"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "NVIDIA_API_KEY",
+      "prefix": "NVIDIA"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "NVIDIA_DYNAMIC_MODELS",
+      "prefix": "NVIDIA"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "NVIDIA_TOP_MODELS_N",
+      "prefix": "NVIDIA"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "OPENROUTER_API_KEY",
+      "prefix": "OPENROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "OPENROUTER_APP_NAME",
+      "prefix": "OPENROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "OPENROUTER_DYNAMIC_MODELS",
+      "prefix": "OPENROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "OPENROUTER_FREE_FALLBACK_MODEL",
+      "prefix": "OPENROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "OPENROUTER_MODELS_API",
+      "prefix": "OPENROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "OPENROUTER_REFERER",
+      "prefix": "OPENROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "OPENROUTER_TOP_MODELS_N",
+      "prefix": "OPENROUTER"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "PEERDB_API_URL",
+      "prefix": "PEERDB"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "PEERDB_CACHE_MAX_ENTRIES",
+      "prefix": "PEERDB"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "PEERDB_CACHE_TTL_MS",
+      "prefix": "PEERDB"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "PEERDB_FETCH_TIMEOUT_MS",
+      "prefix": "PEERDB"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POLAR_ACCESS_TOKEN",
+      "prefix": "POLAR"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POLAR_WEBHOOK_SECRET",
+      "prefix": "POLAR"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POSTGRES_DATABASE",
+      "prefix": "POSTGRES"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POSTGRES_HOST",
+      "prefix": "POSTGRES"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POSTGRES_NAME",
+      "prefix": "POSTGRES"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POSTGRES_PASSWORD",
+      "prefix": "POSTGRES"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POSTGRES_PORT",
+      "prefix": "POSTGRES"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POSTGRES_PRISMA_URL",
+      "prefix": "POSTGRES"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POSTGRES_SSLMODE",
+      "prefix": "POSTGRES"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POSTGRES_URL",
+      "prefix": "POSTGRES"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "POSTGRES_USER",
+      "prefix": "POSTGRES"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "RATE_LIMIT_AGENT_GUEST_PER_MIN",
+      "prefix": "RATE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "RATE_LIMIT_AGENT_PER_MIN",
+      "prefix": "RATE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "RATE_LIMIT_API_PER_MIN",
+      "prefix": "RATE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "RATE_LIMIT_BROWSER_CONN_PER_MIN",
+      "prefix": "RATE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "RATE_LIMIT_DEVICE_CODE_PER_MIN",
+      "prefix": "RATE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "RATE_LIMIT_MCP_PER_MIN",
+      "prefix": "RATE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "SLACK_CLIENT_ID",
+      "prefix": "SLACK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "SLACK_CLIENT_SECRET",
+      "prefix": "SLACK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "SLACK_OAUTH_REDIRECT_URL",
+      "prefix": "SLACK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "SLACK_SIGNING_SECRET",
+      "prefix": "SLACK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "SLACK_TOKEN_ENCRYPTION_KEY",
+      "prefix": "SLACK"
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "configs": [
+    {
+      "name": "background-schedule-pool",
+      "since": ["25.12"]
+    },
+    {
+      "name": "background-schedule-pool-log",
+      "since": ["25.12"]
+    },
+    {
+      "name": "blob-storage-log",
+      "since": ["23.11"]
+    },
+    {
+      "name": "clusters-topology",
+      "since": ["23.3", "24.10"]
+    },
+    {
+      "name": "errors",
+      "since": ["23.8"]
+    },
+    {
+      "name": "expensive-queries",
+      "since": ["23.8", "24.1", "26.6"]
+    },
+    {
+      "name": "expensive-queries-by-memory",
+      "since": ["23.8", "24.1"]
+    },
+    {
+      "name": "explorer-table-usage",
+      "since": ["22.8"]
+    },
+    {
+      "name": "failed-queries",
+      "since": ["23.8", "24.1"]
+    },
+    {
+      "name": "histogram-metrics",
+      "since": ["25.1"]
+    },
+    {
+      "name": "history-queries",
+      "since": ["23.8", "24.1", "26.6"]
+    },
+    {
+      "name": "kafka-consumers",
+      "since": ["22.8", "25.12"]
+    },
+    {
+      "name": "keeper-connection-log",
+      "since": ["25.8"]
+    },
+    {
+      "name": "keeper-connections",
+      "since": ["22.11", "23.3", "24.1", "25.1"]
+    },
+    {
+      "name": "keeper-info",
+      "since": ["26.1"]
+    },
+    {
+      "name": "keeper-log",
+      "since": ["23.3", "23.11"]
+    },
+    {
+      "name": "keeper-overview",
+      "since": ["26.1"]
+    },
+    {
+      "name": "latency-log",
+      "since": ["22.1"]
+    },
+    {
+      "name": "memory-usage-baseline",
+      "since": ["23.8", "24.1"]
+    },
+    {
+      "name": "merges",
+      "since": ["19.1", "21.11", "26.6"]
+    },
+    {
+      "name": "mutations",
+      "since": ["19.1", "25.12", "26.2"]
+    },
+    {
+      "name": "opentelemetry-spans",
+      "since": ["21.1"]
+    },
+    {
+      "name": "part-info",
+      "since": ["19.1", "21.8", "26.1"]
+    },
+    {
+      "name": "query-detail",
+      "since": ["20.0", "23.8", "24.1"]
+    },
+    {
+      "name": "query-metric-log",
+      "since": ["24.5"]
+    },
+    {
+      "name": "query-views-log",
+      "since": ["22.8", "23.2"]
+    },
+    {
+      "name": "readonly-tables",
+      "since": ["19.1"]
+    },
+    {
+      "name": "recent-merges",
+      "since": ["19.1", "23.8"]
+    },
+    {
+      "name": "running-queries",
+      "since": ["23.8", "26.6"]
+    },
+    {
+      "name": "scheduler",
+      "since": ["25.4"]
+    },
+    {
+      "name": "slow-queries",
+      "since": ["23.8", "24.1", "26.6"]
+    },
+    {
+      "name": "slow-query-patterns",
+      "since": ["19.1", "24.1"]
+    },
+    {
+      "name": "top-usage-columns",
+      "since": ["23.8", "24.1"]
+    },
+    {
+      "name": "top-usage-tables",
+      "since": ["23.8", "24.1"]
+    },
+    {
+      "name": "workloads",
+      "since": ["25.4"]
+    }
+  ],
+  "ltsVersions": ["23.3", "23.8", "24.3", "24.8", "25.8", "26.3"],
+  "minimumSupportedVersion": "23.3",
+  "supportedMajorVersions": [23, 24, 25, 26]
+}
