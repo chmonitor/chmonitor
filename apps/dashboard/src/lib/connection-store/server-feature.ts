@@ -4,7 +4,9 @@
 
 import { isEncryptionConfigured } from './crypto'
 import { getPlatformBindings } from '@chm/platform'
+import { type AuthProvider, getAuthProvider } from '@/lib/auth/provider'
 import { parseDeploymentMode } from '@/lib/config/deployment-mode'
+import { parseBool } from '@/lib/config/parse-bool'
 
 const D1_BINDING_NAME = 'CHM_CLOUD_D1'
 const DATABASE_URL = 'DATABASE_URL'
@@ -22,14 +24,19 @@ function isFeatureFlagEnabled(): boolean {
     readEnv('VITE_FEATURE_USER_CONNECTIONS_DB')
   // Explicit flag wins; otherwise default from the deployment profile so
   // `CHM_DEPLOYMENT_MODE=cloud` enables per-user connections without an extra flag.
-  if (value !== undefined && value !== '')
-    return value === 'true' || value === '1'
-  return parseDeploymentMode(readEnv('CHM_DEPLOYMENT_MODE')) === 'cloud'
+  return (
+    parseBool(value) ??
+    parseDeploymentMode(readEnv('CHM_DEPLOYMENT_MODE')) === 'cloud'
+  )
 }
 
 function isClerkAuth(): boolean {
-  const provider =
-    readEnv('CHM_AUTH_PROVIDER') ?? readEnv('VITE_AUTH_PROVIDER') ?? 'none'
+  let provider: AuthProvider
+  try {
+    provider = getAuthProvider(readEnv)
+  } catch {
+    return false
+  }
   return provider === 'clerk' && Boolean(readEnv('CLERK_SECRET_KEY'))
 }
 

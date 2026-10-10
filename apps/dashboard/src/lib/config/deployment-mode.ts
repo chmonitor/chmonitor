@@ -22,6 +22,7 @@
 //    deploy build script (scripts/patch-wrangler-env.ts). ◄◄
 
 import { parseAuthProvider } from '@/lib/auth/provider'
+import { parseBool, parseCloudModeFlag } from '@/lib/config/parse-bool'
 
 // The mode-default matrix lives in a plain, non-aliased module so the deploy
 // build script (which runs before the vite build and can't use `@/` imports)
@@ -49,14 +50,6 @@ import {
 
 type EnvGetter = (key: string) => string | undefined
 
-function parseBool(value: string | undefined): boolean | undefined {
-  if (value === undefined || value === '') return undefined
-  const n = value.trim().toLowerCase()
-  if (['1', 'true', 'yes', 'on', 'cloud'].includes(n)) return true
-  if (['0', 'false', 'no', 'off'].includes(n)) return false
-  return undefined
-}
-
 export interface ResolvedConfig extends ModeDefaults {
   mode: DeploymentMode
 }
@@ -70,7 +63,7 @@ export function resolveConfig(getEnv: EnvGetter): ResolvedConfig {
   const mode = parseDeploymentMode(getEnv('CHM_DEPLOYMENT_MODE'))
   const d = modeDefaults(mode)
 
-  const cloudMode = parseBool(getEnv('CHM_CLOUD_MODE')) ?? d.cloudMode
+  const cloudMode = parseCloudModeFlag(getEnv('CHM_CLOUD_MODE')) ?? d.cloudMode
   const authRaw = getEnv('CHM_AUTH_PROVIDER')
   const authProvider = authRaw ? parseAuthProvider(authRaw) : d.authProvider
   const clerkPublicRead =

@@ -7,6 +7,7 @@
 
 import { error } from '@chm/logger'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
+import { parseBool } from '@/lib/config/parse-bool'
 
 /**
  * Feature flag definitions.
@@ -29,7 +30,7 @@ export const featureFlags = {
    * @env VITE_FEATURE_CONVERSATION_DB (was NEXT_PUBLIC_FEATURE_CONVERSATION_DB)
    */
   conversationDb: (): boolean => {
-    if (import.meta.env.VITE_FEATURE_CONVERSATION_DB !== 'true') {
+    if (parseBool(import.meta.env.VITE_FEATURE_CONVERSATION_DB) !== true) {
       return false
     }
 
@@ -50,7 +51,7 @@ export const featureFlags = {
    * @env VITE_FEATURE_USER_CONNECTIONS_DB
    */
   userConnectionsDb: (): boolean => {
-    if (import.meta.env.VITE_FEATURE_USER_CONNECTIONS_DB !== 'true') {
+    if (parseBool(import.meta.env.VITE_FEATURE_USER_CONNECTIONS_DB) !== true) {
       return false
     }
 
@@ -75,7 +76,9 @@ export const featureFlags = {
    * @env VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS
    */
   webhookSubscriptions: (): boolean => {
-    if (import.meta.env.VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS !== 'true') {
+    if (
+      parseBool(import.meta.env.VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS) !== true
+    ) {
       return false
     }
 
@@ -102,7 +105,7 @@ export const featureFlags = {
    * @env VITE_FEATURE_POSTGRES_SOURCE (canonical CHM_FEATURE_POSTGRES_SOURCE)
    */
   postgresSource: (): boolean => {
-    return import.meta.env.VITE_FEATURE_POSTGRES_SOURCE === 'true'
+    return parseBool(import.meta.env.VITE_FEATURE_POSTGRES_SOURCE) === true
   },
 
   /**
@@ -119,7 +122,7 @@ export const featureFlags = {
    * @env VITE_FEATURE_FLEET_TIER (canonical CHM_FEATURE_FLEET_TIER)
    */
   fleetTierExperiment: (): boolean => {
-    return import.meta.env.VITE_FEATURE_FLEET_TIER === 'true'
+    return parseBool(import.meta.env.VITE_FEATURE_FLEET_TIER) === true
   },
 } as const
 

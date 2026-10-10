@@ -17,8 +17,8 @@
  *   available in workerd and must not be imported (FAIL-LOUD rule). Per-request
  *   auth is centralized in middleware. The client treats principal as a hint;
  *   the server still enforces auth on protected routes.
- * - authProvider is read from the runtime CHM_AUTH_PROVIDER worker var, falling
- *   back to the build-time import.meta.env.VITE_AUTH_PROVIDER constant.
+ * - authProvider comes from the shared getAuthProvider() resolver (runtime
+ *   CHM_AUTH_PROVIDER → runtime mode default → build-time value).
  *
  * The shared feature-resolution helpers (lib/feature-permissions/shared.ts) and
  * env-override parsing (server.ts) are not ported into this app, so the minimal
@@ -42,7 +42,9 @@ import {
   ANYROUTER_SIGNIN_ENV,
   parseAnyRouterSigninEnabled,
 } from '@/lib/ai/anyrouter-signin-flag'
-import { parseAuthProvider } from '@/lib/auth/provider'
+import { getAuthProvider } from '@/lib/auth/provider'
+import { resolveConfig } from '@/lib/config/deployment-mode'
+import { parseBool } from '@/lib/config/parse-bool'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
 import { getFileFeatureOverrides } from '@/lib/feature-permissions/config-file'
 import {
@@ -148,14 +150,6 @@ function readEnv(key: string): string | undefined {
   return undefined
 }
 
-function parseBoolean(value: string | undefined): boolean | undefined {
-  if (value === undefined || value === '') return undefined
-  const normalized = value.trim().toLowerCase()
-  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
-  if (['0', 'false', 'no', 'off'].includes(normalized)) return false
-  return undefined
-}
-
 function splitFeatureList(value: string | undefined): string[] {
   return (value ?? '')
     .split(',')
@@ -190,7 +184,7 @@ function parseEnvFeatureOverrides(): FeatureOverrides {
 
   for (const feature of FEATURE_IDS) {
     const envKey = `CHM_FEATURE_${feature.toUpperCase()}`
-    const enabled = parseBoolean(readEnv(`${envKey}_ENABLED`))
+    const enabled = parseBool(readEnv(`${envKey}_ENABLED`))
     const access = readEnv(`${envKey}_ACCESS`)
 
     const override: FeatureOverride = {}
@@ -223,11 +217,7 @@ function getHealthCapability(): HealthCapabilityConfig {
 }
 
 function getPublicFeaturePermissionConfig(): PublicFeaturePermissionConfig {
-  const authProvider = parseAuthProvider(
-    readEnv('CHM_AUTH_PROVIDER') ??
-      import.meta.env.VITE_AUTH_PROVIDER ??
-      readEnv('NEXT_PUBLIC_AUTH_PROVIDER')
-  )
+  const authProvider = getAuthProvider(readEnv)
 
   const features = parseEnvFeatureOverrides()
   const resolved = getResolvedFeatureStates(features)
@@ -235,7 +225,7 @@ function getPublicFeaturePermissionConfig(): PublicFeaturePermissionConfig {
   // What an anonymous caller may do under this posture (mirror shared.ts
   // anonymousCapabilities; inlined to keep this route self-contained). The
   // client combines this with its Clerk signed-in state to gate write UI.
-  const publicRead = parseBoolean(readEnv('CHM_CLERK_PUBLIC_READ')) === true
+  const publicRead = resolveConfig(readEnv).clerkPublicRead
   const anonymous =
     authProvider === 'none'
       ? { read: true, write: true }

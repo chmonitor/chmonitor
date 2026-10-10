@@ -16,17 +16,17 @@
 // additive and only switches on when a deployment explicitly opts in.
 
 import { parseDeploymentMode } from '@/lib/config/deployment-mode'
+import { parseCloudModeFlag } from '@/lib/config/parse-bool'
 
 /**
  * Parse a raw env string into a cloud-mode boolean.
  *
- * Only the exact string `'true'` / `'1'` / `'cloud'` (case-insensitive, trimmed)
- * enables cloud mode. Everything else — undefined, empty, whitespace, junk —
- * resolves to `false`. Never throws.
+ * Uses the shared boolean grammar (true/1/yes/on) plus the literal `cloud`
+ * (case-insensitive, trimmed). Everything else — undefined, empty, whitespace,
+ * false/0/no/off, junk — resolves to `false`. Never throws.
  */
 export function parseCloudMode(value: string | null | undefined): boolean {
-  const normalized = value?.trim().toLowerCase()
-  return normalized === 'true' || normalized === '1' || normalized === 'cloud'
+  return parseCloudModeFlag(value) === true
 }
 
 /**

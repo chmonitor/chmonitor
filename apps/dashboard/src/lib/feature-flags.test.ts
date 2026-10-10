@@ -101,13 +101,13 @@ describe('featureFlags.conversationDb — VITE_FEATURE_CONVERSATION_DB gate', ()
     expect(featureFlags.conversationDb()).toBe(false)
   })
 
-  test('returns false when env var is "1" (not strictly "true")', () => {
-    setEnv('VITE_FEATURE_CONVERSATION_DB', '1')
+  test('returns false when env var is junk (fail-closed)', () => {
+    setEnv('VITE_FEATURE_CONVERSATION_DB', 'maybe')
     expect(featureFlags.conversationDb()).toBe(false)
   })
 
-  test('returns false when env var is "True" (case-sensitive check)', () => {
-    setEnv('VITE_FEATURE_CONVERSATION_DB', 'True')
+  test('returns false when env var is "off"', () => {
+    setEnv('VITE_FEATURE_CONVERSATION_DB', 'off')
     expect(featureFlags.conversationDb()).toBe(false)
   })
 
@@ -147,8 +147,8 @@ describe('featureFlags.userConnectionsDb — VITE_FEATURE_USER_CONNECTIONS_DB ga
     expect(featureFlags.userConnectionsDb()).toBe(false)
   })
 
-  test('returns false when env var is "1" (not strictly "true")', () => {
-    setEnv('VITE_FEATURE_USER_CONNECTIONS_DB', '1')
+  test('returns false when env var is junk (fail-closed)', () => {
+    setEnv('VITE_FEATURE_USER_CONNECTIONS_DB', 'maybe')
     expect(featureFlags.userConnectionsDb()).toBe(false)
   })
 
@@ -186,8 +186,8 @@ describe('featureFlags.webhookSubscriptions — VITE_FEATURE_WEBHOOK_SUBSCRIPTIO
     expect(featureFlags.webhookSubscriptions()).toBe(false)
   })
 
-  test('returns false when env var is "1" (not strictly "true")', () => {
-    setEnv('VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS', '1')
+  test('returns false when env var is junk (fail-closed)', () => {
+    setEnv('VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS', 'maybe')
     expect(featureFlags.webhookSubscriptions()).toBe(false)
   })
 
@@ -227,8 +227,8 @@ describe('featureFlags.postgresSource — pure env gate (NOT Clerk-gated)', () =
     expect(featureFlags.postgresSource()).toBe(false)
   })
 
-  test('returns false when env var is "1" (not strictly "true")', () => {
-    setEnv('VITE_FEATURE_POSTGRES_SOURCE', '1')
+  test('returns false when env var is junk (fail-closed)', () => {
+    setEnv('VITE_FEATURE_POSTGRES_SOURCE', 'maybe')
     expect(featureFlags.postgresSource()).toBe(false)
   })
 
@@ -254,8 +254,8 @@ describe('featureFlags.fleetTierExperiment — pure env gate (NOT Clerk-gated)',
     expect(featureFlags.fleetTierExperiment()).toBe(false)
   })
 
-  test('returns false when env var is "1" (not strictly "true")', () => {
-    setEnv('VITE_FEATURE_FLEET_TIER', '1')
+  test('returns false when env var is junk (fail-closed)', () => {
+    setEnv('VITE_FEATURE_FLEET_TIER', 'maybe')
     expect(featureFlags.fleetTierExperiment()).toBe(false)
   })
 

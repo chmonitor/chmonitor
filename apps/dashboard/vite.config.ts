@@ -1,3 +1,4 @@
+import { resolveClientFlagEnv } from './src/lib/config/client-env'
 import { serializeAirgapSnapshot } from './src/lib/whats-new/airgap-snapshot'
 import { loadFriendlyNotesFromDir } from './src/lib/whats-new/load-friendly-notes'
 import { buildAirgapSnapshot } from './src/lib/whats-new/parse-changelog'
@@ -85,7 +86,7 @@ function loadDeployEnv(): Record<string, string> {
 // the client VITE_* below derives from it, so `CHM_AUTH_PROVIDER` /
 // `CHM_CLOUD_MODE` / `CHM_FEATURE_*` are set ONCE and reach both the server
 // (process.env) and the browser bundle. Precedence per var:
-//   explicit VITE_* → canonical CHM_* → legacy NEXT_PUBLIC_* → committed default.
+//   explicit VITE_* → canonical CHM_* → committed default.
 // Only PUBLIC vars live here — never a runtime secret (security boundary).
 const e: Record<string, string | undefined> = {
   ...loadDeployEnv(),
@@ -125,50 +126,17 @@ const lockedCloudMode = isHostedBuildPipeline
 const CLIENT_ENV = {
   // Expose the resolved profile so client code can read it directly.
   VITE_DEPLOYMENT_MODE: lockedDeploymentMode ?? (isCloud ? 'cloud' : 'oss'),
-  VITE_AUTH_PROVIDER:
-    e.VITE_AUTH_PROVIDER ??
-    e.CHM_AUTH_PROVIDER ??
-    e.NEXT_PUBLIC_AUTH_PROVIDER ??
-    (isCloud ? 'clerk' : 'none'),
+  // Auth provider + boolean feature flags: normalised to canonical values
+  // ('true'/'false'; auth empty when unset) — see src/lib/config/client-env.ts.
+  ...resolveClientFlagEnv(e, isCloud),
   // No committed default: the publishable key comes ONLY from the build env
   // (CI sets VITE_CLERK_PUBLISHABLE_KEY — pk_test for previews, pk_live for prod;
   // see .github/workflows/cloudflare.yml). With no key, isClerkEnabled() returns
   // false and Clerk cleanly disables — the app runs unauthenticated, no crash.
   VITE_CLERK_PUBLISHABLE_KEY:
-    e.VITE_CLERK_PUBLISHABLE_KEY ??
-    e.CHM_CLERK_PUBLISHABLE_KEY ??
-    e.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ??
-    '',
-  VITE_FEATURE_CONVERSATION_DB:
-    e.VITE_FEATURE_CONVERSATION_DB ??
-    e.CHM_FEATURE_CONVERSATION_DB ??
-    e.NEXT_PUBLIC_FEATURE_CONVERSATION_DB ??
-    (isCloud ? 'true' : 'false'),
-  VITE_FEATURE_USER_CONNECTIONS_DB:
-    e.VITE_FEATURE_USER_CONNECTIONS_DB ??
-    e.CHM_FEATURE_USER_CONNECTIONS_DB ??
-    e.NEXT_PUBLIC_FEATURE_USER_CONNECTIONS_DB ??
-    (isCloud ? 'true' : 'false'),
-  // Outbound webhook subscriptions (plan 44) — same D1 + Clerk requirement as
-  // user-connections, own flag so an operator can enable one without the other.
-  VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS:
-    e.VITE_FEATURE_WEBHOOK_SUBSCRIPTIONS ??
-    e.CHM_FEATURE_WEBHOOK_SUBSCRIPTIONS ??
-    (isCloud ? 'true' : 'false'),
-  // Postgres source engine (RFC #2264, phase 1 #2448). Fail-closed: default
-  // off in BOTH modes until Postgres connectivity lands — not `isCloud`-gated.
-  VITE_FEATURE_POSTGRES_SOURCE:
-    e.VITE_FEATURE_POSTGRES_SOURCE ?? e.CHM_FEATURE_POSTGRES_SOURCE ?? 'false',
-  // $199 "Fleet" mid-anchor tier experiment (#2381). Fail-closed: default off
-  // in both modes — a presentation-only pricing A/B, not `isCloud`-gated.
-  VITE_FEATURE_FLEET_TIER:
-    e.VITE_FEATURE_FLEET_TIER ?? e.CHM_FEATURE_FLEET_TIER ?? 'false',
-  VITE_AUTOCOMPLETE_LIMIT:
-    e.VITE_AUTOCOMPLETE_LIMIT ?? e.NEXT_PUBLIC_AUTOCOMPLETE_LIMIT ?? '',
-  VITE_RUNNING_QUERIES_REFRESH_MS:
-    e.VITE_RUNNING_QUERIES_REFRESH_MS ??
-    e.NEXT_PUBLIC_RUNNING_QUERIES_REFRESH_MS ??
-    '',
+    e.VITE_CLERK_PUBLISHABLE_KEY ?? e.CHM_CLERK_PUBLISHABLE_KEY ?? '',
+  VITE_AUTOCOMPLETE_LIMIT: e.VITE_AUTOCOMPLETE_LIMIT ?? '',
+  VITE_RUNNING_QUERIES_REFRESH_MS: e.VITE_RUNNING_QUERIES_REFRESH_MS ?? '',
   // Edition: 'community' (default, OSS, fail-open) | 'enterprise' (paid).
   // Unset or unrecognised values always resolve to 'community' in parseEdition().
   VITE_EDITION: e.VITE_EDITION ?? e.CHM_EDITION ?? 'community',
@@ -179,8 +147,7 @@ const CLIENT_ENV = {
   VITE_CLOUD_MODE: lockedCloudMode ?? (isCloud ? 'true' : ''),
   // Anonymous product telemetry: ON by default — opt out with VITE_TELEMETRY_ENABLED=off
   // (or 0/false/no), VITE_DO_NOT_TRACK / DO_NOT_TRACK, or an empty endpoint.
-  VITE_TELEMETRY_ENABLED:
-    e.VITE_TELEMETRY_ENABLED ?? e.NEXT_PUBLIC_TELEMETRY_ENABLED ?? 'on',
+  VITE_TELEMETRY_ENABLED: e.VITE_TELEMETRY_ENABLED ?? 'on',
   // DO_NOT_TRACK opt-out (https://consoledonottrack.com). Hard override — any
   // truthy value forces telemetry off. Mirrors the server DO_NOT_TRACK var.
   VITE_DO_NOT_TRACK: e.VITE_DO_NOT_TRACK ?? e.DO_NOT_TRACK ?? '',
@@ -192,21 +159,11 @@ const CLIENT_ENV = {
   // set to a different URL to self-host, or to '' as a hard no-network kill-switch.
   VITE_TELEMETRY_ENDPOINT:
     e.VITE_TELEMETRY_ENDPOINT ?? 'https://telemetry.chmonitor.dev/v1/ping',
-  VITE_GIT_SHA:
-    e.VITE_GIT_SHA ??
-    e.NEXT_PUBLIC_GIT_SHA ??
-    e.GITHUB_SHA ??
-    git('rev-parse HEAD'),
+  VITE_GIT_SHA: e.VITE_GIT_SHA ?? e.GITHUB_SHA ?? git('rev-parse HEAD'),
   VITE_GIT_REF:
-    e.VITE_GIT_REF ??
-    e.NEXT_PUBLIC_GIT_REF ??
-    e.GITHUB_REF ??
-    git('rev-parse --abbrev-ref HEAD'),
-  VITE_BUILD_TIMESTAMP:
-    e.VITE_BUILD_TIMESTAMP ??
-    e.NEXT_PUBLIC_BUILD_TIMESTAMP ??
-    new Date().toISOString(),
-  VITE_CI: e.VITE_CI ?? e.NEXT_PUBLIC_CI ?? (e.CI ? 'true' : ''),
+    e.VITE_GIT_REF ?? e.GITHUB_REF ?? git('rev-parse --abbrev-ref HEAD'),
+  VITE_BUILD_TIMESTAMP: e.VITE_BUILD_TIMESTAMP ?? new Date().toISOString(),
+  VITE_CI: e.VITE_CI ?? (e.CI ? 'true' : ''),
   // Query-config source: 'ts' (default, current TS configs) | 'declarative'
   // (load from external declarative catalog). Anything other than 'declarative'
   // falls back to 'ts' — fail-safe to the current behaviour. DARK: no views
@@ -687,10 +644,7 @@ const runtimePlugins: PluginOption[] = isNode
 // source maps for readable stack traces and injects release/debug ids, then
 // deletes the maps from the output so they never ship in the bundle.
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN
-const sentryRelease =
-  process.env.VITE_GIT_SHA ??
-  process.env.NEXT_PUBLIC_GIT_SHA ??
-  git('rev-parse HEAD')
+const sentryRelease = process.env.VITE_GIT_SHA ?? git('rev-parse HEAD')
 const sentryPlugins: PluginOption[] = sentryAuthToken
   ? [
       sentryVitePlugin({

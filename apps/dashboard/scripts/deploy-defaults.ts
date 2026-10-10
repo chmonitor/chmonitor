@@ -11,7 +11,7 @@
 //
 // ►► To change what a mode defaults to, edit MODE_DEFAULTS below — nowhere else. ◄◄
 
-import type { AuthProvider } from '../src/lib/auth/provider'
+import type { AuthProvider } from '../src/lib/auth/auth-providers'
 
 export const DEPLOYMENT_MODES = ['oss', 'cloud'] as const
 export type DeploymentMode = (typeof DEPLOYMENT_MODES)[number]

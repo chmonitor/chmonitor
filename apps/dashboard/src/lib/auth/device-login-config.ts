@@ -14,7 +14,7 @@
  */
 
 import { apiKeyAuthEnabled } from '@chm/mcp-server/auth'
-import { parseAuthProvider } from '@/lib/auth/provider'
+import { type AuthProvider, getAuthProvider } from '@/lib/auth/provider'
 import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 
 export type DeviceLoginMode = 'auto' | 'true' | 'false'
@@ -106,27 +106,9 @@ export function resolveDeviceLogin(
   // Wanted by mode: auto follows cloud; true/false are explicit.
   const wanted = mode === 'true' ? true : mode === 'false' ? false : cloud
 
-  let authProvider: ReturnType<typeof parseAuthProvider> = 'none'
+  let authProvider: AuthProvider = 'none'
   try {
-    const authRaw =
-      source.CHM_AUTH_PROVIDER ??
-      source.VITE_AUTH_PROVIDER ??
-      (typeof import.meta !== 'undefined'
-        ? import.meta.env?.VITE_AUTH_PROVIDER
-        : undefined)
-    if (authRaw) {
-      authProvider = parseAuthProvider(authRaw)
-    } else {
-      const profile = (
-        source.CHM_DEPLOYMENT_MODE ??
-        source.VITE_DEPLOYMENT_MODE ??
-        ''
-      )
-        .trim()
-        .toLowerCase()
-      authProvider =
-        profile === 'cloud' || profile === 'saas' ? 'clerk' : 'none'
-    }
+    authProvider = getAuthProvider((key) => source[key])
   } catch {
     authProvider = 'none'
   }

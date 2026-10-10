@@ -45,6 +45,7 @@ import {
 } from '@chm/mcp-server/auth'
 import { getAuthProvider, isAuthProviderConfigError } from '@/lib/auth/provider'
 import { resolveServerAuthProvider } from '@/lib/auth/providers'
+import { resolveConfig } from '@/lib/config/deployment-mode'
 
 const API_V1_PREFIX = '/api/v1/'
 // Key issuance route has its own secret-based auth in its handler.
@@ -112,8 +113,7 @@ export function bridgePublicReadEnv(bindings: EnvBindings): void {
  * fronts its own auth.
  */
 export function publicReadEnabled(): boolean {
-  const raw = process.env.CHM_CLERK_PUBLIC_READ?.trim().toLowerCase()
-  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on'
+  return resolveConfig((key) => process.env[key]).clerkPublicRead
 }
 
 function jsonError(message: string, status: number): Response {

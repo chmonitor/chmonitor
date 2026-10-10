@@ -15,7 +15,7 @@ import {
   type DeviceLoginStatus,
   resolveDeviceLogin,
 } from '@/lib/auth/device-login-config'
-import { type AuthProvider, parseAuthProvider } from '@/lib/auth/provider'
+import { type AuthProvider, getAuthProvider } from '@/lib/auth/provider'
 
 export type CliAuthMethod = 'none' | 'device' | 'api_key'
 export type CliApiAccess = 'open' | 'key_required'
@@ -35,23 +35,7 @@ function resolveAuthProvider(
   source: Record<string, string | undefined>
 ): AuthProvider {
   try {
-    const authRaw =
-      source.CHM_AUTH_PROVIDER ??
-      source.VITE_AUTH_PROVIDER ??
-      (typeof import.meta !== 'undefined'
-        ? import.meta.env?.VITE_AUTH_PROVIDER
-        : undefined)
-    if (authRaw) {
-      return parseAuthProvider(authRaw)
-    }
-    const profile = (
-      source.CHM_DEPLOYMENT_MODE ??
-      source.VITE_DEPLOYMENT_MODE ??
-      ''
-    )
-      .trim()
-      .toLowerCase()
-    return profile === 'cloud' || profile === 'saas' ? 'clerk' : 'none'
+    return getAuthProvider((key) => source[key])
   } catch {
     return 'none'
   }

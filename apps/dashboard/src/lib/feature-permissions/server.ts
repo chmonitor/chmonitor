@@ -39,8 +39,9 @@ import {
   verifyApiKey,
 } from '@chm/mcp-server/auth'
 import { isValidAgentApiBearerToken } from '@/lib/auth/agent-api-token'
-import { parseAuthProvider } from '@/lib/auth/provider'
-import { parseDeploymentMode } from '@/lib/config/deployment-mode'
+import { type AuthProvider, getAuthProvider } from '@/lib/auth/provider'
+import { resolveConfig } from '@/lib/config/deployment-mode'
+import { parseBool } from '@/lib/config/parse-bool'
 
 // ---------------------------------------------------------------------------
 // Env access: Cloudflare binding first, then process.env.
@@ -72,9 +73,8 @@ function parseBoolean(
   name: string
 ): boolean | undefined {
   if (value === undefined || value === '') return undefined
-  const normalized = value.trim().toLowerCase()
-  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
-  if (['0', 'false', 'no', 'off'].includes(normalized)) return false
+  const parsed = parseBool(value)
+  if (parsed !== undefined) return parsed
   console.warn(`[feature-permissions] Invalid boolean for ${name}: "${value}"`)
   return undefined
 }
@@ -135,7 +135,7 @@ function parseEnvFeatureOverrides(): FeatureOverrides {
 }
 
 interface AppConfig {
-  authProvider: ReturnType<typeof parseAuthProvider>
+  authProvider: AuthProvider
   features: FeatureOverrides
 }
 
@@ -154,11 +154,7 @@ let _cachedAppConfig: AppConfig | null = null
 export function getAppConfig(): AppConfig {
   if (_cachedAppConfig) return _cachedAppConfig
 
-  const authProvider = parseAuthProvider(
-    readEnv('CHM_AUTH_PROVIDER') ??
-      import.meta.env.VITE_AUTH_PROVIDER ??
-      readEnv('NEXT_PUBLIC_AUTH_PROVIDER')
-  )
+  const authProvider = getAuthProvider(readEnv)
   _cachedAppConfig = { authProvider, features: parseEnvFeatureOverrides() }
   return _cachedAppConfig
 }
@@ -177,12 +173,7 @@ export function _resetAppConfigCache(): void {
  * See api-guard.ts.
  */
 export function publicReadEnabled(): boolean {
-  const explicit = parseBoolean(
-    readEnv('CHM_CLERK_PUBLIC_READ'),
-    'CHM_CLERK_PUBLIC_READ'
-  )
-  if (explicit !== undefined) return explicit
-  return parseDeploymentMode(readEnv('CHM_DEPLOYMENT_MODE')) === 'cloud'
+  return resolveConfig(readEnv).clerkPublicRead
 }
 
 // ---------------------------------------------------------------------------

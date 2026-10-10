@@ -215,9 +215,9 @@ On each request the server loads the thread from the store, runs the agent, then
 
 Server stores require an authenticated user identity to namespace threads. If the request is unauthenticated, the server skips persistence and the browser keeps local history. To enable server persistence, configure an auth provider — see [Authentication](/operate/authentication).
 
-## Deprecated alias
+## Removed alias
 
-`NEXT_PUBLIC_FEATURE_CONVERSATION_DB=true` is accepted as an alias for `VITE_FEATURE_CONVERSATION_DB=true` but is deprecated. Do not use it for new deployments.
+`NEXT_PUBLIC_FEATURE_CONVERSATION_DB` is no longer read. Set `CHM_FEATURE_CONVERSATION_DB=true` instead.
 
 ## Related
 

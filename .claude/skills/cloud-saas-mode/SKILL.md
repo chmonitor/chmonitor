@@ -61,6 +61,14 @@ derivation runs), not only at runtime. Guard: `detectCloudModeMismatch(env)` →
 `{server, clientBuild, mismatch}`; `/api/healthz` `warn`s and reports `cloudMode`
 on mismatch. The reverse (cloud build, runtime unset) is safe — fail-closed.
 
+**One resolver per setting.** Never hand-parse a boolean env var or the auth
+provider. Booleans go through `parseBool` (`lib/config/parse-bool.ts`:
+true/1/yes/on, false/0/no/off). The server auth provider is
+`getAuthProvider(getEnv?)` (`lib/auth/provider.ts`: runtime `CHM_AUTH_PROVIDER`
+→ runtime mode default → build-time value). Public read is
+`resolveConfig(...).clerkPublicRead`. `NEXT_PUBLIC_*` is not read anywhere. See
+`docs/knowledge/cloud-saas-mode.md` § One resolver per setting.
+
 ## Behaviour
 
 | | Self-hosted | Cloud |

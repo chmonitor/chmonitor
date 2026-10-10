@@ -33,6 +33,33 @@ FAIL-CLOSED to self-hosted. Unset/junk `CHM_CLOUD_MODE` (runtime) or
 additive; it never removes a monitoring feature. Mirrors `lib/edition`'s
 fail-open design (edition already lists `cloud` as an enterprise feature).
 
+## One resolver per setting
+
+`CHM_DEPLOYMENT_MODE` alone must give correct defaults, and every reader must
+give the same answer for the same env. So:
+
+- **Booleans:** `parseBool` in `lib/config/parse-bool.ts` is the only boolean
+  grammar (`true/1/yes/on`, `false/0/no/off`, case-insensitive, else
+  `undefined` → mode default). `CHM_CLOUD_MODE` adds the literal `cloud`
+  (`parseCloudModeFlag`). Server readers, client `featureFlags`, the agent tool
+  gates and `server-sweep` all use it. `vite.config.ts` bakes boolean `VITE_*`
+  flags as the literal `'true'`/`'false'` via `lib/config/client-env.ts`
+  (`=1` → `'true'`; an unrecognised explicit value → `'false'`).
+- **Auth provider:** `getAuthProvider(getEnv?)` in `lib/auth/provider.ts` is
+  the only server resolver. Precedence: runtime `CHM_AUTH_PROVIDER` → runtime
+  `CHM_DEPLOYMENT_MODE` default → build-time `VITE_AUTH_PROVIDER` → build-time
+  `VITE_DEPLOYMENT_MODE` default. `vite.config.ts` bakes `VITE_AUTH_PROVIDER`
+  only when it is set, so a prebuilt image run with just
+  `CHM_DEPLOYMENT_MODE=cloud` gets `clerk`. The client reads
+  `getBuildAuthProvider()` (baked value, else the baked mode default).
+- **Public read:** `publicReadEnabled()` (api-guard and feature-permissions) and
+  `/api/v1/config` all read `resolveConfig(...).clerkPublicRead`, so
+  `CHM_DEPLOYMENT_MODE=cloud` turns it on and an explicit `false` still wins.
+- Legacy `NEXT_PUBLIC_*` names are no longer read anywhere.
+
+`src/lib/config/__tests__/resolver-consistency.test.ts` runs the
+{mode} × {CHM_AUTH_PROVIDER} matrix through every call site.
+
 ## Cloud mode is a BUILD-TIME contract (#2515)
 
 Enabling cloud mode requires a **cloud build**, not just a runtime flag. The
