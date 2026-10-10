@@ -75,30 +75,35 @@ export interface LogPatternGroup<
 const SEVERITY: Record<MirrorLogLevel, number> = { error: 2, warn: 1, info: 0 }
 
 /**
- * Group entries by `level + fingerprint` (an error and an info line with the
- * same text are different signals). Groups sort by severity, then last seen,
- * then count, so errors and warnings surface above info noise.
+ * Group entries under a caller-chosen key. `level` is the highest severity in
+ * the group. Groups sort by severity, then last seen, then count, so errors
+ * and warnings surface above info noise. `fingerprint` carries the group label.
  */
-export function groupLogsByPattern<T extends FingerprintInput>(
-  entries: readonly T[]
+export function groupLogsByKey<T extends FingerprintInput>(
+  entries: readonly T[],
+  keyOf: (entry: T) => string,
+  labelOf: (entry: T, key: string) => string = (_, key) => key
 ): LogPatternGroup<T>[] {
-  const byKey = new Map<string, { fingerprint: string; list: T[] }>()
+  const byKey = new Map<string, T[]>()
   for (const e of entries) {
-    const fingerprint = fingerprintLogMessage(e.message)
-    const key = `${e.level}\u0000${fingerprint}`
-    const slot = byKey.get(key)
-    if (slot) slot.list.push(e)
-    else byKey.set(key, { fingerprint, list: [e] })
+    const key = keyOf(e)
+    const list = byKey.get(key)
+    if (list) list.push(e)
+    else byKey.set(key, [e])
   }
 
   const groups: LogPatternGroup<T>[] = []
-  for (const { fingerprint, list } of byKey.values()) {
+  for (const [key, list] of byKey) {
     const sorted = [...list].sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))
     const times = sorted.map((e) => e.ts).filter((t): t is number => t != null)
     const mirrors = [...new Set(sorted.map((e) => e.mirror))]
+    const level = sorted.reduce<MirrorLogLevel>(
+      (top, e) => (SEVERITY[e.level] > SEVERITY[top] ? e.level : top),
+      'info'
+    )
     groups.push({
-      fingerprint,
-      level: sorted[0].level,
+      fingerprint: labelOf(sorted[0], key),
+      level,
       count: sorted.length,
       firstSeen: times.length ? Math.min(...times) : null,
       lastSeen: times.length ? Math.max(...times) : null,
@@ -113,5 +118,19 @@ export function groupLogsByPattern<T extends FingerprintInput>(
       SEVERITY[b.level] - SEVERITY[a.level] ||
       (b.lastSeen ?? 0) - (a.lastSeen ?? 0) ||
       b.count - a.count
+  )
+}
+
+/**
+ * Group by `level + fingerprint` (an error and an info line with the same text
+ * are different signals).
+ */
+export function groupLogsByPattern<T extends FingerprintInput>(
+  entries: readonly T[]
+): LogPatternGroup<T>[] {
+  return groupLogsByKey(
+    entries,
+    (e) => `${e.level}\u0000${fingerprintLogMessage(e.message)}`,
+    (e) => fingerprintLogMessage(e.message)
   )
 }
