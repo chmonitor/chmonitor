@@ -5,22 +5,29 @@
 
 import type { ChartQueryBuilder } from './types'
 
-import { applyInterval, buildTimeFilter, fillStep, nowOrToday } from './types'
+import {
+  applyInterval,
+  buildTimeFilter,
+  CHART_QUERY_SETTINGS,
+  fillStep,
+  nowOrToday,
+} from './types'
 
 export const queryCharts: Record<string, ChartQueryBuilder> = {
   'query-count-today': () => ({
+    clickhouseSettings: CHART_QUERY_SETTINGS,
     query: `
       SELECT COUNT() AS count
       FROM merge('system', '^query_log')
       WHERE type = 'QueryFinish'
         AND event_time >= toStartOfDay(now())
-      SETTINGS max_execution_time = 25
     `,
   }),
 
   'query-count': ({ interval = 'toStartOfDay', lastHours = 24 * 14 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     WITH per_kind AS (
       SELECT ${applyInterval(interval, 'event_time')},
@@ -41,7 +48,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     )
     GROUP BY event_time
     ORDER BY event_time WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -52,6 +58,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     SELECT ${applyInterval(interval, 'event_time')},
            user,
@@ -64,7 +71,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     ORDER BY
       1 ASC,
       3 DESC
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -72,6 +78,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   'query-duration': ({ interval = 'toStartOfDay', lastHours = 24 * 14 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     SELECT ${applyInterval(interval, 'event_time')},
            AVG(query_duration_ms) AS query_duration_ms,
@@ -82,7 +89,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY event_time
     ORDER BY event_time ASC
     WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -90,6 +96,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   'query-memory': ({ interval = 'toStartOfDay', lastHours = 24 * 14 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     SELECT ${applyInterval(interval, 'event_time')},
            AVG(memory_usage) AS memory_usage,
@@ -99,7 +106,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
           ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY event_time
     ORDER BY event_time ASC
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -123,6 +129,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       optional: true,
       tableCheck: 'system.query_metric_log',
       query: `
@@ -135,7 +142,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     ${timeFilter ? `WHERE ${timeFilter}` : ''}
     GROUP BY event_time
     ORDER BY event_time ASC
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -143,6 +149,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   'query-type': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     SELECT type,
            COUNT() AS query_count
@@ -151,7 +158,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
           ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY 1
     ORDER BY 1
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -174,6 +180,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   'query-cache-usage': ({ lastHours = 24 * 7 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     SELECT
       query_cache_usage,
@@ -184,7 +191,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
           ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY query_cache_usage
     ORDER BY query_count DESC
-    SETTINGS max_execution_time = 25
   `,
       sql: [
         {
@@ -203,7 +209,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
           ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY query_cache_usage
     ORDER BY query_count DESC
-    SETTINGS max_execution_time = 25
   `,
         },
       ],
@@ -216,6 +221,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     WITH top_hashes AS (
       SELECT normalized_query_hash, count() AS total
@@ -237,7 +243,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
           ${timeFilter ? `AND ${buildTimeFilter(lastHours, 'q.event_time')}` : ''}
     GROUP BY 1, 2
     ORDER BY 1 ASC, 4 DESC
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -248,6 +253,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     WITH per_type AS (
       SELECT ${applyInterval(interval, 'event_time')},
@@ -269,7 +275,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     )
     GROUP BY event_time
     ORDER BY event_time
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -277,6 +282,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   'cancelled-queries': ({ interval = 'toStartOfHour', lastHours = 24 * 7 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     SELECT ${applyInterval(interval, 'event_time')},
            exception_code,
@@ -287,7 +293,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
           ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY 1, 2
     ORDER BY 1 ASC
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -298,6 +303,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     SELECT ${applyInterval(interval, 'event_time')},
            user,
@@ -310,7 +316,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     ORDER BY
       1 ASC,
       3 DESC
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -321,6 +326,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
   SELECT ${applyInterval(interval, 'event_time')},
          round(quantile(0.50)(query_duration_ms) / 1000, 3) AS p50_s,
@@ -332,7 +338,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   GROUP BY event_time
   ORDER BY event_time ASC
   WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-  SETTINGS max_execution_time = 25
 `,
     }
   },
@@ -343,6 +348,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     SELECT ${applyInterval(interval, 'event_time')},
            COUNT() AS count
@@ -353,7 +359,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY event_time
     ORDER BY event_time ASC
     WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    SETTINGS max_execution_time = 25
   `,
     }
   },
@@ -366,13 +371,14 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   // can render more than a year of months; the client trims to what fits and
   // caps the window at the oldest row actually returned.
   //
-  // SETTINGS max_execution_time=25: keeps execution under the Cloudflare Worker
+  // CHART_QUERY_SETTINGS (max_execution_time=25): keeps execution under the Cloudflare Worker
   // response timeout (~30s). Without it, a slow full-year scan on a busy server
   // drops the connection mid-stream, returning an empty body (error 1016 —
   // RECEIVED_EMPTY_DATA) instead of a clean ClickHouse timeout error (159).
   'query-count-heatmap': ({ lastHours = 24 * 365 * 2 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
     SELECT
         toString(toDate(event_time)) AS date,
@@ -388,7 +394,6 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
       ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY date
     ORDER BY date ASC
-    SETTINGS max_execution_time = 25
   `,
     }
   },

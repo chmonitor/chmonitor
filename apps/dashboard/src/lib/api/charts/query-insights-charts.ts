@@ -9,7 +9,13 @@
 
 import type { ChartQueryBuilder } from './types'
 
-import { applyInterval, buildTimeFilter, fillStep, nowOrToday } from './types'
+import {
+  applyInterval,
+  buildTimeFilter,
+  CHART_QUERY_SETTINGS,
+  fillStep,
+  nowOrToday,
+} from './types'
 
 /** Builds a p10/p25/p50/p75/p90/p95/p99 single-row distribution query for one metric column. */
 function percentileDistributionQuery(
@@ -33,7 +39,6 @@ function percentileDistributionQuery(
     WHERE type = 'QueryFinish'
           ${extraFilter}
           ${timeFilter ? `AND ${timeFilter}` : ''}
-    SETTINGS max_execution_time = 25
   `
 }
 
@@ -63,9 +68,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY event_time
     ORDER BY event_time ASC
     WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 2: Query latency — mean + p50/p95/p99 on one chart.
@@ -86,9 +94,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY event_time
     ORDER BY event_time ASC
     WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 3: Operations breakdown — donut by query_kind (Select/Insert/…).
@@ -104,9 +115,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
           ${timeFilter ? `AND ${timeFilter}` : ''}
     GROUP BY query_kind
     ORDER BY query_count DESC
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 4: Rows read / returned.
@@ -122,9 +136,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY event_time
     ORDER BY event_time ASC
     WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 5: Cache hit ratio — ProfileEvents MarkCache/UncompressedCache hits
@@ -139,9 +156,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     FROM system.query_log
     WHERE type = 'QueryFinish'
           ${timeFilter ? `AND ${timeFilter}` : ''}
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 6: Errors over time — exception_code != 0.
@@ -156,9 +176,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY event_time
     ORDER BY event_time ASC
     WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 7: Memory usage — avg + p95/p99 of per-query peak memory_usage.
@@ -175,9 +198,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY event_time
     ORDER BY event_time ASC
     WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 8: Read throughput — bytes read from storage vs bytes returned.
@@ -196,9 +222,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY event_time
     ORDER BY event_time ASC
     WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 9: Top users — query volume broken down by the user who ran them.
@@ -215,9 +244,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY user
     ORDER BY query_count DESC
     LIMIT 8
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 10: Duration distribution — p10..p99 curve of query_duration_ms.
@@ -228,28 +260,44 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
       2,
       timeFilter
     )
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 11: Memory distribution — p10..p99 curve of peak memory_usage.
   'query-insights-memory-distribution': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = percentileDistributionQuery('memory_usage', 0, timeFilter)
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 12: Read rows distribution — p10..p99 curve of read_rows per query.
   'query-insights-read-rows-distribution': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = percentileDistributionQuery('read_rows', 0, timeFilter)
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 13: Read bytes distribution — p10..p99 curve of read_bytes per query.
   'query-insights-read-bytes-distribution': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = percentileDistributionQuery('read_bytes', 0, timeFilter)
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 14: Errors by exception code — count + a sample message per code.
@@ -267,9 +315,12 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY exception_code
     ORDER BY count DESC
     LIMIT 10
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 
   // Tile 15: Hot tables — query volume + avg latency per referenced table.
@@ -287,8 +338,11 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY table
     ORDER BY query_count DESC
     LIMIT 10
-    SETTINGS max_execution_time = 25
   `
-    return { query, sql: [{ since: '19.1', sql: query }] }
+    return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
+      query,
+      sql: [{ since: '19.1', sql: query }],
+    }
   },
 }

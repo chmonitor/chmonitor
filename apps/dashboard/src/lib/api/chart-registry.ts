@@ -78,6 +78,11 @@ export interface ChartQueryParams {
   timezone?: string
 }
 
+/** Per-request settings a chart may carry; see `ChartQueryResult.clickhouseSettings`. */
+export interface ChartQuerySettings {
+  max_execution_time?: number
+}
+
 /** Single-query chart result. */
 export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
   /** SQL (string) — required; the executor runs this. */
@@ -89,6 +94,12 @@ export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
   tableCheck?: string | string[]
   columnCheck?: string | string[]
   cachePolicy?: CachePolicy
+  /**
+   * Per-request ClickHouse settings, sent as `clickhouse_settings` rather than
+   * a `SETTINGS` clause in the SQL text so the client's central read-only rule
+   * can normalize the request (#3684). Use `CHART_QUERY_SETTINGS`.
+   */
+  clickhouseSettings?: ChartQuerySettings
   /**
    * Opt out of the ClickHouse query-cache settings (#2182) the route applies
    * by default for read-only chart polling. Set this when a chart's result

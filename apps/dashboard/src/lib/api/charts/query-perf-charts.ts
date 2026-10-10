@@ -5,7 +5,7 @@
 
 import type { ChartQueryBuilder } from './types'
 
-import { applyInterval, buildTimeFilter } from './types'
+import { applyInterval, buildTimeFilter, CHART_QUERY_SETTINGS } from './types'
 
 export const queryPerfCharts: Record<string, ChartQueryBuilder> = {
   'insert-performance': ({
@@ -14,6 +14,7 @@ export const queryPerfCharts: Record<string, ChartQueryBuilder> = {
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
       WITH normalized AS (
         SELECT
@@ -46,7 +47,6 @@ export const queryPerfCharts: Record<string, ChartQueryBuilder> = {
         ${timeFilter ? `AND ${timeFilter}` : ''}
       GROUP BY 1
       ORDER BY 1 ASC
-      SETTINGS max_execution_time = 25
     `,
     }
   },
@@ -54,6 +54,7 @@ export const queryPerfCharts: Record<string, ChartQueryBuilder> = {
   'top-query-fingerprints-perf': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
       WITH normalized AS (
         SELECT
@@ -89,7 +90,6 @@ export const queryPerfCharts: Record<string, ChartQueryBuilder> = {
       GROUP BY normalized_query_hash
       ORDER BY count() DESC
       LIMIT 20
-      SETTINGS max_execution_time = 25
     `,
     }
   },
@@ -100,6 +100,7 @@ export const queryPerfCharts: Record<string, ChartQueryBuilder> = {
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
       WITH normalized AS (
         SELECT
@@ -128,7 +129,6 @@ export const queryPerfCharts: Record<string, ChartQueryBuilder> = {
         ${timeFilter ? `AND ${timeFilter}` : ''}
       GROUP BY 1
       ORDER BY 1 ASC
-      SETTINGS max_execution_time = 25
     `,
     }
   },
@@ -136,6 +136,7 @@ export const queryPerfCharts: Record<string, ChartQueryBuilder> = {
   'top-inserters': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
+      clickhouseSettings: CHART_QUERY_SETTINGS,
       query: `
       WITH normalized AS (
         SELECT
@@ -169,7 +170,6 @@ export const queryPerfCharts: Record<string, ChartQueryBuilder> = {
       GROUP BY user
       ORDER BY total_rows DESC
       LIMIT 10
-      SETTINGS max_execution_time = 25
     `,
     }
   },

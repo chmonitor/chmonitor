@@ -83,9 +83,11 @@ export async function executeConnectionChartQuery(
       query_params: queryDef.queryParams as
         | Record<string, string | number | boolean>
         | undefined,
-      clickhouse_settings: timezone
-        ? { session_timezone: timezone }
-        : undefined,
+      // Chart timeout travels as a client setting, not SQL text (#3684).
+      clickhouse_settings: {
+        ...queryDef.clickhouseSettings,
+        ...(timezone ? { session_timezone: timezone } : {}),
+      },
     }
   )
 

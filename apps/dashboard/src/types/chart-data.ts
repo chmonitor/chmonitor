@@ -68,6 +68,11 @@ export interface QueryVariant {
   description?: string
 }
 
+/** Per-request settings a chart may carry; see `ChartQueryResult.clickhouseSettings`. */
+export interface ChartQuerySettings {
+  max_execution_time?: number
+}
+
 /**
  * Result of a chart query builder function
  * Contains SQL query and metadata for execution
@@ -103,6 +108,12 @@ export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
   columnCheck?: string | string[]
   /** Cache policy for HTTP Cache-Control headers */
   cachePolicy?: CachePolicy
+  /**
+   * Per-request ClickHouse settings, sent as `clickhouse_settings` rather than
+   * a `SETTINGS` clause in the SQL text so the client's central read-only rule
+   * can normalize the request (#3684). Use `CHART_QUERY_SETTINGS`.
+   */
+  clickhouseSettings?: ChartQuerySettings
   /**
    * @deprecated Use `sql: VersionedSql[]` instead. Will be removed in v0.3.0.
    *

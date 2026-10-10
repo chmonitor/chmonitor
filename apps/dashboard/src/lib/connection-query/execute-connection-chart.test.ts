@@ -153,3 +153,29 @@ describe('executeConnectionChartQuery — multi-query branch (Promise.all)', () 
     expect(maxInFlight).toBe(3)
   })
 })
+
+describe('executeConnectionChartQuery — single-query settings', () => {
+  // #3684: the chart timeout is a client setting now, not SQL text, so a
+  // per-user connection must forward it or the chart runs without a cap.
+  test('forwards the chart clickhouseSettings with the session timezone', async () => {
+    registerChartQuery('__test_single_settings__', () => ({
+      query: 'SELECT 1',
+      clickhouseSettings: { max_execution_time: 25 },
+    }))
+
+    await executeConnectionChartQuery(
+      '__test_single_settings__',
+      credentials,
+      {},
+      'UTC'
+    )
+
+    const options = queryConnection.mock.calls[0]?.[2] as
+      | { clickhouse_settings?: Record<string, unknown> }
+      | undefined
+    expect(options?.clickhouse_settings).toEqual({
+      max_execution_time: 25,
+      session_timezone: 'UTC',
+    })
+  })
+})

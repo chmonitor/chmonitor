@@ -35,16 +35,19 @@ import * as realRegistry from '@/lib/api/chart-registry'
 
 mock.module('@/lib/api/chart-registry', () => ({
   ...realRegistry,
-  hasChart: (n: string) => n === 'opt-chart' || n === 'plain-chart',
-  getAvailableCharts: () => ['opt-chart', 'plain-chart'],
+  hasChart: (n: string) =>
+    n === 'opt-chart' || n === 'plain-chart' || n === 'timed-chart',
+  getAvailableCharts: () => ['opt-chart', 'plain-chart', 'timed-chart'],
   getChartQuery: (n: string) =>
-    n === 'opt-chart'
-      ? {
-          query: 'SELECT 1 FROM system.query_thread_log',
-          optional: true,
-          tableCheck: 'system.query_thread_log',
-        }
-      : { query: 'SELECT 1', optional: false },
+    n === 'timed-chart'
+      ? { query: 'SELECT 1', clickhouseSettings: { max_execution_time: 25 } }
+      : n === 'opt-chart'
+        ? {
+            query: 'SELECT 1 FROM system.query_thread_log',
+            optional: true,
+            tableCheck: 'system.query_thread_log',
+          }
+        : { query: 'SELECT 1', optional: false },
 }))
 
 // Controllable executor: real exports preserved, executeChartQuery overridden.
@@ -101,6 +104,18 @@ async function call(name: string): Promise<Response> {
 describe('GET /api/v1/charts/$name — optional table degradation', () => {
   beforeEach(() => {
     mockExecuteChartQuery.mockClear()
+  })
+
+  // #3684: the chart timeout is a client setting now, not SQL text, so the
+  // route must hand it to the executor or it is silently dropped.
+  test('forwards the chart clickhouseSettings to the executor', async () => {
+    const response = await call('timed-chart')
+    expect(response.status).toBe(200)
+
+    const opts = (mockExecuteChartQuery.mock.calls[0] as unknown[])?.[4] as
+      | { clickhouseSettings?: unknown }
+      | undefined
+    expect(opts?.clickhouseSettings).toEqual({ max_execution_time: 25 })
   })
 
   test('optional chart with missing table → 200 empty + unavailable note (not 500)', async () => {

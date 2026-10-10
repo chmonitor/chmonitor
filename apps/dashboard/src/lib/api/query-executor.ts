@@ -23,6 +23,7 @@ import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-versio
 import type { VersionedSql } from '@chm/sql-builder'
 import type { ClickHouseBindings } from '@/lib/api/server-env'
 import type { QueryConfig } from '@/lib/query-config'
+import type { ChartQuerySettings } from '@/types/chart-data'
 
 import {
   fetchData,
@@ -265,6 +266,8 @@ export async function executeChartQuery(
     ttlSeconds?: number
     /** Per-chart opt-out of the query cache; see ChartQueryResult. */
     disableQueryCache?: boolean
+    /** Per-chart ClickHouse settings; see ChartQueryResult.clickhouseSettings. */
+    clickhouseSettings?: ChartQuerySettings
   } = {}
 ): Promise<ExecuteChartResult> {
   if (opts.bindings) bridgeClickHouseEnv(opts.bindings)
@@ -292,6 +295,7 @@ export async function executeChartQuery(
           query_params: queryParams,
           hostId,
           clickhouse_settings: {
+            ...opts.clickhouseSettings,
             ...cache,
             ...(opts.timezone ? { session_timezone: opts.timezone } : {}),
           },

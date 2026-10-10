@@ -195,6 +195,7 @@ export const Route = createFileRoute('/api/v1/health/checks')({
                     queryDef.cachePolicy
                   ),
                   disableQueryCache: queryDef.disableQueryCache,
+                  clickhouseSettings: queryDef.clickhouseSettings,
                 }
               )
 
