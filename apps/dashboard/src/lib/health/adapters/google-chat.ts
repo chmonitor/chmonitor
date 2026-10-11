@@ -19,6 +19,9 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { identityLine, instancePrefix } from './identity'
+import { escapeMatrixHtml } from './matrix'
+
 /** Severity → heading emoji, matching every other channel adapter. */
 const SEVERITY_STYLE: Record<AlertSeverity, { emoji: string }> = {
   critical: { emoji: '🔴' },
@@ -89,7 +92,7 @@ export function buildGoogleChatBody(
   payload: AlertPayload
 ): GoogleChatWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
-  const text = `[${heading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
+  const text = `${instancePrefix(payload)}[${heading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
 
   const widgets: GoogleChatWidget[] = [
     {
@@ -116,6 +119,19 @@ export function buildGoogleChatBody(
         text: `<b>Runbooks:</b><br>${payload.runbookUrls
           .map((u) => `• <a href="${u}">${u}</a>`)
           .join('<br>')}`,
+      },
+    })
+  }
+
+  const identity = identityLine(payload)
+  if (identity) {
+    widgets.push({ textParagraph: { text: escapeMatrixHtml(identity) } })
+  }
+
+  if (payload.dashboardUrl) {
+    widgets.push({
+      textParagraph: {
+        text: `<a href="${escapeMatrixHtml(payload.dashboardUrl)}">Open dashboard</a>`,
       },
     })
   }

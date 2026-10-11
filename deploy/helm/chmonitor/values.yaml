@@ -400,6 +400,25 @@ alertWebhooks:
     minSeverity: warning
   targets: []
 
+# Alert identity (non-secret). When several chmonitor deployments post into
+# the same chat channel, these say which deployment an alert came from and
+# link back to it. All empty by default = alert bodies unchanged.
+#   instanceName -> HEALTH_ALERT_INSTANCE_NAME (e.g. prod-eu)
+#   dashboardUrl -> HEALTH_ALERT_DASHBOARD_URL (public http(s) base URL; alerts
+#                   link to <dashboardUrl>/health?host=<id>)
+#   metadata     -> HEALTH_ALERT_METADATA (rendered as JSON; max 10 pairs,
+#                   keys [A-Za-z0-9_.-]{1,32}, values <=128 chars, no secrets)
+# alerting:
+#   instanceName: prod-eu
+#   dashboardUrl: https://chm.example.com
+#   metadata:
+#     team: data-platform
+#     region: eu-west-1
+alerting:
+  instanceName: ""
+  dashboardUrl: ""
+  metadata: {}
+
 # Extra env (canonical CHM_* names from apps/dashboard/.env.example).
 # SECURITY: prefer non-secret values here. For credentials, use valueFrom
 # secretKeyRef entries pointing at a pre-existing Secret — never commit

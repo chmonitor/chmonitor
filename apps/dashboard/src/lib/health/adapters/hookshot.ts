@@ -14,7 +14,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
-import { escapeMatrixHtml } from './matrix'
+import { identityLine, instancePrefix } from './identity'
+import { escapeMatrixHtml, identityHtml } from './matrix'
 
 export interface HookshotWebhookBody {
   /** Markdown/plain fallback; Hookshot requires it. */
@@ -36,16 +37,22 @@ const SEVERITY_STYLE: Record<AlertSeverity, { emoji: string; label: string }> =
 export function buildHookshotBody(payload: AlertPayload): HookshotWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
   const value = payload.value === null ? 'n/a' : String(payload.value)
+  const identity = identityLine(payload)
   const text =
-    `${style.emoji} [${style.label}] ${payload.title} — ${payload.label}\n` +
-    `host ${payload.hostLabel} · ${payload.metric} = ${value} · ${payload.timestamp}`
+    `${instancePrefix(payload)}${style.emoji} [${style.label}] ${payload.title} — ${payload.label}\n` +
+    `host ${payload.hostLabel} · ${payload.metric} = ${value} · ${payload.timestamp}` +
+    (identity ? `\n${identity}` : '') +
+    (payload.dashboardUrl ? `\n${payload.dashboardUrl}` : '')
   const html =
-    `<b>${style.emoji} [${style.label}] ${escapeMatrixHtml(payload.title)}</b><br>` +
+    `<b>${escapeMatrixHtml(instancePrefix(payload))}${style.emoji} [${style.label}] ${escapeMatrixHtml(payload.title)}</b><br>` +
     `${escapeMatrixHtml(payload.label)}<br>` +
     `<i>host ${escapeMatrixHtml(payload.hostLabel)} · ` +
     `${escapeMatrixHtml(payload.metric)} = ${escapeMatrixHtml(value)} · ` +
-    `${escapeMatrixHtml(payload.timestamp)}</i>`
-  return { text, html }
+    `${escapeMatrixHtml(payload.timestamp)}</i>` +
+    identityHtml(payload, identity)
+  return payload.instanceName
+    ? { text, html, username: payload.instanceName }
+    : { text, html }
 }
 
 /** Selected explicitly via `format: 'hookshot'`; Hookshot URLs are self-hosted, so no `detect`. */

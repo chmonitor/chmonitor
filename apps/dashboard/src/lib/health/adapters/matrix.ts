@@ -17,6 +17,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { identityLine, instancePrefix } from './identity'
+
 /** Matrix `m.room.message` event carrying an `m.notice`. */
 export interface MatrixMessageBody {
   msgtype: 'm.notice'
@@ -45,20 +47,37 @@ export function escapeMatrixHtml(raw: string): string {
 }
 
 /**
+ * HTML tail shared by the Matrix and Hookshot bodies: the escaped identity
+ * line and an "Open dashboard" link. '' when neither is configured.
+ */
+export function identityHtml(payload: AlertPayload, identity: string): string {
+  let html = ''
+  if (identity) html += `<br><small>${escapeMatrixHtml(identity)}</small>`
+  if (payload.dashboardUrl) {
+    html += `<br><a href="${escapeMatrixHtml(payload.dashboardUrl)}">Open dashboard</a>`
+  }
+  return html
+}
+
+/**
  * Build the Matrix `m.notice` body for a payload. Pure — no transport.
  */
 export function buildMatrixBody(payload: AlertPayload): MatrixMessageBody {
   const style = SEVERITY_STYLE[payload.severity]
   const value = payload.value === null ? 'n/a' : String(payload.value)
+  const identity = identityLine(payload)
   const body =
-    `${style.emoji} [${style.label}] ${payload.title} — ${payload.label} ` +
-    `(host ${payload.hostLabel}, ${payload.metric} = ${value})`
+    `${instancePrefix(payload)}${style.emoji} [${style.label}] ${payload.title} — ${payload.label} ` +
+    `(host ${payload.hostLabel}, ${payload.metric} = ${value})` +
+    (identity ? `\n${identity}` : '') +
+    (payload.dashboardUrl ? `\n${payload.dashboardUrl}` : '')
   const formatted_body =
-    `<b>${style.emoji} [${style.label}] ${escapeMatrixHtml(payload.title)}</b><br>` +
+    `<b>${escapeMatrixHtml(instancePrefix(payload))}${style.emoji} [${style.label}] ${escapeMatrixHtml(payload.title)}</b><br>` +
     `${escapeMatrixHtml(payload.label)}<br>` +
     `<i>host ${escapeMatrixHtml(payload.hostLabel)} · ` +
     `${escapeMatrixHtml(payload.metric)} = ${escapeMatrixHtml(value)} · ` +
-    `${escapeMatrixHtml(payload.timestamp)}</i>`
+    `${escapeMatrixHtml(payload.timestamp)}</i>` +
+    identityHtml(payload, identity)
   return {
     msgtype: 'm.notice',
     body,

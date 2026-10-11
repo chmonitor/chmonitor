@@ -33,4 +33,22 @@ if helm template test "$chart_dir" -f "$values" \
   exit 1
 fi
 
+grep -Eq 'HEALTH_ALERT_INSTANCE_NAME: "prod-eu"' "$configmap"
+grep -Eq 'HEALTH_ALERT_DASHBOARD_URL: "https://chm\.example\.com"' "$configmap"
+grep -Fq 'HEALTH_ALERT_METADATA: "{\"region\":\"eu\",\"team\":\"db\"}"' "$configmap"
+grep -Eq 'name: HEALTH_ALERT_METADATA' "$rendered"
+
+defaults_cm="$(helm template test "$chart_dir" --set clickhouse.host=https://ch.example.com \
+  --show-only templates/configmap.yaml)"
+if grep -Eq 'HEALTH_ALERT_(INSTANCE_NAME|DASHBOARD_URL|METADATA)' <<<"$defaults_cm"; then
+  echo 'alert identity env rendered with default (empty) values' >&2
+  exit 1
+fi
+
+if helm template test "$chart_dir" -f "$values" \
+  --set alerting.dashboardUrl=ftp://chm.example.com >/dev/null 2>&1; then
+  echo 'non-http(s) alerting.dashboardUrl unexpectedly rendered' >&2
+  exit 1
+fi
+
 echo 'custom alert webhook Helm render passed'

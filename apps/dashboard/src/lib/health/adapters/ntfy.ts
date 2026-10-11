@@ -23,6 +23,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { identityLine, instancePrefix } from './identity'
+
 /** Severity → ntfy priority (`1`–`5`). Higher = more urgent. */
 const SEVERITY_PRIORITY: Record<AlertSeverity, '3' | '4' | '5'> = {
   critical: '5',
@@ -116,11 +118,15 @@ export function buildNtfyMessage(payload: AlertPayload): NtfyMessage {
     for (const url of payload.runbookUrls) lines.push(`- ${url}`)
   }
 
+  const identity = identityLine(payload)
+  if (identity) lines.push(identity)
+  if (payload.dashboardUrl) lines.push(`Dashboard: ${payload.dashboardUrl}`)
+
   lines.push('')
   lines.push(payload.timestamp)
 
   return {
-    title: `[${heading(payload.severity)}] ${payload.title}`,
+    title: `${instancePrefix(payload)}[${heading(payload.severity)}] ${payload.title}`,
     priority: SEVERITY_PRIORITY[payload.severity],
     tags: SEVERITY_TAG[payload.severity],
     body: lines.join('\n'),

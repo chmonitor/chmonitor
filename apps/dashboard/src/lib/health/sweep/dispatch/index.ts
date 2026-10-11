@@ -28,6 +28,7 @@ import type {
   AlertSeverityFloor,
 } from './../../alert-channel-settings'
 import type { AlertRoute, AlertRouteProvider } from './../../alert-routing'
+import type { ServerAlertIdentity } from './../../server-alert-config'
 import type { SweepContext } from './../resolve-config'
 import type { FindingContext } from './finding-context'
 import type {
@@ -54,6 +55,10 @@ import {
   quietWindowEndMs,
   takeDueCatchUp,
 } from './../../quiet-hours'
+import {
+  buildHealthDeepLink,
+  getServerAlertIdentity,
+} from './../../server-alert-config'
 import { SWEEP_ACK_OWNER_ID } from './../resolve-config'
 import {
   effectiveSeverity,
@@ -101,6 +106,22 @@ const PROVIDER_CHANNEL: Record<AlertRouteProvider, AlertChannelId> = {
 }
 
 /**
+ * Payload identity fields for one host, or undefined when nothing is
+ * configured — so unset env keeps every alert body byte-identical.
+ */
+function buildFindingIdentity(
+  identity: ServerAlertIdentity,
+  hostId: number
+): FindingContext['identity'] {
+  const out: NonNullable<FindingContext['identity']> = {}
+  if (identity.instanceName) out.instanceName = identity.instanceName
+  const link = buildHealthDeepLink(identity.dashboardBaseUrl, hostId)
+  if (link) out.dashboardUrl = link
+  if (identity.metadata) out.metadata = identity.metadata
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+/**
  * Build the sweep's dispatcher for one tick. Seeds the digest buckets with any
  * time-window-buffered entries whose window has closed (a destructive read —
  * done exactly once per tick, gated on digest mode being on).
@@ -132,6 +153,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
   // and flush once per tick; see `./digest.ts`.
   const digest = await createDigestPipeline(ctx, counters)
   const customTargets = await loadSweepCustomTargets()
+  const identity = getServerAlertIdentity()
   // In-flight bus deliveries: not awaited inline (a slow subscriber must not
   // delay the legacy fan-out) but settled by `flushBusEvents` at the end of
   // the tick, so none outlives the sweep (Workers would cancel it; tests
@@ -342,9 +364,13 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       decision.incidentDurationMs !== undefined
         ? ` after ${formatDuration(decision.incidentDurationMs)}`
         : ''
+    const findingIdentity = buildFindingIdentity(identity, hostId)
+    const instancePrefix = identity.instanceName
+      ? `[${identity.instanceName}] `
+      : ''
     const text = isRecovery
-      ? `[RECOVERY] ${ruleTitle} — resolved${recoveryDuration} (host ${name})`
-      : `${isQuietCatchUp ? '[CATCH-UP] ' : ''}[${effective.toUpperCase()}] ${ruleTitle} — ${label} (host ${name})`
+      ? `${instancePrefix}[RECOVERY] ${ruleTitle} — resolved${recoveryDuration} (host ${name})`
+      : `${instancePrefix}${isQuietCatchUp ? '[CATCH-UP] ' : ''}[${effective.toUpperCase()}] ${ruleTitle} — ${label} (host ${name})`
 
     // Everything a channel needs to know about this finding, assembled once.
     const finding: FindingContext = {
@@ -360,6 +386,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       isRecovery,
       decision,
       text,
+      ...(findingIdentity && { identity: findingIdentity }),
     }
 
     // Per-channel + per-route gate (#2661). The severity a channel is judged
@@ -495,6 +522,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       title: ruleTitle,
       label,
       timestamp: webhookTimestamp,
+      ...findingIdentity,
     }
 
     // Digest partition (#2663): the digest-capable URLs (Slack / generic
