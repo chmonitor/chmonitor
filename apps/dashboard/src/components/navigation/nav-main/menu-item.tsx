@@ -12,7 +12,7 @@ import { GroupHoverFlyout, GroupTouchQuickLinks } from './group-quick-links'
 import { HideButton, SubHideButton } from './hide-button'
 import { PinButton, SubPinButton } from './pin-button'
 import { RowActionsMenu } from './row-actions-menu'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useId, useState } from 'react'
 import {
   useGroupVisibility,
   useUnavailableVisibility,
@@ -20,6 +20,11 @@ import {
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
 import { getGroupHubHref } from '@/lib/menu/group-hub'
 import { hiddenSiblingLeaves } from '@/lib/menu/hidden-siblings'
+import {
+  readSubgroupOpenState,
+  writeSubgroupOpen,
+} from '@/lib/menu/subgroup-open-store'
+import { groupChildrenBySubgroup, subgroupKey } from '@/lib/menu/subgroups'
 import { unavailableReasonText } from '@/lib/menu/unavailable-visibility'
 import { useMenuWorkspaceCatalog } from '@/lib/menu/use-menu-workspace'
 import { useHostId } from '@/lib/swr'
@@ -304,6 +309,80 @@ const SubMenuItem = function SubMenuItem({
 }
 
 /**
+ * One subgroup heading inside an expanded group (#3676): a real <button> that
+ * shows or hides its pages. The subgroup holding the active page opens (and
+ * re-opens when navigation lands on one of its pages); other subgroups start
+ * from the saved state, else collapsed. Pages keep every leaf affordance.
+ */
+const SubgroupSection = function SubgroupSection({
+  groupTitle,
+  subgroup,
+  containsActive,
+  activeChildHref,
+  children,
+}: {
+  groupTitle: string
+  subgroup: string
+  containsActive: boolean
+  activeChildHref: string | undefined
+  children: ReactNode
+}) {
+  const key = subgroupKey(groupTitle, subgroup)
+  const contentId = useId()
+  const [open, setOpen] = useState(containsActive)
+
+  // Saved state is read after mount so the prerendered shell and the first
+  // client render agree.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount only; later changes come from the user or the active page
+  useEffect(() => {
+    if (containsActive) return
+    const saved = readSubgroupOpenState()[key]
+    if (saved !== undefined) setOpen(saved)
+  }, [])
+
+  useEffect(() => {
+    if (containsActive && activeChildHref) setOpen(true)
+  }, [containsActive, activeChildHref])
+
+  const toggle = () => {
+    const next = !open
+    setOpen(next)
+    writeSubgroupOpen(key, next)
+  }
+
+  return (
+    <SidebarMenuSubItem>
+      <button
+        type="button"
+        data-testid="menu-subgroup-trigger"
+        data-subgroup={subgroup}
+        aria-expanded={open}
+        aria-controls={open ? contentId : undefined}
+        onClick={toggle}
+        className="flex h-11 min-h-11 w-full cursor-pointer items-center gap-1 rounded-md px-2 text-left text-[11px] font-medium text-muted-foreground ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 lg:h-6 lg:min-h-6"
+      >
+        <ChevronRight
+          aria-hidden="true"
+          className={cn(
+            'size-3 shrink-0 transition-transform duration-200',
+            open && 'rotate-90'
+          )}
+        />
+        <span className="min-w-0 truncate">{subgroup}</span>
+      </button>
+      {open ? (
+        <SidebarMenuSub
+          id={contentId}
+          className="mr-0 ml-2 gap-0 border-l-0 py-0 pr-0 pl-0"
+        >
+          {children}
+        </SidebarMenuSub>
+      ) : null}
+    </SidebarMenuSubItem>
+  )
+}
+
+/**
  * Renders a menu item with children (collapsible)
  * Uses standard shadcn/ui pattern - entire button triggers toggle
  */
@@ -460,16 +539,36 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
             visibleChildren={visibleChildren}
             onNavigate={closeMobileSidebar}
           />
-          {visibleChildren.map((subItem) => (
-            <SubMenuItem
-              key={subItem.href}
-              subItem={subItem}
-              pathname={pathname}
-              hostId={hostId}
-              siblingHrefs={siblingHrefs}
-              closeMobileSidebar={closeMobileSidebar}
-            />
-          ))}
+          {groupChildrenBySubgroup(visibleChildren).map((section) => {
+            const rows = section.items.map((subItem) => (
+              <SubMenuItem
+                key={subItem.href}
+                subItem={subItem}
+                pathname={pathname}
+                hostId={hostId}
+                siblingHrefs={siblingHrefs}
+                closeMobileSidebar={closeMobileSidebar}
+              />
+            ))
+            return section.subgroup ? (
+              <SubgroupSection
+                key={`subgroup:${section.subgroup}`}
+                groupTitle={item.title}
+                subgroup={section.subgroup}
+                containsActive={Boolean(
+                  activeChildHref &&
+                    section.items.some(
+                      (child) => child.href === activeChildHref
+                    )
+                )}
+                activeChildHref={activeChildHref}
+              >
+                {rows}
+              </SubgroupSection>
+            ) : (
+              rows
+            )
+          })}
         </SidebarMenuSub>
       </CollapsibleContent>
     </Collapsible>

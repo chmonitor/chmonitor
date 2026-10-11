@@ -332,3 +332,62 @@ describe('CollapsedSubmenu used directly (visible children drive the flyout)', (
     }
   })
 })
+
+describe('collapsed flyout subgroup headings (#3676)', () => {
+  /** 7 pages: over the flat threshold, so subgroups with 2+ pages get a heading. */
+  const clusterGroup: MenuItemType = {
+    title: 'Cluster & Replication',
+    href: '',
+    items: [
+      { title: 'Clusters', href: '/clusters', subgroup: 'Cluster' },
+      { title: 'Topology', href: '/topology', subgroup: 'Cluster' },
+      { title: 'Replicas', href: '/replicas', subgroup: 'Replication' },
+      { title: 'Queue', href: '/replication-queue', subgroup: 'Replication' },
+      { title: 'Keeper', href: '/keeper', subgroup: 'Keeper' },
+      { title: 'Keeper Log', href: '/keeper-log', subgroup: 'Keeper' },
+      { title: 'Solo', href: '/solo', subgroup: 'Solo' },
+    ],
+  }
+
+  test('labels each subgroup above its pages, and the label is not interactive', async () => {
+    const m = await mount({ item: clusterGroup })
+    try {
+      await m.render()
+      await m.openFlyout()
+      const groups = [
+        ...document.querySelectorAll('[data-testid="collapsed-subgroup"]'),
+      ]
+      expect(groups.map((g) => g.getAttribute('aria-label'))).toEqual([
+        'Cluster',
+        'Replication',
+        'Keeper',
+      ])
+      for (const group of groups) {
+        expect(group.getAttribute('role')).toBe('group')
+        const heading = group.firstElementChild
+        expect(heading?.tagName).toBe('DIV')
+        expect(heading?.querySelector('a, button')).toBeNull()
+      }
+      // A one-page subgroup is a plain row; every page is still listed in order.
+      expect(m.flyoutRows()).toEqual(clusterGroup.items!.map((i) => i.href))
+    } finally {
+      await m.cleanup()
+    }
+  })
+
+  test('a short group (6 pages or fewer) shows no headings', async () => {
+    const m = await mount({
+      item: { ...clusterGroup, items: clusterGroup.items!.slice(0, 4) },
+    })
+    try {
+      await m.render()
+      await m.openFlyout()
+      expect(
+        document.querySelectorAll('[data-testid="collapsed-subgroup"]').length
+      ).toBe(0)
+      expect(m.flyoutRows()).toHaveLength(4)
+    } finally {
+      await m.cleanup()
+    }
+  })
+})

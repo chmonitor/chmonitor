@@ -20,6 +20,7 @@ interface FlatEntry {
   title: string
   href: string
   section?: string
+  subgroup?: string
 }
 
 function flatten(
@@ -33,6 +34,7 @@ function flatten(
       title: item.title,
       href: item.href,
       section: item.section,
+      subgroup: item.subgroup,
     })
     if (item.items) flatten(item.items, depth + 1, out)
   }

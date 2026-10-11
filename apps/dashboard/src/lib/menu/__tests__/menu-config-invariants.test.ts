@@ -205,15 +205,106 @@ describe('task-group layout (#3565)', () => {
     ])
   })
 
-  test('the sidebar stays two levels deep: no group nests a group', () => {
-    // The renderer (nav-main/menu-item.tsx) does not recurse, so a third
-    // level would never render.
+  test('the config stays two levels deep: no group nests a group', () => {
+    // The renderer (nav-main/menu-item.tsx) does not recurse into `items`;
+    // the visible third level comes from `subgroup` instead (#3676).
     const nested = menuItemsConfig.flatMap((group) =>
       (group.items ?? [])
         .filter((child) => child.items?.length)
         .map((child) => `${group.title} > ${child.title}`)
     )
     expect(nested).toEqual([])
+  })
+
+  test('subgroups are a derived third level, never nested items (#3676)', () => {
+    // WHY: the sidebar renders group > subgroup > page from each child's
+    // `subgroup` (lib/menu/subgroups.ts). The config itself stays flat, so
+    // pins, favorites and hidden pages stay keyed by leaf href.
+    const offenders = menuItemsConfig.flatMap((group) =>
+      (group.items ?? []).flatMap((child) =>
+        (child.items ?? []).map(
+          (grandchild) =>
+            `${group.title} > ${child.title} > ${grandchild.title}`
+        )
+      )
+    )
+    expect(offenders).toEqual([])
+  })
+
+  test("a subgroup's pages are contiguous within its group", () => {
+    // WHY: the sidebar keeps first-appearance order; a split run would pull
+    // a page away from its neighbours in the config.
+    const split: string[] = []
+    for (const group of menuItemsConfig) {
+      const seen = new Set<string>()
+      let previous: string | undefined
+      for (const child of group.items ?? []) {
+        const name = child.subgroup
+        if (name && name !== previous && seen.has(name)) {
+          split.push(`${group.title} > ${name} (at ${child.title})`)
+        }
+        if (name) seen.add(name)
+        previous = name
+      }
+    }
+    expect(split).toEqual([])
+  })
+
+  test('subgroup names are unique within a group, ignoring case and spacing', () => {
+    // "Live" and "live " would render as two headings that look the same.
+    const clashes = menuItemsConfig.flatMap((group) => {
+      const byNormal = new Map<string, Set<string>>()
+      for (const child of group.items ?? []) {
+        if (!child.subgroup) continue
+        const key = child.subgroup.trim().toLowerCase()
+        const names = byNormal.get(key) ?? new Set<string>()
+        names.add(child.subgroup)
+        byNormal.set(key, names)
+      }
+      return [...byNormal.values()]
+        .filter((names) => names.size > 1)
+        .map((names) => `${group.title}: ${[...names].join(' / ')}`)
+    })
+    expect(clashes).toEqual([])
+  })
+
+  test('every child of a hub group, Tools & AI and Settings has a subgroup', () => {
+    const groups = menuItemsConfig.filter(
+      (item) =>
+        item.hubHref || item.title === 'Tools & AI' || item.title === 'Settings'
+    )
+    expect(groups.length).toBeGreaterThanOrEqual(6)
+    const missing = groups.flatMap((group) =>
+      (group.items ?? [])
+        .filter((child) => !child.subgroup?.trim())
+        .map((child) => `${group.title} > ${child.title}`)
+    )
+    expect(missing).toEqual([])
+  })
+
+  test('Tools & AI and Settings subgroups match the #3676 table', () => {
+    const runs = (title: string) =>
+      (topGroup(title)?.items ?? []).map((item) => item.subgroup)
+    expect(runs('Tools & AI')).toEqual([
+      'AI',
+      'AI',
+      'AI',
+      'SQL',
+      'SQL',
+      'SQL',
+      'Compare',
+      'Compare',
+    ])
+    expect(runs('Settings')).toEqual([
+      'AI & Reports',
+      'AI & Reports',
+      'AI & Reports',
+      'Health & Alerts',
+      'Health & Alerts',
+      'ClickHouse',
+      'ClickHouse',
+      'ClickHouse',
+    ])
   })
 
   test('Postgres items stay top-level and engine-gated', () => {
@@ -326,13 +417,13 @@ describe('task-group layout (#3565)', () => {
     ])
     expect(hrefsOf('Tools & AI')).toEqual([
       '/agents',
+      '/advisor',
+      '/mcp',
       '/sql',
       '/explain',
-      '/advisor',
       '/dashboard',
       '/schema-diff',
       '/settings-diff',
-      '/mcp',
     ])
     expect(hrefsOf('Settings')).toEqual([
       '/agents/settings',

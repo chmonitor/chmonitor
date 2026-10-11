@@ -19,6 +19,7 @@ import {
   catalogGroupLeaves,
   findCatalogGroupByTitle,
 } from '@/lib/menu/hidden-siblings'
+import { groupChildrenBySubgroup } from '@/lib/menu/subgroups'
 import { useMenuWorkspaceCatalog } from '@/lib/menu/use-menu-workspace'
 import { cn } from '@/lib/utils'
 
@@ -100,9 +101,31 @@ export function GroupCustomizeDialog({
 
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-2 py-2">
           <ul className="flex min-w-0 flex-col">
-            {leaves.map((item) => (
-              <GroupPageRow key={item.href} item={item} />
-            ))}
+            {groupChildrenBySubgroup(leaves).map((section) => {
+              const rows = section.items.map((item) => (
+                <GroupPageRow key={item.href} item={item} />
+              ))
+              if (!section.subgroup) return rows
+              return (
+                <li
+                  key={`subgroup:${section.subgroup}`}
+                  className="flex min-w-0 flex-col"
+                >
+                  <div
+                    data-testid="group-customize-subgroup"
+                    className="px-2 pt-2 pb-0.5 text-[11px] font-medium text-muted-foreground"
+                  >
+                    {section.subgroup}
+                  </div>
+                  <ul
+                    aria-label={section.subgroup}
+                    className="flex min-w-0 flex-col"
+                  >
+                    {rows}
+                  </ul>
+                </li>
+              )
+            })}
           </ul>
         </div>
 

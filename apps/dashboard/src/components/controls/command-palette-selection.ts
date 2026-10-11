@@ -10,6 +10,7 @@ import { defaultFilter } from 'cmdk'
 import type { MenuItem } from '@/components/menu/types'
 
 import { menuItemPaletteValue } from './command-palette-utils'
+import { groupChildrenBySubgroup } from '@/lib/menu/subgroups'
 
 export interface PaletteHeaderRow {
   kind: 'header'
@@ -84,16 +85,23 @@ export function buildSectionedPaletteRows(
 ): PaletteRow[] {
   const rows: PaletteRow[] = []
   for (const group of sectionedItems) {
-    const children = group.items ?? []
-    if (children.length === 0) continue
-    rows.push({
-      kind: 'header',
-      id: `header:${group.title}`,
-      title: group.title,
+    // Same sections as the sidebar (#3676): a subgroup with 2+ pages gets a
+    // "Group › Subgroup" heading. Collapse state never filters the palette.
+    groupChildrenBySubgroup(group.items ?? []).forEach((section, index) => {
+      const title = section.subgroup
+        ? `${group.title} › ${section.subgroup}`
+        : group.title
+      rows.push({
+        kind: 'header',
+        id: section.subgroup
+          ? `header:${title}`
+          : `header:${group.title}#${index}`,
+        title,
+      })
+      for (const item of section.items) {
+        rows.push(menuItemToRow(item, group.title, hiddenHrefs))
+      }
     })
-    for (const item of children) {
-      rows.push(menuItemToRow(item, group.title, hiddenHrefs))
-    }
   }
   return rows
 }

@@ -597,7 +597,17 @@ is a full-width control under the hide-count line. Full detail:
    Add the tab title in `lib/page-title.ts` (`ROUTE_TITLE_MAP`) when it
    differs from title-casing the last URL segment — ⌘K searches that
    `<title>` as well as the sidebar label.
-   The sidebar is task groups, two levels deep (#3565): Overview, Queries,
+   The sidebar is task groups (#3565), shown three levels deep — group >
+   subgroup > page (#3676) — but configured two levels deep: never nest
+   `items` in `items`. The subgroup level is derived from each child's
+   `subgroup` by `lib/menu/subgroups.ts` (`groupChildrenBySubgroup`, run after
+   visibility filtering): a heading only for 2+ visible pages, a single page
+   is a plain row, and a group with 6 or fewer visible pages stays flat.
+   Keep a subgroup's pages contiguous (invariant test). Headings are a real
+   `<button>` (`aria-expanded`/`aria-controls`) in the rail, open for the
+   active page, saved in localStorage `chm-menu-subgroups-open`; plain labels
+   in the collapsed flyout, the customize dialog and Settings > Navigation;
+   "Group › Subgroup" headings in ⌘K. Groups: Overview, Queries,
    Data & Storage, Cluster & Replication, Server, Alerts & Insights,
    Tools & AI (main), then Settings (others) and the About footer. Queries,
    Data & Storage, Cluster & Replication, and Server have hub pages
@@ -610,7 +620,9 @@ is a full-width control under the hide-count line. Full detail:
    groups*); never add a new top-level group or nest a group in a group.
    Configuration pages go in `menu/settings.ts`. Interactive utilities
    (SQL, explain, compare, builder, advisor, agent chat, MCP) go in
-   `menu/tools.ts` (Tools & AI, last Main group). Only Queries has a parent
+   `menu/tools.ts` (Tools & AI, last Main group). Every page in a hub group,
+   Tools & AI (AI / SQL / Compare) and Settings (AI & Reports / Health &
+   Alerts / ClickHouse) sets `subgroup`. Only Queries has a parent
    `permission`; in every other group set the page's `permission` on the
    leaf itself. Leave `engines` absent on Tools & AI so Postgres hosts hide
    the whole group — do not add `engines: ['postgres']`; Postgres-only

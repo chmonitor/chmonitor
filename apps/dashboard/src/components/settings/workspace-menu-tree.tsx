@@ -17,6 +17,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
+import { groupChildrenBySubgroup } from '@/lib/menu/subgroups'
 import { menuItemIsHidden } from '@/lib/menu/workspace-presets'
 import { cn } from '@/lib/utils'
 
@@ -122,14 +123,35 @@ function TreeNode({
       </CollapsibleTrigger>
       <CollapsibleContent keepMounted={forceOpen}>
         <SidebarMenuSub>
-          {item.items?.map((child) => (
-            <SubLeafRow
-              key={child.href || child.title}
-              item={child}
-              hiddenHrefs={hiddenHrefs}
-              onToggle={onToggle}
-            />
-          ))}
+          {groupChildrenBySubgroup(item.items ?? []).map((section) => {
+            const rows = section.items.map((child) => (
+              <SubLeafRow
+                key={child.href || child.title}
+                item={child}
+                hiddenHrefs={hiddenHrefs}
+                onToggle={onToggle}
+              />
+            ))
+            if (!section.subgroup) return rows
+            // Subgroup headings are labels only here (#3676): search already
+            // narrows the list, so nothing collapses.
+            return (
+              <SidebarMenuSubItem key={`subgroup:${section.subgroup}`}>
+                <div
+                  data-testid="workspace-menu-subgroup"
+                  className="px-2 pt-1.5 pb-0.5 text-left text-[11px] font-medium text-muted-foreground"
+                >
+                  {section.subgroup}
+                </div>
+                <SidebarMenuSub
+                  aria-label={section.subgroup}
+                  className="mr-0 ml-2 border-l-0 py-0 pr-0 pl-0"
+                >
+                  {rows}
+                </SidebarMenuSub>
+              </SidebarMenuSubItem>
+            )
+          })}
         </SidebarMenuSub>
       </CollapsibleContent>
     </Collapsible>
