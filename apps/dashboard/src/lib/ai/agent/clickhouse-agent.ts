@@ -58,6 +58,8 @@ export function createClickHouseAgent(options: {
   /** Origin of the calling request — passed as OpenRouter HTTP-Referer. */
   referer?: string
   includeControlTools?: boolean
+  /** Read-only integration tools, resolved by the route (integration-tools-gate.ts). */
+  integrations?: { peerdb?: boolean; postgres?: boolean }
   /** Session / conversation ID for structured log correlation. */
   sessionId?: string
   /** Additional tools from connected custom MCP servers (prefixed mcp_*). */
@@ -79,12 +81,18 @@ export function createClickHouseAgent(options: {
     providerOptions,
     referer,
     includeControlTools = false,
+    integrations,
     sessionId = crypto.randomUUID(),
     extraTools,
     apiKey,
   } = options
 
-  const allTools = createAllTools(hostId, includeControlTools, connection)
+  const allTools = createAllTools(
+    hostId,
+    includeControlTools,
+    connection,
+    integrations
+  )
   // Built-in schemas are static per tool name: reuse their JSON Schema across
   // steps and requests instead of re-converting zod every step (#3560).
   const filteredTools = withCachedInputSchemas(

@@ -8,6 +8,7 @@
 import type { AgentConnectionBinding } from '@/lib/ai/agent/host-query'
 import type { SafeAgentMessage, SafePageContext } from './request-parsing'
 
+import { integrationPromptHint } from './integrations'
 import { buildPageContextLine } from './request-parsing'
 import { createClickHouseAgent } from '@/lib/ai/agent'
 import { AGENT_JSON_RENDER_INLINE_PROMPT } from '@/lib/ai/agent/json-render-inline-prompt'
@@ -194,6 +195,8 @@ export async function createAgentRuntime(options: {
   openRouterUser: string
   requestOrigin: string | undefined
   includeControlTools: boolean
+  /** Read-only integration tools for this conversation (see ./integrations.ts). */
+  integrations?: { peerdb: boolean; postgres: boolean }
   sessionId: string
   byokApiKey: string | null
   releaseReservationOnce: () => Promise<void>
@@ -232,10 +235,14 @@ export async function createAgentRuntime(options: {
       ...(options.connection ? { connection: options.connection } : {}),
       model: options.model,
       disabledTools: options.disabledTools,
-      systemPrompt: AGENT_JSON_RENDER_INLINE_PROMPT,
+      systemPrompt: options.integrations
+        ? AGENT_JSON_RENDER_INLINE_PROMPT +
+          integrationPromptHint(options.integrations)
+        : AGENT_JSON_RENDER_INLINE_PROMPT,
       providerOptions: { openrouter: { user: options.openRouterUser } },
       referer: options.requestOrigin,
       includeControlTools: options.includeControlTools,
+      ...(options.integrations ? { integrations: options.integrations } : {}),
       sessionId: options.sessionId,
       extraTools,
       ...(options.byokApiKey ? { apiKey: options.byokApiKey } : {}),

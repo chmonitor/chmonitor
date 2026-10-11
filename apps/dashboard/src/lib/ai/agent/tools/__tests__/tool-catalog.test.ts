@@ -67,7 +67,9 @@ let toolNames: string[] = []
 let catalogNames: string[] = []
 
 beforeEach(() => {
-  toolNames = Object.keys(createAllTools(0, true)).sort()
+  toolNames = Object.keys(
+    createAllTools(0, true, undefined, { peerdb: true, postgres: true })
+  ).sort()
   catalogNames = catalogToolNames().sort()
 })
 
@@ -147,6 +149,42 @@ describe('catalog entry shape', () => {
     }
     for (const [name, category] of Object.entries(gated)) {
       expect(TOOL_CATALOG[name]?.category).toBe(category)
+    }
+  })
+
+  // #3674 turns these on by default when the integration is reachable, which
+  // is only safe because none of them can write. Pin that: they are filed
+  // outside `control`, stay out of the core set, and the Postgres query
+  // primitive refuses a write before it ever connects.
+  test('the auto-enabled integration tools are read-only', async () => {
+    const integration = Object.values(TOOL_CATALOG).filter(
+      (e) => e.category === 'postgres' || e.category === 'peerdb'
+    )
+    expect(integration.map((e) => e.name).sort()).toEqual([
+      'get_peerdb_metrics',
+      'get_peerdb_mirror_status',
+      'get_postgres_metrics',
+      'get_postgres_table_stats',
+      'list_postgres_slow_query_patterns',
+      'run_postgres_select_query',
+    ])
+    for (const entry of integration) expect(entry.core).toBe(false)
+
+    const savedHost = process.env.POSTGRES_HOST
+    process.env.POSTGRES_HOST = '127.0.0.1'
+    try {
+      const tools = createAllTools(0, false, undefined, {
+        postgres: true,
+      }) as Record<string, { execute: (input: unknown) => Promise<unknown> }>
+      await expect(
+        tools.run_postgres_select_query.execute({
+          sql: 'DELETE FROM users',
+          pgHostId: 0,
+        })
+      ).rejects.toThrow()
+    } finally {
+      if (savedHost === undefined) delete process.env.POSTGRES_HOST
+      else process.env.POSTGRES_HOST = savedHost
     }
   })
 })

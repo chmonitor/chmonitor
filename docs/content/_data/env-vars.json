@@ -129,6 +129,18 @@
     },
     {
       "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_AGENT_INTEGRATION_PROBE_TIMEOUT_MS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_AGENT_INTEGRATION_PROBE_TTL_MS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
       "inEnvExample": true,
       "name": "CHM_ALLOW_PRIVATE_HOSTS",
       "prefix": "CHM"

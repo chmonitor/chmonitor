@@ -60,7 +60,9 @@ const { createAllTools } = await import('./index')
 const { CLICKHOUSE_AGENT_INSTRUCTIONS } = await import(
   '../prompts/clickhouse-instructions'
 )
-const toolNames = Object.keys(createAllTools(0, true))
+const toolNames = Object.keys(
+  createAllTools(0, true, undefined, { peerdb: true, postgres: true })
+)
 
 const REPO_ROOT = join(
   (import.meta as any).dir,

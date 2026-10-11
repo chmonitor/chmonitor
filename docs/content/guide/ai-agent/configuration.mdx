@@ -200,9 +200,12 @@ curl -H "Authorization: Bearer $AGENT_API_TOKEN" \
 
 ## Cross-source Postgres tools
 
-Set `CHM_FEATURE_POSTGRES_SOURCE=true` to expose the agent's read-only Postgres
-tools (`run_postgres_select_query`, `get_postgres_metrics`,
-`list_postgres_slow_query_patterns`, `get_postgres_table_stats`). They resolve a per-call `pgHostId` against
+The agent's read-only Postgres tools (`run_postgres_select_query`,
+`get_postgres_metrics`, `list_postgres_slow_query_patterns`,
+`get_postgres_table_stats`) turn on by themselves when a `POSTGRES_HOST` is set
+and answers `SELECT 1` within the probe budget (see
+[Integration tool defaults](#integration-tool-defaults)). Set
+`CHM_FEATURE_POSTGRES_SOURCE=true` to force them on, or `false` to turn them off. They resolve a per-call `pgHostId` against
 the `POSTGRES_*` env lists below — a flat positional index, exactly like a
 ClickHouse `hostId` indexes the `CLICKHOUSE_*` lists. All lists are
 comma-separated and index-aligned with `POSTGRES_HOST`; a single `POSTGRES_USER`
@@ -210,7 +213,7 @@ comma-separated and index-aligned with `POSTGRES_HOST`; a single `POSTGRES_USER`
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CHM_FEATURE_POSTGRES_SOURCE` | `false` | Master gate. When `true`, the three Postgres tools are added to the agent. Pure env gate (no Clerk) so self-hosted has equal support. |
+| `CHM_FEATURE_POSTGRES_SOURCE` | unset (auto) | Three-state gate: unset = on when a host is configured and reachable, `true` = on when a host is configured, `false` = off. `true` also turns on the Postgres UI and API routes. |
 | `POSTGRES_HOST` | — | Comma-separated Postgres hosts (`host` or `host:port`). Defines the `pgHostId` id space. |
 | `POSTGRES_PORT` | `5432` | Ports (used when a host has no inline `:port`). |
 | `POSTGRES_USER` | `postgres` | Users; a single value applies to all hosts. |
@@ -231,7 +234,6 @@ Point the Postgres user at a **read-only** role. The tools pin the session
 read-only and gate the SQL, but a least-privilege user is defense in depth.
 
 ```bash
-CHM_FEATURE_POSTGRES_SOURCE=true
 POSTGRES_HOST=db.internal:5432
 POSTGRES_USER=readonly
 POSTGRES_PASSWORD=secret
@@ -240,18 +242,19 @@ POSTGRES_DATABASE=appdb
 
 ## PeerDB mirror tool
 
-Set `CHM_FEATURE_PEERDB_AGENT=true` to expose the agent's read-only PeerDB
-tool (`get_peerdb_mirror_status`). It reads through the same read-only
-server-side proxy as the `/peerdb` pages, so `PEERDB_API_URL` (and
-`PEERDB_PASSWORD` / `PEERDB_AUTH_SCHEME` if your PeerDB API needs auth) must
-already be configured — see [PeerDB](/guide/features/peerdb). Unlike the UI
-section, which appears whenever `PEERDB_API_URL` is set, the agent tool is
-explicitly opt-in so operators can offer PeerDB monitoring without
-advertising it to the model.
+The agent's read-only PeerDB tools (`get_peerdb_mirror_status`,
+`get_peerdb_metrics`) read through the same read-only server-side proxy as the
+`/peerdb` pages, so `PEERDB_API_URL` (and `PEERDB_PASSWORD` /
+`PEERDB_AUTH_SCHEME` if your PeerDB API needs auth) must be configured — see
+[PeerDB](/guide/features/peerdb). They turn on by themselves when PeerDB is
+configured and reachable (see
+[Integration tool defaults](#integration-tool-defaults)). Set
+`CHM_FEATURE_PEERDB_AGENT=false` to keep them away from the model while
+keeping the `/peerdb` pages.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CHM_FEATURE_PEERDB_AGENT` | `false` | Master gate. When `true`, `get_peerdb_mirror_status` is added to the agent. Pure env gate (no Clerk) so self-hosted has equal support. Setting `CHM_FEATURE_PEERDB_ENABLED=false` keeps the tool out even when this is `true`. |
+| `CHM_FEATURE_PEERDB_AGENT` | unset (auto) | Three-state gate: unset = on when PeerDB is configured and reachable, `true` = on when configured, `false` = off. `CHM_FEATURE_PEERDB_ENABLED=false` keeps the tools out even when this is `true`. |
 | `PEERDB_API_URL` | — | PeerDB API base URL (already required for the `/peerdb` pages). The tool fail-closes with a not-configured message when unset. |
 
 <Callout type="info" title="Env PeerDB only, for now">
@@ -264,9 +267,46 @@ before results reach the model, and mutating PeerDB operations are unreachable.
 </Callout>
 
 ```bash
-CHM_FEATURE_PEERDB_AGENT=true
 PEERDB_API_URL=https://peerdb.example.com/api
 ```
+
+### Integration tool defaults
+
+The Postgres and PeerDB tools are read-only, so they turn on without a flag
+when the integration is configured and reachable. Each conversation decides
+once, on its first message, and keeps that tool set for its later turns.
+
+| Flag | Configured | Reachable | Result |
+|---|---|---|---|
+| `false` | any | any | off |
+| any | no | — | off |
+| `true` | yes | any | on (errors show when a tool runs) |
+| unset | yes | yes | on |
+| unset | yes | no, or probe too slow | off |
+
+- **Anonymous cloud visitors** never get them.
+- **Signed-in cloud users**, and requests on a user's own connection, need the
+  flag set to `true`: the sources are deployment-wide, so they are the
+  operator's data.
+- **Probe:** PeerDB gets one read-only API call; Postgres gets `SELECT 1` on
+  the first source. The agent waits at most
+  `CHM_AGENT_INTEGRATION_PROBE_TIMEOUT_MS` (default and maximum `1500`). A
+  slow probe counts as unreachable for that conversation and keeps running in
+  the background for the next one.
+- **Cache:** results are reused per server instance for
+  `CHM_AGENT_INTEGRATION_PROBE_TTL_MS` (default `60000`), failures for at most
+  15 seconds.
+- The tools stay out of the always-loaded core set. When any are on, the
+  system prompt says so, and the agent finds them with `search_tools`.
+- The server logs one `agent.integration_tools` line each time the result
+  changes, with a reason such as `auto`, `flag_false`, `unconfigured`,
+  `unreachable:<kind>`, `probe_timeout`, `cloud_anon` or `needs_opt_in`. It
+  never logs URLs or credentials.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_AGENT_INTEGRATION_PROBE_TIMEOUT_MS` | `1500` | Probe wait budget. Can only lower the default. |
+| `CHM_AGENT_INTEGRATION_PROBE_TTL_MS` | `60000` | How long a successful probe result is reused. |
 
 ### Least-privilege ClickHouse user
 

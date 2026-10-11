@@ -148,12 +148,19 @@ async function buildAlertRules() {
 // agent-tools.json
 // ---------------------------------------------------------------------------
 
-/** Env var that adds a group of agent tools. Same gates as tool-docs-sync.test.ts. */
+/**
+ * Env var that adds a group of agent tools. Same gates as tool-docs-sync.test.ts.
+ * The integration tools (Postgres, PeerDB) are turned on by the caller after a
+ * reachability probe; here they are passed on, and the env `false` kill
+ * switch inside createAllTools() decides, so each gate still isolates its group.
+ */
 const AGENT_TOOL_GATES = [
   'AGENT_ENABLE_CONTROL_TOOLS',
   'CHM_FEATURE_POSTGRES_SOURCE',
   'CHM_FEATURE_PEERDB_AGENT',
 ] as const
+
+const ALL_INTEGRATIONS = { peerdb: true, postgres: true }
 
 async function buildAgentTools() {
   const { createAllTools } = await import(
@@ -166,16 +173,20 @@ async function buildAgentTools() {
   const on = Object.fromEntries(AGENT_TOOL_GATES.map((g) => [g, 'true']))
 
   const base = new Set(
-    await withEnv(off, () => Object.keys(createAllTools(0, true)))
+    await withEnv(off, () =>
+      Object.keys(createAllTools(0, true, undefined, ALL_INTEGRATIONS))
+    )
   )
   const gateOf = new Map<string, string>()
   for (const gate of AGENT_TOOL_GATES) {
     const names = await withEnv({ ...off, [gate]: 'true' }, () =>
-      Object.keys(createAllTools(0, true))
+      Object.keys(createAllTools(0, true, undefined, ALL_INTEGRATIONS))
     )
     for (const n of names) if (!base.has(n)) gateOf.set(n, gate)
   }
-  const all = await withEnv(on, () => createAllTools(0, true))
+  const all = await withEnv(on, () =>
+    createAllTools(0, true, undefined, ALL_INTEGRATIONS)
+  )
 
   const tools = Object.keys(all)
     .sort(byString)

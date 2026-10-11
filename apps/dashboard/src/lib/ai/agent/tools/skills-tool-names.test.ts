@@ -34,7 +34,9 @@ const TOOL_LIKE =
 describe('agent skills do not name ghost tools', () => {
   test('every tool-like backtick in registry skills is a real tool', () => {
     const allowed = new Set([
-      ...Object.keys(createAllTools(0, true)),
+      ...Object.keys(
+        createAllTools(0, true, undefined, { peerdb: true, postgres: true })
+      ),
       'query',
       'load_skill',
     ])

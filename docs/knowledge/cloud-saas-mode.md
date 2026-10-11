@@ -97,6 +97,7 @@ split-brain. Detection is pure and unit-tested (`cloud-mode.test.ts`); the
 | Per-user conns | optional | on (`VITE_FEATURE_USER_CONNECTIONS_DB=true`) |
 | Agent (anon) | IP rate limit only, no daily cap | daily guest cap (default 3) + tighter RL (5/min); D1 `guest:<ip-hash>` |
 | Agent control tools (`kill_query`, `optimize_table`, `kill_mutation`) | **on** when auth is `none` or the caller is signed in; off for an anonymous Clerk visitor | **off**; `AGENT_ENABLE_CONTROL_TOOLS=true` enables them for signed-in callers only — anonymous visitors never get them. Resolver: `lib/ai/agent/control-tools-gate.ts`; `actions` permission still applies; own connections stay read-only |
+| Agent integration tools (PeerDB, Postgres; read-only) | **on** when configured and reachable (probe pinned per conversation); `false` flag turns off | **off** for anonymous visitors whatever the flag; signed-in users need `CHM_FEATURE_PEERDB_AGENT=true` / `CHM_FEATURE_POSTGRES_SOURCE=true` (the sources are the operator's env). Resolver: `lib/ai/agent/integration-tools-gate.ts` |
 | Agent (signed-in) | env hosts; own saved connections if enabled | demo → 403 `demo_hidden`; own saved connection → queried directly. Errors render as actionable notices (`mapAgentConnectionError`); zero hosts → add-connection prompt on the welcome screen |
 
 **The agent on a user's own connection.** `POST /api/v1/agent` accepts a

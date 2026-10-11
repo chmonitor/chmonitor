@@ -64,7 +64,10 @@ describe('search_tools — gate contract', () => {
 
   test('advertises a gated tool once its gate is on', async () => {
     setGates(true, true, true)
-    const tools = createAllTools(0, true) as ToolMap
+    const tools = createAllTools(0, true, undefined, {
+      peerdb: true,
+      postgres: true,
+    }) as ToolMap
     const result = await run(tools, { query: 'peerdb replication slot lag' })
     expect(result.results.map((r: { name: string }) => r.name)).toContain(
       'get_peerdb_metrics'
@@ -190,7 +193,10 @@ describe('search_tools — routing', () => {
 describe('search_tools — output bounds', () => {
   test('caps results and flags truncation the house way', async () => {
     setGates(true, true, true)
-    const tools = createAllTools(0, true) as ToolMap
+    const tools = createAllTools(0, true, undefined, {
+      peerdb: true,
+      postgres: true,
+    }) as ToolMap
     // A query matching nearly everything.
     const result = await run(tools, { query: 'get', includeCore: true })
     expect(result.results.length).toBeLessThanOrEqual(TOOL_SEARCH_RESULT_LIMIT)

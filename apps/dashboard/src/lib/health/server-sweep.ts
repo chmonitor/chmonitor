@@ -222,8 +222,9 @@ async function runPeerDBAlertSweep(
       skipped: 0,
     },
   })
-  // Feature kill-switch: same raw env check as the agent tool gate
-  // (`isPeerDBAgentEnabled`, tools/index.ts). Only the literal `false` disables.
+  // Feature kill-switch: the same CHM_FEATURE_PEERDB_ENABLED check the agent
+  // tool gate uses (`peerdbKillSwitch`, lib/ai/agent/integration-tools-gate.ts).
+  // parseBool grammar: false/0/no/off disables.
   if (parseBool(process.env.CHM_FEATURE_PEERDB_ENABLED) === false)
     return empty()
   try {

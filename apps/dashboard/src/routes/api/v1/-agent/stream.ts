@@ -29,6 +29,10 @@ import {
   formatAgentErrorText,
   sanitizeAgentError,
 } from '@/lib/ai/agent/errors'
+import {
+  INTEGRATION_PIN_PART_TYPE,
+  type IntegrationPin,
+} from '@/lib/ai/agent/integration-tools-gate'
 import { createJsonRenderPatchGuardStream } from '@/lib/ai/agent/json-render-patch-guard'
 import { pipeJsonRenderCoalesced } from '@/lib/ai/agent/text-delta-coalescer'
 import { meterAiOverage } from '@/lib/billing/ai-usage-store'
@@ -78,6 +82,8 @@ export function createAgentStreamResponse(options: {
   /** True when `byokApiKey` is the user's own AnyRouter sign-in token, so an
    * AnyRouter 401 is reported as `anyrouter_token_expired`. */
   userAnyRouterToken?: boolean
+  /** Integration reachability to store with the conversation (#3674). */
+  integrationPin?: IntegrationPin
 }): Response {
   const {
     agent,
@@ -91,6 +97,7 @@ export function createAgentStreamResponse(options: {
     releaseReservationOnce,
     byokApiKey = null,
     userAnyRouterToken = false,
+    integrationPin,
   } = options
   const classifyContext = {
     model,
@@ -260,6 +267,16 @@ export function createAgentStreamResponse(options: {
           // reservation so aborted requests don't consume the user's quota.
           await releaseReservationOnce()
         }
+      }
+
+      // Store the integration probe result with the conversation: the client
+      // sends this part back with the history, and the next turn reuses it
+      // instead of probing, so the tool set never changes mid-conversation.
+      if (integrationPin) {
+        writer.write({
+          type: INTEGRATION_PIN_PART_TYPE,
+          data: [integrationPin],
+        })
       }
     },
     onError: (error) => {
