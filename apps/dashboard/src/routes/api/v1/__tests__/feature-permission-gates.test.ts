@@ -55,6 +55,11 @@ import * as realTableRegistry from '@/lib/api/table-registry'
 mock.module('@/lib/api/table-registry', () => ({
   ...realTableRegistry,
   getTableConfig: () => ({ name: 't', sql: 'SELECT 1', permission }),
+  getTableQuery: () => ({
+    query: 'SELECT 1',
+    queryParams: undefined,
+    queryConfig: { name: 't', sql: 'SELECT 1', columns: [], permission },
+  }),
 }))
 
 // Credentials + execution stubs: the gate is what is under test.
@@ -141,9 +146,9 @@ const routes: Array<{
     name: 'data (queryConfigName)',
     call: () =>
       dataPost(
+        // Named configs run their own SQL; a client `query` is rejected (400).
         jsonRequest('http://x/api/v1/data', {
-          query: 'SELECT 1',
-          hostId: '0',
+          hostId: 0,
           queryConfigName: 't',
         })
       ),

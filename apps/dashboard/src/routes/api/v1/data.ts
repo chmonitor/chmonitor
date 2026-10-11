@@ -5,15 +5,16 @@
  * Accepts a query and parameters, returns data with metadata.
  * Includes caching headers for performance optimization.
  *
- * SECURITY: This endpoint validates that queries being executed are either:
- * 1. Pre-defined in the chart/table registries (recommended)
- * 2. Stored in the dashboard tables (for Chart Builder)
- * This prevents clients from sending arbitrary SQL queries.
+ * SECURITY: queries run here are either:
+ * 1. A registered QueryConfig named by `queryConfigName` (POST only). The
+ *    server builds the SQL from the config and enforces the config's feature
+ *    permission; client SQL is not accepted in this mode.
+ * 2. Stored in the dashboard tables (for Chart Builder), checked by
+ *    validateDashboardQuery. No feature permission applies; the global API
+ *    auth guard (lib/auth/api-guard.ts) is the only auth gate.
+ * Custom SQL belongs on /api/v1/explorer/query (explorer query permission).
  *
  * Ported from apps/dashboard/app/api/v1/data/route.ts.
- * - When a `queryConfigName` is given, the config's feature gate is enforced
- *   with authorizeFeatureRequest, matching the charts/tables routes. The API
- *   middleware defers per-feature checks to each route.
  * - Error handling and request validation reuse the shared
  *   @/lib/api/error-handler and @/lib/api/shared/validators modules. Only the
  *   route-specific success-response builder and the FetchDataError→status
@@ -28,6 +29,7 @@ import type { ApiRequest, ApiResponse } from '@/lib/api/types'
 
 import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
+import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { debug, error } from '@chm/logger'
 import { validateSqlQuery } from '@chm/sql-builder'
 import { validateDashboardQuery } from '@/lib/api/data/dashboard-query-validator'
@@ -38,13 +40,16 @@ import {
   withApiHandler,
 } from '@/lib/api/error-handler'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
+import { executeTableConfig } from '@/lib/api/query-executor'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import {
   getAndValidateHostId,
   validateDataRequest,
+  validateFormat,
+  validateHostIdWithError,
   validateSearchParams,
 } from '@/lib/api/shared/validators'
-import { getTableConfig } from '@/lib/api/table-registry'
+import { getTableConfig, getTableQuery } from '@/lib/api/table-registry'
 import { ApiErrorType } from '@/lib/api/types'
 import {
   demoHiddenUnavailable,
@@ -273,25 +278,169 @@ const handleGet = withApiHandler(async (request: Request) => {
 }, ROUTE_CONTEXT)
 
 /**
- * Handle POST requests for data fetching
- * Accepts query and parameters in the request body
+ * Run a named, registered QueryConfig for POST /api/v1/data.
  *
- * SECURITY: When queryConfig is not provided, validates that the query
- * exists in the dashboard tables to prevent arbitrary SQL execution.
+ * The SQL always comes from the server-side config: the registry resolves it
+ * (filterSchema WHERE injection, defaultParams + body params) and
+ * executeTableConfig picks the versioned SQL for the host's ClickHouse version,
+ * exactly like GET /api/v1/tables/$name. Body `queryParams` only ever reach
+ * ClickHouse as bound `query_params`. The config's own feature permission gates
+ * the request.
+ *
+ * A body that carries both `queryConfigName` and `query` is rejected (400)
+ * rather than silently ignoring `query`: the server cannot reliably compare a
+ * client string with versioned / filter-injected SQL, and a client that sends
+ * both is either buggy or should be calling /api/v1/explorer/query (which is
+ * gated by the explorer query permission) for custom SQL.
+ */
+async function handleNamedConfigPost(
+  request: Request,
+  body: Partial<ApiRequest>,
+  queryConfigName: string
+): Promise<Response> {
+  const context = { ...ROUTE_CONTEXT, method: 'POST' }
+
+  if (body.query !== undefined) {
+    return createValidationError(
+      'Send either queryConfigName or query, not both. A named query always runs its own SQL; use /api/v1/explorer/query for custom SQL.',
+      context
+    )
+  }
+
+  const hostIdError = validateHostIdWithError(body.hostId)
+  if (hostIdError) return createApiErrorResponse(hostIdError, 400, context)
+  const formatError = validateFormat(body.format)
+  if (formatError) return createApiErrorResponse(formatError, 400, context)
+  if (body.format !== undefined && body.format !== 'JSONEachRow') {
+    return createValidationError(
+      'Named queries only support the JSONEachRow format',
+      context
+    )
+  }
+
+  const hostId = Number(body.hostId)
+  if (!Number.isInteger(hostId) || hostId < 0) {
+    return createValidationError('Invalid hostId', context)
+  }
+  const bindings = env as Record<string, string | undefined>
+
+  if (await isDemoHostBlockedForRequest(hostId, bindings)) {
+    return createDemoHiddenResponse(hostId)
+  }
+
+  const registered = getTableConfig(queryConfigName)
+  if (!registered) {
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.TableNotFound,
+        message: `Unknown query config: ${queryConfigName}`,
+      },
+      404,
+      { ...context, hostId }
+    )
+  }
+
+  const permissionResponse = await authorizeFeatureRequest(
+    registered.permission,
+    request
+  )
+  if (permissionResponse) return permissionResponse
+
+  const searchParams: Record<string, string> = {}
+  for (const [key, value] of Object.entries(body.queryParams ?? {})) {
+    searchParams[key] = String(value)
+  }
+  const hasGatedFilters = registered.filterSchema?.fields.some((f) => f.since)
+  const serverVersion = hasGatedFilters
+    ? ((await getClickHouseVersion(hostId))?.raw ?? null)
+    : undefined
+  const queryDef = getTableQuery(queryConfigName, {
+    hostId,
+    searchParams,
+    serverVersion,
+  })
+  if (!queryDef) {
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.QueryError,
+        message: `Failed to resolve query config: ${queryConfigName}`,
+      },
+      500,
+      { ...context, hostId }
+    )
+  }
+
+  const timezone = body.timezone
+  const { result, executedSql } = await executeTableConfig(
+    queryDef.queryConfig,
+    hostId,
+    queryDef.queryParams,
+    { bindings, timezone }
+  )
+
+  if (result.error) {
+    error('[POST /api/v1/data] Query error:', result.error)
+    return handleQueryError(result.error, hostId, 'POST')
+  }
+
+  return createSuccessResponse(result.data, {
+    ...result.metadata,
+    sql: executedSql,
+    timezone,
+  })
+}
+
+/**
+ * Handle POST requests for data fetching
+ *
+ * Two modes:
+ * - `queryConfigName` set: runs only that registered config's SQL (see
+ *   {@link handleNamedConfigPost}); a body `query` is rejected.
+ * - `query` set (no name): the SQL must match a query saved in the dashboard
+ *   tables (validateDashboardQuery, the Chart Builder allowlist). No feature
+ *   permission applies to this mode; it is gated only by the global API auth
+ *   guard (lib/auth/api-guard.ts) plus that allowlist and readonly=1.
  *
  * @example
  * POST /api/v1/data
- * {
- *   "query": "SELECT count() FROM system.tables",
- *   "hostId": 0,
- *   "format": "JSONEachRow"
- * }
+ * { "queryConfigName": "query-detail", "queryParams": { "query_id": "abc" }, "hostId": 0 }
  */
 export const handlePost = withApiHandler(async (request: Request) => {
   bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
   // Parse request body
   const body = (await request.json()) as Partial<ApiRequest>
+
+  // SECURITY: Reject client-supplied QueryConfig objects to prevent SQL override attacks.
+  if (
+    typeof body === 'object' &&
+    body !== null &&
+    'queryConfig' in body &&
+    (body as { queryConfig?: unknown }).queryConfig !== undefined
+  ) {
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.ValidationError,
+        message:
+          'queryConfig is not accepted from clients. Use queryConfigName instead.',
+      },
+      400,
+      { ...ROUTE_CONTEXT, method: 'POST' }
+    )
+  }
+
+  if (body?.queryConfigName !== undefined) {
+    if (
+      typeof body.queryConfigName !== 'string' ||
+      body.queryConfigName.trim() === ''
+    ) {
+      return createValidationError('queryConfigName must be a string', {
+        ...ROUTE_CONTEXT,
+        method: 'POST',
+      })
+    }
+    return handleNamedConfigPost(request, body, body.queryConfigName)
+  }
 
   // Validate required fields using shared validator
   const validationError = validateDataRequest(body)
@@ -308,14 +457,12 @@ export const handlePost = withApiHandler(async (request: Request) => {
     queryParams,
     hostId,
     format = 'JSONEachRow',
-    queryConfigName,
     timezone,
   } = typedBody
 
   debug('[POST /api/v1/data]', {
     hostId,
     format,
-    queryConfigName,
     timezone,
   })
 
@@ -328,26 +475,7 @@ export const handlePost = withApiHandler(async (request: Request) => {
     return createDemoHiddenResponse(Number(hostId))
   }
 
-  // SECURITY: Reject client-supplied QueryConfig objects to prevent SQL override attacks.
-  if (
-    typeof body === 'object' &&
-    body !== null &&
-    'queryConfig' in body &&
-    (body as { queryConfig?: unknown }).queryConfig !== undefined
-  ) {
-    return createApiErrorResponse(
-      {
-        type: ApiErrorType.ValidationError,
-        message:
-          'queryConfig is not accepted from clients. Use queryConfigName instead.',
-      },
-      400,
-      { ...ROUTE_CONTEXT, method: 'POST', hostId }
-    )
-  }
-
   // SECURITY: Validate SQL query to prevent injection attacks (mirrors GET handler).
-  // This must run before fetchData regardless of whether queryConfigName is provided.
   try {
     validateSqlQuery(query)
   } catch (validationErr) {
@@ -366,50 +494,21 @@ export const handlePost = withApiHandler(async (request: Request) => {
     )
   }
 
-  // SECURITY: If no queryConfigName provided, validate the query exists in dashboard tables
-  // This prevents arbitrary SQL execution from clients
-  if (!queryConfigName) {
-    const validationResult = await validateDashboardQuery(query, Number(hostId))
-    if (!validationResult.valid) {
-      error(
-        '[POST /api/v1/data] Security: Query not found in dashboard tables',
-        {
-          queryPreview: query.substring(0, 100),
-        }
-      )
-      return createApiErrorResponse(
-        {
-          type: ApiErrorType.PermissionError,
-          message: validationResult.error?.message || 'Query validation failed',
-        },
-        403,
-        { ...ROUTE_CONTEXT, method: 'POST', hostId }
-      )
-    }
-  }
-
-  const serverQueryConfig = queryConfigName
-    ? getTableConfig(queryConfigName)
-    : undefined
-  if (queryConfigName && !serverQueryConfig) {
+  // SECURITY: the query must exist in the dashboard tables.
+  const validationResult = await validateDashboardQuery(query, Number(hostId))
+  if (!validationResult.valid) {
+    error('[POST /api/v1/data] Security: Query not found in dashboard tables', {
+      queryPreview: query.substring(0, 100),
+    })
     return createApiErrorResponse(
       {
-        type: ApiErrorType.ValidationError,
-        message: `Unknown query config: ${queryConfigName}`,
+        type: ApiErrorType.PermissionError,
+        message: validationResult.error?.message || 'Query validation failed',
       },
-      400,
+      403,
       { ...ROUTE_CONTEXT, method: 'POST', hostId }
     )
   }
-
-  // Enforce the named config's deployment-level feature gate
-  // (CHM_DISABLED_FEATURES / CHM_AUTH_REQUIRED_FEATURES), matching the
-  // charts/tables routes.
-  const permissionResponse = await authorizeFeatureRequest(
-    serverQueryConfig?.permission,
-    request
-  )
-  if (permissionResponse) return permissionResponse
 
   // Convert format string to DataFormat if needed
   const dataFormat = (format || 'JSONEachRow') as DataFormat
@@ -420,7 +519,6 @@ export const handlePost = withApiHandler(async (request: Request) => {
     query_params: queryParams,
     format: dataFormat,
     hostId,
-    queryConfig: serverQueryConfig,
     // SECURITY: Enforce readonly mode to prevent DML/DDL even if SQL validation is bypassed
     clickhouse_settings: {
       readonly: '1',

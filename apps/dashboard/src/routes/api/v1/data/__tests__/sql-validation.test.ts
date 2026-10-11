@@ -2,10 +2,9 @@
  * Tests for data.ts SQL validation on POST handler
  *
  * Structural verification that the POST /api/v1/data route calls
- * `validateSqlQuery` before executing any query, including when
- * `queryConfigName` is provided. This closes a gap where an authenticated
- * attacker knowing a valid queryConfigName could send arbitrary SQL that
- * bypassed the pattern-based SQL validator.
+ * `validateSqlQuery` before executing client-supplied SQL. Requests that name
+ * a `queryConfigName` never run client SQL at all; that path is covered by
+ * named-config.test.ts.
  *
  * The GET handler already validates SQL; this test ensures the POST handler
  * does the same.
@@ -53,23 +52,5 @@ describe('data.ts SQL validation (structural)', () => {
     expect(allowlistPos).toBeGreaterThan(-1)
     // SQL validation must come BEFORE the allowlist check
     expect(sqlValidationPos).toBeLessThan(allowlistPos)
-  })
-
-  test('POST handler SQL validation block is before queryConfigName branch', () => {
-    // The validateSqlQuery call should appear before the queryConfigName branch
-    // that resolves serverQueryConfig and calls fetchData
-    const postHandler = DATA_SOURCE.match(
-      /const handlePost[\s\S]*?^}, ROUTE_CONTEXT\)/m
-    )
-    expect(postHandler).not.toBeNull()
-    const body = postHandler![0]
-    const sqlValidationPos = body.indexOf('validateSqlQuery(query)')
-    const serverQueryConfigPos = body.indexOf(
-      'const serverQueryConfig = queryConfigName'
-    )
-    expect(sqlValidationPos).toBeGreaterThan(-1)
-    expect(serverQueryConfigPos).toBeGreaterThan(-1)
-    // SQL validation must come BEFORE serverQueryConfig resolution
-    expect(sqlValidationPos).toBeLessThan(serverQueryConfigPos)
   })
 })
