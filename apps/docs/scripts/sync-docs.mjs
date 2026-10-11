@@ -105,6 +105,7 @@ const FOLDER_META = {
       'proxy-auth-setup',
       'slack-app',
       'alerting-slack-discord',
+      'health-alerts-kubernetes',
       'connect-firewalled-clickhouse',
       'connection-errors',
       'troubleshooting',
