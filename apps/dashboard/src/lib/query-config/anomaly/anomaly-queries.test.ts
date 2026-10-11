@@ -124,9 +124,10 @@ describe('queryCountBaselineConfig', () => {
     expect(allSql(queryCountBaselineConfig)).toContain("type = 'QueryFinish'")
   })
 
-  test('has no tableCheck or optional flags (non-optional table)', () => {
-    expect(queryCountBaselineConfig.optional).toBeUndefined()
-    expect(queryCountBaselineConfig.tableCheck).toBeUndefined()
+  // query_log can be disabled in server config, so it is guarded like part_log.
+  test('is marked optional with tableCheck system.query_log', () => {
+    expect(queryCountBaselineConfig.optional).toBe(true)
+    expect(queryCountBaselineConfig.tableCheck).toBe('system.query_log')
   })
 })
 
@@ -315,9 +316,10 @@ describe('errorRateBaselineConfig', () => {
     expect(errorRateBaselineConfig.defaultParams?.baseline_hours).toBe(24)
   })
 
-  test('has no optional or tableCheck (system.query_log always present)', () => {
-    expect(errorRateBaselineConfig.optional).toBeUndefined()
-    expect(errorRateBaselineConfig.tableCheck).toBeUndefined()
+  // query_log can be disabled in server config, so it is guarded like part_log.
+  test('is marked optional with tableCheck system.query_log', () => {
+    expect(errorRateBaselineConfig.optional).toBe(true)
+    expect(errorRateBaselineConfig.tableCheck).toBe('system.query_log')
   })
 })
 
@@ -418,9 +420,10 @@ describe('anomalySummaryConfig', () => {
     expect(anomalySummaryConfig.defaultParams).toBeUndefined()
   })
 
-  test('has no optional or tableCheck', () => {
-    expect(anomalySummaryConfig.optional).toBeUndefined()
-    expect(anomalySummaryConfig.tableCheck).toBeUndefined()
+  // query_log can be disabled in server config, so it is guarded like part_log.
+  test('is marked optional with tableCheck system.query_log', () => {
+    expect(anomalySummaryConfig.optional).toBe(true)
+    expect(anomalySummaryConfig.tableCheck).toBe('system.query_log')
   })
 })
 
@@ -460,5 +463,52 @@ describe('anomalyQueries array', () => {
   test('all names are unique', () => {
     const names = anomalyQueries.map((c) => c.name)
     expect(new Set(names).size).toBe(names.length)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SQL shape guards — these broke at runtime on a real ClickHouse server:
+// NOT_AN_AGGREGATE (215) from ORDER BY an ungrouped column, and
+// UNKNOWN_IDENTIFIER (47) from columns that do not exist on the system table.
+// ---------------------------------------------------------------------------
+
+describe('anomaly SQL shape', () => {
+  for (const config of anomalyQueries) {
+    test(`${config.name}: never orders by the raw event_time when grouping by a bucket`, () => {
+      const sql = allSql(config)
+      if (/GROUP BY\s+(time_bucket|toStartOf)/.test(sql)) {
+        expect(sql).not.toMatch(/ORDER BY\s+event_time\b/)
+      }
+    })
+  }
+
+  test('time-bucketed baselines group and order by the time_bucket alias', () => {
+    for (const config of [
+      queryCountBaselineConfig,
+      memoryUsageBaselineConfig,
+      mergePerformanceBaselineConfig,
+      replicationLagBaselineConfig,
+      errorRateBaselineConfig,
+    ]) {
+      const sql = allSql(config)
+      expect(sql).toContain('GROUP BY time_bucket')
+      expect(sql).toContain('ORDER BY time_bucket ASC')
+    }
+  })
+
+  test('replication-lag-baseline only reads columns system.replication_queue has', () => {
+    const sql = allSql(replicationLagBaselineConfig)
+    // system.replication_queue has no event_time or replication_lag column
+    expect(sql).not.toMatch(/\bevent_time\b/)
+    expect(sql).not.toMatch(/\breplication_lag\b/)
+    // lag is the age of each queued entry, in seconds (Duration format)
+    expect(sql).toContain("dateDiff('second', create_time, now())")
+    expect(sql).toContain('toStartOfFiveMinutes(create_time)')
+  })
+
+  test('merge-performance-baseline reads duration_ms (part_log has no elapsed)', () => {
+    const sql = allSql(mergePerformanceBaselineConfig)
+    expect(sql).not.toMatch(/\(elapsed\)/)
+    expect(sql).toContain('avg(duration_ms) / 1000 as avg_elapsed')
   })
 })
