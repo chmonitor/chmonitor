@@ -1,0 +1,292 @@
+---
+title: Health alerts on Kubernetes
+description: Step by step, set up health alerts with a webhook on Kubernetes using the Helm chart, then test them, share one channel across deployments, and fix common problems.
+icon: BellRing
+---
+
+This guide sets up health alerts on Kubernetes with the Helm chart. The chart
+runs a CronJob that calls `/api/cron/health-sweep`. The sweep posts to your
+webhook when a check crosses a threshold.
+
+For the webhook formats and the full `HEALTH_ALERT_*` list, see
+[Alerting to Slack and Discord](/guide/guides/alerting-slack-discord).
+
+In the commands below, the release is `my-chm` and the namespace is `monitoring`.
+The chart names resources `<release>-chmonitor`, so the CronJob is
+`my-chm-chmonitor-cron-health-sweep`. Change the names to match your install.
+
+## Prerequisites
+
+- chmonitor installed with the Helm chart. See [Deploy on Kubernetes](/operate/deploy/k8s).
+- `kubectl` and `helm` pointed at the cluster.
+- A webhook URL that uses HTTPS (Slack, Discord, or Matrix Hookshot).
+
+<Steps>
+<Step>
+### Create the Secret
+
+The webhook URL is a credential. Keep it in a Secret, not in `values.yaml`.
+The Secret also holds `CRON_SECRET`, which the CronJob sends as a bearer token.
+
+```bash
+kubectl -n monitoring create secret generic chmonitor-alert-secrets \
+  --from-literal=CRON_SECRET="$(openssl rand -hex 32)" \
+  --from-literal=slack-webhook-url='https://hooks.slack.com/services/T000/B000/XXXX'
+```
+</Step>
+
+<Step>
+### Edit values.yaml
+
+Turn on the CronJob and point it at the Secret. The key must be named
+`CRON_SECRET`.
+
+```yaml
+cron:
+  enabled: true
+  existingSecret: chmonitor-alert-secrets
+  schedules:
+    healthSweep: "*/5 * * * *"
+```
+
+Add a webhook target. Pick one format.
+
+<Tabs items={['Slack', 'Matrix Hookshot']}>
+<Tab value="Slack">
+
+```yaml
+alertWebhooks:
+  enabled: true
+  defaults:
+    format: slack
+    minSeverity: warning
+  targets:
+    - name: team-slack
+      urlFrom:
+        name: chmonitor-alert-secrets
+        key: slack-webhook-url
+      titleTemplate: "[{{instance}}] {{severity}}: {{title}}"
+      textTemplate: "{{label}} on {{host}} at {{timestamp}}"
+```
+
+</Tab>
+<Tab value="Matrix Hookshot">
+
+Add the URL to the same Secret under the key `hookshot-webhook-url`, then:
+
+```yaml
+alertWebhooks:
+  enabled: true
+  targets:
+    - name: team-element
+      format: hookshot
+      minSeverity: critical
+      urlFrom:
+        name: chmonitor-alert-secrets
+        key: hookshot-webhook-url
+      # Optional secret headers (a JSON object string) from a Secret:
+      # headersSecretFrom:
+      #   name: chmonitor-alert-secrets
+      #   key: hookshot-headers-json
+```
+
+</Tab>
+</Tabs>
+
+`format` is one of `auto`, `raw`, `slack`, `matrix` or `hookshot`. Use
+`hookshot` for a Hookshot URL, not `matrix`.
+
+Say which deployment sent the alert:
+
+```yaml
+alerting:
+  instanceName: prod-eu
+  dashboardUrl: https://chmonitor.example.com
+  metadata:
+    team: data
+    region: eu
+```
+
+These become `HEALTH_ALERT_INSTANCE_NAME`, `HEALTH_ALERT_DASHBOARD_URL` and
+`HEALTH_ALERT_METADATA`. The chart has no value for `HEALTH_ALERT_MIN_SEVERITY`,
+so set it through `extraEnv`:
+
+```yaml
+extraEnv:
+  - name: HEALTH_ALERT_MIN_SEVERITY
+    value: "warning"   # or "critical"
+```
+</Step>
+
+<Step>
+### Install or upgrade
+
+```bash
+helm upgrade --install my-chm chmonitor/chmonitor \
+  --namespace monitoring \
+  -f values.yaml
+```
+
+Check the CronJob exists:
+
+```bash
+kubectl -n monitoring get cronjob
+```
+</Step>
+
+<Step>
+### Test it
+
+Run the sweep once without waiting for the schedule:
+
+```bash
+kubectl -n monitoring create job --from=cronjob/my-chm-chmonitor-cron-health-sweep health-sweep-test
+kubectl -n monitoring logs job/health-sweep-test
+```
+
+Or call the endpoint yourself with the same secret:
+
+```bash
+CRON_SECRET=$(kubectl -n monitoring get secret chmonitor-alert-secrets \
+  -o jsonpath='{.data.CRON_SECRET}' | base64 -d)
+
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  https://chmonitor.example.com/api/cron/health-sweep
+```
+
+The endpoint always returns HTTP 200 with a JSON array of check results. To see
+a message, temporarily set `HEALTH_ALERT_MIN_SEVERITY` to `warning` and trip a
+check. Delete the test Job when you are done:
+`kubectl -n monitoring delete job health-sweep-test`.
+</Step>
+
+<Step>
+### Share one channel across deployments
+
+Give each deployment its own `instanceName` and `dashboardUrl`. Everything else
+stays the same.
+
+```yaml
+# values-prod-eu.yaml
+cron:
+  enabled: true
+  existingSecret: chmonitor-alert-secrets
+alertWebhooks:
+  enabled: true
+  defaults: { format: slack }
+  targets:
+    - name: team-slack
+      urlFrom: { name: chmonitor-alert-secrets, key: slack-webhook-url }
+alerting:
+  instanceName: prod-eu
+  dashboardUrl: https://eu.chmonitor.example.com
+```
+
+```yaml
+# values-prod-us.yaml
+cron:
+  enabled: true
+  existingSecret: chmonitor-alert-secrets
+alertWebhooks:
+  enabled: true
+  defaults: { format: slack }
+  targets:
+    - name: team-slack
+      urlFrom: { name: chmonitor-alert-secrets, key: slack-webhook-url }
+alerting:
+  instanceName: prod-us
+  dashboardUrl: https://us.chmonitor.example.com
+```
+
+Alerts now carry `prod-eu` or `prod-us`, and each links back to its own
+dashboard. Each namespace needs its own copy of the Secret.
+</Step>
+
+<Step>
+### Disable or pause
+
+- `cron.enabled: false` removes the CronJobs. Nothing runs on a schedule.
+- `alertWebhooks.enabled: false` turns off the Helm targets only.
+- `enabled: false` on one target turns off that target.
+- `HEALTH_ALERT_ENABLED=false` (through `extraEnv`) pauses every channel and keeps the URLs.
+
+See [Disable or pause alerts](/guide/guides/alerting-slack-discord#disable-or-pause-alerts)
+for the full table.
+</Step>
+</Steps>
+
+## Set it up with an AI agent
+
+Give this prompt to Claude Code or a similar agent that has `kubectl` and
+`helm` access to your cluster. Replace the placeholders first. Point the agent
+at a file or shell variable for the webhook URL rather than pasting it into the
+chat.
+
+```text
+Set up chmonitor health alerts with a webhook on Kubernetes, using the Helm
+chart in this repo or the chmonitor/chmonitor chart.
+
+Inputs:
+- Namespace: <NAMESPACE>
+- Release name: <RELEASE>
+- Webhook URL: <WEBHOOK_URL> (read it from <WEBHOOK_URL_SOURCE>, never print it)
+- Webhook format: <slack|raw|matrix|hookshot|auto>
+- Instance name: <INSTANCE_NAME>
+- Dashboard URL: <DASHBOARD_URL>
+- Metadata: <KEY=VALUE pairs, for example team=data, region=eu>
+
+Do these steps in order:
+1. Create a Secret named chmonitor-alert-secrets in <NAMESPACE> with the key
+   CRON_SECRET (random, from openssl rand -hex 32) and the key
+   webhook-url (the webhook URL). Use kubectl create secret. Do not
+   write either value into any file in the repo.
+2. Edit my values file (not the chart defaults) to set:
+   - cron.enabled: true and cron.existingSecret: chmonitor-alert-secrets
+   - alertWebhooks.enabled: true with one target that has a name, the format
+     above, and urlFrom pointing at chmonitor-alert-secrets / webhook-url
+   - alerting.instanceName, alerting.dashboardUrl and alerting.metadata
+   Never put the webhook URL or CRON_SECRET in values.yaml.
+3. Run helm upgrade --install <RELEASE> with that values file in <NAMESPACE>.
+   Run helm template first and fix any error.
+4. Trigger a test run:
+   kubectl create job --from=cronjob/<RELEASE>-chmonitor-cron-health-sweep health-sweep-test
+   Read the job logs and report the result.
+5. Ask me to confirm a message arrived in the channel. If it did not, check
+   HTTPS-only URLs, HEALTH_ALERT_MIN_SEVERITY, and that the CronJob and the
+   dashboard use the same CRON_SECRET.
+6. Delete the test job.
+
+Report each step as done or failed. Do not skip a step silently.
+```
+
+## Troubleshooting
+
+**The webhook is rejected.** Webhook URLs must use HTTPS. A plain `http://`
+Hookshot service inside the cluster will not work. Put a TLS-terminating relay
+in front of it and use its HTTPS URL.
+
+**The sweep does not run.** Check `kubectl -n monitoring get cronjob` and
+`kubectl -n monitoring get jobs`. If the Job logs show an auth error, the
+CronJob and the dashboard are reading different `CRON_SECRET` values. Both must
+come from the same Secret.
+
+**Nothing is sent.** The check may be below the floor. Both
+`HEALTH_ALERT_MIN_SEVERITY` and the target's `minSeverity` apply, so a warning
+is dropped when either is `critical`. Also check that `HEALTH_ALERT_ENABLED` is
+not `false`.
+
+**It sent once and then went quiet.** Alerts fire on a change of state, such as
+`ok` to `warning`. A condition that stays unhealthy is not re-sent each run. It
+sends one reminder per `HEALTH_ALERT_COOLDOWN_MINUTES` (default 60; `0` turns
+reminders off). A recovery message always goes out. See
+[Noise control](/guide/guides/alerting-slack-discord#noise-control-transitions-recovery--hysteresis).
+
+## Related
+
+- [Alerting to Slack and Discord](/guide/guides/alerting-slack-discord) — webhook setup, formats, templates, and the disable table.
+- [Health](/guide/features/health#health-sweep-cron-alerting) — checks, thresholds, and the sweep cron.
+- [Deploy on Kubernetes](/operate/deploy/k8s) — the rest of the Helm chart.
+- [Environment variables](/reference/environment-variables) — every `CHM_*` and `HEALTH_ALERT_*` setting.
+- [Slack app](/guide/guides/slack-app) — the native `/chmonitor` Slack integration.
+- [Production checklist](/operate/deploy/production-checklist) — harden before going live.
+- [Helm chart README](https://github.com/chmonitor/chmonitor/blob/main/deploy/helm/chmonitor/README.md) — chart values and custom alert webhooks.
