@@ -175,7 +175,10 @@ describe('catalog entry shape', () => {
     try {
       const tools = createAllTools(0, false, undefined, {
         postgres: true,
-      }) as Record<string, { execute: (input: unknown) => Promise<unknown> }>
+      }) as unknown as Record<
+        string,
+        { execute: (input: unknown) => Promise<unknown> }
+      >
       await expect(
         tools.run_postgres_select_query.execute({
           sql: 'DELETE FROM users',
