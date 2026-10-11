@@ -51,7 +51,7 @@ flowchart TD
 </Accordion>
 <Accordion title="AI agent">
 
-- [ ] Keep `AGENT_ENABLE_CONTROL_TOOLS=false` unless you trust all authenticated users to kill queries and optimize tables.
+- [ ] Set `AGENT_ENABLE_CONTROL_TOOLS=false` unless you trust all authenticated users to kill queries and optimize tables (self-hosted turns them on by default).
 - [ ] Keep `LLM_API_KEY` server-side only.
 - [ ] Set `AGENT_API_TOKEN` to gate `/api/v1/agent`.
 - [ ] The agent uses the ClickHouse user's grants. A read-only user limits what it can do.

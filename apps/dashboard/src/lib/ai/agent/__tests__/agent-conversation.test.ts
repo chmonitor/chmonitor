@@ -271,15 +271,10 @@ describe('createAllTools — tool registry completeness', () => {
   })
 
   test('includes control tools when explicitly enabled', () => {
+    // The env default is resolved by the route (control-tools-gate.ts);
+    // createAllTools trusts the argument.
     const withControl = createAllTools(0, true)
-    // Still gated by AGENT_ENABLE_CONTROL_TOOLS env var
-    const envEnabled = process.env.AGENT_ENABLE_CONTROL_TOOLS === 'true'
-    if (envEnabled) {
-      expect(withControl.kill_query).toBeDefined()
-    } else {
-      // When env var is not set, control tools remain absent
-      expect(withControl.kill_query).toBeUndefined()
-    }
+    expect(withControl.kill_query).toBeDefined()
   })
 
   test('each tool has the required execute function and inputSchema', () => {
