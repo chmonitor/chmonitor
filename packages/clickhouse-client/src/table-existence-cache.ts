@@ -114,6 +114,70 @@ export async function checkTableExists(
   })
 }
 
+/**
+ * Batched `checkTableExists`: resolves many `[database, table]` pairs with at
+ * most ONE `system.tables` query (instead of one per table) and seeds L1/L2
+ * from it, so later per-table probes hit the cache. Pairs already in L1 are
+ * served from it. Returns a map keyed `database.table`; when the batch query
+ * fails every uncached pair is `'unknown'` (never silently `false`, #2505).
+ */
+export async function checkTablesExist(
+  hostId: number,
+  pairs: ReadonlyArray<readonly [database: string, table: string]>
+): Promise<Map<string, TableExistsResult>> {
+  const results = new Map<string, TableExistsResult>()
+  const misses: Array<[string, string]> = []
+  for (const [database, table] of pairs) {
+    const name = `${database}.${table}`
+    if (results.has(name)) continue
+    const cached = cache.get(`${hostId}:${name}`)
+    if (cached !== undefined) results.set(name, cached)
+    else {
+      results.set(name, 'unknown')
+      misses.push([database, table])
+    }
+  }
+  if (misses.length === 0) return results
+
+  const generation = invalidationGeneration
+  try {
+    const client = await getClient({ hostId })
+    try {
+      const result = await client.query({
+        query: `
+          SELECT database, name
+          FROM system.tables
+          WHERE (database, name) IN {pairs:Array(Tuple(String, String))}
+        `,
+        query_params: { pairs: misses },
+        format: 'JSONEachRow',
+      })
+      const rows = (await result.json()) as { database: string; name: string }[]
+      const found = new Set(rows.map((r) => `${r.database}.${r.name}`))
+      const l2 = l2CacheProvider?.()
+      for (const [database, table] of misses) {
+        const name = `${database}.${table}`
+        const exists = found.has(name)
+        results.set(name, exists)
+        if (generation !== invalidationGeneration) continue
+        cache.set(`${hostId}:${name}`, exists)
+        if (l2) {
+          try {
+            await l2.set(`${hostId}:${name}`, exists, CACHE_TTL_MS / 1000)
+          } catch (err) {
+            error('[Table Cache] L2 cache set error:', err)
+          }
+        }
+      }
+    } finally {
+      releaseClient({ hostId })
+    }
+  } catch (err) {
+    error('Error batch-checking tables:', err)
+  }
+  return results
+}
+
 async function checkExists(
   key: string,
   hostId: number,

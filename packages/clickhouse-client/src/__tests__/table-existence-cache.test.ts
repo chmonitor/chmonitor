@@ -348,4 +348,59 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
       expect(mockClientQuery).toHaveBeenCalledTimes(2)
     })
   })
+
+  describe('checkTablesExist (batched)', () => {
+    it('cold cache: one query for all tables, same answers as per-table, and seeds the cache', async () => {
+      mockClientQuery.mockResolvedValue({
+        json: () =>
+          Promise.resolve([
+            { database: 'system', name: 'backup_log' },
+            { database: 'system', name: 'error_log' },
+          ]),
+      })
+      const pairs = [
+        ['system', 'backup_log'],
+        ['system', 'error_log'],
+        ['system', 'zookeeper'],
+      ] as const
+
+      const batch = await l2cache.checkTablesExist(0, pairs)
+
+      expect(mockClientQuery).toHaveBeenCalledTimes(1)
+      expect(batch.get('system.backup_log')).toBe(true)
+      expect(batch.get('system.error_log')).toBe(true)
+      expect(batch.get('system.zookeeper')).toBe(false)
+
+      // Seeded: the per-table path now answers from cache, identically.
+      mockClientQuery.mockClear()
+      expect(await l2cache.checkTableExists(0, 'system', 'backup_log')).toBe(
+        true
+      )
+      expect(await l2cache.checkTableExists(0, 'system', 'zookeeper')).toBe(
+        false
+      )
+      expect(mockClientQuery).not.toHaveBeenCalled()
+    })
+
+    it('warm cache: no query at all', async () => {
+      mockClientQuery.mockResolvedValue({
+        json: () => Promise.resolve([{ database: 'system', name: 'a' }]),
+      })
+      await l2cache.checkTablesExist(0, [['system', 'a']])
+      mockClientQuery.mockClear()
+
+      const again = await l2cache.checkTablesExist(0, [['system', 'a']])
+      expect(again.get('system.a')).toBe(true)
+      expect(mockClientQuery).not.toHaveBeenCalled()
+    })
+
+    it('failed query yields unknown, never false, and caches nothing', async () => {
+      mockClientQuery.mockRejectedValueOnce(new Error('timeout'))
+
+      const batch = await l2cache.checkTablesExist(0, [['system', 'a']])
+
+      expect(batch.get('system.a')).toBe('unknown')
+      expect(l2cache.tableCacheSize()).toBe(0)
+    })
+  })
 })

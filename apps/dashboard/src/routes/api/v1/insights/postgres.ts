@@ -23,7 +23,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { error, generateRequestId } from '@chm/logger'
+import { createInternalErrorResponse } from '@/lib/api/error-handler/error-response-builder'
 import { bridgeClickHouseEnv, bridgePostgresEnv } from '@/lib/api/server-env'
+import { parseLimit } from '@/lib/api/shared/parse-limit'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import { generatePostgresInsights } from '@/lib/insights/generate-postgres-insights'
 import { isInsightPromptStyle } from '@/lib/insights/prompts'
@@ -79,17 +81,24 @@ async function handleGet(request: Request): Promise<Response> {
   try {
     const searchParams = new URL(request.url).searchParams
     const since = searchParams.get('since') ?? undefined
-    const limitParam = searchParams.get('limit')
-    const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined
+    const parsedLimit = parseLimit(searchParams.get('limit'), { max: 1000 })
+    if (!parsedLimit.ok) {
+      return Response.json(
+        { error: parsedLimit.message },
+        { status: 400, headers }
+      )
+    }
+    const limit = parsedLimit.value
     const insights = await readPostgresInsights(pgHostId, { since, limit })
     return Response.json({ insights, count: insights.length }, { headers })
   } catch (err) {
     error('[GET /api/v1/insights/postgres] Unexpected error:', err, {
       requestId,
     })
-    return Response.json(
-      { error: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500, headers }
+    return createInternalErrorResponse(
+      err,
+      { route: '/api/v1/insights/postgres', method: 'GET' },
+      requestId
     )
   }
 }
