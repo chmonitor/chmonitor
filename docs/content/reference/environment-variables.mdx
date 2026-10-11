@@ -171,6 +171,11 @@ browser tab open.
 | `HEALTH_ALERT_WEBHOOK_URL` | — | Slack- or Discord-compatible webhook URL. Setting it is enough to enable webhook alerts. |
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Minimum severity to alert: `warning` (warning + critical) or `critical` (critical only). |
 | `CHM_HEALTH_CONFIG_DIRECTORY` | `/etc/chmonitor/health.d` | Self-hosted only (needs a filesystem; a no-op on Cloudflare Workers). Directory of declarative alert definitions, one YAML file per concern: `alerts.yaml`, `routing.yaml`, `channels.yaml`, `quiet-hours.yaml`, `maintenance.yaml`, `digest.yaml`. Read once per process, so a changed file needs a restart. Bad files and entries are skipped with a warning, never fatal. Secret fields name an env var (`secretEnv`, `urlEnv`, `headersEnv`); secrets are never written in the files. Definitions merge D1/Postgres > file > env > default. Files, examples and merge rules: [Run alerts without a metadata database](/guide/features/health#run-alerts-without-a-metadata-database). |
+| `CHM_HEALTH_SWEEP_ENABLED` | on when `CRON_SECRET` is set | Turns the scheduled health sweep on or off independently of the `CRON_SECRET` auth gate. A truthy value forces it on, a falsy value turns it off; unset or invalid falls back to on only when `CRON_SECRET` is configured. |
+| `HEALTH_ALERT_COOLDOWN_MINUTES` | `60` | Minutes the sweep waits before re-sending an alert for a condition that stays at the same severity. `0` disables reminders (alert once until it escalates or recovers). Invalid or negative values use the default. |
+| `HEALTH_ALERT_DIGEST_MINUTES` | `0` (off) | Digest window in minutes. A positive value buffers non-critical findings and sends them as one message when the window ends; critical findings always send immediately. The in-app digest setting overrides this value. |
+| `HEALTH_HYSTERESIS_BREACHES` | `1` | Consecutive sweeps a worsening must persist before it fires. Whole numbers `>= 1`; anything else uses the default. A per-rule override is `HEALTH_HYSTERESIS_<RULE_ID>_BREACHES` (rule id uppercased, dashes to underscores). |
+| `HEALTH_HYSTERESIS_CLEARS` | `2` | Consecutive `ok` sweeps a firing condition needs before it recovers. Same parsing as above; per-rule override `HEALTH_HYSTERESIS_<RULE_ID>_CLEARS`. |
 
 ```bash
 # Alert Slack on warning-or-worse
@@ -185,6 +190,43 @@ targets, quiet hours, maintenance windows, digest) can be declared from
 ACKs and dismissals cannot: without D1 or Postgres they live in memory, reset on
 restart, and ACK returns `501`. See the
 [read-only/writable boundary](/guide/features/health#run-alerts-without-a-metadata-database).
+
+### Alert channels
+
+Each channel is opt-in and only dispatches when its required variables are all
+set. Variables marked secret are server-side only. A channel saved from the
+alert settings UI overrides the matching variable here.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `HEALTH_ALERT_EMAIL_PROVIDER_URL` | — | **Secret.** Email transport: `mailgun://KEY@DOMAIN`, `sendgrid://KEY`, `smtp://user:pass@host:port` or `smtps://...`. The credentials live in the URL. An unrecognised URL leaves email off. |
+| `HEALTH_ALERT_EMAIL_FROM` | — | From address. Required for email. |
+| `HEALTH_ALERT_EMAIL_TO` | — | Comma-separated recipients. Required for email. |
+| `HEALTH_ALERT_EMAIL_ENABLED` | on once the three above are set | Set `false` (also `0`, `no`, `off`) to turn email off without removing the settings. |
+| `HEALTH_ALERT_PAGERDUTY_ROUTING_KEY` | — | **Secret.** PagerDuty Events API v2 routing key, used as the fallback target when no per-rule or per-host PagerDuty route matches. |
+| `HEALTH_ALERT_PAGERDUTY_API_KEY` | — | **Secret.** PagerDuty account REST API token. Used only to list services for the setup UI's picker; chmonitor never changes anything in PagerDuty with it. |
+| `HEALTH_ALERT_OPSGENIE_API_KEY` | — | **Secret.** Opsgenie API key. Setting it enables Opsgenie alerts. |
+| `HEALTH_ALERT_OPSGENIE_REGION` | `us` | Opsgenie region: `us` or `eu`. |
+| `HEALTH_ALERT_TELEGRAM_BOT_TOKEN` | — | **Secret.** Telegram bot token. Telegram needs both this and the chat id. |
+| `HEALTH_ALERT_TELEGRAM_CHAT_ID` | — | Telegram chat id to post to. |
+| `HEALTH_ALERT_NTFY_URL` | — | Full ntfy topic URL, for example `https://ntfy.sh/my-topic` (a self-hosted server works). Setting it enables ntfy. |
+| `HEALTH_ALERT_NTFY_TOKEN` | — | **Secret.** Optional Bearer token for a protected ntfy topic. |
+| `HEALTH_ALERT_PUSHOVER_TOKEN` | — | **Secret.** Pushover application API token. Pushover needs both this and the user key. |
+| `HEALTH_ALERT_PUSHOVER_USER` | — | Pushover user or group key to notify. |
+| `HEALTH_ALERT_TWILIO_ACCOUNT_SID` | — | Twilio account SID. SMS needs the SID, auth token, from number and at least one recipient. |
+| `HEALTH_ALERT_TWILIO_AUTH_TOKEN` | — | **Secret.** Twilio auth token. |
+| `HEALTH_ALERT_TWILIO_FROM` | — | Twilio sender number. |
+| `HEALTH_ALERT_TWILIO_TO` | — | Comma-separated recipient numbers (E.164). One SMS is sent per number. |
+| `HEALTH_ALERT_TWILIO_MIN_SEVERITY` | `critical` | Severity floor for SMS: `warning` or `critical`. SMS costs money per message, so it keeps its own floor; set `warning` here to also page on warnings. |
+| `HEALTH_ALERT_HEALTHCHECKS_URL` | — | healthchecks.io ping URL pinged by the sweep. |
+
+### Inbound events
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_EVENTS_INGEST_TOKEN` | — | **Secret.** Bearer token for `POST /api/events/ingest` (Alertmanager, Datadog and similar webhooks). When unset the endpoint fails closed with `503`; a wrong or missing token gets `401`. |
+| `CHM_EVENTS_REEMIT_WEBHOOK_URL` | — (off) | `https://` URL that each ingested event is forwarded to as JSON. Best effort: URLs that fail the SSRF check and failed requests are skipped with a warning, and never break ingest. |
+| `CHM_FEATURE_WEBHOOK_SUBSCRIPTIONS` | mode default (`true` when `CHM_DEPLOYMENT_MODE=cloud`, else `false`) | Per-user webhook subscriptions. Also needs `CHM_AUTH_PROVIDER=clerk` with `CLERK_SECRET_KEY` and the `CHM_CLOUD_D1` binding; without them the feature stays absent. |
 
 ## Weekly health report
 
@@ -307,6 +349,7 @@ defaults to apply.
 | `CHM_GUEST_AI_REQUESTS_PER_DAY` | `3` | Cloud-only daily AI message cap for anonymous visitors. D1 `ai_usage_daily` per `guest:<ip-hash>`. OSS is not gated. |
 | `RATE_LIMIT_MCP_PER_MIN` | `30` | `/api/mcp` (POST/GET/DELETE), per IP. Same class of capability as the agent route — arbitrary read-only SQL via the `query` tool — over the MCP transport. |
 | `RATE_LIMIT_BROWSER_CONN_PER_MIN` | `10` | `POST /api/v1/browser-connections/{test,sessions}`, per IP. Both routes are unauthenticated and dial an attacker-supplied host on every request; each route gets its own bucket so a burst against one doesn't consume the other's budget. |
+| `RATE_LIMIT_DEVICE_CODE_PER_MIN` | `10` | Public CLI device-login code minting (`/auth/device/code`, `/auth/token`), per IP. Limits write load from unauthenticated callers. |
 | `CHM_TRUST_PROXY_HEADERS` | Cloudflare runtime only | When unset, `X-Real-IP` and `X-Forwarded-For` are trusted only on the Cloudflare runtime. `true`, `1`, or `cloud` trust them everywhere. `yes` is not true here. `false` and `0` turn trusting off, including on Cloudflare. `CF-Connecting-IP` is always trusted. |
 
 ## Authentication
@@ -321,6 +364,7 @@ The active server-side auth provider is set by `CHM_AUTH_PROVIDER`. See
 | `CHM_API_KEY_SECRET` | — | Shared secret for `chm_` API keys. When set, API-key auth is always on alongside the active provider. Issue keys at `/api/v1/auth/api-key`. Required to enable CLI device login. |
 | `CHM_DEVICE_LOGIN` | `auto` | CLI device login (`chm auth login` / `/device`). `auto` = on in **cloud** when `CHM_API_KEY_SECRET` is set; **off** for self-hosted/OSS (typical internal network — mint a key once or leave the API open). `true` = force on (self-hosted opt-in; with `CHM_AUTH_PROVIDER=none` this is **device-only** approve — no Clerk, trust reachability of `/device`). `false` = force off. Persistence uses D1 when bound, otherwise an in-memory store (single-node). |
 | `CHM_DEVICE_LOGIN_SUBJECT` | `self-hosted` | Subject embedded in `chm_` tokens minted via device-only approve (`auth=none`). Ignored when Clerk/proxy supplies the user id. |
+| `CHM_MCP_PUBLIC` | `false` | Open the `/api/mcp` endpoint with no auth. By default, when neither `CHM_API_KEY_SECRET` nor `CLERK_SECRET_KEY` is set the endpoint returns `401`; set `true` only on a trusted private network. A warning is logged on every request while it is open. |
 
 <Callout type="danger" title="Keep secrets server-side">
 `CLERK_SECRET_KEY`, `CHM_API_KEY_SECRET`, and every trust-gate secret below are
@@ -335,6 +379,9 @@ expose them to the browser.
 | `CHM_CLERK_PUBLISHABLE_KEY` | — | Clerk publishable key (`pk_...`, public). **Canonical** — the client `VITE_CLERK_PUBLISHABLE_KEY` is derived from it at build time. |
 | `VITE_CLERK_PUBLISHABLE_KEY` | (from `CHM_CLERK_PUBLISHABLE_KEY`) | Client-side build-time value. Auto-derived; only set explicitly to override. Must be present before `pnpm run build`. |
 | `CLERK_SECRET_KEY` | — | Clerk secret key (`sk_...`). Runtime only, secret. Never expose to the browser. |
+| `CLERK_PUBLISHABLE_KEY` | — | Read only by the MCP server's OAuth metadata, as a fallback when `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is unset: the Clerk issuer is derived from the key. The dashboard itself uses `CHM_CLERK_PUBLISHABLE_KEY`. |
+| `CLERK_OAUTH_ISSUER` | derived from the publishable key | MCP OAuth issuer URL. Set it to override the derived value, for example behind a proxied Clerk domain. |
+| `CLERK_API_URL` | `https://api.clerk.com` | Clerk API base used to verify MCP OAuth access tokens. |
 | `CHM_CLERK_PUBLIC_READ` | mode default (`false`; `true` when `CHM_DEPLOYMENT_MODE=cloud`) | When on, anonymous visitors can view read-only monitoring content; writes (AI agent, control actions, arbitrary SQL) still require sign-in. Runtime only. See [Clerk → public read-only mode](/operate/authentication/clerk#public-read-only-mode). |
 
 ### Reverse proxy (`CHM_AUTH_PROVIDER=proxy`)
@@ -430,7 +477,9 @@ Provider-specific keys take priority over the generic `LLM_API_KEY` /
 | `ANYROUTER_PRESETS` / `ANYROUTER_PRESETS_MAX` | Surface workspace presets in the model picker (on by default, max `8`). |
 | `ANYROUTER_OAUTH_CLIENT_ID` | Pre-registered OAuth client for "Sign in with AnyRouter" (optional). |
 | `OPENROUTER_DYNAMIC_MODELS` / `OPENROUTER_TOP_MODELS_N` | Live OpenRouter catalog enrichment (on by default, top `12`). |
+| `OPENROUTER_FREE_FALLBACK_MODEL` | Concrete model that `openrouter/free` resolves to (default `google/gemma-4-31b-it:free`). Override it if the default is delisted upstream. |
 | `NVIDIA_DYNAMIC_MODELS` / `NVIDIA_TOP_MODELS_N` | Live NVIDIA NIM catalog enrichment (on by default, top `12`). |
+| `ANYROUTER_DYNAMIC_MODELS` / `ANYROUTER_TOP_MODELS_N` / `ANYROUTER_METRICS_CANDIDATE_CAP` | Live AnyRouter catalog enrichment (on by default, needs the AnyRouter key; set the first to `false`, `0`, `no` or `off` to disable). Top `8` (max `32`) and metrics candidate cap `24` (max `64`). |
 
 ### Agent behavior
 
@@ -440,6 +489,20 @@ Provider-specific keys take priority over the generic `LLM_API_KEY` /
 | `AGENT_ENABLE_CONTROL_TOOLS` | `false` | Enable kill-query, optimize, and other write actions. Keep `false` unless users are trusted. |
 | `CHM_AGENT_FIRECRAWL_MCP` | `true` | Connect Firecrawl's hosted MCP (no API key) on every agent request. Set `false` to disable. |
 | `CHM_AGENT_FIRECRAWL_ALLOW_DOMAINS` | (empty) | Comma-separated hostnames Firecrawl may scrape/crawl/map. Empty / unset = unrestricted. Apex tokens also match subdomains; `*.example.com` is subdomain-only (not the apex). Search-only calls (no URL) stay allowed. |
+| `AGENT_DEBUG` | `false` | Verbose agent request and usage logging (message keys, resolved user ids, usage). Accepts `1`, `true`, `yes`, `on`. Off unless set explicitly, whatever `NODE_ENV` is. |
+| `AGENT_JSON_RENDER_PATCH_GUARD_DEBUG` | — | Set `1` to log each rendered-spec chunk the patch guard drops. Ignored when `NODE_ENV=production`. |
+
+### Attribution headers
+
+Sent to the LLM gateway so usage is attributed to this app. All are optional.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `APP_REFERER` | `OPENROUTER_REFERER`, else `https://chmonitor.dev` | `HTTP-Referer` header. |
+| `APP_NAME` | `OPENROUTER_APP_NAME`, else `chmonitor` | App title header. |
+| `APP_SOURCE` | `chmonitor` | App identifier AnyRouter groups usage by. |
+| `APP_CATEGORY` | `programming-app` | Marketplace category header. |
+| `APP_VERSION` | `0.2.0` | App version sent with the attribution metadata. On Cloudflare Workers it also overrides the `ui` version returned by `GET /api/version`. |
 
 See [AI agent — configuration](/guide/ai-agent/configuration) for full details.
 
@@ -571,6 +634,7 @@ the sidebar.
 | `PEERDB_SWEEP_BUDGET_MS` | `60000` | Wall-clock budget for one alert-sweep collection in milliseconds. |
 | `PEERDB_SWEEP_MAX_MIRRORS` | unset (no limit) | Optional cap on mirrors read per alert-sweep tick. Unset means every listed mirror is read; any truncation is recorded as a partial result. |
 | `CHM_FEATURE_PEERDB_ENABLED` | unset (enabled) | Set `false` to disable PeerDB entirely: hides the section, blocks the proxy, and skips the PeerDB alert cycle in the health sweep. |
+| `CHM_FEATURE_PEERDB_AGENT` | `false` | Give the AI agent a read-only PeerDB mirror-status tool. Must be exactly `true`; stays off when `CHM_FEATURE_PEERDB_ENABLED=false`. Execution also needs `PEERDB_API_URL`. |
 
 chmonitor proxies only a read-only allowlist of PeerDB endpoints; mutating
 operations (create/drop/pause, alert config) are rejected with `403`.
@@ -583,6 +647,44 @@ PEERDB_PASSWORD=your-peerdb-ui-password
 # Raw flow-api (no auth)
 PEERDB_API_URL=http://localhost:8113
 ```
+
+## Postgres source
+
+Optional read-only Postgres monitoring source, off by default. Each list is
+comma-separated and aligned by position with `POSTGRES_HOST`, so a single value
+for `POSTGRES_USER` or `POSTGRES_PASSWORD` applies to every host.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_FEATURE_POSTGRES_SOURCE` | `false` | Turn on the Postgres source engine, its API routes and the agent's cross-source tools. Fails closed when unset. |
+| `POSTGRES_HOST` | — | Host list, each `host` or `host:port`. Defines which sources exist; with none set the list is empty. |
+| `POSTGRES_PORT` | `5432` | Port list. A port inside a `POSTGRES_HOST` entry wins; a missing entry falls back to the first value. |
+| `POSTGRES_USER` | `postgres` | User list. |
+| `POSTGRES_PASSWORD` | — | **Secret.** Password list. |
+| `POSTGRES_DATABASE` | `postgres` | Database list. A missing entry falls back to the first value. |
+| `POSTGRES_SSLMODE` | `require` | libpq `sslmode` list: `disable`, `require`, `verify-ca`, `verify-full`. `prefer` and `allow` behave like `require`. `require` encrypts without verifying the certificate. |
+| `POSTGRES_NAME` | — | Display name list. |
+
+## Slack app
+
+Optional native Slack app (OAuth install, `/chmonitor` slash command, Home tab,
+ACK buttons). With any of the first three variables missing the feature is off
+and its routes return "not configured". Set the secrets as Worker secrets or in
+`.env.local`, never in committed files.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SLACK_CLIENT_ID` | — | Slack app OAuth client id (public). |
+| `SLACK_CLIENT_SECRET` | — | **Secret.** OAuth client secret, used to exchange the install code for a token. |
+| `SLACK_SIGNING_SECRET` | — | **Secret.** Verifies the signature of every inbound Slack request. Also the key source for token encryption when no dedicated key is set. |
+| `SLACK_OAUTH_REDIRECT_URL` | request origin + `/api/v1/slack/oauth` | OAuth redirect URI. Set it to match the URL registered in the Slack app exactly. |
+| `SLACK_TOKEN_ENCRYPTION_KEY` | derived from `SLACK_SIGNING_SECRET` | **Secret.** Optional dedicated 32-byte base64 key for encrypting stored bot tokens, so it can rotate separately from the signing secret. Any other length is rejected. |
+
+## GitHub deployment webhook
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `GITHUB_WEBHOOK_SECRET` | — | **Secret.** Signing secret for inbound GitHub `deployment` and `deployment_status` webhooks. One global secret. When unset the route returns `501` and ingests nothing; a missing or wrong signature gets `401`. |
 
 ## Analytics & branding
 
