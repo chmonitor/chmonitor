@@ -41,14 +41,16 @@ export function detectQuickNav(raw: string): QuickNavMatch {
 }
 
 /**
- * cmdk `CommandItem.value` for a menu leaf. Includes the group title, sidebar
- * label, document `<title>` / OG headline, href, description, and optional
- * aliases so ⌘K can find pages by the tab title as well as the nav label.
+ * cmdk `CommandItem.value` for a menu leaf. Includes the group title,
+ * subgroup, sidebar label, document `<title>` / OG headline, href,
+ * description, and optional aliases so ⌘K can find pages by the tab title as
+ * well as the nav label.
  */
 export function menuItemPaletteValue(
   item: {
     title: string
     href?: string
+    subgroup?: string
     description?: string
     keywords?: readonly string[]
   },
@@ -56,6 +58,7 @@ export function menuItemPaletteValue(
 ): string {
   return [
     groupTitle,
+    item.subgroup,
     item.title,
     ...(item.href ? pageTitlesForHref(item.href) : []),
     item.href,

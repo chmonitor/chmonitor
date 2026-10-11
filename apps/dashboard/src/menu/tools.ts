@@ -33,6 +33,7 @@ export const toolsItems: MenuItem[] = [
     items: [
       {
         title: 'Chat',
+        subgroup: 'AI',
         href: '/agents',
         description: 'Ask questions about this cluster in natural language',
         icon: SparklesIcon,
@@ -43,24 +44,8 @@ export const toolsItems: MenuItem[] = [
         permission: { feature: 'agent' },
       },
       {
-        title: 'SQL Console',
-        href: '/sql',
-        description:
-          'Run read-only SQL with history, EXPLAIN, query log and scan analysis',
-        icon: TerminalIcon,
-        docs: 'https://clickhouse.com/docs/en/sql-reference/statements/select', // pragma: allowlist secret
-        permission: { feature: 'tables' },
-      },
-      {
-        title: 'Explain',
-        href: '/explain',
-        description: 'Query execution plan analysis for performance tuning',
-        icon: InfoIcon,
-        docs: 'https://clickhouse.com/docs/en/sql-reference/statements/explain', // pragma: allowlist secret
-        permission: { feature: 'queries' },
-      },
-      {
         title: 'Advisor',
+        subgroup: 'AI',
         href: '/advisor',
         description:
           'Ranked query, schema, TTL/partition, engine, and Distributed recommendations (recommend-only)',
@@ -80,7 +65,36 @@ export const toolsItems: MenuItem[] = [
         permission: { feature: 'queries' },
       },
       {
+        title: 'MCP Server',
+        subgroup: 'AI',
+        href: '/mcp',
+        description:
+          "Let external AI tools (Claude Desktop, Cursor, etc.) query this cluster via this dashboard's own MCP endpoint",
+        icon: UnplugIcon,
+        permission: { feature: 'mcp' },
+      },
+      {
+        title: 'SQL Console',
+        subgroup: 'SQL',
+        href: '/sql',
+        description:
+          'Run read-only SQL with history, EXPLAIN, query log and scan analysis',
+        icon: TerminalIcon,
+        docs: 'https://clickhouse.com/docs/en/sql-reference/statements/select', // pragma: allowlist secret
+        permission: { feature: 'tables' },
+      },
+      {
+        title: 'Explain',
+        subgroup: 'SQL',
+        href: '/explain',
+        description: 'Query execution plan analysis for performance tuning',
+        icon: InfoIcon,
+        docs: 'https://clickhouse.com/docs/en/sql-reference/statements/explain', // pragma: allowlist secret
+        permission: { feature: 'queries' },
+      },
+      {
         title: 'Chart Builder',
+        subgroup: 'SQL',
         href: '/dashboard',
         description: 'Build custom monitoring dashboards with charts', // pragma: allowlist secret
         icon: LayoutDashboardIcon,
@@ -88,6 +102,7 @@ export const toolsItems: MenuItem[] = [
       },
       {
         title: 'Schema Compare',
+        subgroup: 'Compare',
         href: '/schema-diff',
         description:
           'Compare table schemas across hosts or cluster nodes and copy a recommend-only change plan',
@@ -106,6 +121,7 @@ export const toolsItems: MenuItem[] = [
       },
       {
         title: 'Settings Diff',
+        subgroup: 'Compare',
         href: '/settings-diff',
         description:
           'Compare system.settings and merge_tree_settings across saved hosts or cluster nodes',
@@ -118,14 +134,6 @@ export const toolsItems: MenuItem[] = [
           'settings-diff',
         ],
         permission: { feature: 'settings' },
-      },
-      {
-        title: 'MCP Server',
-        href: '/mcp',
-        description:
-          "Let external AI tools (Claude Desktop, Cursor, etc.) query this cluster via this dashboard's own MCP endpoint",
-        icon: UnplugIcon,
-        permission: { feature: 'mcp' },
       },
     ],
   },

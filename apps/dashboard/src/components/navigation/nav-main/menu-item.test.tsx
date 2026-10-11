@@ -382,3 +382,150 @@ describe('MenuItem availability hiding (#3463)', () => {
     }
   })
 })
+describe('MenuItem subgroups (#3676)', () => {
+  const STORAGE_KEY = 'chm-menu-subgroups-open'
+
+  /** Real group/subgroup names, so the store keeps the keys on write. */
+  const queriesWithSubgroups: MenuItemType = {
+    title: 'Queries',
+    href: '',
+    items: [
+      { title: 'Running', href: '/running-queries', subgroup: 'Live' },
+      { title: 'Expensive', href: '/expensive-queries', subgroup: 'Live' },
+      { title: 'History', href: '/history-queries', subgroup: 'History' },
+      { title: 'Failed', href: '/failed-queries', subgroup: 'History' },
+      { title: 'Thread', href: '/thread-analysis', subgroup: 'Performance' },
+      { title: 'Patterns', href: '/query-patterns', subgroup: 'Performance' },
+      { title: 'Cache', href: '/query-cache', subgroup: 'Caches' },
+    ],
+  }
+
+  const subgroupTrigger = (container: HTMLElement, name: string) =>
+    container.querySelector(
+      `[data-testid="menu-subgroup-trigger"][data-subgroup="${name}"]`
+    ) as HTMLButtonElement | null
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  test('opens only the subgroup that holds the active page', async () => {
+    const m = await mount({ item: queriesWithSubgroups })
+    try {
+      await m.render('/history-queries')
+      expect(
+        subgroupTrigger(m.container, 'History')?.getAttribute('aria-expanded')
+      ).toBe('true')
+      expect(
+        subgroupTrigger(m.container, 'Live')?.getAttribute('aria-expanded')
+      ).toBe('false')
+      // Live is collapsed: its pages are not rendered. A one-page subgroup
+      // (Caches) is a plain row with no heading.
+      expect(m.subLinks()).toContain('/history-queries')
+      expect(m.subLinks()).not.toContain('/running-queries')
+      expect(m.subLinks()).toContain('/query-cache')
+      expect(subgroupTrigger(m.container, 'Caches')).toBeNull()
+    } finally {
+      await m.cleanup()
+    }
+  })
+
+  test('the trigger is a real button that controls its list and persists its state', async () => {
+    const m = await mount({ item: queriesWithSubgroups })
+    try {
+      await m.render('/history-queries')
+      const live = subgroupTrigger(m.container, 'Live')
+      expect(live?.tagName).toBe('BUTTON')
+      expect(live?.getAttribute('type')).toBe('button')
+
+      await m.act(async () => {
+        live?.click()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      })
+      expect(live?.getAttribute('aria-expanded')).toBe('true')
+      const controls = live?.getAttribute('aria-controls')
+      expect(controls).toBeTruthy()
+      const list = m.container.querySelector(`[id="${controls}"]`)
+      expect(list?.querySelector('a[href="/running-queries"]')).not.toBeNull()
+      expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')).toEqual({
+        'Queries/Live': true,
+      })
+    } finally {
+      await m.cleanup()
+    }
+
+    // A fresh mount restores the saved open state for a non-active subgroup.
+    const again = await mount({ item: queriesWithSubgroups })
+    try {
+      await again.render('/history-queries')
+      expect(again.subLinks()).toContain('/running-queries')
+    } finally {
+      await again.cleanup()
+    }
+  })
+
+  test('navigating onto a page in a collapsed subgroup opens it', async () => {
+    const m = await mount({ item: queriesWithSubgroups })
+    try {
+      await m.render('/history-queries')
+      expect(m.subLinks()).not.toContain('/thread-analysis')
+      await m.render('/thread-analysis')
+      expect(m.subLinks()).toContain('/thread-analysis')
+    } finally {
+      await m.cleanup()
+    }
+  })
+
+  test('survives a localStorage that throws, falling back to the active-page rule', async () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+    const throwing = {
+      getItem() {
+        throw new Error('denied')
+      },
+      setItem() {
+        throw new Error('denied')
+      },
+      removeItem() {},
+      clear() {},
+      key: () => null,
+      length: 0,
+    }
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: throwing,
+    })
+    const m = await mount({ item: queriesWithSubgroups })
+    try {
+      await m.render('/history-queries')
+      expect(m.subLinks()).toContain('/history-queries')
+      const live = subgroupTrigger(m.container, 'Live')
+      await m.act(async () => {
+        live?.click()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      })
+      expect(live?.getAttribute('aria-expanded')).toBe('true')
+    } finally {
+      await m.cleanup()
+      if (original) Object.defineProperty(globalThis, 'localStorage', original)
+    }
+  })
+
+  test('a group of 6 pages or fewer stays flat', async () => {
+    const m = await mount({
+      item: {
+        ...queriesWithSubgroups,
+        items: queriesWithSubgroups.items!.slice(0, 4),
+      },
+    })
+    try {
+      await m.render('/history-queries')
+      expect(
+        m.container.querySelectorAll('[data-testid="menu-subgroup-trigger"]')
+          .length
+      ).toBe(0)
+      expect(m.subLinks()).toHaveLength(4)
+    } finally {
+      await m.cleanup()
+    }
+  })
+})

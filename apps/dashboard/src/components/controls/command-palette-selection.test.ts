@@ -135,3 +135,37 @@ describe('switch-host action search value', () => {
     ).toEqual([0, 1])
   })
 })
+describe('palette subgroups (#3676)', () => {
+  const tools: MenuItem = {
+    title: 'Tools & AI',
+    href: '',
+    items: [
+      { title: 'Chat', href: '/agents', subgroup: 'AI' },
+      { title: 'Advisor', href: '/advisor', subgroup: 'AI' },
+      { title: 'MCP Server', href: '/mcp', subgroup: 'AI' },
+      { title: 'SQL Console', href: '/sql', subgroup: 'SQL' },
+      { title: 'Explain', href: '/explain', subgroup: 'SQL' },
+      { title: 'Chart Builder', href: '/dashboard', subgroup: 'SQL' },
+      { title: 'Schema Compare', href: '/schema-diff', subgroup: 'Compare' },
+    ],
+  }
+
+  test('headings read "Group › Subgroup"; a one-page subgroup sits under the group', () => {
+    const headers = buildSectionedPaletteRows([tools])
+      .filter((row) => row.kind === 'header')
+      .map((row) => row.title)
+    expect(headers).toEqual([
+      'Tools & AI › AI',
+      'Tools & AI › SQL',
+      'Tools & AI',
+    ])
+  })
+
+  test('the subgroup name finds its pages', () => {
+    const hrefs = navigablePaletteRows(
+      filterPaletteRows(buildSectionedPaletteRows([tools]), 'compare')
+    ).map((row) => row.href)
+    expect(hrefs).toContain('/schema-diff')
+    expect(menuItemPaletteValue(tools.items![3], 'Tools & AI')).toContain('SQL')
+  })
+})

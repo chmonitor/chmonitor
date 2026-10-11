@@ -7,6 +7,7 @@ import {
   useUnavailableVisibility,
 } from '@/components/menu/hooks/use-unavailable-visibility'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
+import { groupChildrenBySubgroup } from '@/lib/menu/subgroups'
 import { unavailableReasonText } from '@/lib/menu/unavailable-visibility'
 import { useHostId } from '@/lib/swr'
 
@@ -169,19 +170,41 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
               if (isMobile) setOpenMobile(false)
             }}
           />
-          <div className="flex flex-col gap-0.5">
-            {visibleChildren.map((subItem) => (
-              <CollapsedSubMenuItem
-                key={subItem.href}
-                subItem={subItem}
-                pathname={pathname}
-                hostId={hostId}
-                siblingHrefs={siblingHrefs}
-                isMobile={isMobile}
-                setOpenMobile={setOpenMobile}
-                setOpen={setOpen}
-              />
-            ))}
+          {/* One scrolling flyout: subgroup headings are plain labels, never
+              nested popovers (#3676). */}
+          <div className="flex max-h-[70vh] flex-col gap-0.5 overflow-y-auto">
+            {groupChildrenBySubgroup(visibleChildren).map((section) => {
+              const rows = section.items.map((subItem) => (
+                <CollapsedSubMenuItem
+                  key={subItem.href}
+                  subItem={subItem}
+                  pathname={pathname}
+                  hostId={hostId}
+                  siblingHrefs={siblingHrefs}
+                  isMobile={isMobile}
+                  setOpenMobile={setOpenMobile}
+                  setOpen={setOpen}
+                />
+              ))
+              if (!section.subgroup) return rows
+              return (
+                <div
+                  key={`subgroup:${section.subgroup}`}
+                  role="group"
+                  aria-label={section.subgroup}
+                  data-testid="collapsed-subgroup"
+                  className="flex flex-col gap-0.5"
+                >
+                  <div
+                    aria-hidden="true"
+                    className="px-2 pt-1.5 pb-0.5 text-[11px] font-medium text-muted-foreground"
+                  >
+                    {section.subgroup}
+                  </div>
+                  {rows}
+                </div>
+              )
+            })}
           </div>
         </PopoverContent>
       </Popover>
