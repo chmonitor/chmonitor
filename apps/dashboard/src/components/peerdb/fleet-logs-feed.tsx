@@ -12,7 +12,12 @@ import { LogLine, LogPatternList, segmentClass } from './log-pattern-list'
 import { mirrorPrefixResolver } from './log-prefix'
 import { useLogMutes } from './use-log-mutes'
 import { useMemo, useState } from 'react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import {
+  detectCardErrorVariant,
+  getCardErrorDescription,
+} from '@/lib/card-error-utils'
 import { groupLogs } from '@/lib/peerdb/log-groups'
 import { DEFAULT_LOG_WINDOW } from '@/lib/peerdb/log-patterns-aggregate'
 import { countMirrorLogLevels } from '@/lib/peerdb/mirror-logs'
@@ -107,7 +112,7 @@ export function FleetLogsFeed() {
   const [sort, setSort] = useState<Sort>('level')
   const [showAll, setShowAll] = useState(false)
 
-  const { data, error, isLoading } = useFleetLogPatterns(window)
+  const { data, error, isLoading, refetch } = useFleetLogPatterns(window)
   const all = data?.entries ?? EMPTY
 
   const counts = useMemo(() => countMirrorLogLevels(all), [all])
@@ -243,9 +248,16 @@ export function FleetLogsFeed() {
           Reading mirror logs…
         </div>
       ) : error && !data ? (
-        <div className="px-3 py-8 text-center text-[11.5px] text-muted-foreground">
-          Could not read fleet logs: {error.message}
-        </div>
+        <EmptyState
+          variant="error"
+          compact
+          title="Could not read fleet logs"
+          description={getCardErrorDescription(
+            error,
+            detectCardErrorVariant(error)
+          )}
+          action={{ label: 'Retry', onClick: () => void refetch() }}
+        />
       ) : filtered.length === 0 ? (
         <div className="px-3 py-8 text-center text-[11.5px] text-muted-foreground">
           No log entries at this level in the last {window}

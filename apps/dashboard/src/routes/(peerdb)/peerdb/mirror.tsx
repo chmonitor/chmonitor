@@ -41,6 +41,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatReadableQuantity } from '@/lib/format-readable'
+import { pageOgHead } from '@/lib/og'
 import {
   extractMirrorLogs,
   mirrorLogsRequestBody,
@@ -49,6 +50,7 @@ import { usePeerDB } from '@/lib/swr'
 
 export const Route = createFileRoute('/(peerdb)/peerdb/mirror')({
   component: PeerDBMirrorDetailPage,
+  head: () => pageOgHead('peerdb-mirror'),
 })
 
 function StatCard({

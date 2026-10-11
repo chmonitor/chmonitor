@@ -39,7 +39,7 @@ export function CopyButton({ text, className, label }: CopyButtonProps) {
       >
         {copied ? (
           <span className="t-success-check">
-            <Check className="size-3.5 text-green-600" />
+            <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
           </span>
         ) : (
           <Copy className="size-3.5" />
@@ -61,7 +61,7 @@ export function CopyButton({ text, className, label }: CopyButtonProps) {
       aria-label={copied ? 'Copied' : 'Copy'}
     >
       {copied ? (
-        <Check className="size-3.5 text-green-600" />
+        <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
       ) : (
         <Copy className="size-3.5" />
       )}

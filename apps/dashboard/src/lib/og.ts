@@ -180,6 +180,28 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'Backups',
     description: 'Backup and restore operations from system.backup_log.',
   },
+  peerdb: {
+    eyebrow: 'PEERDB',
+    title: 'PeerDB Mirrors',
+    description:
+      'Fleet view of PeerDB mirrors: status, lag, throughput and logs.',
+  },
+  'peerdb-mirror': {
+    eyebrow: 'PEERDB',
+    title: 'PeerDB Mirror',
+    description:
+      'Mirror detail: sync batches, table row counts, graph and logs.',
+  },
+  'peerdb-peer': {
+    eyebrow: 'PEERDB',
+    title: 'PeerDB Peer',
+    description: 'Peer detail: replication slots, lag history and statistics.',
+  },
+  'peerdb-peers': {
+    eyebrow: 'PEERDB',
+    title: 'PeerDB Peers',
+    description: 'Source and destination peers with the mirrors that use them.',
+  },
   disks: {
     eyebrow: 'STORAGE',
     title: 'Disks',

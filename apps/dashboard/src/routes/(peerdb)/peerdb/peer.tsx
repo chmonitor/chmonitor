@@ -25,10 +25,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { pageOgHead } from '@/lib/og'
 import { usePeerDB } from '@/lib/swr'
 
 export const Route = createFileRoute('/(peerdb)/peerdb/peer')({
   component: PeerDBPeerDetailPage,
+  head: () => pageOgHead('peerdb-peer'),
 })
 
 function PeerDetailContent() {
