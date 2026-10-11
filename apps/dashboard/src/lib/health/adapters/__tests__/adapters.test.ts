@@ -239,6 +239,12 @@ describe('slack adapter', () => {
 // ---------------------------------------------------------------------------
 
 describe('discord adapter', () => {
+  test('discord body never pings @everyone from alert text', () => {
+    const body = buildDiscordBody({ ...CRITICAL, label: '@everyone disk full' })
+    expect(body.content).toContain('@everyone')
+    expect(body.allowed_mentions).toEqual({ parse: [] })
+  })
+
   test('critical embed uses decimal red color', () => {
     const body = buildDiscordBody(CRITICAL)
     expect(body.embeds[0].color).toBe(0xdc2626)

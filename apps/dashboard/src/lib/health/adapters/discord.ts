@@ -40,6 +40,8 @@ interface DiscordEmbed {
 export interface DiscordWebhookBody {
   content: string
   embeds: DiscordEmbed[]
+  /** Empty `parse` list: no field (title, label, instance) can ping `@everyone` or a role. */
+  allowed_mentions: { parse: [] }
 }
 
 function heading(severity: AlertSeverity): string {
@@ -100,6 +102,7 @@ export function buildDiscordBody(payload: AlertPayload): DiscordWebhookBody {
   return {
     content: summary,
     embeds: [embed],
+    allowed_mentions: { parse: [] },
   }
 }
 
