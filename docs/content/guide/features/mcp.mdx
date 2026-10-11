@@ -167,7 +167,7 @@ The MCP endpoint is secure by default: it returns `401` when no auth is configur
 
 - The MCP server is stateless. It does not maintain session state between requests.
 - All queries executed via MCP run as the ClickHouse user configured in `CLICKHOUSE_USER`. Grant that user only the permissions it needs.
-- Tool availability via MCP mirrors the dashboard's query capabilities. MCP does not expose write operations by default; control tools (`AGENT_ENABLE_CONTROL_TOOLS=true`) would be needed for kill/optimize actions, and even then those are not exposed via MCP.
+- Tool availability via MCP mirrors the dashboard's query capabilities. MCP does not expose write operations by default; the agent's control tools (`AGENT_ENABLE_CONTROL_TOOLS`) cover kill/optimize in the dashboard chat, but those are not exposed via MCP.
 - The `/mcp` UI page is purely informational. The protocol endpoint is `/api/mcp`.
 
 ## Related

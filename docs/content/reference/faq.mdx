@@ -116,7 +116,7 @@ Check that `LLM_API_KEY` is set and that `LLM_API_BASE` points at a reachable Op
 
 <Accordion title="The agent can't kill queries or run OPTIMIZE.">
 
-`AGENT_ENABLE_CONTROL_TOOLS` defaults to `false`. Set it to `true` only if you intend to let the agent use those actions, and only when the ClickHouse user has the corresponding grants (`KILL QUERY`, `OPTIMIZE`).
+In self-hosted mode the control tools are on by default for signed-in callers (or everyone when auth is `none`). Check that `AGENT_ENABLE_CONTROL_TOOLS` is not set to `false`, that the `actions` feature is not disabled, and that the ClickHouse user has the grants (`KILL QUERY`, `OPTIMIZE`). In cloud mode they are off unless `AGENT_ENABLE_CONTROL_TOOLS=true`, and never for anonymous visitors. On a saved per-user connection the agent stays read-only.
 
 </Accordion>
 

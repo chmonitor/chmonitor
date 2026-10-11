@@ -39,6 +39,7 @@ import {
 import { createAgentStreamResponse } from './-agent/stream'
 import { env } from 'cloudflare:workers'
 import { selectAgentApiKey } from '@/lib/ai/agent/byok'
+import { resolveControlToolsEnabled } from '@/lib/ai/agent/control-tools-gate'
 import {
   type AgentConnectionBinding,
   resolveAgentConnection,
@@ -55,13 +56,13 @@ import {
 } from '@/lib/api/rate-limiter'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { authorizeAgentApiRequest } from '@/lib/auth/agent-api-auth'
+import { getAuthProvider } from '@/lib/auth/provider'
 import {
   getGuestAiRateLimitPerMin,
   guestOwnerIdFromIp,
 } from '@/lib/billing/guest-ai'
 import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
-import { parseBool } from '@/lib/config/parse-bool'
 import { ACTIONS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
@@ -201,8 +202,14 @@ async function handlePost(request: Request): Promise<Response> {
     console.log('[Agent API] OpenRouter user:', openRouterUser)
   }
 
-  const controlToolsEnabled =
-    parseBool(process.env.AGENT_ENABLE_CONTROL_TOOLS) === true
+  // Default on for self-hosted, off in cloud; explicit env wins, except an
+  // anonymous cloud visitor never gets write tools. See control-tools-gate.ts.
+  const controlToolsEnabled = resolveControlToolsEnabled({
+    flag: process.env.AGENT_ENABLE_CONTROL_TOOLS,
+    cloud: isCloudModeServer(),
+    authProvider: getAuthProvider(),
+    signedIn: !isGuest,
+  })
   const actionsPermissionResponse = controlToolsEnabled
     ? await authorizeFeatureRequest(ACTIONS_FEATURE_PERMISSION, request, {
         allowAgentBearerToken: true,

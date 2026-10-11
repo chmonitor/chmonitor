@@ -125,7 +125,9 @@ skills themselves live at repo-root `.agents/skills/`); MCP glue in `mcp/`.
 
 Tools are assembled by **`tools/index.ts`** (`createAllTools`). It composes 22
 tool modules exposing 41 tools total (32 by default; the 3 destructive
-`control-tools` are gated off unless `AGENT_ENABLE_CONTROL_TOOLS=true`, the 4
+`control-tools` are passed in by the caller, decided by
+`resolveControlToolsEnabled()` in `lib/ai/agent/control-tools-gate.ts` (on for
+self-hosted, off in cloud, `AGENT_ENABLE_CONTROL_TOOLS` overrides), the 4
 cross-source `postgres-*-tools` are gated off unless
 `CHM_FEATURE_POSTGRES_SOURCE=true`, and the PeerDB `peerdb-tools` module is
 gated off unless `CHM_FEATURE_PEERDB_AGENT=true`).

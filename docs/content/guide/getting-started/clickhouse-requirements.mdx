@@ -66,7 +66,7 @@ GRANT CREATE TEMPORARY TABLE ON *.* TO monitoring;
 <Tab value="With actions · SQL">
 ```sql
 -- Read-only monitoring, plus Kill Query and Optimize Table actions.
--- AGENT_ENABLE_CONTROL_TOOLS=true is also required for the AI agent to use these.
+-- The AI agent uses these by default in self-hosted mode (AGENT_ENABLE_CONTROL_TOOLS=false turns that off).
 CREATE USER monitoring
   IDENTIFIED WITH sha256_password BY 'your-password'
   HOST ANY;
@@ -139,7 +139,7 @@ Generate the hash: `echo -n 'your-password' | sha256sum`. Run `SYSTEM RELOAD CON
   </users>
 </clickhouse>
 ```
-Generate the hash: `echo -n 'your-password' | sha256sum`. `AGENT_ENABLE_CONTROL_TOOLS=true` is also required for the AI agent to use Kill Query / Optimize.
+Generate the hash: `echo -n 'your-password' | sha256sum`. The AI agent uses Kill Query / Optimize by default in self-hosted mode; set `AGENT_ENABLE_CONTROL_TOOLS=false` to turn that off.
 </Tab>
 
 <Tab value="Role-based · XML">
@@ -201,7 +201,7 @@ GRANT OPTIMIZE ON *.* TO monitoring;
 ```
 
 <Callout type="warn" title="Control tools are off by default">
-`AGENT_ENABLE_CONTROL_TOOLS` must also be `true` for the AI agent to use kill/optimize. Keep it `false` on public or shared deployments.
+`AGENT_ENABLE_CONTROL_TOOLS` is on by default in self-hosted mode and off in cloud. Set it to `false` on public or shared deployments.
 </Callout>
 </Accordion>
 <Accordion title="Self-tracking events table">

@@ -87,7 +87,7 @@ export const CONNECTION_UNSUPPORTED_TOOLS: ReadonlySet<string> = new Set([
  *  - Advisor: get_optimization_recommendations, get_tuning_suggestions
  *  - Advisor: recommend_materialized_view
  *  - Dashboards: suggest_dashboard
- *  - Control (destructive, env-gated): kill_query, optimize_table, kill_mutation
+ *  - Control (destructive, gated by the caller): kill_query, optimize_table, kill_mutation
  *  - Postgres (cross-source, env-gated): run_postgres_select_query,
  *    get_postgres_metrics, list_postgres_slow_query_patterns,
  *    get_postgres_table_stats
@@ -106,8 +106,6 @@ export function createAllTools(
   if (connection && connection.hostId !== hostId) {
     throw new Error('Agent connection binding does not match hostId')
   }
-  const enableControlTools =
-    parseBool(process.env.AGENT_ENABLE_CONTROL_TOOLS) === true
   // Postgres cross-source tools stay ABSENT (not merely failing) unless the
   // source engine is enabled — a pure env gate, no Clerk, so OSS has equal
   // support. Server reads the canonical CHM_* name (VITE_* is the client mirror).
@@ -172,8 +170,13 @@ export function createAllTools(
     // Dashboards (AI-generated layout suggestions, recommend-only)
     ...createDashboardTools(),
 
-    // Control actions (destructive) — off unless explicitly enabled
-    ...(enableControlTools && includeControlTools
+    // Control actions (destructive). The caller decides via
+    // resolveControlToolsEnabled() (../control-tools-gate.ts) plus the
+    // `actions` permission check; off when the argument is omitted. An explicit
+    // AGENT_ENABLE_CONTROL_TOOLS=false is re-checked here as a hard kill
+    // switch for every caller (the resolver already returns false for it).
+    ...(includeControlTools &&
+    parseBool(process.env.AGENT_ENABLE_CONTROL_TOOLS) !== false
       ? createControlTools(hostId)
       : {}),
 

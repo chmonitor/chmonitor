@@ -486,7 +486,7 @@ Provider-specific keys take priority over the generic `LLM_API_KEY` /
 | Variable | Default | Purpose |
 |---|---|---|
 | `AGENT_API_TOKEN` | — | Shared Bearer token for the agent API (`POST /api/v1/agent`). Accepted when `CHM_FEATURE_AGENT_ACCESS=authenticated`. |
-| `AGENT_ENABLE_CONTROL_TOOLS` | `false` | Enable kill-query, optimize, and other write actions. Keep `false` unless users are trusted. |
+| `AGENT_ENABLE_CONTROL_TOOLS` | on for self-hosted, off in cloud | Gives the agent `kill_query`, `optimize_table`, and `kill_mutation`. Unset: on in self-hosted when auth is `none` or the caller is signed in, off for anonymous Clerk visitors and in cloud mode. `false` turns them off everywhere; `true` turns them on, but anonymous cloud visitors never get them. The `actions` feature permission still applies. |
 | `CHM_AGENT_FIRECRAWL_MCP` | `true` | Connect Firecrawl's hosted MCP (no API key) on every agent request. Set `false` to disable. |
 | `CHM_AGENT_FIRECRAWL_ALLOW_DOMAINS` | (empty) | Comma-separated hostnames Firecrawl may scrape/crawl/map. Empty / unset = unrestricted. Apex tokens also match subdomains; `*.example.com` is subdomain-only (not the apex). Search-only calls (no URL) stay allowed. |
 | `AGENT_DEBUG` | `false` | Verbose agent request and usage logging (message keys, resolved user ids, usage). Accepts `1`, `true`, `yes`, `on`. Off unless set explicitly, whatever `NODE_ENV` is. |
