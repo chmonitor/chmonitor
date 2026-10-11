@@ -27,13 +27,15 @@ export const queryCountBaselineConfig: QueryConfig = {
     FROM system.query_log
     WHERE type = 'QueryFinish'
       AND event_time >= now() - INTERVAL {baseline_hours: UInt32} HOUR
-    GROUP BY toStartOfMinute(event_time)
-    ORDER BY event_time ASC
+    GROUP BY time_bucket
+    ORDER BY time_bucket ASC
   `,
   columns: ['timestamp', 'time_bucket', 'query_count'],
   defaultParams: {
     baseline_hours: 24,
   },
+  tableCheck: 'system.query_log',
+  optional: true,
 }
 
 /**
@@ -59,8 +61,8 @@ export const memoryUsageBaselineConfig: QueryConfig = {
         FROM system.query_log
         WHERE type = 'QueryFinish'
           AND event_time >= now() - INTERVAL {baseline_hours: UInt32} HOUR
-        GROUP BY toStartOfFiveMinutes(event_time)
-        ORDER BY event_time ASC
+        GROUP BY time_bucket
+        ORDER BY time_bucket ASC
       `,
     },
     {
@@ -78,8 +80,8 @@ export const memoryUsageBaselineConfig: QueryConfig = {
         FROM system.query_log
         WHERE type = 'QueryFinish'
           AND event_time >= now() - INTERVAL {baseline_hours: UInt32} HOUR
-        GROUP BY toStartOfFiveMinutes(event_time)
-        ORDER BY event_time ASC
+        GROUP BY time_bucket
+        ORDER BY time_bucket ASC
       `,
     },
   ],
@@ -100,6 +102,8 @@ export const memoryUsageBaselineConfig: QueryConfig = {
     p95_memory: ColumnFormat.NumberShort,
     p99_memory: ColumnFormat.NumberShort,
   },
+  tableCheck: 'system.query_log',
+  optional: true,
 }
 
 /**
@@ -114,15 +118,15 @@ export const mergePerformanceBaselineConfig: QueryConfig = {
     SELECT
       toUnixTimestamp(toStartOfFiveMinutes(event_time)) * 1000 as timestamp,
       toStartOfFiveMinutes(event_time) as time_bucket,
-      avg(elapsed) as avg_elapsed,
-      max(elapsed) as max_elapsed,
-      quantile(0.95)(elapsed) as p95_elapsed,
+      avg(duration_ms) / 1000 as avg_elapsed,
+      max(duration_ms) / 1000 as max_elapsed,
+      quantile(0.95)(duration_ms) / 1000 as p95_elapsed,
       count() as merge_count
     FROM system.part_log
     WHERE event_type = 'MergeParts'
       AND event_time >= now() - INTERVAL {baseline_hours: UInt32} HOUR
-    GROUP BY toStartOfFiveMinutes(event_time)
-    ORDER BY event_time ASC
+    GROUP BY time_bucket
+    ORDER BY time_bucket ASC
   `,
   columns: [
     'timestamp',
@@ -154,16 +158,16 @@ export const replicationLagBaselineConfig: QueryConfig = {
   description: 'Historical replication lag for baseline analysis',
   sql: `
     SELECT
-      toUnixTimestamp(toStartOfFiveMinutes(event_time)) * 1000 as timestamp,
-      toStartOfFiveMinutes(event_time) as time_bucket,
-      avg(replication_lag) as avg_lag,
-      max(replication_lag) as max_lag,
-      quantile(0.95)(replication_lag) as p95_lag,
+      toUnixTimestamp(toStartOfFiveMinutes(create_time)) * 1000 as timestamp,
+      toStartOfFiveMinutes(create_time) as time_bucket,
+      avg(dateDiff('second', create_time, now())) as avg_lag,
+      max(dateDiff('second', create_time, now())) as max_lag,
+      quantile(0.95)(dateDiff('second', create_time, now())) as p95_lag,
       count() as queue_entries
     FROM system.replication_queue
-    WHERE event_time >= now() - INTERVAL {baseline_hours: UInt32} HOUR
-    GROUP BY toStartOfFiveMinutes(event_time)
-    ORDER BY event_time ASC
+    WHERE create_time >= now() - INTERVAL {baseline_hours: UInt32} HOUR
+    GROUP BY time_bucket
+    ORDER BY time_bucket ASC
   `,
   columns: [
     'timestamp',
@@ -204,8 +208,8 @@ export const errorRateBaselineConfig: QueryConfig = {
     FROM system.query_log
     WHERE type IN ('QueryFinish', 'ExceptionBeforeStart', 'ExceptionWhileProcessing')
       AND event_time >= now() - INTERVAL {baseline_hours: UInt32} HOUR
-    GROUP BY toStartOfFiveMinutes(event_time)
-    ORDER BY event_time ASC
+    GROUP BY time_bucket
+    ORDER BY time_bucket ASC
   `,
   columns: [
     'timestamp',
@@ -223,6 +227,8 @@ export const errorRateBaselineConfig: QueryConfig = {
     error_before_start_rate: ColumnFormat.Number,
     error_while_processing_rate: ColumnFormat.Number,
   },
+  tableCheck: 'system.query_log',
+  optional: true,
 }
 
 /**
@@ -348,6 +354,8 @@ export const anomalySummaryConfig: QueryConfig = {
     baseline_value: ColumnFormat.Number,
     deviation_percent: ColumnFormat.Number,
   },
+  tableCheck: 'system.query_log',
+  optional: true,
 }
 
 /**
