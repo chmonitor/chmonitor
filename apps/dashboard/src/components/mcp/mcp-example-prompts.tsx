@@ -54,7 +54,7 @@ function PromptItem({ prompt }: { prompt: string }) {
         className="shrink-0 text-muted-foreground opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40 group-hover:!opacity-100 group-focus-within:!opacity-100"
       >
         {copied ? (
-          <Check className="size-3.5 text-green-600" />
+          <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
         ) : (
           <Copy className="size-3.5" />
         )}

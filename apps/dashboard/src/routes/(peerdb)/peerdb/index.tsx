@@ -48,12 +48,18 @@ import {
 } from '@/components/peerdb/peerdb-utils'
 import { usePeerDBStatus } from '@/components/peerdb/use-peerdb-status'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import {
+  detectCardErrorVariant,
+  getCardErrorDescription,
+} from '@/lib/card-error-utils'
+import { pageOgHead } from '@/lib/og'
 import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
 import { usePeerDB } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/(peerdb)/peerdb/')({
   component: PeerDBMirrorsPage,
+  head: () => pageOgHead('peerdb'),
 })
 
 const FILTERS: { k: DesignStatus | 'all'; label: string }[] = [
@@ -143,13 +149,23 @@ function PeerDBMirrorsPage() {
 
   useEffect(() => {
     if (error) {
-      toast.error(`Mirrors API Error: ${error.message}`)
+      toast.error('Could not load mirrors', {
+        description: getCardErrorDescription(
+          error,
+          detectCardErrorVariant(error)
+        ),
+      })
     }
   }, [error])
 
   useEffect(() => {
     if (peersError) {
-      toast.error(`Peers API Error: ${peersError.message}`)
+      toast.error('Could not load peers', {
+        description: getCardErrorDescription(
+          peersError,
+          detectCardErrorVariant(peersError)
+        ),
+      })
     }
   }, [peersError])
 

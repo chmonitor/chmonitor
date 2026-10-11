@@ -31,10 +31,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { pageOgHead } from '@/lib/og'
 import { usePeerDB } from '@/lib/swr'
 
 export const Route = createFileRoute('/(peerdb)/peerdb/peers')({
   component: PeerDBPeersPage,
+  head: () => pageOgHead('peerdb-peers'),
 })
 
 /** Per-peer aggregate derived from the mirrors list. */
