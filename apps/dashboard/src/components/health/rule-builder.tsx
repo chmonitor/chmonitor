@@ -24,6 +24,7 @@ import {
 } from '@/components/health/declarative-source-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -340,7 +341,7 @@ export function RuleBuilderPanel({ className }: { className?: string }) {
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
       {!isLoading && rules.length === 0 && (
-        <p className="text-sm text-muted-foreground">No custom rules yet.</p>
+        <EmptyState compact title="No custom rules yet" />
       )}
 
       <div className="flex flex-col gap-2">

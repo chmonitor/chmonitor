@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 
 function AuditLogSection() {
   const { entries, clear } = useAuditLogEntries()
@@ -30,7 +31,7 @@ function AuditLogSection() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No entries yet.</p>
+          <EmptyState compact title="No entries yet" />
         </CardContent>
       </Card>
     )
@@ -74,7 +75,7 @@ function AuditLogSection() {
                     {e.success ? (
                       <Badge
                         variant="outline"
-                        className="border-green-500 text-green-600"
+                        className="border-emerald-500 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
                       >
                         OK
                       </Badge>

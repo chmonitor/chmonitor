@@ -22,6 +22,7 @@ import {
 } from '@/components/health/declarative-source-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -285,7 +286,7 @@ export function MaintenanceWindowsPanel({ className }: { className?: string }) {
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
       {!isLoading && windows.length === 0 && (
-        <p className="text-sm text-muted-foreground">No maintenance windows.</p>
+        <EmptyState compact title="No maintenance windows" />
       )}
 
       <div className="flex flex-col gap-2">

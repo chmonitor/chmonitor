@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { cn } from '@/lib/utils'
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'unknown'
@@ -88,7 +89,7 @@ export function ConnectionManagerDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             {view.type === 'list'
@@ -102,10 +103,16 @@ export function ConnectionManagerDialog({
         {view.type === 'list' ? (
           <div className="space-y-3">
             {connections.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-8 text-center text-muted-foreground">
-                <Plug className="size-8 opacity-40" />
-                <p className="text-sm">No connections yet</p>
-              </div>
+              <EmptyState
+                compact
+                icon={<Plug className="size-6 opacity-60" />}
+                title="No connections yet"
+                action={{
+                  label: 'Add connection',
+                  icon: <Plus className="size-4" />,
+                  onClick: () => setView({ type: 'form' }),
+                }}
+              />
             ) : (
               <ul className="space-y-2">
                 {connections.map((conn) => {
