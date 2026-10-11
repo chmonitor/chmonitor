@@ -22,6 +22,7 @@ export const settingsItems: MenuItem[] = [
     items: [
       {
         title: 'Agent Settings',
+        subgroup: 'AI & Reports',
         href: '/agents/settings',
         description:
           'Provider, model, system prompt, skills, and external MCP servers',
@@ -30,6 +31,7 @@ export const settingsItems: MenuItem[] = [
       },
       {
         title: 'Insights Settings',
+        subgroup: 'AI & Reports',
         href: '/insights-settings',
         description:
           'Configure how insights are generated — templates, AI enhancement, model, and prompt style',
@@ -39,6 +41,7 @@ export const settingsItems: MenuItem[] = [
       },
       {
         title: 'Scheduled Reports',
+        subgroup: 'AI & Reports',
         href: '/report-settings',
         description:
           'Weekly or monthly cluster health reports, delivered to your alert channels',
@@ -53,6 +56,7 @@ export const settingsItems: MenuItem[] = [
       },
       {
         title: 'Health Settings',
+        subgroup: 'Health & Alerts',
         href: '/health-settings',
         description:
           'Per-check warning and critical thresholds for health monitoring',
@@ -63,6 +67,7 @@ export const settingsItems: MenuItem[] = [
       {
         // /health?settings=alerts redirects here for old links.
         title: 'Alert Settings',
+        subgroup: 'Health & Alerts',
         href: '/alert-settings',
         description:
           'Alert channels, webhooks, routing, quiet hours, digests and alert history',
@@ -72,6 +77,7 @@ export const settingsItems: MenuItem[] = [
       },
       {
         title: 'Settings',
+        subgroup: 'ClickHouse',
         href: '/settings',
         description: 'Server configuration settings and current values',
         countKey: 'settings',
@@ -83,6 +89,7 @@ export const settingsItems: MenuItem[] = [
       },
       {
         title: 'MergeTree Settings',
+        subgroup: 'ClickHouse',
         href: '/mergetree-settings',
         description: 'MergeTree engine-specific settings',
         countKey: 'mergetree-settings',
@@ -94,6 +101,7 @@ export const settingsItems: MenuItem[] = [
       },
       {
         title: 'Replicated MergeTree Settings',
+        subgroup: 'ClickHouse',
         href: '/replicated-merge-tree-settings',
         description:
           'Replicated MergeTree engine settings and whether each was changed from default',

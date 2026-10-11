@@ -76,6 +76,26 @@ See the full list in [Environment Variables](/reference/environment-variables).
 </Step>
 </Steps>
 
+## AI agent tools
+
+The AI agent's read-only PeerDB tools (`get_peerdb_mirror_status`,
+`get_peerdb_metrics`) follow `CHM_FEATURE_PEERDB_AGENT`:
+
+| `CHM_FEATURE_PEERDB_AGENT` | Agent tools |
+|---|---|
+| unset | On when `PEERDB_API_URL` is set and PeerDB answers a quick probe (`CHM_AGENT_INTEGRATION_PROBE_TIMEOUT_MS`, default 1500 ms). Off when it is unreachable or slow. |
+| `true` | On whenever `PEERDB_API_URL` is set. Errors show when a tool runs. |
+| `false` | Off. |
+
+- `CHM_FEATURE_PEERDB_ENABLED=false` turns them off as well.
+- Anonymous cloud visitors never get them. Signed-in cloud users, and requests
+  bound to a user's own connection, need an explicit `true`, because the
+  PeerDB deployment is the operator's.
+- The decision is made once per conversation and kept for its later turns, so
+  the tools never disappear mid-conversation.
+- The tools are read-only and stay out of the always-loaded core set; the
+  agent finds them with `search_tools`.
+
 ## Connection status
 
 The header shows a status pill that distinguishes:

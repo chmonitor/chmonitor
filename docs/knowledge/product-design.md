@@ -1085,9 +1085,36 @@ The dashboard sidebar (and Settings > Navigation, ⌘K, breadcrumbs) is composed
 from `apps/dashboard/src/menu/*.ts` via `menu/index.ts` (re-exported as
 `src/menu.ts`). Order in `menuItemsConfig` is the sidebar order.
 
-The sidebar is **task groups**, not system-table origins (#3565). It is two
-levels deep (group > page); `nav-main/menu-item.tsx` does not recurse, so never
-nest a group inside a group. A new page joins one of these groups — do not add
+The sidebar is **task groups**, not system-table origins (#3565). The config
+is two levels deep (group > page); `nav-main/menu-item.tsx` does not recurse
+into `items`, so never nest a group inside a group.
+
+**Subgroups (#3676).** The rail shows a third level, group > subgroup > page,
+DERIVED from each child's `subgroup` (the same field the hubs use) by
+`lib/menu/subgroups.ts` → `groupChildrenBySubgroup`, which runs on the
+already visibility-filtered children:
+
+- A group with 6 or fewer visible pages stays flat (`FLAT_GROUP_MAX_PAGES`).
+- A subgroup with 2+ visible pages gets a heading; one page is a plain row; a
+  page without `subgroup` sits directly under the group.
+- Keep a subgroup's pages contiguous in `menu/*.ts` (invariant test).
+- Expanded rail: `SubgroupSection` in `nav-main/menu-item.tsx`, a real
+  `<button>` with `aria-expanded`/`aria-controls`, one indent step. The
+  subgroup holding the active page opens (and re-opens on navigation); others
+  use the saved state in localStorage `chm-menu-subgroups-open`
+  (`{"<group>/<subgroup>": boolean}`, `lib/menu/subgroup-open-store.ts`,
+  try/catch guarded, unknown keys pruned on write), else start collapsed. No
+  roving tabindex; group open state is not persisted.
+- Collapsed rail flyout, the group customize dialog and Settings > Navigation
+  show non-interactive headings (`role="group"` + `aria-label` in the flyout).
+- ⌘K headings read "Group › Subgroup", and the subgroup is a search term.
+  Collapse state never filters the palette.
+- URLs, breadcrumbs (Group › Page), pins, favorites, hidden pages, recents,
+  the slim default and presets are unchanged: everything stays keyed by leaf
+  `href`.
+- Tools & AI: AI (Chat, Advisor, MCP Server) / SQL (SQL Console, Explain,
+  Chart Builder) / Compare. Settings: AI & Reports / Health & Alerts /
+  ClickHouse. A new page joins one of these groups — do not add
 a new top-level heading.
 
 **Main** (in order):

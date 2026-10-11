@@ -14,8 +14,10 @@ import { toolsItems } from './tools'
 // Composed in sidebar / command-palette order: Overview, then the task groups
 // (Queries → Data & Storage → Cluster & Replication → Server → Alerts &
 // Insights → Tools & AI), then the About footer and the Settings group in the
-// others section. Each task group is one level deep (group > page); the
-// sidebar renderer does not recurse.
+// others section. Config stays one level deep (group > page, no `items` in
+// `items`); the sidebar derives a third level, group > subgroup > page, from
+// each child's `subgroup` (lib/menu/subgroups.ts, #3676). Keep a subgroup's
+// pages contiguous.
 //
 // Postgres items stay top-level: they carry `engines: ['postgres']`, and a
 // ClickHouse-family parent would drop them on a Postgres host.

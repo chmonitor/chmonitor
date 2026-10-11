@@ -17,6 +17,11 @@
  */
 
 import {
+  type IntegrationGateInput,
+  peerdbGateInput,
+  resolveIntegrationToolsEnabled,
+} from '../integration-tools-gate'
+import {
   buildPeerDBAuthHeader,
   envPeerDBConfig,
   type ResolvedPeerDBConfig,
@@ -25,18 +30,19 @@ import {
 const FETCH_TIMEOUT_MS = 10_000
 
 /**
- * Explicit agent gate. Unlike the PeerDB UI section (which appears whenever
- * `PEERDB_API_URL` is set), the agent tool is opt-in — mirroring the
- * Postgres cross-source tools (`CHM_FEATURE_POSTGRES_SOURCE`) and the
- * control tools (`AGENT_ENABLE_CONTROL_TOOLS`). A URL-presence gate would
- * silently advertise PeerDB reads to the model on every deployment whose
- * operator only wanted the UI section. The feature kill-switch
- * (`CHM_FEATURE_PEERDB_ENABLED=false`) also keeps the tool out.
+ * Whether the agent gets the PeerDB tools, through the shared resolver
+ * (`resolveIntegrationToolsEnabled`, ../integration-tools-gate.ts):
+ * `CHM_FEATURE_PEERDB_AGENT=false` or `CHM_FEATURE_PEERDB_ENABLED=false` is a
+ * kill switch, `true` turns them on when `PEERDB_API_URL` is set, and unset
+ * turns them on only when PeerDB is configured AND the probe found it
+ * reachable. Anonymous cloud visitors never get them.
  */
-export function isPeerDBAgentEnabled(): boolean {
-  if (process.env.CHM_FEATURE_PEERDB_AGENT !== 'true') return false
-  if (process.env.CHM_FEATURE_PEERDB_ENABLED === 'false') return false
-  return true
+export function isPeerDBAgentEnabled(
+  ctx: Omit<IntegrationGateInput, 'flag' | 'killSwitch' | 'configured'>
+): boolean {
+  return resolveIntegrationToolsEnabled(
+    peerdbGateInput({ ...ctx, configured: getPeerDBAgentConfig() !== null })
+  ).enabled
 }
 
 /** Resolve the env-wide PeerDB config, or null when not configured. */

@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 
-// Article header, matching the blog post header: mono pill eyebrow with the
-// top-level section, a large light h1, the description as a lede, and a meta
-// row (reading time, optional updated date). `children` is the action row.
+// Article header, matching the blog post header: a quiet section eyebrow, a
+// large light h1, the description as a lede, then one row holding the page
+// actions (`children`) and the meta (reading time, optional updated date).
 export function DocHero({
   section,
   title,
@@ -21,16 +21,17 @@ export function DocHero({
   const updatedLabel = formatDate(updated)
   return (
     <header data-doc-hero className="pt-2">
-      {section ? <span className="doc-eyebrow">{section}</span> : null}
-      <h1 className="mt-5 text-balance font-normal text-[clamp(1.5rem,4.4vw,2.75rem)] leading-[1.06] tracking-tight text-fd-foreground">
+      {section ? <p className="doc-eyebrow">{section}</p> : null}
+      <h1 className="mt-3 text-balance font-normal text-[clamp(1.5rem,4.4vw,2.75rem)] leading-[1.06] tracking-tight text-fd-foreground">
         {title}
       </h1>
       {description ? (
-        <p className="mt-4 text-pretty text-lg leading-relaxed text-fd-muted-foreground">
+        <p className="mt-4 text-pretty text-base leading-relaxed sm:text-lg text-fd-muted-foreground">
           {description}
         </p>
       ) : null}
-      <div className="mt-5 mb-6 flex flex-wrap items-center gap-2.5 text-sm text-fd-muted-foreground">
+      <div className="mt-6 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 border-b pb-6 text-sm text-fd-muted-foreground">
+        {children}
         <span>{minutes} min read</span>
         {updatedLabel ? (
           <>
@@ -39,7 +40,6 @@ export function DocHero({
           </>
         ) : null}
       </div>
-      {children}
     </header>
   )
 }

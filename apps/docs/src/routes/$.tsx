@@ -116,7 +116,9 @@ const clientLoader = browserCollections.docs.createClientLoader({
     { markdownUrl, path, section, minutes, updated }: HeroData
   ) {
     return (
-      <DocsPage toc={toc}>
+      // Two heading levels (h2/h3) in the TOC; deeper ones made it run past
+      // the viewport on long pages.
+      <DocsPage toc={toc.filter((item) => item.depth <= 3)}>
         <DocHero
           section={section}
           title={frontmatter.title}
@@ -126,7 +128,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
         >
           <div
             data-article-actions
-            className="flex flex-row flex-wrap items-center gap-2 border-b pb-6"
+            className="flex flex-row flex-wrap items-center gap-2"
           >
             <MarkdownCopyButton
               markdownUrl={markdownUrl}

@@ -634,7 +634,9 @@ the sidebar.
 | `PEERDB_SWEEP_BUDGET_MS` | `60000` | Wall-clock budget for one alert-sweep collection in milliseconds. |
 | `PEERDB_SWEEP_MAX_MIRRORS` | unset (no limit) | Optional cap on mirrors read per alert-sweep tick. Unset means every listed mirror is read; any truncation is recorded as a partial result. |
 | `CHM_FEATURE_PEERDB_ENABLED` | unset (enabled) | Set `false` to disable PeerDB entirely: hides the section, blocks the proxy, and skips the PeerDB alert cycle in the health sweep. |
-| `CHM_FEATURE_PEERDB_AGENT` | `false` | Give the AI agent a read-only PeerDB mirror-status tool. Must be exactly `true`; stays off when `CHM_FEATURE_PEERDB_ENABLED=false`. Execution also needs `PEERDB_API_URL`. |
+| `CHM_FEATURE_PEERDB_AGENT` | unset (auto) | The AI agent's read-only PeerDB tools. Unset: on when `PEERDB_API_URL` is set **and** PeerDB answers a quick probe. `true`: on whenever `PEERDB_API_URL` is set. `false`: off. Always off for anonymous cloud visitors; signed-in cloud users and requests on a user's own connection need an explicit `true`. `CHM_FEATURE_PEERDB_ENABLED=false` also turns it off. |
+| `CHM_AGENT_INTEGRATION_PROBE_TIMEOUT_MS` | `1500` | How long the agent waits for the PeerDB / Postgres reachability probe before treating the integration as unreachable for that conversation. Can lower the default, never raise it. The probe keeps running in the background and fills the cache for the next conversation. |
+| `CHM_AGENT_INTEGRATION_PROBE_TTL_MS` | `60000` | How long a successful probe result is reused per server instance. Failed results are reused for at most 15 seconds. |
 
 chmonitor proxies only a read-only allowlist of PeerDB endpoints; mutating
 operations (create/drop/pause, alert config) are rejected with `403`.
@@ -656,7 +658,7 @@ for `POSTGRES_USER` or `POSTGRES_PASSWORD` applies to every host.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CHM_FEATURE_POSTGRES_SOURCE` | `false` | Turn on the Postgres source engine, its API routes and the agent's cross-source tools. Fails closed when unset. |
+| `CHM_FEATURE_POSTGRES_SOURCE` | unset | Turn on the Postgres source engine and its API routes (`true`; the UI and routes stay off when unset). For the agent's read-only cross-source tools it is three-state: unset turns them on when a `POSTGRES_HOST` is set **and** answers `SELECT 1` within the probe budget; `true` turns them on whenever a host is set; `false` turns them off. Always off for anonymous cloud visitors; signed-in cloud users and requests on a user's own connection need an explicit `true`. |
 | `POSTGRES_HOST` | — | Host list, each `host` or `host:port`. Defines which sources exist; with none set the list is empty. |
 | `POSTGRES_PORT` | `5432` | Port list. A port inside a `POSTGRES_HOST` entry wins; a missing entry falls back to the first value. |
 | `POSTGRES_USER` | `postgres` | User list. |

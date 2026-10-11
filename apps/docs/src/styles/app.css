@@ -123,18 +123,12 @@ body {
   max-width: 1168px;
 }
 
-/* ── hero eyebrow: mono pill with the top-level section ── */
+/* ── hero eyebrow: the top-level section as quiet brand-ink text ── */
 .doc-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--color-fd-muted);
-  color: var(--color-fd-muted-foreground);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
+  margin: 0;
+  color: var(--brand-ink);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* ── prose (mirrors apps/blog/src/layouts/Base.astro) ── */
@@ -209,6 +203,15 @@ body {
   border: 1px solid var(--color-fd-border);
   border-radius: 12px;
   box-shadow: none;
+}
+
+/* A code block inside a tab panel already sits in the tab's bordered box —
+   one frame, not two. */
+#nd-page .prose [role='tabpanel'] :where(figure.shiki, pre) {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
 }
 
 #nd-page .prose :where(pre code) {

@@ -35,6 +35,60 @@ feeds step N+1, or two pieces touch the same file).
   builds run out of memory). Build and test once after they finish.
 - Subagents do not commit or push. The lead reviews, verifies, and commits.
 
+### The lead is a manager, not an implementer
+
+The main session plans, dispatches, reviews, and ships. It does not hand-edit
+features. Every non-trivial task goes through this loop:
+
+1. **Survey** — one read-only subagent per area returns ranked findings with
+   `file:line` evidence, grouped into work packages by file ownership. Skip
+   anything an open or recent PR already covers (`gh pr list`, `git log`).
+2. **Implement** — one worktree subagent (`isolation: "worktree"`) per work
+   package. The brief names the issue, the exact files it owns, the files it
+   must not touch, the tests to add, and the commands that prove it.
+3. **Verify** — a second subagent that did not write the code checks risky
+   work before merge: anything touching auth, permissions, tokens, billing,
+   per-user data, or SQL that runs on a customer cluster gets a read-only
+   security/correctness review. SQL changes are run against a real ClickHouse
+   (`clickhouse local` or a scratch server), not only unit-tested. Keep
+   auto-merge off until the review is back; fix findings, then re-arm.
+4. **Ship** — rebase onto `origin/main`, lint the touched files, push, open
+   the PR, arm auto-merge, and keep a watcher merging green PRs and reporting
+   red ones. Required checks green + `BLOCKED` only because of signed commits
+   → `gh pr merge --squash --admin`.
+5. **Audit after merging** — confirm `main` CI, the deploy, and production;
+   run the revert check below over the merged commits.
+
+Rules learned the hard way:
+
+- **Rebase, never re-base by copying.** Ship a worktree branch with
+  `git rebase origin/main` before squashing. Never `git reset --soft
+  origin/main` on an older branch and never `git checkout <old-branch> --
+  <files>` onto a newer `main`: both take the stale copy of every touched file
+  and silently undo newer merges (this reverted a security fix in #3752).
+- **Revert check after a merge wave:** for each merged commit, lines an
+  earlier commit in the wave added that it removed and that are still missing
+  on `main` must be an intended rewrite, not an accident.
+- **One concern per PR.** Split a worker's diff by concern before shipping;
+  a docs-only or test-only follow-up is its own PR.
+- **Tests must type-check under `tsconfig.test.json`:** use
+  `fileURLToPath(new URL('.', import.meta.url))`, not Bun-only
+  `import.meta.dir`; no ES2018-only regex flags; cast `await res.json()`.
+- **A test that passes vacuously is a bug** (`if (calls.length > 0) expect…`).
+  Prove a new regression test fails on the old code before trusting it.
+- **Generated docs data:** a change to built-in alert rules, agent tools, or
+  env vars must run `bun scripts/gen-docs-data.ts` and document new env vars;
+  `tests/repo/docs-data-sync.test.ts` fails otherwise.
+- **`apps/dashboard` has its own `pnpm-lock.yaml`.** A dependency change in a
+  `packages/*` workspace package also needs `pnpm install --lockfile-only` in
+  `apps/dashboard`.
+- **Read a worker's "decisions for you" before shipping.** Workers flag
+  behaviour changes, skipped items, and choices outside their brief; resolve
+  each (or ask) instead of shipping blind. Remove copy-pasted helpers they add
+  in favour of one shared function.
+- **`needs-design`:** post a design proposal on the issue with a recommended
+  default per open question; implement only after the maintainer approves.
+
 ## PR Workflow
 
 **Always auto-babysit PRs on this project.** After opening any PR, immediately arm

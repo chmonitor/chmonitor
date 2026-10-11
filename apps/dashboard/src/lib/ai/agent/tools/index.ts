@@ -88,10 +88,10 @@ export const CONNECTION_UNSUPPORTED_TOOLS: ReadonlySet<string> = new Set([
  *  - Advisor: recommend_materialized_view
  *  - Dashboards: suggest_dashboard
  *  - Control (destructive, gated by the caller): kill_query, optimize_table, kill_mutation
- *  - Postgres (cross-source, env-gated): run_postgres_select_query,
+ *  - Postgres (cross-source, gated by the caller): run_postgres_select_query,
  *    get_postgres_metrics, list_postgres_slow_query_patterns,
  *    get_postgres_table_stats
- *  - PeerDB (env-gated): get_peerdb_mirror_status, get_peerdb_metrics
+ *  - PeerDB (gated by the caller): get_peerdb_mirror_status, get_peerdb_metrics
  *  - Discovery (always): search_tools
  */
 export function createAllTools(
@@ -101,22 +101,28 @@ export function createAllTools(
    * The signed-in user's own connection, resolved by the agent route. When
    * set, every tool call runs bound to it (see `host-query.ts`).
    */
-  connection?: AgentConnectionBinding
+  connection?: AgentConnectionBinding,
+  /**
+   * Read-only integration tools, decided by the caller with
+   * resolveIntegrationToolsEnabled() (../integration-tools-gate.ts) — the
+   * agent route probes reachability and pins the result per conversation.
+   * Off when omitted.
+   */
+  integrations?: { peerdb?: boolean; postgres?: boolean }
 ) {
   if (connection && connection.hostId !== hostId) {
     throw new Error('Agent connection binding does not match hostId')
   }
-  // Postgres cross-source tools stay ABSENT (not merely failing) unless the
-  // source engine is enabled — a pure env gate, no Clerk, so OSS has equal
-  // support. Server reads the canonical CHM_* name (VITE_* is the client mirror).
+  // The flags' explicit `false` (and CHM_FEATURE_PEERDB_ENABLED=false) are
+  // re-checked here as hard kill switches for every caller; the resolver
+  // already returns off for them. No Clerk involvement, so OSS has equal
+  // support.
   const enablePostgresTools =
-    parseBool(process.env.CHM_FEATURE_POSTGRES_SOURCE) === true
-  // PeerDB mirror-status tool — explicit opt-in (a URL-presence gate would
-  // silently advertise PeerDB reads to the model on every deployment whose
-  // operator only wanted the UI section). Execution still fail-closes when
-  // PEERDB_API_URL is unset. No Clerk involvement, so OSS has equal support.
+    integrations?.postgres === true &&
+    parseBool(process.env.CHM_FEATURE_POSTGRES_SOURCE) !== false
   const enablePeerDBTools =
-    parseBool(process.env.CHM_FEATURE_PEERDB_AGENT) === true &&
+    integrations?.peerdb === true &&
+    parseBool(process.env.CHM_FEATURE_PEERDB_AGENT) !== false &&
     parseBool(process.env.CHM_FEATURE_PEERDB_ENABLED) !== false
 
   const tools = {
@@ -180,8 +186,8 @@ export function createAllTools(
       ? createControlTools(hostId)
       : {}),
 
-    // Postgres cross-source tools — off unless CHM_FEATURE_POSTGRES_SOURCE=true.
-    // They take an explicit `pgHostId` per call, so no hostId is threaded here.
+    // Postgres cross-source tools — read-only, on when the caller's
+    // integration gate says so. They take an explicit `pgHostId` per call, so no hostId is threaded here.
     ...(enablePostgresTools
       ? {
           ...createPostgresQueryTools(),
@@ -190,9 +196,8 @@ export function createAllTools(
         }
       : {}),
 
-    // PeerDB mirror status + metrics — off unless
-    // CHM_FEATURE_PEERDB_AGENT=true (and the PeerDB feature itself is not
-    // disabled). Read-only: fleet/detail status, slot lag, CDC throughput,
+    // PeerDB mirror status + metrics — on when the caller's integration gate
+    // says so (and the PeerDB feature itself is not disabled). Read-only: fleet/detail status, slot lag, CDC throughput,
     // snapshot progress, per-peer stats, fleet aggregates.
     ...(enablePeerDBTools ? createPeerDBTools() : {}),
   }
