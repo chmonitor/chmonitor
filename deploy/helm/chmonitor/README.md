@@ -90,7 +90,7 @@ alertWebhooks:
         key: matrix-headers
 ```
 
-Supported formats are `auto`, `raw`, `slack`, and `matrix`. Non-secret target metadata is rendered into the `HEALTH_ALERT_WEBHOOK_TARGETS` ConfigMap. URLs and secret headers are always mounted with `secretKeyRef`; do not put token-bearing URLs in ConfigMap values, `extraEnv`, or committed GitOps files. Prefer External Secrets, Sealed Secrets, or your cluster's secret manager for `urlFrom` and `headersSecretFrom`.
+Supported formats are `auto`, `raw`, `slack`, `matrix` (Matrix `m.notice` event), and `hookshot` (matrix-hookshot generic webhook: `{text, html}`). Non-secret target metadata is rendered into the `HEALTH_ALERT_WEBHOOK_TARGETS` ConfigMap. URLs and secret headers are always mounted with `secretKeyRef`; do not put token-bearing URLs in ConfigMap values, `extraEnv`, or committed GitOps files. Prefer External Secrets, Sealed Secrets, or your cluster's secret manager for `urlFrom` and `headersSecretFrom`.
 
 D1/UI configuration is owner-scoped and takes precedence over a Helm target with the same name. Deleting a D1 row resets that name to the Helm declaration. A disabled D1 row suppresses the Helm target until reset. Deploy-time schema and helper validation reject unknown formats, duplicate names, invalid URLs, oversized templates, and unsafe headers; the app repeats URL/SSRF and payload validation at send time.
 

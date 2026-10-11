@@ -164,8 +164,8 @@ Deployment) so no combination can silently skip validation.
 {{- $defaults := .Values.alertWebhooks.defaults | default dict }}
 {{- $defFormat := $defaults.format | default "auto" }}
 {{- $defSeverity := $defaults.minSeverity | default "warning" }}
-{{- if not (has $defFormat (list "auto" "raw" "slack" "matrix")) }}
-{{- fail (printf "alertWebhooks.defaults.format must be one of auto|raw|slack|matrix, got %q" $defFormat) }}
+{{- if not (has $defFormat (list "auto" "raw" "slack" "matrix" "hookshot")) }}
+{{- fail (printf "alertWebhooks.defaults.format must be one of auto|raw|slack|matrix|hookshot, got %q" $defFormat) }}
 {{- end }}
 {{- if not (has $defSeverity (list "warning" "critical")) }}
 {{- fail (printf "alertWebhooks.defaults.minSeverity must be warning|critical, got %q" $defSeverity) }}
@@ -188,8 +188,8 @@ Deployment) so no combination can silently skip validation.
 {{- end }}
 {{- $names = append $names $t.name }}
 {{- $format := $t.format | default $defFormat }}
-{{- if not (has $format (list "auto" "raw" "slack" "matrix")) }}
-{{- fail (printf "%s %q: format must be one of auto|raw|slack|matrix, got %q" $id $t.name $format) }}
+{{- if not (has $format (list "auto" "raw" "slack" "matrix" "hookshot")) }}
+{{- fail (printf "%s %q: format must be one of auto|raw|slack|matrix|hookshot, got %q" $id $t.name $format) }}
 {{- end }}
 {{- $sev := $t.minSeverity | default $defSeverity }}
 {{- if not (has $sev (list "warning" "critical")) }}

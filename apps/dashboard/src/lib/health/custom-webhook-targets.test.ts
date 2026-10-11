@@ -97,6 +97,41 @@ describe('custom webhook target formatting', () => {
     expect(preview.redactedUrl).not.toContain('token')
   })
 
+  test('hookshot format sends the {text, html} keys Hookshot reads', () => {
+    // Hookshot dumps any body without `text` into the room as raw JSON, so
+    // the Matrix m.notice shape (body/formatted_body) is unusable there.
+    const target = {
+      url: 'https://hookshot.example.test/webhook/abc',
+      format: 'hookshot' as const,
+      titleTemplate: '',
+      bodyTemplate: '',
+    }
+    const { body, adapterId } = buildCustomTargetBody(target, payload)
+    expect(adapterId).toBe('hookshot')
+    const b = body as Record<string, string>
+    expect(typeof b.text).toBe('string')
+    expect(b.text).toContain('CRITICAL')
+    expect(b.html).toContain('<b>')
+    expect(b).not.toHaveProperty('msgtype')
+    expect(b).not.toHaveProperty('formatted_body')
+  })
+
+  test('hookshot templates are HTML-escaped in html but kept in text', () => {
+    const { body } = buildCustomTargetBody(
+      {
+        url: 'https://hookshot.example.test/webhook/abc',
+        format: 'hookshot',
+        titleTemplate: '<img src=x> {{severity}}',
+        bodyTemplate: '',
+      },
+      payload
+    )
+    const b = body as Record<string, string>
+    expect(b.html).toContain('&lt;img src=x&gt; CRITICAL')
+    expect(b.html).not.toContain('<img')
+    expect(b.text).toBe('<img src=x> CRITICAL')
+  })
+
   test('caps rendered output by bytes', () => {
     const body = buildCustomTargetBody(
       {

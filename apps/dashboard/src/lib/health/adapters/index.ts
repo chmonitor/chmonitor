@@ -14,6 +14,7 @@ export type { DiscordWebhookBody } from './discord'
 export type { EmailBody, EmailConfig, EmailProvider } from './email'
 export type { GenericJsonBody, GenericJsonDigestBody } from './generic-json'
 export type { GoogleChatWebhookBody } from './google-chat'
+export type { HookshotWebhookBody } from './hookshot'
 export type { MatrixMessageBody } from './matrix'
 export type { MSTeamsWebhookBody } from './msteams'
 export type { NtfyConfig, NtfyMessage } from './ntfy'
@@ -53,6 +54,7 @@ export {
   genericJsonAdapter,
 } from './generic-json'
 export { buildGoogleChatBody, googleChatAdapter } from './google-chat'
+export { buildHookshotBody, hookshotAdapter } from './hookshot'
 export { buildMatrixBody, escapeMatrixHtml, matrixAdapter } from './matrix'
 export { buildMSTeamsBody, msTeamsAdapter } from './msteams'
 export {
