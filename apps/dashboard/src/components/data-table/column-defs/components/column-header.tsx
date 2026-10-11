@@ -3,11 +3,12 @@
  */
 
 import {
-  CaretDownIcon,
-  CaretSortIcon,
-  CaretUpIcon,
-} from '@radix-ui/react-icons'
-import { InfoIcon, MoreHorizontal } from 'lucide-react'
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+  InfoIcon,
+  MoreHorizontal,
+} from 'lucide-react'
 import type { Column, RowData } from '@tanstack/react-table'
 
 import type { Icon } from '@chm/types/icon'
@@ -51,10 +52,10 @@ export interface ColumnHeaderProps<TData extends RowData> {
 
 function SortIcon({ sortState }: { sortState: false | 'asc' | 'desc' }) {
   if (sortState === false)
-    return <CaretSortIcon className="ml-1 size-3.5 opacity-40" />
+    return <ChevronsUpDown className="ml-1 size-3.5 opacity-40" />
   if (sortState === 'asc')
-    return <CaretUpIcon className="ml-1 size-3.5 text-primary" />
-  return <CaretDownIcon className="ml-1 size-3.5 text-primary" />
+    return <ArrowUp className="ml-1 size-3.5 text-primary" />
+  return <ArrowDown className="ml-1 size-3.5 text-primary" />
 }
 
 function HeaderContent({

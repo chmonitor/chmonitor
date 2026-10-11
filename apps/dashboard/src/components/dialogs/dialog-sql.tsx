@@ -105,7 +105,7 @@ function CopyableValue({
         <Check className="size-3 text-green-500 shrink-0" strokeWidth={2} />
       ) : (
         <Copy
-          className="size-3 opacity-0 group-hover/copy:opacity-50 shrink-0 transition-opacity"
+          className="size-3 opacity-0 group-hover/copy:opacity-50 group-focus-visible/copy:opacity-50 pointer-coarse:opacity-50 shrink-0 transition-opacity"
           strokeWidth={1.5}
         />
       )}
@@ -231,6 +231,7 @@ export function RequestInfoContent({
                     className="size-6 shrink-0 opacity-40 group-hover/api:opacity-100"
                     onClick={() => handleCopy(fullApiUrl)}
                     title="Copy API URL"
+                    aria-label="Copy API URL"
                   >
                     <Copy className="size-3" />
                   </Button>
@@ -386,7 +387,7 @@ export function RequestInfoContent({
               />
             </ScrollArea>
 
-            <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover/sql:opacity-100 transition-opacity">
+            <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover/sql:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger

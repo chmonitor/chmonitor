@@ -1,9 +1,9 @@
-import { SizeIcon } from '@radix-ui/react-icons'
 import {
   Check,
   Copy,
   ExternalLinkIcon,
   Loader2,
+  Maximize2,
   SparklesIcon,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -453,7 +453,7 @@ export const CodeDialogFormat = memo(function CodeDialogFormat({
           />
         </ScrollArea>
 
-        <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 transition-opacity group-hover/code:opacity-100">
+        <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 transition-opacity group-hover/code:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
           <Badge
             variant="secondary"
             className="bg-background/80 font-mono text-[10px]"
@@ -487,7 +487,7 @@ export const CodeDialogFormat = memo(function CodeDialogFormat({
         <code className="min-w-0 truncate font-mono text-xs text-muted-foreground transition-colors group-hover/cell:text-foreground truncated">
           {formatted}
         </code>
-        <SizeIcon className="size-3.5 shrink-0 text-muted-foreground/60 transition-colors group-hover/cell:text-muted-foreground" />
+        <Maximize2 className="size-3.5 shrink-0 text-muted-foreground/60 transition-colors group-hover/cell:text-muted-foreground" />
       </DialogTrigger>
       <DialogContent
         className={cn(

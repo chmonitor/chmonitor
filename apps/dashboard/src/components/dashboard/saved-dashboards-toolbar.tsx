@@ -8,8 +8,7 @@
  * simple UI controls.
  */
 
-import { BookmarkIcon } from '@radix-ui/react-icons'
-import { Trash2 } from 'lucide-react'
+import { Bookmark, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { DashboardLayout } from '@/types/dashboard-layout'
@@ -152,7 +151,7 @@ export function SavedDashboardsToolbar({
         onClick={handleSave}
         title="Save current dashboard"
       >
-        <BookmarkIcon className="mr-1 size-3" />
+        <Bookmark className="mr-1 size-3" />
         Save
       </Button>
 
