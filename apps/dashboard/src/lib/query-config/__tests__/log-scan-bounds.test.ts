@@ -21,6 +21,7 @@ import { ttlStorageMovesConfig } from '../system/storage-economics'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const sqlsOf = (c: { sql: QueryConfig['sql'] }): string[] =>
   typeof c.sql === 'string' ? [c.sql] : c.sql.map((v) => v.sql)
@@ -93,7 +94,10 @@ describe('declarative twins carry the same bounds', () => {
 
 test('explorer query-log lookup is bounded by event_date', () => {
   const src = readFileSync(
-    join(import.meta.dir, '../../../routes/api/v1/explorer/query-log.ts'),
+    join(
+      fileURLToPath(new URL('.', import.meta.url)),
+      '../../../routes/api/v1/explorer/query-log.ts'
+    ),
     'utf8'
   )
   const sql = src.match(/const QUERY_LOG_SQL = `([\s\S]*?)`/)?.[1] ?? ''
