@@ -13,7 +13,7 @@ changes** since v0.3.6. The agent got smarter, alerts are easier to set up,
 the sidebar is easier to move around, and the docs have a new look.
 
 <figure class="video video-wide">
-  <iframe src="https://www.youtube-nocookie.com/embed/59XaNXglx9k?rel=0" title="chmonitor v0.3.7 launch video" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="eager"></iframe>
+  <iframe src="https://www.youtube-nocookie.com/embed/vGgSJ07akwo?rel=0" title="chmonitor v0.3.7 launch video" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="eager"></iframe>
 </figure>
 
 ## What's new in v0.3.7
