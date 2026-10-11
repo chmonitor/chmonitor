@@ -16,7 +16,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { error, generateRequestId } from '@chm/logger'
+import { createInternalErrorResponse } from '@/lib/api/error-handler/error-response-builder'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseLimit } from '@/lib/api/shared/parse-limit'
 import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { readInsights } from '@/lib/insights/read-insights'
@@ -61,8 +63,16 @@ export const Route = createFileRoute('/api/v1/insights')({
           }
 
           const since = searchParams.get('since') ?? undefined
-          const limitParam = searchParams.get('limit')
-          const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined
+          const parsedLimit = parseLimit(searchParams.get('limit'), {
+            max: 1000,
+          })
+          if (!parsedLimit.ok) {
+            return Response.json(
+              { error: parsedLimit.message },
+              { status: 400, headers: { 'X-Request-ID': requestId } }
+            )
+          }
+          const limit = parsedLimit.value
 
           const insights = await readInsights(hostId, { since, limit })
 
@@ -72,9 +82,10 @@ export const Route = createFileRoute('/api/v1/insights')({
           )
         } catch (err) {
           error('[GET /api/v1/insights] Unexpected error:', err, { requestId })
-          return Response.json(
-            { error: err instanceof Error ? err.message : 'Unknown error' },
-            { status: 500, headers: { 'X-Request-ID': requestId } }
+          return createInternalErrorResponse(
+            err,
+            { route: '/api/v1/insights', method: 'GET' },
+            requestId
           )
         }
       },

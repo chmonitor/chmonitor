@@ -17,7 +17,7 @@ import { menuItemsConfig } from '@/menu'
 import type { MenuItem } from '@/components/menu/types'
 
 import { env } from 'cloudflare:workers'
-import { checkTableExists } from '@chm/clickhouse-client/table-existence-cache'
+import { checkTablesExist } from '@chm/clickhouse-client/table-existence-cache'
 import { debug, error, generateRequestId } from '@chm/logger'
 import { createErrorResponse } from '@/lib/api/error-handler'
 import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
@@ -63,30 +63,10 @@ function extractTableChecks(items: readonly MenuItem[]): string[] {
   return Array.from(tables)
 }
 
-/** Resolves a single table check to its availability status. */
-async function resolveTableAvailability(
-  table: string,
-  hostId: number,
-  requestId: string
-): Promise<boolean | undefined> {
-  // Parse database and table names
+/** Splits a menu `tableCheck` (`db.table` or bare `table`) into its parts. */
+function splitTable(table: string): [string, string] {
   const parts = table.split('.')
-  const db = parts.length > 1 ? parts[0] : 'system'
-  const tbl = parts.length > 1 ? parts[1] : parts[0]
-
-  try {
-    const result = await checkTableExists(hostId, db, tbl)
-    // 'unknown' = the probe itself failed (network/timeout/auth), not a
-    // confirmed answer — omit from the map, same as the catch below.
-    return result === 'unknown' ? undefined : result
-  } catch (err) {
-    error('[GET /api/v1/table-availability] Check table error:', err, {
-      requestId,
-      table,
-      hostId,
-    })
-    return undefined // Omit from map — preserves client fail-open
-  }
+  return parts.length > 1 ? [parts[0], parts[1]] : ['system', parts[0]]
 }
 
 export const Route = createFileRoute('/api/v1/table-availability')({
@@ -167,20 +147,16 @@ export const Route = createFileRoute('/api/v1/table-availability')({
           )
 
           const tables = extractTableChecks(menuItemsConfig)
-          const resolved = await Promise.all(
-            tables.map(async (table) => {
-              const available = await resolveTableAvailability(
-                table,
-                hostId,
-                requestId
-              )
-              return [table, available] as const
-            })
-          )
+          // One system.tables query on a cold cache (seeds L1/L2), not one
+          // per table. 'unknown' (probe failed) is omitted from the map so the
+          // client keeps failing open.
+          const checked = await checkTablesExist(hostId, tables.map(splitTable))
 
           const available: Record<string, boolean> = {}
-          for (const [table, status] of resolved) {
-            if (status !== undefined) {
+          for (const table of tables) {
+            const [db, tbl] = splitTable(table)
+            const status = checked.get(`${db}.${tbl}`)
+            if (status !== undefined && status !== 'unknown') {
               available[table] = status
             }
           }

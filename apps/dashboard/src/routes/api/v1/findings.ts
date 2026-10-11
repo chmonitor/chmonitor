@@ -18,7 +18,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
 import { debug, error, generateRequestId } from '@chm/logger'
+import { createInternalErrorResponse } from '@/lib/api/error-handler/error-response-builder'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { parseLimit } from '@/lib/api/shared/parse-limit'
 import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { FINDINGS_TABLE } from '@/lib/app-tables'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
@@ -188,8 +190,16 @@ export const Route = createFileRoute('/api/v1/findings')({
           }
 
           const since = searchParams.get('since') ?? undefined
-          const limitParam = searchParams.get('limit')
-          const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined
+          const parsedLimit = parseLimit(searchParams.get('limit'), {
+            max: 1000,
+          })
+          if (!parsedLimit.ok) {
+            return Response.json(
+              { error: parsedLimit.message },
+              { status: 400, headers: { 'X-Request-ID': requestId } }
+            )
+          }
+          const limit = parsedLimit.value
 
           debug('[GET /api/v1/findings] Fetching findings', {
             requestId,
@@ -215,9 +225,10 @@ export const Route = createFileRoute('/api/v1/findings')({
           )
         } catch (err) {
           error('[GET /api/v1/findings] Unexpected error:', err, { requestId })
-          return Response.json(
-            { error: err instanceof Error ? err.message : 'Unknown error' },
-            { status: 500, headers: { 'X-Request-ID': requestId } }
+          return createInternalErrorResponse(
+            err,
+            { route: '/api/v1/findings', method: 'GET' },
+            requestId
           )
         }
       },
