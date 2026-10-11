@@ -1,5 +1,3 @@
-import { AlertCircle } from 'lucide-react'
-
 import type {
   ChildQueryRow,
   QueryDetailRow,
@@ -19,7 +17,8 @@ import {
 } from '@/components/query-detail/query-detail-sections'
 import { QueryStagesChart } from '@/components/query-detail/query-stages-chart'
 import { TableSkeleton } from '@/components/skeletons'
-import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { getCardErrorMessage } from '@/lib/card-error-utils'
 import { buildExplorerQueryUrl } from '@/lib/explorer-url'
 import { deriveQueryInsights } from '@/lib/query/query-insights'
 import { useTableData } from '@/lib/query/use-table-data'
@@ -103,15 +102,12 @@ export const QueryDetailView = function QueryDetailView({
   // ── API error ──
   if (error) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center gap-3">
-        <AlertCircle className="size-8 text-destructive/60" />
-        <p className="text-[13px] text-muted-foreground">
-          {error instanceof Error ? error.message : 'Failed to load query'}
-        </p>
-        <Button variant="outline" size="sm" onClick={() => refresh()}>
-          Retry
-        </Button>
-      </div>
+      <EmptyState
+        variant="error"
+        title="Couldn't load query"
+        description={getCardErrorMessage(error)}
+        action={{ label: 'Retry', onClick: () => refresh() }}
+      />
     )
   }
 

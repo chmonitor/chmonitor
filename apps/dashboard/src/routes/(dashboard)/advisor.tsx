@@ -29,6 +29,7 @@ import {
   advisorUserInputCopy,
   isAdvisorUserInputError,
 } from '@/lib/ai/advisor/empty-copy'
+import { getCardErrorMessage } from '@/lib/card-error-utils'
 import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
@@ -127,7 +128,7 @@ function AdvisorResult({
     return (
       <ErrorAlert
         title="Analysis failed"
-        message={error instanceof Error ? error.message : String(error)}
+        message={getCardErrorMessage(error)}
       />
     )
   }

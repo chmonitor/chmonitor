@@ -276,6 +276,15 @@ export function getCardErrorDescription(
 }
 
 /**
+ * Friendly, user-facing message for any thrown value (non-Error values are
+ * wrapped first). Use this instead of showing a raw `error.message`.
+ */
+export function getCardErrorMessage(error: unknown): string {
+  const err = error instanceof Error ? error : new Error(String(error))
+  return getCardErrorDescription(err, detectCardErrorVariant(err))
+}
+
+/**
  * Gets the standardized error title
  *
  * @param variant - The error variant

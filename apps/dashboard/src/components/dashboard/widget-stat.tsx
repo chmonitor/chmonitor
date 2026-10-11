@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { DashboardWidget } from '@/types/dashboard-layout'
 
 import { Skeleton } from '@/components/ui/skeleton'
+import { getCardErrorMessage } from '@/lib/card-error-utils'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { visibilityAwareInterval } from '@/lib/swr/config'
@@ -106,7 +107,7 @@ export function WidgetStat({ widget }: { widget: DashboardWidget }) {
       <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
         <span className="text-xs text-destructive">Failed to load</span>
         <span className="text-[11px] text-muted-foreground">
-          {error instanceof Error ? error.message : 'Unknown error'}
+          {getCardErrorMessage(error)}
         </span>
       </div>
     )
