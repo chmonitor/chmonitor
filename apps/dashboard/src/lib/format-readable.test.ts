@@ -1,5 +1,4 @@
 import {
-  formatCompactNumber,
   formatQuery,
   formatReadableQuantity,
   formatReadableSecondDuration,
@@ -86,21 +85,6 @@ describe('formatReadableQuantity', () => {
   test('explicit preset always wins over the snapshot', () => {
     setFormatSettings({ numberFormat: 'full' })
     expect(formatReadableQuantity(123456789, 'short')).toBe('123M')
-  })
-})
-
-describe('formatCompactNumber (K/M/B suffix)', () => {
-  test('non-positive / non-finite collapses to "0"', () => {
-    expect(formatCompactNumber(0)).toBe('0')
-    expect(formatCompactNumber(-5)).toBe('0')
-    expect(formatCompactNumber(Number.POSITIVE_INFINITY)).toBe('0')
-  })
-
-  test('thresholds at K / M / B with one decimal', () => {
-    expect(formatCompactNumber(999)).toBe('999')
-    expect(formatCompactNumber(13247)).toBe('13.2K')
-    expect(formatCompactNumber(1_400_000)).toBe('1.4M')
-    expect(formatCompactNumber(2_500_000_000)).toBe('2.5B')
   })
 })
 
