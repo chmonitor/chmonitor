@@ -28,3 +28,9 @@ alertWebhooks:
       urlFrom:
         name: alert-secrets
         key: hookshot-url
+alerting:
+  instanceName: prod-eu
+  dashboardUrl: https://chm.example.com
+  metadata:
+    team: db
+    region: eu

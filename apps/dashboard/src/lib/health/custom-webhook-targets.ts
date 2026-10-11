@@ -42,6 +42,7 @@ import {
   detectAdapter,
 } from './adapters'
 import { escapeMatrixHtml } from './adapters/matrix'
+import { escapeSlackMrkdwn } from './adapters/slack'
 
 /** Selectable output format for a custom webhook target. */
 export type CustomWebhookFormat =
@@ -193,12 +194,12 @@ const TEMPLATE_VARS: Record<string, (p: AlertPayload) => string> = {
   checkId: (p) => p.metric,
   value: (p) => (p.value === null ? 'n/a' : String(p.value)),
   timestamp: (p) => p.timestamp,
+  instance: (p) => p.instanceName ?? '',
+  dashboardUrl: (p) => p.dashboardUrl ?? '',
 }
 
-/** Escape operator-controlled text before putting it in Slack mrkdwn. */
-function escapeSlackMrkdwn(raw: string): string {
-  return raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
+/** `{{meta.<key>}}` resolves a `HEALTH_ALERT_METADATA` value by key. */
+const META_VAR_PREFIX = 'meta.'
 
 function normalizeFormatForBuild(
   format: CustomWebhookFormat
@@ -206,9 +207,10 @@ function normalizeFormatForBuild(
   return format === 'raw-json' ? 'raw' : format
 }
 
-export const CUSTOM_WEBHOOK_TEMPLATE_VARS = Object.freeze(
-  Object.keys(TEMPLATE_VARS)
-)
+export const CUSTOM_WEBHOOK_TEMPLATE_VARS = Object.freeze([
+  ...Object.keys(TEMPLATE_VARS),
+  'meta.<key>',
+])
 
 /**
  * Render a `{{variable}}` template against a payload. Unknown placeholders are
@@ -221,9 +223,14 @@ export function renderCustomTemplate(
   maxLength: number
 ): string {
   const rendered = template.replace(
-    /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g,
-    (m, name) => {
-      const resolve = TEMPLATE_VARS[name as string]
+    /\{\{\s*([A-Za-z0-9_]+|meta\.[A-Za-z0-9_.-]{1,32})\s*\}\}/g,
+    (m, name: string) => {
+      if (name.startsWith(META_VAR_PREFIX)) {
+        const key = name.slice(META_VAR_PREFIX.length)
+        const meta = payload.metadata
+        return meta && Object.hasOwn(meta, key) ? meta[key] : m
+      }
+      const resolve = TEMPLATE_VARS[name]
       return resolve ? resolve(payload) : m
     }
   )
@@ -529,6 +536,9 @@ export function samplePreviewPayload(): AlertPayload {
     title: 'Mutations failing',
     label: '3 mutations stuck for 15m',
     timestamp: '2026-01-01T00:00:00.000Z',
+    instanceName: 'prod-eu',
+    dashboardUrl: 'https://chm.example.com/health?host=0',
+    metadata: { team: 'data-platform', region: 'eu-west-1' },
   }
 }
 

@@ -10,6 +10,12 @@
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
 import { summarizeDigest } from './digest'
+import { identityLine, instancePrefix } from './identity'
+
+/** Escape operator-controlled text before putting it in Slack mrkdwn. */
+export function escapeSlackMrkdwn(raw: string): string {
+  return raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
 
 /** Severity → attachment colour (hex) and header emoji. */
 const SEVERITY_STYLE: Record<AlertSeverity, { color: string; emoji: string }> =
@@ -70,7 +76,7 @@ function thresholdText(payload: AlertPayload): string {
  */
 export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
-  const summary = `[${heading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
+  const summary = `${escapeSlackMrkdwn(instancePrefix(payload))}[${heading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
 
   const blocks: SlackBlock[] = [
     {
@@ -148,6 +154,27 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
     })
   }
 
+  if (payload.dashboardUrl) {
+    blocks.push({
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: 'Open dashboard', emoji: true },
+          url: payload.dashboardUrl,
+        },
+      ],
+    })
+  }
+
+  const identity = identityLine(payload)
+  if (identity) {
+    blocks.push({
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: escapeSlackMrkdwn(identity) }],
+    })
+  }
+
   blocks.push({
     type: 'context',
     elements: [{ type: 'mrkdwn', text: payload.timestamp }],
@@ -171,7 +198,7 @@ export function buildSlackDigestBody(
 ): SlackWebhookBody {
   const digest = summarizeDigest(payloads)
   const style = SEVERITY_STYLE[digest.topSeverity]
-  const summary = `Health digest: ${digest.summaryLine} (${digest.total} alerts)`
+  const summary = `Health digest: ${escapeSlackMrkdwn(digest.summaryLine)} (${digest.total} alerts)`
 
   const listLines = digest.findingLines.map((line) => `• ${line}`)
   if (digest.overflow > 0) {

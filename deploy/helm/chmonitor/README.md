@@ -59,6 +59,9 @@ helm uninstall my-chm
 | `auth.trusted.roleHeader` | `""` | Single-role header merged into groups. App default: `X-Forwarded-Role`. |
 | `auth.trusted.customHeaders` | `""` | Comma list of `field:Header-Name` pairs for custom claims, e.g. `team:X-Forwarded-Team`. |
 | `auth.trusted.allowedGroups` | `""` | Comma list of groups/roles required for access (`CHM_TRUSTED_ALLOWED_GROUPS`). |
+| `alerting.instanceName` | `""` | Deployment label shown on every alert, e.g. `prod-eu` (`HEALTH_ALERT_INSTANCE_NAME`). |
+| `alerting.dashboardUrl` | `""` | Public http(s) base URL of this dashboard; alerts link to `<url>/health?host=<id>` (`HEALTH_ALERT_DASHBOARD_URL`). |
+| `alerting.metadata` | `{}` | Non-secret key/values added to alerts, rendered as JSON into `HEALTH_ALERT_METADATA`. Max 10 pairs, keys `[A-Za-z0-9_.-]{1,32}`, values up to 128 chars. |
 | `extraEnv` | `[]` | Extra environment variables (e.g. `CLICKHOUSE_NAME`). |
 
 See [`values.yaml`](./values.yaml) for the full list.

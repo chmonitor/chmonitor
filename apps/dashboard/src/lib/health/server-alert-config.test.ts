@@ -9,6 +9,8 @@ import {
   getServerTelegramConfig,
   getServerTwilioConfig,
   isAnyAlertChannelEnabled,
+  parseAlertIdentity,
+  parseAlertMetadata,
 } from './server-alert-config'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
@@ -825,5 +827,70 @@ describe('isAnyAlertChannelEnabled', () => {
   it('explicit true forces it on', () => {
     process.env.HEALTH_ALERT_ENABLED = 'yes'
     expect(isAnyAlertChannelEnabled()).toBe(true)
+  })
+})
+
+describe('parseAlertIdentity (deployment identity on alerts)', () => {
+  it('returns {} when nothing is set, so alert bodies stay unchanged', () => {
+    expect(parseAlertIdentity({})).toEqual({})
+  })
+
+  it('reads instance, dashboard base URL (trailing slash stripped), metadata', () => {
+    expect(
+      parseAlertIdentity({
+        HEALTH_ALERT_INSTANCE_NAME: ' prod-eu ',
+        HEALTH_ALERT_DASHBOARD_URL: 'https://chm.example.com/',
+        HEALTH_ALERT_METADATA: 'team=db, region=eu',
+      })
+    ).toEqual({
+      instanceName: 'prod-eu',
+      dashboardBaseUrl: 'https://chm.example.com',
+      metadata: { team: 'db', region: 'eu' },
+    })
+  })
+
+  it('returns the normalized href so markup characters arrive encoded', () => {
+    const base = (url: string) =>
+      parseAlertIdentity({ HEALTH_ALERT_DASHBOARD_URL: url }).dashboardBaseUrl
+    expect(base('https://x/a"b')).toBe('https://x/a%22b')
+    expect(base('https://x/a<b> c')).toBe('https://x/a%3Cb%3E%20c')
+    expect(base('https://x/a)b')).toBe('https://x/a)b')
+  })
+
+  it('ignores a non-http(s) or malformed dashboard URL', () => {
+    for (const url of ['javascript:alert(1)', 'ftp://x', 'not a url']) {
+      expect(
+        parseAlertIdentity({ HEALTH_ALERT_DASHBOARD_URL: url }).dashboardBaseUrl
+      ).toBeUndefined()
+    }
+  })
+})
+
+describe('parseAlertMetadata', () => {
+  it('accepts a JSON object and drops non-string values', () => {
+    expect(parseAlertMetadata('{"team":"db","n":1}')).toEqual({ team: 'db' })
+  })
+
+  it('drops invalid keys, long values, and CR/LF values', () => {
+    expect(
+      parseAlertMetadata(
+        JSON.stringify({
+          'bad key': 'x',
+          ok: 'y',
+          long: 'z'.repeat(129),
+          nl: 'a\nb',
+          [`k${'x'.repeat(32)}`]: 'v',
+        })
+      )
+    ).toEqual({ ok: 'y' })
+    expect(parseAlertMetadata('novalue,=x,a=1')).toEqual({ a: '1' })
+  })
+
+  it('keeps at most 10 pairs; garbage input yields undefined', () => {
+    const many = Array.from({ length: 12 }, (_, i) => `k${i}=v`).join(',')
+    expect(Object.keys(parseAlertMetadata(many) ?? {})).toHaveLength(10)
+    expect(parseAlertMetadata('{not json')).toBeUndefined()
+    expect(parseAlertMetadata('[1,2]')).toBeUndefined()
+    expect(parseAlertMetadata('')).toBeUndefined()
   })
 })

@@ -22,3 +22,14 @@ data:
   {{- if .Values.alertWebhooks.enabled }}
   HEALTH_ALERT_WEBHOOK_TARGETS: {{ include "chmonitor.alertWebhooks.targetsJson" . | quote }}
   {{- end }}
+  {{- with .Values.alerting }}
+  {{- if .instanceName }}
+  HEALTH_ALERT_INSTANCE_NAME: {{ .instanceName | quote }}
+  {{- end }}
+  {{- if .dashboardUrl }}
+  HEALTH_ALERT_DASHBOARD_URL: {{ .dashboardUrl | quote }}
+  {{- end }}
+  {{- if .metadata }}
+  HEALTH_ALERT_METADATA: {{ .metadata | toJson | quote }}
+  {{- end }}
+  {{- end }}

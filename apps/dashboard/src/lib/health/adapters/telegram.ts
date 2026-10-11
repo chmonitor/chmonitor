@@ -13,6 +13,7 @@
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
 import { summarizeDigest } from './digest'
+import { identityLine, instancePrefix } from './identity'
 
 /** Characters MarkdownV2 reserves and requires escaping with a backslash. */
 const MARKDOWN_V2_SPECIALS = '_*[]()~`>#+-=|{}.!'
@@ -71,7 +72,7 @@ export function buildTelegramText(payload: AlertPayload): string {
       : payload.severity.toUpperCase()
 
   const lines: string[] = [
-    `${emoji} *${esc(heading)}: ${esc(payload.title)}*`,
+    `${emoji} *${esc(instancePrefix(payload))}${esc(heading)}: ${esc(payload.title)}*`,
     '',
     `*Host:* ${esc(payload.hostLabel)} \\(id ${esc(payload.hostId)}\\)`,
     `*Metric:* ${esc(payload.metric)}`,
@@ -97,6 +98,14 @@ export function buildTelegramText(payload: AlertPayload): string {
     for (const url of payload.runbookUrls) {
       lines.push(`• ${esc(url)}`)
     }
+  }
+
+  const identity = identityLine(payload)
+  if (identity) lines.push(esc(identity))
+  if (payload.dashboardUrl) {
+    // Inside a MarkdownV2 link URL only `)` and `\` need escaping.
+    const url = payload.dashboardUrl.replace(/[)\\]/g, '\\$&')
+    lines.push(`[Open dashboard](${url})`)
   }
 
   lines.push('')
