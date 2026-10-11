@@ -1,4 +1,5 @@
 import { formatCompactNumber, formatNumber } from './format-number'
+import { formatCompactNumber as viaReadable } from './format-readable'
 import { describe, expect, test } from 'bun:test'
 
 describe('formatCompactNumber (Intl compact)', () => {
@@ -15,6 +16,21 @@ describe('formatCompactNumber (Intl compact)', () => {
 
   test('negative values below the threshold stay full', () => {
     expect(formatCompactNumber(-500)).toBe('-500')
+  })
+})
+
+describe('formatCompactNumber query-stats values (legacy K/M/B output)', () => {
+  test.each([
+    [999, '999'],
+    [13247, '13.2K'],
+    [1_400_000, '1.4M'],
+    [2_500_000_000, '2.5B'],
+  ])('%p -> %p', (input, expected) => {
+    expect(formatCompactNumber(input)).toBe(expected)
+  })
+
+  test('format-readable re-exports the same function', () => {
+    expect(viaReadable).toBe(formatCompactNumber)
   })
 })
 

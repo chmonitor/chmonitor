@@ -73,23 +73,7 @@ export function formatReadableQuantity(quantity: number, preset?: string) {
   }).format(quantity)
 }
 
-/**
- * Format a number into a short compact string with a single-letter suffix.
- *
- * Unlike {@link formatReadableQuantity}, this always uses K / M / B suffixes
- * with one decimal — handy for dense table cells and chart summaries.
- *
- * @example
- * formatCompactNumber(13247) // "13.2K"
- * formatCompactNumber(1_400_000) // "1.4M"
- */
-export function formatCompactNumber(n: number): string {
-  if (!Number.isFinite(n) || n <= 0) return '0'
-  if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`
-  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`
-  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`
-  return String(Math.round(n))
-}
+export { formatCompactNumber } from '@/lib/format-number'
 
 export function formatReadableSecondDuration(seconds: number) {
   if (seconds < 1) return '0s'
