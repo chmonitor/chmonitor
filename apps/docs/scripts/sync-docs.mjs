@@ -60,7 +60,6 @@ const FOLDER_META = {
     title: 'Getting Started',
     icon: 'Rocket',
     pages: [
-      'index',
       'clickhouse-requirements',
       'clickhouse-enable-system-tables',
       'local',
@@ -70,7 +69,6 @@ const FOLDER_META = {
     title: 'Features',
     icon: 'LayoutGrid',
     pages: [
-      'index',
       '---Monitoring---',
       'overview',
       'queries',
@@ -98,7 +96,7 @@ const FOLDER_META = {
   'guide/ai-agent': {
     title: 'AI Agent',
     icon: 'Bot',
-    pages: ['index', 'capabilities', 'configuration', 'conversation-history'],
+    pages: ['capabilities', 'configuration', 'conversation-history'],
   },
   'guide/guides': {
     title: 'Guides',
@@ -145,7 +143,6 @@ const FOLDER_META = {
     title: 'Deployment',
     icon: 'Container',
     pages: [
-      'index',
       'docker',
       'k8s',
       'cloudflare',
@@ -160,7 +157,6 @@ const FOLDER_META = {
     title: 'Authentication',
     icon: 'ShieldCheck',
     pages: [
-      'index',
       'public',
       'api-keys',
       'clerk',
@@ -212,7 +208,7 @@ const FOLDER_META = {
   'reference/releases': {
     title: 'Releases',
     icon: 'Tag',
-    pages: ['index', 'v0-3'],
+    pages: ['v0-3'],
   },
   'reference/migrating': {
     title: 'Migrating',
