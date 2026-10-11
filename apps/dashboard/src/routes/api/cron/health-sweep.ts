@@ -23,8 +23,7 @@
  * fan-out. Operators MUST configure CRON_SECRET and pass it from their scheduler
  * (see docs).
  *
- * Ported from apps/dashboard/app/api/cron/health-sweep/route.ts (Next.js).
- * Differences from the Next version:
+ * Runtime notes:
  *   - The handler is wired through TanStack Start `createFileRoute().server`.
  *   - CRON_SECRET is read from the Worker `env` binding (authoritative on
  *     workerd) with a `process.env` fallback for node/dev.

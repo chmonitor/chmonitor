@@ -4,10 +4,8 @@
  * Records a PageView event to the monitoring_events table. Collects URL,
  * browser user-agent, and IP/geo from standard request headers.
  *
- * Ported from apps/dashboard/app/api/pageview/route.ts.
- * - next/server (userAgent) and @vercel/functions (geolocation) are replaced
- *   with direct header reads — equivalent for Cloudflare Workers.
- * - ErrorLogger replaced with @chm/logger debug/error.
+ * User agent and geolocation are read directly from request headers
+ * (Cloudflare Workers provides them). Logs through @chm/logger debug/error.
  *
  * Auth enforced via enforceAuth() (provider-aware; allows anonymous when
  * provider=none, matching Next middleware behaviour from the legacy app).
@@ -88,8 +86,7 @@ export const Route = createFileRoute('/api/pageview')({
         const url = normalizeUrl(rawUrl)
 
         // User-agent: parse browser/os/device from the UA string directly.
-        // next/server's userAgent() is not available; Cloudflare provides the
-        // raw header. We forward the raw string in the extra payload.
+        // No UA parser is bundled; Cloudflare provides the raw header. We forward the raw string in the extra payload.
         const uaString = request.headers.get('user-agent') ?? ''
 
         // Geo: Cloudflare Workers expose CF-IPCountry, CF-IPCity etc.

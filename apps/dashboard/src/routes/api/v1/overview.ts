@@ -3,7 +3,6 @@
  * GET /api/v1/overview?hostId=0
  *
  * Batch endpoint that returns all overview page metrics in a single request.
- * Ported from apps/dashboard/app/api/v1/overview/route.ts.
  */
 
 import { createFileRoute } from '@tanstack/react-router'

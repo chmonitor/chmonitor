@@ -63,10 +63,11 @@ export function createErrorResponse(
   context?: RouteContext
 ): Response {
   // Log the error with context using structured logger
+  const parsedHostId = parseHostIdParam(context?.hostId)
   ErrorLogger.logError(new Error(errorDetails.message), {
     component: `API:${context?.route || 'unknown'}`,
     action: context?.method || 'unknown',
-    hostId: parseHostId(context?.hostId),
+    hostId: Number.isNaN(parsedHostId) ? undefined : parsedHostId,
     errorType: errorDetails.type,
   })
 
@@ -159,10 +160,11 @@ export function createInternalErrorResponse(
 ): Response {
   const originalError = err instanceof Error ? err : new Error(String(err))
 
+  const parsedHostId = parseHostIdParam(context?.hostId)
   ErrorLogger.logError(originalError, {
     component: `API:${context?.route || 'unknown'}`,
     action: context?.method || 'unknown',
-    hostId: parseHostId(context?.hostId),
+    hostId: Number.isNaN(parsedHostId) ? undefined : parsedHostId,
     errorType: ApiErrorType.QueryError,
   })
 
@@ -230,23 +232,4 @@ export function createNotFoundError(
     404,
     context
   )
-}
-
-/**
- * Safely parses hostId from context
- *
- * @param hostId - Host ID (string or number)
- * @returns Parsed number or undefined
- */
-function parseHostId(hostId?: string | number): number | undefined {
-  if (typeof hostId === 'number') {
-    return hostId
-  }
-
-  if (typeof hostId === 'string') {
-    const parsed = parseHostIdParam(hostId)
-    return Number.isNaN(parsed) ? undefined : parsed
-  }
-
-  return undefined
 }

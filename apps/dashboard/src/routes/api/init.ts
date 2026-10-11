@@ -4,8 +4,7 @@
  * Creates (or migrates) the monitoring_events tracking table for a given host.
  * Safe to call repeatedly — the underlying schema logic is idempotent.
  *
- * Ported from apps/dashboard/app/api/init/route.ts.
- * - ErrorLogger replaced with @chm/logger error.
+ * Logs through @chm/logger error.
  */
 
 import { createFileRoute } from '@tanstack/react-router'

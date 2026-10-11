@@ -8,9 +8,8 @@
  * The PeerDB Basic-auth credential is attached server-side and never exposed to
  * the browser.
  *
- * Ported from apps/dashboard/app/api/v1/peerdb/[...slug]/route.ts.
- * - Per-route authorizeFeatureRequest dropped (centralized in middleware #1397).
- * - process.env replaced with `env` from cloudflare:workers (Workers runtime).
+ * - Per-route authorizeFeatureRequest is not used (centralized in middleware #1397).
+ * - Config is read from `env` (cloudflare:workers), not process.env.
  * - [...slug] -> $ splat; slug read via params._splat.
  */
 

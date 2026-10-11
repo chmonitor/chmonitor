@@ -5,10 +5,9 @@
  * Returns the public feature-permission config the client consumes:
  *   { authProvider, principal, features, resolved }
  *
- * Ported from apps/dashboard/app/api/v1/config/route.ts +
- * apps/dashboard/lib/feature-permissions/server.ts:getPublicFeaturePermissionConfig.
+ * Mirrors lib/feature-permissions/server.ts:getPublicFeaturePermissionConfig.
  *
- * WORKERD CONSTRAINTS (intentional differences from the Next app):
+ * WORKERD CONSTRAINTS:
  * - CHM_CONFIG_FILE is read via lib/feature-permissions/config-file.ts, gated
  *   on the build-time import.meta.env.SSR; env overrides are layered on top.
  *   On workerd the file is absent, so this stays env-driven there.

@@ -5,6 +5,7 @@ import type { QueryConfig } from '@/types/query-config'
 
 import { fetchData } from '@chm/clickhouse-client'
 import { ErrorLogger } from '@chm/logger'
+import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 
 type QuerySettings = QueryParams['clickhouse_settings'] &
   Partial<{
@@ -32,7 +33,13 @@ export async function fetchDataWithHost<
   hostId?: number | string
 }): Promise<FetchDataResult<T>> {
   try {
-    const finalHostId = validateHostId(hostId)
+    // null/undefined/'' mean "unset" → default host 0. Anything else must be a
+    // whole, non-negative number (no fractions, no trailing junk).
+    const finalHostId =
+      hostId == null || hostId === '' ? 0 : parseHostIdParam(hostId)
+    if (!(finalHostId >= 0)) {
+      throw new Error(`Invalid hostId: ${String(hostId)}`)
+    }
 
     return await fetchData<T>({
       query,
@@ -64,32 +71,4 @@ export async function fetchDataWithHost<
       },
     }
   }
-}
-
-export function validateHostId(hostId: unknown): number {
-  if (hostId === undefined || hostId === null) {
-    return 0
-  }
-
-  if (typeof hostId === 'string') {
-    const trimmed = hostId.trim()
-    // Empty/whitespace-only is treated as "missing" (like undefined/null),
-    // not malformed — callers may pass through an unset form field this way.
-    if (trimmed === '') {
-      return 0
-    }
-    if (/^\d+$/.test(trimmed)) {
-      return parseInt(trimmed, 10)
-    }
-    throw new Error(`Invalid hostId: ${hostId}`)
-  }
-
-  if (typeof hostId === 'number') {
-    if (Number.isInteger(hostId) && hostId >= 0) {
-      return hostId
-    }
-    throw new Error(`Invalid hostId: ${hostId}`)
-  }
-
-  throw new Error(`Invalid hostId: ${String(hostId)}`)
 }

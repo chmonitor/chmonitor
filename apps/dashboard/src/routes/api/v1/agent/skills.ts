@@ -3,10 +3,6 @@
  *
  * GET  /api/v1/agent/skills  — list available agent skills.
  * POST /api/v1/agent/skills  — runtime skill registration is disabled (403).
- *
- * Ported from apps/dashboard/app/api/v1/agent/skills/route.ts.
- * - Already uses plain Response.json (no next/server) — only the createFileRoute
- *   wrapper is added.
  */
 
 import { createFileRoute } from '@tanstack/react-router'

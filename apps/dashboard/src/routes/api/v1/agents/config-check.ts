@@ -6,9 +6,6 @@
  * Returns the status of LLM configuration for the AI agent.
  * Used by the frontend to determine if the agent is properly configured
  * and which environment variables are missing.
- *
- * Ported from apps/dashboard/app/api/v1/agents/config-check/route.ts.
- * - next/server NextResponse.json(x, init) -> Response.json(x, init).
  */
 
 import { createFileRoute } from '@tanstack/react-router'

@@ -13,14 +13,12 @@
  * literals and hostnames that resolve into those ranges. Errors are returned as
  * a generic 400 so we never leak internal DNS/resolution detail.
  *
- * Ported from apps/dashboard/app/api/v1/health/webhook/route.ts.
- * - Per-route auth (authorizeFeatureRequest, feature 'settings') restored:
+ * - Per-route auth (authorizeFeatureRequest, feature 'settings') is enforced:
  *   the global /api/v1 middleware is a public passthrough, so this route
  *   must self-enforce that anonymous callers cannot trigger the outbound
  *   fetch (see the write gate in handlePost below). Was previously dropped
  *   in favor of centralized middleware (#1397); that middleware turned out
  *   to be a passthrough for writes, so the gate is back.
- * - NextResponse replaced with standard Response / Response.json.
  * - @/lib/api/error-handler exists in this app and is imported directly.
  */
 

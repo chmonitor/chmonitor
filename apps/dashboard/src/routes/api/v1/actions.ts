@@ -3,7 +3,6 @@
  * POST /api/v1/actions?hostId=0
  *
  * Executes ClickHouse actions: killQuery, optimizeTable, querySettings.
- * Ported from apps/dashboard/app/api/v1/actions/route.ts.
  */
 
 import { z } from 'zod'
