@@ -10,8 +10,9 @@
 import { describe, expect, it } from 'bun:test'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const SRC = join(import.meta.dir, '..')
+const SRC = join(fileURLToPath(new URL('.', import.meta.url)), '..')
 const COMPONENTS = join(SRC, 'components')
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -67,7 +68,8 @@ describe('ui conventions', () => {
   })
 
   it('hover-only opacity-0 reveals also have a touch/focus branch', () => {
-    const literal = /(["'`])((?:\\.|(?!\1)[^\\])*?)\1/gs
+    // `[\s\S]` instead of the `s` flag: the test tsconfig targets < ES2018.
+    const literal = /(["'`])((?:\\[\s\S]|(?!\1)[^\\])*?)\1/g
     const offenders = new Set<string>()
     for (const f of walk(COMPONENTS)) {
       if (rel(f).startsWith('components/ui/')) continue
