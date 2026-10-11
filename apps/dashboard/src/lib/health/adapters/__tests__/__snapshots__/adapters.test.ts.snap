@@ -103,6 +103,9 @@ warn 1 | crit 5"
 
 exports[`discord adapter snapshot 1`] = `
 {
+  "allowed_mentions": {
+    "parse": [],
+  },
   "content": "[CRITICAL] Failed mutations — 7 failed mutations (host prod-1)",
   "embeds": [
     {
