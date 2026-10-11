@@ -6,7 +6,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { error as logError } from '@chm/logger'
-import { hasChart } from '@/lib/api/chart-registry'
+import { getChartQuery, hasChart } from '@/lib/api/chart-registry'
 import { createValidationError } from '@/lib/api/error-handler'
 import { sanitizeClickHouseError } from '@/lib/api/error-handler/sanitize-error'
 import { isValidInterval } from '@/lib/api/query-executor'
@@ -17,6 +17,7 @@ import {
 import { ApiErrorType } from '@/lib/api/types'
 import { executeConnectionChartQuery } from '@/lib/connection-query/execute-connection-chart'
 import { resolveProxyCredentials } from '@/lib/connection-query/resolve-credentials'
+import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/browser-connections/charts/$name',
@@ -32,7 +33,7 @@ interface ChartProxyBody {
   timezone?: string
 }
 
-async function handlePost(
+export async function handlePost(
   request: Request,
   chartName: string
 ): Promise<Response> {
@@ -74,6 +75,16 @@ async function handlePost(
     typeof body.lastHours === 'number' && body.lastHours > 0
       ? body.lastHours
       : undefined
+
+  // Callers bring their own credentials, but a feature the deployment
+  // disabled or restricted (CHM_DISABLED_FEATURES / CHM_AUTH_REQUIRED_FEATURES)
+  // stays gated here too, matching /api/v1/charts/$name.
+  const permissionResponse = await authorizeFeatureRequest(
+    getChartQuery(chartName, { interval, lastHours, params: body.params })
+      ?.permission,
+    request
+  )
+  if (permissionResponse) return permissionResponse
 
   try {
     const result = await executeConnectionChartQuery(

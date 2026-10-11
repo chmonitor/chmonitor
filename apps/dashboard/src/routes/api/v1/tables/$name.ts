@@ -9,8 +9,13 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { error } from '@chm/logger'
+import {
+  classifyError,
+  getStatusCodeForErrorType,
+} from '@/lib/api/error-handler'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { executeTableConfig } from '@/lib/api/query-executor'
+import { statusForFetchDataError } from '@/lib/api/shared/fetch-data-error'
 import { detectTableTruncation } from '@/lib/api/table-query-settings'
 import {
   getAvailableTables,
@@ -19,6 +24,7 @@ import {
   hasTable,
 } from '@/lib/api/table-registry'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
 /**
  * GET handler for `/api/v1/tables/$name`, extracted as a named export so it
@@ -120,6 +126,15 @@ export async function handler(
   const config = queryDef.queryConfig
   const queryParams = queryDef.queryParams
 
+  // Enforce the config's deployment-level feature gate
+  // (CHM_DISABLED_FEATURES / CHM_AUTH_REQUIRED_FEATURES), matching the
+  // chart route. The API middleware defers this check to each route.
+  const permissionResponse = await authorizeFeatureRequest(
+    config.permission,
+    request
+  )
+  if (permissionResponse) return permissionResponse
+
   // Validate timezone
   const timezoneParam = searchParams.get('timezone') || undefined
   let timezone: string | undefined
@@ -152,7 +167,11 @@ export async function handler(
       const missingTables = (
         result.error.details as { missingTables?: string[] } | undefined
       )?.missingTables
-      if (config.optional && missingTables && missingTables.length > 0) {
+      const isMissingObject =
+        (missingTables !== undefined && missingTables.length > 0) ||
+        result.error.type === 'table_not_found' ||
+        result.error.type === 'column_not_found'
+      if (config.optional && isMissingObject) {
         return Response.json({
           success: true,
           data: [],
@@ -166,20 +185,23 @@ export async function handler(
             timezone,
             unavailable: true,
             unavailableReason: sanitizeDbQueryError(result.error.message),
-            missingTables,
+            missingTables: missingTables ?? [],
           },
         })
       }
+      // Preserve the client's classification (validation → 400, permission
+      // → 403, missing table/column → 404, unreachable → 503, timeout → 504)
+      // instead of flattening every failure to a 500. Mirrors charts/$name.
       return Response.json(
         {
           success: false,
           error: {
-            type: 'query_error',
+            type: result.error.type,
             message: sanitizeDbQueryError(result.error.message),
             details: result.error.details,
           },
         },
-        { status: 500 }
+        { status: statusForFetchDataError(result.error.type) }
       )
     }
 
@@ -210,17 +232,13 @@ export async function handler(
     return Response.json({ success: true, data: rows, metadata })
   } catch (err) {
     error(`[GET /api/v1/tables/${name}] Unhandled exception:`, err)
+    const { type, message } = classifyError(err)
     return Response.json(
       {
         success: false,
-        error: {
-          type: 'query_error',
-          message: sanitizeDbQueryError(
-            err instanceof Error ? err.message : 'Unknown error'
-          ),
-        },
+        error: { type, message: sanitizeDbQueryError(message) },
       },
-      { status: 500 }
+      { status: getStatusCodeForErrorType(type) }
     )
   }
 }

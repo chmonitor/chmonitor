@@ -11,8 +11,9 @@
  * This prevents clients from sending arbitrary SQL queries.
  *
  * Ported from apps/dashboard/app/api/v1/data/route.ts.
- * - Per-route feature-permission auth (authorizeFeatureRequest) is DROPPED:
- *   it is centralized in middleware (#1397), matching merged charts/tables routes.
+ * - When a `queryConfigName` is given, the config's feature gate is enforced
+ *   with authorizeFeatureRequest, matching the charts/tables routes. The API
+ *   middleware defers per-feature checks to each route.
  * - Error handling and request validation reuse the shared
  *   @/lib/api/error-handler and @/lib/api/shared/validators modules. Only the
  *   route-specific success-response builder and the FetchDataError→status
@@ -49,6 +50,7 @@ import {
   demoHiddenUnavailable,
   isDemoHostBlockedForRequest,
 } from '@/lib/cloud/reject-demo-host'
+import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
 const ROUTE_CONTEXT = { route: '/api/v1/data' } as const
 
@@ -285,7 +287,7 @@ const handleGet = withApiHandler(async (request: Request) => {
  *   "format": "JSONEachRow"
  * }
  */
-const handlePost = withApiHandler(async (request: Request) => {
+export const handlePost = withApiHandler(async (request: Request) => {
   bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
   // Parse request body
@@ -400,8 +402,14 @@ const handlePost = withApiHandler(async (request: Request) => {
     )
   }
 
-  // NOTE: per-route feature-permission gate (authorizeFeatureRequest) removed —
-  // centralized in middleware (#1397). serverQueryConfig still feeds fetchData.
+  // Enforce the named config's deployment-level feature gate
+  // (CHM_DISABLED_FEATURES / CHM_AUTH_REQUIRED_FEATURES), matching the
+  // charts/tables routes.
+  const permissionResponse = await authorizeFeatureRequest(
+    serverQueryConfig?.permission,
+    request
+  )
+  if (permissionResponse) return permissionResponse
 
   // Convert format string to DataFormat if needed
   const dataFormat = (format || 'JSONEachRow') as DataFormat
