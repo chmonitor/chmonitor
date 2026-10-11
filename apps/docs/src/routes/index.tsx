@@ -126,9 +126,9 @@ function Intro() {
         chmonitor documentation
       </h1>
       <p className="mt-5 text-pretty text-base leading-relaxed text-fd-muted-foreground sm:text-lg">
-        Install, operate, and extend chmonitor, a read-only ClickHouse
-        dashboard powered by your{' '}
-        <code className="text-fd-foreground">system.*</code> tables.
+        Install, operate, and extend chmonitor, a read-only ClickHouse dashboard
+        powered by your <code className="text-fd-foreground">system.*</code>{' '}
+        tables.
       </p>
       <a
         href="/guide/getting-started"
