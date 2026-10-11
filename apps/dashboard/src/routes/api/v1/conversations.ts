@@ -213,7 +213,20 @@ async function handlePost(request: Request): Promise<Response> {
     debug('[POST /api/v1/conversations] User resolved', { userId, requestId })
 
     // Parse request body
-    const body = (await request.json()) as CreateConversationRequest
+    let body: CreateConversationRequest
+    try {
+      body = (await request.json()) as CreateConversationRequest
+    } catch {
+      return createApiErrorResponse(
+        {
+          type: ApiErrorType.ValidationError,
+          message: 'Invalid JSON body',
+          details: { timestamp: new Date().toISOString() },
+        },
+        400,
+        ROUTE_CONTEXT_POST
+      )
+    }
     const { title, messages = [] } = body
 
     // Validate messages array if provided

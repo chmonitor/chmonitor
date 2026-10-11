@@ -10,27 +10,62 @@ import type { ErrorClassification } from './types'
 import { ApiErrorType } from '@/lib/api/types'
 
 /**
- * Classification patterns for error detection
- * Maps keywords/patterns to their corresponding error types
+ * ClickHouse error codes / names mapped to API error types.
+ *
+ * ClickHouse messages carry `Code: <n>. DB::Exception: ... (<NAME>)`, and
+ * the clients expose `.code` / `.type`. These are checked before any keyword
+ * so a message that merely mentions "table" is not mistaken for a 404.
+ */
+const CLICKHOUSE_CODES: ReadonlyArray<{
+  readonly type: ApiErrorType
+  readonly codes: ReadonlyArray<number>
+  readonly names: ReadonlyArray<string>
+}> = [
+  {
+    type: ApiErrorType.TableNotFound,
+    codes: [60],
+    names: ['UNKNOWN_TABLE'],
+  },
+  {
+    // A query referencing a column this server does not have is a query
+    // problem (500), matching how such errors were classified before.
+    type: ApiErrorType.QueryError,
+    codes: [47],
+    names: ['UNKNOWN_IDENTIFIER'],
+  },
+  {
+    type: ApiErrorType.ValidationError,
+    codes: [62],
+    names: ['SYNTAX_ERROR'],
+  },
+  {
+    type: ApiErrorType.PermissionError,
+    codes: [497, 516],
+    names: ['ACCESS_DENIED', 'AUTHENTICATION_FAILED'],
+  },
+  {
+    type: ApiErrorType.TimeoutError,
+    codes: [159],
+    names: ['TIMEOUT_EXCEEDED'],
+  },
+]
+
+/**
+ * Keyword fallbacks for errors without a ClickHouse code, in priority order.
+ * Only unambiguous phrases: bare words like "table" or "missing" are not
+ * listed because they appear in unrelated errors.
  */
 const CLASSIFICATION_PATTERNS: ReadonlyArray<{
   readonly type: ApiErrorType
   readonly keywords: ReadonlyArray<string>
 }> = [
   {
-    type: ApiErrorType.PermissionError,
-    keywords: ['permission', 'access denied', 'unauthorized', 'forbidden'],
+    type: ApiErrorType.ValidationError,
+    keywords: ['missing required parameter'],
   },
   {
-    type: ApiErrorType.TableNotFound,
-    keywords: [
-      'table',
-      'not found',
-      "doesn't exist",
-      'does not exist',
-      'missing',
-      'unknown table',
-    ],
+    type: ApiErrorType.PermissionError,
+    keywords: ['permission', 'access denied', 'unauthorized', 'forbidden'],
   },
   {
     type: ApiErrorType.NetworkError,
@@ -63,6 +98,14 @@ const CLASSIFICATION_PATTERNS: ReadonlyArray<{
   },
 ]
 
+/** Table-not-found phrasing; only counts when the message names a table. */
+const TABLE_MISSING_PHRASES: ReadonlyArray<string> = [
+  "table doesn't exist",
+  'table does not exist',
+  'table not found',
+  'unknown table',
+]
+
 /**
  * Classifies an error based on its message content
  *
@@ -80,13 +123,14 @@ export function classifyError(error: unknown): ErrorClassification {
   const message = extractErrorMessage(error)
   const normalizedMessage = message.toLowerCase()
 
-  // Check for TableNotFound with specific patterns (table + not found/missing)
+  const codeType = classifyByClickHouseCode(error, message)
+  if (codeType) {
+    return { type: codeType, message }
+  }
+
   if (
-    normalizedMessage.includes('table') &&
-    (normalizedMessage.includes('not found') ||
-      normalizedMessage.includes("doesn't exist") ||
-      normalizedMessage.includes('does not exist') ||
-      normalizedMessage.includes('missing'))
+    matchesAnyKeyword(normalizedMessage, TABLE_MISSING_PHRASES) ||
+    /table [^\s]+ (doesn't|does not) exist/.test(normalizedMessage)
   ) {
     return {
       type: ApiErrorType.TableNotFound,
@@ -109,6 +153,46 @@ export function classifyError(error: unknown): ErrorClassification {
     type: ApiErrorType.QueryError,
     message,
   }
+}
+
+/**
+ * Resolves an API error type from a ClickHouse error code or name, read from
+ * the error's `code` / `type` fields or the `Code: <n>` / `(<NAME>)` parts of
+ * the message.
+ */
+function classifyByClickHouseCode(
+  error: unknown,
+  message: string
+): ApiErrorType | undefined {
+  const codes = new Set<number>()
+  const names = new Set<string>()
+
+  if (error && typeof error === 'object') {
+    const { code, type } = error as { code?: unknown; type?: unknown }
+    const numeric = typeof code === 'string' ? Number(code) : code
+    if (typeof numeric === 'number' && Number.isInteger(numeric)) {
+      codes.add(numeric)
+    }
+    if (typeof type === 'string') names.add(type)
+  }
+
+  const codeMatch = /\bCode:\s*(\d+)/.exec(message)
+  if (codeMatch) codes.add(Number(codeMatch[1]))
+  for (const match of message.matchAll(/\(([A-Z][A-Z0-9_]+)\)/g)) {
+    names.add(match[1])
+  }
+
+  if (codes.size === 0 && names.size === 0) return undefined
+
+  for (const entry of CLICKHOUSE_CODES) {
+    if (
+      entry.codes.some((c) => codes.has(c)) ||
+      entry.names.some((n) => names.has(n))
+    ) {
+      return entry.type
+    }
+  }
+  return undefined
 }
 
 /**

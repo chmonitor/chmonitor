@@ -183,9 +183,19 @@ export const Route = createFileRoute('/api/v1/dashboard/settings')({
         debug('[POST /api/v1/dashboard/settings] Updating settings')
 
         try {
-          const body = (await request.json()) as {
+          let body: {
             params?: Record<string, string>
             hostId?: number | string
+          }
+          try {
+            body = (await request.json()) as typeof body
+          } catch {
+            return makeErrorResponse(
+              ApiErrorType.ValidationError,
+              'Invalid JSON body',
+              400,
+              ROUTE_CONTEXT_POST
+            )
           }
           const { params, hostId = 0 } = body
           const parsedHostId = Number(hostId)

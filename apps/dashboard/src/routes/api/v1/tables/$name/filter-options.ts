@@ -14,13 +14,16 @@ import type { QueryConfig } from '@/types/query-config'
 
 import { env } from 'cloudflare:workers'
 import { fetchData } from '@chm/clickhouse-client'
+import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { QUERY_COMMENT } from '@chm/clickhouse-client/constants'
 import { error } from '@chm/logger'
+import { getStatusCodeForErrorType } from '@/lib/api/error-handler'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { getTableConfig } from '@/lib/api/table-registry'
 import { ApiErrorType } from '@/lib/api/types'
+import { isVersionOlder } from '@/lib/card-error-utils'
 
 interface FilterOption {
   value: string
@@ -93,6 +96,31 @@ export const Route = createFileRoute('/api/v1/tables/$name/filter-options')({
           )
         }
 
+        // A field newer than the server references a column it does not have
+        // (#3739). Same version source and rule as tables/$name.ts; an unknown
+        // version counts as unsupported, matching filterSchemaForVersion.
+        if (field.since) {
+          const serverVersion = (await getClickHouseVersion(hostId))?.raw
+          if (!serverVersion || isVersionOlder(serverVersion, field.since)) {
+            return Response.json(
+              {
+                success: false,
+                metadata: {
+                  queryId: '',
+                  duration: 0,
+                  rows: 0,
+                  host: String(hostId),
+                },
+                error: {
+                  type: ApiErrorType.ValidationError,
+                  message: `Filter "${key}" is not supported on this server (requires ClickHouse ${field.since}+)`,
+                },
+              },
+              { status: 400 }
+            )
+          }
+        }
+
         const { table, column, where } = field.dynamicOptions
         const whereClause = where
           ? `WHERE ${where} AND notEmpty(toString(${column}))`
@@ -133,7 +161,11 @@ export const Route = createFileRoute('/api/v1/tables/$name/filter-options')({
                 message: sanitizeDbQueryError(result.error.message),
               },
             },
-            { status: 500 }
+            {
+              status: getStatusCodeForErrorType(
+                result.error.type as ApiErrorType
+              ),
+            }
           )
         }
 
