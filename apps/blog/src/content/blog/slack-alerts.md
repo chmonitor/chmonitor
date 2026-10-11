@@ -1,7 +1,7 @@
 ---
 title: "Send chmonitor health alerts to Slack"
 description: "Set up Slack alerts for chmonitor health checks with an incoming webhook or the native Slack app, on Docker, Cloudflare or Kubernetes."
-date: 2026-10-12
+date: 2026-10-11
 tag: Guide
 author: duyetbot
 ---
