@@ -24,8 +24,10 @@ export const topUsageColumnsDeclarative: DeclarativeQueryConfig = {
         AND (type = 'QueryFinish')
         AND (has(tables, {table: String}))
         AND (positionCaseInsensitive(column, {table:String}) != 0)
+        AND (event_date >= today() - {days:UInt16})
       GROUP BY 1
-      ORDER BY 2 DESC`,
+      ORDER BY 2 DESC
+      LIMIT 200`,
       description: 'Base query without query_cache_usage',
     },
     {
@@ -46,8 +48,10 @@ export const topUsageColumnsDeclarative: DeclarativeQueryConfig = {
         AND (type = 'QueryFinish')
         AND (has(tables, {table: String}))
         AND (positionCaseInsensitive(column, {table:String}) != 0)
+        AND (event_date >= today() - {days:UInt16})
       GROUP BY 1
-      ORDER BY 2 DESC`,
+      ORDER BY 2 DESC
+      LIMIT 200`,
       description: 'Added query_cache_usage aggregations for cache insights',
       columns: [
         'column',
@@ -74,5 +78,11 @@ export const topUsageColumnsDeclarative: DeclarativeQueryConfig = {
     cache_usage: 'number',
     cache_hit_rate: ['background-bar', { numberFormat: true }],
   },
-  defaultParams: { table: '' },
+  defaultParams: { table: '', days: '7' },
+  filterParamPresets: [
+    { name: 'Last 1d', key: 'days', value: '1' },
+    { name: 'Last 7d', key: 'days', value: '7' },
+    { name: 'Last 30d', key: 'days', value: '30' },
+    { name: 'Last 90d', key: 'days', value: '90' },
+  ],
 }

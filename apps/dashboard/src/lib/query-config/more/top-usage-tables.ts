@@ -28,6 +28,7 @@ export const topUsageTablesConfig: QueryConfig = {
         AND (tables NOT LIKE '%temp%')
         AND (tables NOT LIKE '_table_function%')
         AND (tables NOT LIKE 'system%')
+        AND (event_date >= today() - {days:UInt16})
       GROUP BY 1
       ORDER BY 2 DESC
       LIMIT 50`,
@@ -53,6 +54,7 @@ export const topUsageTablesConfig: QueryConfig = {
         AND (tables NOT LIKE '%temp%')
         AND (tables NOT LIKE '_table_function%')
         AND (tables NOT LIKE 'system%')
+        AND (event_date >= today() - {days:UInt16})
       GROUP BY 1
       ORDER BY 2 DESC
       LIMIT 50`,
@@ -86,5 +88,11 @@ export const topUsageTablesConfig: QueryConfig = {
     cache_usage: ColumnFormat.Number,
     cache_hit_rate: [ColumnFormat.BackgroundBar, { numberFormat: true }],
   },
-  defaultParams: { database: '' },
+  defaultParams: { database: '', days: '7' },
+  filterParamPresets: [
+    { name: 'Last 1d', key: 'days', value: '1' },
+    { name: 'Last 7d', key: 'days', value: '7' },
+    { name: 'Last 30d', key: 'days', value: '30' },
+    { name: 'Last 90d', key: 'days', value: '90' },
+  ],
 }

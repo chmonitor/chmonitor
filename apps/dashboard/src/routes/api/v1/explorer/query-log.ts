@@ -22,6 +22,10 @@ import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 // Columns available across supported ClickHouse versions (>= 22.8). Version
 // -specific columns (e.g. `projections`) are intentionally omitted; projection
 // usage is derived from EXPLAIN indexes=1 in the Analysis tab instead.
+// Bound the query_id lookup to recent partitions: the console looks up a
+// query it just ran, so a full query_log scan is never needed.
+const QUERY_LOG_LOOKBACK_DAYS = 30
+
 const QUERY_LOG_SQL = `
   SELECT
     query_id,
@@ -46,6 +50,7 @@ const QUERY_LOG_SQL = `
   FROM system.query_log
   WHERE query_id = {queryId:String}
     AND type != 'QueryStart'
+    AND event_date >= today() - {days:UInt16}
   ORDER BY event_time DESC
   LIMIT 1
 `
@@ -125,7 +130,7 @@ export const Route = createFileRoute('/api/v1/explorer/query-log')({
           }
           const result = await fetchData<Record<string, unknown>[]>({
             query: QUERY_LOG_SQL,
-            query_params: { queryId },
+            query_params: { queryId, days: QUERY_LOG_LOOKBACK_DAYS },
             hostId,
             format: 'JSONEachRow',
             clickhouse_settings,
