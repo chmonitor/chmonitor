@@ -128,9 +128,12 @@ tool modules exposing 41 tools total (32 by default; the 3 destructive
 `control-tools` are passed in by the caller, decided by
 `resolveControlToolsEnabled()` in `lib/ai/agent/control-tools-gate.ts` (on for
 self-hosted, off in cloud, `AGENT_ENABLE_CONTROL_TOOLS` overrides), the 4
-cross-source `postgres-*-tools` are gated off unless
-`CHM_FEATURE_POSTGRES_SOURCE=true`, and the PeerDB `peerdb-tools` module is
-gated off unless `CHM_FEATURE_PEERDB_AGENT=true`).
+cross-source `postgres-*-tools` and the PeerDB `peerdb-tools` module are passed
+in as `integrations` by the agent route, decided by
+`resolveIntegrationToolsEnabled()` in `lib/ai/agent/integration-tools-gate.ts`:
+on when configured and reachable, `CHM_FEATURE_POSTGRES_SOURCE` /
+`CHM_FEATURE_PEERDB_AGENT` = `true` forces on, `false` is a kill switch, off for
+anonymous cloud visitors; the probe result is pinned per conversation).
 
 **`tools/catalog.ts` is the per-tool source of truth**, not the `index.ts`
 docblock: `TOOL_CATALOG` holds each tool's `category`, a routing `summary`,

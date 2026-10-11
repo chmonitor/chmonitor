@@ -193,7 +193,7 @@ collide. Delivery defaults to dry-run (audit only); the sweep arms it with
 Pre-send investigation is deterministic by design (message revalidation,
 signal-presence checks, fleet firing/slot-lag context) — the sweep never
 calls an LLM. Model-driven deep dives stay available interactively through
-the `get_peerdb_mirror_status` agent tool (requires `CHM_FEATURE_PEERDB_AGENT`).
+the `get_peerdb_mirror_status` agent tool (on when PeerDB is reachable; `CHM_FEATURE_PEERDB_AGENT=false` turns it off).
 
 The metrics/insights lane keeps a structurally compatible
 `PeerDBSnapshotReader` for its own partial-fleet aggregation. The alert runtime

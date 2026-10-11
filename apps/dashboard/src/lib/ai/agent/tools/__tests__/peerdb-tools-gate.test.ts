@@ -1,11 +1,11 @@
 /**
  * Tests for the PeerDB agent-tool gate in createAllTools().
  *
- * `get_peerdb_mirror_status` must be ABSENT — not merely failing — unless
- * CHM_FEATURE_PEERDB_AGENT === 'true' (and the PeerDB feature itself is not
- * disabled via CHM_FEATURE_PEERDB_ENABLED=false). A regression would
- * advertise PeerDB reads to the model on a deployment whose operator only
- * enabled the UI section. Mirrors postgres-tools-gate.test.ts.
+ * `get_peerdb_mirror_status` must be ABSENT — not merely failing — unless the
+ * caller's integration gate (integration-tools-gate.ts, resolved by the agent
+ * route) turns it on. CHM_FEATURE_PEERDB_AGENT=false and
+ * CHM_FEATURE_PEERDB_ENABLED=false stay hard kill switches inside the factory.
+ * Mirrors postgres-tools-gate.test.ts.
  */
 
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
@@ -46,34 +46,33 @@ describe('createAllTools — PeerDB agent gate', () => {
     }
   })
 
-  test('excludes the PeerDB tool when the flag is unset', () => {
+  test('excludes the PeerDB tool when the caller does not turn it on', () => {
+    process.env.CHM_FEATURE_PEERDB_AGENT = 'true'
     const tools = createAllTools(0)
     for (const name of PEERDB_TOOLS) expect(tools).not.toHaveProperty(name)
   })
 
-  test('includes the PeerDB tool when CHM_FEATURE_PEERDB_AGENT=true', () => {
-    process.env.CHM_FEATURE_PEERDB_AGENT = 'true'
-    const tools = createAllTools(0)
+  test('includes the PeerDB tool when the caller turns it on', () => {
+    const tools = createAllTools(0, false, undefined, { peerdb: true })
     for (const name of PEERDB_TOOLS) expect(tools).toHaveProperty(name)
   })
 
-  test('a junk flag value does not enable the PeerDB tool', () => {
-    process.env.CHM_FEATURE_PEERDB_AGENT = 'maybe'
-    const tools = createAllTools(0)
+  test('CHM_FEATURE_PEERDB_AGENT=false is a kill switch even when turned on', () => {
+    process.env.CHM_FEATURE_PEERDB_AGENT = 'false'
+    const tools = createAllTools(0, false, undefined, { peerdb: true })
     for (const name of PEERDB_TOOLS) expect(tools).not.toHaveProperty(name)
   })
 
-  test('CHM_FEATURE_PEERDB_ENABLED=false keeps the tool out even when opted in', () => {
-    process.env.CHM_FEATURE_PEERDB_AGENT = 'true'
+  test('CHM_FEATURE_PEERDB_ENABLED=false keeps the tool out even when turned on', () => {
     process.env.CHM_FEATURE_PEERDB_ENABLED = 'false'
-    const tools = createAllTools(0)
+    const tools = createAllTools(0, false, undefined, { peerdb: true })
     for (const name of PEERDB_TOOLS) expect(tools).not.toHaveProperty(name)
   })
 
   test('the PeerDB tool is independent of the control-tool gate', () => {
-    process.env.CHM_FEATURE_PEERDB_AGENT = 'true'
-    const tools = createAllTools(0, false)
+    const tools = createAllTools(0, false, undefined, { peerdb: true })
     for (const name of PEERDB_TOOLS) expect(tools).toHaveProperty(name)
     expect(tools).not.toHaveProperty('kill_query')
+    expect(tools).not.toHaveProperty('run_postgres_select_query')
   })
 })

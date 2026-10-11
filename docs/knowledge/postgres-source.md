@@ -35,6 +35,10 @@ future cloud-specific pages.
 - Everything is gated by **`CHM_FEATURE_POSTGRES_SOURCE`** (pure env flag,
   default off, fail-closed — same philosophy as `lib/cloud` / `lib/edition`).
   Flag off ⇒ zero behavioral/visual diff, enforced by unit tests.
+  Exception (#3674): the agent's read-only Postgres tools treat the flag as
+  three-state — unset turns them on when a `POSTGRES_HOST` answers `SELECT 1`
+  within the probe budget, `false` is a kill switch. Resolver:
+  `lib/ai/agent/integration-tools-gate.ts`.
 
 ## One pg code path, both runtimes (the feasibility result)
 

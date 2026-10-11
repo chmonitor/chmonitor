@@ -26,6 +26,7 @@ import {
   providerNotConfiguredResponse,
   unhandledErrorResponse,
 } from './-agent/errors'
+import { resolveAgentIntegrations } from './-agent/integrations'
 import {
   hardenGuestAgentRequest,
   parseAgentRequest,
@@ -44,6 +45,7 @@ import {
   type AgentConnectionBinding,
   resolveAgentConnection,
 } from '@/lib/ai/agent/host-query'
+import { readIntegrationPin } from '@/lib/ai/agent/integration-tools-gate'
 import { getUserProviderToken } from '@/lib/ai/agent/user-token-store'
 import { isAnyRouterSigninEnabled } from '@/lib/ai/anyrouter-signin-flag'
 import { isProviderConfigured, parseModelId } from '@/lib/ai/providers'
@@ -127,6 +129,15 @@ async function handlePost(request: Request): Promise<Response> {
     if (!resolved.ok) return agentConnectionFailureResponse(resolved.reason)
     connection = resolved.binding
   }
+  // Read-only integration tools (#3674). Started now so the probe overlaps the
+  // rate-limit / billing awaits below; awaited just before the runtime. Never
+  // rejects, and the probe is bounded (CHM_AGENT_INTEGRATION_PROBE_TIMEOUT_MS).
+  const integrationsPromise = resolveAgentIntegrations({
+    cloud: isCloudModeServer(),
+    signedIn: !isGuest,
+    ownConnection: connection !== undefined,
+    pin: readIntegrationPin(parsedRaw.safeIncomingMessages),
+  })
   const guestOwnerId =
     isGuest && isCloudModeServer() ? await guestOwnerIdFromIp(ip) : undefined
   const anyrouterSigninEnabled = isAnyRouterSigninEnabled()
@@ -220,6 +231,8 @@ async function handlePost(request: Request): Promise<Response> {
   const gate = await applyAiUsageGate(byok, { ip, guestOwnerId })
   if (!gate.ok) return gate.response
 
+  const { integrations, pin: integrationPin } = await integrationsPromise
+
   let runtime: Awaited<ReturnType<typeof createAgentRuntime>>
   try {
     runtime = await createAgentRuntime({
@@ -232,6 +245,7 @@ async function handlePost(request: Request): Promise<Response> {
       openRouterUser,
       requestOrigin: request.headers.get('origin') ?? undefined,
       includeControlTools,
+      integrations,
       sessionId: parsed.sessionId,
       byokApiKey: userApiKey,
       releaseReservationOnce: gate.releaseReservationOnce,
@@ -272,6 +286,7 @@ async function handlePost(request: Request): Promise<Response> {
     releaseReservationOnce: gate.releaseReservationOnce,
     byokApiKey: userApiKey,
     userAnyRouterToken,
+    integrationPin,
   })
 }
 

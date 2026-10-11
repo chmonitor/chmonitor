@@ -3,9 +3,11 @@
  *
  * The three Postgres tools (run_postgres_select_query, get_postgres_metrics,
  * list_postgres_slow_query_patterns) must be ABSENT — not merely failing —
- * unless CHM_FEATURE_POSTGRES_SOURCE === 'true'. A regression would advertise
- * Postgres tools to the model on a deployment that never enabled the source
- * engine. Mirrors create-all-tools-gate.test.ts (control-tool gate).
+ * unless the caller's integration gate (integration-tools-gate.ts, resolved by
+ * the agent route) turns them on. A regression would advertise Postgres tools
+ * to the model on a deployment where they were not resolved on.
+ * CHM_FEATURE_POSTGRES_SOURCE=false stays a hard kill switch inside the
+ * factory. Mirrors create-all-tools-gate.test.ts (control-tool gate).
  */
 
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
@@ -43,29 +45,28 @@ describe('createAllTools — Postgres source gate', () => {
     }
   })
 
-  test('excludes Postgres tools when the flag is unset', () => {
+  test('excludes Postgres tools when the caller does not turn them on', () => {
+    process.env.CHM_FEATURE_POSTGRES_SOURCE = 'true'
+    // Env alone no longer registers them: the route's resolver decides.
     const tools = createAllTools(0)
     for (const name of POSTGRES_TOOLS) expect(tools).not.toHaveProperty(name)
   })
 
-  test('includes Postgres tools when CHM_FEATURE_POSTGRES_SOURCE=true', () => {
-    process.env.CHM_FEATURE_POSTGRES_SOURCE = 'true'
-    const tools = createAllTools(0)
+  test('includes Postgres tools when the caller turns them on', () => {
+    const tools = createAllTools(0, false, undefined, { postgres: true })
     for (const name of POSTGRES_TOOLS) expect(tools).toHaveProperty(name)
   })
 
-  test('a junk flag value does not enable Postgres tools', () => {
-    process.env.CHM_FEATURE_POSTGRES_SOURCE = 'maybe'
-    const tools = createAllTools(0)
+  test('CHM_FEATURE_POSTGRES_SOURCE=false is a kill switch even when turned on', () => {
+    process.env.CHM_FEATURE_POSTGRES_SOURCE = 'false'
+    const tools = createAllTools(0, false, undefined, { postgres: true })
     for (const name of POSTGRES_TOOLS) expect(tools).not.toHaveProperty(name)
   })
 
-  test('Postgres tools are independent of the control-tool gate', () => {
-    process.env.CHM_FEATURE_POSTGRES_SOURCE = 'true'
-    // includeControlTools=false, control env unset — control tools stay off,
-    // Postgres tools still on.
-    const tools = createAllTools(0, false)
+  test('Postgres tools are independent of the control-tool gate and PeerDB', () => {
+    const tools = createAllTools(0, false, undefined, { postgres: true })
     for (const name of POSTGRES_TOOLS) expect(tools).toHaveProperty(name)
     expect(tools).not.toHaveProperty('kill_query')
+    expect(tools).not.toHaveProperty('get_peerdb_mirror_status')
   })
 })

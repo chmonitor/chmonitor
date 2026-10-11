@@ -89,8 +89,6 @@ describe('ClickHouse agent system prompt — behavior', () => {
 })
 
 describe('ClickHouse agent system prompt — every tool is named', () => {
-  // PeerDB is deliberately not enabled here: the prompt names every tool
-  // regardless of gate, but the count only covers what this file turns on.
   test('every default-gate tool name appears in the prompt', async () => {
     delete process.env.AGENT_ENABLE_CONTROL_TOOLS
     delete process.env.CHM_FEATURE_POSTGRES_SOURCE
@@ -106,8 +104,10 @@ describe('ClickHouse agent system prompt — every tool is named', () => {
     process.env.AGENT_ENABLE_CONTROL_TOOLS = 'true'
     process.env.CHM_FEATURE_POSTGRES_SOURCE = 'true'
     const { createAllTools } = await import('../../tools/index')
-    const toolNames = Object.keys(createAllTools(0, true))
-    expect(toolNames.length).toBe(39)
+    const toolNames = Object.keys(
+      createAllTools(0, true, undefined, { peerdb: true, postgres: true })
+    )
+    expect(toolNames.length).toBe(41)
     for (const name of toolNames) {
       expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(name)
     }

@@ -19,8 +19,11 @@ insights or alerts. Mutating PeerDB operations are outside the surface.
   re-fetched and never served from the shared cache.
 - `peerdb-agent` exposes `get_peerdb_mirror_status` (per-mirror fleet/detail
   status) and `get_peerdb_metrics` (slot lag + lag history, CDC rows-synced
-  throughput, snapshot progress, per-peer queries, fleet aggregates) only when
-  `CHM_FEATURE_PEERDB_AGENT=true` and the PeerDB feature is not disabled.
+  throughput, snapshot progress, per-peer queries, fleet aggregates). They are
+  on when PeerDB is configured and reachable (probe pinned per conversation),
+  or when `CHM_FEATURE_PEERDB_AGENT=true`; `false` or
+  `CHM_FEATURE_PEERDB_ENABLED=false` turns them off. Resolver:
+  `lib/ai/agent/integration-tools-gate.ts`.
 - `peerdb-insights-alerts` classifies failed, paused, lagging, noisy, and
   stalled mirrors and feeds the health-sweep path.
 
