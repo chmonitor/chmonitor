@@ -3,7 +3,7 @@
  * Shared by every RBAC management operation.
  */
 
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons'
+import { TriangleAlert } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -36,10 +36,10 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="flex max-h-[90dvh] max-w-2xl flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ExclamationTriangleIcon className="size-4 text-amber-500" />
+            <TriangleAlert className="size-4 text-amber-500" />
             Confirm ClickHouse operation
           </DialogTitle>
           <DialogDescription>
@@ -48,7 +48,7 @@ export function ConfirmDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <pre className="overflow-x-auto rounded-md bg-muted px-4 py-3 font-mono text-sm">
+        <pre className="max-h-[50dvh] overflow-auto rounded-md bg-muted px-4 py-3 font-mono text-sm">
           <code>{ddl}</code>
         </pre>
 
@@ -57,7 +57,7 @@ export function ConfirmDialog({
             className={
               statusIsError
                 ? 'text-sm text-destructive'
-                : 'text-sm text-green-600 dark:text-green-400'
+                : 'text-sm text-emerald-600 dark:text-emerald-400'
             }
           >
             {statusMessage}
