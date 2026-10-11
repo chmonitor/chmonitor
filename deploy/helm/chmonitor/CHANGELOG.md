@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.17](https://github.com/chmonitor/chmonitor/compare/helm-chmonitor-0.2.16...helm-chmonitor-0.2.17) (2026-10-11)
+
+
+### Features
+
+* **alerts:** add declarative health config loader ([#3507](https://github.com/chmonitor/chmonitor/issues/3507)) ([009269a](https://github.com/chmonitor/chmonitor/commit/009269a41823ef665483ba18f09cae02293d4b1c))
+
 ## [0.2.16](https://github.com/chmonitor/chmonitor/compare/helm-chmonitor-0.2.15...helm-chmonitor-0.2.16) (2026-09-25)
 
 
