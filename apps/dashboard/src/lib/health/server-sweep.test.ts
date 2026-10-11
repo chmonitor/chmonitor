@@ -1392,7 +1392,6 @@ describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => 
 
     // Give the fire-and-forget bus delivery a tick to land (it's never
     // awaited by runHealthSweep — see the describe block docblock).
-    await new Promise((resolve) => setTimeout(resolve, 20))
 
     const busPost = posted.find((p) => p.url === BUS_URL)
     expect(busPost).toBeTruthy()
@@ -1433,7 +1432,6 @@ describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => 
 
     // First sweep: fires (critical) and commits dedup state.
     await runHealthSweep()
-    await new Promise((resolve) => setTimeout(resolve, 20))
 
     // Second sweep: condition resolves.
     testValue = 0
@@ -1444,7 +1442,6 @@ describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => 
     }) as unknown as typeof fetch
 
     await runHealthSweep()
-    await new Promise((resolve) => setTimeout(resolve, 20))
 
     const busPost = posted.find((p) => p.url === BUS_URL)
     expect(busPost).toBeTruthy()
@@ -1464,7 +1461,6 @@ describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => 
     }) as unknown as typeof fetch
 
     const summary = await runHealthSweep()
-    await new Promise((resolve) => setTimeout(resolve, 20))
 
     // No legacy channel configured at all -> alertsDispatched (legacy-only
     // counter) stays 0, same as the "no route matches" test above …
@@ -1496,7 +1492,6 @@ describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => 
     }) as unknown as typeof fetch
 
     const summary = await runHealthSweep()
-    await new Promise((resolve) => setTimeout(resolve, 20))
 
     // Legacy delivery succeeded and was counted, completely unaffected by
     // the broken bus subscriber.
@@ -1515,7 +1510,6 @@ describe('runHealthSweep — outbound webhook-subscriptions bus (#2664)', () => 
     }) as unknown as typeof fetch
 
     const summary = await runHealthSweep()
-    await new Promise((resolve) => setTimeout(resolve, 20))
 
     expect(summary.alertsDispatched).toBe(1)
     expect(posted).toEqual(['https://hooks.slack.com/services/T000/B000/XXXX'])

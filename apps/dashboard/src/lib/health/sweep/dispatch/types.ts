@@ -39,5 +39,7 @@ export interface DispatchCounters {
 export interface Dispatcher {
   dispatchFinding: (params: DispatchFindingParams) => Promise<void>
   flushDigests: () => Promise<void>
+  /** Await every in-flight webhook-subscriptions bus delivery started this tick. Never rejects. */
+  flushBusEvents: () => Promise<void>
   counters: DispatchCounters
 }
