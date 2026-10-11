@@ -19,6 +19,7 @@ import { PgTable } from './pg-table'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { getCardErrorMessage } from '@/lib/card-error-utils'
 import { useActivePgConnection } from '@/lib/hooks/use-active-pg-connection'
 import { usePgQuery } from '@/lib/hooks/use-pg-query'
 
@@ -63,7 +64,7 @@ export function PgPage({ config, refetchInterval, onRowClick }: PgPageProps) {
           {error && hasData ? (
             <span
               className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-500"
-              title={error instanceof Error ? error.message : String(error)}
+              title={getCardErrorMessage(error)}
             >
               <AlertTriangleIcon className="size-3.5" strokeWidth={1.5} />
               Refresh failed
@@ -146,7 +147,7 @@ function PgPageBody({
       <EmptyState
         variant="error"
         title="Couldn't load Postgres data"
-        description={error instanceof Error ? error.message : String(error)}
+        description={getCardErrorMessage(error)}
         action={{ label: 'Retry', onClick: onRetry }}
       />
     )

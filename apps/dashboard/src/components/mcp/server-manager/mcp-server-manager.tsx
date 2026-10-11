@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getCardErrorMessage } from '@/lib/card-error-utils'
 import { useMcpRegistryServers } from '@/lib/swr/use-mcp-registry'
 import { cn } from '@/lib/utils'
 
@@ -54,7 +55,7 @@ export function McpServerManager() {
       <EmptyState
         variant="error"
         title="Couldn’t load your MCP servers"
-        description={error.message}
+        description={getCardErrorMessage(error)}
       />
     )
   }

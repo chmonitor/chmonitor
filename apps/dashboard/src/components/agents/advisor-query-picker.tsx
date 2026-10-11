@@ -44,6 +44,7 @@ import {
   type HistoryQueryRow,
   truncateQueryText,
 } from '@/lib/ai/advisor/history-picker'
+import { getCardErrorMessage } from '@/lib/card-error-utils'
 import { DEBOUNCE_DELAY, useDebounce } from '@/lib/hooks/use-debounce'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
@@ -168,7 +169,7 @@ function ResultsList({
       <EmptyState
         variant="error"
         title="Couldn't load queries"
-        description={error instanceof Error ? error.message : String(error)}
+        description={getCardErrorMessage(error)}
       />
     )
   }

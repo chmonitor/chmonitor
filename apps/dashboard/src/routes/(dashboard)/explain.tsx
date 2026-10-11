@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
+import { getCardErrorMessage } from '@/lib/card-error-utils'
 import { pageOgHead } from '@/lib/og'
 import { useHostId } from '@/lib/swr'
 import { apiFetch } from '@/lib/swr/api-fetch'
@@ -294,7 +295,7 @@ function SingleExplain({
     return (
       <ErrorAlert
         title="Failed to explain query"
-        message={error instanceof Error ? error.message : String(error)}
+        message={getCardErrorMessage(error)}
       />
     )
   }

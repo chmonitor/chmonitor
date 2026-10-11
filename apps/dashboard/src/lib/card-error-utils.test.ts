@@ -29,6 +29,7 @@ import {
   formatCardErrorForLogging,
   getCardErrorClassName,
   getCardErrorDescription,
+  getCardErrorMessage,
   getCardErrorStyle,
   getCardErrorTitle,
   getTableMissingInfo,
@@ -978,5 +979,24 @@ describe('extractTableFromPermissionError', () => {
     expect(
       extractTableFromPermissionError('system error occurred')
     ).toBeUndefined()
+  })
+})
+
+describe('getCardErrorMessage', () => {
+  it('replaces a long raw timeout error with friendly copy', () => {
+    const raw =
+      'Code: 159. DB::Exception: Timeout exceeded: elapsed 30.001 seconds, maximum: 30. (TIMEOUT_EXCEEDED) (version 24.8.1.1)'
+    expect(getCardErrorMessage(new Error(raw))).toContain(
+      'The query took too long to execute'
+    )
+  })
+
+  it('wraps non-Error values instead of throwing', () => {
+    expect(
+      getCardErrorMessage(
+        `Code: 159. DB::Exception: Timeout exceeded ${'x'.repeat(120)} (TIMEOUT_EXCEEDED)`
+      )
+    ).toContain('The query took too long to execute')
+    expect(typeof getCardErrorMessage(undefined)).toBe('string')
   })
 })
