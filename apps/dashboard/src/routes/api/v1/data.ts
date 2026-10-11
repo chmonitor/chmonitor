@@ -14,8 +14,7 @@
  *    auth guard (lib/auth/api-guard.ts) is the only auth gate.
  * Custom SQL belongs on /api/v1/explorer/query (explorer query permission).
  *
- * Ported from apps/dashboard/app/api/v1/data/route.ts.
- * - Error handling and request validation reuse the shared
+ * Error handling and request validation reuse the shared
  *   @/lib/api/error-handler and @/lib/api/shared/validators modules. Only the
  *   route-specific success-response builder and the FetchDataError→status
  *   mapping (handleQueryError) remain local.

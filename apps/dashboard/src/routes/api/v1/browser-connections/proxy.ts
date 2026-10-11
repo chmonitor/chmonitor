@@ -6,9 +6,7 @@
  * Returns results in the same shape as /api/v1/data.
  * Credentials are provided in the request body and never logged.
  *
- * Ported from apps/dashboard/app/api/v1/browser-connections/proxy/route.ts.
- * - Per-route auth (authorizeFeatureRequest) dropped; centralized in middleware (#1397).
- * - NextResponse replaced with standard Response / Response.json.
+ * - Per-route auth (authorizeFeatureRequest) is not used; centralized in middleware (#1397).
  * - @/lib/api/error-handler and @/lib/api/shared/response-builder both exist in
  *   this app and are imported directly.
  */

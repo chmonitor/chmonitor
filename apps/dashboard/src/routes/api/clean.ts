@@ -5,8 +5,7 @@
  * monitoring user, then records a LastCleanup + SystemKillQuery event.
  * Skips if the last cleanup happened within QUERY_CLEANUP_MAX_DURATION_SECONDS.
  *
- * Ported from apps/dashboard/app/api/clean/route.ts.
- * - ErrorLogger replaced with @chm/logger debug/error.
+ * Logs through @chm/logger debug/error.
  */
 
 import { createFileRoute } from '@tanstack/react-router'

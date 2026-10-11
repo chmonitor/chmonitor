@@ -4,11 +4,7 @@
  * PUT /api/v1/conversations/$id - Update conversation (messages, title)
  * DELETE /api/v1/conversations/$id - Delete conversation
  *
- * Ported from apps/dashboard/app/api/v1/conversations/[id]/route.ts (Next.js)
- * to TanStack Start. Logic is preserved verbatim; the Next dynamic-segment
- * `{ params }: { params: Promise<{ id: string }> }` (awaited) becomes the
- * already-resolved TanStack Start `params` (`params.id` is synchronous), and
- * the `export const dynamic` route-segment export is dropped.
+ * `params.id` is the already-resolved TanStack Start route param (synchronous).
  */
 
 import { createFileRoute } from '@tanstack/react-router'

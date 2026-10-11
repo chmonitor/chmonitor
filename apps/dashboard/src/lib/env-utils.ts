@@ -13,8 +13,7 @@ function getNodeEnv(): string {
     return process.env.NODE_ENV || 'development'
   }
 
-  // Client-side: use NEXT_PUBLIC_ env var or detect from build
-  // Next.js replaces process.env.NODE_ENV at build time for client code
+  // Client-side: the bundler (Vite) replaces process.env.NODE_ENV at build time
   return process.env.NODE_ENV || 'production'
 }
 

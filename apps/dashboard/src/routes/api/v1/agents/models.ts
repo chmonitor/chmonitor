@@ -21,10 +21,8 @@
  * three catalogs are public, so `filterByConfiguredProviders` stays the sole
  * authority on what the picker may offer.
  *
- * Ported from apps/dashboard/app/api/v1/agents/models/route.ts.
- * - next/server NextResponse.json(x, init) -> Response.json(x, init).
- * - Dropped the Next-only `next: { revalidate }` fetch option on the OpenRouter
- *   call (not a standard Web fetch option). Worker/edge caching is not applied
+ * The OpenRouter call uses a plain fetch (no `next: { revalidate }` option).
+ * Worker/edge caching is not applied
  *   here; the upstream response is fetched per request. CACHE_TTL_SECONDS is
  *   retained as documentation of the previous revalidation window.
  */

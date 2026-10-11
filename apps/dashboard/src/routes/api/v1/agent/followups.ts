@@ -7,10 +7,7 @@
  * This route is intentionally separate from the streaming answer path so
  * failures never hide a completed answer.
  *
- * Ported from apps/dashboard/app/api/v1/agent/followups/route.ts.
- * - next/server NextResponse.json(x, init) -> Response.json(x, init).
- * - `export const dynamic = 'force-dynamic'` dropped (no Next static export).
- * - bridgeClickHouseEnv(env) invoked first (parity with other ported routes;
+ * - bridgeClickHouseEnv(env) invoked first (parity with other routes;
  *   keeps env shape consistent if any downstream model resolution reads it).
  */
 

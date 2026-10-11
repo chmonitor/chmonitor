@@ -5,8 +5,6 @@
  *
  *   GET  /api/v1/explain?hostId=0&query=SELECT...
  *   POST /api/v1/explain   { "hostId": 0, "query": "SELECT ..." }
- *
- * Ported from apps/dashboard/app/api/v1/explain/route.ts.
  */
 
 import { createFileRoute } from '@tanstack/react-router'

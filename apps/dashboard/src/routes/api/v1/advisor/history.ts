@@ -31,6 +31,7 @@ import {
 } from '@/lib/ai/advisor/history-picker'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { getAndValidateHostId } from '@/lib/api/shared/validators/host-id'
 import { ApiErrorType } from '@/lib/api/types'
 import {
   demoHiddenUnavailable,
@@ -48,17 +49,6 @@ function validationError(message: string): Response {
     },
     { status: 400 }
   )
-}
-
-function parseHostId(raw: string | null): number | { message: string } {
-  if (raw === null || raw === '') {
-    return { message: 'Missing required parameter: hostId' }
-  }
-  const n = Number(raw)
-  if (!Number.isInteger(n) || n < 0) {
-    return { message: `Invalid hostId: ${raw}` }
-  }
-  return n
 }
 
 function parseIntParam(raw: string | null): number | undefined {
@@ -103,7 +93,7 @@ export const Route = createFileRoute('/api/v1/advisor/history')({
 
         const { searchParams } = new URL(request.url)
 
-        const hostIdResult = parseHostId(searchParams.get('hostId'))
+        const hostIdResult = getAndValidateHostId(searchParams)
         if (typeof hostIdResult !== 'number') {
           return validationError(hostIdResult.message)
         }

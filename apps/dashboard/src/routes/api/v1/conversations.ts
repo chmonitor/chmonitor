@@ -3,10 +3,7 @@
  * GET /api/v1/conversations - List conversations (meta only, no messages)
  * POST /api/v1/conversations - Create new conversation
  *
- * Ported from apps/dashboard/app/api/v1/conversations/route.ts (Next.js) to
- * TanStack Start. The GET/POST bodies are preserved verbatim; only the Next
- * route-segment export (`export const dynamic`) is dropped and the handlers
- * are wired through `createFileRoute().server.handlers`.
+ * Handlers are wired through `createFileRoute().server.handlers`.
  */
 
 import { createFileRoute } from '@tanstack/react-router'

@@ -5,9 +5,7 @@
  * Validates a browser-provided ClickHouse connection by running SELECT version().
  * Credentials are provided in the request body and never logged.
  *
- * Ported from apps/dashboard/app/api/v1/browser-connections/test/route.ts.
- * - Per-route auth dropped; centralized in middleware (#1397).
- * - NextResponse replaced with standard Response / Response.json.
+ * Per-route auth is not used; it is centralized in middleware (#1397).
  */
 
 import { createFileRoute } from '@tanstack/react-router'

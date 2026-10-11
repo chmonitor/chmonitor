@@ -28,9 +28,7 @@
  *
  * SECURITY: No raw SQL is accepted from clients — only the pre-defined configs run.
  *
- * Ported from apps/dashboard/app/api/v1/cluster-topology/route.ts.
- * - `export const dynamic` is DROPPED (no Next route segment config in TSR).
- * - Per-route feature-permission auth (authorizeFeatureRequest) is DROPPED:
+ * - Per-route feature-permission auth (authorizeFeatureRequest) is not used:
  *   it is centralized in middleware (#1397), matching merged routes.
  * - `bridgeClickHouseEnv(env)` runs before any fetchData (Workers env bridge).
  */

@@ -1,7 +1,7 @@
 /**
  * Tests for clickhouse-helpers.ts
  *
- * validateHostId — pure function, tested exhaustively.
+ * hostId resolution — exercised through fetchDataWithHost.
  * fetchDataWithHost — calls external I/O (fetchData, ErrorLogger); those are
  * stubbed via mock.module so we test the wrapper's routing and error-handling
  * logic without hitting ClickHouse.
@@ -38,114 +38,73 @@ mock.module('@chm/logger', () => ({
 
 // ── Import AFTER mocks are registered ────────────────────────────────────
 
-import { fetchDataWithHost, validateHostId } from './clickhouse-helpers'
+import { fetchDataWithHost } from './clickhouse-helpers'
 
 // =========================================================================
-// validateHostId
+// hostId resolution (via fetchDataWithHost; shared parseHostIdParam)
 // =========================================================================
 
-describe('validateHostId', () => {
-  describe('undefined / null → 0', () => {
-    test('undefined returns 0', () => {
-      expect(validateHostId(undefined)).toBe(0)
-    })
+/** Run fetchDataWithHost and report the hostId fetchData got, or the error. */
+async function resolveHostId(
+  hostId: unknown
+): Promise<{ resolved?: unknown; error?: string }> {
+  let resolved: unknown
+  let reached = false
+  fetchDataImpl = async (args) => {
+    reached = true
+    resolved = (args as unknown as Record<string, unknown>).hostId
+    return {
+      data: [],
+      metadata: { queryId: '', duration: 0, rows: 0, host: '' },
+      error: null,
+    }
+  }
+  const result = (await fetchDataWithHost({
+    query: 'SELECT 1',
+    hostId: hostId as number | string,
+  })) as unknown as { error?: { message: string } | null }
+  if (reached) return { resolved }
+  return { error: result.error?.message }
+}
 
-    test('null returns 0', () => {
-      expect(validateHostId(null)).toBe(0)
-    })
+describe('hostId resolution', () => {
+  test('undefined, null and "" mean unset → 0', async () => {
+    expect((await resolveHostId(undefined)).resolved).toBe(0)
+    expect((await resolveHostId(null)).resolved).toBe(0)
+    expect((await resolveHostId('')).resolved).toBe(0)
   })
 
-  describe('number inputs', () => {
-    test('zero is valid', () => {
-      expect(validateHostId(0)).toBe(0)
-    })
-
-    test('positive integer is returned as-is', () => {
-      expect(validateHostId(1)).toBe(1)
-      expect(validateHostId(42)).toBe(42)
-    })
-
-    test('negative number throws', () => {
-      expect(() => validateHostId(-1)).toThrow('Invalid hostId: -1')
-      expect(() => validateHostId(-100)).toThrow('Invalid hostId: -100')
-    })
-
-    test('non-integer (float) throws', () => {
-      expect(() => validateHostId(1.5)).toThrow('Invalid hostId: 1.5')
-      expect(() => validateHostId(0.1)).toThrow('Invalid hostId: 0.1')
-    })
-
-    test('NaN throws', () => {
-      expect(() => validateHostId(Number.NaN)).toThrow('Invalid hostId: NaN')
-    })
-
-    test('Infinity throws (not an integer)', () => {
-      // Number.isInteger(Infinity) === false → falls into the guard
-      expect(() => validateHostId(Number.POSITIVE_INFINITY)).toThrow(
-        'Invalid hostId: Infinity'
-      )
-    })
+  test('whole non-negative numbers and digit strings pass', async () => {
+    expect((await resolveHostId(0)).resolved).toBe(0)
+    expect((await resolveHostId(42)).resolved).toBe(42)
+    expect((await resolveHostId('0')).resolved).toBe(0)
+    expect((await resolveHostId('42')).resolved).toBe(42)
   })
 
-  describe('string inputs', () => {
-    test('valid numeric string "0" returns 0', () => {
-      expect(validateHostId('0')).toBe(0)
-    })
-
-    test('valid numeric string returns parsed integer', () => {
-      expect(validateHostId('1')).toBe(1)
-      expect(validateHostId('42')).toBe(42)
-    })
-
-    test('numeric string with leading/trailing spaces is trimmed and parsed', () => {
-      expect(validateHostId(' 3 ')).toBe(3)
-    })
-
-    test('non-numeric string throws (no more silent coercion)', () => {
-      expect(() => validateHostId('abc')).toThrow('Invalid hostId: abc')
-      expect(() => validateHostId('1a')).toThrow('Invalid hostId: 1a')
-      expect(() => validateHostId('a1')).toThrow('Invalid hostId: a1')
-    })
-
-    test('trailing garbage after digits throws (unlike parseInt)', () => {
-      expect(() => validateHostId('2abc')).toThrow('Invalid hostId: 2abc')
-    })
-
-    test('empty string returns 0 (treated as missing, like undefined)', () => {
-      expect(validateHostId('')).toBe(0)
-    })
-
-    test('whitespace-only string returns 0 (treated as missing)', () => {
-      expect(validateHostId('   ')).toBe(0)
-    })
-
-    test('float string throws (contains dot, fails /^\\d+$/ test)', () => {
-      expect(() => validateHostId('1.5')).toThrow('Invalid hostId: 1.5')
-    })
-
-    test('negative numeric string throws (contains minus, fails /^\\d+$/ test)', () => {
-      expect(() => validateHostId('-1')).toThrow('Invalid hostId: -1')
-    })
+  test('negative ids are rejected', async () => {
+    expect((await resolveHostId(-1)).error).toBe('Invalid hostId: -1')
+    expect((await resolveHostId('-1')).error).toBe('Invalid hostId: -1')
   })
 
-  describe('other types → throw', () => {
-    test('boolean throws', () => {
-      expect(() => validateHostId(true)).toThrow('Invalid hostId: true')
-      expect(() => validateHostId(false)).toThrow('Invalid hostId: false')
-    })
+  test('fractions, NaN and Infinity are rejected, never truncated', async () => {
+    expect((await resolveHostId(1.5)).error).toBe('Invalid hostId: 1.5')
+    expect((await resolveHostId('1.5')).error).toBe('Invalid hostId: 1.5')
+    expect((await resolveHostId(Number.NaN)).error).toBe('Invalid hostId: NaN')
+    expect((await resolveHostId(Number.POSITIVE_INFINITY)).error).toBe(
+      'Invalid hostId: Infinity'
+    )
+  })
 
-    test('object throws', () => {
-      expect(() => validateHostId({})).toThrow()
-      expect(() => validateHostId({ id: 1 })).toThrow()
-    })
+  test('trailing junk and non-numeric strings are rejected (unlike parseInt)', async () => {
+    for (const bad of ['abc', '1a', 'a1', '2abc', '   ', ' 3 ']) {
+      expect((await resolveHostId(bad)).error).toBe(`Invalid hostId: ${bad}`)
+    }
+  })
 
-    test('array throws', () => {
-      expect(() => validateHostId([1])).toThrow()
-    })
-
-    test('symbol throws', () => {
-      expect(() => validateHostId(Symbol('x'))).toThrow()
-    })
+  test('other types are rejected', async () => {
+    expect((await resolveHostId(true)).error).toBe('Invalid hostId: true')
+    expect((await resolveHostId({ id: 1 })).error).toBeDefined()
+    expect((await resolveHostId([1])).error).toBeDefined()
   })
 })
 
@@ -197,7 +156,7 @@ describe('fetchDataWithHost', () => {
     expect(logErrorCalls).toHaveLength(0)
   })
 
-  test('string hostId is coerced via validateHostId', async () => {
+  test('string hostId is coerced to a number', async () => {
     let capturedArgs: unknown
 
     fetchDataImpl = async (args) => {
