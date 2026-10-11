@@ -139,6 +139,181 @@ one fire and one recover. The current state and last transition per check are
 shown on the **Active** tab of Alert Settings. State is persisted to D1 (when
 configured) so hysteresis streaks and incident timers survive worker restarts.
 
+## Kubernetes (Helm)
+
+On Kubernetes, the Helm chart runs the sweep for you. Turn on `cron` and the
+chart creates a CronJob that calls `/api/cron/health-sweep` every 5 minutes. See
+[Deploy on Kubernetes](/operate/deploy/k8s) for the rest of the chart.
+
+Create the Secret first. The webhook URL is a credential, so it never goes in
+`values.yaml`:
+
+```bash
+kubectl create secret generic chmonitor-alert-secrets \
+  --from-literal=CRON_SECRET="$(openssl rand -hex 32)" \
+  --from-literal=slack-webhook-url='https://hooks.slack.com/services/T000/B000/XXXX'
+```
+
+Then set the values:
+
+```yaml
+# values.yaml
+cron:
+  enabled: true
+  existingSecret: chmonitor-alert-secrets   # must contain the key CRON_SECRET
+  schedules:
+    healthSweep: "*/5 * * * *"
+
+alertWebhooks:
+  enabled: true
+  defaults:
+    format: slack
+    minSeverity: warning
+  targets:
+    - name: team-slack
+      format: slack
+      urlFrom:
+        name: chmonitor-alert-secrets
+        key: slack-webhook-url
+
+extraEnv:
+  - name: HEALTH_ALERT_MIN_SEVERITY
+    value: "warning"          # or "critical"
+```
+
+The chart has no dedicated value for `HEALTH_ALERT_MIN_SEVERITY`, so it goes
+through `extraEnv`. Each target also has its own `minSeverity`.
+
+<Callout type="info" title="The dashboard needs the same CRON_SECRET">
+The CronJob and the dashboard container read `CRON_SECRET` from the same
+Secret. If they differ, the sweep is rejected.
+</Callout>
+
+### Plain env alternative
+
+If you do not want `alertWebhooks`, use the single global webhook. Keep the URL
+in a Secret and read it with `secretKeyRef`:
+
+```yaml
+extraEnv:
+  - name: HEALTH_ALERT_WEBHOOK_URL
+    valueFrom:
+      secretKeyRef:
+        name: chmonitor-alert-secrets
+        key: slack-webhook-url
+  - name: HEALTH_ALERT_MIN_SEVERITY
+    value: "warning"
+```
+
+## Disable or pause alerts
+
+Pick the narrowest switch that does the job.
+
+| Switch | Scope | Notes |
+|---|---|---|
+| `HEALTH_ALERT_ENABLED=false` | All channels | Master switch. Keeps the URLs, so you can turn it back on. |
+| `HEALTH_ALERT_WEBHOOK_ENABLED=false` | The webhook channel only | Covers routes and the global `HEALTH_ALERT_WEBHOOK_URL`. Other channels use `HEALTH_ALERT_<CHANNEL>_ENABLED` with `EMAIL`, `OPSGENIE`, `PAGERDUTY`, `TELEGRAM`, `NTFY` or `PUSHOVER`. |
+| `enabled: false` on a target | One custom webhook target | In Helm values or in Health settings. A disabled UI row also hides the Helm target with the same name. |
+| `alertWebhooks.enabled=false` | All Helm-declared targets | The global `HEALTH_ALERT_WEBHOOK_URL` keeps working. |
+| `cron.enabled=false` | Scheduled sweeps | No CronJob, so nothing runs on a schedule. Manual `curl` calls still work. |
+| `CHM_HEALTH_SWEEP_ENABLED=false` | Scheduled sweeps (headless) | Pauses the scheduled sweep without removing the cron. |
+| Quiet hours | Recurring time windows | Health settings, Advanced tab. See [Health](/guide/features/health#alert-settings-layout). |
+| Maintenance windows | One host or all hosts, for a set time | Health settings, Advanced tab. See [Health](/guide/features/health#alert-settings-layout). |
+| `HEALTH_ALERT_MIN_SEVERITY=critical` | All channels | Does not pause anything. It only drops warnings, which cuts noise. |
+
+## Several deployments in one channel
+
+If many chmonitor deployments post to the same channel, each message must say
+where it came from.
+
+- Set `CLICKHOUSE_NAME` for each host. The host label in the message uses it, so
+  `prod-eu-1` reads better than `0`.
+- Use one webhook target per deployment, with its own `name` and channel.
+
+You can also tag every message from a deployment with these variables:
+
+| Variable | Effect |
+|---|---|
+| `HEALTH_ALERT_INSTANCE_NAME` | Adds a `[prod-eu]` prefix to the title. With Hookshot, it becomes the `username`. |
+| `HEALTH_ALERT_DASHBOARD_URL` | Adds an "Open dashboard" link to `/health?host=N`. |
+| `HEALTH_ALERT_METADATA` | `key=value` pairs, for example `team=data,region=eu`. At most 10 pairs. They show in the Slack context line and as JSON fields. |
+
+In a title or body template you can use `{{instance}}`, `{{dashboardUrl}}` and
+`{{meta.<key>}}`, for example `{{meta.team}}`.
+
+In Helm, set the same values under `alerting`:
+
+```yaml
+alerting:
+  instanceName: prod-eu
+  dashboardUrl: https://chmonitor.example.com
+  metadata:
+    team: data
+    region: eu
+```
+
+## Message format examples
+
+The exact text depends on the check. These show the shape.
+
+**Slack** (sent as blocks, shown here as the visible text):
+
+```text
+[CRITICAL] Disk usage high
+Disk usage on default is 93%
+host prod-eu-1 · disk_usage = 93 · 2026-10-11T08:00:00Z
+```
+
+**Hookshot / Element**:
+
+```json
+{
+  "text": "🔴 [CRITICAL] Disk usage high — Disk usage on default is 93%\nhost prod-eu-1 · disk-usage-percent = 93 · 2026-10-11T08:00:00Z",
+  "html": "<b>🔴 [CRITICAL] Disk usage high</b><br>Disk usage on default is 93%<br><i>host prod-eu-1 · disk-usage-percent = 93 · 2026-10-11T08:00:00Z</i>"
+}
+```
+
+**Raw JSON** (a normalized payload for a generic receiver):
+
+```json
+{
+  "severity": "critical",
+  "title": "Disk usage high",
+  "metric": "disk-usage-percent",
+  "value": 93,
+  "thresholds": { "warning": 80, "critical": 90 },
+  "host": { "id": 0, "label": "prod-eu-1" },
+  "label": "Disk usage on default is 93%",
+  "runbookUrls": [],
+  "timestamp": "2026-10-11T08:00:00Z",
+  "text": "[CRITICAL] Disk usage high — Disk usage on default is 93% (host prod-eu-1)"
+}
+```
+
+With `HEALTH_ALERT_INSTANCE_NAME`, `HEALTH_ALERT_DASHBOARD_URL` or
+`HEALTH_ALERT_METADATA` set, the body also carries `instance`, `dashboardUrl`
+and `metadata`.
+
+### Custom title and body
+
+A target can set `titleTemplate` and `textTemplate`. Available variables:
+`{{severity}}`, `{{title}}`, `{{label}}`, `{{host}}`, `{{hostId}}`,
+`{{checkId}}`, `{{value}}` and `{{timestamp}}`, plus `{{instance}}`,
+`{{dashboardUrl}}` and `{{meta.<key>}}`. An unknown name is left as written, so
+a typo is easy to spot in **Preview**.
+
+```yaml
+alertWebhooks:
+  targets:
+    - name: team-slack
+      format: slack
+      urlFrom:
+        name: chmonitor-alert-secrets
+        key: slack-webhook-url
+      titleTemplate: "[{{instance}}] {{severity}}: {{title}}"
+      textTemplate: "{{label}} on {{host}} ({{checkId}} = {{value}}) at {{timestamp}} - {{dashboardUrl}} (team {{meta.team}})"
+```
+
 ## Related
 
 - [Health](/guide/features/health) — every check, threshold, and environment
