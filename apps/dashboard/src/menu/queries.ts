@@ -1,16 +1,14 @@
 import {
-  CounterClockwiseClockIcon,
-  CrossCircledIcon,
-  LightningBoltIcon,
-  MixIcon,
-} from '@radix-ui/react-icons'
-import {
   ActivityIcon,
   CircleDollarSignIcon,
+  CircleXIcon,
   CpuIcon,
   GaugeIcon,
+  HistoryIcon,
   LayersIcon,
+  SlidersHorizontalIcon,
   UsersIcon,
+  ZapIcon,
 } from 'lucide-react'
 
 import type { MenuItem } from '@/components/menu/types'
@@ -24,7 +22,7 @@ export const queriesItems: MenuItem[] = [
     href: '',
     hubHref: '/hub/queries',
     countKey: 'running-queries',
-    icon: MixIcon,
+    icon: SlidersHorizontalIcon,
     section: 'main',
     permission: { feature: 'queries' },
     items: [
@@ -37,7 +35,7 @@ export const queriesItems: MenuItem[] = [
           'Real-time view of currently executing queries with progress tracking',
         countKey: 'running-queries',
         countLabel: 'running',
-        icon: MixIcon,
+        icon: SlidersHorizontalIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/processes',
         tableCheck: 'system.processes',
       },
@@ -58,7 +56,7 @@ export const queriesItems: MenuItem[] = [
         href: '/history-queries',
         description:
           'Historical query log with execution metrics, memory usage, and performance data',
-        icon: CounterClockwiseClockIcon,
+        icon: HistoryIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
         tableCheck: 'system.query_log',
       },
@@ -68,7 +66,7 @@ export const queriesItems: MenuItem[] = [
         href: '/recent-queries',
         description:
           'Reverse-chronological log of individual query executions — the per-query drill-down for Query Insights',
-        icon: CounterClockwiseClockIcon,
+        icon: HistoryIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
         tableCheck: 'system.query_log',
         isNew: true,
@@ -79,7 +77,7 @@ export const queriesItems: MenuItem[] = [
         href: '/failed-queries',
         description:
           'Query execution failures with error details and stack traces',
-        icon: CrossCircledIcon,
+        icon: CircleXIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
         tableCheck: 'system.query_log',
       },
@@ -89,7 +87,7 @@ export const queriesItems: MenuItem[] = [
         href: '/query-views-log',
         description:
           'Materialized view execution history with status, duration, and row throughput',
-        icon: CounterClockwiseClockIcon,
+        icon: HistoryIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_views_log',
         tableCheck: 'system.query_views_log',
       },
@@ -110,7 +108,7 @@ export const queriesItems: MenuItem[] = [
         href: '/common-errors',
         description:
           'Server error codes ranked by occurrence count with the last error message',
-        icon: CrossCircledIcon,
+        icon: CircleXIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/errors',
         tableCheck: 'system.errors',
       },
@@ -120,7 +118,7 @@ export const queriesItems: MenuItem[] = [
         title: 'Slow Queries',
         href: '/slow-queries',
         description: 'Top 10 slowest finished queries by duration',
-        icon: CounterClockwiseClockIcon,
+        icon: HistoryIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
         tableCheck: 'system.query_log',
       },
@@ -192,7 +190,7 @@ export const queriesItems: MenuItem[] = [
         href: '/query-cache',
         description:
           'Cached query results: cache entries, result sizes, and staleness',
-        icon: LightningBoltIcon,
+        icon: ZapIcon,
         isNew: true,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_cache',
         tableCheck: 'system.query_cache',
@@ -203,7 +201,7 @@ export const queriesItems: MenuItem[] = [
         href: '/query-condition-cache',
         description:
           'Cached WHERE-clause conditions for repeated query optimization (ClickHouse 25.3+)',
-        icon: LightningBoltIcon,
+        icon: ZapIcon,
         isNew: true,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_condition_cache',
         tableCheck: 'system.query_condition_cache',
