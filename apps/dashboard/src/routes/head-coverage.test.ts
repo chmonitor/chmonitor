@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROUTES = import.meta.dir
+const ROUTES = fileURLToPath(new URL('.', import.meta.url))
 const GROUPS = ['(dashboard)', '(peerdb)']
 
 /** Routes that intentionally have no `head`, with the reason. */
