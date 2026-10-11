@@ -9,6 +9,7 @@
 import type { AlertPayload, NotificationAdapter } from './types'
 
 import { summarizeDigest } from './digest'
+import { instancePrefix } from './identity'
 
 /** Normalized JSON body for generic webhook receivers. */
 export interface GenericJsonBody {
@@ -24,6 +25,12 @@ export interface GenericJsonBody {
   /** A ready-to-render one-line summary, mirroring the sweep/webhook text. */
   text: string
   snapshot?: unknown
+  /** Deployment label (`HEALTH_ALERT_INSTANCE_NAME`), when configured. */
+  instance?: string
+  /** Deep link to this host's dashboard page, when configured. */
+  dashboardUrl?: string
+  /** Operator key/values (`HEALTH_ALERT_METADATA`), when configured. */
+  metadata?: Record<string, string>
 }
 
 /**
@@ -48,12 +55,15 @@ export function buildGenericJsonBody(payload: AlertPayload): GenericJsonBody {
     label: payload.label,
     runbookUrls: payload.runbookUrls ? [...payload.runbookUrls] : [],
     timestamp: payload.timestamp,
-    text: `[${heading}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
+    text: `${instancePrefix(payload)}[${heading}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
   }
 
   if (payload.snapshot !== undefined) {
     body.snapshot = payload.snapshot
   }
+  if (payload.instanceName) body.instance = payload.instanceName
+  if (payload.dashboardUrl) body.dashboardUrl = payload.dashboardUrl
+  if (payload.metadata) body.metadata = { ...payload.metadata }
 
   return body
 }

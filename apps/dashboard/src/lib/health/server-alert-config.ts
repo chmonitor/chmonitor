@@ -576,3 +576,129 @@ export function isAnyAlertChannelEnabled(): boolean {
     on('healthchecks', Boolean(getServerHealthchecksUrl()))
   )
 }
+
+/** Deployment identity stamped onto every outbound alert (instance, link, metadata). */
+export interface ServerAlertIdentity {
+  /** Deployment label, e.g. `prod-eu`. */
+  instanceName?: string
+  /** Public dashboard base URL (http/https, no trailing slash). */
+  dashboardBaseUrl?: string
+  /** Non-secret operator key/values. */
+  metadata?: Readonly<Record<string, string>>
+}
+
+export const MAX_ALERT_METADATA_PAIRS = 10
+export const MAX_ALERT_METADATA_VALUE_LENGTH = 128
+export const MAX_ALERT_INSTANCE_NAME_LENGTH = 64
+const METADATA_KEY_RE = /^[A-Za-z0-9_.-]{1,32}$/
+
+/**
+ * Parse `HEALTH_ALERT_METADATA`: `key=value,key2=value2` or a JSON object.
+ * Invalid pairs (bad key, empty or >128-char value, CR/LF, non-string JSON
+ * value) are dropped; at most {@link MAX_ALERT_METADATA_PAIRS} pairs are kept.
+ */
+export function parseAlertMetadata(
+  raw: string | undefined
+): Record<string, string> | undefined {
+  const input = raw?.trim()
+  if (!input) return undefined
+  let entries: [string, unknown][]
+  if (input.startsWith('{')) {
+    try {
+      const parsed: unknown = JSON.parse(input)
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return undefined
+      }
+      entries = Object.entries(parsed as Record<string, unknown>)
+    } catch {
+      return undefined
+    }
+  } else {
+    entries = input.split(',').map((pair): [string, unknown] => {
+      const eq = pair.indexOf('=')
+      return eq === -1 ? ['', ''] : [pair.slice(0, eq), pair.slice(eq + 1)]
+    })
+  }
+  const out: Record<string, string> = {}
+  for (const [rawKey, rawValue] of entries) {
+    if (Object.keys(out).length >= MAX_ALERT_METADATA_PAIRS) break
+    if (typeof rawValue !== 'string') continue
+    const key = rawKey.trim()
+    const value = rawValue.trim()
+    if (
+      !METADATA_KEY_RE.test(key) ||
+      value.length === 0 ||
+      value.length > MAX_ALERT_METADATA_VALUE_LENGTH ||
+      /[\r\n]/.test(value)
+    ) {
+      continue
+    }
+    out[key] = value
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+/** Accept only an absolute http(s) URL; strip trailing slashes. */
+export function parseDashboardBaseUrl(
+  raw: string | undefined
+): string | undefined {
+  const input = raw?.trim()
+  if (!input) return undefined
+  let url: URL
+  try {
+    url = new URL(input)
+  } catch {
+    return undefined
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined
+  // Normalized href: quotes, angle brackets and spaces arrive percent-encoded.
+  return url.href.replace(/\/+$/, '')
+}
+
+/** Pure parser for {@link getServerAlertIdentity}; exported for tests. */
+export function parseAlertIdentity(
+  env: Record<string, string | undefined>
+): ServerAlertIdentity {
+  const identity: ServerAlertIdentity = {}
+  const instance = env.HEALTH_ALERT_INSTANCE_NAME?.trim()
+  if (
+    instance &&
+    instance.length <= MAX_ALERT_INSTANCE_NAME_LENGTH &&
+    !/[\r\n]/.test(instance)
+  ) {
+    identity.instanceName = instance
+  }
+  const base = parseDashboardBaseUrl(env.HEALTH_ALERT_DASHBOARD_URL)
+  if (base) identity.dashboardBaseUrl = base
+  const metadata = parseAlertMetadata(env.HEALTH_ALERT_METADATA)
+  if (metadata) identity.metadata = metadata
+  return identity
+}
+
+/**
+ * Deployment identity for outbound alerts, sourced from environment variables:
+ *
+ *   - HEALTH_ALERT_INSTANCE_NAME → instanceName (label shown in every message)
+ *   - HEALTH_ALERT_DASHBOARD_URL → dashboardBaseUrl (alerts deep-link to
+ *                                  `<base>/health?host=<id>`; the cron sweep has
+ *                                  no request origin, so env is the source)
+ *   - HEALTH_ALERT_METADATA      → metadata (`k=v,k2=v2` or a JSON object)
+ *
+ * All optional; unset → `{}` and alert bodies are byte-identical to before.
+ */
+export function getServerAlertIdentity(): ServerAlertIdentity {
+  // Named literally so the docs env-var scanner (scripts/gen-docs-data.ts) sees them.
+  return parseAlertIdentity({
+    HEALTH_ALERT_INSTANCE_NAME: process.env.HEALTH_ALERT_INSTANCE_NAME,
+    HEALTH_ALERT_DASHBOARD_URL: process.env.HEALTH_ALERT_DASHBOARD_URL,
+    HEALTH_ALERT_METADATA: process.env.HEALTH_ALERT_METADATA,
+  })
+}
+
+/** Deep link to a host's health page, or undefined without a base URL. */
+export function buildHealthDeepLink(
+  baseUrl: string | undefined,
+  hostId: number
+): string | undefined {
+  return baseUrl ? `${baseUrl}/health?host=${hostId}` : undefined
+}

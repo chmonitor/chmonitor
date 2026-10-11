@@ -29,6 +29,8 @@ export interface FindingContext {
   decision: AlertDecision
   /** The one-line message shared by the webhook/Slack bodies. */
   text: string
+  /** Deployment identity (instance, deep link, metadata); absent when unset. */
+  identity?: Pick<AlertPayload, 'instanceName' | 'dashboardUrl' | 'metadata'>
 }
 
 /**
@@ -59,5 +61,6 @@ export function buildChannelPayload(finding: FindingContext): AlertPayload {
     title: finding.ruleTitle,
     label: finding.label,
     timestamp: new Date().toISOString(),
+    ...finding.identity,
   }
 }

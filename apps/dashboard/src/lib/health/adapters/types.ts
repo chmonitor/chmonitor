@@ -68,6 +68,15 @@ export interface AlertPayload {
    * context (e.g. generic JSON, PagerDuty custom_details). Loosely typed for now.
    */
   snapshot?: unknown
+  /**
+   * Deployment label (`HEALTH_ALERT_INSTANCE_NAME`) so alerts from several
+   * chmonitor deployments sharing one channel say where they came from.
+   */
+  instanceName?: string
+  /** Full deep link to this host's dashboard page (`<base>/health?host=<id>`). */
+  dashboardUrl?: string
+  /** Non-secret operator key/values (`HEALTH_ALERT_METADATA`). */
+  metadata?: Readonly<Record<string, string>>
 }
 
 /**

@@ -15,6 +15,8 @@
 
 import type { AlertPayload, AlertSeverity } from './types'
 
+import { instancePrefix } from './identity'
+
 /** Cap on rendered per-finding lines so a huge burst can't blow a channel's
  * message-size limit (Slack ~3000 chars/section, Telegram 4096). Overflow is
  * summarized with a "…and N more" line. Generic JSON is exempt (structured). */
@@ -37,7 +39,7 @@ export function digestFindingLine(payload: AlertPayload): string {
 }
 
 export interface DigestSummary {
-  /** Human summary, e.g. `"3 critical, 2 warning on 4 hosts"`. */
+  /** Human summary, e.g. `"3 critical, 2 warning on 4 hosts"` (prefixed `[instance] ` when set). */
   summaryLine: string
   /** One line per finding (severity-prefixed), already capped to {@link MAX_DIGEST_LINES}. */
   findingLines: string[]
@@ -82,7 +84,9 @@ export function summarizeDigest(
   const hostWord = hostCount === 1 ? 'host' : 'hosts'
   const countText =
     parts.length > 0 ? parts.join(', ') : `${payloads.length} alerts`
-  const summaryLine = `${countText} on ${hostCount} ${hostWord}`
+  // One digest is one deployment's findings, so the first payload's instance
+  // labels the whole group ('' when unset).
+  const summaryLine = `${instancePrefix(payloads[0] ?? {})}${countText} on ${hostCount} ${hostWord}`
 
   const findingLines = payloads
     .slice(0, MAX_DIGEST_LINES)

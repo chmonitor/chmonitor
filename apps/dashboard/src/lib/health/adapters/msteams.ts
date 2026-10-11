@@ -18,6 +18,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { identityLine, instancePrefix } from './identity'
+
 /** Adaptive Card colour vocabulary. */
 type AdaptiveColor = 'attention' | 'warning' | 'good'
 
@@ -58,6 +60,18 @@ interface AdaptiveCard {
   type: 'AdaptiveCard'
   version: string
   body: AdaptiveElement[]
+  actions?: AdaptiveOpenUrlAction[]
+}
+
+interface AdaptiveOpenUrlAction {
+  type: 'Action.OpenUrl'
+  title: string
+  url: string
+}
+
+/** Backslash-escape the markdown characters Adaptive Card TextBlocks honour. */
+function escapeCardMarkdown(raw: string): string {
+  return raw.replace(/[\\*_[\]()~`#>-]/g, '\\$&')
 }
 
 interface MSTeamsAttachment {
@@ -106,7 +120,7 @@ export function buildMSTeamsBody(payload: AlertPayload): MSTeamsWebhookBody {
   const body: AdaptiveElement[] = [
     {
       type: 'TextBlock',
-      text: `${style.emoji} ${heading(payload.severity)}: ${payload.title}`,
+      text: `${escapeCardMarkdown(instancePrefix(payload))}${style.emoji} ${heading(payload.severity)}: ${payload.title}`,
       weight: 'bolder',
       size: 'large',
       color: style.color,
@@ -124,6 +138,16 @@ export function buildMSTeamsBody(payload: AlertPayload): MSTeamsWebhookBody {
     body.push({
       type: 'TextBlock',
       text: `**Runbooks:**\n\n${payload.runbookUrls.map((u) => `- ${u}`).join('\n\n')}`,
+      wrap: true,
+    })
+  }
+
+  const identity = identityLine(payload)
+  if (identity) {
+    body.push({
+      type: 'TextBlock',
+      text: escapeCardMarkdown(identity),
+      isSubtle: true,
       wrap: true,
     })
   }
@@ -147,6 +171,15 @@ export function buildMSTeamsBody(payload: AlertPayload): MSTeamsWebhookBody {
           type: 'AdaptiveCard',
           version: '1.4',
           body,
+          ...(payload.dashboardUrl && {
+            actions: [
+              {
+                type: 'Action.OpenUrl',
+                title: 'Open dashboard',
+                url: payload.dashboardUrl,
+              },
+            ],
+          }),
         },
       },
     ],

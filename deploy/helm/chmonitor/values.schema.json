@@ -101,6 +101,28 @@
         }
       }
     },
+    "alerting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "instanceName": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[^\\r\\n]*$"
+        },
+        "dashboardUrl": { "type": "string", "pattern": "^(https?://.+)?$" },
+        "metadata": {
+          "type": "object",
+          "maxProperties": 10,
+          "propertyNames": { "pattern": "^[A-Za-z0-9_.-]{1,32}$" },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[^\\r\\n]*$"
+          }
+        }
+      }
+    },
     "extraEnv": {
       "type": "array",
       "description": "Non-secret env only. For credentials use valueFrom.secretKeyRef entries — never commit plaintext secrets in values files."

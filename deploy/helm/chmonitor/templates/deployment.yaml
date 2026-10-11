@@ -166,6 +166,16 @@ spec:
                   name: {{ include "chmonitor.cronSecretName" . }}
                   key: CRON_SECRET
             {{- end }}
+            {{- $alerting := .Values.alerting | default dict }}
+            {{- range $key, $val := dict "HEALTH_ALERT_INSTANCE_NAME" $alerting.instanceName "HEALTH_ALERT_DASHBOARD_URL" $alerting.dashboardUrl "HEALTH_ALERT_METADATA" $alerting.metadata }}
+            {{- if $val }}
+            - name: {{ $key }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "chmonitor.fullname" $ }}
+                  key: {{ $key }}
+            {{- end }}
+            {{- end }}
             {{- if .Values.alertWebhooks.enabled }}
             - name: HEALTH_ALERT_WEBHOOK_TARGETS
               valueFrom:

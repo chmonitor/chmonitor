@@ -8,6 +8,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { identityLine, instancePrefix } from './identity'
+
 /** Severity → embed colour (decimal RGB, as Discord expects) and emoji. */
 const SEVERITY_STYLE: Record<AlertSeverity, { color: number; emoji: string }> =
   {
@@ -29,6 +31,9 @@ interface DiscordEmbed {
   color: number
   fields: DiscordEmbedField[]
   timestamp: string
+  /** Title link (the dashboard deep link), when configured. */
+  url?: string
+  footer?: { text: string }
 }
 
 /** Discord webhook body: content summary + one rich embed. */
@@ -57,7 +62,7 @@ function thresholdText(payload: AlertPayload): string {
  */
 export function buildDiscordBody(payload: AlertPayload): DiscordWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
-  const summary = `[${heading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
+  const summary = `${instancePrefix(payload)}[${heading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
 
   const fields: DiscordEmbedField[] = [
     {
@@ -81,17 +86,20 @@ export function buildDiscordBody(payload: AlertPayload): DiscordWebhookBody {
     })
   }
 
+  const embed: DiscordEmbed = {
+    title: `${style.emoji} ${heading(payload.severity)}: ${payload.title}`,
+    description: payload.label,
+    color: style.color,
+    fields,
+    timestamp: payload.timestamp,
+  }
+  if (payload.dashboardUrl) embed.url = payload.dashboardUrl
+  const identity = identityLine(payload)
+  if (identity) embed.footer = { text: identity }
+
   return {
     content: summary,
-    embeds: [
-      {
-        title: `${style.emoji} ${heading(payload.severity)}: ${payload.title}`,
-        description: payload.label,
-        color: style.color,
-        fields,
-        timestamp: payload.timestamp,
-      },
-    ],
+    embeds: [embed],
   }
 }
 

@@ -531,6 +531,12 @@
     },
     {
       "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "HEALTH_ALERT_DASHBOARD_URL",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
       "inEnvExample": false,
       "name": "HEALTH_ALERT_DIGEST_MINUTES",
       "prefix": "HEALTH"
@@ -569,6 +575,18 @@
       "exampleDefault": null,
       "inEnvExample": false,
       "name": "HEALTH_ALERT_HEALTHCHECKS_URL",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "HEALTH_ALERT_INSTANCE_NAME",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "HEALTH_ALERT_METADATA",
       "prefix": "HEALTH"
     },
     {
