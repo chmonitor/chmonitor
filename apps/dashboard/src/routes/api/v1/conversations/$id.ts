@@ -235,7 +235,20 @@ async function handlePut(request: Request, id: string): Promise<Response> {
     }
 
     // Parse request body
-    const body = (await request.json()) as UpdateConversationRequest
+    let body: UpdateConversationRequest
+    try {
+      body = (await request.json()) as UpdateConversationRequest
+    } catch {
+      return createApiErrorResponse(
+        {
+          type: ApiErrorType.ValidationError,
+          message: 'Invalid JSON body',
+          details: { timestamp: new Date().toISOString() },
+        },
+        400,
+        ROUTE_CONTEXT_PUT
+      )
+    }
     const { title, messages } = body
 
     // Validate at least one field is being updated

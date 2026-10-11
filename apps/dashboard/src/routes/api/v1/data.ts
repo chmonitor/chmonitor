@@ -409,7 +409,15 @@ export const handlePost = withApiHandler(async (request: Request) => {
   bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
   // Parse request body
-  const body = (await request.json()) as Partial<ApiRequest>
+  let body: Partial<ApiRequest>
+  try {
+    body = (await request.json()) as Partial<ApiRequest>
+  } catch {
+    return createValidationError('Invalid JSON body', {
+      ...ROUTE_CONTEXT,
+      method: 'POST',
+    })
+  }
 
   // SECURITY: Reject client-supplied QueryConfig objects to prevent SQL override attacks.
   if (
