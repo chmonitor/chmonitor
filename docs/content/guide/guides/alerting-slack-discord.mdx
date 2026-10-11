@@ -74,6 +74,10 @@ For more control, open **Health settings → Alerts → Custom webhook targets**
 - **Slack** — escaped Slack blocks.
 - **Element / Matrix** — an `m.notice` event with escaped HTML.
 - **Auto** — preserve the legacy URL-based format detection.
+- **Matrix Hookshot** — the `{text, html}` body that
+  [matrix-hookshot](https://matrix-org.github.io/matrix-hookshot/latest/setup/webhooks.html)
+  generic webhooks expect. Use this, not **Element / Matrix**, for a Hookshot
+  URL: Hookshot posts any body without a `text` key to the room as raw JSON.
 
 The form supports bounded `{{severity}}`, `{{title}}`, `{{label}}`, `{{host}}`,
 `{{value}}`, and `{{timestamp}}` templates plus safe `X-*` headers. **Preview**

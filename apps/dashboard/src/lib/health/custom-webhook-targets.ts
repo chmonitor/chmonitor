@@ -12,6 +12,7 @@
  *   - `raw-json` — the normalized generic-JSON body (`buildGenericJsonBody`)
  *   - `slack`    — the Block-Kit body (`buildSlackBody`)
  *   - `matrix`   — the Element/Matrix `m.notice` body (`buildMatrixBody`)
+ *   - `hookshot` — matrix-hookshot's generic webhook `{text, html}` body
  *
  * Safety rules (enforced here so the API route, the sweep, and the UI preview
  * all share them):
@@ -35,6 +36,7 @@ import type { AlertPayload } from './adapters'
 
 import {
   buildGenericJsonBody,
+  buildHookshotBody,
   buildMatrixBody,
   buildSlackBody,
   detectAdapter,
@@ -48,6 +50,7 @@ export type CustomWebhookFormat =
   | 'raw-json'
   | 'slack'
   | 'matrix'
+  | 'hookshot'
 
 /** `raw` is the canonical name; `raw-json` remains accepted for old rows/forms. */
 export const CUSTOM_WEBHOOK_FORMATS: readonly CustomWebhookFormat[] = [
@@ -56,6 +59,7 @@ export const CUSTOM_WEBHOOK_FORMATS: readonly CustomWebhookFormat[] = [
   'raw-json',
   'slack',
   'matrix',
+  'hookshot',
 ]
 
 export function normalizeCustomWebhookFormat(v: unknown): CustomWebhookFormat {
@@ -78,6 +82,7 @@ export const CUSTOM_WEBHOOK_FORMAT_LABELS: Record<CustomWebhookFormat, string> =
     'raw-json': 'Raw JSON',
     slack: 'Slack blocks',
     matrix: 'Element / Matrix notice',
+    hookshot: 'Matrix Hookshot webhook',
   }
 
 /** A custom webhook target (persisted shape — see `custom-webhook-target-store.ts`). */
@@ -436,6 +441,17 @@ export function buildCustomTargetBody(
       }
     } else {
       body = buildMatrixBody(payload)
+    }
+  } else if (format === 'hookshot') {
+    adapterId = 'hookshot'
+    if (title || bodyText) {
+      const parts = [title, bodyText].filter(Boolean) as string[]
+      body = {
+        text: parts.join('\n'),
+        html: parts.map((t) => escapeMatrixHtml(t)).join('<br>'),
+      }
+    } else {
+      body = buildHookshotBody(payload)
     }
   } else if (format === 'raw') {
     adapterId = 'generic-json'

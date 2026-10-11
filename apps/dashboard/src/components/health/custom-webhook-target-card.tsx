@@ -33,6 +33,7 @@ const FORMAT_OPTIONS: { value: CustomWebhookFormat; label: string }[] = [
   { value: 'raw', label: 'Raw JSON' },
   { value: 'slack', label: 'Slack' },
   { value: 'matrix', label: 'Element / Matrix' },
+  { value: 'hookshot', label: 'Matrix Hookshot' },
 ]
 const FORMAT_ITEMS = Object.fromEntries(
   FORMAT_OPTIONS.map((option) => [option.value, option.label])

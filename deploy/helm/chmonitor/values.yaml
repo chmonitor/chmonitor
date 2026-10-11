@@ -358,7 +358,7 @@ cron:
 #   enabled: true
 #   # Defaults applied to targets that omit the field.
 #   defaults:
-#     format: auto        # auto | raw | slack | matrix
+#     format: auto        # auto | raw | slack | matrix | hookshot
 #     minSeverity: warning # warning | critical
 #   targets:
 #     # Non-secret endpoint: inline URL is stored in the chart-managed Secret

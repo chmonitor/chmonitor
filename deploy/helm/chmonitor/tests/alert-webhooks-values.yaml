@@ -23,3 +23,8 @@ alertWebhooks:
       headersSecretFrom:
         name: alert-secrets
         key: matrix-headers
+    - name: element-hookshot
+      format: hookshot
+      urlFrom:
+        name: alert-secrets
+        key: hookshot-url
