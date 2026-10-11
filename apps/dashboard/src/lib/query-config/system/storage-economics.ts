@@ -182,11 +182,25 @@ export const ttlStorageMovesConfig: QueryConfig = {
       round(duration_ms * 100.0 / nullIf(max(duration_ms) OVER (), 0), 2) AS pct_duration,
       error,
       exception
-    FROM system.part_log
-    WHERE toInt8(event_type) = 6
+    FROM (
+      SELECT
+        event_time, database, table, part_name, partition_id, disk_name,
+        size_in_bytes, rows, duration_ms, error, exception
+      FROM system.part_log
+      WHERE toInt8(event_type) = 6
+        AND event_date >= toDate(now() - INTERVAL {last_hours:UInt64} HOUR)
+        AND event_time > now() - INTERVAL {last_hours:UInt64} HOUR
+      ORDER BY event_time DESC
+      LIMIT 500
+    )
     ORDER BY event_time DESC
-    LIMIT 500
   `,
+  defaultParams: { last_hours: '168' },
+  filterParamPresets: [
+    { name: 'Last 24h', key: 'last_hours', value: '24' },
+    { name: 'Last 7d', key: 'last_hours', value: '168' },
+    { name: 'Last 30d', key: 'last_hours', value: '720' },
+  ],
   columns: [
     'event_time',
     'full_table',

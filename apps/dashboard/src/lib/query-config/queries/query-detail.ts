@@ -76,6 +76,7 @@ export const queryDetailConfig: QueryConfig = {
       '' AS query_cache_usage
     FROM system.query_log
     WHERE query_id = {query_id: String}
+      AND event_date >= today() - {days:UInt16}
     ORDER BY event_time DESC
     LIMIT 1
   `,
@@ -91,6 +92,7 @@ export const queryDetailConfig: QueryConfig = {
       '' AS query_cache_usage
     FROM system.query_log
     WHERE query_id = {query_id: String}
+      AND event_date >= today() - {days:UInt16}
     ORDER BY event_time DESC
     LIMIT 1
   `,
@@ -105,6 +107,7 @@ export const queryDetailConfig: QueryConfig = {
       query_cache_usage
     FROM system.query_log
     WHERE query_id = {query_id: String}
+      AND event_date >= today() - {days:UInt16}
     ORDER BY event_time DESC
     LIMIT 1
   `,
@@ -156,5 +159,6 @@ export const queryDetailConfig: QueryConfig = {
   },
   defaultParams: {
     query_id: '',
+    days: '30',
   },
 }

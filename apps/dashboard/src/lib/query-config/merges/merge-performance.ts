@@ -32,9 +32,16 @@ export const mergePerformanceConfig: QueryConfig = {
       FROM merge('system', '^part_log')
       WHERE toInt8(event_type) = 2
         AND toInt8(merge_reason) = 1
+        AND event_date >= today() - {days:UInt16}
       GROUP BY 1, 2
       ORDER BY 1, 2 ASC
     `,
+  defaultParams: { days: '30' },
+  filterParamPresets: [
+    { name: 'Last 7d', key: 'days', value: '7' },
+    { name: 'Last 30d', key: 'days', value: '30' },
+    { name: 'Last 90d', key: 'days', value: '90' },
+  ],
   columns: [
     'event_date',
     'merge_reason',

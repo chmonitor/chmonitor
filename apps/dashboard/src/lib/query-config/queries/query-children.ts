@@ -40,6 +40,7 @@ export const queryChildrenConfig: QueryConfig = {
     WHERE initial_query_id = {query_id: String}
       AND query_id != initial_query_id
       AND type = 'QueryFinish'
+      AND event_date >= today() - {days:UInt16}
     ORDER BY event_time DESC
     LIMIT 50
   `,
@@ -58,5 +59,6 @@ export const queryChildrenConfig: QueryConfig = {
   ],
   defaultParams: {
     query_id: '',
+    days: '30',
   },
 }

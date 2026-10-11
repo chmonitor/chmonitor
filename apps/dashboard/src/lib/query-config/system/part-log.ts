@@ -41,10 +41,25 @@ export const partLogConfig: QueryConfig = {
         formatReadableSize(peak_memory_usage) AS readable_peak_memory,
         error,
         exception
-      FROM system.part_log
+      FROM (
+        SELECT
+          event_time, event_type, database, table, part_name, partition_id,
+          merge_reason, part_type, size_in_bytes, rows, read_rows,
+          duration_ms, peak_memory_usage, error, exception
+        FROM system.part_log
+        WHERE event_date >= toDate(now() - INTERVAL {last_hours:UInt64} HOUR)
+          AND event_time > now() - INTERVAL {last_hours:UInt64} HOUR
+        ORDER BY event_time DESC
+        LIMIT 1000
+      )
       ORDER BY event_time DESC
-      LIMIT 1000
     `,
+  defaultParams: { last_hours: '24' },
+  filterParamPresets: [
+    { name: 'Last 24h', key: 'last_hours', value: '24' },
+    { name: 'Last 7d', key: 'last_hours', value: '168' },
+    { name: 'Last 30d', key: 'last_hours', value: '720' },
+  ],
   columns: [
     'event_time',
     'event_type',

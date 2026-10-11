@@ -60,6 +60,7 @@ export const queryDetailDeclarative: DeclarativeQueryConfig = {
       '' AS query_cache_usage
     FROM system.query_log
     WHERE query_id = {query_id: String}
+      AND event_date >= today() - {days:UInt16}
     ORDER BY event_time DESC
     LIMIT 1
   `,
@@ -75,6 +76,7 @@ export const queryDetailDeclarative: DeclarativeQueryConfig = {
       '' AS query_cache_usage
     FROM system.query_log
     WHERE query_id = {query_id: String}
+      AND event_date >= today() - {days:UInt16}
     ORDER BY event_time DESC
     LIMIT 1
   `,
@@ -89,6 +91,7 @@ export const queryDetailDeclarative: DeclarativeQueryConfig = {
       query_cache_usage
     FROM system.query_log
     WHERE query_id = {query_id: String}
+      AND event_date >= today() - {days:UInt16}
     ORDER BY event_time DESC
     LIMIT 1
   `,
@@ -137,5 +140,6 @@ export const queryDetailDeclarative: DeclarativeQueryConfig = {
   },
   defaultParams: {
     query_id: '',
+    days: '30',
   },
 }
