@@ -1,11 +1,5 @@
 import {
   ArchiveIcon,
-  ExclamationTriangleIcon,
-  LightningBoltIcon,
-  TableIcon,
-  UpdateIcon,
-} from '@radix-ui/react-icons'
-import {
   BookOpenIcon,
   CalendarClockIcon,
   CircleDollarSignIcon,
@@ -17,9 +11,13 @@ import {
   HardDriveIcon,
   LayersIcon,
   MoveIcon,
+  RefreshCwIcon,
   RssIcon,
+  TableIcon,
   Trash2Icon,
+  TriangleAlertIcon,
   UnplugIcon,
+  ZapIcon,
 } from 'lucide-react'
 
 import type { MenuItem } from '@/components/menu/types'
@@ -122,7 +120,7 @@ export const dataStorageItems: MenuItem[] = [
         title: 'Merge Performance',
         href: '/merge-performance',
         description: 'Historical merge operation statistics and trends',
-        icon: LightningBoltIcon,
+        icon: ZapIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/part_log',
         tableCheck: 'system.part_log',
         permission: { feature: 'operations' },
@@ -132,7 +130,7 @@ export const dataStorageItems: MenuItem[] = [
         title: 'Mutations',
         href: '/mutations',
         description: 'Table mutation status with progress and failures',
-        icon: UpdateIcon,
+        icon: RefreshCwIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/mutations',
         tableCheck: 'system.mutations',
         permission: { feature: 'operations' },
@@ -211,7 +209,7 @@ export const dataStorageItems: MenuItem[] = [
         countKey: 'readonly-tables',
         countLabel: 'readonly',
         countVariant: 'destructive',
-        icon: ExclamationTriangleIcon,
+        icon: TriangleAlertIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/replicas',
         tableCheck: 'system.replicas',
         permission: { feature: 'tables' },
@@ -222,7 +220,7 @@ export const dataStorageItems: MenuItem[] = [
         href: '/view-refreshes',
         description:
           'Refreshable materialized view schedules, status, and last-refresh results',
-        icon: UpdateIcon,
+        icon: RefreshCwIcon,
         isNew: true,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/view_refreshes',
         tableCheck: 'system.view_refreshes',

@@ -1,5 +1,4 @@
-import { MixIcon } from '@radix-ui/react-icons'
-import { ActivityIcon } from 'lucide-react'
+import { ActivityIcon, SlidersHorizontalIcon } from 'lucide-react'
 
 import type { MenuItem } from '@/components/menu/types'
 
@@ -26,7 +25,7 @@ export const postgresItems: MenuItem[] = [
     href: '/postgres/activity',
     description:
       'Live client backends from pg_stat_activity — state, wait events, and current-statement duration',
-    icon: MixIcon,
+    icon: SlidersHorizontalIcon,
     section: 'main',
     isNew: true,
     engines: ['postgres'],

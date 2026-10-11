@@ -1,8 +1,9 @@
-import { GearIcon, TableIcon } from '@radix-ui/react-icons'
 import {
   BellRingIcon,
   CalendarClockIcon,
+  SettingsIcon,
   SlidersHorizontalIcon,
+  TableIcon,
 } from 'lucide-react'
 
 import type { MenuItem } from '@/components/menu/types'
@@ -16,7 +17,7 @@ export const settingsItems: MenuItem[] = [
     // old group (`agent`, `insights`, `health`, `settings`, none).
     title: 'Settings',
     href: '',
-    icon: GearIcon,
+    icon: SettingsIcon,
     section: 'others',
     items: [
       {
@@ -75,7 +76,7 @@ export const settingsItems: MenuItem[] = [
         description: 'Server configuration settings and current values',
         countKey: 'settings',
         countLabel: 'settings',
-        icon: GearIcon,
+        icon: SettingsIcon,
         permission: { feature: 'settings' },
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/settings',
         tableCheck: 'system.settings',

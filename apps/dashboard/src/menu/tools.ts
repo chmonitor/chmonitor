@@ -1,6 +1,7 @@
-import { DashboardIcon, InfoCircledIcon } from '@radix-ui/react-icons'
 import {
   GitCompareArrowsIcon,
+  InfoIcon,
+  LayoutDashboardIcon,
   SparklesIcon,
   TerminalIcon,
   UnplugIcon,
@@ -54,7 +55,7 @@ export const toolsItems: MenuItem[] = [
         title: 'Explain',
         href: '/explain',
         description: 'Query execution plan analysis for performance tuning',
-        icon: InfoCircledIcon,
+        icon: InfoIcon,
         docs: 'https://clickhouse.com/docs/en/sql-reference/statements/explain', // pragma: allowlist secret
         permission: { feature: 'queries' },
       },
@@ -82,7 +83,7 @@ export const toolsItems: MenuItem[] = [
         title: 'Chart Builder',
         href: '/dashboard',
         description: 'Build custom monitoring dashboards with charts', // pragma: allowlist secret
-        icon: DashboardIcon,
+        icon: LayoutDashboardIcon,
         permission: { feature: 'dashboard' },
       },
       {

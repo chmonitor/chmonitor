@@ -1,17 +1,15 @@
 import {
   CopyIcon,
-  CounterClockwiseClockIcon,
-  InfoCircledIcon,
-  ShuffleIcon,
-} from '@radix-ui/react-icons'
-import {
   DownloadIcon,
   EyeIcon,
   Grid2x2CheckIcon,
   HeartPulseIcon,
+  HistoryIcon,
+  InfoIcon,
   LayersIcon,
   RollerCoasterIcon,
   ScrollTextIcon,
+  ShuffleIcon,
   UngroupIcon,
   UnplugIcon,
 } from 'lucide-react'
@@ -137,7 +135,7 @@ export const clusterReplicationItems: MenuItem[] = [
         href: '/keeper/info',
         description:
           'Cluster-health introspection of every Keeper node: role, latency, raft log, znode counts',
-        icon: InfoCircledIcon,
+        icon: InfoIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/zookeeper_info',
         tableCheck: 'system.zookeeper_info',
       },
@@ -159,7 +157,7 @@ export const clusterReplicationItems: MenuItem[] = [
         href: '/keeper/connection-log',
         description:
           'History of Keeper/ZooKeeper connect and disconnect events with reasons',
-        icon: CounterClockwiseClockIcon,
+        icon: HistoryIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/zookeeper_connection_log',
         tableCheck: 'system.zookeeper_connection_log',
       },

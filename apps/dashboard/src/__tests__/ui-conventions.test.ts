@@ -35,19 +35,6 @@ const DECORATIVE_ALLOWLIST: Record<string, string> = {
     'decorative glow pseudo-element on the empty-state icon, not a control',
 }
 
-/** TODO: migrate these menu definitions to Lucide only, then drop the entries. */
-const MIXED_ICON_ALLOWLIST: Record<string, string> = Object.fromEntries(
-  [
-    'menu/queries.ts',
-    'menu/settings.ts',
-    'menu/postgres.ts',
-    'menu/cluster-replication.ts',
-    'menu/server.ts',
-    'menu/data-storage.ts',
-    'menu/tools.ts',
-  ].map((f) => [f, 'TODO: menu section still mixes Radix and Lucide icons'])
-)
-
 describe('ui conventions', () => {
   it('no file imports from both @radix-ui/react-icons and lucide-react', () => {
     const offenders = walk(SRC).filter((f) => {
@@ -61,10 +48,7 @@ describe('ui conventions', () => {
         )
       )
     })
-    const unexpected = offenders
-      .map(rel)
-      .filter((f) => !(f in MIXED_ICON_ALLOWLIST))
-    expect(unexpected).toEqual([])
+    expect(offenders.map(rel)).toEqual([])
   })
 
   it('hover-only opacity-0 reveals also have a touch/focus branch', () => {
