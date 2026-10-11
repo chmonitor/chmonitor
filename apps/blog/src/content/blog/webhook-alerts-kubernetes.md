@@ -1,7 +1,7 @@
 ---
 title: "Health alerts to any webhook, on Kubernetes"
 description: "Send chmonitor health alerts to Slack, Discord or Matrix, and tell several ClickHouse deployments apart in one channel."
-date: 2026-10-12
+date: 2026-10-11
 tag: Guide
 author: duyetbot
 ---
