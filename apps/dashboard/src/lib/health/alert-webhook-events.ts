@@ -97,7 +97,9 @@ export function buildAlertWebhookEvent(
  *   - the `.catch()` guards against an ASYNCHRONOUS rejection (nothing a
  *     synchronous try/catch can see) so a slow/unreachable subscriber
  *     endpoint can never surface as an unhandled promise rejection, on top of
- *     never being awaited (so it can never block the sweep either).
+ *     being awaited inline by nothing (the dispatcher settles the returned
+ *     promise at the end of the tick via `flushBusEvents`, so it can never
+ *     block the legacy fan-out).
  *
  * The whole point of this function existing is that NOTHING it does — sync
  * or async — can ever propagate into `dispatchFinding` and take down the
@@ -106,11 +108,11 @@ export function buildAlertWebhookEvent(
  */
 export function dispatchDedupedAlertEvent(
   params: BuildAlertWebhookEventParams
-): void {
+): Promise<void> {
   try {
     const event = buildAlertWebhookEvent(params)
-    if (!event) return
-    void emitInstanceEvent(event).catch((err) => {
+    if (!event) return Promise.resolve()
+    return emitInstanceEvent(event).catch((err) => {
       debug(
         `[health-sweep] webhook-subscriptions bus emit failed for host ${params.hostId} rule ${params.ruleId}`,
         err instanceof Error ? err.message : String(err)
@@ -121,5 +123,6 @@ export function dispatchDedupedAlertEvent(
       `[health-sweep] webhook-subscriptions bus emit failed for host ${params.hostId} rule ${params.ruleId}`,
       err instanceof Error ? err.message : String(err)
     )
+    return Promise.resolve()
   }
 }

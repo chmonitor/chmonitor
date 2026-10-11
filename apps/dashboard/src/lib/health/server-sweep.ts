@@ -91,7 +91,7 @@ export interface SweepSummary {
 export async function runHealthSweep(): Promise<SweepSummary> {
   const ranAt = new Date().toISOString()
   const ctx = await resolveSweepContext()
-  const { dispatchFinding, flushDigests, counters } =
+  const { dispatchFinding, flushDigests, flushBusEvents, counters } =
     await createDispatcher(ctx)
 
   const hosts: SweepHostSummary[] = []
@@ -124,6 +124,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   // per target that received >1 finding, then commit + count each deferred
   // finding. Runs after every host so grouping spans the whole pass.
   await flushDigests()
+  // Settle outbound webhook-subscriptions bus deliveries (#2664, #3761).
+  await flushBusEvents()
 
   // Persist the post-sweep transition/hysteresis state to D1 (#2767) so the
   // next tick (even after a restart) resumes streaks + incident timers. Runs

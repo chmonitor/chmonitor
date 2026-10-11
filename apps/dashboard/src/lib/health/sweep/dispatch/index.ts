@@ -132,6 +132,11 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
   // and flush once per tick; see `./digest.ts`.
   const digest = await createDigestPipeline(ctx, counters)
   const customTargets = await loadSweepCustomTargets()
+  // In-flight bus deliveries: not awaited inline (a slow subscriber must not
+  // delay the legacy fan-out) but settled by `flushBusEvents` at the end of
+  // the tick, so none outlives the sweep (Workers would cancel it; tests
+  // would see it leak into the next run).
+  const busDeliveries: Promise<void>[] = []
 
   /**
    * Dedup + dispatch a single finding (base or compound rule) via the shared
@@ -309,21 +314,23 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     // Outbound webhook-subscriptions bus (#2664): fires from this SAME
     // dedup decision, independently of every legacy channel below —
     // "regardless of channel config" per the issue, this is its own
-    // channel. Fire-and-forget (never awaited, never throws — see
+    // channel. Not awaited inline (settled by `flushBusEvents`, never throws — see
     // `alert-webhook-events.ts` / `outbound-bus.ts`'s module docblock), so
     // a slow/unreachable subscriber endpoint can never delay or fail this
     // sweep tick. Placed before the legacy fan-out (not after / not
     // conditioned on `anyDelivered`) so it fires exactly once per notify
     // decision no matter how many — if any — legacy destinations exist.
-    dispatchDedupedAlertEvent({
-      hostId,
-      hostLabel: name,
-      ruleId,
-      ruleTitle,
-      decision,
-      value,
-      label,
-    })
+    busDeliveries.push(
+      dispatchDedupedAlertEvent({
+        hostId,
+        hostLabel: name,
+        ruleId,
+        ruleTitle,
+        decision,
+        value,
+        label,
+      })
+    )
 
     // Catch-up (#2662): a critical suppressed during a quiet-hours window
     // whose window has now closed — label the (naturally re-delivered)
@@ -590,5 +597,14 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     })
   }
 
-  return { dispatchFinding, flushDigests: digest.flushDigests, counters }
+  async function flushBusEvents(): Promise<void> {
+    await Promise.all(busDeliveries.splice(0))
+  }
+
+  return {
+    dispatchFinding,
+    flushDigests: digest.flushDigests,
+    flushBusEvents,
+    counters,
+  }
 }
