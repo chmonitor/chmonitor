@@ -27,6 +27,7 @@ project-local router is [`../SKILL.md`](../SKILL.md).
 | `ui-shell` | Dashboard pages, navigation, responsive shell, a11y | `.github/workflows/test.yml` plus `.github/workflows/a11y.yml` | Authenticated browser state is not assumed. |
 | `api-auth-security` | API boundaries, auth, SQL safety, SSRF, signatures, rate limits | `.github/workflows/test.yml` and `.github/workflows/cloudflare.yml` | Secrets are CI-injected only for deployment proof. |
 | `peerdb` | PeerDB status, metrics, agent tool, insights and alerts | `.github/workflows/test.yml`; `.github/workflows/agent-eval.yml` only on its path filter | A configured PeerDB service is not assumed. |
+| `query-config` | Query configs, versioned SQL, optional tables, output columns | `.github/workflows/test.yml` (`unit-tests` static, `test-queries-config` live on ClickHouse 26.7) | Only 26.7 is live in CI; older `since` branches need their own proof. |
 | `custom-webhooks` | Alert targets, D1/Helm precedence, previews, event bus | `.github/workflows/test.yml` and `.github/workflows/k8s-lint.yml` | External delivery is not assumed. |
 | `helm-gitops` | Helm, Kustomize, chart release, probes, webhook render | `.github/workflows/k8s-lint.yml` and `.github/workflows/helm-release.yml` | Helm changes trigger the lint workflow. |
 | `deploy-cli` | Cloudflare, Docker, Node deploy, `chm` CLI and local connections | `.github/workflows/ci.yml`, `.github/workflows/cloudflare.yml`, `.github/workflows/cli-rust-ci.yml`, `.github/workflows/cli-report.yml` | A live Worker or binary is optional and must be named. |
@@ -41,6 +42,9 @@ project-local router is [`../SKILL.md`](../SKILL.md).
 - [PeerDB agent, metrics, and alerts](./peerdb.md) covers status, fleet
   metrics, read-only proxying, connection ownership, the gated agent tool,
   insights, and health-sweep participation.
+- [Query configs and ClickHouse SQL](./query-config.md) covers versioned
+  SQL, optional tables, output-column shape, static SQL checks, and the live
+  ClickHouse job.
 - [Custom webhooks and event delivery](./custom-webhooks.md) covers alert
   settings, Helm/GitOps targets, D1 overrides, previews, outbound delivery,
   subscriptions, and alert events.
