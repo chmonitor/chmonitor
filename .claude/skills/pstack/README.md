@@ -1,8 +1,8 @@
 # Project-local pstack
 
 This directory is the project-local pstack installation for chmonitor. It
-combines a small, tracked CI-first adapter for OpenCode v2 and other
-skill-aware agents with a pinned supplemental copy of the upstream skills-only
+combines a small, tracked CI-first adapter for skill-aware agents (Claude
+Code, OpenCode, and others) with a pinned supplemental copy of the upstream skills-only
 tree at [`upstream/`](upstream/). The adapter keeps the repository's
 validation contract and feature map close to the code; the upstream copy is
 kept in a named subtree and is not wired into product runtime hooks or the
@@ -53,15 +53,16 @@ not replace an existing destination without inspecting it first.
 
 ## Runtime boundary
 
-- Invoke the project skill as `pstack`, or ask the OpenCode runtime to load
-  `.claude/skills/pstack/SKILL.md`.
-- Use the runtime's native task, subagent, browser, and shell primitives. Do
-  not copy Claude-only `pstack:poteto-agent`, `Agent`, or `/pstack:*` syntax
-  into an OpenCode instruction.
+- Invoke the project skill as `pstack`, or ask the runtime to load
+  `.claude/skills/pstack/SKILL.md` by path.
+- Use the runtime's native task, subagent, browser, and shell primitives. On
+  Claude Code, the `Agent` tool and an installed `poteto-agent` work as
+  written. On OpenCode or other runtimes, translate Claude-only names
+  (`Agent`, `pstack:poteto-agent`, `/pstack:*`) instead of copying them.
 - A skills-only install has no automatic SessionStart routing. Request `pstack`
   explicitly when a task needs the project validation contract.
 - The parent session's model remains authoritative. This project does not
-  hardcode a model slug or change the configured Space Bunny Free runtime.
+  hardcode a model slug or runtime configuration.
 - The adapter itself contains no upstream plugin hooks, agents, or generated
   prompt files. The supplemental upstream skill files are stored under
   `upstream/skills/`; they are not installed into `.agents/skills` and do not
