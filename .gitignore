@@ -144,3 +144,6 @@ assets/videos/*.source.mp4
 # that path is gitignored. These 65 files were committed before the output dir
 # moved and nothing reads them (#3651).
 apps/docs/src/content/docs/
+
+# Local agent run notes; never commit them.
+.hermes/
