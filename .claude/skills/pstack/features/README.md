@@ -10,8 +10,11 @@ project-local router is [`../SKILL.md`](../SKILL.md).
 - Start with `git status --short --branch`, `git diff --name-only origin/main...HEAD`, and `gh pr checks <PR> --watch=false`.
 - Use the workflow and job named by the feature file. A path-filtered job that
   did not run is `not exercised`, not `verified`.
-- Prefer required checks for merge claims. Non-required checks remain useful
-  evidence but do not become a merge gate by repetition.
+- Prefer required checks for merge claims. The required checks are
+  `unit-tests` (`.github/workflows/test.yml`) and `dashboard`
+  (`.github/workflows/cloudflare.yml`). `e2e-test`, `coverage-upload`, and
+  `axe-core` are non-required; they remain useful evidence but do not become
+  a merge gate by repetition.
 - Capture the expected state and the observed state. Do not substitute a
   cached response, a fixture, or a different route.
 - Label the result `verified`, `verified-unreachable`, or `blocked`. Include
@@ -23,7 +26,7 @@ project-local router is [`../SKILL.md`](../SKILL.md).
 | --- | --- | --- | --- |
 | `ui-shell` | Dashboard pages, navigation, responsive shell, a11y | `.github/workflows/test.yml` plus `.github/workflows/a11y.yml` | Authenticated browser state is not assumed. |
 | `api-auth-security` | API boundaries, auth, SQL safety, SSRF, signatures, rate limits | `.github/workflows/test.yml` and `.github/workflows/cloudflare.yml` | Secrets are CI-injected only for deployment proof. |
-| `peerdb` | PeerDB status, metrics, agent tool, insights and alerts | `.github/workflows/test.yml`; agent eval only on its path filter | A configured PeerDB service is not assumed. |
+| `peerdb` | PeerDB status, metrics, agent tool, insights and alerts | `.github/workflows/test.yml`; `.github/workflows/agent-eval.yml` only on its path filter | A configured PeerDB service is not assumed. |
 | `custom-webhooks` | Alert targets, D1/Helm precedence, previews, event bus | `.github/workflows/test.yml` and `.github/workflows/k8s-lint.yml` | External delivery is not assumed. |
 | `helm-gitops` | Helm, Kustomize, chart release, probes, webhook render | `.github/workflows/k8s-lint.yml` and `.github/workflows/helm-release.yml` | Helm changes trigger the lint workflow. |
 | `deploy-cli` | Cloudflare, Docker, Node deploy, `chm` CLI and local connections | `.github/workflows/ci.yml`, `.github/workflows/cloudflare.yml`, `.github/workflows/cli-rust-ci.yml`, `.github/workflows/cli-report.yml` | A live Worker or binary is optional and must be named. |

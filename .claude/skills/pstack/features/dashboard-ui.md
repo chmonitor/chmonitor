@@ -41,8 +41,8 @@ Preconditions:
 - No local browser, ClickHouse, Clerk, or QA dependency is required for the
   default proof.
 
-- **Broad route shell.** In `.github/workflows/test.yml`, inspect `e2e-test`.
-  It runs the Cypress `page-render-sweep.cy.ts` list from the current
+- **Broad route shell.** In `.github/workflows/test.yml`, inspect `e2e-test`
+  (non-required, so confirm it ran and passed). It runs the Cypress `page-render-sweep.cy.ts` list from the current
   `apps/dashboard/src/routes/(dashboard)` tree and records a failure for any
   route with an uncaught exception. The parity guard in
   `apps/dashboard/scripts/page-sweep-parity.test.ts` makes route-list drift

@@ -80,8 +80,9 @@ Preconditions:
 
 - Root `pnpm run cf:health` calls the ClickHouse-gated `/api/healthz`; it can
   report `503` when the monitored source is down even if the Worker is alive.
-- Docker health uses the static `/healthz` contract in
-  `docker-compose.yml`. Do not substitute it for readiness without saying so.
+- The `docker-compose.yml` healthcheck uses the static `/healthz` contract,
+  but root `pnpm run docker:health` calls the ClickHouse-gated `/api/healthz`.
+  Name which one you ran; do not substitute one for the other.
 - A preview deploy is not production. Record the base URL and event type with
   every `verify-deploy` result.
 - CI path filters can skip the Cloudflare, Rust, agent, or Helm job when the

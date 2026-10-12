@@ -80,11 +80,12 @@ can be path-filtered, so also inspect the run's job list before deciding that a
 surface was not exercised.
 
 For a post-deploy smoke proof, use the existing dashboard harness from its
-package directory. The unauthenticated form needs no secret:
+package directory. The unauthenticated form needs no secret. Without
+`--base-url` it targets production, so name the base explicitly:
 
 ```bash
 cd apps/dashboard
-bun scripts/verify-deploy.ts --skip-auth
+bun scripts/verify-deploy.ts --base-url https://preview.dash.chmonitor.dev --skip-auth
 ```
 
 The Cloudflare workflow supplies `CHM_API_KEY_SECRET` only inside CI and calls
