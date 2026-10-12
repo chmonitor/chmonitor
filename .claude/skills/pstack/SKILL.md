@@ -39,7 +39,7 @@ local file parses, a build used to pass, or a proxy reports a cached result.
   silently turn a skipped or non-required check into `verified`.
 - Keep credentials, cookies, API keys, passwords, private webhook URLs, and
   full response bodies containing them out of commands, logs, and evidence.
-- The parent OpenCode runtime owns the model choice. This skill does not
+- The parent session owns the model choice. This skill does not
   override the configured model or add Claude-only slash commands.
 
 ## UI and mode contracts
