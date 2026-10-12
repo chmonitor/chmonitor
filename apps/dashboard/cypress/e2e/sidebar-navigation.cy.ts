@@ -88,15 +88,14 @@ function clickGroupTrigger(groupLabel: string) {
  * not sync-read `$body.find` immediately after click (that races the
  * submenu mount and a second click closes a group that was still opening).
  */
-function waitForHrefOnDocument(hrefPart: string, timeoutMs: number) {
-  const hrefSel = `a[href*="${hrefPart}"]`
+function waitForOnDocument(selector: string, timeoutMs: number) {
   return cy
     .document({ log: false })
     .then({ timeout: timeoutMs + 250 }, (doc) => {
       const deadline = Date.now() + timeoutMs
       return new Cypress.Promise<boolean>((resolve) => {
         const tick = () => {
-          if (doc.querySelector(hrefSel)) {
+          if (doc.querySelector(selector)) {
             resolve(true)
             return
           }
@@ -111,12 +110,37 @@ function waitForHrefOnDocument(hrefPart: string, timeoutMs: number) {
     })
 }
 
-function expandGroup(groupLabel: string, hrefPart: string) {
+function subgroupTriggerSelector(subgroup: string) {
+  return `[data-testid="menu-subgroup-trigger"][data-subgroup="${subgroup}"]`
+}
+
+/**
+ * Large groups split into subgroups that start collapsed and unmount their
+ * links (#3776), so open the subgroup heading before looking for the href.
+ */
+function openSubgroup(subgroup: string) {
+  const triggerSel = subgroupTriggerSelector(subgroup)
+  cy.get(triggerSel, { timeout: 10000 })
+    .first()
+    .scrollIntoView()
+    .then(($trigger) => {
+      if ($trigger.attr('aria-expanded') !== 'true') {
+        cy.wrap($trigger).click({ force: true })
+      }
+    })
+  cy.get(triggerSel).first().should('have.attr', 'aria-expanded', 'true')
+}
+
+function expandGroup(groupLabel: string, hrefPart: string, subgroup?: string) {
   const hrefSel = `a[href*="${hrefPart}"]`
+  // Inside a subgroup the href is unmounted until the subgroup opens, so
+  // wait for the subgroup heading instead to tell whether the group opened.
+  const openedSel = subgroup ? subgroupTriggerSelector(subgroup) : hrefSel
   clickGroupTrigger(groupLabel)
-  waitForHrefOnDocument(hrefPart, 2000).then((found) => {
+  waitForOnDocument(openedSel, 2000).then((found) => {
     if (!found) clickGroupTrigger(groupLabel)
   })
+  if (subgroup) openSubgroup(subgroup)
   cy.get(hrefSel, { timeout: 10000 }).should('exist')
 }
 
@@ -168,7 +192,7 @@ describe('Sidebar navigation', () => {
     // Tools & AI is the last Main group (composed last in menu/index.ts).
     // expandGroup scrolls it into view — do not assume it is near the top.
     cy.get(SIDEBAR).should('be.visible')
-    expandGroup('Tools & AI', '/sql')
+    expandGroup('Tools & AI', '/sql', 'SQL')
     clickHref('/sql')
     cy.url().should('include', '/sql')
     cy.url().should('include', 'host=0')
