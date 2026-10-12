@@ -13,13 +13,32 @@ the CI-first chmonitor validation contract.
 - Upstream source path: `plugins/pstack/skills`
 - Upstream `VERSION`: `0.9.44`
 - Retrieved: `2026-09-25`
-- Tarball SHA-256: `fe6f17fa0bf9e5673480014118cfae751e7d830a602fbf887f849c5651fcbb73`
+- Tarball SHA-256 at retrieval: `fe6f17fa0bf9e5673480014118cfae751e7d830a602fbf887f849c5651fcbb73`
 - Upstream skills tree inventory: 153 files in 74 directories
-- Upstream skills content manifest SHA-256: `9c842ce09bd9429a90288906a48d7e45be5c54c204b5f534910f558da1c39186`
+- Upstream skills content manifest SHA-256: `d27b3902464dd3013986b4b8ef0ee9dc9567fc18214b4bff05eb01b3441dacce`
 
-The content manifest hash is a sorted `sha256sum` manifest of relative paths and
-file contents for `plugins/pstack/skills`. It identifies the copied upstream
-subtree; it is not a hash of this repository's later documentation edits.
+The content manifest hash comes from [`manifest.sh`](manifest.sh). From inside
+the tree, it lists regular files as `./<path>`, sorts the paths bytewise
+(`LC_ALL=C sort -z`), runs `sha256sum` over them in that order, and hashes the
+resulting `<hash>  ./<path>` lines:
+
+```sh
+cd skills
+find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum
+```
+
+Run `./manifest.sh --check` to compare the vendored tree with the value above,
+or `./manifest.sh <dir>` to hash an extracted upstream `plugins/pstack/skills`.
+It identifies the copied upstream subtree; it is not a hash of this
+repository's later documentation edits.
+
+Re-verified on 2026-10-13: `diff -r` found the vendored `skills/` identical to
+`plugins/pstack/skills` in a fresh `v0.9.44` archive, whose tag resolves to the
+upstream commit above. `manifest.sh` gives the same hash for both trees. The
+hash recorded at retrieval (`9c842ce0…`) used an unrecorded recipe and cannot
+be reproduced, so it was replaced. GitHub's generated archives are not
+byte-stable (the re-download hashed `fc1e1b0f…`), so the commit and the
+content manifest, not the tarball hash, are the integrity anchors.
 
 ## Included files
 
@@ -28,8 +47,8 @@ subtree; it is not a hash of this repository's later documentation edits.
   copied from the upstream release.
 - `CHANGES.md` is copied so the upstream notice has its referenced provenance
   record beside it.
-- `README.md` and this file are local installation metadata, not upstream
-  content.
+- `README.md`, `manifest.sh`, and this file are local installation metadata,
+  not upstream content.
 
 No plugin hooks, agent registrations, model configuration, Claude plugin
 manifest, Codex prompt stubs, or generated dashboard registry files are part of
@@ -59,5 +78,6 @@ Checked on 2026-09-25 with shell-only checks:
 
 Refresh only with a file copy from a pinned release. Inspect the destination
 first, preserve the local adapter, and update this metadata with the new tag,
-commit, version, inventory, and hashes. Do not hand-edit files under
-`upstream/skills/`.
+commit, version, inventory, and hashes. Record the content manifest with
+`./manifest.sh`, then confirm it with `./manifest.sh --check`. Do not hand-edit
+files under `upstream/skills/`.
