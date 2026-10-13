@@ -11,7 +11,7 @@
 import type { BufferedDigestEntry } from '../../alert-digest-buffer-store'
 import type { DispatchCounters } from './types'
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 /** In-memory stand-in for the D1 buffer table. */
 let rows: { flushAfter: number; entry: BufferedDigestEntry }[] = []
@@ -33,12 +33,6 @@ mock.module('../../alert-digest-buffer-store', () => ({
     const due = rows.filter((r) => r.flushAfter <= now)
     rows = rows.filter((r) => r.flushAfter > now)
     return due.map((r) => r.entry)
-  },
-}))
-mock.module('./webhook-post', () => ({
-  postWebhook: async (url: string) => {
-    posts.push({ url, ok: webhookOk })
-    return webhookOk ? { ok: true } : { ok: false, error: 'HTTP 500' }
   },
 }))
 mock.module('../../alert-history-store', () => ({
@@ -80,10 +74,23 @@ const payload = {
 
 const waitPastWindow = () => new Promise((r) => setTimeout(r, 5))
 
+// Stub fetch rather than mocking ./webhook-post: a module mock would leak into
+// webhook-post.test.ts when both run in one process.
+const originalFetch = globalThis.fetch
+const stubFetch = (async (input: RequestInfo | URL) => {
+  posts.push({ url: String(input), ok: webhookOk })
+  return new Response(null, { status: webhookOk ? 204 : 500 })
+}) as typeof fetch
+
 beforeEach(() => {
   rows = []
   posts.length = 0
   webhookOk = true
+  globalThis.fetch = stubFetch
+})
+
+afterEach(() => {
+  globalThis.fetch = originalFetch
 })
 
 describe('time-window digest flush', () => {
