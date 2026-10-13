@@ -16,6 +16,7 @@ import { debug, error } from '@chm/logger'
 import { validateSqlQuery } from '@chm/sql-builder'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { truncateLargeValues } from '@/lib/api/shared/truncate-large-values'
 import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import { EXPLORER_QUERY_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
@@ -23,32 +24,12 @@ import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
 const MAX_GET_QUERY_LENGTH = 8_000
 const MAX_POST_QUERY_LENGTH = 100_000
-const MAX_CELL_VALUE_LENGTH = 10_000
 
 const SUPPORTED_FORMATS = ['JSONEachRow', 'JSON', 'CSV', 'TSV'] as const
 type SupportedFormat = (typeof SUPPORTED_FORMATS)[number]
 
 function isSupportedFormat(format: string): format is SupportedFormat {
   return (SUPPORTED_FORMATS as readonly string[]).includes(format)
-}
-
-function truncateLargeValues<T>(data: T): T {
-  if (!Array.isArray(data)) return data
-  return data.map((row) => {
-    if (typeof row !== 'object' || row === null || Array.isArray(row))
-      return row
-    const truncated: Record<string, unknown> = {}
-    for (const [key, value] of Object.entries(row as Record<string, unknown>)) {
-      if (typeof value === 'string' && value.length > MAX_CELL_VALUE_LENGTH) {
-        truncated[key] =
-          value.slice(0, MAX_CELL_VALUE_LENGTH) +
-          `… (truncated, ${value.length} chars total)`
-      } else {
-        truncated[key] = value
-      }
-    }
-    return truncated
-  }) as T
 }
 
 function mapErrorTypeToStatusCode(errorType: string): number {
