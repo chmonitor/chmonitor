@@ -1,5 +1,5 @@
 // Telemetry event transport. Installs a sink that POSTs typed, redacted events
-// to the collector's /v1/event endpoint.
+// to the shared telemetry service (the same endpoint the instance ping uses).
 //
 // track() already gates on isTelemetryEnabled and redacts props before calling
 // sinks, so this transport only has to deliver. It is a hard no-op when
@@ -10,28 +10,38 @@ import type { TelemetryPayload } from './events'
 
 import { isTelemetryEnabled } from './config'
 import { getDeployTarget } from './environment'
-import { getPingEndpoint } from './instance-ping'
+import {
+  getChmVersion,
+  getPingEndpoint,
+  STORAGE_KEY_INSTANCE_ID,
+  sha256hex,
+} from './instance-ping'
 import { registerTelemetrySink } from './track'
 
-const PING_PATH = '/v1/ping'
-const EVENT_PATH = '/v1/event'
+let unregister: (() => void) | null = null
+
+// The ping can regenerate the stored instance id (ClickHouse hostname change),
+// so memoize per raw value rather than once.
+let hashed: { raw: string; hash: string } | null = null
 
 /**
- * Derives the event endpoint from the configured ping endpoint: the collector
- * exposes /v1/ping and /v1/event under the same origin. A custom endpoint that
- * does not use the /v1/ping suffix is returned unchanged (single-URL ingest).
+ * The same instance hash the daily ping sends as `id`, derived from the stored
+ * instance id at send time. Events must carry it: the service counts an
+ * id-less event as a separate daily user, which would inflate DAU. Undefined
+ * only before the first ping has stored an id (or when storage is unavailable).
  */
-export function getEventEndpoint(
-  runtimeEnv?: Record<string, string | undefined>
-): string {
-  const ping = getPingEndpoint(runtimeEnv)
-  if (!ping) return ''
-  return ping.endsWith(PING_PATH)
-    ? `${ping.slice(0, -PING_PATH.length)}${EVENT_PATH}`
-    : ping
+async function currentInstanceHash(): Promise<string | undefined> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_INSTANCE_ID)
+    if (!raw) return undefined
+    if (hashed?.raw === raw) return hashed.hash
+    const hash = await sha256hex(raw)
+    hashed = { raw, hash }
+    return hash
+  } catch {
+    return undefined
+  }
 }
-
-let unregister: (() => void) | null = null
 
 /**
  * Install the telemetry event sink (idempotent). Fire-and-forget POST per event,
@@ -45,22 +55,28 @@ export function installTelemetryEventSink(
   if (typeof fetch !== 'function') return
   if (!isTelemetryEnabled(runtimeEnv)) return
 
-  const endpoint = getEventEndpoint(runtimeEnv)
+  const endpoint = getPingEndpoint(runtimeEnv)
   if (!endpoint) return
 
   const deployTarget = getDeployTarget()
+  const version = getChmVersion()
   unregister = registerTelemetrySink((payload: TelemetryPayload) => {
-    const body = JSON.stringify({
-      event: payload.event,
-      // deploy_target is a useful default dimension; explicit props win.
-      props: { deploy_target: deployTarget, ...payload.props },
-    })
-    fetch(endpoint, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body,
-      keepalive: true,
-    }).catch(() => {
+    void (async () => {
+      const id = await currentInstanceHash()
+      const body = JSON.stringify({
+        event: payload.event,
+        id,
+        version,
+        // deploy_target is a useful default dimension; explicit props win.
+        props: { deploy_target: deployTarget, ...payload.props },
+      })
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body,
+        keepalive: true,
+      })
+    })().catch(() => {
       // A failed telemetry POST must never surface to the app.
     })
   })

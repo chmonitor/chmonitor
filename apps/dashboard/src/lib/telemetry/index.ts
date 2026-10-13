@@ -19,7 +19,6 @@ export {
   parseMajorMinor,
 } from './environment'
 export {
-  getEventEndpoint,
   installTelemetryEventSink,
   uninstallTelemetryEventSink,
 } from './event-sink'
@@ -38,16 +37,14 @@ export {
   maybePingInstance,
   PING_INTERVAL_MS,
   type PingDeps,
+  type PingPayload,
   type PingResult,
   runInstancePing,
   shouldPing,
 } from './instance-ping'
-export { getLicenseKey, sanitizeLicenseKey } from './license-key'
 export {
   isBlockedKey,
   looksSensitive,
-  PING_ALLOWLISTED_KEYS,
-  redactPingPayload,
   redactProps,
 } from './redact'
 export {

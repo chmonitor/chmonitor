@@ -1,10 +1,15 @@
-// Opt-in, daily anonymous instance ping.
+// Daily anonymous instance ping, sent to the shared telemetry service as a
+// `ping` event.
 //
 // Privacy contract (CRITICAL):
 //   - Completely inert unless BOTH conditions hold:
-//     1. Telemetry is explicitly enabled (CHM_TELEMETRY=on / VITE_TELEMETRY_ENABLED=true).
-//     2. A collection endpoint is explicitly configured (CHM_TELEMETRY_ENDPOINT / VITE_TELEMETRY_ENDPOINT).
+//     1. Telemetry is enabled (on by default; off via CHM_TELEMETRY=off, DO_NOT_TRACK, ...).
+//     2. A collection endpoint resolves (CHM_TELEMETRY_ENDPOINT / VITE_TELEMETRY_ENDPOINT,
+//        or the default). An empty endpoint is a hard kill-switch.
 //   - NO network call is made if either condition is absent.
+//   - No license key, deployment-location hash or client-derived country is
+//     sent. A license key is an identifier and must never reach public
+//     telemetry; the server derives the country itself.
 //   - Only the HASH of a randomly-generated local ID is transmitted — the raw ID
 //     never leaves the device. The hash is stable across pings (re-hashes the same
 //     stored ID) so the server can count distinct instances without learning identity.
@@ -12,27 +17,27 @@
 //     be mistaken for an IPv4 address and cannot fingerprint a specific patch release.
 
 import { isTelemetryEnabled } from './config'
+import { DEFAULT_TELEMETRY_ENDPOINT } from './endpoint'
 import {
   detectChFlavor,
-  detectCountry,
   detectPlatform,
   getDeployTarget,
   parseMajorMinor,
 } from './environment'
-import { getLicenseKey, sanitizeLicenseKey } from './license-key'
-import { redactPingPayload } from './redact'
+import { redactProps } from './redact'
 import { APP_VERSION } from '@/lib/whats-new/app-version'
 
 export const PING_INTERVAL_MS = 24 * 60 * 60 * 1000
 
-const STORAGE_KEY_INSTANCE_ID = 'chm_telemetry_instance_id'
+export const STORAGE_KEY_INSTANCE_ID = 'chm_telemetry_instance_id'
 const STORAGE_KEY_LAST_PING = 'chm_telemetry_last_ping_at'
 
-// Default collection endpoint (the project's hosted collector — apps/telemetry).
-// Overridable via CHM_TELEMETRY_ENDPOINT / VITE_TELEMETRY_ENDPOINT. Set the env
-// to an empty string to hard-disable the network call even with telemetry on.
-export const DEFAULT_TELEMETRY_ENDPOINT =
-  'https://telemetry.chmonitor.dev/v1/ping'
+export { DEFAULT_TELEMETRY_ENDPOINT }
+
+/** CHM product version (semver, no leading `v`). Git refs are not accepted by the collector. */
+export function getChmVersion(): string | undefined {
+  return APP_VERSION.replace(/^v/, '') || undefined
+}
 
 export function shouldPing(
   now: number,
@@ -46,61 +51,72 @@ export function shouldPing(
   return now - lastPingAt >= intervalMs
 }
 
+/** Wire shape of one event accepted by the shared telemetry service. */
+export interface PingPayload {
+  event: 'ping'
+  /** The instance hash — same value as before, so counts stay continuous. */
+  id: string
+  /** CHM product version. */
+  version?: string
+  os?: string
+  props: Record<string, string>
+}
+
 /**
- * Builds the JSON payload sent to the collection endpoint.
+ * Builds the `ping` event sent to the collection endpoint.
  * Only safe, non-identifying fields are included.
  * Undefined values are omitted.
+ *
+ * `version` is the ClickHouse server version (reported as `props.ch_version`,
+ * truncated to major.minor); `chmVersion` is the product version and becomes the
+ * top-level `version`.
  */
 export function buildPingPayload(input: {
   instanceHash: string
   version?: string
   deployTarget: string
   chFlavor?: string
-  country?: string
   platform?: string
   chmVersion?: string
-  installPlace?: string
-  licenseKey?: string
-}): Record<string, string> {
+}): PingPayload {
   const {
     instanceHash,
     version,
     deployTarget,
     chFlavor,
-    country,
     platform,
     chmVersion,
-    installPlace,
-    licenseKey,
   } = input
   const chVersion = version ? parseMajorMinor(version) : undefined
-  const payload: Record<string, string> = {
-    instance_hash: instanceHash,
-    deploy_target: deployTarget,
-  }
+  const props: Record<string, string> = { deploy_target: deployTarget }
   if (chVersion !== undefined) {
-    payload.ch_version = chVersion
+    props.ch_version = chVersion
   }
   if (chFlavor !== undefined) {
-    payload.ch_flavor = chFlavor
+    props.ch_flavor = chFlavor
   }
-  if (country !== undefined) {
-    payload.country = country
-  }
-  if (platform !== undefined) {
-    payload.platform = platform
+  const payload: PingPayload = {
+    event: 'ping',
+    id: instanceHash,
+    props: stringProps(redactProps(props)),
   }
   if (chmVersion !== undefined) {
-    payload.chm_version = chmVersion
+    payload.version = chmVersion
   }
-  if (installPlace !== undefined) {
-    payload.install_place = installPlace
+  if (platform !== undefined) {
+    payload.os = platform
   }
-  const sanitizedKey = sanitizeLicenseKey(licenseKey)
-  if (sanitizedKey !== undefined) {
-    payload.license_key = sanitizedKey
+  return payload
+}
+
+function stringProps(
+  props: Record<string, string | number | boolean | undefined>
+): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(props)) {
+    if (typeof value === 'string') out[key] = value
   }
-  return redactPingPayload(payload)
+  return out
 }
 
 /**
@@ -142,17 +158,8 @@ export interface PingDeps {
     version: string | null | undefined,
     hostname?: string | null
   ) => string
-  detectCountry: () => string
   detectPlatform: () => string
   chmVersion?: string
-  computeInstallPlace: () => Promise<string | undefined>
-  /** Polar checkout id (`CHM_LICENSE_KEY`) when already resolved. */
-  licenseKey?: string
-  /**
-   * Lazy resolve for Docker/Helm: the prerendered client shell cannot inline
-   * a runtime env var. Called only when a ping will actually be sent.
-   */
-  resolveLicenseKey?: () => Promise<string | undefined>
 }
 
 /**
@@ -177,12 +184,8 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
     version,
     deployTarget,
     detectFlavor,
-    detectCountry,
     detectPlatform,
     chmVersion,
-    computeInstallPlace,
-    licenseKey: licenseKeyFromDeps,
-    resolveLicenseKey,
   } = deps
 
   if (!enabled) return 'skipped-disabled'
@@ -219,29 +222,15 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
 
   const instanceHash = await hash(instanceId)
   const chFlavor = detectFlavor(version, deps.chHostname)
-  const country = detectCountry()
   const platform = detectPlatform()
-  const installPlace = await computeInstallPlace()
-
-  let licenseKey = sanitizeLicenseKey(licenseKeyFromDeps)
-  if (!licenseKey && resolveLicenseKey) {
-    try {
-      licenseKey = sanitizeLicenseKey(await resolveLicenseKey())
-    } catch {
-      licenseKey = undefined
-    }
-  }
 
   const payload = buildPingPayload({
     instanceHash,
     version,
     deployTarget,
     chFlavor,
-    country,
     platform,
     chmVersion,
-    installPlace,
-    licenseKey,
   })
 
   try {
@@ -260,32 +249,12 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
   return 'pinged'
 }
 
-async function sha256hex(s: string): Promise<string> {
+export async function sha256hex(s: string): Promise<string> {
   const enc = new TextEncoder()
   const buf = await crypto.subtle.digest('SHA-256', enc.encode(s))
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
-}
-
-/**
- * Runtime `CHM_LICENSE_KEY` for Docker/Helm (not inlined at image build).
- * Missing/invalid → omit. Never throws.
- */
-async function fetchRuntimeLicenseKey(): Promise<string | undefined> {
-  try {
-    const res = await fetch('/api/v1/runtime-env', {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    })
-    if (!res.ok) return undefined
-    const json: unknown = await res.json()
-    if (!json || typeof json !== 'object') return undefined
-    const raw = (json as { license_key?: unknown }).license_key
-    return typeof raw === 'string' ? sanitizeLicenseKey(raw) : undefined
-  } catch {
-    return undefined
-  }
 }
 
 /**
@@ -348,33 +317,8 @@ export function maybePingInstance(
     chHostname,
     deployTarget: getDeployTarget(),
     detectFlavor: detectChFlavor,
-    detectCountry: detectCountry,
     detectPlatform: detectPlatform,
-    // Product version from package.json (semver). Git refs are not accepted
-    // by the collector and were stored as empty chm_version.
-    chmVersion: APP_VERSION.replace(/^v/, '') || undefined,
-    licenseKey: getLicenseKey(runtimeEnv),
-    resolveLicenseKey: fetchRuntimeLicenseKey,
-    computeInstallPlace: async () => {
-      // Compute a stable hash from deployment environment signals. The hash
-      // identifies the deployment location (k8s cluster, Docker host, etc.)
-      // without exposing the raw values.
-      try {
-        const signals: string[] = []
-        // Browser hostname (e.g. 'chm.mycompany.com') — same for all users
-        // hitting the same deployment.
-        if (typeof window !== 'undefined' && window.location) {
-          signals.push(window.location.hostname)
-        }
-        // Deploy target contributes to the signal so different deploy
-        // methods on the same host are distinguishable.
-        signals.push(getDeployTarget())
-        if (signals.length === 0) return undefined
-        return sha256hex(signals.join('|'))
-      } catch {
-        return undefined
-      }
-    },
+    chmVersion: getChmVersion(),
   }
 
   // Fire-and-forget — errors are swallowed by runInstancePing + this catch.
