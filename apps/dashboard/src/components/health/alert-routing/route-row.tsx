@@ -11,6 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { fireNtfyTest, fireWebhook } from '@/lib/health/alert-dispatcher'
+import { fetchAlertIdentity } from '@/lib/health/alert-identity-client'
 import { useAlertRoutesMutations } from '@/lib/hooks/use-alert-routes'
 import { describeError } from '@/lib/swr/fetch-error'
 
@@ -92,7 +93,8 @@ export function RouteRow({
         )
         return
       }
-      const ok = await fireWebhook(TEST_ALERT, route.channelUrl)
+      const identity = await fetchAlertIdentity()
+      const ok = await fireWebhook(TEST_ALERT, route.channelUrl, identity)
       if (ok) toast.success('Test alert sent')
       else toast.error('Webhook request failed')
     } finally {
