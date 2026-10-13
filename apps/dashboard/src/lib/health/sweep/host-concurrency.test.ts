@@ -30,6 +30,7 @@ function params(hostId: number, ruleId: string): DispatchFindingParams {
     hostName: `h${hostId}`,
     ruleId,
     ruleTitle: ruleId,
+    ruleType: 'threshold',
     severity: 'warning',
     value: 1,
     label: '1',
