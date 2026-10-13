@@ -26,9 +26,12 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { getClient } from '@chm/clickhouse-client'
+import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import { error } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
+import { runWithQueryCache } from '@/lib/api/query-cache-settings'
+import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 import {
   clusterViewNotice,
@@ -38,6 +41,9 @@ import {
 // ---------------------------------------------------------------------------
 // Env helpers (mirrors healthz.ts)
 // ---------------------------------------------------------------------------
+
+/** Query-cache TTL (seconds), matching the 30s client poll and s-maxage. */
+const NOTIFICATIONS_CACHE_TTL_SECONDS = 30
 
 // ---------------------------------------------------------------------------
 // Types
@@ -148,6 +154,15 @@ export const Route = createFileRoute('/api/v1/notifications')({
         try {
           const client = await getClient({ web: true, clientConfig })
 
+          // Read-only GET path: opt into the ClickHouse query cache like
+          // host-status.ts, so repeat polls from many tabs share one run.
+          bridgeClickHouseEnv(bindings)
+          const cacheOpts = {
+            version: await getClickHouseVersion(hostId),
+            ttlSeconds: NOTIFICATIONS_CACHE_TTL_SECONDS,
+            hostId,
+          }
+
           // Step 1 (#3682): can this user fan out to a cluster at all? Reads the
           // cached capability snapshot and probes at most once per TTL (or once
           // per backoff window, for a cluster that rejects inter-server auth).
@@ -167,15 +182,18 @@ export const Route = createFileRoute('/api/v1/notifications')({
           let clusterLabel = fanout.cluster ?? 'local'
 
           if (fanout.status === 'supported' && fanout.cluster !== null) {
-            const readonlyResult = await client.query({
-              query: `
+            const readonlyResult = await runWithQueryCache(cacheOpts, (cache) =>
+              client.query({
+                query: `
               SELECT COUNT() as count
               FROM clusterAllReplicas({cluster: String}, system.replicas)
               WHERE is_readonly = 1
             `,
-              format: 'JSONEachRow',
-              query_params: { cluster: fanout.cluster },
-            })
+                format: 'JSONEachRow',
+                query_params: { cluster: fanout.cluster },
+                clickhouse_settings: cache,
+              })
+            )
             const readonlyData = (await readonlyResult.json()) as Array<{
               count?: number | string
             }>
@@ -195,14 +213,17 @@ export const Route = createFileRoute('/api/v1/notifications')({
             // Node-local fallback. `clusterLabel` says so, so the notification
             // text cannot be read as a cluster-wide count.
             clusterLabel = `${clientConfig.customName || 'this node'} (local only)`
-            const localResult = await client.query({
-              query: `
+            const localResult = await runWithQueryCache(cacheOpts, (cache) =>
+              client.query({
+                query: `
                 SELECT COUNT() as count
                 FROM system.replicas
                 WHERE is_readonly = 1
               `,
-              format: 'JSONEachRow',
-            })
+                format: 'JSONEachRow',
+                clickhouse_settings: cache,
+              })
+            )
             const localData = (await localResult.json()) as Array<{
               count?: number | string
             }>
