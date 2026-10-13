@@ -243,12 +243,6 @@
     },
     {
       "exampleDefault": null,
-      "inEnvExample": false,
-      "name": "CHM_FEATURE_CLOUD_BILLING_SYNC",
-      "prefix": "CHM"
-    },
-    {
-      "exampleDefault": null,
       "inEnvExample": true,
       "name": "CHM_FEATURE_CONVERSATION_DB",
       "prefix": "CHM"
@@ -480,30 +474,6 @@
       "inEnvExample": false,
       "name": "CLERK_WEBHOOK_SECRET",
       "prefix": "CLERK"
-    },
-    {
-      "exampleDefault": null,
-      "inEnvExample": false,
-      "name": "CLICKHOUSE_CLOUD_API_BASE_URL",
-      "prefix": "CLICKHOUSE"
-    },
-    {
-      "exampleDefault": null,
-      "inEnvExample": false,
-      "name": "CLICKHOUSE_CLOUD_API_KEY_ID",
-      "prefix": "CLICKHOUSE"
-    },
-    {
-      "exampleDefault": null,
-      "inEnvExample": false,
-      "name": "CLICKHOUSE_CLOUD_API_KEY_SECRET",
-      "prefix": "CLICKHOUSE"
-    },
-    {
-      "exampleDefault": null,
-      "inEnvExample": false,
-      "name": "CLICKHOUSE_CLOUD_ORG_ID",
-      "prefix": "CLICKHOUSE"
     },
     {
       "exampleDefault": null,
