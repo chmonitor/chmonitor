@@ -5,4 +5,6 @@
 # Validates commit messages follow conventional commit format
 # ─────────────────────────────────────────────────────────────────────────────
 
+. "$(dirname "$0")/require-deps.sh"
+
 pnpm exec commitlint --edit "$1"

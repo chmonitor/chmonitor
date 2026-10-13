@@ -2,24 +2,18 @@
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Pre-commit hook for clickhouse-monitor
-# Runs: lint-staged (Biome format + lint) → TypeScript type-check
+# Runs: lint-staged (Biome format + lint) → root workspace type-check
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Guard against a fresh clone / isolated app install where root node_modules
-# was never populated — without this, the workspace-wide type-check below
-# fails with a raw, confusing TS2307 instead of a clear next step.
-[ -d node_modules ] || {
-  echo "❌ Root node_modules missing — run 'pnpm install' at the repo root first."
-  exit 1
-}
+. "$(dirname "$0")/require-deps.sh"
 
 # Run lint-staged for formatting and linting staged files
 echo "🔍 Running lint-staged (Biome check on staged files)..."
 pnpm exec lint-staged
 
-# Run TypeScript type-check on the full project
-# Note: tsc --noEmit is fast because it uses incremental compilation
-echo "📝 Running TypeScript type-check..."
+# Root `type-check` (turbo) covers only the root workspace packages, NOT
+# apps/dashboard: that app needs a generated routeTree, so CI type-checks it.
+echo "📝 Running root workspace type-check (not apps/dashboard)..."
 pnpm run type-check
 
 echo "✅ Pre-commit checks passed!"
