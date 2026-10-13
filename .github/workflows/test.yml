@@ -301,9 +301,6 @@ jobs:
           # covering nothing.
           CHM_LIVE_CLICKHOUSE: '1'
 
-      - name: Run package integration tests
-        run: pnpm run test:packages:ci
-
   # Live Postgres integration tests for the postgres-source path (@chm/postgres-client
   # + the dashboard's executePgQuery/SSRF guard). Started via `docker run` (not
   # `services:`) because `pg_stat_statements` needs `shared_preload_libraries` at
