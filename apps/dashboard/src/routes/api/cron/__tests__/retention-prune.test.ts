@@ -21,7 +21,8 @@
  * repo's route tests.
  *
  * The fake D1 only implements the two statement shapes retention-prune.ts
- * actually issues: `SELECT DISTINCT user_id ...` (`.prepare(sql).all()`) and
+ * actually issues: `SELECT user_id ... HAVING MIN(updated_at) < ?1`
+ * (`.prepare(sql).bind(cutoff).all()`) and
  * `DELETE ... WHERE user_id = ?1 AND updated_at < ?2` (`.prepare(sql).bind(...).run()`),
  * recording each DELETE's SQL text + bound args so tests can assert the
  * comparison operator and cutoff value directly rather than trusting the fake.
@@ -48,13 +49,15 @@ function makeFakeD1(opts: {
   deletedByUser?: Record<string, number>
 }) {
   const deleteCalls: DeleteCall[] = []
+  const selectCalls: { sql: string; cutoff: number }[] = []
   const db = {
     prepare(sql: string) {
       return {
-        all: async () => ({
-          results: opts.userIds.map((user_id) => ({ user_id })),
-        }),
         bind: (...args: unknown[]) => ({
+          all: async () => {
+            selectCalls.push({ sql, cutoff: args[0] as number })
+            return { results: opts.userIds.map((user_id) => ({ user_id })) }
+          },
           run: async () => {
             const [userId, cutoff] = args as [string, number]
             deleteCalls.push({ sql, userId, cutoff })
@@ -64,7 +67,7 @@ function makeFakeD1(opts: {
       }
     },
   }
-  return { db, deleteCalls }
+  return { db, deleteCalls, selectCalls }
 }
 
 // --- @chm/platform: mutable per-test D1 binding via a stable wrapper --------
@@ -82,8 +85,11 @@ let resolveRetentionPlanForUser = mock(
   async (_userId: string): Promise<Plan> => getPlan('free')
 )
 mock.module('@/lib/billing/retention-owner', () => ({
-  resolveRetentionPlanForUser: (userId: string) =>
-    resolveRetentionPlanForUser(userId),
+  resolveRetentionPlanForUser: (userId: string, cache?: unknown) =>
+    (resolveRetentionPlanForUser as (u: string, c?: unknown) => Promise<Plan>)(
+      userId,
+      cache
+    ),
   mostGenerousRetentionPlan: (plans: Plan[]) => plans[0],
 }))
 
@@ -266,5 +272,51 @@ describe('GET /api/cron/retention-prune — prune loop', () => {
       errors: 1,
     })
     expect(deleteCalls.map((c) => c.userId)).toEqual(['user_good'])
+  })
+})
+
+describe('GET /api/cron/retention-prune — round-trip bounds (#3801)', () => {
+  test('7. only users with rows older than the shortest plan cutoff are selected', async () => {
+    const { db, selectCalls } = makeFakeD1({ userIds: [] })
+    getD1Database = mock(() => db)
+    const before = Date.now()
+
+    await handler(req({ auth: 'Bearer test-secret' }))
+
+    expect(selectCalls).toHaveLength(1)
+    expect(selectCalls[0].sql).toMatch(/HAVING MIN\(updated_at\) < \?1/)
+    // free (7d) is the shortest finite window in BILLING_PLANS.
+    const freeCutoff = retentionCutoffMs(getPlan('free'), before) as number
+    expect(selectCalls[0].cutoff).toBeGreaterThanOrEqual(freeCutoff)
+    expect(selectCalls[0].cutoff).toBeLessThanOrEqual(
+      retentionCutoffMs(getPlan('free')) as number
+    )
+    // no candidate users -> no Clerk/billing resolution at all
+    expect(resolveRetentionPlanForUser).not.toHaveBeenCalled()
+  })
+
+  test('8. users are processed with bounded concurrency (<= 5) and a shared plan cache', async () => {
+    const userIds = Array.from({ length: 20 }, (_, i) => `user_${i}`)
+    const { db } = makeFakeD1({ userIds })
+    getD1Database = mock(() => db)
+    let inFlight = 0
+    let maxInFlight = 0
+    const caches = new Set<unknown>()
+    resolveRetentionPlanForUser = mock(async (_u: string, c?: unknown) => {
+      caches.add(c)
+      inFlight += 1
+      maxInFlight = Math.max(maxInFlight, inFlight)
+      await new Promise((r) => setTimeout(r, 2))
+      inFlight -= 1
+      return getPlan('free')
+    })
+
+    const res = await handler(req({ auth: 'Bearer test-secret' }))
+
+    expect(res.status).toBe(200)
+    expect(maxInFlight).toBeGreaterThan(1)
+    expect(maxInFlight).toBeLessThanOrEqual(5)
+    expect(caches.size).toBe(1)
+    expect(caches.has(undefined)).toBe(false)
   })
 })

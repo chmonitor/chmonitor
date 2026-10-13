@@ -38,6 +38,10 @@ import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
 import { hasCapability } from '@/lib/billing/entitlements'
 import { getPlanForOwner } from '@/lib/billing/user-subscription'
 import { getHost } from '@/lib/utils'
+import { mapWithConcurrency } from '@/lib/utils/map-with-concurrency'
+
+/** Max owner deliveries in flight — bounds Clerk/D1/ClickHouse/channel subrequests. */
+const DELIVERY_CONCURRENCY = 4
 
 export interface FanoutOwnerResult {
   readonly ownerId: string
@@ -61,13 +65,32 @@ export async function runReportFanout(
 
   const configs = getClickHouseConfigsFromEnv(bindings)
   const byId = new Map(configs.map((c) => [c.id, c]))
-  const results: FanoutOwnerResult[] = []
-  // Reports are per-host but delivery is per-owner; cache builds so two
-  // owners subscribed to the same host share one build within a run.
-  const reportCache = new Map<
-    number,
-    Awaited<ReturnType<typeof buildWeeklyReport>>
-  >()
+  // Reports are per-host but delivery is per-owner; memoize the build promise
+  // so owners subscribed to the same host share ONE build (and one persist)
+  // even when they run concurrently.
+  const reportCache = new Map<number, Promise<WeeklyReport>>()
+  const buildAndPersist = (hostId: number): Promise<WeeklyReport> => {
+    let pending = reportCache.get(hostId)
+    if (!pending) {
+      const cfg = byId.get(hostId)
+      const label =
+        cfg?.customName || getHost(cfg?.host ?? '') || `Host ${hostId}`
+      pending = (async () => {
+        const report = await buildWeeklyReport(hostId, label, period)
+        await persistWeeklyReport({
+          hostId: String(hostId),
+          weekStart: report.summary.weekStart,
+          summaryJson: JSON.stringify(report.summary),
+          html: report.html,
+          delivered: false,
+          generatedAt: Date.now(),
+        })
+        return report
+      })()
+      reportCache.set(hostId, pending)
+    }
+    return pending
+  }
 
   // PDF attachment (#2794) needs a Browser Rendering binding; render only when
   // present (Cloud). OSS/self-hosted has no binding → HTML-only, unchanged.
@@ -75,7 +98,9 @@ export async function runReportFanout(
     bindings as unknown as Record<string, unknown>
   )
 
-  for (const sub of subscriptions) {
+  const processSubscription = async (
+    sub: (typeof subscriptions)[number]
+  ): Promise<FanoutOwnerResult> => {
     try {
       // PDF is a Pro+ (`data_export`) perk; resolve the owner's plan once and
       // reuse it for both the weekly-cadence gate and the PDF-attachment gate.
@@ -83,14 +108,13 @@ export async function runReportFanout(
         sub.ownerId !== '' ? await getPlanForOwner(sub.ownerId) : null
 
       if (period === 'weekly' && plan && !weeklyReportsAllowed(plan.id)) {
-        results.push({
+        return {
           ownerId: sub.ownerId,
           hosts: [],
           delivered: false,
           status: 'skipped:plan',
           skipped: 'plan',
-        })
-        continue
+        }
       }
 
       const attachPdf =
@@ -98,38 +122,18 @@ export async function runReportFanout(
 
       const hosts = sub.hostIds.filter((id) => byId.has(id))
       if (hosts.length === 0) {
-        results.push({
+        return {
           ownerId: sub.ownerId,
           hosts: [],
           delivered: false,
           status: 'skipped:no-hosts',
           skipped: 'no-hosts',
-        })
-        continue
+        }
       }
 
       // Build + persist every subscribed host's report first (per-host
       // persistence is unchanged — the fleet combination is delivery-only).
-      const reports: WeeklyReport[] = []
-      for (const hostId of hosts) {
-        let report = reportCache.get(hostId)
-        if (!report) {
-          const cfg = byId.get(hostId)
-          const label =
-            cfg?.customName || getHost(cfg?.host ?? '') || `Host ${hostId}`
-          report = await buildWeeklyReport(hostId, label, period)
-          reportCache.set(hostId, report)
-          await persistWeeklyReport({
-            hostId: String(hostId),
-            weekStart: report.summary.weekStart,
-            summaryJson: JSON.stringify(report.summary),
-            html: report.html,
-            delivered: false,
-            generatedAt: Date.now(),
-          })
-        }
-        reports.push(report)
-      }
+      const reports = await Promise.all(hosts.map(buildAndPersist))
 
       let delivered = false
       let status: string
@@ -190,19 +194,23 @@ export async function runReportFanout(
         status = `host${hosts[0]}[${formatDeliveryStatus(outcome)}]`
       }
       await recordReportDelivery(sub.ownerId, status)
-      results.push({ ownerId: sub.ownerId, hosts, delivered, status })
+      return { ownerId: sub.ownerId, hosts, delivered, status }
     } catch (err) {
       warn(
         `[report-fanout] owner ${sub.ownerId || '(single-tenant)'} failed: ${err instanceof Error ? err.message : String(err)}`
       )
-      results.push({
+      return {
         ownerId: sub.ownerId,
         hosts: [],
         delivered: false,
         status: 'error',
-      })
+      }
     }
   }
 
-  return results
+  return mapWithConcurrency(
+    subscriptions,
+    DELIVERY_CONCURRENCY,
+    processSubscription
+  )
 }

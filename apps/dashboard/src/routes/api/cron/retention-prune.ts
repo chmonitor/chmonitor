@@ -34,9 +34,25 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { error, log, warn } from '@chm/logger'
 import { getPlatformBindings } from '@chm/platform'
+import { BILLING_PLANS, type Plan } from '@chm/pricing'
 import { retentionCutoffMs } from '@/lib/billing/entitlements'
 import { resolveRetentionPlanForUser } from '@/lib/billing/retention-owner'
 import { authorizeCronRequest } from '@/lib/cron/authorize-cron'
+import { mapWithConcurrency } from '@/lib/utils/map-with-concurrency'
+
+/** Max users pruned in parallel — bounds Clerk/billing/D1 subrequests in flight. */
+const PRUNE_CONCURRENCY = 5
+
+/**
+ * The newest cutoff any finite-retention plan can produce (shortest window).
+ * A user with no conversation older than this cannot have anything to prune.
+ */
+function shortestRetentionCutoffMs(): number {
+  const days = Object.values(BILLING_PLANS)
+    .map((p) => p.retentionDays)
+    .filter((d): d is number => d != null)
+  return Date.now() - Math.min(...days) * 24 * 60 * 60 * 1000
+}
 
 async function handler(request: Request): Promise<Response> {
   const denied = authorizeCronRequest(request, 'retention-prune')
@@ -63,9 +79,14 @@ async function handler(request: Request): Promise<Response> {
   }
 
   try {
-    // Collect all distinct user IDs that have conversations
+    // Only users with a conversation older than the SHORTEST plan cutoff can
+    // have anything to prune; skip the rest so they cost no Clerk/billing calls.
+    const shortestCutoff = shortestRetentionCutoffMs()
     const userResult = await db
-      .prepare('SELECT DISTINCT user_id FROM conversations')
+      .prepare(
+        'SELECT user_id FROM conversations GROUP BY user_id HAVING MIN(updated_at) < ?1'
+      )
+      .bind(shortestCutoff)
       .all<{ user_id: string }>()
 
     const userIds = (userResult.results ?? []).map((r) => r.user_id)
@@ -74,18 +95,19 @@ async function handler(request: Request): Promise<Response> {
     let totalDeleted = 0
     let usersSkipped = 0
     let errors = 0
+    const planCache = new Map<string, Promise<Plan>>()
 
-    for (const userId of userIds) {
+    await mapWithConcurrency(userIds, PRUNE_CONCURRENCY, async (userId) => {
       try {
         // Resolve the BILLING OWNER's plan (org-aware), not the bare user_id,
         // so prune matches what the conversations read-filter displays.
-        const plan = await resolveRetentionPlanForUser(userId)
+        const plan = await resolveRetentionPlanForUser(userId, planCache)
         const cutoff = retentionCutoffMs(plan)
 
         // null = unlimited (enterprise) — nothing to prune
         if (cutoff == null) {
           usersSkipped += 1
-          continue
+          return
         }
 
         const deleteResult = await db
@@ -110,7 +132,7 @@ async function handler(request: Request): Promise<Response> {
           err as Error
         )
       }
-    }
+    })
 
     const summary = {
       usersProcessed: userIds.length,
