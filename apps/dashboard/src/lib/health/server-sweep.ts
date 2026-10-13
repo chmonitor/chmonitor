@@ -1,16 +1,22 @@
 import type { DispatchFindingParams } from './sweep/dispatch'
-import type { SweepFinding, SweepHostSummary } from './sweep/run-host'
+import type { SweepContext } from './sweep/resolve-config'
+import type {
+  HostSweepResult,
+  SweepFinding,
+  SweepHostSummary,
+} from './sweep/run-host'
 
 import { flushAlertState } from './alert-state-persist'
 import { alertStateStore } from './alert-state-store'
 import { createDispatcher } from './sweep/dispatch'
 import { resolveSweepContext } from './sweep/resolve-config'
-import { runHostSweep } from './sweep/run-host'
+import { hostLabel, runHostSweep } from './sweep/run-host'
 import { debug } from '@chm/logger'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
 import { parseBool } from '@/lib/config/parse-bool'
 import { generatePeerDBInsights } from '@/lib/insights/generate-peerdb-insights'
 import { generatePostgresInsights } from '@/lib/insights/generate-postgres-insights'
+import { mapWithPool } from '@/lib/peerdb/sweep-pool'
 
 // Register pluggable alert rules into the global ruleRegistry once at module
 // load. The sweep drives itself from `ruleRegistry.getAll()`; the /health page
@@ -98,15 +104,18 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   const findings: SweepFinding[] = []
   let insightsGenerated = 0
 
-  for (const config of ctx.configs) {
-    const result = await runHostSweep(config, ctx, dispatchFinding)
+  // Insight sweeps never dispatch, so they run alongside the host sweep.
+  const [hostResults, pgInsights, peerdbInsights] = await Promise.all([
+    sweepHosts(ctx.configs, ctx, dispatchFinding),
+    runPostgresInsightSweep(),
+    runPeerDBInsightSweep(),
+  ])
+  for (const result of hostResults) {
     hosts.push(result.summary)
     findings.push(...result.findings)
     insightsGenerated += result.insightsGenerated
   }
-
-  insightsGenerated += await runPostgresInsightSweep()
-  insightsGenerated += await runPeerDBInsightSweep()
+  insightsGenerated += pgInsights + peerdbInsights
 
   // PeerDB alert cycle (#3413): read-only mirror collection → classify →
   // format → validate → audit → deterministic investigation → the SAME
@@ -156,8 +165,80 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   }
 }
 
+/** Hosts whose rules are evaluated at the same time (#3798). */
+export const HOST_SWEEP_CONCURRENCY = 3
+
 /**
- * PeerDB AI insights (cross-source, env-gated). Runs AFTER the Postgres sweep
+ * Evaluate every host with bounded concurrency, then dispatch (#3798).
+ *
+ * Rule evaluation is the slow part (SQL on each host), so it runs up to
+ * {@link HOST_SWEEP_CONCURRENCY} hosts at once with dispatch calls queued per
+ * host. The dispatcher owns shared mutable state (dedup/hysteresis store,
+ * digest buckets, counters), so the queued calls are replayed one at a time
+ * in host order: dispatch sees exactly the sequence the serial loop produced.
+ * A host that throws becomes an errored summary instead of failing the sweep.
+ */
+export async function sweepHosts(
+  configs: SweepContext['configs'],
+  ctx: SweepContext,
+  dispatch: (params: DispatchFindingParams) => Promise<void>,
+  runHost: typeof runHostSweep = runHostSweep
+): Promise<HostSweepResult[]> {
+  const outcomes = await mapWithPool(
+    configs,
+    HOST_SWEEP_CONCURRENCY,
+    async (config) => {
+      const queued: DispatchFindingParams[] = []
+      try {
+        const result = await runHost(config, ctx, async (params) => {
+          queued.push(params)
+        })
+        return { result, queued }
+      } catch (err) {
+        debug(
+          `[health-sweep] host ${config.id} sweep failed`,
+          err instanceof Error ? err.message : String(err)
+        )
+        const result: HostSweepResult = {
+          summary: {
+            hostId: config.id,
+            hostName: hostLabel(config),
+            checksRun: 0,
+            findings: 0,
+            errored: 1,
+            skipped: 0,
+          },
+          findings: [],
+          insightsGenerated: 0,
+        }
+        return { result, queued }
+      }
+    }
+  )
+
+  const results: HostSweepResult[] = []
+  for (const outcome of outcomes) {
+    // No signal is passed to the pool, so every item completes.
+    if (outcome.kind !== 'done') continue
+    const { result, queued } = outcome.value
+    for (const params of queued) {
+      try {
+        await dispatch(params)
+      } catch (err) {
+        result.summary.errored++
+        debug(
+          `[health-sweep] check "${params.ruleId}" failed on host ${params.hostId}`,
+          err instanceof Error ? err.message : String(err)
+        )
+      }
+    }
+    results.push(result)
+  }
+  return results
+}
+
+/**
+ * PeerDB AI insights (cross-source, env-gated). Runs alongside the host sweep
  * on the dedicated PeerDB collector path (NOT the SQL-rule sweep — PeerDB has
  * no `AlertRuleDef.sql`; its health comes from the read-only flow-api). Gated
  * on `PEERDB_API_URL` being set AND the flow-api being readable: unconfigured
@@ -271,7 +352,7 @@ async function runPeerDBAlertSweep(
 }
 
 /**
- * Postgres AI insights (cross-source, env-gated). Runs AFTER the ClickHouse
+ * Postgres AI insights (cross-source, env-gated). Runs alongside the ClickHouse
  * loop and only when CHM_FEATURE_POSTGRES_SOURCE is on — fail-closed, exactly
  * like the agent's Postgres tools. Iterates the env-configured Postgres
  * sources (`POSTGRES_*` lists) and generates insights per source. Wrapped so a
