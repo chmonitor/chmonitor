@@ -36,6 +36,10 @@ import {
   runWeeklyReportForHost,
 } from '@/lib/insights/weekly-report'
 import { getHost } from '@/lib/utils'
+import { mapWithConcurrency } from '@/lib/utils/map-with-concurrency'
+
+/** Max host reports built in parallel — bounds ClickHouse/D1 subrequests in flight. */
+const HOST_REPORT_CONCURRENCY = 4
 
 async function handler(request: Request): Promise<Response> {
   const denied = authorizeCronRequest(request, 'weekly-report')
@@ -61,18 +65,23 @@ async function handler(request: Request): Promise<Response> {
     const configs = getClickHouseConfigsFromEnv(bindings)
     const byId = new Map(configs.map((c) => [c.id, c]))
 
-    const results = []
-    for (const hostId of optedIn) {
-      const cfg = byId.get(hostId)
-      if (!cfg) {
-        warn(
-          `[GET /api/cron/weekly-report] opted-in host ${hostId} has no configured ClickHouse host — skipping`
-        )
-        continue
-      }
-      const label = cfg.customName || getHost(cfg.host) || `Host ${hostId}`
-      results.push(await runWeeklyReportForHost(hostId, label))
-    }
+    const results = (
+      await mapWithConcurrency(
+        optedIn,
+        HOST_REPORT_CONCURRENCY,
+        async (hostId) => {
+          const cfg = byId.get(hostId)
+          if (!cfg) {
+            warn(
+              `[GET /api/cron/weekly-report] opted-in host ${hostId} has no configured ClickHouse host — skipping`
+            )
+            return null
+          }
+          const label = cfg.customName || getHost(cfg.host) || `Host ${hostId}`
+          return runWeeklyReportForHost(hostId, label)
+        }
+      )
+    ).filter((r) => r != null)
 
     // Per-owner subscription fan-out (#2786) — additive to the host-keyed
     // env opt-in above; fail-open, never blocks the legacy flow.

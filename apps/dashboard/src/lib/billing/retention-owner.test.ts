@@ -18,7 +18,23 @@ import { BILLING_PLANS } from '@chm/pricing'
 // touches a binding. Mirrors src/lib/insights/store/resolve-store.test.ts.
 mock.module('cloudflare:workers', () => ({ env: {} }))
 
-const { mostGenerousRetentionPlan } = await import('./retention-owner')
+const getPlanForOwner = mock(async (_ownerId: string) => BILLING_PLANS.free)
+mock.module('./user-subscription', () => ({
+  getPlanForOwner: (id: string) => getPlanForOwner(id),
+}))
+mock.module('@clerk/tanstack-react-start/server', () => ({
+  clerkClient: () => ({
+    users: {
+      getOrganizationMembershipList: async () => ({
+        data: [{ organization: { id: 'org_shared' } }],
+      }),
+    },
+  }),
+}))
+
+const { mostGenerousRetentionPlan, resolveRetentionPlanForUser } = await import(
+  './retention-owner'
+)
 
 const { free, pro, max, enterprise } = BILLING_PLANS
 
@@ -46,5 +62,28 @@ describe('mostGenerousRetentionPlan', () => {
 
   test('throws on an empty list', () => {
     expect(() => mostGenerousRetentionPlan([])).toThrow()
+  })
+})
+
+describe('resolveRetentionPlanForUser plan cache', () => {
+  test('a shared org is looked up once per run across users', async () => {
+    getPlanForOwner.mockClear()
+    const cache = new Map()
+
+    await resolveRetentionPlanForUser('user_a', cache)
+    await resolveRetentionPlanForUser('user_b', cache)
+
+    const owners = getPlanForOwner.mock.calls.map((c) => c[0]).sort()
+    expect(owners).toEqual(['org_shared', 'user_a', 'user_b'])
+  })
+
+  test('a failed owner lookup rejects (fail closed)', async () => {
+    getPlanForOwner.mockImplementationOnce(async () => {
+      throw new Error('d1 down')
+    })
+
+    await expect(
+      resolveRetentionPlanForUser('user_c', new Map())
+    ).rejects.toThrow('d1 down')
   })
 })

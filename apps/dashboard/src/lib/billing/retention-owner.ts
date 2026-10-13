@@ -67,14 +67,25 @@ async function listUserOrgIds(userId: string): Promise<string[]> {
  * Considers the user's own billing owner and every Clerk org they belong to,
  * and returns the most generous plan among them (see module doc). Throws if the
  * org enumeration fails so the caller can skip pruning (fail-closed to no-delete).
+ * Pass the same `planCache` across a run to share owner plan lookups.
  */
 export async function resolveRetentionPlanForUser(
-  userId: string
+  userId: string,
+  planCache: Map<string, Promise<Plan>> = new Map()
 ): Promise<Plan> {
   const orgIds = await listUserOrgIds(userId)
   const ownerIds = [userId, ...orgIds]
+  // Per-run cache: an org shared by many users is looked up once. A rejected
+  // lookup stays cached, so every user depending on it fails closed.
   const plans = await Promise.all(
-    ownerIds.map((ownerId) => getPlanForOwner(ownerId))
+    ownerIds.map((ownerId) => {
+      let plan = planCache.get(ownerId)
+      if (!plan) {
+        plan = getPlanForOwner(ownerId)
+        planCache.set(ownerId, plan)
+      }
+      return plan
+    })
   )
   return mostGenerousRetentionPlan(plans)
 }
