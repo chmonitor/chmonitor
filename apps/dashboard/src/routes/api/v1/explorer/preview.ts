@@ -12,32 +12,12 @@ import { fetchData } from '@chm/clickhouse-client'
 import { debug, error } from '@chm/logger'
 import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
+import { truncateLargeValues } from '@/lib/api/shared/truncate-large-values'
 import { ApiErrorType } from '@/lib/api/types'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
 
 // Validation regex for identifiers (database and table names)
 const VALID_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/
-
-const MAX_CELL_VALUE_LENGTH = 10_000
-
-function truncateLargeValues<T>(data: T): T {
-  if (!Array.isArray(data)) return data
-  return data.map((row) => {
-    if (typeof row !== 'object' || row === null || Array.isArray(row))
-      return row
-    const truncated: Record<string, unknown> = {}
-    for (const [key, value] of Object.entries(row as Record<string, unknown>)) {
-      if (typeof value === 'string' && value.length > MAX_CELL_VALUE_LENGTH) {
-        truncated[key] =
-          value.slice(0, MAX_CELL_VALUE_LENGTH) +
-          `… (truncated, ${value.length} chars total)`
-      } else {
-        truncated[key] = value
-      }
-    }
-    return truncated
-  }) as T
-}
 
 function mapErrorTypeToStatusCode(errorType: string): number {
   const statusMap: Record<string, number> = {
