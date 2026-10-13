@@ -18,8 +18,8 @@ mock.module('cloudflare:workers', () => ({
   },
 }))
 
-const READ: FeaturePermission = { feature: 'schema', operation: 'read' }
-const WRITE: FeaturePermission = { feature: 'schema', operation: 'write' }
+const READ: FeaturePermission = { feature: 'tables', operation: 'read' }
+const WRITE: FeaturePermission = { feature: 'tables', operation: 'write' }
 
 // The third chart of the grouping gets WRITE, every other chart READ, so the
 // repeated READ permissions are non-adjacent.
@@ -92,6 +92,6 @@ describe('POST /api/v1/charts/batch authorization', () => {
     denied = 'write'
     const res = await post()
     expect(res.status).toBe(403)
-    expect(await res.json()).toEqual({ error: 'forbidden' })
+    expect((await res.json()) as unknown).toEqual({ error: 'forbidden' })
   })
 })
