@@ -291,12 +291,6 @@
     },
     {
       "exampleDefault": null,
-      "inEnvExample": true,
-      "name": "CHM_LICENSE_KEY",
-      "prefix": "CHM"
-    },
-    {
-      "exampleDefault": null,
       "inEnvExample": false,
       "name": "CHM_MCP_PUBLIC",
       "prefix": "CHM"
