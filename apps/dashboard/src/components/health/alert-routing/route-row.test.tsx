@@ -10,7 +10,11 @@ import {
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 
 mock.module('sonner', () => ({
-  toast: { success: mock(() => {}), error: mock(() => {}), info: mock(() => {}) },
+  toast: {
+    success: mock(() => {}),
+    error: mock(() => {}),
+    info: mock(() => {}),
+  },
 }))
 
 const realFetch = globalThis.fetch
@@ -34,16 +38,18 @@ afterEach(() => {
 describe('RouteRow Send test', () => {
   test('webhook route test carries the deployment identity', async () => {
     const calls: { url: string; body?: string }[] = []
-    globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input)
-      calls.push({ url, body: init?.body as string | undefined })
-      if (url.includes('/health/alert-identity')) {
-        return new Response(JSON.stringify({ instanceName: 'prod-eu-1' }), {
-          status: 200,
-        })
+    globalThis.fetch = mock(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        calls.push({ url, body: init?.body as string | undefined })
+        if (url.includes('/health/alert-identity')) {
+          return new Response(JSON.stringify({ instanceName: 'prod-eu-1' }), {
+            status: 200,
+          })
+        }
+        return new Response('{}', { status: 200 })
       }
-      return new Response('{}', { status: 200 })
-    }) as unknown as typeof fetch
+    ) as unknown as typeof fetch
 
     const { act } = await import('react')
     const { createRoot } = await import('react-dom/client')
