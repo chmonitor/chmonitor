@@ -14,6 +14,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { instancePrefix } from './identity'
+
 /** Opsgenie Alert API v2 priorities. */
 export type OpsgeniePriority = 'P1' | 'P2' | 'P3' | 'P4' | 'P5'
 
@@ -58,7 +60,7 @@ export function opsgenieAlias(payload: AlertPayload): string {
  */
 export function buildOpsgenieBody(payload: AlertPayload): OpsgenieCreateBody {
   const body: OpsgenieCreateBody = {
-    message: `${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
+    message: `${instancePrefix(payload)}${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
     alias: opsgenieAlias(payload),
     priority: SEVERITY_MAP[payload.severity],
     source: 'chmonitor',
@@ -68,6 +70,8 @@ export function buildOpsgenieBody(payload: AlertPayload): OpsgenieCreateBody {
       'chmonitor',
     ],
     details: {
+      // First so operator metadata can never overwrite the fixed keys.
+      ...payload.metadata,
       hostId: String(payload.hostId),
       metric: payload.metric,
       value: payload.value === null ? 'n/a' : String(payload.value),
@@ -76,12 +80,18 @@ export function buildOpsgenieBody(payload: AlertPayload): OpsgenieCreateBody {
       critThreshold:
         payload.critThreshold == null ? 'n/a' : String(payload.critThreshold),
       timestamp: payload.timestamp,
+      ...(payload.instanceName ? { instanceName: payload.instanceName } : {}),
+      ...(payload.dashboardUrl ? { dashboardUrl: payload.dashboardUrl } : {}),
     },
   }
 
-  if (payload.runbookUrls && payload.runbookUrls.length > 0) {
-    body.description = `Runbooks:\n${payload.runbookUrls.join('\n')}`
-  }
+  const description = [
+    ...(payload.dashboardUrl ? [`Dashboard: ${payload.dashboardUrl}`] : []),
+    ...(payload.runbookUrls && payload.runbookUrls.length > 0
+      ? [`Runbooks:\n${payload.runbookUrls.join('\n')}`]
+      : []),
+  ].join('\n\n')
+  if (description) body.description = description
 
   return body
 }

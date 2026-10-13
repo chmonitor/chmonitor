@@ -31,6 +31,7 @@ import { ApiErrorType } from '@/lib/api/types'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import { dispatchPushover } from '@/lib/health/pushover-dispatch'
 import { getServerPushoverConfig } from '@/lib/health/server-alert-config'
+import { buildTestAlertPayload } from '@/lib/health/test-alert-payload'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/health/pushover-test',
@@ -110,22 +111,7 @@ async function handlePost(
 
   debug('[POST /api/v1/health/pushover-test] Sending test notification')
 
-  const ok = await dispatchPushover(
-    {
-      severity: 'warning',
-      hostLabel: 'test-host',
-      hostId: 0,
-      metric: 'test',
-      value: 0,
-      warnThreshold: null,
-      critThreshold: null,
-      title: 'Test Alert',
-      label: 'This is a test alert from chmonitor',
-      timestamp: new Date().toISOString(),
-    },
-    config,
-    deps
-  )
+  const ok = await dispatchPushover(buildTestAlertPayload(), config, deps)
 
   if (!ok) {
     return createErrorResponse(

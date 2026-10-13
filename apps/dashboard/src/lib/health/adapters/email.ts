@@ -10,6 +10,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { identityLine, instancePrefix } from './identity'
+
 /** Supported email transport providers. */
 export type EmailProvider = 'mailgun' | 'sendgrid' | 'smtp'
 
@@ -112,6 +114,19 @@ function buildHtml(payload: AlertPayload): string {
     )
   }
 
+  if (payload.instanceName || payload.metadata) {
+    rows.push(
+      `<tr><td style="color:#6b7280;padding:6px 8px;">Instance</td><td style="padding:6px 8px;">${escapeHtml(identityLine(payload))}</td></tr>`
+    )
+  }
+
+  if (payload.dashboardUrl) {
+    const url = escapeHtml(payload.dashboardUrl)
+    rows.push(
+      `<tr><td style="color:#6b7280;padding:6px 8px;">Dashboard</td><td style="padding:6px 8px;">${isSafeLinkUrl(payload.dashboardUrl) ? `<a href="${url}" style="color:#2563eb;">${url}</a>` : url}</td></tr>`
+    )
+  }
+
   return [
     '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;color:#111827;max-width:480px;">',
     `<div style="background:${style.color};color:#ffffff;padding:12px 16px;border-radius:6px 6px 0 0;font-size:16px;font-weight:600;">${style.heading}: ${escapeHtml(payload.title)}</div>`,
@@ -134,6 +149,10 @@ function buildText(payload: AlertPayload): string {
     `Detail: ${payload.label}`,
   ]
 
+  const identity = identityLine(payload)
+  if (identity) lines.push(`Instance: ${identity}`)
+  if (payload.dashboardUrl) lines.push(`Dashboard: ${payload.dashboardUrl}`)
+
   if (payload.runbookUrls && payload.runbookUrls.length > 0) {
     lines.push('', 'Runbooks:')
     for (const url of payload.runbookUrls) {
@@ -155,7 +174,7 @@ function buildText(payload: AlertPayload): string {
 export function buildEmailBody(payload: AlertPayload): EmailBody {
   const style = SEVERITY_STYLE[payload.severity]
   return {
-    subject: `[${style.heading}] ${payload.metric} on ${payload.hostLabel}`,
+    subject: `${instancePrefix(payload)}[${style.heading}] ${payload.metric} on ${payload.hostLabel}`,
     html: buildHtml(payload),
     text: buildText(payload),
   }

@@ -1,8 +1,11 @@
+import type { AlertPayload } from './adapters/types'
+
 import {
   buildPagerDutyBody,
   buildTelegramBody,
   buildWebhookDispatchBody,
 } from './adapters'
+import { instancePrefix } from './adapters/identity'
 import {
   resolveChannelDelivery,
   severityMeetsThreshold,
@@ -16,6 +19,12 @@ import { loadAlertSettings } from './alert-settings-storage'
 // itself is fixed and public (same for every PagerDuty service), so a
 // literal here carries no secret.
 const PAGERDUTY_EVENTS_API_URL = 'https://events.pagerduty.com/v2/enqueue'
+
+/** Deployment identity fields a browser-built test alert can carry. */
+export type AlertIdentity = Pick<
+  AlertPayload,
+  'instanceName' | 'dashboardUrl' | 'metadata'
+>
 
 /** Actionable health severities used for escalation/recovery bookkeeping. */
 export type HealthAlertStatus = 'ok' | 'warning' | 'critical'
@@ -142,7 +151,8 @@ export function fireBrowserNotification(alert: HealthAlertEvent): void {
 
 export async function fireWebhook(
   alert: HealthAlertEvent,
-  webhookUrl?: string
+  webhookUrl?: string,
+  identity?: AlertIdentity
 ): Promise<boolean> {
   let url = webhookUrl
   if (!url) {
@@ -153,7 +163,7 @@ export async function fireWebhook(
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 10_000)
   try {
-    const text = `[${alertPrefix(alert)}] ${alert.title} — ${alert.label} (host ${alert.hostId})`
+    const text = `${instancePrefix(identity ?? {})}[${alertPrefix(alert)}] ${alert.title} — ${alert.label} (host ${alert.hostId})`
     // Per-URL body selection (#2656): a Discord target previews the real rich
     // embed via the proxy's verbatim `provider` path; every other URL keeps the
     // backward-compatible `{ url, text }` (the proxy wraps it as
@@ -172,6 +182,7 @@ export async function fireWebhook(
         title: alert.title,
         label: alert.label,
         timestamp: new Date().toISOString(),
+        ...identity,
       },
     })
     const requestBody = dispatch.provider

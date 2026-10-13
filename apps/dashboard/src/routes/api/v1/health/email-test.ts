@@ -24,6 +24,7 @@ import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import { buildEmailBody } from '@/lib/health/adapters'
 import { sendAlertEmail } from '@/lib/health/email-transport'
 import { getServerEmailConfig } from '@/lib/health/server-alert-config'
+import { buildTestAlertPayload } from '@/lib/health/test-alert-payload'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/health/email-test',
@@ -54,16 +55,9 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  const body = buildEmailBody({
-    severity: 'warning',
-    hostLabel: 'Test host',
-    hostId: 0,
-    metric: 'test-alert',
-    value: 0,
-    title: 'Test Alert',
-    label: 'This is a test alert from chmonitor',
-    timestamp: new Date().toISOString(),
-  })
+  const body = buildEmailBody(
+    buildTestAlertPayload({ hostLabel: 'Test host', metric: 'test-alert' })
+  )
 
   try {
     const ok = await sendAlertEmail(emailConfig, body)

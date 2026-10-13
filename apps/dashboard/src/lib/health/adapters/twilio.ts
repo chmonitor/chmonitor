@@ -19,6 +19,8 @@
 
 import type { AlertPayload, NotificationAdapter } from './types'
 
+import { instancePrefix, metadataPairs } from './identity'
+
 /** Twilio's hard per-message character limit for the `Body` parameter. */
 export const TWILIO_SMS_MAX_LENGTH = 1600
 
@@ -51,8 +53,15 @@ function heading(severity: AlertPayload['severity']): string {
  * character is billed and the hard cap leaves no room for a full breakdown.
  */
 export function buildTwilioMessage(payload: AlertPayload): string {
-  const text = `[${heading(payload.severity)}] ${payload.title} on ${payload.hostLabel}: ${payload.label}`
-  return truncateSmsBody(text)
+  const head = `${instancePrefix(payload)}[${heading(payload.severity)}] ${payload.title} on ${payload.hostLabel}: ${payload.label}`
+  // Identity rides after the (truncatable) head so the cap never cuts it off.
+  const tail = [...metadataPairs(payload), payload.dashboardUrl ?? '']
+    .filter(Boolean)
+    .join(' ')
+  if (!tail) return truncateSmsBody(head)
+  const room = TWILIO_SMS_MAX_LENGTH - tail.length - 1
+  if (room <= 0) return truncateSmsBody(tail)
+  return `${truncateSmsBody(head, room)} ${tail}`
 }
 
 /**
