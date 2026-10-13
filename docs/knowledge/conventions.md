@@ -3,11 +3,12 @@ id: conventions
 title: Development Conventions
 type: workflow
 status: active
-updated: 2026-09-03
+updated: 2026-10-13
 tags:
   - conventions
   - patterns
   - development
+  - logging
 related:
   - static-site-architecture
   - component-ci-stability
@@ -93,3 +94,26 @@ Reason: `cn()` (the `cn` package) deduplicates conflicting Tailwind classes (e.g
 - `ChartContainer` shows `ChartError` only when `error && !hasData`
 - `ChartCard` renders `ChartStaleIndicator` when `staleError` exists
 - Icon order in header: `[Stale Indicator] [DateRangeSelector] [CardToolbar]`
+
+## Logging
+
+Log through `@chm/logger` (`packages/logger/src/index.ts`), not bare `console.*`.
+Every call writes one Pino-compatible NDJSON line.
+
+```ts
+import { error, warn } from '@chm/logger'
+
+error('Failed to load data', err, { hostId: 123 })
+warn('Cache miss', { key: 'hosts' })
+```
+
+- `error(msg, err?, context?)` — always prints to `console.error`. An `Error`
+  becomes `err: { name, message, stack }`; the stack is kept only when
+  `NODE_ENV=development`. `context` (`ErrorContext`: `hostId`, `component`,
+  `action`, `userId`, any extra key) is merged into the top-level object.
+- `warn(msg, data?)` — always prints.
+- `debug` / `log` — print only in development or with `DEBUG=true`. Guard
+  expensive payload work with `isDebugEnabled()`.
+- `ErrorLogger.logError(err, { component, action })` builds the message from
+  the component and action names.
+- Never put secrets, passwords, or full credentials in `context`.
