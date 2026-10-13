@@ -3,14 +3,14 @@
  */
 
 import {
-  type D1SeriesDb,
   DEFAULT_DROP_THRESHOLD,
+  dailySeriesFromStats,
   detectAnomaly,
-  fetchDailySeries,
   formatAnomaly,
   MIN_BASELINE,
   median,
 } from './anomaly'
+import { shiftDay } from './usage'
 import { describe, expect, test } from 'bun:test'
 
 const REF = '2026-07-24'
@@ -130,103 +130,37 @@ describe('formatAnomaly', () => {
   })
 })
 
-/** Fake D1 whose `.all()` throws — a telemetry database missing `ping_daily`. */
-function throwingDb(): D1SeriesDb {
-  return {
-    prepare() {
-      return {
-        bind() {
-          return {
-            all<T>(): Promise<{ results: T[] }> {
-              throw new Error('no such table: ping_daily')
-            },
-          }
-        },
-      }
-    },
-  }
-}
-
-/**
- * Child-process probe for the default-logger path. It has to run out-of-process:
- * a default logger that refers to its own parameter, `(m, meta) => logError(m, meta)`,
- * is a *tail* call, so JSC turns it into a loop rather than a stack overflow. It
- * never throws, never returns, and blocks the event loop — no in-process `catch`
- * or `Promise.race` can stop it, which is also why it hangs the Worker instead
- * of surfacing as an error. A hard kill is the only bound, so the child reports
- * back via its exit status and one line of JSON.
- */
-const DEFAULT_LOGGER_PROBE = `
-const anomaly = await import('./anomaly.ts')
-const boom = {
-  prepare() {
-    return {
-      bind() {
-        return {
-          all() {
-            throw new Error('no such table: ping_daily')
-          },
-        }
-      },
-    }
-  },
-}
-let lines = []
-const real = console.error
-console.error = (...args) => {
-  lines.push(String(args[0]))
-}
-const series = await anomaly.fetchDailySeries(boom, '${REF}')
-console.error = real
-// stdout, so the payload stays separable from the logger's stderr.
-console.log(JSON.stringify({ series, lines }))
-`
-
-describe('fetchDailySeries', () => {
-  test('logs once and returns [] when the query throws', async () => {
-    const logged: Array<[string, unknown]> = []
-    const series = await fetchDailySeries(
-      throwingDb(),
-      REF,
-      undefined,
-      (m, meta) => logged.push([m, meta])
-    )
-    expect(series).toEqual([])
-    // Exactly one line: a silent [] would hide a broken telemetry binding.
-    expect(logged).toHaveLength(1)
-    expect(logged[0][0]).toContain('daily series query failed')
+describe('dailySeriesFromStats', () => {
+  const stats = (series: Array<{ day: string; dau: number }>) => ({
+    summary: { dau: 0, wau: 0, mau: 0 },
+    series,
   })
 
-  test('the default logger reports the failure instead of calling itself', () => {
-    // No 4th argument — this is how index.ts calls it, so the default logger is
-    // the one that runs in production.
-    const child = Bun.spawnSync(
-      [process.execPath, '-e', DEFAULT_LOGGER_PROBE],
-      {
-        cwd: import.meta.dir,
-        // A healthy call needs ~50ms, so this is ~40x headroom and still lands well
-        // inside the test timeout below — the kill always fires first, which keeps a
-        // regression reported as this assertion rather than as a suite timeout.
-        timeout: 3_000,
-      }
-    )
+  test('keeps the reference day and the 7 days before it, matched by day key', () => {
+    // 30 days of stats; the order in the array must not matter.
+    const all = Array.from({ length: 30 }, (_, i) => ({
+      day: shiftDay(REF, -(29 - i)),
+      dau: i,
+    })).reverse()
+    const out = dailySeriesFromStats(stats(all), REF)
+    expect(out.map((r) => r.day).sort()).toEqual([
+      '2026-07-17',
+      '2026-07-18',
+      '2026-07-19',
+      '2026-07-20',
+      '2026-07-21',
+      '2026-07-22',
+      '2026-07-23',
+      '2026-07-24',
+    ])
+    expect(out.find((r) => r.day === REF)?.n).toBe(29)
+  })
 
-    // A kill here IS the bug: the default logger spun instead of returning.
-    expect({
-      killed: child.signalCode ?? null,
-      exitCode: child.exitCode,
-      stderr: new TextDecoder().decode(child.stderr).slice(0, 200),
-    }).toEqual({ killed: null, exitCode: 0, stderr: '' })
-
-    const { series, lines } = JSON.parse(
-      new TextDecoder().decode(child.stdout)
-    ) as { series: Array<{ day: string; n: number }>; lines: string[] }
-    expect(series).toEqual([])
-    // The real ./log logger ran exactly once, carrying the original failure.
-    expect(lines).toHaveLength(1)
-    const entry = JSON.parse(lines[0])
-    expect(entry.level).toBe('error')
-    expect(entry.msg).toContain('daily series query failed')
-    expect(entry.err.message).toBe('no such table: ping_daily')
-  }, 15_000)
+  test('a zero-filled reference day is a real 0 that detectAnomaly flags', () => {
+    // The service zero-fills days without events: an outage yesterday arrives
+    // as dau 0, not as a missing row, and must read as a collapse.
+    const days = series(100, 0).map((r) => ({ day: r.day, dau: r.n }))
+    const out = dailySeriesFromStats(stats(days), REF)
+    expect(detectAnomaly(out, REF)?.kind).toBe('drop')
+  })
 })

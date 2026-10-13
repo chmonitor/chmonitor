@@ -28,16 +28,28 @@ describe('cron triggers', () => {
   })
 
   test('the sweep cadence actually produces the report ticks', () => {
-    // A */15 cron fires at minute 0, so both report ticks exist on the
-    // schedule. If OPS_SWEEP_CRON ever changes to a cadence that skips
-    // minute 0 (e.g. "7/15"), the reports silently die.
+    // A */15 cron fires at minutes 0 and 30, so both report ticks (daily 00:30,
+    // weekly 01:00) exist on the schedule. If OPS_SWEEP_CRON ever changes to a
+    // cadence that skips them (e.g. "7/15"), the reports silently die.
     expect(OPS_SWEEP_CRON).toBe('*/15 * * * *')
   })
 
-  test('daily tick matches only 00:00 UTC', () => {
-    expect(isDailyTick(new Date('2026-08-11T00:00:00Z'))).toBe(true)
+  test('daily tick matches only 00:30 UTC', () => {
+    expect(isDailyTick(new Date('2026-08-11T00:30:00Z'))).toBe(true)
     expect(isDailyTick(new Date('2026-08-11T00:15:00Z'))).toBe(false)
-    expect(isDailyTick(new Date('2026-08-11T12:00:00Z'))).toBe(false)
+    expect(isDailyTick(new Date('2026-08-11T12:30:00Z'))).toBe(false)
+  })
+
+  // The telemetry service writes yesterday's totals in its rollup at 00:10 UTC
+  // and reports zeros until then. A digest or anomaly check before that point
+  // would show DAU 0 and alert "100% drop" every day.
+  test('the daily tick is after the telemetry rollup (00:10 UTC)', () => {
+    const rollupMinute = 10
+    const at = new Date('2026-08-11T00:00:00Z')
+    for (let min = 0; min < 60; min += 15) {
+      at.setUTCMinutes(min)
+      if (isDailyTick(at)) expect(min).toBeGreaterThan(rollupMinute)
+    }
   })
 
   test('weekly tick matches only Monday 01:00 UTC', () => {
@@ -49,9 +61,9 @@ describe('cron triggers', () => {
   })
 
   test('the daily and weekly ticks never coincide', () => {
-    // Monday 00:00 runs the daily digest; Monday 01:00 runs the weekly
+    // Monday 00:30 runs the daily digest; Monday 01:00 runs the weekly
     // report. The scheduled() dispatch runs at most one report per tick.
     expect(isDailyTick(new Date('2026-08-10T01:00:00Z'))).toBe(false)
-    expect(isWeeklyTick(new Date('2026-08-10T00:00:00Z'))).toBe(false)
+    expect(isWeeklyTick(new Date('2026-08-10T00:30:00Z'))).toBe(false)
   })
 })
