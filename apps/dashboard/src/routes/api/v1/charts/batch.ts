@@ -196,6 +196,9 @@ export async function handler(request: Request): Promise<Response> {
   }
 
   const names = getChartGrouping(groupingId) ?? []
+  // Authorize each distinct permission once, in first-seen order so the first
+  // denial is the same one the per-chart loop returned.
+  const authorized = new Set<string>()
   for (const name of names) {
     const queryDef = getChartQuery(name, {
       lastHours,
@@ -204,6 +207,11 @@ export async function handler(request: Request): Promise<Response> {
       timezone,
     })
     if (!queryDef) continue
+    if (queryDef.permission) {
+      const key = JSON.stringify(queryDef.permission)
+      if (authorized.has(key)) continue
+      authorized.add(key)
+    }
     const permissionResponse = await authorizeFeatureRequest(
       queryDef.permission,
       request
