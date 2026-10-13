@@ -14,6 +14,11 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # CI must never report usage. The browser can't detect CI, so the build and the
+  # runtime both need the opt-out: vite.config.ts inlines DO_NOT_TRACK as
+  # VITE_DO_NOT_TRACK at build time, and the server reads DO_NOT_TRACK at
+  # runtime. Guarded by tests/repo/ci-telemetry.test.ts.
+  DO_NOT_TRACK: '1'
   CLICKHOUSE_HOST: http://localhost:8123
   CLICKHOUSE_USER: default
   CLICKHOUSE_PASSWORD: ''
