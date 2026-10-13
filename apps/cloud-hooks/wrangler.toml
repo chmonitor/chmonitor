@@ -83,7 +83,7 @@ enabled = true
 # the already-attached crons in place.
 #
 # The scheduled() handler no longer routes on cron strings: every tick runs
-# the ops sweep, and the daily digest (00:00 UTC tick) / weekly report
+# the ops sweep, and the daily digest (00:30 UTC tick) / weekly report
 # (Monday 01:00 UTC tick) dispatch off `event.scheduledTime` — see
 # OPS_SWEEP_CRON / isDailyTick / isWeeklyTick in src/index.ts. If the account
 # ever regains cron budget, re-attach `[triggers] crons = ["*/15 * * * *"]`.
@@ -102,16 +102,6 @@ custom_domain = true
 binding = "CHM_CLOUD_D1"
 database_name = "chm-cloud"
 database_id = "cca247b6-9b25-41bd-b9ca-727b35bc6039"
-
-# Telemetry D1 (the database apps/telemetry writes) — READ-ONLY here, for the
-# DAU/WAU/MAU section of the daily digest and weekly report. `ping_daily` and
-# `cli_daily` hold one deduped row per (UTC day, opaque install id), so those
-# are ACTIVE INSTALLS, not active users; the digests label them accordingly.
-# No migrations_dir: apps/telemetry owns the schema, this worker only reads it.
-[[d1_databases]]
-binding = "CHM_TELEMETRY_DB"
-database_name = "chm_telemetry"
-database_id = "4887176b-0181-45bf-970f-a506f514d5a9"
 
 # Ops-state KV. `runProbes` (src/probes.ts) stores the last-known up/down state
 # per surface so the */15min cron notifies ONLY on transitions; `runExceptions`
@@ -140,11 +130,6 @@ name = "preview-chmonitor-hooks"
 binding = "CHM_CLOUD_D1"
 database_name = "chm-cloud"
 database_id = "cca247b6-9b25-41bd-b9ca-727b35bc6039"
-
-[[env.preview.d1_databases]]
-binding = "CHM_TELEMETRY_DB"
-database_name = "chm_telemetry"
-database_id = "4887176b-0181-45bf-970f-a506f514d5a9"
 
 [[env.preview.kv_namespaces]]
 binding = "CHM_HOOKS_KV"

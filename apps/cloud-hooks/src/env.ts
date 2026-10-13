@@ -7,12 +7,6 @@
 export interface Env {
   /** Shared billing D1 (same `chm-cloud` database the dashboard reads). */
   CHM_CLOUD_D1?: D1Database
-  /**
-   * Telemetry D1 (the `chm_telemetry` database apps/telemetry writes), read for
-   * the DAU/WAU/MAU section of the digests. READ-ONLY here — this worker never
-   * writes telemetry. Unbound → the Usage section is omitted.
-   */
-  CHM_TELEMETRY_DB?: D1Database
   /** KV namespace storing last-known health-probe state (transitions only). */
   CHM_HOOKS_KV?: KVNamespace
 

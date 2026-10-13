@@ -2,13 +2,16 @@
  * Usage metrics — window arithmetic, graceful degradation, and the digest block.
  */
 
-import type { D1UsageDb } from './usage'
+import type { TelemetryStats } from './usage'
 
 import {
   collectUsage,
+  fetchUsageStats,
   formatActiveLine,
+  referenceDayFor,
   shiftDay,
   stickiness,
+  TELEMETRY_STATS_URL,
   usageLines,
   utcDay,
 } from './usage'
@@ -17,35 +20,40 @@ import { describe, expect, test } from 'bun:test'
 /** 2026-07-24T06:00:00Z — a mid-morning run, so "yesterday" is 2026-07-23. */
 const NOW = Math.floor(Date.parse('2026-07-24T06:00:00Z') / 1000)
 
-interface Call {
-  sql: string
-  binds: unknown[]
+/** A stats payload shaped like the service's response, ending on 2026-07-23. */
+function statsBody(overrides: Record<string, unknown> = {}) {
+  return {
+    project: 'chmonitor',
+    days: 30,
+    generated_at: '2026-07-24T06:00:00.000Z',
+    summary: {
+      dau: 10,
+      wau: 40,
+      mau: 120,
+      events: 5000,
+      today: { users: 3, events: 20 },
+    },
+    series: [
+      { day: '2026-07-22', dau: 9, events: 100 },
+      { day: '2026-07-23', dau: 10, events: 120 },
+    ],
+    dims: { event: { ping: [120, 4000] } },
+    ...overrides,
+  }
 }
 
-/**
- * Fake D1 that dispatches on a substring of the SQL, so a test states only the
- * rows it cares about and the assertions read against real query text.
- */
-function fakeDb(
-  rows: Array<[match: string, row: unknown]>,
-  calls: Call[] = []
-): D1UsageDb & { calls: Call[] } {
-  return {
-    calls,
-    prepare(sql: string) {
-      return {
-        bind(...binds: unknown[]) {
-          return {
-            async first<T>() {
-              calls.push({ sql, binds })
-              const hit = rows.find(([match]) => sql.includes(match))
-              return (hit ? hit[1] : null) as T | null
-            },
-          }
-        },
-      }
-    },
-  }
+function jsonFetch(
+  body: unknown,
+  init: ResponseInit = {},
+  seen: Array<{ url: string; init?: RequestInit }> = []
+): typeof fetch {
+  return (async (url: string, reqInit?: RequestInit) => {
+    seen.push({ url, init: reqInit })
+    return new Response(JSON.stringify(body), {
+      headers: { 'content-type': 'application/json' },
+      ...init,
+    })
+  }) as unknown as typeof fetch
 }
 
 describe('day arithmetic', () => {
@@ -76,100 +84,133 @@ describe('stickiness', () => {
   })
 })
 
-describe('collectUsage', () => {
-  test('measures every window back from YESTERDAY, not today', async () => {
-    const db = fakeDb([
-      ['ping_daily', { dau: 10, wau: 40, mau: 120 }],
-      ['cli_daily', { dau: 3, wau: 9, mau: 20 }],
-    ])
-    const usage = await collectUsage(db, NOW)
-
-    // The run is on the 24th; the last COMPLETE UTC day is the 23rd.
-    expect(usage?.referenceDay).toBe('2026-07-23')
-    const windowCall = db.calls.find((c) => c.sql.includes('ping_daily'))
-    expect(windowCall?.binds).toEqual([
-      '2026-07-23', // ?1 reference day
-      '2026-07-17', // ?2 week start
-      '2026-06-24', // ?3 month start
-    ])
-  })
-
-  test('reads dashboard and CLI streams into separate counts', async () => {
-    const db = fakeDb([
-      ['ping_daily', { dau: 10, wau: 40, mau: 120 }],
-      ["event = 'cli_install'", { n: 7 }],
-      ['cli_daily', { dau: 3, wau: 9, mau: 20 }],
-    ])
-    const usage = await collectUsage(db, NOW)
-
-    expect(usage?.dashboard).toEqual({ dau: 10, wau: 40, mau: 120 })
-    expect(usage?.cli).toEqual({ dau: 3, wau: 9, mau: 20 })
-    expect(usage?.cliInstalls24h).toBe(7)
-  })
-
-  test('excludes install-only rows from the CLI active count', async () => {
-    // cli_install rows can carry an ephemeral id, which would inflate DAU.
-    const db = fakeDb([['cli_daily', { dau: 3, wau: 9, mau: 20 }]])
-    await collectUsage(db, NOW)
-
-    const cliWindowCall = db.calls.find(
-      (c) => c.sql.includes('cli_daily') && c.sql.includes('COUNT(DISTINCT')
+describe('fetchUsageStats', () => {
+  test('GETs the shared service stats API for 30 days', async () => {
+    const seen: Array<{ url: string; init?: RequestInit }> = []
+    const stats = await fetchUsageStats(jsonFetch(statsBody(), {}, seen))
+    expect(seen).toHaveLength(1)
+    expect(seen[0].url).toBe(`${TELEMETRY_STATS_URL}?days=30`)
+    expect(TELEMETRY_STATS_URL).toBe(
+      'https://telemetry.anyr.workers.dev/api/chmonitor/stats'
     )
-    expect(cliWindowCall?.sql).toContain("event <> 'cli_install'")
+    // A hung stats API must not stall the digest: the request is bounded.
+    expect(seen[0].init?.signal).toBeInstanceOf(AbortSignal)
+    expect(stats?.summary).toEqual({ dau: 10, wau: 40, mau: 120 })
+    expect(stats?.series).toEqual([
+      { day: '2026-07-22', dau: 9 },
+      { day: '2026-07-23', dau: 10 },
+    ])
   })
 
-  test('returns null when the telemetry database is unbound', async () => {
-    expect(await collectUsage(null, NOW)).toBeNull()
-    expect(await collectUsage(undefined, NOW)).toBeNull()
-  })
-
-  test('returns null and logs when every query throws (never crashes the cron)', async () => {
-    const boom: D1UsageDb = {
-      prepare() {
-        return {
-          bind() {
-            return {
-              first<T>(): Promise<T | null> {
-                throw new Error('no such table: ping_daily')
-              },
-            }
-          },
-        }
-      },
-    }
+  test('logs once and returns null on an HTTP error', async () => {
     const logged: string[] = []
-    expect(await collectUsage(boom, NOW, (m) => logged.push(m))).toBeNull()
-    // One line per failing stream — a silent null would hide a broken binding.
-    expect(logged.length).toBeGreaterThan(0)
+    const stats = await fetchUsageStats(jsonFetch({}, { status: 503 }), (m) =>
+      logged.push(m)
+    )
+    expect(stats).toBeNull()
+    expect(logged).toHaveLength(1)
+    expect(logged[0]).toContain('HTTP 503')
   })
 
-  test('still reports the stream that works when the other table is missing', async () => {
-    // cli_daily arrived in migration 0005; a database mid-migration must not
-    // take down the whole Usage section.
-    const partial: D1UsageDb = {
-      prepare(sql: string) {
-        return {
-          bind() {
-            return {
-              async first<T>(): Promise<T | null> {
-                if (sql.includes('cli_daily')) {
-                  throw new Error('no such table: cli_daily')
-                }
-                return { dau: 10, wau: 40, mau: 120 } as T
-              },
-            }
-          },
-        }
-      },
-    }
-    const usage = await collectUsage(partial, NOW, () => {})
-    expect(usage?.dashboard).toEqual({ dau: 10, wau: 40, mau: 120 })
-    expect(usage?.cli).toEqual({ dau: 0, wau: 0, mau: 0 })
+  test('logs once and returns null when the fetch itself throws', async () => {
+    const logged: string[] = []
+    const boom = (async () => {
+      throw new Error('offline')
+    }) as unknown as typeof fetch
+    expect(await fetchUsageStats(boom, (m) => logged.push(m))).toBeNull()
+    expect(logged).toHaveLength(1)
+    expect(logged[0]).toContain('fetch failed')
   })
 
-  test('treats missing rows as zero rather than failing', async () => {
-    const usage = await collectUsage(fakeDb([]), NOW)
-    expect(usage).toBeNull() // both streams absent → nothing to report
+  test('rejects a response without the fields the digest relies on', async () => {
+    const logged: string[] = []
+    const noSummary = statsBody({ summary: undefined })
+    expect(
+      await fetchUsageStats(jsonFetch(noSummary), (m) => logged.push(m))
+    ).toBeNull()
+    const badSeries = statsBody({ series: [{ day: '2026-07-23' }] })
+    expect(
+      await fetchUsageStats(jsonFetch(badSeries), (m) => logged.push(m))
+    ).toBeNull()
+    expect(logged).toHaveLength(2)
+    expect(logged[0]).toContain('unexpected shape')
+  })
+
+  test('the default logger reports the failure instead of calling itself', () => {
+    // No logger argument — this is how index.ts calls it, so the default
+    // logger is the one that runs in production. It has to run out-of-process:
+    // a default that refers to its own parameter, `(m, meta) => logError(m, meta)`,
+    // is a *tail* call, so JSC turns it into a loop rather than a stack
+    // overflow. It never throws, never returns and blocks the event loop, so a
+    // hard kill is the only bound.
+    const probe = `
+const usage = await import('./usage.ts')
+const boom = async () => { throw new Error('offline') }
+let lines = []
+const real = console.error
+console.error = (...args) => { lines.push(String(args[0])) }
+const stats = await usage.fetchUsageStats(boom)
+console.error = real
+console.log(JSON.stringify({ stats, lines }))
+`
+    const child = Bun.spawnSync([process.execPath, '-e', probe], {
+      cwd: import.meta.dir,
+      // ~40x headroom over a healthy call, and inside the test timeout so the
+      // kill always fires first and a regression reads as this assertion.
+      timeout: 3_000,
+    })
+    expect({
+      killed: child.signalCode ?? null,
+      exitCode: child.exitCode,
+      stderr: new TextDecoder().decode(child.stderr).slice(0, 200),
+    }).toEqual({ killed: null, exitCode: 0, stderr: '' })
+
+    const { stats, lines } = JSON.parse(
+      new TextDecoder().decode(child.stdout)
+    ) as { stats: unknown; lines: string[] }
+    expect(stats).toBeNull()
+    expect(lines).toHaveLength(1)
+    const entry = JSON.parse(lines[0])
+    expect(entry.level).toBe('error')
+    expect(entry.msg).toContain('telemetry stats fetch failed')
+    expect(entry.err.message).toBe('offline')
+  }, 15_000)
+})
+
+describe('collectUsage', () => {
+  const stats = (series: TelemetryStats['series']): TelemetryStats => ({
+    summary: { dau: 10, wau: 40, mau: 120 },
+    series,
+  })
+
+  test('measures from YESTERDAY, not today', () => {
+    expect(referenceDayFor(NOW)).toBe('2026-07-23')
+    const usage = collectUsage(stats([{ day: '2026-07-23', dau: 10 }]), NOW)
+    expect(usage?.referenceDay).toBe('2026-07-23')
+  })
+
+  test('maps summary dau/wau/mau onto the active counts', () => {
+    const usage = collectUsage(stats([{ day: '2026-07-23', dau: 10 }]), NOW)
+    expect(usage?.active).toEqual({ dau: 10, wau: 40, mau: 120 })
+  })
+
+  test('is null when the stats are unavailable, so the digest omits the section', () => {
+    expect(collectUsage(null, NOW)).toBeNull()
+    expect(collectUsage(undefined, NOW)).toBeNull()
+  })
+
+  test('refuses numbers that do not cover yesterday rather than mislabel them', () => {
+    // Stats ending the day before yesterday (a stale cache, or a clock skew)
+    // would otherwise be printed under yesterday's date.
+    const logged: string[] = []
+    const usage = collectUsage(
+      stats([{ day: '2026-07-22', dau: 9 }]),
+      NOW,
+      (m) => logged.push(m)
+    )
+    expect(usage).toBeNull()
+    expect(logged).toHaveLength(1)
+    expect(logged[0]).toContain('2026-07-23')
   })
 })
 
@@ -177,16 +218,13 @@ describe('digest block', () => {
   test('labels the numbers as installs, with the measured day', () => {
     const lines = usageLines({
       referenceDay: '2026-07-23',
-      dashboard: { dau: 10, wau: 40, mau: 120 },
-      cli: { dau: 3, wau: 9, mau: 20 },
-      cliInstalls24h: 0,
+      active: { dau: 10, wau: 40, mau: 120 },
     })
     const text = lines.join('\n')
     // "installs" is not cosmetic: telemetry has no user identity, so calling
     // these users would misreport the metric.
     expect(text).toContain('installs, 2026-07-23')
     expect(text).toContain('DAU 10 · WAU 40 · MAU 120')
-    expect(text).not.toContain('New CLI installs') // omitted at 0
   })
 
   test('is empty when usage is unavailable so the caller can spread it', () => {

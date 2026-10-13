@@ -1,4 +1,5 @@
 import { resolveClientFlagEnv } from './src/lib/config/client-env'
+import { DEFAULT_TELEMETRY_ENDPOINT } from './src/lib/telemetry/endpoint'
 import { serializeAirgapSnapshot } from './src/lib/whats-new/airgap-snapshot'
 import { loadFriendlyNotesFromDir } from './src/lib/whats-new/load-friendly-notes'
 import { buildAirgapSnapshot } from './src/lib/whats-new/parse-changelog'
@@ -154,11 +155,12 @@ const CLIENT_ENV = {
   // Deployment target (docker | helm | cf | dev | unknown). Set in CI build
   // steps so telemetry can distinguish deployment environments.
   VITE_DEPLOY_TARGET: e.VITE_DEPLOY_TARGET ?? e.CHM_DEPLOY_TARGET ?? '',
-  // Collection endpoint for the daily instance ping. Defaults to the project
-  // collector (must match DEFAULT_TELEMETRY_ENDPOINT in lib/telemetry/instance-ping.ts);
-  // set to a different URL to self-host, or to '' as a hard no-network kill-switch.
+  // Collection endpoint for the daily instance ping and product events.
+  // Defaults to the shared telemetry service (DEFAULT_TELEMETRY_ENDPOINT, the
+  // single source in lib/telemetry/endpoint.ts); set to a different URL to
+  // self-host, or to '' as a hard no-network kill-switch.
   VITE_TELEMETRY_ENDPOINT:
-    e.VITE_TELEMETRY_ENDPOINT ?? 'https://telemetry.chmonitor.dev/v1/ping',
+    e.VITE_TELEMETRY_ENDPOINT ?? DEFAULT_TELEMETRY_ENDPOINT,
   VITE_GIT_SHA: e.VITE_GIT_SHA ?? e.GITHUB_SHA ?? git('rev-parse HEAD'),
   VITE_GIT_REF:
     e.VITE_GIT_REF ?? e.GITHUB_REF ?? git('rev-parse --abbrev-ref HEAD'),

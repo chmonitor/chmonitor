@@ -738,7 +738,7 @@ not by the dashboard server. Flags override env; env overrides
 | `CHM_CONFIG` | — | Path to a config TOML (overrides the default search paths). |
 | `CHM_NO_UPDATE_CHECK` | — | Set to `1` to silence the post-command “update available” hint. |
 | `CHM_TELEMETRY` | on | Same as dashboard: `off` / `0` / `false` / `no` disables CLI telemetry. |
-| `CHM_TELEMETRY_ENDPOINT` | `https://telemetry.chmonitor.dev/v1/ping` | Empty string = hard kill-switch. |
+| `CHM_TELEMETRY_ENDPOINT` | `https://telemetry.anyr.workers.dev/chmonitor` | Empty string = hard kill-switch. |
 | `DO_NOT_TRACK` | — | Cross-tool hard override (`1`) disables CLI telemetry. |
 
 ### Installer (`scripts/install.sh`)
@@ -759,8 +759,8 @@ Anonymous product telemetry is **on by default**. See [Product telemetry](/opera
 | Variable | Default | Purpose |
 |---|---|---|
 | `CHM_TELEMETRY` | on | Set to `off` (also `0` / `false` / `no`) to disable. `DO_NOT_TRACK=1` is a hard override. |
-| `CHM_TELEMETRY_ENDPOINT` | `https://telemetry.chmonitor.dev/v1/ping` | Collection endpoint. Empty string = hard kill-switch (no network). |
-| `CHM_LICENSE_KEY` | — | Optional. Polar **checkout id** from a [commercial license](/operate/advanced/commercial-license) receipt (the same id [lookup](https://chmonitor.dev/license/lookup) accepts). Included on the daily instance ping when telemetry is on. Does **not** unlock features or fail startup. Do not put a billing email here. |
+| `CHM_TELEMETRY_ENDPOINT` | `https://telemetry.anyr.workers.dev/chmonitor` | Collection endpoint (the instance ping and events both POST here). Empty string = hard kill-switch (no network). |
+| `CHM_LICENSE_KEY` | — | Optional. Polar **checkout id** from a [commercial license](/operate/advanced/commercial-license) receipt (the same id [lookup](https://chmonitor.dev/license/lookup) accepts). Never sent in telemetry. Does **not** unlock features or fail startup. Do not put a billing email here. |
 
 ## Polar licenses (landing / cloud-hooks)
 
@@ -768,7 +768,7 @@ Self-host license checkout is **not** configured on the dashboard example.
 Set Polar product ids and secrets on `apps/cloud-hooks` (and the hosted
 `.env.production` catalog). See `apps/cloud-hooks/.env.example`.
 Operators who already bought a license set `CHM_LICENSE_KEY` on the
-**dashboard** process (see Product telemetry above) — not on cloud-hooks.
+**dashboard** process — not on cloud-hooks.
 
 | Variable | Purpose |
 |---|---|
@@ -781,7 +781,7 @@ Operators who already bought a license set `CHM_LICENSE_KEY` on the
 
 `apps/cloud-hooks` is the Cloudflare Worker for Polar license checkout, Clerk
 lifecycle hooks, health-probe digests, and exception/issue-watch notifications.
-Bindings (`CHM_CLOUD_D1`, `CHM_TELEMETRY_DB`, `CHM_HOOKS_KV`) are declared in
+Bindings (`CHM_CLOUD_D1`, `CHM_HOOKS_KV`) are declared in
 `apps/cloud-hooks/wrangler.toml`, not here. See `apps/cloud-hooks/.env.example`.
 
 | Variable | Purpose |

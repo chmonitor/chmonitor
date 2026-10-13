@@ -1,9 +1,4 @@
-import {
-  isBlockedKey,
-  looksSensitive,
-  redactPingPayload,
-  redactProps,
-} from './redact'
+import { isBlockedKey, looksSensitive, redactProps } from './redact'
 import { describe, expect, test } from 'bun:test'
 
 describe('isBlockedKey', () => {
@@ -91,26 +86,13 @@ describe('redactProps', () => {
     })
   })
 
-  test('drops license_key from generic track() props', () => {
+  // The ping and the event sink both reach public telemetry; a license key is
+  // an identifier and must never ride along on either.
+  test('drops license_key from every telemetry payload', () => {
     const out = redactProps({
       deploy_target: 'docker',
       license_key: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     })
     expect(out).toEqual({ deploy_target: 'docker' })
-  })
-})
-
-describe('redactPingPayload', () => {
-  test('allowlists license_key on the instance ping only', () => {
-    const out = redactPingPayload({
-      instance_hash: 'a'.repeat(64),
-      deploy_target: 'docker',
-      license_key: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-      host: 'ch.internal',
-    })
-    expect(out.license_key).toBe('a1b2c3d4-e5f6-7890-abcd-ef1234567890')
-    expect(out.instance_hash).toBe('a'.repeat(64))
-    expect(out.deploy_target).toBe('docker')
-    expect('host' in out).toBe(false)
   })
 })

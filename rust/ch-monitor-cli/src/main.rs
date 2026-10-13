@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
         .take()
         .unwrap_or_else(|| Commands::Tui(TuiArgs::default()));
 
-    // Anonymous, opt-out CLI telemetry (source=cli). Fires in the background and
+    // Anonymous, opt-out CLI telemetry. Fires in the background and
     // never blocks or fails the command; see src/telemetry.rs.
     let (tel_event, tel_command): (&'static str, &'static str) = match &command {
         Commands::Doctor(_) if cli.clickhouse.has_cluster_host() => ("cli_diagnose", "doctor"),

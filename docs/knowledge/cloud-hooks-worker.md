@@ -54,7 +54,7 @@ so a future edit does not re-add it. Worker is driven by its HTTP endpoints
 only until the account regains cron budget. The tick-dispatch logic below
 still describes what runs once the trigger is re-attached; reports dispatch
 off the tick's scheduledTime.)
-  ├─ 00:00 UTC tick   → + daily digest → Telegram
+  ├─ 00:30 UTC tick   → + daily digest → Telegram
   │                      (users + DAU/WAU/MAU + subs + surfaces)
   ├─ Mon 01:00 tick   → + weekly report → Telegram
   │                      (same sections week-over-week + issue throughput)
@@ -195,19 +195,21 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   A digest line rather than an alert, except `isStalled` (≥`STALL_MIN_SIGNUPS`
   signups and ZERO connections), which is flagged inline as a probable broken
   connection flow.
-- `usage.ts` — `collectUsage`: **DAU / WAU / MAU** from the telemetry D1
-  (`CHM_TELEMETRY_DB` → `chm_telemetry`, read-only). One query per stream
-  computes all three windows via `COUNT(DISTINCT CASE WHEN day = … END)`, so the
-  30-day range is scanned once instead of three times. **These are active
-  INSTALLS, not users** — `ping_daily`/`cli_daily` hold one deduped row per (UTC
-  day, opaque install id) and carry no user identity, so every line is labelled
-  "installs"; Clerk remains the user-level figure. Windows end on the **last
-  complete UTC day** (yesterday), because the digest cron fires at 00:00 UTC and
-  counting the day that just started would report a near-zero DAU every morning.
-  `cli_install` rows are excluded from the CLI active count (they can carry an
-  ephemeral id, which would inflate it) and reported separately as new installs.
-  Each stream query is isolated, so a missing table degrades that stream to zero
-  instead of dropping the whole section.
+- `usage.ts` — `fetchUsageStats` + `collectUsage`: **DAU / WAU / MAU** from the
+  shared telemetry service's public stats API
+  (`GET https://telemetry.anyr.workers.dev/api/chmonitor/stats?days=30`, no binding or
+  secret; one bounded fetch, never rejects). `summary.dau/wau/mau` map straight
+  onto the digest and `series` feeds the anomaly baseline. **These are active
+  INSTALLS, not users** — the service counts hashed install ids with no user
+  identity, so every line is labelled "installs"; Clerk remains the user-level
+  figure. The dashboard and the CLI report into the same project, so the line is
+  "Dashboard + CLI" combined; the API has no per-day split by event, so the old
+  separate CLI line and "new CLI installs" count are gone. Windows end on the
+  **last complete UTC day** (yesterday). The service's `summary` is zero until its
+  daily rollup (00:10 UTC) writes that day, which is why the daily digest runs
+  at 00:30 UTC rather than 00:00. Stats that do not cover yesterday are
+  refused rather than printed under yesterday's date. A failed fetch logs once
+  and the Usage section is omitted.
 - `weekly.ts` — `collectWeekly` + `formatWeekly`: the Monday counterpart to the
   daily digest. Every headline number is paired with the **same number from the
   previous week** (`formatTrend` → `5 (▲ +3 vs 2)`; "flat" instead of "+0", and a
@@ -307,10 +309,6 @@ The same `chm-cloud` D1 is bound into both Workers; the monotonic
   budget.
 - D1 binding `CHM_CLOUD_D1` → `chm-cloud` (`database_id`
   `cca247b6-9b25-41bd-b9ca-727b35bc6039`, same as the dashboard).
-- D1 binding `CHM_TELEMETRY_DB` → `chm_telemetry` (`database_id`
-  `4887176b-0181-45bf-970f-a506f514d5a9`, the database `apps/telemetry` writes) —
-  **read-only** here, for the Usage section. No `migrations_dir`: `apps/telemetry`
-  owns that schema. Unbound → the Usage section is omitted.
 - `CHM_HOOKS_KV` KV binding is **active** (id `a1d9bd2c4377493eac5b5d4ad04dcc34`) —
   it stores per-probe up/down state (`probe-state:v1`), outage escalation records
   (`probe-outage:v1`), exception fingerprints (`exc-fp:v1:<fp>`), exception rate

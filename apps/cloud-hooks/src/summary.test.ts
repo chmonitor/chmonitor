@@ -146,14 +146,11 @@ describe('formatDigest — sections degrade gracefully', () => {
     const msg = formatDigest(base, {
       usage: {
         referenceDay: '2026-07-23',
-        dashboard: { dau: 10, wau: 40, mau: 120 },
-        cli: { dau: 2, wau: 5, mau: 11 },
-        cliInstalls24h: 3,
+        active: { dau: 10, wau: 40, mau: 120 },
       },
     })
     expect(msg).toContain('Usage')
     expect(msg).toContain('DAU 10 · WAU 40 · MAU 120')
-    expect(msg).toContain('New CLI installs: 3')
   })
 
   test('a probe snapshot adds a Surfaces section flagging down surfaces', () => {

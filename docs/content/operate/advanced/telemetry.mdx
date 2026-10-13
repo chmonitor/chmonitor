@@ -71,11 +71,15 @@ Inlined at `pnpm run build` / `vite build`.
 
 ### Collection endpoint
 
-Data is sent to the project's collector at
-`https://telemetry.chmonitor.dev/v1/ping` by default. Point it elsewhere (e.g.
-your own [collector](https://github.com/chmonitor/chmonitor/tree/main/apps/telemetry))
-by setting `CHM_TELEMETRY_ENDPOINT` (server) or `VITE_TELEMETRY_ENDPOINT`
-(client build). Setting it to an empty string disables the network call entirely.
+Data is sent to the shared telemetry service, project `chmonitor`, at
+`https://telemetry.anyr.workers.dev/chmonitor` by default. The instance ping and the
+product events both go to this one URL. Point it elsewhere by setting
+`CHM_TELEMETRY_ENDPOINT` (server) or `VITE_TELEMETRY_ENDPOINT` (client build); a
+custom endpoint must accept the same JSON event shape (see
+[Transport and storage](#transport-and-storage)). Setting it to an empty string
+disables the network call entirely.
+
+The aggregate numbers are public: [https://telemetry.anyr.workers.dev/chmonitor](https://telemetry.anyr.workers.dev/chmonitor).
 
 ## What is collected
 
@@ -89,7 +93,7 @@ by setting `CHM_TELEMETRY_ENDPOINT` (server) or `VITE_TELEMETRY_ENDPOINT`
 | `queries_viewed` | Queries page is opened |
 | `ai_query_sent` | A natural language query is sent to the AI agent |
 
-### Dimensions (attached to every event)
+### Dimensions (sent as `props` on events)
 
 | Dimension | Values | Example |
 |---|---|---|
@@ -97,13 +101,14 @@ by setting `CHM_TELEMETRY_ENDPOINT` (server) or `VITE_TELEMETRY_ENDPOINT`
 | `ch_version` | `MAJOR.MINOR` only | `24.8` |
 | `ch_flavor` | `oss`, `altinity`, `cloud`, `unknown` | `oss` |
 
-Optional on the **instance ping only** (not on generic `track()` events):
+Every event also carries the chmonitor `version` and, on the instance ping, the
+browser's `os` family (`windows`, `macos`, `linux`, `android`, `ios`,
+`unknown`). The service derives the country from the request, so the client
+does not send one.
 
-| Field | When | Example |
-|---|---|---|
-| `license_key` | `CHM_LICENSE_KEY` is set | Polar checkout id (UUID) |
-
-See [Commercial license](/operate/advanced/commercial-license). The key does not unlock features.
+The license key (`CHM_LICENSE_KEY`) is **never** sent. A license key is an
+identifier, so it stays out of public telemetry. See
+[Commercial license](/operate/advanced/commercial-license).
 
 ## What is NOT collected
 
@@ -116,9 +121,7 @@ See [Commercial license](/operate/advanced/commercial-license). The key does not
 A defensive redaction layer (`redact.ts`) runs before every event is emitted. It
 drops any prop whose key name implies sensitive content (`host`, `ip`, `url`,
 `query`, `sql`, `email`, `token`, `license_key`, …) and any string value that matches an email,
-IPv4/IPv6 address, or URL pattern. When in doubt, it drops. The instance ping
-**allowlists** `license_key` so a set `CHM_LICENSE_KEY` can be counted; generic
-`track()` events still drop it.
+IPv4/IPv6 address, or URL pattern. When in doubt, it drops.
 
 <Callout type="info">
 The ClickHouse version is always truncated to `MAJOR.MINOR` (e.g. `24.8`) — never
@@ -127,35 +130,43 @@ the full four-part string — to avoid matching the IPv4 redaction pattern.
 
 ## Transport and storage
 
-**Instance ping** (`maybePingInstance`) runs once per day when due, sending a
-hashed install id + deploy target + ClickHouse `MAJOR.MINOR` to the collection
-endpoint. When `CHM_LICENSE_KEY` is set (Polar checkout id from a commercial
-license receipt), the ping also includes `license_key`. The field is omitted
-when unset. It is a hard no-op when telemetry is disabled, when the endpoint is an
-empty string, or in non-browser contexts (SSR/prerender).
+**Instance ping** (`maybePingInstance`) runs once per day when due. It POSTs one
+`ping` event to the collection endpoint:
 
-The endpoint is received by the [telemetry collector](https://github.com/chmonitor/chmonitor/tree/main/apps/telemetry)
-— a public, write-only Cloudflare Worker that records to **Analytics Engine**
-(and, when D1 is attached, keeps a deduped daily row per install indefinitely).
-It cannot be read back over HTTP.
+```json
+{
+  "event": "ping",
+  "id": "<hashed install id>",
+  "version": "0.3.1",
+  "os": "linux",
+  "props": { "deploy_target": "docker", "ch_version": "24.8", "ch_flavor": "oss" }
+}
+```
+
+It is a hard no-op when telemetry is disabled, when the endpoint is an empty
+string, or in non-browser contexts (SSR/prerender).
+
+The shared [telemetry service](https://telemetry.anyr.workers.dev/docs) hashes `id`
+again with a server-side secret and never stores it raw. It does not store IP
+addresses or user agents.
 
 <Callout type="info" title="Retention">
-Analytics Engine stores data for **3 months**, then auto-deletes. For permanent
-retention the collector can also write to D1 (Cloudflare's SQLite), which keeps
-one deduped row per install per day forever. See the collector README.
+The service keeps raw events for **90 days** and daily aggregates (active
+installs, event counts, top dimensions) long term.
 </Callout>
 
 **Event tracking** (`track()`) is typed and redacted, then delivered by the event
-sink to the collector's `/v1/event` endpoint. The sink installs once per app load
-and is a hard no-op when telemetry is disabled or no endpoint resolves.
+sink to the same endpoint, one event per POST, with the same hashed `id` as the
+ping so events and pings count as one install. The sink installs once per app
+load and is a hard no-op when telemetry is disabled or no endpoint resolves.
 
 ## CLI telemetry (a separate stream)
 
 The standalone [`chm` / `chmonitor` CLI](/guide/guides/diagnostics-cli) (Linux /
 macOS release binaries; other platforms via `cargo install`) and its
 `install.sh` installer emit their own anonymous telemetry — tracked as a
-**separate stream** (`source=cli`) from the dashboard telemetry above, in its
-own `cli_daily` table. Same privacy posture: anonymous, opt-out, no PII.
+**separate stream** from the dashboard telemetry above, with its
+separate id space (the CLI's own persisted id). Same privacy posture: anonymous, opt-out, no PII.
 
 It is best-effort and non-blocking: the CLI fires the ping on a background thread
 with a sub-second timeout and never delays a command's exit by more than ~300ms,
@@ -177,21 +188,20 @@ The `install.sh` install ping additionally **skips automatically when `CI=true`*
 
 | Field | Values | Notes |
 |---|---|---|
-| `install_id` | 64-char opaque hex | Random id persisted at `$XDG_CONFIG_HOME/chmonitor/cli-id` (default `~/.config/chmonitor/cli-id`). Counts distinct installs only; maps to no identity. |
+| `id` | 64-char opaque hex | Random id persisted at `$XDG_CONFIG_HOME/chmonitor/cli-id` (default `~/.config/chmonitor/cli-id`). Counts distinct installs only; maps to no identity. |
 | `event` | `cli_install`, `cli_run`, `cli_diagnose` | Install ping vs. a command run vs. a `doctor --ch-host` scan. |
-| `command` | `hosts`, `chart`, `table`, `tui`, `update`, `auth`, `config`, `link`, `chat`, `agent`, `doctor`, `install`, … | Subcommand name (`chm` and `chmonitor` report the same names). |
-| `cli_version` | semver (e.g. `0.1.0`) | The `chm` version. |
+| `props.command` | `hosts`, `chart`, `table`, `tui`, `update`, `auth`, `config`, `link`, `chat`, `agent`, `doctor`, `install`, … | Subcommand name (`chm` and `chmonitor` report the same names). |
+| `version` | semver (e.g. `0.1.0`) | The `chm` version. |
 | `os` | `linux`, `macos`, `windows`, `unknown` | Shipped prebuilts are Linux/macOS only; `windows` appears for source builds. |
 | `arch` | `x86_64`, `aarch64`, `unknown` | |
-| `license_key` | Polar checkout id | Only when `CHM_LICENSE_KEY` is already in that process env. Same id as the dashboard ping. |
 
 It sends **nothing else** — no ClickHouse host, query text, command arguments,
-file paths, usernames, or IPs. The install-script ping uses an **ephemeral**
-random id (one-shot installs do not persist identity).
+file paths, usernames, IPs, or license key. The install-script ping uses an
+**ephemeral** random id (one-shot installs do not persist identity).
 
-The public analytics page shows a dedicated **CLI** section (installs over time,
-active CLI users, runs by command, version distribution, and OS/arch split),
-sourced from the collector's aggregate-only `/v1/summary` `cli` block.
+The public stats page, [https://telemetry.anyr.workers.dev/chmonitor](https://telemetry.anyr.workers.dev/chmonitor), shows installs
+over time, event counts, and the version and OS splits for the dashboard and the
+CLI together.
 
 ## Activation metric
 
@@ -209,9 +219,9 @@ telemetry store, and this documentation.
 <Callout type="info" title="Privacy by design">
 - **One-switch opt-out** — `CHM_TELEMETRY=off` or `DO_NOT_TRACK=1` disables it completely, anytime.
 - **Self-hosted data stays put** — chmonitor is fully self-hostable; your ClickHouse data never leaves your network regardless of telemetry settings.
-- **No third-party trackers in this system** — telemetry uses only chmonitor's own collector, never a third-party analytics SDK. (chmonitor separately offers an opt-in, *off-by-default* [Product Analytics](/operate/advanced/product-analytics) integration that sends funnel events to PostHog — only if you explicitly configure a key.)
+- **No third-party trackers in this system** — telemetry uses only the project's own shared telemetry service, never a third-party analytics SDK. (chmonitor separately offers an opt-in, *off-by-default* [Product Analytics](/operate/advanced/product-analytics) integration that sends funnel events to PostHog — only if you explicitly configure a key.)
 - **No PII by design** — the event schema and redaction layer are written to make PII collection structurally impossible, not just policy-forbidden.
-- **Anonymous** — only a hashed random install id is sent by default; it cannot be tied to an identity, and the collector never stores request IPs. If you set `CHM_LICENSE_KEY`, the Polar checkout id is included on the instance ping so licensed installs can be counted. Omit the var (or disable telemetry) to stay fully anonymous.
+- **Anonymous** — only a hashed random install id is sent; it cannot be tied to an identity, and the service never stores request IPs. The license key (`CHM_LICENSE_KEY`) is never sent.
 - **Hard kill-switch** — setting the endpoint env to an empty string stops all network calls regardless of any other setting.
 </Callout>
 
