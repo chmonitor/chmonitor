@@ -1298,7 +1298,7 @@ describe('runHealthSweep — ACK suppression', () => {
     const summary2 = await runHealthSweep()
     expect(fetchCalls).toHaveLength(1)
     expect(summary2.alertsDispatched).toBe(1)
-    expect(fakeDb.rows[0]?.decision_kind).toBe('new')
+    expect(fakeDb.rows.map((r) => r.decision_kind)).toEqual(['acked', 'new'])
   })
 
   test('a recovery is never suppressed by an ACK, and clears it', async () => {

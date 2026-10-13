@@ -317,7 +317,28 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       // firing sweep re-evaluates fresh and delivers/commits normally.
       counters.alertsSuppressed++
       counters.ackedSuppressed++
-      // TODO(27): historyStore.record({ ..., decisionKind: 'acked', delivered: false })
+      try {
+        await recordAlertEvent({
+          eventTime: new Date().toISOString(),
+          hostId,
+          hostLabel: name,
+          rule: ruleId,
+          severity: decision.severity as 'warning' | 'critical',
+          prevSeverity:
+            decision.previousSeverity === 'ok'
+              ? null
+              : decision.previousSeverity,
+          decisionKind: 'acked',
+          delivered: false,
+          value,
+          channel: 'acked',
+        })
+      } catch (err) {
+        debug(
+          `[health-sweep] alert-history record failed for host ${hostId} rule ${ruleId}`,
+          err instanceof Error ? err.message : String(err)
+        )
+      }
       return
     }
 
