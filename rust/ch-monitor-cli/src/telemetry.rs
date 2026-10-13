@@ -1,24 +1,26 @@
-//! Anonymous, opt-out CLI telemetry — a SEPARATE stream from the dashboard's
-//! product telemetry (source=cli). Best-effort and non-blocking: it never fails
+//! Anonymous, opt-out CLI telemetry — a SEPARATE id space from the dashboard's
+//! product telemetry. Best-effort and non-blocking: it never fails
 //! a command and never delays process exit by more than ~300ms.
 //!
 //! ## What is sent (and nothing else)
-//! A single JSON POST to the collector's `/v1/cli` endpoint:
+//! A single JSON POST (one event) to the shared telemetry service, project
+//! `chmonitor`:
 //! ```json
 //! {
-//!   "install_id":  "<64-hex opaque random id>",  // persisted, not tied to identity
-//!   "event":       "cli_run" | "cli_diagnose",
-//!   "command":     "doctor" | "diagnose" | "hosts" | "chart" | ...,
-//!   "cli_version": "0.1.0",
-//!   "os":          "linux" | "macos" | "windows" | "unknown",
-//!   "arch":        "x86_64" | "aarch64" | "unknown",
-//!   "license_key": "<Polar checkout id>"         // only when CHM_LICENSE_KEY is set
+//!   "event":   "cli_run" | "cli_diagnose",
+//!   "id":      "<64-hex opaque random id>",  // persisted, not tied to identity
+//!   "version": "0.1.0",
+//!   "os":      "linux" | "macos" | "windows" | "unknown",
+//!   "arch":    "x86_64" | "aarch64" | "unknown",
+//!   "props":   { "command": "doctor" | "hosts" | "chart" | ... }
 //! }
 //! ```
-//! No ClickHouse host, query text, args, paths, IPs, or usernames are ever
-//! included. The install_id is 32 random bytes hex-encoded, generated once and
-//! stored at `$XDG_CONFIG_HOME/chmonitor/cli-id` (default `~/.config/...`); it
-//! exists only to count distinct installs — it maps to no identity.
+//! No ClickHouse host, query text, args, paths, IPs, usernames, or license key
+//! are ever included (a license key is an identifier and must not reach public
+//! telemetry). The id is 32 random bytes hex-encoded, generated once and stored
+//! at `$XDG_CONFIG_HOME/chmonitor/cli-id` (default `~/.config/...`); the
+//! service hashes it again, and it exists only to count distinct installs — it
+//! maps to no identity.
 //!
 //! ## Opt out (any one disables it entirely)
 //!   CHM_TELEMETRY=off            (also 0 / false / no)
@@ -35,23 +37,36 @@ use reqwest::Client;
 use serde::Serialize;
 use tokio::task::JoinHandle;
 
-const DEFAULT_ENDPOINT: &str = "https://telemetry.chmonitor.dev/v1/cli";
+const DEFAULT_ENDPOINT: &str = "https://telemetry.anyr.workers.dev/chmonitor";
 /// Hard cap on how long we let a ping delay process exit.
 const EXIT_BUDGET: Duration = Duration::from_millis(300);
 /// The network request's own timeout (sub-second, best-effort).
 const REQUEST_TIMEOUT: Duration = Duration::from_millis(800);
 
 #[derive(Serialize)]
-struct CliPing {
-    install_id: String,
-    event: &'static str,
+struct CliProps {
     command: &'static str,
-    cli_version: &'static str,
+}
+
+#[derive(Serialize)]
+struct CliPing {
+    event: &'static str,
+    id: String,
+    version: &'static str,
     os: &'static str,
     arch: &'static str,
-    /// Polar checkout id from `CHM_LICENSE_KEY` when set. Honor system — not a gate.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    license_key: Option<String>,
+    props: CliProps,
+}
+
+fn build_ping(id: String, event: &'static str, command: &'static str) -> CliPing {
+    CliPing {
+        event,
+        id,
+        version: env!("CARGO_PKG_VERSION"),
+        os: os(),
+        arch: arch(),
+        props: CliProps { command },
+    }
 }
 
 /// True when the user has opted out via any supported mechanism.
@@ -146,30 +161,6 @@ fn hex(bytes: &[u8]) -> String {
     s
 }
 
-/// Polar checkout / order id from `CHM_LICENSE_KEY`. Same charset as the
-/// dashboard ping (`sanitizeLicenseKey`): 8–80 `[A-Za-z0-9._-]`, no email/URL.
-fn parse_license_key(raw: &str) -> Option<String> {
-    let trimmed = raw.trim();
-    if trimmed.len() < 8 || trimmed.len() > 80 {
-        return None;
-    }
-    let mut chars = trimmed.chars();
-    let first = chars.next()?;
-    if !first.is_ascii_alphanumeric() {
-        return None;
-    }
-    if !chars.all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-') {
-        return None;
-    }
-    Some(trimmed.to_string())
-}
-
-fn license_key_from_env() -> Option<String> {
-    std::env::var("CHM_LICENSE_KEY")
-        .ok()
-        .and_then(|v| parse_license_key(&v))
-}
-
 /// Load the persisted install id, creating and storing one on first run.
 /// Best-effort: if the config dir is unwritable we still return an id (so the
 /// ping can go out) but simply don't persist it.
@@ -199,15 +190,7 @@ pub fn spawn(event: &'static str, command: &'static str) -> Option<JoinHandle<()
     }
     let endpoint = endpoint()?;
     Some(tokio::spawn(async move {
-        let ping = CliPing {
-            install_id: install_id(),
-            event,
-            command,
-            cli_version: env!("CARGO_PKG_VERSION"),
-            os: os(),
-            arch: arch(),
-            license_key: license_key_from_env(),
-        };
+        let ping = build_ping(install_id(), event, command);
         let Ok(client) = Client::builder()
             .timeout(REQUEST_TIMEOUT)
             // Do not keep idle connections: they spawn pool tasks that outlive
@@ -242,7 +225,7 @@ pub async fn finish(handle: Option<JoinHandle<()>>) {
 
 #[cfg(test)]
 mod tests {
-    use super::{finish, parse_license_key, CliPing, EXIT_BUDGET};
+    use super::{build_ping, finish, EXIT_BUDGET};
     use serde_json::{json, Value};
     use std::time::{Duration, Instant};
 
@@ -260,49 +243,48 @@ mod tests {
         );
     }
 
-    #[test]
-    fn parse_license_key_accepts_polar_checkout_uuid() {
-        let id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
-        assert_eq!(parse_license_key(id).as_deref(), Some(id));
-        assert_eq!(parse_license_key(&format!("  {id}  ")).as_deref(), Some(id));
+    fn ping_json(id: &str, event: &'static str, command: &'static str) -> Value {
+        serde_json::to_value(build_ping(id.to_string(), event, command)).expect("serialize")
     }
 
     #[test]
-    fn parse_license_key_rejects_email_url_empty() {
-        assert_eq!(parse_license_key(""), None);
-        assert_eq!(parse_license_key("abc"), None);
-        assert_eq!(parse_license_key("billing@example.com"), None);
-        assert_eq!(parse_license_key("https://polar.sh/x"), None);
+    fn ping_carries_the_install_id_as_id() {
+        // The persisted install id is the user identity the service counts; a
+        // different id here would silently reset DAU/WAU/MAU continuity.
+        let id = "a".repeat(64);
+        let v = ping_json(&id, "cli_run", "hosts");
+        assert_eq!(v["id"], json!(id));
+        assert_eq!(v["event"], json!("cli_run"));
     }
 
     #[test]
-    fn cli_ping_omits_license_key_when_unset() {
-        let ping = CliPing {
-            install_id: "a".repeat(64),
-            event: "cli_run",
-            command: "hosts",
-            cli_version: "0.1.1",
-            os: "linux",
-            arch: "x86_64",
-            license_key: None,
-        };
-        let v: Value = serde_json::to_value(&ping).expect("serialize");
-        assert_eq!(v.get("license_key"), None);
+    fn command_travels_in_props_and_version_is_the_cli_version() {
+        let v = ping_json(&"b".repeat(64), "cli_diagnose", "doctor");
+        assert_eq!(v["props"], json!({ "command": "doctor" }));
+        assert_eq!(v["version"], json!(env!("CARGO_PKG_VERSION")));
     }
 
     #[test]
-    fn cli_ping_includes_license_key_when_set() {
-        let id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
-        let ping = CliPing {
-            install_id: "a".repeat(64),
-            event: "cli_run",
-            command: "hosts",
-            cli_version: "0.1.1",
-            os: "linux",
-            arch: "x86_64",
-            license_key: Some(id.to_string()),
-        };
-        let v: Value = serde_json::to_value(&ping).expect("serialize");
-        assert_eq!(v.get("license_key"), Some(&json!(id)));
+    fn ping_has_exactly_the_fields_the_service_accepts() {
+        let v = ping_json(&"c".repeat(64), "cli_run", "ls");
+        let mut keys: Vec<&str> = v
+            .as_object()
+            .expect("object")
+            .keys()
+            .map(String::as_str)
+            .collect();
+        keys.sort_unstable();
+        assert_eq!(keys, ["arch", "event", "id", "os", "props", "version"]);
+    }
+
+    #[test]
+    fn license_key_is_never_sent_even_when_set_in_the_environment() {
+        // A license key is an identifier; it must not reach public telemetry.
+        let key = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+        std::env::set_var("CHM_LICENSE_KEY", key);
+        let body = ping_json(&"d".repeat(64), "cli_run", "hosts").to_string();
+        std::env::remove_var("CHM_LICENSE_KEY");
+        assert!(!body.contains("license"), "body: {body}");
+        assert!(!body.contains(key), "body: {body}");
     }
 }
