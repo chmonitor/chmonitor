@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import type { QuietHoursInfo } from '@/lib/hooks/use-quiet-hours'
 
 import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
+import { SilencingScopeNotice } from './silencing-scope-notice'
 import { useState } from 'react'
 import {
   DeclarativeSourceBadge,
@@ -279,6 +280,7 @@ export function QuietHoursPanel({ className }: { className?: string }) {
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
+      <SilencingScopeNotice feature="Quiet hours" />
       <p className="text-xs text-muted-foreground">
         On the chosen days and time range, the health sweep still runs every
         check and records findings — it only silences the outbound alert. Set
