@@ -62,6 +62,85 @@ helm uninstall my-chm
 | `alerting.instanceName` | `""` | Deployment label shown on every alert, e.g. `prod-eu` (`HEALTH_ALERT_INSTANCE_NAME`). |
 | `alerting.dashboardUrl` | `""` | Public http(s) base URL of this dashboard; alerts link to `<url>/health?host=<id>` (`HEALTH_ALERT_DASHBOARD_URL`). |
 | `alerting.metadata` | `{}` | Non-secret key/values added to alerts, rendered as JSON into `HEALTH_ALERT_METADATA`. Max 10 pairs, keys `[A-Za-z0-9_.-]{1,32}`, values up to 128 chars. |
+| `imagePullSecrets` | `[]` | Pull secrets for the Deployment and cron Job pods. |
+| `nameOverride` | `""` | Overrides the chart name used in resource names. |
+| `fullnameOverride` | `""` | Overrides the full release-based resource name. |
+| `image` | - | Group: `image.repository` (`ghcr.io/chmonitor/chmonitor`), `image.tag`, `image.pullPolicy`, rows above. |
+| `podAnnotations` | `{}` | Annotations added to the pod template. |
+| `podLabels` | `{}` | Labels added to the pod template. |
+| `podSecurityContext` | - | Group: `podSecurityContext.runAsNonRoot`, `runAsUser`, `runAsGroup`, `fsGroup`. Rendered as-is into the pod spec. |
+| `podSecurityContext.runAsNonRoot` | `true` | Require the pod to run as a non-root user. |
+| `podSecurityContext.runAsUser` | `1001` | UID the pod runs as. Matches the non-root `app` user in the Docker runner stage. |
+| `podSecurityContext.runAsGroup` | `1001` | GID the pod runs as. |
+| `podSecurityContext.fsGroup` | `1001` | Group owning mounted volumes. |
+| `securityContext` | - | Group: `securityContext.*` below. Rendered as-is into the container spec. |
+| `securityContext.allowPrivilegeEscalation` | `false` | Blocks privilege escalation in the container. |
+| `securityContext.readOnlyRootFilesystem` | `false` | Root filesystem is writable by default. Set `true` only if the app needs no writes outside mounted volumes. |
+| `securityContext.runAsNonRoot` | `true` | Require a non-root container user. |
+| `securityContext.runAsUser` | `1001` | Container UID. |
+| `securityContext.runAsGroup` | `1001` | Container GID. |
+| `securityContext.capabilities` | `drop: [ALL]` | Linux capabilities to drop. |
+| `serviceAccount` | - | Group: `serviceAccount.create`, `serviceAccount.annotations`, `serviceAccount.name`. |
+| `serviceAccount.create` | `true` | Create a ServiceAccount. When `false`, the pod uses `serviceAccount.name` or `default`. |
+| `serviceAccount.annotations` | `{}` | Annotations on the created ServiceAccount. |
+| `serviceAccount.name` | `""` | ServiceAccount name. Generated from the release fullname when empty and `create` is `true`. |
+| `service` | - | Group: `service.type`, `service.port` (rows above). |
+| `probes` | - | Group: `probes.liveness`, `probes.readiness`, `probes.startup`. Rendered into the container spec. See [Health probes](#health-probes). |
+| `probes.liveness` | `enabled: true`, `/healthz`, period 15s, timeout 5s, failure threshold 3 | Static liveness probe. `/healthz` returns 200 while the process is up. |
+| `probes.readiness` | `enabled: true`, `/api/healthz`, period 15s, timeout 10s, failure threshold 3 | Readiness probe. `/api/healthz` returns 503 when no ClickHouse host answers. Keep `timeoutSeconds` above the app ping timeout (`CHM_HEALTHZ_TIMEOUT_MS`, 3000 ms) or a slow host will flap readiness. |
+| `probes.startup` | `enabled: true`, `/healthz`, initial delay 5s, period 5s, failure threshold 12 | Startup probe, about 60s grace before liveness can restart a slow boot. |
+| `ingress` | - | Group: `ingress.enabled` (row above), `ingress.className`, `ingress.annotations`, `ingress.hosts`, `ingress.tls`. Rendered by `templates/ingress.yaml` when enabled. |
+| `ingress.className` | `""` | IngressClass name (`spec.ingressClassName`). |
+| `ingress.annotations` | `{}` | Annotations on the Ingress (for example, the Traefik middleware annotation in the auth walkthrough). |
+| `ingress.hosts` | `chmonitor.local`, path `/` (`Prefix`) | Host and path rules. Each entry has `host` and `paths`. |
+| `ingress.tls` | `[]` | TLS entries (`secretName`, `hosts`) passed to the Ingress. Non-empty TLS switches the NOTES output to `https`. |
+| `resources.requests` | `cpu: 100m`, `memory: 256Mi` | Pod resource requests. |
+| `resources.limits` | `cpu: 500m`, `memory: 512Mi` | Pod resource limits. |
+| `autoscaling` | - | Group: `autoscaling.enabled` and the related rows above. Rendered by `templates/hpa.yaml`. |
+| `clickhouse` | - | Group: `clickhouse.host`, `clickhouse.user`, `clickhouse.password`, `clickhouse.maxExecutionTime`, `clickhouse.existingSecret`. |
+| `auth` | - | Group: `auth.provider`, `auth.clerk.*`, `auth.trusted.*`. Rendered into the Deployment env by `templates/deployment.yaml`. |
+| `auth.clerk` | - | Group: `auth.clerk.publishableKey`, `auth.clerk.secretKey`, `auth.clerk.existingSecret`. |
+| `auth.clerk.publishableKey` | `""` | Clerk publishable key (`pk_...`, public). Sets `CHM_CLERK_PUBLISHABLE_KEY` in the ConfigMap when set. |
+| `auth.clerk.secretKey` | `""` | Clerk secret key (`sk_...`). Stored in the chart Secret as `CLERK_SECRET_KEY` unless `existingSecret` is set. |
+| `auth.clerk.existingSecret` | `""` | Existing Secret with key `CLERK_SECRET_KEY`. When set, `secretKey` is ignored. |
+| `auth.trusted` | - | Group: trusted-header auth settings. See [Authentication](#authentication-reverse-proxy--trusted-headers). |
+| `features` | - | Group of non-secret `CHM_*` flags. Each non-empty key is rendered as-is into the ConfigMap. Empty values fall through to app defaults. |
+| `features.CHM_CLOUD_MODE` | `""` | `"true"` turns env hosts into a public read-only demo and enables per-user workspaces (hosted SaaS). Empty means self-hosted. |
+| `features.CHM_EDITION` | `""` | `community` (OSS, app default) or `enterprise`. |
+| `features.CHM_FEATURE_AGENT_ACCESS` | `""` | AI agent access level: `public` (app default) or `authenticated`. |
+| `features.CHM_FEATURE_CONVERSATION_DB` | `""` | `"true"` stores agent conversations in a DB instead of localStorage. App default: `false`. |
+| `features.CHM_FEATURE_USER_CONNECTIONS_DB` | `""` | `"true"` persists per-user ClickHouse connections. Needs Clerk auth, `secrets.connectionsEncryptionKey`, and a DB backend (`DATABASE_URL` or `POSTGRES_URL` via `extraEnv`). App default: `false`. |
+| `features.CHM_CLERK_PUBLIC_READ` | `""` | `"true"` allows anonymous `GET /api/v1/*` under Clerk. Writes still need sign-in. App default: `false`. |
+| `features.CHM_DEVICE_LOGIN` | `""` | CLI device login: `auto`, `true`, or `false`. App default: `auto`. Set `"true"` to opt in on self-hosted. |
+| `features.CHM_DEVICE_LOGIN_SUBJECT` | `""` | Subject for device-only tokens when `auth.provider` is `none`. App default: `self-hosted`. |
+| `features.LLM_MODEL` | `""` | Default AI model (`provider:model` or `anyrouter/...`). Empty uses the app default. |
+| `secrets` | - | Group: chart Secret inputs for the app. Rendered by `templates/secret.yaml`. |
+| `secrets.connectionsEncryptionKey` | `""` | AES-256 key (32-byte base64) for encrypting per-user connection credentials. Required when `features.CHM_FEATURE_USER_CONNECTIONS_DB` is `"true"`. Stored as `CHM_USER_CONNECTIONS_ENCRYPTION_KEY`. |
+| `secrets.apiKeySecret` | `""` | HMAC secret that gates `/api/v1/*` behind `chm_` Bearer tokens. Stored as `CHM_API_KEY_SECRET`. |
+| `secrets.existingSecret` | `""` | Existing Secret with both `CHM_USER_CONNECTIONS_ENCRYPTION_KEY` and `CHM_API_KEY_SECRET`. When set, the two values above are ignored. |
+| `cron` | - | Group: Kubernetes CronJobs that call `/api/cron/*`. Only needed on Node/Kubernetes. Cloudflare Workers uses `triggers.crons`. |
+| `cron.enabled` | `false` | Create the three CronJobs (health sweep, retention prune, weekly report). |
+| `cron.image` | `curlimages/curl:8.11.1`, `IfNotPresent` | Curl image for the Jobs. Pinned to a version on purpose; a mutable tag such as `latest` lets nodes diverge. |
+| `cron.image.repository` | `curlimages/curl` | Image repository for the cron Jobs. |
+| `cron.image.tag` | `"8.11.1"` | Image tag for the cron Jobs. Keep it pinned. |
+| `cron.image.pullPolicy` | `IfNotPresent` | Pull policy for the cron Job image. |
+| `cron.secret` | `""` | `CRON_SECRET` value, stored in the chart Secret. Must match the dashboard's `CRON_SECRET`. Ignored when `existingSecret` is set. |
+| `cron.existingSecret` | `""` | Existing Secret with key `CRON_SECRET`. |
+| `cron.schedules` | - | Group: schedules for the three CronJobs. |
+| `cron.schedules.healthSweep` | `"*/5 * * * *"` | Health sweep schedule (every 5 minutes). |
+| `cron.schedules.retentionPrune` | `"0 3 * * *"` | Retention prune schedule (daily at 03:00 UTC). |
+| `cron.schedules.weeklyReport` | `"0 8 * * 1"` | Weekly report schedule (Mondays at 08:00 UTC). |
+| `cron.resources` | requests 10m/16Mi, limits 100m/64Mi | Resources for the cron Job containers. |
+| `alertWebhooks` | - | Group: GitOps-declared webhook targets for health alerts. See [Custom alert webhooks](#custom-alert-webhooks-gitops). |
+| `alertWebhooks.enabled` | `false` | Render `targets` into `HEALTH_ALERT_WEBHOOK_TARGETS` and the chart Secret. |
+| `alertWebhooks.defaults` | `format: auto`, `minSeverity: warning` | Defaults for targets that omit `format` or `minSeverity`. |
+| `alertWebhooks.defaults.format` | `auto` | Default target format: `auto`, `raw`, `slack`, `matrix`, or `hookshot`. |
+| `alertWebhooks.defaults.minSeverity` | `warning` | Default minimum severity: `warning` or `critical`. |
+| `alertWebhooks.targets` | `[]` | List of webhook targets. Each has `name`, `url` or `urlFrom`, and optional `format`, `minSeverity`, headers, and templates. |
+| `alerting` | - | Group: alert identity settings. See the `alerting.*` rows above. |
+| `nodeSelector` | `{}` | Node selector for the Deployment and cron Job pods. |
+| `tolerations` | `[]` | Tolerations for the Deployment and cron Job pods. |
+| `affinity` | `{}` | Affinity rules for the Deployment and cron Job pods. |
 | `extraEnv` | `[]` | Extra environment variables (e.g. `CLICKHOUSE_NAME`). |
 
 See [`values.yaml`](./values.yaml) for the full list.
