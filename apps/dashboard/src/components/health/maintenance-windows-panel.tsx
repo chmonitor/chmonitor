@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import type { MaintenanceWindowInfo } from '@/lib/hooks/use-maintenance-windows'
 
 import { canWriteHealthStore, HealthStoreNotice } from './health-store-notice'
+import { SilencingScopeNotice } from './silencing-scope-notice'
 import { useState } from 'react'
 import {
   DeclarativeSourceBadge,
@@ -277,6 +278,7 @@ export function MaintenanceWindowsPanel({ className }: { className?: string }) {
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
+      <SilencingScopeNotice feature="Maintenance windows" />
       <p className="text-xs text-muted-foreground">
         While a window is active, the health sweep still runs every check and
         records findings — it only suppresses the outbound alert notification
