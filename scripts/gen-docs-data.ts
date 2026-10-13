@@ -238,6 +238,9 @@ const ENV_IGNORED = new Set([
   'KUBERNETES_PORT',
   'KUBERNETES_SERVICE_HOST',
   'DOCKER_CONTAINER',
+  // Binding names declared in wrangler.toml, not operator config.
+  'CHM_CLOUD_D1',
+  'CHM_EVENTS_QUEUE',
 ])
 const ENV_IGNORED_PREFIXES = ['VITE_']
 
@@ -245,12 +248,12 @@ const NAME = '([A-Z][A-Z0-9]*_[A-Z0-9_]+)'
 const ENV_PATTERNS = [
   // process.env.X, import.meta.env.X, env.X, ctx.env?.X, cfEnv.X
   new RegExp(
-    `\\b(?:process\\.env|import\\.meta\\.env|[A-Za-z_$][\\w$]*[eE]nv)\\??\\.${NAME}\\b`,
+    `\\b(?:process\\.env|import\\.meta\\.env|(?:[A-Za-z_$][\\w$]*)?[eE]nv)\\??\\.${NAME}\\b`,
     'g'
   ),
   // process.env['X'], env?.['X']
   new RegExp(
-    `\\b(?:process\\.env|[A-Za-z_$][\\w$]*[eE]nv)\\??\\.?\\[\\s*['"\`]${NAME}['"\`]\\s*\\]`,
+    `\\b(?:process\\.env|(?:[A-Za-z_$][\\w$]*)?[eE]nv)\\??\\.?\\[\\s*['"\`]${NAME}['"\`]\\s*\\]`,
     'g'
   ),
   // readEnv('X'), getEnv('X'), env('X'), readEnvFlag('X')
@@ -291,8 +294,27 @@ function parseEnvExample(): Map<string, { value: string; active: boolean }> {
   return out
 }
 
+/**
+ * Names built at runtime from a template, so no literal appears in source and
+ * the scanner cannot see them. Keep in sync with `CHANNEL_ENV_PREFIX` in
+ * `apps/dashboard/src/lib/health/server-alert-config.ts`
+ * (`getServerChannelSettings` reads `<PREFIX>_ENABLED` / `<PREFIX>_MIN_SEVERITY`).
+ */
+const ENV_COMPOSED_NAMES = [
+  'WEBHOOK',
+  'EMAIL',
+  'OPSGENIE',
+  'PAGERDUTY',
+  'TELEGRAM',
+  'NTFY',
+  'PUSHOVER',
+].flatMap((ch) => [
+  `HEALTH_ALERT_${ch}_ENABLED`,
+  `HEALTH_ALERT_${ch}_MIN_SEVERITY`,
+])
+
 export function scanEnvNames(): string[] {
-  const names = new Set<string>()
+  const names = new Set<string>(ENV_COMPOSED_NAMES)
   for (const root of ENV_SCAN_ROOTS) {
     for (const file of walkSources(join(REPO_ROOT, root))) {
       const src = readFileSync(file, 'utf8')

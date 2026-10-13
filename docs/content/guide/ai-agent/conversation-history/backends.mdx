@@ -58,11 +58,10 @@ CHM_CLOUD_D1_DATABASE_ID=<uuid>
 Provision and migrate:
 
 ```bash
-pnpm run cf:setup-conversations
-pnpm run cf:migrate-conversations
+bun scripts/setup-conversations-db.ts
 ```
 
-The setup script creates the D1 database, stores the UUID in `wrangler.toml`, and adds the `CHM_CLOUD_D1` binding. The migration script applies the schema. During CI deploys, set `CHM_CLOUD_D1_DATABASE_ID` as a secret so `wrangler deploy` includes the binding. Without it, the binding is excluded from the deploy.
+The setup script creates the D1 database, stores the UUID in `wrangler.toml`, adds the `CHM_CLOUD_D1` binding, and applies the schema with `wrangler d1 migrations apply chm-cloud --remote` (migrations live in `apps/dashboard/src/db/conversations-migrations`). There is no separate migrate script. For a later schema change, add a migration file there and run that same `wrangler d1 migrations apply` command from `apps/dashboard`. During CI deploys, set `CHM_CLOUD_D1_DATABASE_ID` as a secret so `wrangler deploy` includes the binding. Without it, the binding is excluded from the deploy.
 
 Also accepts `AGENT_CHM_CLOUD_D1_DATABASE_ID` as an alias for `CHM_CLOUD_D1_DATABASE_ID`.
 
