@@ -67,7 +67,7 @@ export type ProbeSnapshot = Record<string, 'up' | 'down'>
 export interface DigestExtras {
   clerk?: ClerkMetrics | null
   probes?: ProbeSnapshot | null
-  /** DAU/WAU/MAU from the telemetry D1 (see usage.ts). */
+  /** DAU/WAU/MAU from the telemetry stats API (see usage.ts). */
   usage?: UsageMetrics | null
   /** Signup → connected-a-cluster conversion (see activation.ts). */
   activation?: ActivationData | null
@@ -220,7 +220,7 @@ export function formatDigest(
     )
   }
 
-  // ── Usage (telemetry D1) — DAU/WAU/MAU, omitted when unavailable ───────────
+  // ── Usage (telemetry stats API) — DAU/WAU/MAU, omitted when unavailable ───────────
   parts.push(...usageLines(extras.usage))
 
   // ── Activation — did the signups actually connect anything? ────────────────
