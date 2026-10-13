@@ -33,6 +33,8 @@ let emailConfig: {
 } | null = null
 mock.module('@/lib/health/server-alert-config', () => ({
   getServerEmailConfig: () => emailConfig,
+  getServerAlertIdentity: () => ({}),
+  buildHealthDeepLink: () => undefined,
 }))
 
 // sendAlertEmail performs the real outbound fetch (Mailgun/SendGrid); stub it

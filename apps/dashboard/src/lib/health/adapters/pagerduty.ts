@@ -10,6 +10,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { instancePrefix } from './identity'
+
 /** PagerDuty Events API v2 severities. */
 export type PagerDutySeverity = 'critical' | 'warning' | 'error' | 'info'
 
@@ -63,8 +65,12 @@ export function buildPagerDutyBody(
     event_action: eventAction,
     dedup_key: pagerDutyDedupKey(payload),
     payload: {
-      summary: `${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
-      source: payload.hostLabel,
+      summary: `${instancePrefix(payload)}${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
+      // Readable origin for multi-deployment accounts; dedup_key stays
+      // instance-independent so existing incidents keep collapsing.
+      source: payload.instanceName
+        ? `${payload.instanceName}/${payload.hostLabel}`
+        : payload.hostLabel,
       severity: SEVERITY_MAP[payload.severity],
       timestamp: payload.timestamp,
       component: payload.metric,
@@ -77,13 +83,20 @@ export function buildPagerDutyBody(
         critThreshold: payload.critThreshold ?? null,
         label: payload.label,
         snapshot: payload.snapshot ?? null,
+        ...(payload.instanceName ? { instanceName: payload.instanceName } : {}),
+        ...(payload.dashboardUrl ? { dashboardUrl: payload.dashboardUrl } : {}),
+        ...(payload.metadata ? { metadata: payload.metadata } : {}),
       },
     },
   }
 
-  if (payload.runbookUrls && payload.runbookUrls.length > 0) {
-    body.links = payload.runbookUrls.map((href) => ({ href, text: 'Runbook' }))
-  }
+  const links = [
+    ...(payload.dashboardUrl
+      ? [{ href: payload.dashboardUrl, text: 'Open dashboard' }]
+      : []),
+    ...(payload.runbookUrls ?? []).map((href) => ({ href, text: 'Runbook' })),
+  ]
+  if (links.length > 0) body.links = links
 
   return body
 }

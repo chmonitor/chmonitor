@@ -22,6 +22,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { identityLine, instancePrefix } from './identity'
+
 /** Severity → Pushover priority (`-1` low, `0` normal, `2` emergency). */
 const SEVERITY_PRIORITY: Record<AlertSeverity, '-1' | '0' | '2'> = {
   critical: '2',
@@ -58,8 +60,10 @@ export interface PushoverMessage {
   retry?: string
   /** Required alongside `priority: '2'` — how long Pushover keeps retrying. */
   expire?: string
-  /** Optional supplementary URL (first runbook link, when present). */
+  /** Optional supplementary URL (dashboard link, else first runbook link). */
   url?: string
+  /** Label for `url`, set only for the dashboard link. */
+  url_title?: string
 }
 
 /** Body shape for the Pushover Messages API (`token`/`user` + the message). */
@@ -98,6 +102,10 @@ export function buildPushoverMessage(payload: AlertPayload): PushoverMessage {
 
   lines.push(`Detail: ${payload.label}`)
 
+  const identity = identityLine(payload)
+  if (identity) lines.push(`Instance: ${identity}`)
+  if (payload.dashboardUrl) lines.push(`Dashboard: ${payload.dashboardUrl}`)
+
   if (payload.runbookUrls && payload.runbookUrls.length > 0) {
     lines.push('')
     lines.push('Runbooks:')
@@ -111,14 +119,18 @@ export function buildPushoverMessage(payload: AlertPayload): PushoverMessage {
     : Math.floor(Date.now() / 1000)
 
   return {
-    title: `[${heading(payload.severity)}] ${payload.title}`,
+    title: `${instancePrefix(payload)}[${heading(payload.severity)}] ${payload.title}`,
     message: lines.join('\n'),
     priority,
     timestamp,
     ...(priority === '2'
       ? { retry: EMERGENCY_RETRY_SECONDS, expire: EMERGENCY_EXPIRE_SECONDS }
       : {}),
-    ...(payload.runbookUrls?.[0] ? { url: payload.runbookUrls[0] } : {}),
+    ...(payload.dashboardUrl
+      ? { url: payload.dashboardUrl, url_title: 'Open dashboard' }
+      : payload.runbookUrls?.[0]
+        ? { url: payload.runbookUrls[0] }
+        : {}),
   }
 }
 

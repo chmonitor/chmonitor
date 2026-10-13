@@ -22,6 +22,7 @@ import { ApiErrorType } from '@/lib/api/types'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import { dispatchOpsgenie } from '@/lib/health/opsgenie-dispatch'
 import { getServerOpsgenieConfig } from '@/lib/health/server-alert-config'
+import { buildTestAlertPayload } from '@/lib/health/test-alert-payload'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/health/opsgenie-test',
@@ -64,22 +65,7 @@ async function handlePost(
 
   debug('[POST /api/v1/health/opsgenie-test] Sending test alert')
 
-  const ok = await dispatchOpsgenie(
-    {
-      severity: 'warning',
-      hostLabel: 'test-host',
-      hostId: 0,
-      metric: 'test',
-      value: 0,
-      warnThreshold: null,
-      critThreshold: null,
-      title: 'Test Alert',
-      label: 'This is a test alert from chmonitor',
-      timestamp: new Date().toISOString(),
-    },
-    config,
-    deps
-  )
+  const ok = await dispatchOpsgenie(buildTestAlertPayload(), config, deps)
 
   if (!ok) {
     return createErrorResponse(

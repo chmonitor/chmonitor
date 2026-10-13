@@ -37,6 +37,7 @@ import {
   fireHealthchecks,
   fireWebhook,
 } from '@/lib/health/alert-dispatcher'
+import { fetchAlertIdentity } from '@/lib/health/alert-identity-client'
 import {
   type AlertSettings,
   DEFAULT_ALERT_SETTINGS,
@@ -197,6 +198,7 @@ export function HealthSettingsPanel({
       toast.error('Enter a webhook URL first')
       return
     }
+    const identity = await fetchAlertIdentity()
     const ok = await fireWebhook(
       {
         checkId: 'test',
@@ -206,7 +208,8 @@ export function HealthSettingsPanel({
         label: 'This is a test alert from chmonitor',
         hostId: 0,
       },
-      alerts.webhookUrl
+      alerts.webhookUrl,
+      identity
     )
     if (ok) toast.success('Test alert sent')
     else toast.error('Webhook request failed')

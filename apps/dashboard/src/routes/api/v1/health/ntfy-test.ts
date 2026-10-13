@@ -34,6 +34,7 @@ import {
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import { dispatchNtfy } from '@/lib/health/ntfy-dispatch'
 import { getServerNtfyConfig } from '@/lib/health/server-alert-config'
+import { buildTestAlertPayload } from '@/lib/health/test-alert-payload'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/health/ntfy-test',
@@ -131,22 +132,7 @@ async function handlePost(
 
   debug('[POST /api/v1/health/ntfy-test] Sending test notification')
 
-  const ok = await dispatchNtfy(
-    {
-      severity: 'warning',
-      hostLabel: 'test-host',
-      hostId: 0,
-      metric: 'test',
-      value: 0,
-      warnThreshold: null,
-      critThreshold: null,
-      title: 'Test Alert',
-      label: 'This is a test alert from chmonitor',
-      timestamp: new Date().toISOString(),
-    },
-    config,
-    deps
-  )
+  const ok = await dispatchNtfy(buildTestAlertPayload(), config, deps)
 
   if (!ok) {
     return createErrorResponse(

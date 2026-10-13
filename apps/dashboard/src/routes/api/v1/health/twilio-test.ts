@@ -24,6 +24,7 @@ import { createErrorResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import { getServerTwilioConfig } from '@/lib/health/server-alert-config'
+import { buildTestAlertPayload } from '@/lib/health/test-alert-payload'
 import { dispatchTwilio } from '@/lib/health/twilio-dispatch'
 
 const ROUTE_CONTEXT = {
@@ -68,18 +69,7 @@ async function handlePost(
   debug('[POST /api/v1/health/twilio-test] Sending test SMS')
 
   const ok = await dispatchTwilio(
-    {
-      severity: 'critical',
-      hostLabel: 'test-host',
-      hostId: 0,
-      metric: 'test',
-      value: 0,
-      warnThreshold: null,
-      critThreshold: null,
-      title: 'Test Alert',
-      label: 'This is a test alert from chmonitor',
-      timestamp: new Date().toISOString(),
-    },
+    buildTestAlertPayload({ severity: 'critical' }),
     config,
     deps
   )

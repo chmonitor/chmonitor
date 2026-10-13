@@ -21,6 +21,7 @@ import { ApiErrorType } from '@/lib/api/types'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import { getServerTelegramConfig } from '@/lib/health/server-alert-config'
 import { dispatchTelegram } from '@/lib/health/telegram-dispatch'
+import { buildTestAlertPayload } from '@/lib/health/test-alert-payload'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/health/telegram-test',
@@ -60,22 +61,7 @@ async function handlePost(
 
   debug('[POST /api/v1/health/telegram-test] Sending test message')
 
-  const ok = await dispatchTelegram(
-    {
-      severity: 'warning',
-      hostLabel: 'test-host',
-      hostId: 0,
-      metric: 'test',
-      value: 0,
-      warnThreshold: null,
-      critThreshold: null,
-      title: 'Test Alert',
-      label: 'This is a test alert from chmonitor',
-      timestamp: new Date().toISOString(),
-    },
-    config,
-    deps
-  )
+  const ok = await dispatchTelegram(buildTestAlertPayload(), config, deps)
 
   if (!ok) {
     return createErrorResponse(
