@@ -25,7 +25,7 @@ import type { GitHubRepo } from './exceptions'
 import type { GitHubAppAuth } from './github-app'
 
 import { collectActivation } from './activation'
-import { detectAnomaly, fetchDailySeries, formatAnomaly } from './anomaly'
+import { dailySeriesFromStats, detectAnomaly, formatAnomaly } from './anomaly'
 import { fetchClerkMetrics, WEEK_SECONDS } from './clerk-metrics'
 import { handleClerkWebhook } from './clerk-webhook'
 import { parseRepo, runExceptionScan } from './exceptions'
@@ -40,7 +40,12 @@ import { readProbeSnapshot, runProbes } from './probes'
 import { handleSponsorCheckout } from './sponsor-checkout'
 import { collectSummary, formatDigest } from './summary'
 import { Notifier } from './telegram'
-import { collectUsage, utcDay } from './usage'
+import {
+  collectUsage,
+  fetchUsageStats,
+  referenceDayFor,
+  type TelemetryStats,
+} from './usage'
 import { handlePolarWebhook } from './webhook'
 import { collectWeekly, formatWeekly, weekBounds } from './weekly'
 
@@ -48,15 +53,15 @@ import { collectWeekly, formatWeekly, weekBounds } from './weekly'
  * Single cron trigger, which MUST match `[triggers] crons` in wrangler.toml.
  *
  * The Workers Free plan allows 5 cron triggers PER ACCOUNT, and the dashboard
- * Worker uses 4 — so this Worker gets exactly one. The every-15-minutes cadence always
- * fires at minute 0, so the daily digest (00:00 UTC tick) and weekly report
- * (Monday 01:00 UTC tick) are dispatched off `event.scheduledTime` instead of
- * separate cron expressions.
+ * Worker uses 4 — so this Worker gets exactly one. The every-15-minutes cadence
+ * fires at minutes 0/15/30/45, so the daily digest (00:30 UTC tick) and weekly
+ * report (Monday 01:00 UTC tick) are dispatched off `event.scheduledTime`
+ * instead of separate cron expressions.
  */
 export const OPS_SWEEP_CRON = '*/15 * * * *'
 
 export function isDailyTick(at: Date): boolean {
-  return at.getUTCHours() === 0 && at.getUTCMinutes() === 0
+  return at.getUTCHours() === 0 && at.getUTCMinutes() === 30
 }
 
 export function isWeeklyTick(at: Date): boolean {
@@ -127,17 +132,16 @@ async function resolveGitHub(
  * Alert when yesterday's active installs diverge sharply from their own recent
  * baseline. Sent as its OWN message rather than a digest line: a collapse in
  * usage means something is broken right now, and a line inside a long digest is
- * easy to miss. Silent when there is no telemetry binding or no anomaly.
+ * easy to miss. Silent when the stats are unavailable or there is no anomaly.
  */
 async function runUsageAnomaly(
-  env: Env,
+  stats: TelemetryStats | null,
   notifier: Notifier,
   nowSeconds: number
 ): Promise<void> {
-  const db = env.CHM_TELEMETRY_DB
-  if (!db) return
-  const referenceDay = utcDay(new Date((nowSeconds - 24 * 60 * 60) * 1000))
-  const series = await fetchDailySeries(db, referenceDay)
+  if (!stats) return
+  const referenceDay = referenceDayFor(nowSeconds)
+  const series = dailySeriesFromStats(stats, referenceDay)
   if (series.length === 0) return
   const anomaly = detectAnomaly(series, referenceDay)
   if (!anomaly) return
@@ -150,14 +154,17 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
     return
   }
   const nowSeconds = Math.floor(Date.now() / 1000)
+  // One stats fetch feeds both the digest and the anomaly check. It never
+  // rejects (failure → null), so it is safe to start here and await twice.
+  const statsPromise = fetchUsageStats()
   try {
     // Billing (D1) is the required core; Clerk metrics, usage (DAU/WAU/MAU from
-    // the telemetry D1), and the probe snapshot are best-effort enrichments that
-    // degrade to omitted sections when absent.
+    // the telemetry stats API), and the probe snapshot are best-effort
+    // enrichments that degrade to omitted sections when absent.
     const [data, clerk, usage, probes] = await Promise.all([
       collectSummary(env.CHM_CLOUD_D1, nowSeconds),
       fetchClerkMetrics(env.CLERK_SECRET_KEY, fetch, nowSeconds),
-      collectUsage(env.CHM_TELEMETRY_DB ?? null, nowSeconds),
+      statsPromise.then((stats) => collectUsage(stats, nowSeconds)),
       readProbeSnapshot(env.CHM_HOOKS_KV ?? null),
     ])
     // Activation needs the signup count, so it runs after Clerk answers.
@@ -177,7 +184,7 @@ async function runDailySummary(env: Env, notifier: Notifier): Promise<void> {
   // Separate from the digest's try/catch: a failed digest must not swallow the
   // anomaly alert, which is the more urgent of the two.
   try {
-    await runUsageAnomaly(env, notifier, nowSeconds)
+    await runUsageAnomaly(await statsPromise, notifier, nowSeconds)
   } catch (err) {
     logError('[cloud-hooks] usage anomaly check failed', err)
   }
@@ -203,7 +210,7 @@ async function runWeeklyReport(env: Env, notifier: Notifier): Promise<void> {
       collectWeekly(env.CHM_CLOUD_D1, nowSeconds),
       // A 7-day window here, so "new users" matches the reported period.
       fetchClerkMetrics(env.CLERK_SECRET_KEY, fetch, nowSeconds, WEEK_SECONDS),
-      collectUsage(env.CHM_TELEMETRY_DB ?? null, nowSeconds),
+      fetchUsageStats().then((stats) => collectUsage(stats, nowSeconds)),
       readProbeSnapshot(env.CHM_HOOKS_KV ?? null),
       resolveGitHub(env, 'weekly issue stats').then((gh) =>
         gh ? fetchIssueStats(gh.repo, gh.token, sinceDay) : null

@@ -22,21 +22,9 @@
  *   threshold, since a genuine 3× spike is usually good news worth knowing.
  */
 
-import { logError as emitLogError } from './log'
-import { shiftDay } from './usage'
+import type { TelemetryStats } from './usage'
 
-/**
- * Minimal D1 subset for the day-series query. Declared here rather than reused
- * from `usage.ts` because this query needs `.all()` (a row per day) where the
- * usage queries need `.first()`.
- */
-export interface D1SeriesDb {
-  prepare(sql: string): {
-    bind(...values: unknown[]): {
-      all<T = unknown>(): Promise<{ results: T[] }>
-    }
-  }
-}
+import { shiftDay } from './usage'
 
 export const DEFAULT_DROP_THRESHOLD = 0.3
 export const DEFAULT_SPIKE_MULTIPLE = 3
@@ -110,42 +98,20 @@ export function detectAnomaly(
 }
 
 /**
- * Daily distinct-install counts for the baseline window plus the reference day.
- * Returns [] on any failure — the caller then simply skips detection rather
- * than alerting on a database error.
- *
- * The logger is a parameter so callers can capture it, and the default is
- * aliased through `emitLogError` on purpose: a parameter named `logError` would
- * shadow the import inside this very signature, so a default body calling
- * `logError` would call itself. Because that self-call sits in tail position,
- * JSC turns it into a loop rather than a stack overflow — it never throws and
- * never returns, so it burns CPU until the platform kills the Worker. Keep both
- * names.
+ * Daily active-install counts for the baseline window plus the reference day,
+ * taken from the telemetry stats series. The series is zero-filled, so a day
+ * with no events is a real 0 and shows up as a drop rather than as a gap.
+ * Entries are matched by day key, never by position.
  */
-export async function fetchDailySeries(
-  db: D1SeriesDb,
+export function dailySeriesFromStats(
+  stats: TelemetryStats,
   referenceDay: string,
-  days: number = BASELINE_DAYS,
-  log: (message: string, meta?: unknown) => void = (m, meta) =>
-    emitLogError(m, meta)
-): Promise<DailyCount[]> {
+  days: number = BASELINE_DAYS
+): DailyCount[] {
   const from = shiftDay(referenceDay, -days)
-  try {
-    const rows = await db
-      .prepare(
-        `SELECT day, COUNT(DISTINCT instance_hash) AS n
-           FROM ping_daily
-          WHERE day >= ?1 AND day <= ?2
-          GROUP BY day
-          ORDER BY day`
-      )
-      .bind(from, referenceDay)
-      .all<DailyCount>()
-    return rows.results ?? []
-  } catch (err) {
-    log('[cloud-hooks] daily series query failed', err)
-    return []
-  }
+  return stats.series
+    .filter((row) => row.day >= from && row.day <= referenceDay)
+    .map((row) => ({ day: row.day, n: row.dau }))
 }
 
 export function formatAnomaly(anomaly: Anomaly): string {

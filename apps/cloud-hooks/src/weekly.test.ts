@@ -156,9 +156,7 @@ describe('formatWeekly', () => {
       clerk: { totalUsers: 40, newUsers: 6, windowSeconds: 7 * 86400 },
       usage: {
         referenceDay: '2026-07-26',
-        dashboard: { dau: 10, wau: 40, mau: 120 },
-        cli: { dau: 2, wau: 5, mau: 11 },
-        cliInstalls24h: 0,
+        active: { dau: 10, wau: 40, mau: 120 },
       },
       issues: { opened: 9, closed: 4 },
       probes: { dashboard: 'up', docs: 'down' },
