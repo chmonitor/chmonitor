@@ -19,11 +19,12 @@ Collect every `secrets.NAME` referenced in `.github/workflows/`, then diff
 against what actually exists. The list of names is the deliverable:
 
 ```sh
+RUN_TMP=$(mktemp -d)
 rg -oN 'secrets\.[A-Z0-9_]+' .github/workflows/ \
-  | sed 's/.*secrets\.//' | sort -u > /tmp/opencode/referenced.txt
-gh secret list --json name --jq '.[].name' | sort -u > /tmp/opencode/actual.txt
-comm -23 /tmp/opencode/referenced.txt /tmp/opencode/actual.txt   # referenced, MISSING
-comm -13 /tmp/opencode/referenced.txt /tmp/opencode/actual.txt   # present, unreferenced
+  | sed 's/.*secrets\.//' | sort -u > "$RUN_TMP"/referenced.txt
+gh secret list --json name --jq '.[].name' | sort -u > "$RUN_TMP"/actual.txt
+comm -23 "$RUN_TMP"/referenced.txt "$RUN_TMP"/actual.txt   # referenced, MISSING
+comm -13 "$RUN_TMP"/referenced.txt "$RUN_TMP"/actual.txt   # present, unreferenced
 ```
 
 The first list is the finding. The second is context, not a defect — an unused
