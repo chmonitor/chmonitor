@@ -124,6 +124,12 @@
     {
       "exampleDefault": null,
       "inEnvExample": true,
+      "name": "CHM_AGENT_FIRECRAWL_ALLOW_DOMAINS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
       "name": "CHM_AGENT_FIRECRAWL_MCP",
       "prefix": "CHM"
     },
@@ -143,6 +149,18 @@
       "exampleDefault": null,
       "inEnvExample": true,
       "name": "CHM_ALLOW_PRIVATE_HOSTS",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_ANALYTICS_HOST",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_ANALYTICS_KEY",
       "prefix": "CHM"
     },
     {
@@ -221,6 +239,12 @@
       "exampleDefault": null,
       "inEnvExample": false,
       "name": "CHM_EVENTS_REEMIT_WEBHOOK_URL",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_FEATURE_CLOUD_BILLING_SYNC",
       "prefix": "CHM"
     },
     {
@@ -305,6 +329,36 @@
       "exampleDefault": null,
       "inEnvExample": false,
       "name": "CHM_PROXY_SHARED_SECRET_HEADER",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_STATE_CLICKHOUSE_DATABASE",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_STATE_CLICKHOUSE_PASSWORD",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_STATE_CLICKHOUSE_TABLE_PREFIX",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_STATE_CLICKHOUSE_URL",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CHM_STATE_CLICKHOUSE_USER",
       "prefix": "CHM"
     },
     {
@@ -426,6 +480,30 @@
       "inEnvExample": false,
       "name": "CLERK_WEBHOOK_SECRET",
       "prefix": "CLERK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_CLOUD_API_BASE_URL",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_CLOUD_API_KEY_ID",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_CLOUD_API_KEY_SECRET",
+      "prefix": "CLICKHOUSE"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "CLICKHOUSE_CLOUD_ORG_ID",
+      "prefix": "CLICKHOUSE"
     },
     {
       "exampleDefault": null,
@@ -556,6 +634,12 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "HEALTH_ALERT_EMAIL_MIN_SEVERITY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "HEALTH_ALERT_EMAIL_PROVIDER_URL",
       "prefix": "HEALTH"
     },
@@ -598,6 +682,18 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "HEALTH_ALERT_NTFY_ENABLED",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_NTFY_MIN_SEVERITY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "HEALTH_ALERT_NTFY_TOKEN",
       "prefix": "HEALTH"
     },
@@ -616,6 +712,18 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "HEALTH_ALERT_OPSGENIE_ENABLED",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_OPSGENIE_MIN_SEVERITY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "HEALTH_ALERT_OPSGENIE_REGION",
       "prefix": "HEALTH"
     },
@@ -628,7 +736,31 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "HEALTH_ALERT_PAGERDUTY_ENABLED",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_PAGERDUTY_MIN_SEVERITY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "HEALTH_ALERT_PAGERDUTY_ROUTING_KEY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_PUSHOVER_ENABLED",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_PUSHOVER_MIN_SEVERITY",
       "prefix": "HEALTH"
     },
     {
@@ -653,6 +785,18 @@
       "exampleDefault": null,
       "inEnvExample": false,
       "name": "HEALTH_ALERT_TELEGRAM_CHAT_ID",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_TELEGRAM_ENABLED",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_TELEGRAM_MIN_SEVERITY",
       "prefix": "HEALTH"
     },
     {
@@ -683,6 +827,24 @@
       "exampleDefault": null,
       "inEnvExample": false,
       "name": "HEALTH_ALERT_TWILIO_TO",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_WEBHOOK_ENABLED",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_WEBHOOK_MIN_SEVERITY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_WEBHOOK_TARGETS",
       "prefix": "HEALTH"
     },
     {

@@ -130,7 +130,7 @@ Dashboard `wrangler.toml` declares **no** `[vars]`. Non-secret hosted config liv
 ### Preview locally
 
 ```bash
-pnpm run cf:preview
+cd apps/dashboard && pnpm run build && pnpm run preview
 ```
 
 ## Cloudflare bindings

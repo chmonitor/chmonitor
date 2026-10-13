@@ -461,7 +461,7 @@ When the user says **"remember"** something — write it to `docs/knowledge/`, n
 - `pnpm run test:unit` - Run targeted unit tests for core app/component suites
 - `pnpm run test:query-config` - Run query-config-specific tests
 - `pnpm run test:coverage` - Run tests with coverage output
-- `pnpm run test:watch` - Run tests in watch mode
+- `cd apps/dashboard && bun test src/ --watch` - Run tests in watch mode
 - `pnpm run test:component` - Open Cypress component tests
 - `pnpm run test:component:headless` - Run Cypress component tests headless
 - `pnpm run test:e2e` - Open Cypress e2e tests
