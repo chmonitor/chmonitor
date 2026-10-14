@@ -12,7 +12,6 @@ import type { ChartSkeletonType } from './types'
  * Maps each chart name to its appropriate skeleton type
  */
 export const CHART_TYPE_HINTS: Record<string, ChartSkeletonType> = {
-  // Query Charts - mostly area/line charts
   'query-count': 'area',
   'query-count-by-user': 'bar',
   'query-duration': 'area',
@@ -37,21 +36,17 @@ export const CHART_TYPE_HINTS: Record<string, ChartSkeletonType> = {
   'query-insights-read-throughput': 'area',
   'query-insights-top-users': 'bar',
 
-  // Merge Charts - area and metric
   'merge-count': 'area',
   'summary-used-by-merges': 'table',
   'merge-avg-duration': 'area',
   'merge-sum-read-rows': 'area',
   'new-parts-created': 'area',
 
-  // Mutation Charts
   'summary-used-by-mutations': 'table',
   'summary-stuck-mutations': 'metric',
 
-  // Running Queries Charts
   'summary-used-by-running-queries': 'table',
 
-  // System Charts - mixed types
   'disk-size': 'metric',
   'disks-usage': 'area',
   'backup-size': 'metric',
@@ -63,28 +58,23 @@ export const CHART_TYPE_HINTS: Record<string, ChartSkeletonType> = {
   'cpu-mode-split': 'area',
   'thread-pool-utilization': 'area',
 
-  // Replication Charts
   'replication-queue-count': 'area',
   'replication-summary-table': 'table',
   'readonly-replica': 'area',
 
-  // Connection Charts
   'connections-interserver': 'metric',
   'connections-http': 'metric',
   'connections-pool': 'area',
 
-  // Table Charts
   'top-table-size': 'bar',
   'parts-per-table': 'bar',
 
-  // Page Views Charts
   'page-view': 'bar',
   'top-pages': 'bar',
   'human-vs-bot-pageviews': 'area',
   'pageviews-by-device': 'bar',
   'pageviews-by-country': 'bar',
 
-  // ZooKeeper Charts
   'zookeeper-summary-table': 'table',
   'zookeeper-uptime': 'metric',
   'zookeeper-requests': 'area',

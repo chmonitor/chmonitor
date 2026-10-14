@@ -254,7 +254,6 @@ export const ChartZoomDialog = function ChartZoomDialog({
     }
   }
 
-  // Handle dialog resize via mouse drag
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault()
     const el = contentRef.current

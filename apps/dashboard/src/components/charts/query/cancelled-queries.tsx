@@ -29,7 +29,6 @@ export const ChartCancelledQueries = memo(function ChartCancelledQueries({
   hostId,
   ...props
 }: ChartProps) {
-  // Date range state
   const [rangeOverride, setRangeOverride] = useState<DateRangeValue | null>(
     null
   )
@@ -59,7 +58,6 @@ export const ChartCancelledQueries = memo(function ChartCancelledQueries({
       chartClassName={chartClassName}
     >
       {(dataArray, sql, metadata) => {
-        // Collect unique exception codes
         const codeSet = new Set<string>()
         const nestedData: Record<
           string,

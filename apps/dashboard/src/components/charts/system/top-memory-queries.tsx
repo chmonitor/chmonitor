@@ -33,8 +33,6 @@ type DataRow = {
   readable_avg_memory: string
 }
 
-// ──────────────────────────── Detail dialog ────────────────────────────
-
 interface QueryDetailDialogProps {
   row: DataRow | null
   hostId: number
@@ -158,8 +156,6 @@ function QueryDetailDialog({
   )
 }
 
-// ──────────────────────────── Row item ────────────────────────────
-
 interface MemoryQueryRowProps {
   row: DataRow
   maxMemory: number
@@ -176,7 +172,6 @@ function MemoryQueryRow({
   onClick,
 }: MemoryQueryRowProps) {
   const percentage = maxMemory > 0 ? (row.peak_memory / maxMemory) * 100 : 0
-  // Opacity fades from full to 55% across the list
   const opacity = Math.round(100 - (index / Math.max(total - 1, 1)) * 45)
   const barColor = `color-mix(in oklch, var(--chart-1) ${opacity}%, transparent)`
 
@@ -213,8 +208,6 @@ function MemoryQueryRow({
     </button>
   )
 }
-
-// ──────────────────────────── Main component ────────────────────────────
 
 export const ChartTopMemoryQueries = function ChartTopMemoryQueries({
   title,

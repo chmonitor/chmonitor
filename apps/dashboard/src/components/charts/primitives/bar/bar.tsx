@@ -61,7 +61,6 @@ export const BarChart = function BarChart({
 }: BarChartProps & {
   yAxisTickFormatter?: (value: string | number) => string
 }) {
-  // Sort categories by total value for stacked bars (larger on top)
   const sortedCategories = stack
     ? sortCategoriesByTotal(data, categories)
     : categories
@@ -69,7 +68,6 @@ export const BarChart = function BarChart({
   // Get scale preference from context (if available)
   const contextScale = useChartScaleValue()
 
-  // Legend click-to-toggle (same pattern as the area primitive).
   const { hidden, toggle, isHidden } = useHiddenSeries()
   const visibleCategories = categories.filter((c) => !isHidden(c))
   const domainCategories =
@@ -78,14 +76,12 @@ export const BarChart = function BarChart({
   // Use prop if provided, otherwise use context, otherwise 'linear'
   const effectiveScale = yAxisScale ?? contextScale ?? 'linear'
 
-  // Resolve scale type (linear, log, or auto-detect)
   const resolvedScale = resolveYAxisScale(
     effectiveScale,
     data as Record<string, unknown>[],
     domainCategories
   )
 
-  // Get appropriate domain for the scale type
   const yAxisDomain = getYAxisDomain(
     data as Record<string, unknown>[],
     domainCategories,

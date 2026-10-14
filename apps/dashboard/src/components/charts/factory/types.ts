@@ -20,7 +20,6 @@ export interface BaseChartFactoryConfig {
   enableScaleToggle?: boolean
 }
 
-// Additional props that AreaChart accepts but aren't in AreaChartProps
 interface AreaChartAdditionalProps {
   yAxisTickFormatter?: (value: string | number) => string
 }
@@ -39,7 +38,6 @@ export interface AreaChartFactoryConfig extends BaseChartFactoryConfig {
   showDeployments?: boolean
 }
 
-// Additional props that BarChart accepts but aren't in BarChartProps
 interface BarChartAdditionalProps {
   yAxisTickFormatter?: (value: string | number) => string
 }

@@ -9,7 +9,6 @@ import type { ChartRegistryMap } from '../types'
 import { lazy } from 'react'
 
 export const miscChartImports: ChartRegistryMap = {
-  // Mutation Charts
   'summary-used-by-mutations': lazy(() =>
     import('@/components/charts/summary-used-by-mutations').then((m) => ({
       default: m.ChartSummaryUsedByMutations,
@@ -21,14 +20,12 @@ export const miscChartImports: ChartRegistryMap = {
     }))
   ),
 
-  // Running Queries Charts
   'summary-used-by-running-queries': lazy(() =>
     import('@/components/charts/summary-used-by-running-queries').then((m) => ({
       default: m.default,
     }))
   ),
 
-  // Connection Charts
   'connections-interserver': lazy(() =>
     import('@/components/charts/connections-interserver').then((m) => ({
       default: m.ChartConnectionsInterserver,
@@ -45,7 +42,6 @@ export const miscChartImports: ChartRegistryMap = {
     }))
   ),
 
-  // Table Charts
   'top-table-size': lazy(() =>
     import('@/components/charts/top-table-size').then((m) => ({
       default: m.default,
@@ -57,21 +53,18 @@ export const miscChartImports: ChartRegistryMap = {
     }))
   ),
 
-  // Page Views Charts
   'page-view': lazy(() =>
     import('@/components/charts/page-view').then((m) => ({
       default: m.PageViewBarChart,
     }))
   ),
 
-  // Dictionary Charts
   'dictionary-count': lazy(() =>
     import('@/components/charts/dictionary-count').then((m) => ({
       default: m.ChartDictionaryCount,
     }))
   ),
 
-  // Page Analytics Charts
   'top-pages': lazy(() =>
     import('@/components/charts/top-pages').then((m) => ({
       default: m.TopPagesChart,

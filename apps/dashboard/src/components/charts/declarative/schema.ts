@@ -50,12 +50,10 @@ import { z } from 'zod'
 
 import { isKnownChartIconName } from './icon'
 
-// ---------------------------------------------------------------------------
 // ClickHouseInterval — mirrors VALID_INTERVALS from
 // @chm/types/clickhouse-interval. Hardcoded here (not imported) to keep the
 // declarative chart schema decoupled from app code, matching the
 // query-config declarative schema's convention (see featureIdSchema there).
-// ---------------------------------------------------------------------------
 
 const clickHouseIntervalValues = [
   'toStartOfMinute',
@@ -70,11 +68,9 @@ const clickHouseIntervalValues = [
 
 const clickHouseIntervalSchema = z.enum(clickHouseIntervalValues)
 
-// ---------------------------------------------------------------------------
 // DateRangePresetName — mirrors the keys of DATE_RANGE_PRESETS from
 // components/date-range/date-range-presets.ts. Hardcoded for the same reason
 // as clickHouseIntervalValues above.
-// ---------------------------------------------------------------------------
 
 const dateRangePresetNameValues = [
   'standard',
@@ -92,9 +88,7 @@ const dateRangePresetNameValues = [
 
 const dateRangePresetNameSchema = z.enum(dateRangePresetNameValues)
 
-// ---------------------------------------------------------------------------
 // yAxisTickFormatterKey — named reference into chartTickFormatters (lib/utils.ts)
-// ---------------------------------------------------------------------------
 
 const tickFormatterKeyValues = [
   'bytes',
@@ -107,20 +101,16 @@ const tickFormatterKeyValues = [
 export const tickFormatterKeySchema = z.enum(tickFormatterKeyValues)
 export type TickFormatterKey = z.infer<typeof tickFormatterKeySchema>
 
-// ---------------------------------------------------------------------------
 // readable / yAxisScale — small string enums shared by area + bar props
-// ---------------------------------------------------------------------------
 
 const readableFormatSchema = z.enum(['bytes', 'duration', 'number', 'quantity'])
 const yAxisScaleSchema = z.enum(['linear', 'log', 'auto'])
 
-// ---------------------------------------------------------------------------
 // icon — lucide-react icon name (kebab-case), resolved lazily by ../icon.tsx.
 // Not embedded into the factory config (the factory has no icon prop today);
 // this is catalog metadata for a future chart picker / docs / AI authoring
 // surface. Validated against lucide-react's own icon-name list so a typo'd
 // icon fails at catalog-validation time rather than silently rendering nothing.
-// ---------------------------------------------------------------------------
 
 const chartIconSchema = z
   .string()
@@ -130,10 +120,8 @@ const chartIconSchema = z
   })
   .optional()
 
-// ---------------------------------------------------------------------------
 // areaChartProps — serializable subset of AreaChartProps
 // (types/charts.ts) + the factory's yAxisTickFormatter extension.
-// ---------------------------------------------------------------------------
 
 export const declarativeAreaChartPropsSchema = z.object({
   colors: z.array(z.string().min(1)).optional(),
@@ -159,7 +147,6 @@ export const declarativeAreaChartPropsSchema = z.object({
   tickGap: z.number().optional(),
   xAxisLabel: z.string().optional(),
   yAxisLabel: z.string().optional(),
-  // Compiled by the loader into `areaChartProps.yAxisTickFormatter`.
   yAxisTickFormatterKey: tickFormatterKeySchema.optional(),
 })
 
@@ -167,10 +154,8 @@ export type DeclarativeAreaChartProps = z.infer<
   typeof declarativeAreaChartPropsSchema
 >
 
-// ---------------------------------------------------------------------------
 // barChartProps — serializable subset of BarChartProps (types/charts.ts) +
 // the factory's yAxisTickFormatter extension.
-// ---------------------------------------------------------------------------
 
 export const declarativeBarChartPropsSchema = z.object({
   colors: z.array(z.string().min(1)).optional(),
@@ -187,7 +172,6 @@ export const declarativeBarChartPropsSchema = z.object({
   showYAxis: z.boolean().optional(),
   showTooltip: z.boolean().optional(),
   showGridLines: z.boolean().optional(),
-  // Compiled by the loader into `barChartProps.yAxisTickFormatter`.
   yAxisTickFormatterKey: tickFormatterKeySchema.optional(),
 })
 
@@ -195,9 +179,7 @@ export type DeclarativeBarChartProps = z.infer<
   typeof declarativeBarChartPropsSchema
 >
 
-// ---------------------------------------------------------------------------
 // Shared base fields (BaseChartFactoryConfig subset)
-// ---------------------------------------------------------------------------
 
 const declarativeChartBaseSchema = z.object({
   // Identity — the key this chart's data is fetched under, via
@@ -217,9 +199,7 @@ const declarativeChartBaseSchema = z.object({
   enableScaleToggle: z.boolean().optional(),
 })
 
-// ---------------------------------------------------------------------------
 // Area chart definition
-// ---------------------------------------------------------------------------
 
 export const declarativeAreaChartSchema = declarativeChartBaseSchema.extend({
   type: z.literal('area'),
@@ -235,9 +215,7 @@ export const declarativeAreaChartSchema = declarativeChartBaseSchema.extend({
 
 export type DeclarativeAreaChart = z.infer<typeof declarativeAreaChartSchema>
 
-// ---------------------------------------------------------------------------
 // Bar chart definition
-// ---------------------------------------------------------------------------
 
 export const declarativeBarChartSchema = declarativeChartBaseSchema.extend({
   type: z.literal('bar'),
@@ -254,9 +232,7 @@ export const declarativeBarChartSchema = declarativeChartBaseSchema.extend({
 
 export type DeclarativeBarChart = z.infer<typeof declarativeBarChartSchema>
 
-// ---------------------------------------------------------------------------
 // Main declarative schema — discriminated union on `type`
-// ---------------------------------------------------------------------------
 
 export const declarativeChartSchema = z.discriminatedUnion('type', [
   declarativeAreaChartSchema,

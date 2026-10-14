@@ -15,7 +15,6 @@ export const BarList = function BarList({
   formatedColumn,
   className,
 }: BarListProps) {
-  // Compact number formatter (e.g., 10.98 million -> 10.9M)
   const compactFormat = (value: number): string => {
     if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`
     if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`
@@ -43,12 +42,10 @@ export const BarList = function BarList({
     }
   })()
 
-  // Sort data by value in descending order
   const sortedData = (() => {
     return [...data].sort((a, b) => b.value - a.value)
   })()
 
-  // Find max value for percentage calculation
   const maxValue = (() => {
     return Math.max(...sortedData.map((d) => d.value), 1)
   })()
@@ -57,7 +54,6 @@ export const BarList = function BarList({
     <div className={cn('flex flex-col gap-1', className)}>
       {sortedData.map((item, index) => {
         const percentage = (item.value / maxValue) * 100
-        // Opacity decreases from 100% to 60% across the bars
         const opacity = Math.round(
           100 - (index / Math.max(sortedData.length - 1, 1)) * 40
         )

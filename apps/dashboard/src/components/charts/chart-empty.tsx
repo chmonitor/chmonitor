@@ -58,10 +58,8 @@ export const ChartEmpty = function ChartEmpty({
   const navigate = useNavigate()
   const hostId = useHostId()
 
-  // Use sql from props or metadata
   const effectiveSql = sql || metadata?.sql
 
-  // Build metadata for toolbar - spread to preserve all fields (api, duration, etc.)
   const toolbarMetadata: CardToolbarMetadata | undefined = metadata
     ? { ...metadata }
     : undefined

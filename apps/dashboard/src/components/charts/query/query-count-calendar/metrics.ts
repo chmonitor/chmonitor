@@ -168,7 +168,6 @@ export const METRIC_ORDER: MetricKey[] = [
  */
 export const INTENSITY_TIERS = METRIC_CONFIGS.queries.tiers
 
-// Ratio (value / max) at or above which a cell takes the matching tier.
 export const TIER_THRESHOLDS = [0, 0.01, 0.25, 0.5, 0.75] as const
 
 /**

@@ -97,7 +97,6 @@ export function buildMonthBlocks(model: CalendarModel): MonthBlock[] {
   const keyOf = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`
 
   for (const week of model.weeks) {
-    // Distinct months this week touches, in chronological (Sun→Sat) order.
     const monthsInWeek: string[] = []
     for (const day of week) {
       if (day) {
@@ -167,7 +166,6 @@ export function pickVisibleMonthBlocks(
   for (let i = blocks.length - 1; i >= 0; i--) {
     const needsGap = visibleReversed.length > 0
     const w = widthOf(blocks[i]) + (needsGap ? blockGapPx : 0)
-    // Always keep the newest month; stop once an older one would overflow.
     if (needsGap && used + w > availableWidth) break
     used += w
     visibleReversed.push(blocks[i])

@@ -128,7 +128,6 @@ export function ChartContainer<TData extends ChartDataPoint = ChartDataPoint>({
     }
   }, [hasRenderableData])
 
-  // Resolve skeleton type: explicit prop, or dynamic lookup from registry, or fallback
   const skeletonType = (() => {
     if (type) return type
     if (swr.chartName) {
@@ -142,19 +141,16 @@ export function ChartContainer<TData extends ChartDataPoint = ChartDataPoint>({
     mutate()
   }, [mutate])
 
-  // Pass all metadata fields dynamically
   const toolbarMetadata: CardToolbarMetadata | undefined = useMemo(
     () => (metadata ? { ...metadata } : undefined),
     [metadata]
   )
 
-  // Render chart content (called once, before early returns to satisfy hook rules)
   const chartContent =
     data && data.length > 0
       ? children(data, sql, toolbarMetadata, staleError, mutate)
       : null
 
-  // Extract raw chart content (without ChartCard wrapper) for zoom dialog
   const dialogContent = (() => {
     if (!isValidElement(chartContent)) return chartContent
     return (
@@ -162,20 +158,16 @@ export function ChartContainer<TData extends ChartDataPoint = ChartDataPoint>({
     )
   })()
 
-  // Loading state
   if (isLoading) {
     return (
       <ChartSkeleton title={title} type={skeletonType} className={className} />
     )
   }
 
-  // Error state - ONLY when no previous data exists (initial load error)
-  // If we have data but error occurred during revalidation, show data with stale indicator
   if (error && !hasData) {
     return <ChartError error={error} title={title} onRetry={handleRetry} />
   }
 
-  // Empty state - show empty state message instead of hiding
   if (!data || data.length === 0) {
     return (
       <ChartEmpty
@@ -188,7 +180,6 @@ export function ChartContainer<TData extends ChartDataPoint = ChartDataPoint>({
     )
   }
 
-  // If children returns a valid element, inject zoomButton prop if it's a ChartCard
   const enhancedContent =
     enableZoom &&
     isValidElement(chartContent) &&

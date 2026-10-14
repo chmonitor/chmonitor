@@ -219,7 +219,6 @@ export const AreaChart = function AreaChart({
         domainCategories
       )
 
-  // Get appropriate domain for the scale type
   const yAxisDomain = getYAxisDomain(
     data as Record<string, unknown>[],
     domainCategories,
