@@ -6,9 +6,7 @@ import { formatReadableSize } from '@/lib/format-readable'
 import { REFRESH_INTERVAL } from '@/lib/swr/config'
 import { cn } from '@/lib/utils'
 
-// ============================================================================
 // ChartDiskUsage — multi-disk breakdown card for the overview tab grid
-// ============================================================================
 
 /**
  * Lists every disk reported by `system.disks` with a per-disk usage bar, the

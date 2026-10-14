@@ -20,7 +20,6 @@ export const ChartQueryCountByUser = memo(function ChartQueryCountByUser({
   hostId,
   ...props
 }: ChartProps) {
-  // Date range state for user-selected time range
   const [rangeOverride, setRangeOverride] = useState<DateRangeValue | null>(
     null
   )
@@ -40,7 +39,6 @@ export const ChartQueryCountByUser = memo(function ChartQueryCountByUser({
     lastHours: effectiveLastHours,
   })
 
-  // Resolve date range config
   const dateRangeConfig = resolveDateRangeConfig('query-activity')
 
   return (

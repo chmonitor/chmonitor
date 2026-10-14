@@ -16,7 +16,6 @@
  */
 
 export type { ChartCategory } from './chart-categories'
-// Types
 export type {
   ChartComponent,
   ChartProps,
@@ -25,16 +24,12 @@ export type {
   LazyChartComponent,
 } from './types'
 
-// Chart categories
 export { CHART_CATEGORIES, CHARTS_BY_CATEGORY } from './chart-categories'
-// Direct access to imports (for advanced use cases)
 export { chartImports } from './chart-imports'
-// Registry functions
 export {
   getChartComponent,
   getChartsByCategory,
   getRegisteredChartNames,
   hasChart,
 } from './registry-fns'
-// Type hints and skeleton utilities
 export { CHART_TYPE_HINTS, getChartSkeletonType } from './type-hints'

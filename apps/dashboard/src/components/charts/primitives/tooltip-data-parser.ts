@@ -14,12 +14,10 @@ export function parseBreakdownData(
   breakdownValue?: string
 ): Array<[string, any]> {
   return breakdownData.map((item): [string, any] => {
-    // breakdown: [('A', 1000)]
     if (Array.isArray(item) && item.length === 2) {
       return item as [string, any]
     }
 
-    // breakdown: [{ name: 'A', value: 1000 }]
     if (typeof item === 'object') {
       if (!breakdownLabel || !breakdownValue) {
         throw new Error('Missing breakdownLabel or breakdownValue')

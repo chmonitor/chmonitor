@@ -113,7 +113,6 @@ export const DonutChart = function DonutChart({
   valueFormatter,
   onClick,
 }: DonutChartProps) {
-  // Determine the value key (categories[0] or category)
   const valueKey = (() => {
     if (categories && categories.length > 0) return categories[0]
     if (category) return category
@@ -129,7 +128,6 @@ export const DonutChart = function DonutChart({
     }))
   })()
 
-  // Generate chart config for colors and labels
   const chartConfig = (() => {
     const config: ChartConfig = {}
     data.forEach((row, i) => {
@@ -142,7 +140,6 @@ export const DonutChart = function DonutChart({
     return config
   })()
 
-  // Custom value formatter with readable support
   const formatValue = useDonutValueFormatter({
     valueFormatter,
     readable,
@@ -151,7 +148,6 @@ export const DonutChart = function DonutChart({
     valueKey,
   })
 
-  // Calculate total for center label
   const total = (() => {
     return chartData.reduce((sum, item) => sum + item.value, 0)
   })()

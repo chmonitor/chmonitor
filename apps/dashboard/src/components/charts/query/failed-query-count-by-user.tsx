@@ -19,7 +19,6 @@ export const ChartFailedQueryCountByUser = memo(
     hostId,
     ...props
   }: ChartProps) {
-    // Date range state
     const [rangeOverride, setRangeOverride] = useState<DateRangeValue | null>(
       null
     )

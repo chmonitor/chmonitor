@@ -19,7 +19,6 @@ export const ChartNewPartsCreated = function ChartNewPartsCreated({
   hostId,
   ...props
 }: ChartProps) {
-  // Date range state for user-selected time range
   const [rangeOverride, setRangeOverride] = useState<DateRangeValue | null>(
     null
   )
@@ -39,7 +38,6 @@ export const ChartNewPartsCreated = function ChartNewPartsCreated({
     lastHours: effectiveLastHours,
   })
 
-  // Resolve date range config
   const dateRangeConfig = resolveDateRangeConfig('operations')
 
   return (
@@ -50,10 +48,8 @@ export const ChartNewPartsCreated = function ChartNewPartsCreated({
       chartClassName={chartClassName}
     >
       {(dataArray, sql, metadata, staleError, mutate) => {
-        // Type the data items properly
         type DataItem = { event_time: string; table: string; new_parts: number }
 
-        // Single-pass algorithm: collect data and track tables simultaneously
         const tableSet = new Set<string>()
         const data = dataArray.reduce<Record<string, Record<string, number>>>(
           (acc, cur) => {
@@ -75,7 +71,6 @@ export const ChartNewPartsCreated = function ChartNewPartsCreated({
           return { event_time, ...obj }
         })
 
-        // Convert set to array for categories
         const tables = Array.from(tableSet)
 
         const rangeLabel = (() => {

@@ -23,7 +23,6 @@ export const ChartSummaryUsedByRunningQueries =
     hostId,
     href,
   }: ChartProps) {
-    // Single API call that returns all data combined
     const { data, error, isLoading, sql } = useChartData<{
       main: {
         query_count: number
@@ -78,7 +77,6 @@ export const ChartSummaryUsedByRunningQueries =
       return {
         ...baseResult,
         items: baseResult.items.map((item, index) => {
-          // Update the second item (query count comparison) with formatted values
           if (index === 1) {
             return {
               ...item,

@@ -19,7 +19,6 @@ export const ChartSummaryUsedByMerges = function ChartSummaryUsedByMerges({
   className,
   hostId,
 }: ChartProps) {
-  // Single API call that returns all data combined
   const { data, error, isLoading, sql } = useChartData<{
     used: { memory_usage: number; readable_memory_usage: string }[]
     totalMem: { metric: string; total: number; readable_total: string }[]

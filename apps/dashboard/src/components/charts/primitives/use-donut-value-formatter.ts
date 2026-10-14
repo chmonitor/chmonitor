@@ -41,14 +41,11 @@ export function useDonutValueFormatter({
     // Use custom formatter if provided
     if (valueFormatter) return valueFormatter
 
-    // No readable format specified - use default number formatting
     if (!readable || !readableColumn) {
       return (value: number) => value.toLocaleString()
     }
 
-    // Create formatter that looks up readable column values
     return (value: number) => {
-      // Find the data row that matches this value
       const row = data.find((d) => Number(d[valueKey]) === value)
 
       // If we found a row with a readable column, format that value

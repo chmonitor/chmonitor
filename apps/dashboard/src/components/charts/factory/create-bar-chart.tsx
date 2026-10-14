@@ -50,7 +50,6 @@ function hasOnlyZeroValues(
  * ```
  */
 export function createBarChart(config: BarChartFactoryConfig): FC<ChartProps> {
-  // Resolve date range config once (stable reference)
   const resolvedDateRangeConfig = config.dateRangeConfig
     ? resolveDateRangeConfig(config.dateRangeConfig)
     : undefined
@@ -71,7 +70,6 @@ export function createBarChart(config: BarChartFactoryConfig): FC<ChartProps> {
     const userTimezone = useTimezone()
     const { timeRange } = useTimeRange()
 
-    // Date range state (only used when dateRangeConfig is provided)
     const [rangeOverride, setRangeOverride] = useState<DateRangeValue | null>(
       null
     )
@@ -96,7 +94,6 @@ export function createBarChart(config: BarChartFactoryConfig): FC<ChartProps> {
       refreshInterval: config.refreshInterval,
     })
 
-    // Get categories (resolve if function)
     // biome-ignore lint/correctness/useExhaustiveDependencies: config is fixed for the factory instance.
     const categories = useMemo(() => {
       if (typeof config.categories === 'function') {
@@ -105,20 +102,17 @@ export function createBarChart(config: BarChartFactoryConfig): FC<ChartProps> {
       return config.categories
     }, [swr.data, config.categories])
 
-    // Check if data has all zero values - show empty state with message
     const allZeros = useMemo(() => {
       if (!swr.data || swr.data.length === 0) return false
       return hasOnlyZeroValues(swr.data, categories)
     }, [swr.data, categories])
 
-    // Create x-axis date formatter if enabled
     // biome-ignore lint/correctness/useExhaustiveDependencies: config is fixed for the factory instance.
     const xAxisTickFormatter = useMemo(() => {
       if (!config.xAxisDateFormat) return undefined
       return createDateTickFormatter(effectiveLastHours ?? 24, userTimezone)
     }, [effectiveLastHours, userTimezone, config.xAxisDateFormat])
 
-    // If data exists but all values are zero, show informative empty state
     if (allZeros && !swr.isLoading && !swr.error) {
       return (
         <ChartEmpty

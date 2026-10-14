@@ -51,7 +51,6 @@ export function ChartDiskUsageTrend({
 
   const tickFormatter = createDateTickFormatter(lastHours)
 
-  // Delta badge: compare first vs last total across all series
   const deltaBadge = (() => {
     if (pivoted.length < 2) return null
     const first = rowTotal(pivoted[0] as ChartDataPoint)

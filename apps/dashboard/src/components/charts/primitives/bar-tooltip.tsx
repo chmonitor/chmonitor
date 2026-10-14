@@ -18,7 +18,6 @@ interface RenderBarTooltipOptions {
 function SortedTooltipContent(props: ChartTooltipContentProps) {
   const { payload, ...rest } = props
 
-  // Sort payload by value descending (largest first = top of visual stack)
   const sortedPayload = payload
     ? [...payload].sort((a, b) => {
         const aVal = typeof a.value === 'number' ? a.value : 0

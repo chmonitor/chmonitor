@@ -47,14 +47,12 @@ export const PageviewsByDeviceChart = function PageviewsByDeviceChart({
     refreshInterval: activeTab === 'countries' ? 30000 : 0,
   })
 
-  // Combine loading states
   const isLoading =
     swrTopPages.isLoading || swrDevices.isLoading || swrCountries.isLoading
 
   // Combine errors (show first error if any)
   const error = swrTopPages.error || swrDevices.error || swrCountries.error
 
-  // Combine SWR states for ChartContainer
   const combinedSwr = {
     ...swrDevices,
     isLoading,
@@ -65,7 +63,6 @@ export const PageviewsByDeviceChart = function PageviewsByDeviceChart({
   return (
     <ChartContainer swr={combinedSwr} title={title} className={className}>
       {(_, primarySql, primaryMetadata) => {
-        // Transform data for each tab
         const topPagesData =
           swrTopPages.data?.map((row) => ({
             name: row.url as string,

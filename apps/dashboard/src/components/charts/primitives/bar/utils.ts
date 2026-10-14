@@ -31,7 +31,6 @@ export function sortCategoriesByTotal<T extends Record<string, unknown>>(
   data: T[],
   categories: string[]
 ): string[] {
-  // Calculate total for each category
   const totals = categories.map((category) => ({
     category,
     total: data.reduce((sum, row) => {
@@ -40,7 +39,6 @@ export function sortCategoriesByTotal<T extends Record<string, unknown>>(
     }, 0),
   }))
 
-  // Sort ascending (smallest first = bottom, largest last = top)
   totals.sort((a, b) => a.total - b.total)
 
   return totals.map((t) => t.category)
