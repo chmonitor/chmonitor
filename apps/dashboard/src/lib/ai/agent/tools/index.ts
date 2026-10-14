@@ -16,6 +16,7 @@ import { createAskUserTools } from './ask-user-tools'
 import { createSearchTools } from './catalog-tools'
 import { createControlTools } from './control-tools'
 import { createDashboardTools } from './dashboard-tools'
+import { createDocsLookupTools } from './docs-lookup-tools'
 import { createHealthTools } from './health-tools'
 import { createInsightTools } from './insight-tools'
 import { createMergeTools } from './merge-tools'
@@ -79,7 +80,7 @@ export const CONNECTION_UNSUPPORTED_TOOLS: ReadonlySet<string> = new Set([
  *  - Replication: get_replication_status
  *  - Merges: get_merge_status
  *  - Planning: update_plan
- *  - Knowledge: load_skill, find_reference_query
+ *  - Knowledge: load_skill, find_reference_query, explain_clickhouse_symbol
  *  - Interaction: ask_user
  *  - Visualization: query_and_visualize
  *  - Insights: explain_anomaly_score
@@ -152,6 +153,9 @@ export function createAllTools(
 
     // Reference-query retrieval (built-in QueryConfig catalog, read-only)
     ...createReferenceQueryTools(),
+
+    // Built-in ClickHouse docs read from the host's own system tables
+    ...createDocsLookupTools(hostId),
 
     // Page data (replays a dashboard page's own table + chart queries, read-only)
     ...createPageDataTools(hostId),

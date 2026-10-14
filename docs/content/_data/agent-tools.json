@@ -90,6 +90,14 @@
       "summary": "Explain a per-host/per-metric anomaly baseline (mean, stddev, median, MAD) and score a current value against it."
     },
     {
+      "category": "knowledge",
+      "core": false,
+      "description": "Read ClickHouse's built-in docs from the user's own server, so the answer matches their version. Looks up a function (syntax, arguments, examples, introduced_in), a session setting or MergeTree setting (type, default, current value, tier), a server setting, or a metric/event description. Use kind 'search' to find names by keyword across functions and settings. Not found means the symbol does not exist on this version.",
+      "envGate": null,
+      "name": "explain_clickhouse_symbol",
+      "summary": "Read ClickHouse's built-in docs for a function, setting, MergeTree setting, server setting, metric, or event from this host, so the answer matches its version. kind 'search' finds names by keyword."
+    },
+    {
       "category": "query",
       "core": false,
       "description": "Get the execution plan for a query (EXPLAIN PLAN / PIPELINE / PLAN indexes=1). Useful for understanding query optimization and identifying performance issues.",

@@ -175,6 +175,20 @@
         Offers a pattern or says it looked up a reference. Does not claim
         to have changed data.
 
+- description: 'Coverage — built-in ClickHouse docs'
+  tags: [extended]
+  metadata:
+    covers: [explain_clickhouse_symbol]
+  vars:
+    prompt: 'What does the max_threads setting do and what is its default on this server?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        Explains max_threads from a tool result for this server. Does not
+        claim to have changed the setting.
+
 - description: 'Coverage — what a dashboard page shows'
   tags: [extended]
   metadata:
