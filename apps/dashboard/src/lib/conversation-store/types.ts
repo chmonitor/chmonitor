@@ -9,6 +9,10 @@
 
 import type { UIMessage } from 'ai'
 
+// ============================================================================
+// Dynamic Metadata (stored as JSON, never needs schema migration)
+// ============================================================================
+
 /**
  * Extensible metadata stored in the `metadata` JSON column.
  * All fields optional — only populated when data is available.
@@ -153,6 +157,10 @@ export interface ConversationMetadata {
   [key: string]: unknown
 }
 
+// ============================================================================
+// Core Types
+// ============================================================================
+
 /**
  * Conversation metadata (without full message payload).
  * Used for listing conversations efficiently.
@@ -195,9 +203,16 @@ export interface ConversationMeta {
   updatedAt: number
 }
 
+/**
+ * Full stored conversation with all messages.
+ */
 export interface StoredConversation extends ConversationMeta {
   messages: UIMessage[]
 }
+
+// ============================================================================
+// Storage Interface
+// ============================================================================
 
 /**
  * Conversation storage adapter interface.
@@ -226,6 +241,10 @@ export interface ConversationStore {
   delete(userId: string, conversationId: string): Promise<void>
   deleteAll(userId: string): Promise<void>
 }
+
+// ============================================================================
+// Errors
+// ============================================================================
 
 export class ConversationStoreError extends Error {
   constructor(

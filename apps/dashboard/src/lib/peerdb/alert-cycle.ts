@@ -226,6 +226,10 @@ export interface PeerDBCycleOptions {
   throughputStore?: PeerDBThroughputStore | null
 }
 
+// ---------------------------------------------------------------------------
+// Deterministic investigation (H2 — module-private, runs inside the cycle)
+// ---------------------------------------------------------------------------
+
 interface DeterministicInvestigationInput {
   signal: PeerDBMirrorSignal
   classification: PeerDBClassification
@@ -324,6 +328,10 @@ function runDeterministicPeerDBInvestigation(
   }
 }
 
+// ---------------------------------------------------------------------------
+// PeerDB API health (#3675 — module-private, runs inside the cycle)
+// ---------------------------------------------------------------------------
+
 /**
  * One fleet-level finding for the PeerDB API, through the same
  * audit-before-dispatch path as the per-mirror conditions. Recovery evidence
@@ -413,6 +421,10 @@ async function evaluatePeerDBApiHealth(
   })
   ctx.result.dispatched++
 }
+
+// ---------------------------------------------------------------------------
+// Log patterns (#3700 — module-private, runs inside the cycle)
+// ---------------------------------------------------------------------------
 
 /** Host name the log-pattern findings are reported under. */
 export const PEERDB_LOG_PATTERN_HOST_NAME = 'peerdb:log-pattern'
@@ -561,6 +573,10 @@ async function evaluatePeerDBLogPatterns(
     })
   }
 }
+
+// ---------------------------------------------------------------------------
+// Orchestrator (M3 — the only entry point that can reach delivery)
+// ---------------------------------------------------------------------------
 
 /**
  * Run one full PeerDB alert cycle. Never throws — every stage is guarded so
