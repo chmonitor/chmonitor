@@ -1,22 +1,7 @@
-/**
- * ClickHouse Client Module
- *
- * This file now serves as a central re-export point for all ClickHouse-related modules.
- * The ClickHouse client functionality has been split into domain modules for better organization:
- *
- * - types: Shared types for ClickHouse client and data fetching
- * - connection-pool: Connection pooling and management
- * - clickhouse-config: Configuration parsing from environment variables
- * - clickhouse-client: Client factory with auto-detection for Cloudflare Workers
- * - clickhouse-fetch: Main fetchData function with comprehensive error handling
- * - constants: Shared constants like query comments and timeouts
- */
 
 import type { FetchDataResult } from './clickhouse/types'
 
-// Re-export connection pool utilities (if needed externally)
 export type { PooledClient } from './clickhouse/connection-pool'
-// Re-export all types
 export type {
   ClickHouseConfig,
   FetchDataError,
@@ -36,14 +21,12 @@ async function loadClickhouseFetchModule(): Promise<ClickHouseFetchModule> {
   return clickhouseFetchModulePromise
 }
 
-// Re-export client factory
 export {
   getClient,
   getConnectionPoolStats,
   isCloudflareWorkers,
   releaseClient,
 } from './clickhouse/clickhouse-client'
-// Re-export configuration functions
 export {
   getAndValidateClientConfig,
   getClickHouseConfigs,
@@ -76,7 +59,6 @@ export {
   getPooledClient,
   getPoolKey,
 } from './clickhouse/connection-pool'
-// Re-export constants
 export {
   DEFAULT_CLICKHOUSE_MAX_EXECUTION_TIME,
   QUERY_COMMENT,

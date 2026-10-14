@@ -34,9 +34,7 @@ async function countUsers(
   return typeof body.total_count === 'number' ? body.total_count : null
 }
 
-/** 24 hours — the daily digest's window, and the default here. */
 export const DAY_SECONDS = 24 * 60 * 60
-/** 7 days — the weekly report's window. */
 export const WEEK_SECONDS = 7 * DAY_SECONDS
 
 /**

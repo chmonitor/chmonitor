@@ -118,7 +118,6 @@ export function checkoutPaid(status: string): boolean {
   return status === 'succeeded' || status === 'confirmed'
 }
 
-/** Fixed-window limiter backed by CHM_HOOKS_KV. Returns false when over limit. */
 export async function kvRateLimit(
   kv: LicenseKV | null,
   bucket: string,

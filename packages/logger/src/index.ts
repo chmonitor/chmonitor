@@ -17,9 +17,6 @@
  * - https://uptrace.dev/glossary/structured-logging
  */
 
-// ============================================================================
-// Environment Detection
-// ============================================================================
 
 const isDevelopment =
   typeof globalThis !== 'undefined' &&
@@ -37,9 +34,6 @@ const debugEnabled =
  */
 export const isDebugEnabled = (): boolean => isDevelopment || debugEnabled
 
-// ============================================================================
-// Types
-// ============================================================================
 
 export interface ErrorContext {
   digest?: string
@@ -50,7 +44,6 @@ export interface ErrorContext {
   [key: string]: unknown
 }
 
-// Pino log levels (string enum)
 type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error'
 
 const LogLevel = {
@@ -61,13 +54,7 @@ const LogLevel = {
   error: 'error' as const,
 } as const
 
-// ============================================================================
-// Core Logging Functions
-// ============================================================================
 
-/**
- * Create a Pino-compatible log entry
- */
 function createLogEntry(
   level: LogLevel,
   msg: string,
@@ -175,9 +162,6 @@ export const error = (
   console.error(createLogEntry(LogLevel.error, msg, extra))
 }
 
-// ============================================================================
-// Structured Error Logger Class
-// ============================================================================
 
 /**
  * Structured error logger for component-level error handling
@@ -202,9 +186,6 @@ export class ErrorLogger {
   }
 }
 
-// ============================================================================
-// Request Correlation
-// ============================================================================
 
 /**
  * Generate a unique request ID for request correlation and tracing
@@ -221,13 +202,7 @@ export function generateRequestId(): string {
   return `${timestamp}-${random}`
 }
 
-// ============================================================================
-// Utility Functions
-// ============================================================================
 
-/**
- * Format error for display based on environment
- */
 export function formatErrorForDisplay(error: Error & { digest?: string }): {
   title: string
   message: string

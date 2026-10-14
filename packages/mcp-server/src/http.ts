@@ -34,7 +34,6 @@ import {
 import { createMcpServer } from './server'
 import { createMcpHandler } from '@modelcontextprotocol/server'
 
-// SDK-free metadata handler, re-exported here for the Worker's single import.
 export { handleProtectedResourceMetadata } from './auth/oauth-metadata'
 // CORS helpers live in ./cors (SDK-free) so lightweight routes can reuse them
 // without pulling the MCP SDK into their bundle. Re-export for the Worker, which
@@ -161,7 +160,6 @@ export const defaultAuthenticator: Authenticator = async (req) => {
   const { bearer, apiKey } = getRequestTokens(req)
   if (!bearer && !apiKey) return unauthorized(req)
 
-  // API key may arrive via x-api-key or the Authorization bearer; accept either.
   if (apiKeyOn && (await anyApiKeyValid(apiKey, bearer))) return null
   // Only the Authorization bearer is ever forwarded to Clerk — an x-api-key is a
   // server-issued credential and must never be relayed to a third party.
@@ -183,7 +181,6 @@ export const defaultAuthenticator: Authenticator = async (req) => {
 export type RateLimitCheck = (req: Request) => Promise<Response | null>
 
 interface HandleMcpOptions {
-  /** Override the auth check. Defaults to defaultAuthenticator. */
   authenticate?: Authenticator
   /**
    * Optional pre-auth rate-limit gate (#2728). Runs before `authenticate` —
@@ -268,7 +265,6 @@ export interface McpServerInfoResponse {
   resources: McpResource[]
 }
 
-/** Static server-info payload (GET /api/v1/mcp/info). Pure data, no auth. */
 export function buildServerInfo(): McpServerInfoResponse {
   return {
     name: 'chmonitor',

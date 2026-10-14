@@ -33,7 +33,6 @@ import {
   toUnixSeconds,
 } from '@chm/billing-webhook-core'
 
-/** Injected so tests can drive signature rejection without a real signature. */
 export type ValidateEventFn = (
   body: string,
   headers: Record<string, string>,
@@ -42,9 +41,7 @@ export type ValidateEventFn = (
 
 export interface WebhookDeps {
   notify: (kind: NotifyKind, text: string) => Promise<boolean>
-  /** Defaults to the real `@polar-sh/sdk/webhooks` validateEvent. */
   validateEvent?: ValidateEventFn
-  /** Override the assembled core deps (tests). */
   applyDeps?: ApplySubscriptionDeps
   fetch?: typeof fetch
 }

@@ -42,22 +42,12 @@ import type {
   WhereGroup,
 } from './types'
 
-// ============================================================================
-// Canonical engine (SqlBuilder)
-// ============================================================================
 
-/**
- * Renders a full SQL query from builder state
- *
- * @param state - Builder state to render
- * @param pretty - Use newlines and indentation
- */
 export function renderQuery(state: BuilderState, pretty: boolean): string {
   const nl = pretty ? '\n' : ' '
   const indent = pretty ? '  ' : ''
   const parts: string[] = []
 
-  // WITH (CTEs)
   if (state.ctes.length > 0) {
     const ctes = state.ctes
       .map((cte) => `${cte.name} AS (${cte.query.build()})`)
@@ -65,65 +55,54 @@ export function renderQuery(state: BuilderState, pretty: boolean): string {
     parts.push(`WITH ${ctes}`)
   }
 
-  // SELECT
   const columns =
     state.columns.length > 0
       ? state.columns.map((col) => formatExpression(col)).join(', ')
       : '*'
   parts.push(`SELECT ${columns}`)
 
-  // FROM
   if (state.from) {
     const fromClause = formatFrom(state.from)
     parts.push(`FROM ${fromClause}`)
   }
 
-  // JOINs
   for (const join of state.joins) {
     parts.push(formatJoin(join))
   }
 
-  // WHERE
   if (state.wheres.length > 0) {
     const whereClause = formatConditions(state.wheres)
     parts.push(`WHERE ${whereClause}`)
   }
 
-  // GROUP BY
   if (state.groupBy.length > 0) {
     parts.push(`GROUP BY ${state.groupBy.join(', ')}`)
   }
 
-  // HAVING
   if (state.having.length > 0) {
     const havingClause = formatConditions(state.having)
     parts.push(`HAVING ${havingClause}`)
   }
 
-  // ORDER BY
   if (state.orderBy.length > 0) {
     const orders = state.orderBy.map((order) => formatOrder(order))
     parts.push(`ORDER BY ${orders.join(', ')}`)
   }
 
-  // LIMIT
   if (state.limit !== undefined) {
     parts.push(`LIMIT ${state.limit}`)
   }
 
-  // OFFSET
   if (state.offset !== undefined) {
     parts.push(`OFFSET ${state.offset}`)
   }
 
-  // UNION
   let query = parts.join(nl)
   for (const union of state.unions) {
     const unionType = union.all ? 'UNION ALL' : 'UNION'
     query += `${nl}${unionType}${nl}${union.query.build()}`
   }
 
-  // SETTINGS
   if (Object.keys(state.settings).length > 0) {
     const settings = Object.entries(state.settings)
       .map(([key, value]) => `${key} = ${formatValue(value)}`)
@@ -131,7 +110,6 @@ export function renderQuery(state: BuilderState, pretty: boolean): string {
     query += `${nl}SETTINGS ${settings}`
   }
 
-  // FORMAT
   if (state.format) {
     query += `${nl}FORMAT ${state.format}`
   }
@@ -139,20 +117,13 @@ export function renderQuery(state: BuilderState, pretty: boolean): string {
   return query
 }
 
-/**
- * Format expression (column, raw SQL, etc.)
- */
 function formatExpression(expr: SqlExpression): string {
   if (typeof expr === 'string') {
     return expr
   }
-  // SqlFragment (RawSql, ColumnBuilder, etc.)
   return expr.toSql()
 }
 
-/**
- * Format FROM clause
- */
 function formatFrom(from: {
   table: string | SqlBuilderLike
   alias?: string
@@ -172,9 +143,6 @@ function formatFrom(from: {
   return result
 }
 
-/**
- * Format JOIN clause
- */
 function formatJoin(join: SqlJoin): string {
   let result = `${join.type} JOIN `
 
@@ -197,9 +165,6 @@ function formatJoin(join: SqlJoin): string {
   return result
 }
 
-/**
- * Format conditions (WHERE/HAVING)
- */
 function formatConditions(
   conditions: (SqlCondition | WhereGroup)[],
   level = 0
@@ -211,15 +176,12 @@ function formatConditions(
     const isFirst = i === 0
 
     if ('conditions' in condition) {
-      // WhereGroup
       const grouped = formatConditions(condition.conditions, level + 1)
       const connector = isFirst ? '' : ` ${condition.type.toUpperCase()} `
       parts.push(`${connector}(${grouped})`)
     } else {
-      // SqlCondition
       const connector = isFirst ? '' : ` ${condition.type.toUpperCase()} `
 
-      // Raw SQL condition
       if (
         condition.value &&
         typeof condition.value === 'object' &&
@@ -227,7 +189,6 @@ function formatConditions(
       ) {
         parts.push(`${connector}${condition.value.toSql()}`)
       } else {
-        // Regular condition
         const value = formatValue(condition.value)
         parts.push(
           `${connector}${condition.column} ${condition.operator} ${value}`
@@ -239,14 +200,10 @@ function formatConditions(
   return parts.join('')
 }
 
-/**
- * Format ORDER BY clause
- */
 function formatOrder(order: SqlOrder): string {
   let result: string
 
   if (typeof order.column === 'object') {
-    // SqlFragment (RawSql)
     result = order.column.toSql()
   } else {
     result = `${order.column} ${order.direction}`
@@ -281,9 +238,6 @@ function formatValue(value: unknown): string {
   return String(value)
 }
 
-// ============================================================================
-// Simplified engine (ExtendedBuilder)
-// ============================================================================
 
 /**
  * Renders SQL for {@link ExtendedBuilder}
@@ -303,7 +257,6 @@ export function renderExtendedQuery(
   const indent = pretty ? '  ' : ''
   const parts: string[] = []
 
-  // SELECT
   const columns = state.columns.map((col) => {
     if (typeof col === 'string') return col
     if ('toSql' in col && typeof col.toSql === 'function') {
@@ -313,7 +266,6 @@ export function renderExtendedQuery(
   })
   parts.push(`SELECT${nl}${indent}${columns.join(`,${nl}${indent}`)}`)
 
-  // FROM
   if (state.from) {
     const table =
       typeof state.from.table === 'string' ? state.from.table : 'subquery'
@@ -321,7 +273,6 @@ export function renderExtendedQuery(
     parts.push(`${nl}FROM ${table}${alias}`)
   }
 
-  // JOINs
   for (const join of state.joins) {
     const table = typeof join.table === 'string' ? join.table : 'subquery'
     const alias = join.alias ? ` AS ${join.alias}` : ''
@@ -334,24 +285,20 @@ export function renderExtendedQuery(
     parts.push(joinClause)
   }
 
-  // WHERE
   if (state.wheres.length > 0) {
     const whereStr = renderExtendedConditions(state.wheres)
     parts.push(`${nl}WHERE ${whereStr}`)
   }
 
-  // GROUP BY
   if (state.groupBy.length > 0) {
     parts.push(`${nl}GROUP BY ${state.groupBy.join(', ')}`)
   }
 
-  // HAVING
   if (state.having.length > 0) {
     const havingStr = renderExtendedConditions(state.having)
     parts.push(`${nl}HAVING ${havingStr}`)
   }
 
-  // ORDER BY
   if (state.orderBy.length > 0) {
     const orderStr = state.orderBy
       .map(
@@ -361,7 +308,6 @@ export function renderExtendedQuery(
     parts.push(`${nl}ORDER BY ${orderStr}`)
   }
 
-  // LIMIT/OFFSET
   if (state.limit !== undefined) {
     parts.push(`${nl}LIMIT ${state.limit}`)
   }
@@ -369,7 +315,6 @@ export function renderExtendedQuery(
     parts.push(`${nl}OFFSET ${state.offset}`)
   }
 
-  // FORMAT
   if (state.format) {
     parts.push(`${nl}FORMAT ${state.format}`)
   }

@@ -50,7 +50,6 @@ const DEFAULT_ALLOWED_SENDERS = ['@sentry.io', '@notifications.sentry.io']
 // Explicit opt-out: BUG_ALLOWED_SENDERS=* accepts mail from any sender.
 const ALLOW_ALL_SENDERS = '*'
 
-/** Split a comma-separated env value into a trimmed, non-empty string array. */
 function splitList(raw: string | undefined): string[] {
   if (!raw) return []
   return raw

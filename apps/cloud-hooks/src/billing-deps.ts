@@ -29,7 +29,6 @@ function readEnv(env: Env, key: string): string | undefined {
   return typeof v === 'string' && v !== '' ? v : undefined
 }
 
-/** Env-driven reverse map: Polar product id → our plan + period, or null. */
 export function makePlanForProductId(
   env: Env
 ): (productId: string) => { planId: PlanId; period: BillingPeriod } | null {
@@ -109,7 +108,6 @@ export function makeEnsureOrgForUser(
   }
 }
 
-/** Re-key the Polar customer's externalId to the org (Polar SDK). Best-effort. */
 export function makeRekeyCustomerToOrg(
   env: Env
 ): (customerId: string, orgId: string) => Promise<void> {
@@ -141,7 +139,6 @@ export function makeRekeyCustomerToOrg(
   }
 }
 
-/** Retry a D1 write once before giving up — smooths over transient blips. */
 function makeUpsertWithRetry(
   db: D1Database
 ): (input: Parameters<typeof coreUpsertSubscription>[1]) => Promise<void> {

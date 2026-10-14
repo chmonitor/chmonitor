@@ -14,10 +14,8 @@ export type LicenseTerm = 'yearly' | 'lifetime'
 export interface LicenseSku {
   id: LicenseId
   name: string
-  /** Marketing card title (may be longer than `name`). */
   displayName: string
   tagline: string
-  /** Monitored connections included. null = unlimited. */
   hosts: number | null
   yearlyUsd: number
   lifetimeUsd: number
@@ -98,7 +96,6 @@ export function licenseHostsLabel(sku: LicenseSku): string {
     : `${sku.hosts} host${sku.hosts === 1 ? '' : 's'}`
 }
 
-/** Lifetime ÷ yearly. Paid SKUs are ~3×. */
 export function lifetimeMultiple(sku: LicenseSku): number | null {
   if (!sku.yearlyUsd) return null
   return Math.round((sku.lifetimeUsd / sku.yearlyUsd) * 10) / 10
@@ -111,7 +108,6 @@ export const PERSONAL_SELFHOST_HREF =
 
 export type PaidLicenseId = (typeof PAID_LICENSE_IDS)[number]
 
-/** Env key for the Polar product id (dashboard / polar-setup). */
 export function licensePolarProductEnvKey(
   id: PaidLicenseId,
   term: LicenseTerm

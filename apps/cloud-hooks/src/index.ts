@@ -55,12 +55,10 @@ import { collectWeekly, formatWeekly, weekBounds } from './weekly'
  */
 export const OPS_SWEEP_CRON = '*/15 * * * *'
 
-/** True on the 00:00 UTC tick — run the daily digest. */
 export function isDailyTick(at: Date): boolean {
   return at.getUTCHours() === 0 && at.getUTCMinutes() === 0
 }
 
-/** True on the Monday 01:00 UTC tick — run the weekly report. */
 export function isWeeklyTick(at: Date): boolean {
   return (
     at.getUTCDay() === 1 && at.getUTCHours() === 1 && at.getUTCMinutes() === 0

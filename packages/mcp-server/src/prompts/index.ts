@@ -16,19 +16,6 @@ const SLOW_PATTERN_TOP_N = 3
 const TOP_TABLES_BY_SIZE = 10
 const STORAGE_CRITICAL_PERCENT = 80
 
-/**
- * Registers MCP prompts for ClickHouse DBA monitoring tasks.
- *
- * Prompts registered:
- * - health-check: Comprehensive server health assessment
- * - slow-query-analysis: Query performance analysis
- * - storage-audit: Storage and compression audit
- * - replication-check: Replication health verification
- * - capacity-report: Capacity trend analysis
- *
- * @param server - The MCP server instance to register prompts on
- * @returns void
- */
 export function registerPrompts(server: McpServer) {
   server.registerPrompt(
     'health-check',

@@ -44,9 +44,7 @@ export interface D1BoundLike {
 }
 
 export interface UserSubscription {
-  /** Billing-owner id — Clerk user id OR Clerk org id. */
   userId: string
-  /** 'user' for personal subscriptions; 'org' for org-owned paid plans. */
   ownerType: OwnerType
   planId: PlanId
   billingPeriod: 'monthly' | 'yearly' | null
@@ -62,9 +60,7 @@ export interface UserSubscription {
 }
 
 export interface UpsertSubscriptionInput {
-  /** Billing-owner id — Clerk user id OR Clerk org id. */
   userId: string
-  /** 'user' for personal subscriptions; 'org' for org-owned paid plans. Default 'user'. */
   ownerType?: OwnerType
   planId: PlanId
   billingPeriod: 'monthly' | 'yearly' | null
@@ -72,7 +68,6 @@ export interface UpsertSubscriptionInput {
   polarSubscriptionId?: string | null
   polarCustomerId?: string | null
   currentPeriodEnd?: number | null
-  /** Default false. */
   cancelAtPeriodEnd?: boolean
   /**
    * Unix seconds from the source event (e.g. the Polar webhook envelope's

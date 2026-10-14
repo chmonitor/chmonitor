@@ -38,13 +38,10 @@ export interface D1SeriesDb {
   }
 }
 
-/** Fraction below baseline that counts as a drop (0.3 = 30% down). */
 export const DEFAULT_DROP_THRESHOLD = 0.3
-/** Multiple of baseline that counts as a spike. */
 export const DEFAULT_SPIKE_MULTIPLE = 3
 /** Baselines below this are too small for a percentage to be meaningful. */
 export const MIN_BASELINE = 10
-/** How many prior days form the baseline. */
 export const BASELINE_DAYS = 7
 
 export interface DailyCount {
@@ -54,16 +51,13 @@ export interface DailyCount {
 
 export interface Anomaly {
   kind: 'drop' | 'spike'
-  /** The value observed on the reference day. */
   current: number
-  /** Median of the baseline window. */
   baseline: number
   /** Signed change vs baseline as a percentage, rounded to one decimal. */
   changePct: number
   referenceDay: string
 }
 
-/** Median of a numeric list. Returns 0 for an empty list. */
 export function median(values: number[]): number {
   if (values.length === 0) return 0
   const sorted = [...values].sort((a, b) => a - b)

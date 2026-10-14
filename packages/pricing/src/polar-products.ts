@@ -18,7 +18,6 @@ export function subscribablePlanProductEnvKey(
   return `CHM_POLAR_PRODUCT_${planId.toUpperCase()}_${period.toUpperCase()}`
 }
 
-/** Reverse map: Polar product id → plan + period, or null when unmapped. */
 export function planForProductIdFromLookup(
   lookup: (key: string) => string | undefined,
   productId: string
@@ -33,7 +32,6 @@ export function planForProductIdFromLookup(
   return null
 }
 
-/** Type guard: subscribable plan ids are a subset of PlanId. */
 export function isSubscribablePlanId(
   value: string
 ): value is SubscribablePlanId {

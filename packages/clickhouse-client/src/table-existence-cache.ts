@@ -42,10 +42,6 @@ export interface TableExistenceCacheL2 {
 
 let l2CacheProvider: (() => TableExistenceCacheL2 | null) | null = null
 
-/**
- * Register (or clear, with `null`) the L2 cache provider — see
- * `setVersionCacheL2Provider` in `clickhouse-version.ts` for the same pattern.
- */
 export function setTableExistenceL2Provider(
   provider: (() => TableExistenceCacheL2 | null) | null
 ): void {
@@ -266,9 +262,6 @@ async function probeExists(
   }
 }
 
-/**
- * Get cache metrics for monitoring and debugging
- */
 export function getCacheMetrics() {
   return {
     size: cache.size,
@@ -311,17 +304,10 @@ export const invalidateTable = async (
   }
 }
 
-/**
- * Clear entire cache
- */
 export const clearTableCache = () => cache.clear()
 
-/**
- * Get current cache size
- */
 export const tableCacheSize = () => cache.size
 
-// Keep the old interface for backward compatibility
 export const tableExistenceCache = {
   checkTableExists,
   checkColumnExists,

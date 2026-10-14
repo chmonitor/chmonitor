@@ -24,7 +24,6 @@ export type ProbeState = 'up' | 'down'
  */
 export type ProbeValidator = (res: Response) => boolean
 
-/** 2xx only — the default for a plain reachability check. */
 export const expectOk: ProbeValidator = (res) => res.ok
 
 /**
@@ -34,15 +33,12 @@ export const expectOk: ProbeValidator = (res) => res.ok
  */
 export const expectNotServerError: ProbeValidator = (res) => res.status < 500
 
-/** Human labels for the kinds of surface we probe (documentation only). */
 export type ProbeKind = 'http' | 'readiness' | 'rpc' | 'd1'
 
 export interface ProbeTarget {
   name: string
   url: string
-  /** What sort of surface this is — documentation for the probe table. */
   kind?: ProbeKind
-  /** How to judge the response. Defaults to `expectOk` (2xx). */
   validator?: ProbeValidator
 }
 
@@ -123,7 +119,6 @@ export async function probeOne(
   }
 }
 
-/** Minimal D1 subset for the read probe (`SELECT 1`). */
 export interface D1ProbeDb {
   prepare(sql: string): { first<T = unknown>(): Promise<T | null> }
 }
@@ -200,7 +195,6 @@ export function formatTransition(t: Transition): string {
 
 export const PROBE_NOTIFY_KIND: NotifyKind = 'probe'
 
-/** Minimal KV subset used to persist probe state between cron runs. */
 export interface KVLike {
   get(key: string): Promise<string | null>
   put(key: string, value: string): Promise<void>
@@ -231,7 +225,6 @@ export interface RunProbesDeps {
   fetch?: typeof fetch
   kv?: KVLike | null
   targets?: ProbeTarget[]
-  /** Optional D1 binding — when present, a `SELECT 1` read probe is added. */
   d1?: D1ProbeDb | null
   notify: (kind: NotifyKind, text: string) => Promise<boolean>
   /** Epoch ms, injectable so the escalation schedule is testable. */

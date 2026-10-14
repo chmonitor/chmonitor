@@ -15,7 +15,6 @@ import { activationLines } from './activation'
 import { usageLines } from './usage'
 import { BILLING_PLANS, type Plan, type PlanId } from '@chm/pricing'
 
-/** Minimal D1 subset used by the summary queries (adds `.all()`). */
 export interface D1SummaryDb {
   prepare(sql: string): {
     bind(...values: unknown[]): {
@@ -32,21 +31,14 @@ export interface PlanBreakdownRow {
 }
 
 export interface SummaryData {
-  /** Active/trialing subscriptions total. */
   totalActive: number
-  /** Count of active subscriptions per plan id. */
   byPlan: Record<string, number>
-  /** Subscriptions created in the last 24h (any status). */
   newLast24h: number
-  /** New subscriptions in the last 24h, grouped by plan id. */
   newByPlan: Record<string, number>
-  /** Subscriptions cancelled/revoked in the last 24h. */
   cancellations24h: number
-  /** Estimated monthly recurring revenue in USD. */
   mrrUsd: number
 }
 
-/** Optional Clerk user metrics (omitted from the digest when unavailable). */
 export interface ClerkMetrics {
   totalUsers: number
   /** Accounts created inside `windowSeconds` (24h for the daily digest, 7d for the weekly report). */
@@ -55,21 +47,17 @@ export interface ClerkMetrics {
   windowSeconds: number
 }
 
-/** Render a window width as a compact label: 86400 → "24h", 604800 → "7d". */
 export function formatWindowLabel(seconds: number): string {
   const hours = Math.round(seconds / 3600)
   return hours < 48 ? `${hours}h` : `${Math.round(hours / 24)}d`
 }
 
-/** Optional per-surface probe snapshot (last-known up/down state). */
 export type ProbeSnapshot = Record<string, 'up' | 'down'>
 
 export interface DigestExtras {
   clerk?: ClerkMetrics | null
   probes?: ProbeSnapshot | null
-  /** DAU/WAU/MAU from the telemetry D1 (see usage.ts). */
   usage?: UsageMetrics | null
-  /** Signup → connected-a-cluster conversion (see activation.ts). */
   activation?: ActivationData | null
 }
 
@@ -146,7 +134,6 @@ export async function queryPlanBreakdown(
   return breakdown.results ?? []
 }
 
-/** Query D1 for the daily summary. `now` is unix seconds (injectable for tests). */
 export async function collectSummary(
   db: D1SummaryDb,
   now: number = Math.floor(Date.now() / 1000)
@@ -210,7 +197,6 @@ export function formatDigest(
 ): string {
   const parts: string[] = ['\u{1F4CA} <b>chmonitor daily digest</b>']
 
-  // ── Users (Clerk) — only when metrics are available ─────────────────────────
   if (extras.clerk) {
     parts.push(
       '',
@@ -220,13 +206,10 @@ export function formatDigest(
     )
   }
 
-  // ── Usage (telemetry D1) — DAU/WAU/MAU, omitted when unavailable ───────────
   parts.push(...usageLines(extras.usage))
 
-  // ── Activation — did the signups actually connect anything? ────────────────
   parts.push(...activationLines(extras.activation))
 
-  // ── Subscriptions ───────────────────────────────────────────────────────────
   parts.push(
     '',
     '\u{1F4B3} <b>Subscriptions</b>',
@@ -247,7 +230,6 @@ export function formatDigest(
     `  • Estimated MRR: <b>$${data.mrrUsd.toFixed(2)}</b>`
   )
 
-  // ── Surfaces (probe snapshot) — only when a snapshot exists ─────────────────
   if (extras.probes && Object.keys(extras.probes).length > 0) {
     const entries = Object.entries(extras.probes).sort(([a], [b]) =>
       a.localeCompare(b)
@@ -271,7 +253,6 @@ export function formatDigest(
   return parts.join('\n')
 }
 
-/** Back-compat alias: the billing-only summary is the digest with no extras. */
 export function formatSummary(data: SummaryData): string {
   return formatDigest(data)
 }

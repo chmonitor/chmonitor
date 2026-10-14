@@ -75,12 +75,10 @@ pub fn print_records(data: &[HashMap<String, Value>], limit: usize) {
     println!("{table}");
 }
 
-/// Compact braille sparkline for a slice of values.
 pub fn braille_sparkline(values: &[u64], width: usize) -> String {
     if values.is_empty() || width == 0 {
         return String::new();
     }
-    // Braille block for 0..=8 levels (space + 8 fills).
     const BLOCKS: &[char] = &[' ', '▂', '▃', '▄', '▅', '▆', '▇', '█', '⣿'];
     let max = values.iter().copied().max().unwrap_or(0).max(1);
     let step = (values.len() as f64 / width as f64).max(1.0);
@@ -102,7 +100,6 @@ pub fn braille_sparkline(values: &[u64], width: usize) -> String {
     out
 }
 
-/// One-line min / max / avg summary for sparkline values.
 pub fn sparkline_stats(values: &[u64]) -> Option<String> {
     if values.is_empty() {
         return None;

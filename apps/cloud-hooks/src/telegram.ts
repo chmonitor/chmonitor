@@ -36,7 +36,6 @@ export type NotifyKind =
   // Someone opened Polar checkout for a self-host license (before they pay).
   | 'checkout_started'
 
-/** Minimum milliseconds between two messages of the SAME kind. */
 export const THROTTLE_MS: Record<NotifyKind, number> = {
   // Revenue events are rare and always worth sending — light throttle only to
   // collapse an at-least-once duplicate delivery burst.

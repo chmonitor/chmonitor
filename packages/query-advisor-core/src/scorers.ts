@@ -183,10 +183,8 @@ export function scorePartitionKey(ctx: QueryContext): Recommendation | null {
   }
 }
 
-// ---------------------------------------------------------------------------
 // PREWHERE rewrite — the one "no DDL" recommendation: a read-only text
 // transform the user reviews and runs themselves.
-// ---------------------------------------------------------------------------
 
 /** Pick the best PREWHERE candidate: prefer equality/IN (typically most selective) on a below-average-size column; fall back to any predicate. */
 export function pickPrewhereCandidate(ctx: QueryContext): SqlPredicate | null {
