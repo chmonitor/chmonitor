@@ -80,9 +80,6 @@ pub struct Report {
     pub score: u32,
 }
 
-// ---------------------------------------------------------------------------
-// HTTP + row helpers
-// ---------------------------------------------------------------------------
 
 /// Run a single read-only query against the ClickHouse HTTP interface and
 /// parse the `JSONEachRow` response. Forces `readonly=2` + a query timeout as
@@ -159,11 +156,6 @@ fn row_str(row: &Value, key: &str) -> Option<String> {
     row.get(key).and_then(|v| v.as_str()).map(String::from)
 }
 
-// ---------------------------------------------------------------------------
-// Pure classifiers (thresholds), unit-tested independently of any network
-// call. Mirrors apps/dashboard/src/lib/insights/operational-checks.ts's
-// split between SQL (collectors) and classification (pure functions).
-// ---------------------------------------------------------------------------
 
 fn classify_error_rate(pct: f64) -> Option<Severity> {
     if pct >= 20.0 {
@@ -296,9 +288,6 @@ fn format_duration(seconds: f64) -> String {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Checks — each is one cheap read-only query + a pure classifier.
-// ---------------------------------------------------------------------------
 
 async fn check_error_rate(client: &Client, cfg: &ChConfig) -> Option<Finding> {
     let rows = ch_query(

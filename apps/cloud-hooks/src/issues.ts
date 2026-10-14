@@ -58,14 +58,12 @@ export interface FetchIssuesResult {
   error?: string
 }
 
-/** Normalize GitHub's label union (string | {name}) to plain names. */
 export function labelNames(issue: GitHubIssue): string[] {
   return (issue.labels ?? [])
     .map((l) => (typeof l === 'string' ? l : (l?.name ?? '')))
     .filter(Boolean)
 }
 
-/** List issues updated since `sinceIso`. Never throws. */
 export async function fetchIssuesSince(
   repo: GitHubRepo,
   token: string,
@@ -116,13 +114,11 @@ export async function fetchIssuesSince(
   }
 }
 
-/** Issue counts for a period — the weekly report's Issues section. */
 export interface IssueStats {
   opened: number
   closed: number
 }
 
-/** Run one GitHub issue search and return its `total_count`, or null. */
 async function searchCount(
   query: string,
   token: string,
@@ -192,12 +188,10 @@ export function selectNewIssues(
     .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
 }
 
-/** Escape the HTML-significant characters in Telegram's HTML parse mode. */
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-/** The Telegram message for one new issue. */
 export function formatIssue(issue: GitHubIssue, repo: GitHubRepo): string {
   const labels = labelNames(issue)
   const parts = [
@@ -228,9 +222,7 @@ export interface RunIssueWatchDeps {
 }
 
 export interface IssueWatchResult {
-  /** Issue numbers announced this run. */
   notified: number[]
-  /** True when this run only recorded a starting cursor. */
   seeded: boolean
   /** Set when the per-run cap deferred issues to the next run. */
   deferred?: number

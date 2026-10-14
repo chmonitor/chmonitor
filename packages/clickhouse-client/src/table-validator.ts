@@ -64,27 +64,19 @@ export function parseColumnCheck(
 export function parseTableFromSQL(sql: string): string[] {
   const tables: string[] = []
 
-  // Enhanced regex patterns to match various SQL constructs
   const patterns = [
-    // FROM and JOIN patterns - handles spaces, tabs, newlines
     /(?:FROM|JOIN|LEFT\s+JOIN|RIGHT\s+JOIN|INNER\s+JOIN|OUTER\s+JOIN|FULL\s+JOIN)\s+(\w+\.\w+)/gi,
 
-    // EXISTS patterns - SELECT ... WHERE EXISTS (SELECT ... FROM table)
     /EXISTS\s*\(\s*SELECT\s+[^)]*FROM\s+(\w+\.\w+)/gi,
 
-    // IN patterns with subqueries - WHERE col IN (SELECT ... FROM table)
     /IN\s*\(\s*SELECT\s+[^)]*FROM\s+(\w+\.\w+)/gi,
 
-    // INSERT INTO patterns
     /INSERT\s+INTO\s+(\w+\.\w+)/gi,
 
-    // UPDATE patterns
     /UPDATE\s+(\w+\.\w+)/gi,
 
-    // DELETE FROM patterns
     /DELETE\s+FROM\s+(\w+\.\w+)/gi,
 
-    // CTE (WITH clause) patterns - WITH cte AS (SELECT ... FROM table)
     /WITH\s+\w+\s+AS\s*\(\s*SELECT\s+[^)]*FROM\s+(\w+\.\w+)/gi,
   ]
 
@@ -92,7 +84,6 @@ export function parseTableFromSQL(sql: string): string[] {
     const matches = sql.match(pattern)
     if (matches) {
       matches.forEach((match) => {
-        // Extract table name from the match
         const tableMatch = match.match(/(\w+\.\w+)/)
         if (tableMatch) {
           const table = tableMatch[1]
@@ -128,7 +119,6 @@ export async function validateTableExistence(
   queryConfig: QueryConfigLike,
   hostId: number
 ): Promise<TableValidationResult> {
-  // Force into string[] and add SQL parsing fallback
   // For VersionedSql[], parse tables from all version variants
   const sqlStrings = queryConfig.sql ? getAllSqlStrings(queryConfig.sql) : []
   const parsedTables = sqlStrings.flatMap(parseTableFromSQL)
@@ -142,7 +132,6 @@ export async function validateTableExistence(
     return { shouldProceed: true, missingTables: [] }
   }
 
-  // Check all tables in parallel
   const results = await Promise.all(
     tablesToCheck.map(async (fullName) => {
       const [db, tbl] = fullName.split('.')

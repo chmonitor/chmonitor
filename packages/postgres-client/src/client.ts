@@ -88,12 +88,6 @@ export function assertReadOnlyStatement(sql: string): void {
   }
 }
 
-/**
- * Build (but do not connect) a `pg` client for a Postgres source.
- *
- * Callers own the lifecycle: `await client.connect()` then `client.end()` in a
- * `finally`. Prefer {@link queryPostgres} for the common one-shot read.
- */
 export function createPostgresClient(config: PostgresConnectionConfig): Client {
   return new Client({
     host: config.host,
@@ -109,14 +103,6 @@ export function createPostgresClient(config: PostgresConnectionConfig): Client {
   })
 }
 
-/**
- * Connect, pin the session read-only, run ONE read-only statement, disconnect.
- *
- * @param config  Validated Postgres connection parameters.
- * @param sql     A single read-only statement (see {@link assertReadOnlyStatement}).
- * @param params  Optional bind params; the extended protocol is always used.
- * @returns The result rows plus the field metadata `pg` reports.
- */
 export async function queryPostgres<
   T extends Record<string, unknown> = Record<string, unknown>,
 >(
@@ -166,13 +152,6 @@ export function formatPostgresError(err: unknown): string {
   return code ? `${msg} [${code}]` : msg
 }
 
-/**
- * One-shot connectivity probe: connect and read the server version.
- *
- * Mirrors the ClickHouse `SELECT version()` test path. Returns the version
- * string on success; throws the raw driver error on failure so the caller can
- * classify it (see `lib/connection-errors.ts`).
- */
 export async function getPostgresVersion(
   config: PostgresConnectionConfig
 ): Promise<string> {

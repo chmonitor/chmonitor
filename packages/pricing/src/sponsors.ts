@@ -25,14 +25,10 @@ export type SponsorTierId = (typeof SPONSOR_TIER_IDS)[number]
 
 export interface SponsorTier {
   id: SponsorTierId
-  /** One-off USD amount. */
   amountUsd: number
   label: string
-  /** Earns the logo slot under the homepage hero. */
   hero: boolean
-  /** The recommended tier — rendered as the primary CTA. */
   highlight: boolean
-  /** What the sponsor gets, in one sentence. */
   pitch: string
 }
 
@@ -73,7 +69,6 @@ export const SPONSOR_TIERS: readonly SponsorTier[] = [
   },
 ]
 
-/** The tier the page preselects: the recommended one, not the cheapest. */
 export const DEFAULT_SPONSOR_TIER: SponsorTierId = 'hero'
 
 export function isSponsorTier(value: string): value is SponsorTierId {

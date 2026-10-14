@@ -14,15 +14,11 @@
 
 import type { PostgresConnectionConfig } from './client'
 
-/** A resolved Postgres source: connection params + its id and display name. */
 export interface PostgresSourceConfig extends PostgresConnectionConfig {
-  /** `pgHostId` — flat positional index into the `POSTGRES_*` env lists. */
   id: number
-  /** Operator-supplied display name (`POSTGRES_NAME`), if any. */
   customName?: string
 }
 
-/** Default Postgres TCP port when neither an inline `host:port` nor list gives one. */
 const DEFAULT_PG_PORT = 5432
 
 function splitByComma(value: string | undefined): string[] {
@@ -106,11 +102,6 @@ export function getPostgresConfigs(): PostgresSourceConfig[] {
   })
 }
 
-/**
- * Resolve a single Postgres source by `pgHostId`, throwing a clear error when
- * none are configured or the id is out of range. Centralises the "lookup +
- * validate" step for the agent's Postgres tools.
- */
 export function getAndValidatePostgresConfig(
   pgHostId: number
 ): PostgresSourceConfig {

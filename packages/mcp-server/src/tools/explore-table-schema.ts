@@ -37,7 +37,6 @@ export function registerExploreTableSchemaTool(server: McpServer) {
       annotations: READONLY_ANNOTATIONS,
     },
     async ({ database, table, hostId }) => {
-      // Mode 1: No params — list databases
       if (!database) {
         const result = await runReadonlyFetch({
           query:
@@ -61,7 +60,6 @@ export function registerExploreTableSchemaTool(server: McpServer) {
         })
       }
 
-      // Mode 2: Database only — list tables with details
       if (!table) {
         const result = await runReadonlyFetch({
           query: `SELECT name, engine, partition_key, sorting_key, total_rows, formatReadableSize(total_bytes) AS size FROM system.tables WHERE database = {database:String} AND is_temporary = 0 AND name NOT LIKE '.inner_%' ORDER BY total_bytes DESC`,
@@ -85,7 +83,6 @@ export function registerExploreTableSchemaTool(server: McpServer) {
         })
       }
 
-      // Mode 3: Database + table — full schema with relationships
       const [metadataResult, columnsResult, upstreamResult, downstreamResult] =
         await Promise.all([
           runReadonlyFetch({

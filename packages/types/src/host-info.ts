@@ -1,6 +1,3 @@
-/**
- * Host information for public API responses
- */
 export interface HostInfo {
   readonly id: number
   readonly name: string

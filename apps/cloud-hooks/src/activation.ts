@@ -28,11 +28,8 @@ export interface D1ActivationDb {
 }
 
 export interface ActivationData {
-  /** Connections created in the window. */
   newConnections: number
-  /** Distinct users who created at least one connection in the window. */
   activatedUsers: number
-  /** Signups in the same window, when known (Clerk). */
   signups: number | null
 }
 

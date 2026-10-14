@@ -48,7 +48,6 @@ export class SqlBuilderError extends Error {
  * ```
  */
 export function validateBuilderState(state: BuilderState): void {
-  // Required: FROM clause
   if (!state.from) {
     throw new SqlBuilderError(
       'Cannot build SQL without FROM clause. Call .from() before .build()',
@@ -56,7 +55,6 @@ export function validateBuilderState(state: BuilderState): void {
     )
   }
 
-  // Required: At least one column selected
   if (state.columns.length === 0) {
     throw new SqlBuilderError(
       'Cannot build SQL without columns. Call .select() before .build()',
@@ -64,22 +62,18 @@ export function validateBuilderState(state: BuilderState): void {
     )
   }
 
-  // Validate CTEs
   if (state.ctes.length > 0) {
     validateCtes(state.ctes)
   }
 
-  // Validate JOINs
   if (state.joins.length > 0) {
     validateJoins(state.joins)
   }
 
-  // Validate WHERE conditions
   if (state.wheres.length > 0) {
     validateConditions(state.wheres, 'WHERE')
   }
 
-  // Validate HAVING conditions
   if (state.having.length > 0) {
     if (state.groupBy.length === 0) {
       throw new SqlBuilderError(
@@ -90,7 +84,6 @@ export function validateBuilderState(state: BuilderState): void {
     validateConditions(state.having, 'HAVING')
   }
 
-  // Validate LIMIT and OFFSET
   if (state.limit !== undefined) {
     if (state.limit < 0) {
       throw new SqlBuilderError('LIMIT must be a non-negative number', {
@@ -121,7 +114,6 @@ export function validateBuilderState(state: BuilderState): void {
     }
   }
 
-  // Validate UNION queries
   if (state.unions.length > 0) {
     for (const union of state.unions) {
       if (!union.query || !union.query.state) {
@@ -136,14 +128,10 @@ export function validateBuilderState(state: BuilderState): void {
   }
 }
 
-/**
- * Validates CTE (Common Table Expression) definitions
- */
 function validateCtes(ctes: BuilderState['ctes']): void {
   const names = new Set<string>()
 
   for (const cte of ctes) {
-    // Check for duplicate CTE names
     if (names.has(cte.name)) {
       throw new SqlBuilderError(`Duplicate CTE name: ${cte.name}`, {
         state: 'duplicate_cte',
@@ -152,7 +140,6 @@ function validateCtes(ctes: BuilderState['ctes']): void {
     }
     names.add(cte.name)
 
-    // Validate CTE name format (alphanumeric + underscore)
     if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(cte.name)) {
       throw new SqlBuilderError(
         `Invalid CTE name: ${cte.name}. Must start with letter/underscore and contain only alphanumeric characters and underscores`,
@@ -163,7 +150,6 @@ function validateCtes(ctes: BuilderState['ctes']): void {
       )
     }
 
-    // Validate CTE query exists
     if (!cte.query || !cte.query.state) {
       throw new SqlBuilderError(`CTE ${cte.name} has no query defined`, {
         state: 'invalid_cte_query',
@@ -173,14 +159,10 @@ function validateCtes(ctes: BuilderState['ctes']): void {
   }
 }
 
-/**
- * Validates JOIN clauses
- */
 function validateJoins(joins: SqlJoin[]): void {
   const aliases = new Set<string>()
 
   for (const join of joins) {
-    // Check for duplicate join aliases
     if (join.alias) {
       if (aliases.has(join.alias)) {
         throw new SqlBuilderError(`Duplicate JOIN alias: ${join.alias}`, {
@@ -204,7 +186,6 @@ function validateJoins(joins: SqlJoin[]): void {
         )
       }
 
-      // Cannot have both condition and USING
       if (join.condition && join.using && join.using.length > 0) {
         throw new SqlBuilderError(
           `JOIN cannot have both ON and USING clauses`,
@@ -216,7 +197,6 @@ function validateJoins(joins: SqlJoin[]): void {
       }
     }
 
-    // Validate table
     if (typeof join.table === 'string') {
       if (join.table.trim() === '') {
         throw new SqlBuilderError('JOIN table name cannot be empty', {
@@ -227,16 +207,12 @@ function validateJoins(joins: SqlJoin[]): void {
   }
 }
 
-/**
- * Validates WHERE or HAVING conditions
- */
 function validateConditions(
   conditions: (SqlCondition | WhereGroup)[],
   clauseName: 'WHERE' | 'HAVING'
 ): void {
   for (const condition of conditions) {
     if ('conditions' in condition) {
-      // Recursive validation for groups
       if (condition.conditions.length === 0) {
         throw new SqlBuilderError(
           `${clauseName} group cannot be empty. Groups must contain at least one condition`,
@@ -259,7 +235,6 @@ function validateConditions(
         continue
       }
 
-      // Validate individual condition
       if (!condition.column || condition.column.trim() === '') {
         throw new SqlBuilderError(
           `${clauseName} condition must have a column name`,
@@ -281,7 +256,6 @@ function validateConditions(
         )
       }
 
-      // Validate operator
       const validOperators = [
         '=',
         '!=',
@@ -315,7 +289,6 @@ function validateConditions(
         )
       }
 
-      // Validate value for specific operators
       if (
         (operator === 'IS' || operator === 'IS NOT') &&
         condition.value !== null

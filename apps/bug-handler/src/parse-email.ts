@@ -22,25 +22,16 @@ export interface SentryMeta {
 }
 
 export interface ParsedEmail {
-  /** Sender address, e.g. "alerts@sentry.io" */
   from: string
-  /** Sender display name when present */
   fromName?: string
-  /** All recipient addresses */
   to: string[]
-  /** Email subject (empty string when absent) */
   subject: string
-  /** Plain-text body (preferred for parsing; may be empty) */
   text: string
-  /** HTML body when present */
   html?: string
-  /** Sentry-specific metadata extracted from subject + body */
   sentry?: SentryMeta
 }
 
-// ─── Sentry extraction helpers ───────────────────────────────────────────────
 
-/** Match the first https://*.sentry.io/issues/… link */
 const RE_SENTRY_URL = /https:\/\/[a-z0-9-]+\.sentry\.io\/issues\/[^\s"')>]*/i
 
 /**
@@ -54,10 +45,8 @@ const LEVEL_SUBJECT_RE = /\b(fatal|error|warning|info)\b/i
 // Matches "Level: error", "level:fatal", etc.
 const LEVEL_LABEL_RE = /\blevel[:\s]+(fatal|error|warning|info)\b/i
 
-/** "Project: my-project" or "Project Name: my-project" */
 const RE_PROJECT = /\bproject(?:\s+name)?[:\s]+([^\s,\n|]+)/i
 
-/** "Environment: production" */
 const RE_ENV = /\benvironment[:\s]+([^\s,\n|]+)/i
 
 /**
@@ -140,7 +129,6 @@ export function extractSentryMeta(
   }
 }
 
-// ─── Main parser ─────────────────────────────────────────────────────────────
 
 /**
  * Parse a raw email (ReadableStream, ArrayBuffer, or string) into a structured

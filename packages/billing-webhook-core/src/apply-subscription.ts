@@ -39,7 +39,6 @@ export interface PolarSubscriptionData {
 
 /** Collaborators injected by each Worker. All async ones are best-effort. */
 export interface ApplySubscriptionDeps {
-  /** Env-driven reverse map: Polar product id → our plan + period, or null. */
   planForProductId(
     productId: string
   ): { planId: PlanId; period: BillingPeriod } | null
@@ -49,11 +48,8 @@ export interface ApplySubscriptionDeps {
    * owner so billing is never lost). Idempotent.
    */
   ensureOrgForUser(userId: string): Promise<string | null>
-  /** Re-key the Polar customer's externalId from userId to the new orgId. */
   rekeyCustomerToOrg(customerId: string, orgId: string): Promise<void>
-  /** Persist the row (the caller wraps its own retry / non-fatal semantics). */
   upsertSubscription(input: UpsertSubscriptionInput): Promise<void>
-  /** Clear a negative-cache entry so the next entitlement read reaches Polar. */
   invalidateNegativeCache(id: string): void
   /**
    * A brand-new PAID subscription just went live (`subscription.created`).
@@ -64,7 +60,6 @@ export interface ApplySubscriptionDeps {
     period: BillingPeriod
     distinctId?: string
   }): Promise<void>
-  /** Best-effort org-scoped audit trail for a subscription change. */
   logBillingAudit(info: {
     orgId: string
     planId: string
@@ -125,7 +120,6 @@ export async function applySubscription(
   const isLive = new Set(['active', 'trialing']).has(data.status)
   const isPaidLive = isLive && mapped.planId !== 'free'
 
-  // Determine billing owner: org or user.
   let ownerId = externalId
   let ownerType: OwnerType = 'user'
 

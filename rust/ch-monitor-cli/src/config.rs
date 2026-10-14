@@ -100,7 +100,6 @@ pub fn load_layered_files(
         return Ok((cfg, path));
     }
 
-    // Layer: project over user (project wins when both set the same key).
     // Local connections stay on the user file only.
     let mut merged = FileConfig::default();
     if let Some(user) = load_toml_file(&user_path)? {

@@ -17,7 +17,6 @@
  * then a PAT, else disabled.
  */
 
-/** Minimal KV subset (matches probes' `KVLike`). */
 export interface KVLike {
   get(key: string): Promise<string | null>
   put(key: string, value: string): Promise<void>
@@ -33,7 +32,6 @@ export const TOKEN_EXPIRY_MARGIN_MS = 5 * 60_000
 const DEFAULT_API_BASE = 'https://api.github.com'
 const UA = 'chmonitor-hooks'
 
-// ── base64 / base64url helpers ──────────────────────────────────────────────
 
 function base64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64)
@@ -52,7 +50,6 @@ function stringToBase64Url(input: string): string {
   return bytesToBase64Url(new TextEncoder().encode(input))
 }
 
-// ── private key handling ────────────────────────────────────────────────────
 
 /**
  * Normalize a PEM private-key secret into raw PKCS#8 DER bytes.
@@ -100,18 +97,15 @@ async function importSigningKey(pem: string): Promise<CryptoKey> {
   )
 }
 
-// ── app JWT ─────────────────────────────────────────────────────────────────
 
 export interface JwtClaims {
   /** issued-at, backdated 60s to tolerate minor clock skew (GitHub guidance). */
   iat: number
   /** expiry, +9 min (GitHub rejects app JWTs with >10 min lifetime). */
   exp: number
-  /** the GitHub App id. */
   iss: string
 }
 
-/** Build the RS256 JWT claim set for a GitHub App (pure — unit-tested). */
 export function buildJwtClaims(appId: string, nowMs: number): JwtClaims {
   const nowSec = Math.floor(nowMs / 1000)
   return {
@@ -121,7 +115,6 @@ export function buildJwtClaims(appId: string, nowMs: number): JwtClaims {
   }
 }
 
-/** Mint a signed RS256 app JWT via WebCrypto. */
 export async function createAppJwt(
   appId: string,
   privateKeyPem: string,
@@ -142,7 +135,6 @@ export async function createAppJwt(
   return `${signingInput}.${bytesToBase64Url(new Uint8Array(signature))}`
 }
 
-// ── installation id + token ─────────────────────────────────────────────────
 
 export interface GitHubAppConfig {
   appId: string
@@ -214,7 +206,6 @@ export async function resolveInstallationId(
   return id
 }
 
-/** Mint a fresh installation access token from the app JWT + installation id. */
 export async function mintInstallationToken(
   installationId: string,
   jwt: string,
@@ -249,7 +240,6 @@ export async function mintInstallationToken(
   }
 }
 
-/** True when a cached token is still safely within its validity margin. */
 export function isTokenFresh(cached: CachedToken, nowMs: number): boolean {
   return nowMs < cached.expiresAt - TOKEN_EXPIRY_MARGIN_MS
 }
@@ -356,15 +346,12 @@ export async function withTokenRefresh<T extends { status: number }>(
   return op(refreshed)
 }
 
-// ── auth resolution ─────────────────────────────────────────────────────────
 
 export type GitHubAuthMode = 'app' | 'pat' | 'disabled'
 
 export interface ResolvedGitHubAuth {
   mode: GitHubAuthMode
-  /** Present for `app` mode — mints/caches installation tokens. */
   app?: GitHubAppAuth
-  /** Present for `pat` mode — the static PAT. */
   token?: string
 }
 

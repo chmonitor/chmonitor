@@ -25,24 +25,18 @@ const DEFAULT_VERIFY_TIMEOUT_MS = 5000
 
 export interface ClerkOAuthResult {
   valid: boolean
-  /** Clerk user id the token was issued for (when valid). */
   subject?: string
-  /** OAuth scopes granted to the token (when valid). */
   scopes?: string[]
   reason?: string
 }
 
-/** True when Clerk OAuth verification is configured (secret key present). */
 export function clerkOAuthEnabled(): boolean {
   return Boolean(process.env.CLERK_SECRET_KEY)
 }
 
 interface VerifyOptions {
-  /** Override the secret key (defaults to CLERK_SECRET_KEY). */
   secretKey?: string
-  /** Override the Clerk API base (defaults to CLERK_API_URL or api.clerk.com). */
   apiUrl?: string
-  /** Verify-request timeout in ms (defaults to DEFAULT_VERIFY_TIMEOUT_MS). */
   timeoutMs?: number
 }
 

@@ -18,7 +18,6 @@
  * ```
  */
 export const fn = {
-  // ==================== Formatting ====================
 
   /**
    * Format bytes as human-readable size
@@ -68,7 +67,6 @@ export const fn = {
     return `formatReadableTimeDelta(${column})`
   },
 
-  // ==================== Aggregates ====================
 
   /**
    * Sum aggregate function
@@ -153,7 +151,6 @@ export const fn = {
     return `min(${column})`
   },
 
-  // ==================== Window Functions ====================
 
   /**
    * Calculate percentage of max value using window function
@@ -175,7 +172,6 @@ export const fn = {
     return `round(100 * ${column} / max(${column}) OVER (), ${precision})`
   },
 
-  // ==================== ClickHouse Specific ====================
 
   /**
    * Access ProfileEvents array element
@@ -193,7 +189,6 @@ export const fn = {
     return `ProfileEvents['${name}']`
   },
 
-  // ==================== Date/Time ====================
 
   /**
    * Convert to Date type

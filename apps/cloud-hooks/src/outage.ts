@@ -51,13 +51,9 @@ const HOUR = 60 * MINUTE
  */
 export const ESCALATION_STEPS_MS = [30 * MINUTE, 2 * HOUR, 6 * HOUR, 24 * HOUR]
 
-/** Per-surface outage record. */
 export interface OutageRecord {
-  /** Epoch ms when the surface was first observed down. */
   downSince: number
-  /** Epoch ms of the most recent alert (initial or reminder). */
   lastAlertAt: number
-  /** How many reminders (excluding the initial alert) have been sent. */
   reminders: number
 }
 
@@ -66,13 +62,11 @@ export type OutageState = Record<string, OutageRecord>
 export interface OutageAlert {
   name: string
   kind: 'ongoing' | 'recovered'
-  /** How long the surface has been (or was) down, in ms. */
   downtimeMs: number
   status?: number
   error?: string
 }
 
-/** Human-readable duration: "45m", "2h 15m", "1d 3h". */
 export function formatDuration(ms: number): string {
   const totalMinutes = Math.max(0, Math.floor(ms / MINUTE))
   const days = Math.floor(totalMinutes / (24 * 60))

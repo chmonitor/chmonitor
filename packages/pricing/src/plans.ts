@@ -57,11 +57,8 @@ export type PlanCapability =
 export interface Plan {
   id: PlanId
   name: string
-  /** One-line positioning shown under the plan name. */
   tagline: string
-  /** USD/month on monthly billing. null = custom (Enterprise) or free. */
   priceMonthlyUsd: number | null
-  /** USD/year on annual billing (10× monthly ⇒ ~2 months free). null = custom/free. */
   priceYearlyUsd: number | null
   seats: number | null // null = custom/unlimited
   hosts: number | null // null = custom/unlimited; the INCLUDED allowance
@@ -73,7 +70,6 @@ export interface Plan {
    * instead of hard-blocking — the GA land-and-expand lever.
    */
   hostOverage: { usdPer: number } | null
-  /** Monthly LLM spend allowance in USD. null = BYOK / unlimited (Enterprise). */
   aiMonthlyUsdBudget: number | null
   /**
    * AI agent messages included per day — the headline AI meter on every tier.
@@ -89,14 +85,10 @@ export interface Plan {
    * published policy that the soft daily cap and pricing copy reflect.
    */
   aiOverage: { usdPer: number; messages: number } | null
-  /** Max number of saved alert rules. 0 = none, null = unlimited (Enterprise). */
   alertRules: number | null
-  /** History retention for conversations / insights. null = custom. */
   retentionDays: number | null
   capabilities: PlanCapability[]
-  /** Human-facing bullet list for the pricing card. */
   highlights: string[]
-  /** null until Polar products exist (M3). */
   polarProductId?: { monthly: string; yearly: string } | null
 }
 
@@ -277,7 +269,6 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
   },
 }
 
-/** Ordered list for rendering (free → enterprise). */
 export const BILLING_PLAN_LIST: Plan[] = PLAN_IDS.map((id) => BILLING_PLANS[id])
 
 /**
@@ -303,7 +294,6 @@ export function getPlan(id: PlanId): Plan {
   return BILLING_PLANS[id]
 }
 
-/** Whether a plan grants a capability. Inert for OSS (callers gate on billing). */
 export function planHasCapability(id: PlanId, cap: PlanCapability): boolean {
   return BILLING_PLANS[id].capabilities.includes(cap)
 }
@@ -321,7 +311,6 @@ export function monthlyEquivalentUsd(
   return Math.round((plan.priceYearlyUsd / 12) * 100) / 100
 }
 
-/** Months-free saved on yearly vs monthly (for the "save N months" badge). */
 export function yearlyMonthsFree(plan: Plan): number | null {
   if (!plan.priceMonthlyUsd || !plan.priceYearlyUsd) return null
   const monthsPaid = plan.priceYearlyUsd / plan.priceMonthlyUsd

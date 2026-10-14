@@ -18,9 +18,6 @@ import type {
   TableSchema,
 } from './types'
 
-// ---------------------------------------------------------------------------
-// Predicate / clause extraction
-// ---------------------------------------------------------------------------
 
 const RANGE_OPERATORS = new Set(['<', '>', '<=', '>=', 'BETWEEN'])
 const EQUALITY_OPERATORS = new Set(['=', 'IN'])
@@ -171,9 +168,6 @@ export function parseExplainIndexes(
   return { primaryKey, skipIndexes }
 }
 
-// ---------------------------------------------------------------------------
-// Identifier / table-reference utilities
-// ---------------------------------------------------------------------------
 
 const TABLE_REFERENCE_PATTERN =
   /\b(?:FROM|JOIN)\s+((?:`[^`]+`|"[^"]+"|[a-zA-Z_][\w$]*)(?:\s*\.\s*(?:`[^`]+`|"[^"]+"|[a-zA-Z_][\w$]*))?)/gi
@@ -204,11 +198,9 @@ export function extractReferencedTables(
 ): ReferencedTable[] {
   const tables = new Map<string, ReferencedTable>()
 
-  // Extract CTE names to filter them out later (they're aliases, not real tables)
   const cteNames = new Set<string>()
   const cteMatch = sql.match(/WITH\s+(.+?)\s+AS\s*\(/i)
   if (cteMatch) {
-    // Parse CTE definitions: "cte1 AS (...), cte2 AS (...)"
     const cteDefs = cteMatch[1].split(/\),\s*/)
     for (const cteDef of cteDefs) {
       const name = cteDef.trim().split(/\s+/)[0]
@@ -227,7 +219,6 @@ export function extractReferencedTables(
     const table = parts.length > 1 ? parts[1] : parts[0]
     if (!database || !table) continue
 
-    // Skip if this is a CTE alias (not a real table)
     if (cteNames.has(table)) continue
 
     const qualifiedName = `${database}.${table}`
@@ -247,9 +238,6 @@ export function formatQualifiedTable(database: string, table: string): string {
   return `${quoteIdentifier(database)}.${quoteIdentifier(table)}`
 }
 
-// ---------------------------------------------------------------------------
-// WHERE-clause splitting (used by the PREWHERE rewriter)
-// ---------------------------------------------------------------------------
 
 const CLAUSE_STOP_WORDS =
   'GROUP BY|ORDER BY|LIMIT|HAVING|SETTINGS|FORMAT|WITH|UNION'
@@ -309,9 +297,6 @@ export function findWhereSpan(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Context assembly
-// ---------------------------------------------------------------------------
 
 export interface BuildQueryContextInput {
   sql: string

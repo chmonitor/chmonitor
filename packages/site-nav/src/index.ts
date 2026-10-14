@@ -29,11 +29,8 @@ export type FeatureIconKey =
 
 export interface NavItem {
   label: string
-  /** Site-relative path ('/…') or absolute URL for off-site destinations. */
   href: string
-  /** One-line blurb shown under the label in dropdown menus. */
   description?: string
-  /** Short pill rendered next to the label (e.g. 'Beta'). */
   badge?: string
 }
 
@@ -59,7 +56,6 @@ export const NAV_CTAS = {
   },
 } as const
 
-/** "Features" mega-menu, in render order. */
 export const FEATURE_MENU: FeatureNavItem[] = [
   {
     label: 'AI Agent',
@@ -137,14 +133,12 @@ export const FEATURE_MENU: FeatureNavItem[] = [
   },
 ]
 
-/** Top-level links between the two dropdowns. */
 export const TOP_LEVEL_LINKS: NavItem[] = [
   { label: 'Customers', href: '/customers' },
   { label: 'License', href: '/license' },
   { label: 'Docs', href: 'https://docs.chmonitor.dev' },
 ]
 
-/** "Resources" dropdown. */
 export const RESOURCE_MENU: NavItem[] = [
   {
     label: 'Blog',
@@ -176,7 +170,6 @@ export const RESOURCE_DRAWER_ITEMS = RESOURCE_MENU.filter(
 
 export const isExternalHref = (href: string): boolean => !href.startsWith('/')
 
-/** Resolve an item href for a consumer on `origin` ('' for same-site). */
 export function navHref(item: NavItem, origin = ''): string {
   return isExternalHref(item.href) ? item.href : `${origin}${item.href}`
 }
@@ -205,7 +198,6 @@ function badgeHtml(item: NavItem): string {
     : ''
 }
 
-/** Menu anchor: label (+ optional badge) with the description `<small>`. */
 function menuAnchor(item: NavItem, origin: string): string {
   const label = item.badge
     ? `<span class="nav-item-label">${escapeHtml(item.label)}${badgeHtml(item)}</span>`

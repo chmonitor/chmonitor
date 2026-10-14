@@ -50,7 +50,6 @@ export interface SponsorCheckoutDeps {
   fetchImpl?: typeof fetch
 }
 
-/** The sponsor's own details, forwarded to Polar. Length-capped only. */
 export interface SponsorDetails {
   name?: string
   website?: string

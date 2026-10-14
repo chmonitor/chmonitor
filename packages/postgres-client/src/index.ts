@@ -44,16 +44,13 @@ export {
  * from ClickHouse's `hostId` — never reuse a ClickHouse `hostId` here.
  */
 export type PostgresConfig = {
-  /** `pgHostId` — flat positional index in the Postgres id space (see below). */
   id: number
   host: string
   port: number
   user: string
   password: string
   database: string
-  /** libpq `sslmode` (e.g. `require`, `verify-full`); omitted = driver default. */
   sslmode?: string
-  /** Operator-supplied display name, mirrors `ClickHouseConfig.customName`. */
   customName?: string
 }
 

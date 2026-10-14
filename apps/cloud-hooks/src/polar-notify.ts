@@ -69,7 +69,6 @@ export function classifyTransition(input: ClassifyInput): Transition {
     return { case: 'past_due', kind: 'payment_failure', icon: '\u{1F4B3}' } // 💳
   }
 
-  // Live/active-ish event.
   if (priorPlanId === null) {
     return newPlanId === 'free'
       ? { case: 'free_signup', kind: 'subscription', icon: '\u{1F331}' } // 🌱
@@ -111,7 +110,6 @@ function planName(planId: PlanId): string {
   return BILLING_PLANS[planId]?.name ?? planId
 }
 
-/** Monthly value string, e.g. "$29/mo" or "$24.17/mo (billed yearly)". */
 function valueLine(planId: PlanId, period: Period): string {
   const plan = BILLING_PLANS[planId]
   if (!plan) return ''
@@ -155,7 +153,6 @@ export interface CheckoutStartedInput {
   checkoutUrl?: string
 }
 
-/** Telegram HTML for a Polar license checkout that just opened (not paid yet). */
 export function formatCheckoutStarted(input: CheckoutStartedInput): string {
   const lines = [
     '\u{1F6D2} <b>License checkout started</b>',

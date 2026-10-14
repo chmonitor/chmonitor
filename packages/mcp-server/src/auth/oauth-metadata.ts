@@ -17,11 +17,9 @@ import { clerkOAuthEnabled } from './clerk-oauth'
 /** The protected resource is the MCP endpoint, not the bare origin (RFC 9728). */
 export const MCP_ENDPOINT_PATH = '/api/mcp'
 
-/** Path MCP clients fetch for resource metadata (RFC 9728). */
 export const PROTECTED_RESOURCE_METADATA_PATH =
   '/.well-known/oauth-protected-resource'
 
-/** Default OAuth scopes the MCP server requests from Clerk. */
 export const MCP_OAUTH_SCOPES = ['email', 'profile'] as const
 
 /**
@@ -67,10 +65,6 @@ export interface ProtectedResourceMetadata {
   bearer_methods_supported: string[]
 }
 
-/**
- * Build the protected-resource metadata for the given resource identifier.
- * Returns null unless Clerk OAuth is fully discoverable (verifier + issuer).
- */
 export function buildProtectedResourceMetadata(
   resource: string,
   scopes: readonly string[] = MCP_OAUTH_SCOPES
@@ -86,10 +80,6 @@ export function buildProtectedResourceMetadata(
   }
 }
 
-/**
- * WWW-Authenticate header value that points an unauthenticated MCP client at the
- * resource metadata, kicking off OAuth discovery (RFC 9728 §5.1).
- */
 export function wwwAuthenticateHeader(resourceMetadataUrl: string): string {
   return `Bearer resource_metadata="${resourceMetadataUrl}"`
 }

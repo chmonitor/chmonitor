@@ -287,10 +287,8 @@ export const MCP_TOOLS: McpTool[] = [
     exampleResponse: `// Mode 1: No params
 [{ "name": "default", "engine": "Atomic", "comment": "" }]
 
-// Mode 2: Database only
 [{ "name": "events", "engine": "MergeTree", "partition_key": "toYYYYMM(event_time)", "sorting_key": "(user_id, event_time)", "total_rows": 1234567 }]
 
-// Mode 3: Database + table
 {
   "table": { "database": "analytics", "name": "events", "engine": "MergeTree", "partition_key": "toYYYYMM(event_time)", "sorting_key": "(user_id, event_time)", "primary_key": "(user_id, event_time)", "total_rows": 1234567 },
   "columns": [
@@ -423,9 +421,6 @@ export const EXAMPLE_PROMPTS = [
   },
 ]
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
 
 export interface McpToolCategoryInfo {
   readonly name: string
@@ -453,16 +448,10 @@ export const MCP_TOOL_CATEGORIES: Readonly<
   },
 }
 
-/**
- * Get tool metadata by name
- */
 export function getToolMetadata(name: string): McpTool | undefined {
   return MCP_TOOLS.find((tool) => tool.name === name)
 }
 
-/**
- * Get tools by category
- */
 export function getToolsByCategory(category: McpToolCategory): McpTool[] {
   return MCP_TOOLS.filter((tool) => tool.category === category)
 }

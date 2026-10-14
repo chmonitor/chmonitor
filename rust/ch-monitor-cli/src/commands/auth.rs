@@ -352,7 +352,6 @@ async fn device_login(client: &Client, cfg: &AppConfig) -> Result<i32> {
                 pb.finish_and_clear();
                 credentials::store_token(&token)?;
                 success("signed in — token stored in keyring");
-                // Best-effort identity check.
                 let me_url = format!("{base}/api/v1/auth/me");
                 let token_ref = Some(token.as_str());
                 if let Ok(me) = apply_auth(client.get(&me_url), token_ref, None)
@@ -394,7 +393,6 @@ async fn device_login(client: &Client, cfg: &AppConfig) -> Result<i32> {
     }
 }
 
-/// Re-export discovery for `chm doctor`.
 pub async fn discover_for_doctor(client: &Client, cfg: &AppConfig) -> Result<CliAuthDiscovery> {
     discover(client, cfg).await
 }

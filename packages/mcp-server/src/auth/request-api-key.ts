@@ -18,7 +18,6 @@ export function getRequestApiKeyCandidates(request: Request): {
   }
 }
 
-/** Ordered unique candidates to try against `verifyApiKey` (x-api-key first). */
 export function apiKeyCandidates(request: Request): string[] {
   const { bearer, apiKeyHeader } = getRequestApiKeyCandidates(request)
   const out: string[] = []

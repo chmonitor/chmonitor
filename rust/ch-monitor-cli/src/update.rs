@@ -172,13 +172,11 @@ async fn fetch_releases(client: &Client, max_pages: u32) -> Result<Vec<Release>>
     Ok(all)
 }
 
-/// Fetch the newest published `chm-v*` release tag.
 #[allow(dead_code)]
 async fn latest_tag(client: &Client) -> Result<String> {
     latest_tag_for_channel(client, Channel::Stable).await
 }
 
-/// Fetch the newest `chm-v*` release tag for a channel.
 pub async fn latest_tag_for_channel(client: &Client, channel: Channel) -> Result<String> {
     let releases = fetch_releases(client, RELEASES_MAX_PAGES).await?;
     newest_chm_tag_for_channel(&releases, channel).ok_or_else(|| {
@@ -208,7 +206,6 @@ pub async fn check(client: &Client) -> Result<bool> {
     check_channel(client, Channel::Stable).await
 }
 
-/// Channel-aware update check.
 pub async fn check_channel(client: &Client, channel: Channel) -> Result<bool> {
     let current = current_version();
     let latest_tag = latest_tag_for_channel(client, channel).await?;
@@ -273,7 +270,6 @@ pub fn is_brew_managed() -> bool {
         || path.contains("\\homebrew\\")
 }
 
-/// Channel-aware self-update.
 pub async fn run_channel(client: &Client, pinned: Option<String>, channel: Channel) -> Result<()> {
     if is_brew_managed() {
         return Err(anyhow!(

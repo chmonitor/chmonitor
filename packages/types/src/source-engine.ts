@@ -17,17 +17,14 @@
  */
 export type SourceEngine = 'clickhouse' | 'clickhouse-cloud' | 'postgres'
 
-/** All valid engines, in display order. */
 export const SOURCE_ENGINES: readonly SourceEngine[] = [
   'clickhouse',
   'clickhouse-cloud',
   'postgres',
 ] as const
 
-/** The fail-closed default engine for legacy rows and non-Postgres hosts. */
 export const DEFAULT_SOURCE_ENGINE: SourceEngine = 'clickhouse'
 
-/** Runtime guard: is `value` one of the known engines? */
 export function isSourceEngine(value: unknown): value is SourceEngine {
   return (
     typeof value === 'string' &&

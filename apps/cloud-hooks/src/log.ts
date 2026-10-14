@@ -16,7 +16,6 @@ function emitInfo(msg: string, meta?: LogMeta): void {
   console.log(entry)
 }
 
-/** Operational info (always emitted — production worker triage). */
 export function logInfo(msg: string, meta?: LogMeta): void {
   emitInfo(msg, meta)
 }

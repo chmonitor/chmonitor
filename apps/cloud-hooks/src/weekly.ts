@@ -30,7 +30,6 @@ import { usageLines } from './usage'
 const DAY = 24 * 60 * 60
 export const WEEK = 7 * DAY
 
-/** A count this period alongside the same count last period. */
 export interface Trend {
   current: number
   previous: number
@@ -54,7 +53,6 @@ export interface WeeklyExtras {
   issues?: IssueStats | null
 }
 
-/** Start of the UTC day containing `now` (unix seconds), as unix seconds. */
 export function startOfUtcDay(now: number): number {
   return Math.floor(now / DAY) * DAY
 }
@@ -91,7 +89,6 @@ export function formatTrend(trend: Trend): string {
   return `${trend.current} (${arrow} ${sign}${delta} vs ${trend.previous})`
 }
 
-/** Count rows in a half-open window on one timestamp column. */
 async function countBetween(
   db: D1SummaryDb,
   sql: string,
@@ -107,7 +104,6 @@ const NEW_SUBS_SQL = `SELECT COUNT(*) AS n FROM user_subscriptions
 const CANCELS_SQL = `SELECT COUNT(*) AS n FROM user_subscriptions
    WHERE status IN ('canceled','revoked') AND updated_at >= ?1 AND updated_at < ?2`
 
-/** Query D1 for the weekly report. `now` is unix seconds (injectable). */
 export async function collectWeekly(
   db: D1SummaryDb,
   now: number = Math.floor(Date.now() / 1000)

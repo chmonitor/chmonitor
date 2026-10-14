@@ -142,7 +142,6 @@ export function apiKeyAuthEnabled() {
   return Boolean(getSecret())
 }
 
-/** Whether a verified key grants `scope` (missing scopes = all). */
 export function apiKeyHasScope(
   result: ApiKeyVerificationResult,
   scope: ApiKeyScope
