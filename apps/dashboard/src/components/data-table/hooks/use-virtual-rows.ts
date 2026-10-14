@@ -4,26 +4,6 @@ import { type RefObject, useRef } from 'react'
 
 const DEFAULT_VIRTUALIZE_THRESHOLD = 250
 
-/**
- * Hook for virtualizing table rows to improve performance with large datasets.
- * Automatically enables when row count exceeds threshold.
- *
- * @param rowCount - Total number of rows to virtualize
- * @param options - Virtualizer configuration options
- * @returns Virtual row configuration and ref
- *
- * @example
- * ```tsx
- * const { virtualizer, tableContainerRef } = useVirtualRows(rows.length)
- *
- * // Get virtual items to render:
- * const virtualRows = virtualizer.getVirtualItems()
- * virtualRows.map((virtualRow) => {
- *   const row = rows[virtualRow.index]
- *   // render row with: style={{ height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }}
- * })
- * ```
- */
 export interface UseVirtualRowsOptions {
   /** Estimated row height in pixels (default: 40) */
   estimateSize?: number

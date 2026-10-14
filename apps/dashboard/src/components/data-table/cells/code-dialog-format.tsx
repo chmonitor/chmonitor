@@ -175,7 +175,6 @@ async function explainFetcher(
   return json
 }
 
-/** Centered status / message panel used inside the Query Plan tab. */
 function PlanMessage({
   children,
   tone = 'muted',
@@ -368,7 +367,6 @@ export const CodeDialogFormat = memo(function CodeDialogFormat({
   const highlightedHtml = useMemo(() => {
     if (!(open && content)) return ''
     try {
-      // Line numbers make multi-statement SQL far easier to scan.
       return highlightCode(content, language, language === 'sql')
     } catch {
       return `<pre class="m-0 bg-background! p-4 text-foreground! text-sm"><code class="font-mono text-sm">${escapeHtml(dedent(content))}</code></pre>`

@@ -7,15 +7,6 @@ import { DataTablePagination } from '@/components/data-table/pagination'
 import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/format-number'
 
-/**
- * Props for the DataTableFooter component
- *
- * @template TData - The row data type (extends RowData from TanStack Table)
- *
- * @param table - TanStack Table instance
- * @param footnote - Custom footnote content (string or React node)
- * @param compact - Compact mode with minimal pagination
- */
 export interface DataTableFooterProps<TData extends RowData> {
   /** TanStack Table instance */
   table: Table<TData>
@@ -25,22 +16,6 @@ export interface DataTableFooterProps<TData extends RowData> {
   compact?: boolean
 }
 
-/**
- * DataTableFooter - Footer with pagination and footnote
- *
- * Handles:
- * - Pagination controls (previous, next, page size selector)
- * - Footnote display (row count, selection status, or custom content)
- * - Responsive layout with footnote on left, pagination on right
- *
- * Features:
- * - Hides pagination when all rows fit on one page
- * - Shows row selection count in default footnote
- * - Supports custom footnote content via props
- * - Compact mode shows minimal row count and prev/next buttons
- *
- * Performance: Memoized to prevent unnecessary re-renders
- */
 export const DataTableFooter = memo(function DataTableFooter<
   TData extends RowData,
 >({ table, footnote, compact = false }: DataTableFooterProps<TData>) {

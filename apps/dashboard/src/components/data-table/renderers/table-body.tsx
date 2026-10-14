@@ -47,9 +47,6 @@ function getCellWidth<TData extends RowData>(cell: Cell<TData, unknown>) {
   )
 }
 
-/**
- * Virtual row item from @tanstack/react-virtual
- */
 export interface VirtualItem {
   end: number
   index: number
@@ -57,9 +54,6 @@ export interface VirtualItem {
   start: number
 }
 
-/**
- * Props for VirtualizedTableRow component
- */
 export interface VirtualizedTableRowProps<TData extends RowData> {
   row: Row<TData>
   virtualRow: VirtualItem
@@ -73,17 +67,6 @@ export interface VirtualizedTableRowProps<TData extends RowData> {
   onRowClick?: (row: TData) => void
 }
 
-/**
- * VirtualizedTableRow - Renders a single table row with virtualization styling
- *
- * Handles:
- * - Absolute positioning for virtual scrolling
- * - Dynamic height based on virtual row size
- * - Zebra striping with odd rows
- * - Hover effects
- *
- * Performance: Optimized for large datasets, memoized to prevent re-renders
- */
 export const VirtualizedTableRow = memo(function VirtualizedTableRow<
   TData extends RowData,
 >({
@@ -148,9 +131,6 @@ export const VirtualizedTableRow = memo(function VirtualizedTableRow<
   props: VirtualizedTableRowProps<TData>
 ) => React.JSX.Element
 
-/**
- * Props for StandardTableRow component
- */
 export interface StandardTableRowProps<TData extends RowData> {
   row: Row<TData>
   index: number
@@ -164,17 +144,6 @@ export interface StandardTableRowProps<TData extends RowData> {
   onRowClick?: (row: TData) => void
 }
 
-/**
- * StandardTableRow - Renders a single table row without virtualization
- *
- * Handles:
- * - Standard row rendering with flexRender
- * - Zebra striping with odd rows
- * - Hover effects
- * - Selection state
- *
- * Performance: Suitable for small to medium datasets (< 1000 rows), memoized to prevent re-renders
- */
 export const StandardTableRow = memo(function StandardTableRow<
   TData extends RowData,
 >({
@@ -235,17 +204,11 @@ export const StandardTableRow = memo(function StandardTableRow<
   props: StandardTableRowProps<TData>
 ) => React.JSX.Element
 
-/**
- * Virtualizer interface from @tanstack/react-virtual
- */
 export interface Virtualizer {
   getVirtualItems(): VirtualItem[]
   getTotalSize(): number
 }
 
-/**
- * Props for TableBodyRows component
- */
 export interface TableBodyRowsProps<TData extends RowData> {
   table: Table<TData>
   isVirtualized: boolean
@@ -263,19 +226,6 @@ export interface TableBodyRowsProps<TData extends RowData> {
   renderKey?: string
 }
 
-/**
- * TableBodyRows - Renders table rows with or without virtualization
- *
- * @param table - TanStack Table instance
- * @param isVirtualized - Whether virtualization is enabled
- * @param virtualizer - Virtual row instance when virtualization is enabled
- *
- * Automatically chooses rendering strategy based on dataset size:
- * - Virtualized rendering for large row sets
- * - Standard rendering for smaller datasets
- *
- * Performance: Virtualization reduces DOM nodes from thousands to ~100, memoized to prevent re-renders
- */
 export const TableBodyRows = memo(function TableBodyRows<
   TData extends RowData,
 >({
@@ -290,7 +240,6 @@ export const TableBodyRows = memo(function TableBodyRows<
   const colSpan = Math.max(table.getVisibleLeafColumns().length, 1)
 
   if (isVirtualized && virtualizer) {
-    // Virtualized rendering for large datasets
     const virtualRows = virtualizer.getVirtualItems()
     const firstVirtualRow = virtualRows[0]
     const lastVirtualRow = virtualRows.at(-1)
@@ -354,7 +303,6 @@ export const TableBodyRows = memo(function TableBodyRows<
     )
   }
 
-  // Standard rendering for smaller datasets
   return (
     <>
       {rows.map((row: Row<TData>, index: number) => (
@@ -381,14 +329,8 @@ export const TableBodyRows = memo(function TableBodyRows<
   props: TableBodyRowsProps<TData>
 ) => React.JSX.Element
 
-/**
- * Column metadata type for column definitions
- */
 export type ColumnMetaType = ColumnMeta<unknown, unknown>
 
-/**
- * Props for TableBodyEmptyState component
- */
 export interface TableBodyEmptyStateProps<
   TData extends RowData,
   TValue extends ReactNode,
@@ -398,19 +340,6 @@ export interface TableBodyEmptyStateProps<
   activeFilterCount: number
 }
 
-/**
- * TableBodyEmptyState - Renders empty state when no rows are available
- *
- * @param columnDefs - Column definitions for colspan calculation
- * @param title - Table title for context in empty state message
- * @param activeFilterCount - Number of active filters for contextual messaging
- *
- * Shows different messages based on whether filters are active:
- * - With filters: Suggests clearing filters
- * - Without filters: Suggests adjusting query or checking back later
- *
- * Performance: Memoized to prevent re-renders
- */
 export const TableBodyEmptyState = memo(function TableBodyEmptyState<
   TData extends RowData,
   TValue extends ReactNode,
@@ -442,9 +371,6 @@ export const TableBodyEmptyState = memo(function TableBodyEmptyState<
   props: TableBodyEmptyStateProps<TData, TValue>
 ) => React.JSX.Element
 
-/**
- * Props for TableBody component
- */
 export interface TableBodyProps<
   TData extends RowData,
   TValue extends ReactNode,
@@ -463,23 +389,6 @@ export interface TableBodyProps<
   renderKey?: string
 }
 
-/**
- * TableBody - Renders the complete table body section
- *
- * @param table - TanStack Table instance
- * @param columnDefs - Column definitions for empty state
- * @param isVirtualized - Whether virtualization is enabled
- * @param virtualizer - Virtual row instance
- * @param title - Table title for empty state context
- * @param activeFilterCount - Active filter count for empty state context
- *
- * Handles:
- * - Conditional rendering of rows vs empty state
- * - Virtualization strategy selection
- * - Contextual empty state messaging
- *
- * Performance: Memoized to prevent unnecessary re-renders
- */
 export const TableBody = memo(function TableBody<
   TData extends RowData,
   TValue extends ReactNode,

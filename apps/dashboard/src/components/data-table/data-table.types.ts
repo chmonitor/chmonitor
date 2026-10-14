@@ -4,30 +4,6 @@ import type { ApiResponseMetadata } from '@/lib/api/types'
 import type { ChartQueryParams } from '@/types/chart-data'
 import type { ExpandableConfig, QueryConfig } from '@/types/query-config'
 
-/**
- * Props for the DataTable component
- *
- * @template TData - The row data type (extends RowData from TanStack Table)
- *
- * @param title - Table title displayed in header
- * @param description - Table description or subtitle
- * @param toolbarExtras - Additional toolbar elements (left side)
- * @param topRightToolbarExtras - Additional toolbar elements (right side)
- * @param queryConfig - Query configuration defining columns, formats, sorting
- * @param apiParams - Parameters passed to API for query execution (deprecated: use queryParams)
- * @param queryParams - Parameters for query execution (search, sort, pagination)
- * @param data - Array of row data to display
- * @param context - Template replacement context for links (e.g., { database: 'system' })
- * @param defaultPageSize - Initial page size (default: 100)
- * @param showSQL - Show SQL button visibility (default: true)
- * @param footnote - Custom footnote content
- * @param className - Additional CSS classes for container
- * @param enableColumnFilters - Enable client-side column text filtering (default: false)
- * @param enableFilterUrlSync - Sync filters to URL parameters for shareable links (default: false)
- * @param filterUrlPrefix - URL parameter prefix for filters (default: 'filter')
- * @param filterableColumns - Columns to enable filtering for (default: all text columns)
- * @param isRefreshing - Show loading indicator in header when refreshing data
- */
 export interface DataTableProps<TData extends RowData> {
   /** Table title displayed in header */
   title?: string

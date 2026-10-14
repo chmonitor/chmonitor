@@ -2,17 +2,11 @@ import type { Column, Row } from '@tanstack/react-table'
 
 import { useRef } from 'react'
 
-/**
- * Result from auto-fitting a column
- */
 interface AutoFitResult {
   columnId: string
   fittedWidth: number
 }
 
-/**
- * Configuration for auto-fit behavior
- */
 interface AutoFitOptions {
   /** Minimum column width in pixels (default: 50) */
   minWidth?: number
@@ -34,16 +28,6 @@ const DEFAULT_OPTIONS: Required<AutoFitOptions> = {
   maxSampleRows: 100,
 }
 
-/**
- * useAutoFitColumns - Hook for calculating and setting column widths based on content
- *
- * Measures actual rendered content width by creating a temporary element
- * and applying the same styles as table cells. Uses sampling for performance
- * with large datasets.
- *
- * @param tableRef - Reference to the table container (for style context)
- * @returns Function to auto-fit a column to its content
- */
 export function useAutoFitColumns<TData>(
   _tableRef: React.RefObject<HTMLDivElement | null>,
   options: AutoFitOptions = {}
@@ -51,16 +35,12 @@ export function useAutoFitColumns<TData>(
   const opts = { ...DEFAULT_OPTIONS, ...options }
   const measureCache = useRef<Map<string, number>>(new Map())
 
-  /**
-   * Measure text width using a temporary element with table cell styles
-   */
   const measureTextWidth = (text: string): number => {
     const cacheKey = text
     if (measureCache.current.has(cacheKey)) {
       return measureCache.current.get(cacheKey)!
     }
 
-    // Create temporary element for measurement
     const measureEl = document.createElement('div')
     measureEl.style.position = 'absolute'
     measureEl.style.visibility = 'hidden'
@@ -80,9 +60,6 @@ export function useAutoFitColumns<TData>(
     return width
   }
 
-  /**
-   * Auto-fit a single column to its content width
-   */
   const autoFitColumn = (
     column: Column<TData, unknown>,
     rows: Row<TData>[],
@@ -91,7 +68,6 @@ export function useAutoFitColumns<TData>(
     let maxContentWidth =
       headerText && opts.includeHeader ? measureTextWidth(headerText) : 0
 
-    // Sample rows for performance with large datasets
     const sampleSize = Math.min(rows.length, opts.maxSampleRows)
     const step =
       rows.length > sampleSize ? Math.floor(rows.length / sampleSize) : 1
@@ -107,13 +83,11 @@ export function useAutoFitColumns<TData>(
       }
     }
 
-    // Apply bounds and padding
     const fittedWidth = Math.min(
       opts.maxWidth,
       Math.max(opts.minWidth, maxContentWidth + opts.padding)
     )
 
-    // Set the column size
     column.resetSize() // First reset to clear any manual sizing
     column.columnDef.size = fittedWidth
 
@@ -123,9 +97,6 @@ export function useAutoFitColumns<TData>(
     }
   }
 
-  /**
-   * Auto-fit all columns to their content
-   */
   const autoFitAllColumns = (
     columns: Column<TData, unknown>[],
     rows: Row<TData>[]
@@ -136,7 +107,6 @@ export function useAutoFitColumns<TData>(
     })
   }
 
-  // Clear cache when component unmounts
   const clearCache = () => {
     measureCache.current.clear()
   }

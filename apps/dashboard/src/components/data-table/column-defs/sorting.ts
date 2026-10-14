@@ -1,14 +1,7 @@
-/**
- * Column sorting configuration
- */
-
 import type { BuiltInSortingFn, ColumnDef } from '@tanstack/react-table'
 
 import type { CustomSortingFnNames, getCustomSortingFns } from '../sorting-fns'
 
-/**
- * Built-in sorting function names from TanStack Table
- */
 const BUILTIN_SORTING_FNS = [
   'alphanumeric',
   'alphanumericCaseSensitive',
@@ -18,11 +11,6 @@ const BUILTIN_SORTING_FNS = [
   'basic',
 ] as const
 
-/**
- * Assigns sorting function to column definition
- *
- * Checks both custom sorting functions and TanStack built-in functions
- */
 export function assignSortingFn<TData, TValue = unknown>(
   columnDef: ColumnDef<TData, TValue>,
   sortingFnName: string | undefined,
@@ -30,14 +18,12 @@ export function assignSortingFn<TData, TValue = unknown>(
 ): void {
   if (!sortingFnName) return
 
-  // Check if it's one of our custom sorting functions
   if (sortingFnName in customSortingFns) {
     columnDef.sortingFn =
       customSortingFns[sortingFnName as CustomSortingFnNames]
     return
   }
 
-  // Check if it's a built-in sorting function name
   if (BUILTIN_SORTING_FNS.includes(sortingFnName as BuiltInSortingFn)) {
     columnDef.sortingFn = sortingFnName as BuiltInSortingFn
   }

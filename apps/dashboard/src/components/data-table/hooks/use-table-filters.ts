@@ -8,26 +8,10 @@ export interface UseTableFiltersOptions {
   urlPrefix?: string
 }
 
-/**
- * Hook for managing table column filters with optional URL sync
- *
- * @example
- * ```tsx
- * // Basic usage (in-memory filters)
- * const { columnFilters, setColumnFilter, clearAllColumnFilters } = useTableFilters()
- *
- * // With URL sync (filters are shareable via URL)
- * const { columnFilters, setColumnFilter, clearAllColumnFilters } = useTableFilters({
- *   enableUrlSync: true,
- *   urlPrefix: 'filter',
- * })
- * ```
- */
 export function useTableFilters(options: UseTableFiltersOptions = {}) {
   const { enableUrlSync = false, urlPrefix = 'filter' } = options
   const searchParams = useUrlSearchParams()
 
-  // Initialize filters from URL if sync is enabled
   const getInitialFilters = (): Record<string, string> => {
     if (!enableUrlSync) return {}
 
@@ -50,7 +34,6 @@ export function useTableFilters(options: UseTableFiltersOptions = {}) {
       setColumnFilters((prev) => {
         const next = { ...prev, [column]: value }
 
-        // Update URL if sync is enabled
         if (enableUrlSync) {
           const url = new URL(window.location.href)
           const paramKey = `${urlPrefix}.${column}`
@@ -75,7 +58,6 @@ export function useTableFilters(options: UseTableFiltersOptions = {}) {
       setColumnFilters((prev) => {
         const { [column]: _, ...rest } = prev
 
-        // Remove from URL if sync is enabled
         if (enableUrlSync) {
           const url = new URL(window.location.href)
           url.searchParams.delete(`${urlPrefix}.${column}`)
@@ -91,7 +73,6 @@ export function useTableFilters(options: UseTableFiltersOptions = {}) {
   const clearAllColumnFilters = useCallback(() => {
     setColumnFilters({})
 
-    // Clear all filter params from URL if sync is enabled
     if (enableUrlSync) {
       const url = new URL(window.location.href)
       for (const key of url.searchParams.keys()) {

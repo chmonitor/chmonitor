@@ -1,7 +1,3 @@
-/**
- * URL building utilities for filter navigation
- */
-
 import type { QueryConfig } from '@/types/query-config'
 
 import { buildUrl } from '@/lib/url/url-builder'
@@ -33,7 +29,6 @@ export function getFilterToggleHref(
   const newParams = new URLSearchParams(searchParams)
 
   if (newParams.get(key) === value) {
-    // Toggle off: handle based on default value
     if (defaultParams?.[key] !== '') {
       // Has default value - set to empty instead of deleting
       newParams.set(key, '')
@@ -42,7 +37,6 @@ export function getFilterToggleHref(
       newParams.delete(key)
     }
   } else {
-    // Toggle on: set the value
     newParams.set(key, value)
   }
 

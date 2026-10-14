@@ -63,10 +63,8 @@ export function useDataTableView<TData extends RowData>({
     { disabled: isRowVirtualizationDisabled(expandable) }
   )
 
-  // Auto-fit columns functionality
   const { autoFitColumn } = useAutoFitColumns<TData>(tableContainerRef)
 
-  // Handle auto-fit request for a specific column
   const handleAutoFit = useCallback(
     (columnId: string) => {
       const column = table.getColumn(columnId)
@@ -78,13 +76,10 @@ export function useDataTableView<TData extends RowData>({
     [table, rows, autoFitColumn]
   )
 
-  // Handle drag end event for column reordering
-  // This is called by table-header when columns are reordered via drag-and-drop
   const handleDragEndColumnReorder = useCallback(
     (activeId: string, overId: string) => {
       const currentOrder = table.getState().columnOrder
 
-      // Get ALL columns from the table (not just sortable ones)
       const allColumnIds = table.getAllLeafColumns().map((col) => col.id)
 
       // Use currentOrder if it has values, otherwise use all columns in natural order
@@ -95,7 +90,6 @@ export function useDataTableView<TData extends RowData>({
       const newIndex = effectiveOrder.indexOf(overId)
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        // Reorder ALL columns, not just the sortable ones
         const newOrder = arrayMove(effectiveOrder, oldIndex, newIndex)
         onColumnOrderChange(newOrder)
       }
