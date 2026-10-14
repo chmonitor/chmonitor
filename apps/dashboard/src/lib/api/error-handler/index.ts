@@ -87,7 +87,6 @@ export function withApiHandler(
       // Classify the error to determine type
       const { type, message } = classifyError(err)
 
-      // Build error details
       const errorDetails = {
         type,
         message,
@@ -96,7 +95,6 @@ export function withApiHandler(
         },
       }
 
-      // Get appropriate status code and create response
       const statusCode = getStatusCodeForErrorType(type)
       return createErrorResponse(errorDetails, statusCode, context)
     }

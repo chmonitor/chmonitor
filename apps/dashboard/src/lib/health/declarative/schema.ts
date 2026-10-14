@@ -83,10 +83,6 @@ function isValidTimeZone(tz: string): boolean {
 
 const HM_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 
-// ---------------------------------------------------------------------------
-// Entries
-// ---------------------------------------------------------------------------
-
 const METRIC_KEYS = Object.keys(METRIC_CATALOG) as [MetricKey, ...MetricKey[]]
 
 export const declarativeCustomRuleSchema = z
@@ -249,10 +245,8 @@ export type DeclarativeMaintenanceWindow = z.infer<
 >
 export type DeclarativeDigest = z.infer<typeof declarativeDigestSchema>
 
-// ---------------------------------------------------------------------------
 // Files: top-level shape per concern. Lists are validated entry-by-entry by
 // the loader, so one bad entry does not drop its siblings.
-// ---------------------------------------------------------------------------
 
 const list = z.array(z.unknown()).default([])
 
@@ -268,10 +262,6 @@ export const HEALTH_CONFIG_FILE_SCHEMAS = {
   maintenance: z.strictObject({ windows: list }),
   digest: declarativeDigestSchema,
 } as const satisfies Record<HealthConfigConcern, z.ZodType>
-
-// ---------------------------------------------------------------------------
-// Layers
-// ---------------------------------------------------------------------------
 
 /**
  * One source's contribution. Every field is keyed by its merge key so the

@@ -82,7 +82,6 @@ export function createErrorResponse(
     }
   )
 
-  // Build standardized response body
   const response: ApiResponse = {
     success: false,
     metadata: {
@@ -94,7 +93,6 @@ export function createErrorResponse(
     error: errorDetails,
   }
 
-  // Return JSON response with appropriate status code
   return Response.json(response, {
     status,
     headers: {

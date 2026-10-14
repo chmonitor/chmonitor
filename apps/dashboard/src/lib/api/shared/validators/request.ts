@@ -58,15 +58,12 @@ export function validateRequiredString(
 export function validateDataRequest(
   body: Partial<ApiRequest>
 ): ApiError | undefined {
-  // Validate required query field
   const queryError = validateRequiredString(body.query, 'query')
   if (queryError) return queryError
 
-  // Validate required hostId field
   const hostIdError = validateHostIdWithError(body.hostId)
   if (hostIdError) return hostIdError
 
-  // Validate optional format field
   const formatError = validateFormat(body.format)
   if (formatError) return formatError
 

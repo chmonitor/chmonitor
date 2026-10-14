@@ -33,9 +33,7 @@ const STUCK_MERGE_SECONDS = 600
 export interface RunningQuerySnapshot {
   readonly queryId: string
   readonly user: string
-  /** Seconds the query has been running. */
   readonly elapsed: number
-  /** Memory used by the query, in MiB. */
   readonly memoryMb: number
   /** Truncated query text (up to QUERY_TEXT_MAX chars). */
   readonly query: string
@@ -43,7 +41,6 @@ export interface RunningQuerySnapshot {
 
 /** Aggregate view of active merges at incident time. */
 export interface MergeSnapshot {
-  /** Number of active merges. */
   readonly active: number
   /** Active merges running longer than STUCK_MERGE_SECONDS. */
   readonly stuck: number
