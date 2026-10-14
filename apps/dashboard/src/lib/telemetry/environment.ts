@@ -15,6 +15,18 @@
 export type DeployTarget = 'docker' | 'helm' | 'cf' | 'dev' | 'unknown'
 export type ChFlavor = 'oss' | 'altinity' | 'cloud' | 'unknown'
 
+const INJECTED_TARGETS: readonly string[] = [
+  'docker',
+  'helm',
+  'cf',
+  'dev',
+  'unknown',
+] satisfies DeployTarget[]
+
+function isInjectedDeployTarget(value: string): value is DeployTarget {
+  return INJECTED_TARGETS.includes(value)
+}
+
 /**
  * Returns the deployment target inlined at build time via VITE_DEPLOY_TARGET.
  * Falls back to 'unknown' when the var is absent (e.g. local dev without it
@@ -22,10 +34,9 @@ export type ChFlavor = 'oss' | 'altinity' | 'cloud' | 'unknown'
  */
 export function getDeployTarget(): DeployTarget {
   // 1. Check if server-injected target is available in the browser window
-  if (typeof window !== 'undefined' && (window as any).__CHM_DEPLOY_TARGET__) {
-    const injected = (window as any).__CHM_DEPLOY_TARGET__
-    const VALID: DeployTarget[] = ['docker', 'helm', 'cf', 'dev', 'unknown']
-    if (VALID.includes(injected)) return injected
+  if (typeof window !== 'undefined' && window.__CHM_DEPLOY_TARGET__) {
+    const injected = window.__CHM_DEPLOY_TARGET__
+    if (isInjectedDeployTarget(injected)) return injected
   }
 
   // 2. Build-time env variable override. 'unknown' is treated as unset so a
@@ -629,4 +640,11 @@ export function detectPlatform(): string {
   if (ua.includes('linux')) return 'linux'
 
   return 'unknown'
+}
+
+declare global {
+  interface Window {
+    /** Set by the inline script in `routes/__root.tsx`. */
+    __CHM_DEPLOY_TARGET__?: string
+  }
 }

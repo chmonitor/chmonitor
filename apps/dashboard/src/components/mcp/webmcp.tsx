@@ -1,5 +1,17 @@
 import { useEffect } from 'react'
 
+interface WebMcpTool {
+  name: string
+  description: string
+  inputSchema: Record<string, unknown>
+  execute: () => Promise<unknown>
+}
+
+interface ModelContext {
+  provideContext?: (context: { tools: WebMcpTool[] }) => void
+  registerTool?: (tool: WebMcpTool) => void
+}
+
 /**
  * Registers WebMCP tools for browser-based AI agents.
  * Exposes core dashboard actions like get_cluster_health.
@@ -9,9 +21,9 @@ export function WebMcpRegistration() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const nav = navigator as any
+    const nav: Navigator & { modelContext?: ModelContext } = navigator
     if (nav.modelContext) {
-      const getClusterHealth = {
+      const getClusterHealth: WebMcpTool = {
         name: 'get_cluster_health',
         description: 'Get real-time health status of ClickHouse cluster',
         inputSchema: {

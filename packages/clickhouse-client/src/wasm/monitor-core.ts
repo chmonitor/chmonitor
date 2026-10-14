@@ -1,3 +1,5 @@
+import { hasWorkersGlobals } from '../runtime/cloudflare-workers'
+
 type MonitorCoreModule = typeof import('./generated/monitor_core.js')
 
 let modulePromise: Promise<MonitorCoreModule> | null = null
@@ -14,8 +16,7 @@ function isNodeRuntime(): boolean {
   // Runtime detection as fallback
   if (
     typeof globalThis !== 'undefined' &&
-    (typeof (globalThis as any).WebSocketPair !== 'undefined' ||
-      typeof (globalThis as any).DurableObject !== 'undefined') &&
+    hasWorkersGlobals() &&
     typeof process === 'undefined'
   ) {
     return false
