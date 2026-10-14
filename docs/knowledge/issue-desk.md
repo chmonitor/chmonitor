@@ -3,7 +3,7 @@ id: issue-desk
 title: Scheduled Herdr desk (external CLI)
 type: workflow
 status: active
-updated: 2026-10-05
+updated: 2026-10-14
 tags:
   - herdr
   - cron
@@ -34,7 +34,7 @@ herdr plugin action invoke herdr-desk.history   # per-fire ok/fail + error
 State: `.herdr-desk/runs/<task>/YYYY-MM-DD/` (gitignored), plus the ledger
 `~/.local/state/herdr/plugins/herdr-desk/runs.jsonl`.
 
-## The eight jobs
+## The nine jobs
 
 | Job | Cron | Agent | Playbook | Owns |
 |---|---|---|---|---|
@@ -46,14 +46,15 @@ State: `.herdr-desk/runs/<task>/YYYY-MM-DD/` (gitignored), plus the ledger
 | `local:red-jobs` | `26 7 * * *` | `chm-redjobs` | `docs/herdr-desk/red-jobs.md` | the CI jobs babysit is forbidden to spend runs on; classifies each as repo defect or external fact |
 | `local:stale-issues` | `34 9 * * *` | `chm-stale` | `docs/herdr-desk/stale-issues.md` | closes stale-bot / fixed / superseded / duplicate issues with a reason |
 | `local:docs` | `46 3 * * *` | `chm-docs` | `docs/herdr-desk/docs-drift.md` | prose-named dead paths, dangling `related:` ids, stale notes |
+| `local:ch-version` | `52 4 1,15 * *` | `chm-chversion` | `docs/herdr-desk/ch-version.md` | new ClickHouse release vs. system columns the query configs read; one issue per broken config |
 
 Minutes are staggered so two jobs never contend for the same slot, and each job
 has its **own `agentName`** because the agent name *is* the session identity:
 one name shared by two jobs means two prompts racing for one manager pane. The
-new jobs' minutes (`6, 26, 34, 46`) were also checked against every other desk
-on this host, not just this repo.
+new jobs' minutes (`6, 26, 34, 46`, and `52` for `local:ch-version`) were also
+checked against every other desk on this host, not just this repo.
 
-### Why the last four exist
+### Why the four audit jobs exist
 
 Each closes a specific hole where a failure is invisible *because* nothing
 depends on it — which is exactly what makes it rot.
@@ -78,6 +79,11 @@ depends on it — which is exactly what makes it rot.
   required `unit-tests` job. `local:docs` owns the three classes a deterministic
   check cannot reach — paths named in prose, `related:` frontmatter ids with no
   matching note, and notes that now contradict the code.
+
+`local:ch-version` runs twice a month, not daily, because ClickHouse releases
+monthly. CI pins ClickHouse to `25.8`, so a config that breaks on a newer
+release never fails a check. The job files one issue per broken config and
+never edits configs itself. See [ch-version-onboarding.md](ch-version-onboarding.md).
 
 ## Why the jobs are split this way
 

@@ -80,6 +80,16 @@
       "schedule": "46 3 * * *",
       "describe": "Prose-named dead paths, dangling knowledge-graph `related:` ids, stale or contradictory notes",
       "extra": "Do NOT duplicate the CI gate: `tests/repo/markdown-links.test.ts` already fails the required `unit-tests` job on any unresolvable relative markdown link. This job owns the three classes a deterministic check cannot reach — paths named in backticks or prose, `related:` frontmatter ids pointing at a note that does not exist, and notes that are stale or now contradict the code. Parse frontmatter and read the `related:` key specifically: `tags:` uses the same `- item` syntax, so a naive line scan reports false dangling edges. Bump the note's `updated:` date in the same change as any fix. Never edit the pinned vendored tree at `.claude/skills/pstack/upstream/`, and never regenerate `apps/dashboard/src/lib/ai/agent/skills/registry.ts` as a side effect. One theme per run; if `local:improve` would pick the same item, let improve have it."
+    },
+    {
+      "id": "local:ch-version",
+      "label": "ClickHouse version onboarding",
+      "playbook": "docs/herdr-desk/ch-version.md",
+      "agentName": "chm-chversion",
+      "maxChildren": 1,
+      "schedule": "52 4 1,15 * *",
+      "describe": "Diff system-table columns of the newest ClickHouse release against what query configs read; file one issue per broken config",
+      "extra": "File, do not fix: never edit a query config, a script, or ci.yml here. Always pass a scratch --output to build-ch-schema-docs.ts; its default writes into docs/clickhouse-schemas. 'Filtered to version X: 0 entries' means the scrape failed, not that nothing changed. Prove a break against the official binary before filing. Report skipped *_log configs; never claim 'no regressions' while they are unchecked. Never print a credential. A repeated 'already covered' report is the healthy outcome."
     }
   ]
 }
