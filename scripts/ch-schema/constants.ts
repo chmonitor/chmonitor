@@ -2,9 +2,6 @@
  * Constants for ClickHouse schema documentation generator
  */
 
-/**
- * System tables to track
- */
 export const TARGET_TABLES = [
   'system.processes',
   'system.query_log',
@@ -24,9 +21,6 @@ export const TARGET_TABLES = [
   'system.asynchronous_metrics',
 ] as const
 
-/**
- * Supported major versions
- */
 export const SUPPORTED_MAJOR_VERSIONS = [23, 24, 25, 26] as const
 
 /**
@@ -43,9 +37,6 @@ export const LTS_VERSIONS = [
   '26.3',
 ] as const
 
-/**
- * GitHub URLs for fetching changelog and docs
- */
 export const GITHUB_URLS = {
   changelog:
     'https://raw.githubusercontent.com/ClickHouse/ClickHouse/master/CHANGELOG.md',
@@ -53,9 +44,6 @@ export const GITHUB_URLS = {
     'https://raw.githubusercontent.com/ClickHouse/ClickHouse/master/docs/en/operations/system-tables',
 } as const
 
-/**
- * Output directory for generated docs
- */
 export const DEFAULT_OUTPUT_DIR = 'docs/clickhouse-schemas'
 
 /**

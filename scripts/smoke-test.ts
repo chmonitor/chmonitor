@@ -28,8 +28,6 @@ const API_KEY_SECRET =
 /** Bearer token for authenticated requests (minted via /api/v1/auth/api-key). */
 let authToken = ''
 
-// ── Types ──────────────────────────────────────────────
-
 type ErrorCategory =
   | 'auth'
   | 'table_not_found'
@@ -68,8 +66,6 @@ interface CategoryGroup {
   icon: string
   results: TestResult[]
 }
-
-// ── Helpers ────────────────────────────────────────────
 
 async function fetchJSON(
   url: string,
@@ -123,11 +119,8 @@ function extractMissingTables(error: string): string[] {
   return matches ? [...new Set(matches)] : []
 }
 
-// ── Discovery ──────────────────────────────────────────
-
 async function discoverHosts(): Promise<HostInfo[]> {
   const hosts: HostInfo[] = []
-  // Try /api/v1/hosts first
   try {
     const { json: d } = await fetchJSON(`${BASE_URL}/api/v1/hosts`)
     if (d.success && Array.isArray(d.data)) {
@@ -200,8 +193,6 @@ async function getChartList(): Promise<string[]> {
   return list.split(', ').map((s: string) => s.trim())
 }
 
-// ── Auth ───────────────────────────────────────────────
-
 async function mintAuthToken(): Promise<void> {
   if (!API_KEY_SECRET) return
   try {
@@ -233,8 +224,6 @@ async function mintAuthToken(): Promise<void> {
     }
   }
 }
-
-// ── Test runner ────────────────────────────────────────
 
 async function testChart(chart: string, hostId: number): Promise<TestResult> {
   const start = Date.now()
@@ -301,8 +290,6 @@ async function testChart(chart: string, hostId: number): Promise<TestResult> {
   }
 }
 
-// ── Report rendering ───────────────────────────────────
-
 const CATEGORY_META: Record<ErrorCategory, { label: string; icon: string }> = {
   auth: { label: 'Authentication Failed', icon: '🔐' },
   table_not_found: { label: 'Missing Tables', icon: '📋' },
@@ -320,7 +307,6 @@ function renderReport(
 ) {
   const W = 70
 
-  // ── Header ──
   console.log(`\n${'═'.repeat(W)}`)
   console.log(
     `  DEPLOYMENT HEALTH REPORT — ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`
@@ -328,7 +314,6 @@ function renderReport(
   console.log(`  ${BASE_URL}`)
   console.log('═'.repeat(W))
 
-  // ── Per-host summary ──
   console.log(`\n  HOST STATUS`)
   console.log(`  ${'─'.repeat(W - 4)}`)
 
@@ -357,11 +342,9 @@ function renderReport(
     )
   }
 
-  // ── Failures grouped by category ──
   const failures = results.filter((r) => !r.success)
 
   if (failures.length > 0) {
-    // Group by category
     const groups: CategoryGroup[] = []
     const seen = new Set<ErrorCategory>()
     for (const r of failures) {
@@ -389,7 +372,6 @@ function renderReport(
           const tables = r.missingTables?.join(', ') || '(unknown)'
           console.log(`    ❌ ${hostTag} ${r.chart}: missing ${tables}`)
         } else {
-          // Truncate error to fit
           const maxErrLen = W - hostTag.length - r.chart.length - 8
           const errShort = (r.error || '')
             .slice(0, Math.max(40, maxErrLen))
@@ -400,12 +382,10 @@ function renderReport(
     }
   }
 
-  // ── Empty data summary ──
   const emptyResults = results.filter(
     (r) => r.success && r.category === 'empty'
   )
   if (emptyResults.length > 0) {
-    // Group by host
     console.log(`\n  📭 EMPTY DATA (chart OK, 0 rows)`)
     console.log(`  ${'─'.repeat(W - 4)}`)
 
@@ -419,7 +399,6 @@ function renderReport(
     }
   }
 
-  // ── Missing tables across all hosts ──
   const allMissingTables = new Map<string, Set<number>>()
   for (const r of results.filter((r) => r.category === 'table_not_found')) {
     for (const t of r.missingTables || []) {
@@ -436,7 +415,6 @@ function renderReport(
     }
   }
 
-  // ── Summary line ──
   const totalTests = results.length
   const passed = results.filter((r) => r.success).length
   const failed = results.filter((r) => !r.success).length
@@ -474,20 +452,15 @@ function wrapList(items: string, maxLen: number): string {
   return `${items.slice(0, maxLen - 3)}...`
 }
 
-// ── Main ───────────────────────────────────────────────
-
 async function main() {
-  // Mint auth token if API key secret is provided
   await mintAuthToken()
 
-  // Discover hosts
   const hosts = await discoverHosts()
   if (hosts.length === 0) {
     console.error('No hosts found. Is the deployment accessible?')
     process.exit(2)
   }
 
-  // Get chart list + host versions in parallel
   const [charts, ...versions] = await Promise.all([
     getChartList(),
     ...hosts.map((h) => getHostVersion(h.id)),
@@ -496,7 +469,6 @@ async function main() {
     hosts[i].version = versions[i]
   }
 
-  // Run all chart tests across all hosts
   const promises: Promise<TestResult>[] = []
   for (const host of hosts) {
     for (const chart of charts) {
@@ -505,7 +477,6 @@ async function main() {
   }
   const results = await Promise.all(promises)
 
-  // Output
   if (JSON_OUTPUT) {
     console.log(
       JSON.stringify(

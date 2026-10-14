@@ -21,7 +21,6 @@ import { parseArgs } from 'node:util'
 async function main() {
   console.log('ClickHouse Schema Documentation Generator\n')
 
-  // Parse CLI arguments
   const { values } = parseArgs({
     args: process.argv.slice(2),
     options: {
@@ -40,14 +39,11 @@ async function main() {
   }
 
   try {
-    // Step 1: Fetch changelog
     const changelog = await fetchChangelog()
 
-    // Step 2: Parse changelog
     console.log('\nParsing changelog...')
     let entries = parseChangelog(changelog)
 
-    // Filter by version if specified
     if (options.version) {
       entries = entries.filter((e) => e.version === options.version)
       console.log(
@@ -55,7 +51,6 @@ async function main() {
       )
     }
 
-    // Step 3: Generate docs
     console.log('\nGenerating documentation...')
     await generateDocs(entries, options.output)
 

@@ -64,7 +64,6 @@ function parseFrontmatter(raw: string): {
   const frontmatter = match[1]
   const body = match[2].trim()
 
-  // Simple YAML parsing for name and description
   const nameMatch = frontmatter.match(/^name:\s*(.+)$/m)
   const descMatch = frontmatter.match(/^description:\s*(.+)$/m)
 
@@ -135,7 +134,6 @@ async function main() {
     }
   }
 
-  // Generate registry.ts
   const escapeForTemplate = (s: string) =>
     s.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')
 

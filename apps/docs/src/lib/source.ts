@@ -38,7 +38,6 @@ export function slugsToMarkdownPath(slugs: string[]) {
   }
 }
 
-// OG image URL for a documentation page.
 // URL pattern: /og/docs/{slug...}/image.webp
 export function getPageImage(page: (typeof source)['$inferPage']) {
   const segments = [...page.slugs, 'image.webp']
@@ -48,7 +47,6 @@ export function getPageImage(page: (typeof source)['$inferPage']) {
   }
 }
 
-// Get processed markdown text for a page (used in LLM-friendly endpoints).
 export async function getLLMText(page: (typeof source)['$inferPage']) {
   const processed = await page.data.getText('processed')
   return `# ${page.data.title} (${page.url})\n\n${processed}`

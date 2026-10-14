@@ -87,7 +87,6 @@ const polar = new Polar({ accessToken: token, server })
 const args = new Set(process.argv.slice(2))
 const archiveOld = !args.has('--keep-archived-cloud')
 
-/** Old hosted Cloud catalog names from the previous polar-setup. */
 const OLD_CLOUD_PRODUCT_NAMES = new Set([
   'chmonitor Free',
   'chmonitor Pro (Monthly)',
@@ -207,7 +206,6 @@ async function main() {
   const listed = await listExistingProducts()
   if (archiveOld) await archiveOldCloudProducts(listed)
   const existing = new Map(listed.map((p) => [p.name, p.id]))
-  // Re-list after archive so reuse map stays current.
   for (const p of await listExistingProducts()) existing.set(p.name, p.id)
 
   const lines: string[] = []

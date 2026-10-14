@@ -25,7 +25,6 @@ import { fileURLToPath } from 'node:url'
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DASHBOARD = join(REPO_ROOT, 'apps', 'dashboard')
 
-/** Order: highest priority first. First file containing a given key wins. */
 const ENV_FILE_CASCADE = [
   join(DASHBOARD, '.env.production.local'),
   join(DASHBOARD, '.env.local'),
@@ -44,10 +43,8 @@ const ENV_FILE_CASCADE = [
  * publishable keys are managed manually — out of scope here.
  */
 const SECRET_KEYS = [
-  // ClickHouse
   'CLICKHOUSE_PASSWORD',
   'CLICKHOUSE_EXCLUDE_USER_DEFAULT',
-  // LLM providers
   'LLM_API_KEY',
   'LLM_API_BASE',
   'LLM_MODEL',
@@ -92,7 +89,6 @@ const SECRET_KEYS = [
   // issues from inbound Sentry alert emails. Runtime secret on that worker; CI
   // (cloudflare.yml bug-handler job) pushes it via `wrangler secret put`.
   'BUG_HANDLER_GITHUB_TOKEN',
-  // Misc runtime
   'NEXT_QUERY_CACHE_TTL',
 ] as const
 
@@ -131,7 +127,6 @@ function parseEnvFile(content: string): Record<string, string> {
     if (eq === -1) continue
     const key = line.slice(0, eq).trim()
     let value = line.slice(eq + 1).trim()
-    // Strip a single matching pair of surrounding quotes.
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))

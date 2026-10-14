@@ -28,10 +28,6 @@ export function parseDeploymentMode(
   return 'oss'
 }
 
-/**
- * The set of defaults a deployment mode resolves to — the "good defaults from
- * the beginning". A mode alone yields a correct, coherent deployment.
- */
 export interface ModeDefaults {
   /** Public read-only demo hosts for anon + blank workspace when signed in. */
   cloudMode: boolean
@@ -39,9 +35,7 @@ export interface ModeDefaults {
   authProvider: AuthProvider
   /** Anonymous visitors may read (but not write) without signing in. */
   clerkPublicRead: boolean
-  /** Per-user ClickHouse connection storage (D1/Postgres). */
   userConnectionsDb: boolean
-  /** Server-side agent conversation persistence. */
   conversationDb: boolean
   /**
    * Allow connecting to private / LAN / loopback / Tailscale (CGNAT) ClickHouse

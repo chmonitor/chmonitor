@@ -3,12 +3,6 @@
 /**
  * One-time setup script for AI agent conversations D1 database.
  *
- * This script:
- * 1. Creates the D1 database if it doesn't exist
- * 2. Extracts the database_id from wrangler output
- * 3. Updates wrangler.toml with the database_id
- * 4. Runs migrations to set up the schema
- *
  * Usage: bun run cf:setup-conversations
  *
  * After running this script, the database is ready for use.
@@ -26,15 +20,10 @@ interface WranglerD1CreateOutput {
   database_name: string
 }
 
-/**
- * Parse wrangler d1 create output to extract database_id
- */
 function parseDatabaseId(output: string): string | null {
-  // Try to match JSON output
   const jsonMatch = output.match(/\{[^}]*"database_id"\s*:\s*"([^"]+)"/)
   if (jsonMatch) return jsonMatch[1]
 
-  // Try to match plain UUID format
   const uuidMatch = output.match(
     /([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i
   )
@@ -43,9 +32,6 @@ function parseDatabaseId(output: string): string | null {
   return null
 }
 
-/**
- * Update wrangler.toml with the database_id for CHM_CLOUD_D1
- */
 function updateWranglerToml(databaseId: string): boolean {
   try {
     const content = readFileSync(WRANGLER_TOML_PATH, 'utf-8')
@@ -77,7 +63,6 @@ function updateWranglerToml(databaseId: string): boolean {
     let matchedMain = false
     let matchedPreview = false
 
-    // Update the main D1 database binding
     const updatedMain = content.replace(
       /(# D1 database for AI agent conversations\s+\[\[d1_databases\]\]\s+binding = "CHM_CLOUD_D1"\s+database_name = "chm-cloud"(?:\s+database_id = "[^"]*")?(?:\s+migrations_dir = "[^"]*")?)/g,
       (block) => {
@@ -86,7 +71,6 @@ function updateWranglerToml(databaseId: string): boolean {
       }
     )
 
-    // Update the preview environment binding
     const updatedPreview = updatedMain.replace(
       /(# Reuse the same conversation D1 database once database_id is provisioned\s+\[\[env\.preview\.d1_databases\]\]\s+binding = "CHM_CLOUD_D1"\s+database_name = "chm-cloud"(?:\s+database_id = "[^"]*")?(?:\s+migrations_dir = "[^"]*")?)/g,
       (block) => {
@@ -111,9 +95,6 @@ function updateWranglerToml(databaseId: string): boolean {
   }
 }
 
-/**
- * Run wrangler d1 create command
- */
 async function createD1Database(): Promise<{
   success: boolean
   databaseId?: string
@@ -132,7 +113,6 @@ async function createD1Database(): Promise<{
   const exitCode = await proc.exited
 
   if (exitCode !== 0) {
-    // Check if database already exists
     if (
       output.includes('already exists') ||
       output.includes('already created')
@@ -177,7 +157,6 @@ async function createD1Database(): Promise<{
     return { success: false }
   }
 
-  // Parse database_id from output
   let databaseId: string | null = null
 
   try {
@@ -205,9 +184,6 @@ async function createD1Database(): Promise<{
   return { success: true, databaseId }
 }
 
-/**
- * Run migrations on the D1 database
- */
 async function runMigrations(): Promise<boolean> {
   console.log(`🔄 Running database migrations...\n`)
 
@@ -244,7 +220,6 @@ async function main() {
   console.log(`╚════════════════════════════════════════════════════════════╝`)
   console.log()
 
-  // Step 1: Create D1 database
   const createResult = await createD1Database()
   if (!createResult.success || !createResult.databaseId) {
     console.error(`\n❌ Setup failed. Please check the errors above.`)
@@ -258,7 +233,6 @@ async function main() {
     process.exit(1)
   }
 
-  // Step 2: Update wrangler.toml
   const updated = updateWranglerToml(createResult.databaseId!)
   if (!updated) {
     console.error(
@@ -270,7 +244,6 @@ async function main() {
     process.exit(1)
   }
 
-  // Step 3: Run migrations
   const migrated = await runMigrations()
   if (!migrated) {
     console.warn(`\n⚠️  Database created but migrations failed.`)

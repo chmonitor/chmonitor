@@ -161,7 +161,6 @@ function parseEnvFile(content: string): Record<string, string> {
   return env
 }
 
-// Load the value source: process.env (CI) or the .env file (local).
 function loadSource(fromEnv: boolean): Record<string, string> {
   if (fromEnv) {
     console.log('📋 Reading secret values from process.env (--from-env)\n')
@@ -182,7 +181,6 @@ function loadSource(fromEnv: boolean): Record<string, string> {
   return parseEnvFile(readFileSync(file, 'utf-8'))
 }
 
-// Resolve the value to push for `key`, applying preview overrides + defaults.
 function resolveValue(
   key: string,
   src: Record<string, string>,

@@ -42,8 +42,6 @@ const ENV_FILE_CANDIDATES = [
   join(REPO_ROOT, '.env.prod'),
 ]
 
-// --- Config -----------------------------------------------------------------
-
 const ZONE_NAME = 'chmonitor.dev'
 const FROM_HOST = 'cloud.chmonitor.dev'
 const TO_ORIGIN = 'https://dash.chmonitor.dev'
@@ -51,8 +49,6 @@ const RULE_DESCRIPTION = `${FROM_HOST} -> dash.chmonitor.dev (301)`
 const PHASE = 'http_request_dynamic_redirect'
 
 const DRY_RUN = process.argv.includes('--dry-run')
-
-// --- Env --------------------------------------------------------------------
 
 function stripQuotes(value: string): string {
   if (
@@ -65,7 +61,6 @@ function stripQuotes(value: string): string {
   return value
 }
 
-// First file that exists wins. Returns {} if none are present.
 function loadEnvFile(): Record<string, string> {
   const file = ENV_FILE_CANDIDATES.find((f) => existsSync(f))
   if (!file) return {}
@@ -97,8 +92,6 @@ function resolveToken(): string {
   }
   return token
 }
-
-// --- Cloudflare API ---------------------------------------------------------
 
 const API = 'https://api.cloudflare.com/client/v4'
 
@@ -186,7 +179,6 @@ async function main() {
   }
   console.log(`   zone id: ${zone.id}`)
 
-  // Read the current dynamic-redirect entrypoint ruleset (404 = none yet).
   let existing: RedirectRule[] = []
   try {
     const ruleset = await cf<{ rules?: RedirectRule[] }>(

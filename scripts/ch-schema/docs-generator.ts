@@ -9,18 +9,13 @@ import { DEFAULT_OUTPUT_DIR, LTS_VERSIONS, TARGET_TABLES } from './constants'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-/**
- * Generate all documentation files
- */
 export async function generateDocs(
   entries: ChangelogEntry[],
   outputDir: string = DEFAULT_OUTPUT_DIR
 ): Promise<void> {
-  // Ensure output directories exist
   await mkdir(outputDir, { recursive: true })
   await mkdir(join(outputDir, 'tables'), { recursive: true })
 
-  // Generate per-version docs
   const byVersion = groupChangesByVersion(entries)
   for (const [version, changes] of byVersion) {
     const content = generateVersionDoc(version, changes)
@@ -28,7 +23,6 @@ export async function generateDocs(
     console.log(`Generated v${version}.md`)
   }
 
-  // Generate per-table docs
   const byTable = groupChangesByTable(entries)
   for (const table of TARGET_TABLES) {
     const changes = byTable.get(table) || []
@@ -43,9 +37,6 @@ export async function generateDocs(
   )
 }
 
-/**
- * Generate markdown for a specific version
- */
 function generateVersionDoc(version: string, changes: VersionChange[]): string {
   const isLTS = (LTS_VERSIONS as readonly string[]).includes(version)
 
@@ -63,7 +54,6 @@ type: ${isLTS ? 'LTS' : 'Regular'}
     return md
   }
 
-  // Group changes by type
   const added = changes.filter((c) => c.changeType === 'column_added')
   const removed = changes.filter((c) => c.changeType === 'column_removed')
   const renamed = changes.filter((c) => c.changeType === 'column_renamed')
@@ -118,9 +108,6 @@ type: ${isLTS ? 'LTS' : 'Regular'}
   return md
 }
 
-/**
- * Generate markdown for a specific table
- */
 function generateTableDoc(table: string, changes: VersionChange[]): string {
   let md = `---
 table: ${table}
@@ -130,7 +117,6 @@ table: ${table}
 
 `
 
-  // Build version compatibility matrix
   const versions = ['23.1', '23.8', '24.1', '24.3', '24.8', '25.1']
   const columns = new Set<string>()
 
@@ -150,7 +136,6 @@ table: ${table}
     for (const column of columns) {
       md += `| \`${column}\` |`
       for (const v of versions) {
-        // Determine if column exists in this version
         const addedIn = changes.find(
           (c) => c.column === column && c.changeType === 'column_added'
         )?.version
@@ -182,9 +167,6 @@ table: ${table}
   return md
 }
 
-/**
- * Helper to group changes by table
- */
 function groupByTable(changes: VersionChange[]): Map<string, VersionChange[]> {
   const byTable = new Map<string, VersionChange[]>()
   for (const change of changes) {

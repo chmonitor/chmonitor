@@ -6,20 +6,15 @@ import type { ChangelogEntry, VersionChange } from './types'
 
 import { KNOWN_COLUMN_CHANGES, TARGET_TABLES } from './constants'
 
-/**
- * Parse CHANGELOG.md content and extract system table changes
- */
 export function parseChangelog(content: string): ChangelogEntry[] {
   const entries: ChangelogEntry[] = []
 
-  // Split by version headers
   // Format: ## ClickHouse release v24.1.1.xxx, 2024-01-xx
   const versionPattern =
     /^## ClickHouse release v(\d+\.\d+)(?:\.\d+)?(?:\.\d+)?,?\s*(\d{4}-\d{2}-\d{2})?/gm
 
   const sections = content.split(versionPattern)
 
-  // Process each version section
   for (let i = 1; i < sections.length; i += 3) {
     const version = sections[i]
     const releaseDate = sections[i + 1]
@@ -30,7 +25,6 @@ export function parseChangelog(content: string): ChangelogEntry[] {
     // Merge with known changes
     const knownChanges = KNOWN_COLUMN_CHANGES[version] || []
     for (const known of knownChanges) {
-      // Add if not already found
       const exists = changes.some(
         (c) => c.table === known.table && c.column === known.column
       )
@@ -59,16 +53,12 @@ export function parseChangelog(content: string): ChangelogEntry[] {
   return entries
 }
 
-/**
- * Extract system table changes from a version section
- */
 function extractSystemTableChanges(
   version: string,
   content: string
 ): VersionChange[] {
   const changes: VersionChange[] = []
 
-  // Look for mentions of system tables
   for (const table of TARGET_TABLES) {
     const tablePattern = new RegExp(`\\b${table.replace('.', '\\.')}\\b`, 'gi')
 
@@ -91,9 +81,6 @@ function extractSystemTableChanges(
   return changes
 }
 
-/**
- * Parse a single line mentioning a system table change
- */
 function parseChangeLine(
   version: string,
   table: string,
@@ -101,7 +88,6 @@ function parseChangeLine(
 ): VersionChange | null {
   const lowerLine = line.toLowerCase()
 
-  // Detect column additions
   if (lowerLine.includes('add') && lowerLine.includes('column')) {
     const columnMatch = line.match(/column\s+`?(\w+)`?/i)
     return {
@@ -113,7 +99,6 @@ function parseChangeLine(
     }
   }
 
-  // Detect column removals
   if (lowerLine.includes('remove') && lowerLine.includes('column')) {
     const columnMatch = line.match(/column\s+`?(\w+)`?/i)
     return {
@@ -125,7 +110,6 @@ function parseChangeLine(
     }
   }
 
-  // Detect column renames
   if (lowerLine.includes('rename')) {
     const renameMatch = line.match(/`?(\w+)`?\s*(?:to|->|=>)\s*`?(\w+)`?/i)
     if (renameMatch) {
@@ -140,7 +124,6 @@ function parseChangeLine(
     }
   }
 
-  // Generic change
   return {
     version,
     table,
@@ -149,9 +132,6 @@ function parseChangeLine(
   }
 }
 
-/**
- * Group changes by table for easier processing
- */
 export function groupChangesByTable(
   entries: ChangelogEntry[]
 ): Map<string, VersionChange[]> {
@@ -168,9 +148,6 @@ export function groupChangesByTable(
   return byTable
 }
 
-/**
- * Group changes by version for easier processing
- */
 export function groupChangesByVersion(
   entries: ChangelogEntry[]
 ): Map<string, VersionChange[]> {
