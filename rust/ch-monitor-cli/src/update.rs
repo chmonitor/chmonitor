@@ -172,11 +172,6 @@ async fn fetch_releases(client: &Client, max_pages: u32) -> Result<Vec<Release>>
     Ok(all)
 }
 
-#[allow(dead_code)]
-async fn latest_tag(client: &Client) -> Result<String> {
-    latest_tag_for_channel(client, Channel::Stable).await
-}
-
 pub async fn latest_tag_for_channel(client: &Client, channel: Channel) -> Result<String> {
     let releases = fetch_releases(client, RELEASES_MAX_PAGES).await?;
     newest_chm_tag_for_channel(&releases, channel).ok_or_else(|| {
@@ -197,13 +192,6 @@ fn ensure_supported_target() -> Result<()> {
         return Err(unsupported_target_error(TARGET));
     }
     Ok(())
-}
-
-/// `chm update --check`: report whether a newer release exists.
-/// Returns `true` when an update is available.
-#[allow(dead_code)]
-pub async fn check(client: &Client) -> Result<bool> {
-    check_channel(client, Channel::Stable).await
 }
 
 pub async fn check_channel(client: &Client, channel: Channel) -> Result<bool> {
@@ -249,12 +237,6 @@ pub async fn hint(client: &Client) {
             env!("CARGO_PKG_VERSION")
         );
     }
-}
-
-/// `chm update` (and `--version <tag>`): download, verify, replace.
-#[allow(dead_code)]
-pub async fn run(client: &Client, pinned: Option<String>) -> Result<()> {
-    run_channel(client, pinned, Channel::Stable).await
 }
 
 /// True when this binary lives under a Homebrew prefix (Cellar / Caskroom).
