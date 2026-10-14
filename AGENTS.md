@@ -154,7 +154,7 @@ Config only: `.herdr-desk.json`. The Herdr plugin
 (`herdr plugin install duyet/herdr-desk`) picks this workspace up automatically.
 Do not put scheduler/spawn logic in this repo.
 
-Eight jobs, deliberately staggered so two never start in the same minute:
+Nine jobs, deliberately staggered so two never start in the same minute:
 
 | Job | Cron | Playbook | Owns |
 |---|---|---|---|
@@ -166,8 +166,9 @@ Eight jobs, deliberately staggered so two never start in the same minute:
 | `local:red-jobs` | `26 7 * * *` | `docs/herdr-desk/red-jobs.md` | the CI jobs babysit must ignore; classifies each as repo defect or external fact |
 | `local:stale-issues` | `34 9 * * *` | `docs/herdr-desk/stale-issues.md` | closes stale-bot / fixed / superseded / duplicate issues with a reason |
 | `local:docs` | `46 3 * * *` | `docs/herdr-desk/docs-drift.md` | prose-named dead paths, dangling `related:` ids, stale notes |
+| `local:ch-version` | `52 4 1,15 * *` | `docs/herdr-desk/ch-version.md` | new ClickHouse release vs. system columns the query configs read; one issue per broken config |
 
-The last four each close a hole where a failure is invisible *because* nothing
+`local:secrets`, `local:red-jobs`, `local:stale-issues`, and `local:docs` each close a hole where a failure is invisible *because* nothing
 depends on it: a workflow nothing gates can fail forever, a red job nobody owns
 decays into noise, and a queue nobody prunes becomes a graveyard. The doc/skill
 class is split in two on purpose — `tests/repo/markdown-links.test.ts` **gates**
@@ -176,7 +177,8 @@ owns what a deterministic check cannot reach (prose paths, `related:` ids,
 stale notes). Do not duplicate the CI half in the desk job.
 
 Each task has its own `agentName` (`chm-desk`, `chm-babysit`, `chm-prod`,
-`chm-improve`, `chm-secrets`, `chm-redjobs`, `chm-stale`, `chm-docs`) and
+`chm-improve`, `chm-secrets`, `chm-redjobs`, `chm-stale`, `chm-docs`,
+`chm-chversion`) and
 therefore its own long-lived manager session and worktree.
 Two jobs sharing an `agentName` race for one session — that bug cost a run on
 2026-09-26 when `herdr-desk/.herdr-desk.json` still said `"name": "chmonitor"`.
@@ -383,6 +385,10 @@ leak into the agent bundle). Current dev skills:
 - **`release-screenshots`** — capture, privacy-check, pick, crop, and frame
   release images (blog posts, changelog, social) with the bundled
   `frame.html` + `render.mjs`. Backed by `docs/knowledge/release-screenshots.md`.
+- **`ch-version-onboarding`** — audit a new ClickHouse release: newest
+  stable/LTS tags, `system.columns` diff between official binaries, `EXPLAIN`
+  every query config, support matrix, one issue per broken config. Backs the
+  `local:ch-version` desk job. Backed by `docs/knowledge/ch-version-onboarding.md`.
 
 **Auto-improve project skills (standing instruction).** These skills are living
 documents — keep them accurate as the codebase evolves, without being asked:
@@ -412,7 +418,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Architecture | [memory-optimization.md](docs/knowledge/memory-optimization.md) | Pooling, memoization, cache limits, monitoring |
 | Operations | [deployment.md](docs/knowledge/deployment.md) | Docker + Cloudflare Workers dual deployment |
 | Operations | [core-memory.md](docs/knowledge/core-memory.md) | Automation memory: code-smell scans, dead-code rules |
-| Operations | [issue-desk.md](docs/knowledge/issue-desk.md) | The eight desk jobs and what each owns, repo-owned playbooks, the EISDIR outage that silenced 24 fires, worktree rules |
+| Operations | [issue-desk.md](docs/knowledge/issue-desk.md) | The nine desk jobs and what each owns, repo-owned playbooks, the EISDIR outage that silenced 24 fires, worktree rules |
 | Operations | [secret-rotation.md](docs/knowledge/secret-rotation.md) | Redeploy after `wrangler secret put` |
 | Operations | [k8s-health-probes.md](docs/knowledge/k8s-health-probes.md) | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image CrashLoop incident; non-helm manifest + migration prompt |
 | Specs | [cloud-saas-mode.md](docs/knowledge/cloud-saas-mode.md) | One codebase, two products: cloud-mode flag, demo hosts for anon, welcome/setup, per-user D1 connections, connection-error classifier |
@@ -431,6 +437,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Development | [pstack-validation.md](docs/knowledge/pstack-validation.md) | Project-local pstack adapter, pinned upstream skills subtree, validation inventory, CI-first feature matrix, and evidence rules |
 | Operations | [install-sh-bot-fight.md](docs/knowledge/install-sh-bot-fight.md) | curl install.sh 403 from Bot Fight Mode; GitHub raw workaround; `cf:allow-install-sh` |
 | Design | [release-screenshots.md](docs/knowledge/release-screenshots.md) | Release images: privacy gate, one idea per image, branded frames, `render.mjs` to 2000x1250 WebP |
+| Operations | [ch-version-onboarding.md](docs/knowledge/ch-version-onboarding.md) | New ClickHouse release audit: binary `system.columns` diff, `EXPLAIN` every config, scraper and `LTS_VERSIONS` traps, first dry run (26.9) |
 
 ### When to Write to Knowledge vs Memory
 

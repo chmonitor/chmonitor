@@ -34,6 +34,7 @@ Agents discover knowledge in this order:
 | **Design** | [release-screenshots.md](release-screenshots.md) | reference | Release images: privacy gate, one idea per image, branded frames, `render.mjs` to 2000x1250 WebP |
 | **Operations** | [worker-bundle-size.md](worker-bundle-size.md) | decision | Worker gzip 1.82 MiB (under limit); bundle breakdown; @opentelemetry/api probed = 6.5 KiB, NOT worth stubbing |
 | **Operations** | [monorepo-refactor.md](monorepo-refactor.md) | decision | COMPLETE 2026-07-05 — monorepo migration record: phase table, extraction methodology, live gotchas; layout block re-verified 2026-09-30 |
+| **Operations** | [ch-version-onboarding.md](ch-version-onboarding.md) | workflow | New ClickHouse release audit: binary `system.columns` diff, `EXPLAIN` every query config, one issue per broken config (`local:ch-version`) |
 | **Operations** | [core-memory.md](core-memory.md) | workflow | Automation core memory: code-smell scans, dead-code rules |
 | **Operations** | [issue-desk.md](issue-desk.md) | workflow | 4 herdr-desk jobs (triage / babysit / prod / improve), repo-owned playbooks, the EISDIR outage that silenced 24 fires, `name` must equal the folder |
 | **Operations** | [secret-rotation.md](secret-rotation.md) | workflow | Cloudflare Workers secret rotation: redeploy after wrangler secret put |
