@@ -24,10 +24,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{
-        Block, Cell, Clear, List, ListItem, ListState, Paragraph, Row, Sparkline,
-        Table as TuiTable, TableState, Wrap,
-    },
+    widgets::{Block, Cell, Clear, Paragraph, Row, Sparkline, Table as TuiTable, TableState, Wrap},
     Frame, Terminal,
 };
 use reqwest::Client;
@@ -124,7 +121,6 @@ enum Overlay {
 struct HostEntry {
     id: u32,
     name: String,
-    host: String,
 }
 
 #[derive(Clone)]
@@ -765,8 +761,7 @@ async fn refresh_clickhouse(client: &Client, app: &mut App, force: bool) {
     if app.local_connections.is_empty() {
         app.hosts = vec![HostEntry {
             id: 0,
-            name: ch.url.clone(),
-            host: ch.url,
+            name: ch.url,
         }];
         app.host_id = 0;
     }
@@ -1002,43 +997,6 @@ fn draw_chart_cell(f: &mut Frame<'_>, area: Rect, pane: &ChartPane) {
     );
 }
 
-#[allow(dead_code)]
-fn draw_hosts(f: &mut Frame<'_>, area: Rect, app: &App) {
-    if app.hosts.is_empty() {
-        let body = if app.auth_required {
-            "sign in to list hosts"
-        } else {
-            "loading…"
-        };
-        f.render_widget(
-            Paragraph::new(body).block(Block::bordered().title("hosts")),
-            area,
-        );
-        return;
-    }
-    let items: Vec<ListItem> = app
-        .hosts
-        .iter()
-        .map(|h| {
-            let extra = if h.host.is_empty() || h.host == h.name {
-                String::new()
-            } else {
-                format!("  {}", h.host)
-            };
-            ListItem::new(format!("{}  {}{extra}", h.id, h.name))
-        })
-        .collect();
-    let mut state = ListState::default();
-    if let Some(idx) = app.hosts.iter().position(|h| h.id == app.host_id) {
-        state.select(Some(idx));
-    }
-    let list = List::new(items)
-        .block(Block::bordered().title(format!("hosts  {}", app.hosts.len())))
-        .highlight_symbol("● ")
-        .highlight_style(Style::default().fg(ORANGE).add_modifier(Modifier::BOLD));
-    f.render_stateful_widget(list, area, &mut state);
-}
-
 fn draw_table_pane(f: &mut Frame<'_>, area: Rect, app: &App) {
     let filtered = app.filtered_rows();
     let total = app.table_rows.len();
@@ -1222,7 +1180,6 @@ fn local_hosts(conns: &[StoredConnection]) -> Vec<HostEntry> {
         .map(|(i, c)| HostEntry {
             id: i as u32,
             name: c.name.clone(),
-            host: c.display_host(),
         })
         .collect()
 }
@@ -1328,7 +1285,7 @@ fn parse_hosts(data: &Value) -> Vec<HostEntry> {
             } else {
                 name
             };
-            HostEntry { id, name, host }
+            HostEntry { id, name }
         })
         .collect()
 }

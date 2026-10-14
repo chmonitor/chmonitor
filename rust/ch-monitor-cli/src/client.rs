@@ -18,9 +18,6 @@ struct ApiResponse {
 /// Full `{ success, data, metadata|meta }` envelope from the dashboard API.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ApiEnvelope {
-    #[serde(default)]
-    #[allow(dead_code)]
-    pub success: Option<bool>,
     pub data: Value,
     #[serde(default)]
     pub metadata: Option<Value>,
