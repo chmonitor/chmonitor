@@ -31,8 +31,9 @@ takes the path from `createFileRoute('...')`, and decides:
   public-read mode the middleware lets every `/api/v1/*` request through and
   leaves writes to the route.
 
-A route that needs a guard passes when its file references a name in
-`GUARDS`, or its path is in `PUBLIC_ROUTES`, `READ_ONLY_POSTS`, or
+A route that needs a guard passes when its file calls a name in `GUARDS`
+(`name(`, after comments and import lines are stripped; a mention in a comment
+or an import does not count), or its path is in `PUBLIC_ROUTES`, `READ_ONLY_POSTS`, or
 `KNOWN_GAPS`. The check is per file: one guard anywhere in the file counts for
 all its handlers. When a file mixes a public GET with a guarded POST, read it.
 
@@ -49,20 +50,24 @@ all its handlers. When a file mixes a public GET with a guarded POST, read it.
    discovery documents, RFC 8628 device-flow steps, capability-slug reads. Add
    the path to `PUBLIC_ROUTES` with a one-line reason.
 3. **v1 POST that only reads** (a body for tokens, no write): `READ_ONLY_POSTS`.
-4. **Unsure, or looks sensitive**: add it to `KNOWN_GAPS` with a `TODO(issue)`
-   reference and open an issue. Describe it neutrally; the repo is public, so
-   no exploit detail in the issue, the PR, or the reason string.
+4. **Unsure, or looks sensitive**: add it to `KNOWN_GAPS` with the reason
+   `tracked privately: ...` and track it outside the public repo. No issue
+   numbers and no exploit detail in the reason string or the PR.
 
 ## Adding a guard name
 
 Add it to `GUARDS` only if it rejects the caller when there is no valid
 identity or secret (returns 401/403 or throws an UNAUTHORIZED error). A
-resolver that falls back to an anonymous id is not a guard.
+resolver that falls back to an anonymous id is not a guard. Removed for that
+reason: `resolveAlertRoutingOwnerId` (returns `''`), `resolveCustomRuleOwnerId`
+(`'oss'`), `resolveRegistryUserId` and `resolveAgentUserId` (`'guest'`),
+`resolveOwnerId` (catches and returns `''`), and `authenticateRequest` (the
+`none` provider always passes). Read the function body before adding a name.
 
 ## Keeping the lists honest
 
 The test fails when an allowlist entry names a route that no longer exists,
-is now middleware-covered, or now references a guard. Delete the entry then.
+is now middleware-covered, or now calls a guard. Delete the entry then.
 The lists may not overlap.
 
 To prove a change to the test still bites: rename a guard call in one route

@@ -30,6 +30,10 @@ const API_GUARD_FILE = fileURLToPath(
  * Identifiers that reject an unauthenticated or unauthorized caller.
  * Identity resolvers are included only because they throw/401 when there is
  * no signed-in user (fail closed); check that before adding a new one.
+ * Resolvers that fall back to an anonymous id ('', 'oss', 'guest') are not
+ * guards: resolveAlertRoutingOwnerId, resolveCustomRuleOwnerId,
+ * resolveRegistryUserId, resolveAgentUserId, resolveOwnerId. Neither is
+ * authenticateRequest, which the `none` provider always passes.
  */
 const GUARDS = [
   // lib/auth/api-guard.ts
@@ -51,26 +55,34 @@ const GUARDS = [
   'readAndVerifySlackRequest',
   'validateEvent', // @polar-sh/sdk webhook signature
   'verifyOAuthState',
+  'timingSafeEqualString', // @chm/mcp-server/auth, Bearer CHM_API_KEY_SECRET
   // @chm/mcp-server/http (defaultAuthenticator)
   'handleMcp',
-  // auth provider session check (clerk / proxy)
-  'authenticateRequest',
   // fail-closed identity resolvers
   'resolveUserId',
   'resolveDashboardOwnerId',
   'resolveConnectionUserId',
-  'resolveAlertRoutingOwnerId',
-  'resolveCustomRuleOwnerId',
   'resolveBillingOwner',
   'resolveBillingOwnerId',
   'resolveSubscriptionUserId',
-  'resolveRegistryUserId',
-  'resolveAgentUserId',
-  'resolveOwnerId',
   'requireWriteAccess',
+  // lib/health/alert-routing-auth.ts: 401 for the anonymous owner under Clerk
+  'requiresSignInForWrite',
 ] as const
 
-const GUARD_RE = new RegExp(`\\b(${GUARDS.join('|')})\\b`)
+const GUARD_CALL_RE = new RegExp(`\\b(${GUARDS.join('|')})\\s*\\(`)
+
+/** Source with comments and import lines removed, so a guard must be called. */
+function stripNonCode(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:'"`])\/\/.*$/gm, '$1')
+    .replace(/^\s*import[\s\S]*?from\s*['"][^'"]+['"];?\s*$/gm, '')
+}
+
+function callsGuard(src: string): boolean {
+  return GUARD_CALL_RE.test(stripNonCode(src))
+}
 
 /** Route path -> why it is intentionally reachable without a guard. */
 const PUBLIC_ROUTES: Record<string, string> = {
@@ -85,7 +97,7 @@ const PUBLIC_ROUTES: Record<string, string> = {
   '/api/v1/auth/device/code':
     'RFC 8628 device authorization request; issues an unapproved code',
   '/api/v1/auth/device/status':
-    'RFC 8628 polling; the device code itself is the credential',
+    'device-flow config (enabled/disabled) for the CLI, no credentials',
   '/api/v1/auth/token':
     'RFC 8628 token exchange; only an approved device code yields a key',
 }
@@ -102,16 +114,28 @@ const READ_ONLY_POSTS: Record<string, string> = {
 }
 
 /**
- * Route path -> tracking reference. These look unguarded and need a decision
+ * Route path -> neutral reason. These look unguarded and need a decision
  * (guard or move to PUBLIC_ROUTES). Listed so the gap stays visible.
  */
 const KNOWN_GAPS: Record<string, string> = {
-  '/api/v1/browser-connections/test':
-    'TODO(issue): needs auth decision, see auth-guard-coverage PR',
+  '/api/v1/auth/device/approve': 'tracked privately: needs an auth decision',
+  '/api/v1/browser-connections/proxy':
+    'tracked privately: needs an auth decision',
   '/api/v1/browser-connections/sessions':
-    'TODO(issue): needs auth decision, see auth-guard-coverage PR',
-  '/api/v1/peerdb/validate':
-    'TODO(issue): needs auth decision, see auth-guard-coverage PR',
+    'tracked privately: needs an auth decision',
+  '/api/v1/browser-connections/test':
+    'tracked privately: needs an auth decision',
+  '/api/v1/health/alert-suggestions':
+    'tracked privately: needs an auth decision',
+  '/api/v1/health/check-alerts/$checkId':
+    'tracked privately: needs an auth decision',
+  '/api/v1/health/custom-rules': 'tracked privately: needs an auth decision',
+  '/api/v1/health/custom-rules/$id':
+    'tracked privately: needs an auth decision',
+  '/api/v1/mcp/servers': 'tracked privately: needs an auth decision',
+  '/api/v1/mcp/servers/$id/probe': 'tracked privately: needs an auth decision',
+  '/api/v1/peerdb/$': 'tracked privately: needs an auth decision',
+  '/api/v1/peerdb/validate': 'tracked privately: needs an auth decision',
 }
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const
@@ -185,7 +209,7 @@ describe('API auth guard coverage', () => {
     const offenders = routes.filter(
       (r) =>
         needsRouteGuard(r, exempt) &&
-        !GUARD_RE.test(r.src) &&
+        !callsGuard(r.src) &&
         !(r.path in PUBLIC_ROUTES) &&
         !(r.path in KNOWN_GAPS)
     )
@@ -218,11 +242,22 @@ describe('API auth guard coverage', () => {
       if (!route) stale.push(`${path}: no such route`)
       else if (!needsRouteGuard(route, exempt))
         stale.push(`${path}: covered by middleware, remove entry`)
-      else if (GUARD_RE.test(route.src))
+      else if (callsGuard(route.src))
         stale.push(`${path}: now references a guard, remove entry`)
       if (reason.trim().length < 10) stale.push(`${path}: reason too short`)
     }
     expect(stale).toEqual([])
+  })
+
+  test('a guard named only in a comment or import does not count', () => {
+    const fixture = [
+      "import { resolveUserId } from '@/lib/conversation-store/auth'",
+      '// TODO: call resolveUserId(request) here',
+      '/* authorizeFeatureRequest(request) once wired */',
+      'export const handler = async () => new Response("ok")',
+    ].join('\n')
+    expect(callsGuard(fixture)).toBe(false)
+    expect(callsGuard(`${fixture}\nawait resolveUserId(request)`)).toBe(true)
   })
 
   test('allowlists do not overlap', () => {
