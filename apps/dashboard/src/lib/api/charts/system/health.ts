@@ -195,12 +195,10 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
     tableCheck: 'system.view_refreshes',
   }),
 
-  // ---------------------------------------------------------------------------
   // Health drill-down charts. Each returns the *affected rows* behind a health
   // check (the breakdown shown in the detail dialog), as opposed to the scalar
   // aggregate the card headline reads. Fetched on demand when the dialog opens,
   // via the standard /api/v1/charts/$name path (never the batched endpoint).
   // Columns are pre-formatted + snake_case-aliased so the generic ResultTable
   // renders them cleanly without per-card formatting code.
-  // ---------------------------------------------------------------------------
 }

@@ -45,10 +45,6 @@ async function pgRows<T extends Record<string, unknown>>(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Connections + activity (pg_stat_activity + pg_settings).
-// ---------------------------------------------------------------------------
-
 /**
  * Connection saturation, longest active query, and longest idle-in-transaction
  * in ONE round-trip. `max_connections` comes from pg_settings (the collector
@@ -95,10 +91,8 @@ async function collectActivity(pgHostId: number): Promise<InsightCandidate[]> {
   return out
 }
 
-// ---------------------------------------------------------------------------
 // Database-wide stats (pg_stat_database): cache hit ratio, rollbacks/deadlocks,
 // replication lag.
-// ---------------------------------------------------------------------------
 
 const DATABASE_SQL = `SELECT
   coalesce(sum(blks_hit), 0)::bigint AS blks_hit,
@@ -137,10 +131,6 @@ async function collectDatabase(pgHostId: number): Promise<InsightCandidate[]> {
   return out
 }
 
-// ---------------------------------------------------------------------------
-// Table-level bloat (pg_stat_user_tables) — worst dead-tuple ratio.
-// ---------------------------------------------------------------------------
-
 const DEAD_TUPLES_SQL = `SELECT
   (schemaname || '.' || relname) AS table_name,
   n_dead_tup,
@@ -164,10 +154,8 @@ async function collectDeadTuples(
   return candidate ? [candidate] : []
 }
 
-// ---------------------------------------------------------------------------
 // Unused indexes (pg_stat_user_indexes) — idx_scan = 0, excluding PK / unique
 // constraint indexes (those are integrity-backing, not tuning candidates).
-// ---------------------------------------------------------------------------
 
 const UNUSED_INDEXES_SQL = `SELECT (s.schemaname || '.' || s.indexrelname) AS index_name
 FROM pg_stat_user_indexes s
@@ -192,10 +180,6 @@ async function collectUnusedIndexes(
   const candidate = checkUnusedIndexes(names.length, names)
   return candidate ? [candidate] : []
 }
-
-// ---------------------------------------------------------------------------
-// pg_stat_statements availability.
-// ---------------------------------------------------------------------------
 
 async function collectStatStatements(
   pgHostId: number

@@ -46,7 +46,6 @@ export function loadHistory(): HistoryMap {
   }
 }
 
-/** Append a value to a series, capping at {@link MAX_HISTORY_POINTS}. Pure. */
 export function appendPoint(
   series: number[] | undefined,
   value: number

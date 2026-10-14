@@ -171,10 +171,6 @@ export async function resolveDigestWindowMinutes(
   return settings?.enabled ? settings.windowMinutes : 0
 }
 
-// ---------------------------------------------------------------------------
-// Declarative reader: Digest settings — single value, key `__digest__`
-// ---------------------------------------------------------------------------
-
 async function declarativeDigest(): Promise<SourceLayer<DigestSettings>[]> {
   return (await readHealthConfigLayers()).map((layer) => ({
     source: layer.source,

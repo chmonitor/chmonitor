@@ -553,11 +553,9 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       groupable: groupableWebhookTargets,
     } = partitionWebhookTargets(targets)
 
-    // -----------------------------------------------------------------------
     // Per-channel fan-out. The ORDER below is behaviour: it is the historical
     // inline order, and each channel's own `anyDelivered` contribution feeds
     // the commit gate at the end.
-    // -----------------------------------------------------------------------
     let anyDelivered = false
 
     const webhookDelivered = await dispatchWebhookFanoutChannel(

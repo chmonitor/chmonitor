@@ -121,7 +121,6 @@ export function checkRateLimit(
     }
   }
 
-  // Compute how long until bucket has 1 token
   const msNeeded = ((1 - bucket.tokens) / limitPerMin) * windowMs
   const retryAfterSec = Math.ceil(msNeeded / 1000)
 

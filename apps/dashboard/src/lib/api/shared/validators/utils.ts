@@ -39,18 +39,15 @@ export function sanitizeQueryParams(
   const sanitized: Record<string, string> = {}
 
   for (const [key, value] of Object.entries(params)) {
-    // Skip undefined values
     if (value === undefined) {
       continue
     }
 
-    // Convert null to empty string
     if (value === null) {
       sanitized[key] = ''
       continue
     }
 
-    // Convert primitives to string
     if (
       typeof value === 'string' ||
       typeof value === 'number' ||

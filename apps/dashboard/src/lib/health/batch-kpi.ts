@@ -62,7 +62,6 @@ export const BATCH_EXCLUDED_RULE_IDS: readonly string[] = [
 export interface BatchedKpi {
   readonly ruleId: string
   readonly valueKey: string
-  /** The rule's own SQL, verbatim. */
   readonly sql: string
 }
 
@@ -150,7 +149,6 @@ export function parseBatchedKpiRows(
 }
 
 export interface RulePartition {
-  /** Rules the batch will evaluate. */
   batched: BatchedKpi[]
   /** Rules that still need their own statement. */
   individual: AlertRuleDef[]

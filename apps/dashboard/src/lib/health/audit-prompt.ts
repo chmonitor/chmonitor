@@ -12,13 +12,10 @@ export interface AuditPromptInput {
   value: number | null
   /** Resolved warning/critical thresholds. */
   thresholds: { warning: number; critical: number }
-  /** Computed status. */
   status: 'ok' | 'warning' | 'critical' | 'error' | 'loading'
   /** Full first-row data from the chart. */
   row?: Record<string, unknown>
-  /** Active host id. */
   hostId: number
-  /** Optional ClickHouse version, when known. */
   clickhouseVersion?: string
 }
 

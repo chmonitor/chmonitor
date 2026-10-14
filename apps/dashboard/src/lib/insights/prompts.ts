@@ -17,9 +17,7 @@ export const DEFAULT_PROMPT_STYLE: InsightPromptStyle = 'concise'
 interface PromptStyleDef {
   /** Stable id used in settings + the generate API. */
   readonly id: InsightPromptStyle
-  /** Short label for the settings UI. */
   readonly label: string
-  /** One-line description for the settings UI. */
   readonly description: string
   /** System prompt sent to the model for this style. */
   readonly system: string
@@ -53,7 +51,6 @@ export const INSIGHT_PROMPT_STYLES: readonly PromptStyleDef[] = [
 
 const STYLE_IDS = new Set<string>(INSIGHT_PROMPT_STYLES.map((s) => s.id))
 
-/** True when `value` is a known prompt-style id. */
 export function isInsightPromptStyle(
   value: unknown
 ): value is InsightPromptStyle {
@@ -70,7 +67,6 @@ export function resolvePromptStyle(
   )
 }
 
-/** Build the system prompt for a given style (default style when unknown). */
 export function promptSystemFor(style: string | null | undefined): string {
   return resolvePromptStyle(style).system
 }

@@ -306,10 +306,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // -----------------------------------------------------------------------
-  // Query Insights (volume metrics)
-  // -----------------------------------------------------------------------
-
   // Total queries executed in the period
   'insight-total-queries': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
@@ -378,10 +374,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // -----------------------------------------------------------------------
-  // Cluster Activity (live metrics from system.processes / system.metrics)
-  // -----------------------------------------------------------------------
-
   // Currently executing queries
   'insight-active-queries': () => ({
     query: `
@@ -423,10 +415,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
       FROM system.merges
     `,
   }),
-
-  // -----------------------------------------------------------------------
-  // Storage & Operations
-  // -----------------------------------------------------------------------
 
   // Total active parts across all tables
   'insight-active-parts': () => ({

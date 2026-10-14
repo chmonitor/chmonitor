@@ -107,7 +107,6 @@ export function isHealthSettingsTab(value: string | undefined): boolean {
   return value !== undefined && Object.hasOwn(LEGACY_TAB_MAP, value)
 }
 
-/** Resolve any (current or legacy) `?tab=` value to a tab + optional dialog. */
 export function resolveHealthSettingsTab(
   value: string | undefined
 ): ResolvedHealthSettingsTab {

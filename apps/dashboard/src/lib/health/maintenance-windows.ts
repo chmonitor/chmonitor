@@ -134,12 +134,10 @@ function ensureMigrated(db: HealthSqlDb): Promise<void> {
   return migration
 }
 
-// ---------------------------------------------------------------------------
 // Best-effort 30s in-memory cache of active windows per owner, so a health
 // sweep tick doesn't pay a D1 read for every host/rule combination. Cleared
 // implicitly by TTL; a create/delete invalidates the affected owner's entry
 // so the UI + sweep never observe stale data for more than the TTL.
-// ---------------------------------------------------------------------------
 const CACHE_TTL_MS = 30_000
 const cache = new Map<
   string,
@@ -307,10 +305,6 @@ export async function deleteWindow(
   invalidateCache(ownerId)
   return res.meta?.changes ?? 0
 }
-
-// ---------------------------------------------------------------------------
-// Declarative reader: Maintenance windows — merge key `id`, time-union
-// ---------------------------------------------------------------------------
 
 async function declarativeMaintenanceWindows(
   ownerId: string

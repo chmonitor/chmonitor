@@ -114,7 +114,6 @@ export async function validateDashboardQuery(
     updateDashboardQueryCache(hostId, queries)
     await setKVCachedDashboardQueries(hostId, queries)
 
-    // Check if the query exists in the table
     if (!queries.has(query)) {
       return {
         valid: false,

@@ -138,7 +138,6 @@ export function classifyError(error: unknown): ErrorClassification {
     }
   }
 
-  // Check other patterns in priority order
   for (const { type, keywords } of CLASSIFICATION_PATTERNS) {
     if (matchesAnyKeyword(normalizedMessage, keywords)) {
       return {
@@ -148,7 +147,6 @@ export function classifyError(error: unknown): ErrorClassification {
     }
   }
 
-  // Default to QueryError for unknown errors
   return {
     type: ApiErrorType.QueryError,
     message,
