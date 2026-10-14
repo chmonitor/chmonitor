@@ -250,7 +250,6 @@ export class ProxyAuthProvider implements ServerAuthProvider {
     const cfAccess = await verifyCfAccess(request)
     if (cfAccess?.authenticated) return cfAccess
 
-    // Then the trusted header + shared secret.
     const trustedHeader = verifyTrustedHeader(request)
     if (trustedHeader?.authenticated) return trustedHeader
 

@@ -393,10 +393,6 @@ async function getMirrorDetail(mirrorName: string) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// get_peerdb_metrics — the slot-lag / throughput / snapshot / fleet surface.
-// ---------------------------------------------------------------------------
-
 /** Windows PeerDB's lag-history endpoint accepts, most-recent-first. */
 const LAG_WINDOWS = ['1hour', '6hours', '1day', '3days', '7days'] as const
 /** CDC graph bucket sizes, matching the `/peerdb` mirror page default. */

@@ -207,11 +207,6 @@ const FALLBACK: Omit<ClassifiedConnectionError, 'raw'> = {
   docsSlug: 'guides/connection-errors',
 }
 
-/**
- * Classify a raw connection-error string into an actionable error.
- *
- * @param raw - The error message from the test endpoint (or any thrown error).
- */
 export function classifyConnectionError(
   raw: string | null | undefined
 ): ClassifiedConnectionError {

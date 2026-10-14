@@ -87,10 +87,6 @@ const MAX_SERVERS = 5
 /** Per-server connect+tools timeout in milliseconds. */
 const CONNECT_TIMEOUT_MS = 8_000
 
-// ---------------------------------------------------------------------------
-// URL guard
-// ---------------------------------------------------------------------------
-
 /**
  * Returns true when the URL is safe to connect to as an MCP endpoint.
  *
@@ -200,10 +196,6 @@ function isNumericEncodedHost(h: string): boolean {
   return false
 }
 
-// ---------------------------------------------------------------------------
-// Name sanitisation
-// ---------------------------------------------------------------------------
-
 /**
  * Sanitise a server name into a safe tool key segment.
  * Output: lowercase [a-z0-9_], max 20 chars, never empty.
@@ -216,10 +208,6 @@ export function sanitizeServerName(name: string): string {
     .slice(0, 20)
   return cleaned || 'server'
 }
-
-// ---------------------------------------------------------------------------
-// Connection
-// ---------------------------------------------------------------------------
 
 /**
  * Connect to a list of custom MCP servers, returning merged AI SDK tools and
@@ -323,10 +311,6 @@ export async function connectCustomMcpServers(
   return { tools: allTools, closeAll, statuses }
 }
 
-// ---------------------------------------------------------------------------
-// Validate (test-before-save) + per-user loading
-// ---------------------------------------------------------------------------
-
 /**
  * Test-connect to a single MCP endpoint WITHOUT persisting: SSRF-guard the URL,
  * open the (SSRF-pinned) client, list its advertised tools, and ALWAYS close
@@ -423,10 +407,6 @@ function normalizeEndpoint(endpoint: string): string {
   return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed
 }
 
-// ---------------------------------------------------------------------------
-// Internals
-// ---------------------------------------------------------------------------
-
 /**
  * Build outbound auth headers from a registration's structured auth. Returns
  * undefined for no auth so the transport sends none.
@@ -486,7 +466,6 @@ async function connectWithTimeout(
     const timer = setTimeout(() => {
       if (settled) return
       settled = true
-      // Clean up any client that connected but whose tools() call timed out
       if (resolvedClient) {
         resolvedClient.close().catch(() => {})
       }

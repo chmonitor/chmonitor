@@ -528,10 +528,6 @@ export async function auditPeerDBAlert(params: {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Agent investigation (pre-send step)
-// ---------------------------------------------------------------------------
-
 export interface PeerDBInvestigationMetrics {
   /** Mirror status rows collected read-only (status/log/lag/slot snapshots). */
   signalsCollected: number
@@ -616,10 +612,6 @@ export function investigatePeerDBAlert(params: {
     notes,
   }
 }
-
-// ---------------------------------------------------------------------------
-// Delivery gate: dry-run + idempotency + verdict
-// ---------------------------------------------------------------------------
 
 /** One-hour dedup buckets, matching the sweep's incident-window convention. */
 const DEDUP_WINDOW_MS = 60_000 * 60

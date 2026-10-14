@@ -140,10 +140,6 @@ export async function releaseAiUsage(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Monthly LLM spend accumulator (per-owner USD, cloud SaaS only)
-// ---------------------------------------------------------------------------
-
 /**
  * Lazily ensure the monthly-spend table exists. Cached per worker instance so
  * the DDL runs at most once. Mirrors the daily counter but keyed by UTC month
@@ -229,10 +225,6 @@ export async function addAiSpend(
     // Swallow: a missing table or transient D1 error must not break the request.
   }
 }
-
-// ---------------------------------------------------------------------------
-// BYOK activation counter (per-owner, per UTC month, cloud SaaS only)
-// ---------------------------------------------------------------------------
 
 /**
  * Lazily ensure the BYOK activation table exists. Cached per worker instance so

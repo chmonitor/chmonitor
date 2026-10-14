@@ -24,17 +24,7 @@ import type {
  */
 const storage = new Map<string, StoredConversation[]>()
 
-/**
- * In-memory conversation store implementation.
- */
 export class MemoryStore implements ConversationStore {
-  /**
-   * List conversations for a user.
-   *
-   * @param userId - User ID to scope queries
-   * @param limit - Maximum number of conversations to return
-   * @returns Array of conversation metadata, sorted by updatedAt DESC
-   */
   async list(
     userId: string,
     limit?: number,
@@ -42,28 +32,18 @@ export class MemoryStore implements ConversationStore {
   ): Promise<ConversationMeta[]> {
     const conversations = storage.get(userId) || []
 
-    // Sort by updatedAt DESC (most recent first)
     let sorted = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt)
 
-    // Apply retention cutoff when provided
     if (sinceMs != null) {
       sorted = sorted.filter((c) => c.updatedAt >= sinceMs)
     }
 
-    // Apply limit if specified
     const limited = limit ? sorted.slice(0, limit) : sorted
 
     // Return metadata only (no messages)
     return limited.map(({ messages, ...meta }) => meta)
   }
 
-  /**
-   * Get a single conversation with full messages.
-   *
-   * @param userId - User ID to scope queries
-   * @param conversationId - Conversation ID to retrieve
-   * @returns Conversation with messages, or null if not found
-   */
   async get(
     userId: string,
     conversationId: string
@@ -105,10 +85,8 @@ export class MemoryStore implements ConversationStore {
       }
     }
 
-    // Get user's conversations or initialize empty array
     let conversations = storage.get(userId) || []
 
-    // Find existing conversation index
     const existingIndex = conversations.findIndex((c) => c.id === id)
 
     if (existingIndex >= 0) {
@@ -127,20 +105,12 @@ export class MemoryStore implements ConversationStore {
       })
     }
 
-    // Sort by updatedAt DESC to keep array ordered
     conversations = conversations.sort((a, b) => b.updatedAt - a.updatedAt)
 
-    // Save back to storage
     storage.set(userId, conversations)
     return { written: true }
   }
 
-  /**
-   * Delete a single conversation.
-   *
-   * @param userId - User ID to scope queries
-   * @param conversationId - Conversation ID to delete
-   */
   async delete(userId: string, conversationId: string): Promise<void> {
     const conversations = storage.get(userId) || []
 
@@ -149,11 +119,6 @@ export class MemoryStore implements ConversationStore {
     storage.set(userId, filtered)
   }
 
-  /**
-   * Delete all conversations for a user.
-   *
-   * @param userId - User ID to scope queries
-   */
   async deleteAll(userId: string): Promise<void> {
     storage.set(userId, [])
   }

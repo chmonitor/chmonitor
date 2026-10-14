@@ -40,12 +40,10 @@ async function fetchBackendDefaults(): Promise<Partial<UserSettings> | null> {
       const { params } = data.data
       const defaults: Partial<UserSettings> = {}
 
-      // Extract timezone from backend params if available
       if (params.timezone && typeof params.timezone === 'string') {
         defaults.timezone = params.timezone
       }
 
-      // Extract theme from backend params if available
       if (params.theme && typeof params.theme === 'string') {
         defaults.theme = params.theme as UserSettings['theme']
       }

@@ -14,10 +14,6 @@ import type { AlertPayload, AlertSeverity } from '@/lib/health/adapters/types'
 import type { AlertEventRecord } from '@/lib/health/alert-history-store'
 import type { IncidentSnapshot } from '@/lib/health/incident-snapshot'
 
-// ---------------------------------------------------------------------------
-// Block Kit types (only the subset this app emits).
-// ---------------------------------------------------------------------------
-
 export interface SlackTextObject {
   type: 'plain_text' | 'mrkdwn'
   text: string
@@ -61,10 +57,6 @@ const SEVERITY_EMOJI: Record<AlertSeverity, string> = {
   warning: '🟠',
   recovery: '🟢',
 }
-
-// ---------------------------------------------------------------------------
-// ACK button value codec.
-// ---------------------------------------------------------------------------
 
 /** Structured identity of the alert an ACK button refers to. */
 export interface AckKey {
@@ -122,10 +114,6 @@ export function decodeAckValue(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Shared small helpers.
-// ---------------------------------------------------------------------------
-
 function header(text: string): SlackBlock {
   return { type: 'header', text: { type: 'plain_text', text, emoji: true } }
 }
@@ -143,10 +131,6 @@ const divider: SlackBlock = { type: 'divider' }
 function pct(value: number | null): string {
   return value === null ? 'n/a' : `${value.toFixed(1)}%`
 }
-
-// ---------------------------------------------------------------------------
-// /chmonitor status
-// ---------------------------------------------------------------------------
 
 /**
  * Cluster status summary blocks from an incident snapshot (running queries,
@@ -181,10 +165,6 @@ export function buildStatusBlocks(
     context(`Captured ${snapshot.capturedAt}`),
   ]
 }
-
-// ---------------------------------------------------------------------------
-// /chmonitor query
-// ---------------------------------------------------------------------------
 
 /**
  * Render a capped result set as a fenced code block (a real Block Kit table
@@ -233,10 +213,6 @@ function formatCell(value: unknown): string {
   return s.length > 60 ? `${s.slice(0, 57)}…` : s
 }
 
-// ---------------------------------------------------------------------------
-// /chmonitor alert
-// ---------------------------------------------------------------------------
-
 /**
  * List recent firing alerts (from the D1 alert-history audit log). Recovery
  * rows are excluded by the caller; this renders whatever it is given.
@@ -261,10 +237,6 @@ export function buildAlertListBlocks(events: AlertEventRecord[]): SlackBlock[] {
   }
   return blocks
 }
-
-// ---------------------------------------------------------------------------
-// Alert message with an ACK button (the outbound "alert bridge").
-// ---------------------------------------------------------------------------
 
 /**
  * Build a rich alert message that carries an "Acknowledge" button. This is the
@@ -339,10 +311,6 @@ export function buildAckedMessageBlocks(
     context(`✅ Acknowledged by <@${ackedBy}> · ${ackedAtIso}`),
   ]
 }
-
-// ---------------------------------------------------------------------------
-// Home tab
-// ---------------------------------------------------------------------------
 
 /** A single host's compact line on the Home tab. */
 export interface HomeHostSummary {

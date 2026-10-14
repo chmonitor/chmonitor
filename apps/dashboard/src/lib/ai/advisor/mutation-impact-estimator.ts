@@ -17,10 +17,6 @@
 import { checkTableExists } from '@chm/clickhouse-client/table-existence-cache'
 import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
 
-// ---------------------------------------------------------------------------
-// parseMutationSql — pure, no I/O
-// ---------------------------------------------------------------------------
-
 export interface ParsedMutation {
   kind: 'UPDATE' | 'DELETE'
   database: string
@@ -148,10 +144,6 @@ export function parseMutationSql(sql: string): ParsedMutation {
 
   return { kind, database, table, whereClause: whereClause.trim() }
 }
-
-// ---------------------------------------------------------------------------
-// estimateMutationImpact — orchestration (I/O via readOnlyQuery, mockable)
-// ---------------------------------------------------------------------------
 
 /**
  * A rewrite writes new parts before the old ones are dropped, so the mutation

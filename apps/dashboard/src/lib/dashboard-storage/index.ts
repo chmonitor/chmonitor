@@ -66,9 +66,6 @@ export function resolveDashboardBackend(): DashboardBackend {
   }
 }
 
-/**
- * List all saved dashboard names, sorted alphabetically.
- */
 export async function listDashboards(): Promise<string[]> {
   return resolveDashboardBackend() === 'd1'
     ? listDashboardsRemote()
@@ -102,9 +99,6 @@ export async function saveDashboard(
   }
 }
 
-/**
- * Delete a saved dashboard by name.
- */
 export async function deleteDashboard(name: string): Promise<void> {
   if (resolveDashboardBackend() === 'd1') {
     await deleteDashboardRemote(name)

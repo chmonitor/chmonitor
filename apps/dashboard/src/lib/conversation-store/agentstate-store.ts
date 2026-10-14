@@ -41,9 +41,6 @@ import { debug, error as logError } from '@chm/logger'
  */
 const DEFAULT_BASE_URL = 'https://agentstate.app/api'
 
-/**
- * Application identifier stored in conversation metadata.
- */
 const APP_ID = 'clickhouse-monitoring'
 
 /**
@@ -68,11 +65,7 @@ const LIST_PAGE_SIZE = 100
  *
  * AgentState's list endpoint has no server-side user filter, so {@link
  * AgentStateStore.list} pages newest-first through the shared project and keeps
- * client-side only the requesting user's conversations. The previous bound of 5
- * pages (500 conversations) meant that once a shared project accumulated more
- * than 500 newer conversations from other users, an inactive user's own older
- * conversations fell outside the scan window and silently vanished from their
- * history.
+ * client-side only the requesting user's conversations.
  *
  * Scanning by conversation count (not page count) and raising the budget keeps
  * the common case cheap — for an active user, their `limit` conversations are
@@ -156,9 +149,6 @@ export class AgentStateStore implements ConversationStore {
     this.aiEnrich = aiEnrich
   }
 
-  /**
-   * Build the deterministic AgentState external id for a conversation.
-   */
   private externalId(userId: string, conversationId: string): string {
     return `${userId}:${conversationId}`
   }
@@ -294,9 +284,6 @@ export class AgentStateStore implements ConversationStore {
     return metadata as unknown as Record<string, unknown>
   }
 
-  /**
-   * Reconstruct a ConversationMeta from an AgentState conversation.
-   */
   private toConversationMeta(
     conv: Conversation,
     userId: string
@@ -445,13 +432,6 @@ export class AgentStateStore implements ConversationStore {
     }
   }
 
-  /**
-   * Get a single conversation with full messages.
-   *
-   * @param userId - User ID to scope queries (security check)
-   * @param conversationId - Conversation ID to retrieve
-   * @returns Conversation with messages, or null if not found / not owned
-   */
   async get(
     userId: string,
     conversationId: string

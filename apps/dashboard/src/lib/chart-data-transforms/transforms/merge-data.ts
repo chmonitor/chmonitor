@@ -49,7 +49,6 @@ export function transformMergeSummaryData(
 
   const items: SummaryMetricsItem[] = []
 
-  // Add rows comparison (smaller value first for visual consistency)
   if (rowsReadWritten.rows_read < rowsReadWritten.rows_written) {
     items.push({
       current: rowsReadWritten.rows_read,
@@ -66,7 +65,6 @@ export function transformMergeSummaryData(
     })
   }
 
-  // Add bytes comparison (smaller value first for visual consistency)
   if (bytesReadWritten) {
     if (bytesReadWritten.bytes_read < bytesReadWritten.bytes_written) {
       items.push({
@@ -85,7 +83,6 @@ export function transformMergeSummaryData(
     }
   }
 
-  // Add memory usage comparison (always last)
   items.push({
     current: used.memory_usage,
     target: totalMem.total,

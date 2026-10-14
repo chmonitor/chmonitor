@@ -26,7 +26,6 @@ export function BrowserConnectionsProvider({
 }) {
   const [connections, setConnections] = useState<BrowserConnection[]>([])
 
-  // Load connections from localStorage on mount and when storage changes
   useEffect(() => {
     function load() {
       try {

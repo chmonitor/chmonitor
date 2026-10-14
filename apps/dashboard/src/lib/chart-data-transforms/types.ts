@@ -28,26 +28,17 @@ export type UserEventCountsTransformed<T extends string = string> = {
   chartData: Array<Record<T, string> & Record<string, number>>
 }
 
-/**
- * Memory usage data structure with raw and formatted values.
- */
 export type MemoryUsageData = {
   memory_usage: number
   readable_memory_usage: string
 }
 
-/**
- * Total memory data structure from system.metrics.
- */
 export type TotalMemData = {
   metric: string
   total: number
   readable_total: string
 }
 
-/**
- * Rows read/written data structure.
- */
 export type RowsReadWrittenData = {
   rows_read: number
   rows_written: number
@@ -65,16 +56,10 @@ export type BytesReadWrittenData = {
   readable_bytes_written: string
 }
 
-/**
- * Query count data structure.
- */
 export type QueryCountData = {
   query_count: number
 }
 
-/**
- * Transformed summary data with formatted metric items.
- */
 export type SummaryMetricsItem = {
   current: number
   target: number
@@ -95,9 +80,6 @@ export type SummaryInputData = {
   main?: (MemoryUsageData & QueryCountData)[]
 }
 
-/**
- * Transformed summary data with primary display values and metrics.
- */
 export type SummaryDataTransformed = {
   /** Primary display values for the card header */
   primary: {
@@ -116,9 +98,6 @@ export type SummaryDataTransformed = {
   }
 }
 
-/**
- * Generic read/write pair value for formatted display.
- */
 export type ReadWritePair = {
   value: number
   readable: string

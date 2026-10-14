@@ -46,10 +46,6 @@ export interface McpConfigStorage {
 
 const EMPTY: McpConfigStorage = { disabled: [], customServers: [] }
 
-// ---------------------------------------------------------------------------
-// Pure state transitions — exported so they can be unit-tested without a DOM.
-// ---------------------------------------------------------------------------
-
 /** Toggle the enabled state of a server, returning a new config. */
 export function withServerEnabled(
   config: McpConfigStorage,
@@ -131,10 +127,8 @@ function writeStorage(config: McpConfigStorage): void {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Tab-wide store — the single source both the settings panel and the agent
 // runtime read, so a toggle made in one reaches the other without a reload.
-// ---------------------------------------------------------------------------
 
 /** Same-tab subscribers to re-render on change. */
 const listeners = new Set<() => void>()

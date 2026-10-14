@@ -11,17 +11,14 @@
  * Handles null, undefined, objects, and strings with special characters.
  */
 export function valueToCsv(value: unknown): string {
-  // Handle null/undefined
   if (value === null || value === undefined) {
     return ''
   }
 
-  // Handle objects (convert to JSON string)
   if (typeof value === 'object') {
     value = JSON.stringify(value)
   }
 
-  // Convert to string
   const strValue = String(value)
 
   // If the value contains quotes, commas, or line breaks (LF or CR), wrap in
@@ -77,20 +74,14 @@ export function arrayToCsv(
   return csvRows.join('\n')
 }
 
-/**
- * Trigger a browser download for the given CSV content.
- */
 export function downloadCsv(content: string, filename: string) {
-  // Create a Blob with the CSV content
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
 
-  // Create a temporary URL and trigger download
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.download = `${filename}.csv`
 
-  // Trigger download and cleanup
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

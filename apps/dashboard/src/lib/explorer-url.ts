@@ -1,6 +1,3 @@
-/**
- * Build a URL that opens a SQL query in the Data Explorer query tab.
- */
 export function buildExplorerQueryUrl(sql: string, hostId: number): string {
   const params = new URLSearchParams()
   params.set('host', String(hostId))

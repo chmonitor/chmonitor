@@ -52,10 +52,6 @@ export interface HostMetricsInput {
   alertsFiring: number
 }
 
-// ---------------------------------------------------------------------------
-// Pure text building (unit-tested directly — no ClickHouse/env dependency).
-// ---------------------------------------------------------------------------
-
 interface MetricFamily {
   help: string
   type: 'gauge'
@@ -169,10 +165,6 @@ export function buildPrometheusText(
   return `${lines.join('\n')}\n`
 }
 
-// ---------------------------------------------------------------------------
-// Alert-firing counts from the in-memory alert-state store.
-// ---------------------------------------------------------------------------
-
 /**
  * Count currently-firing conditions (any severity above `ok`) per host from
  * the alert dedup state. Every record the store holds already represents a
@@ -199,10 +191,6 @@ export function countFiringAlertsByHost(
   return counts
 }
 
-// ---------------------------------------------------------------------------
-// Feature gate.
-// ---------------------------------------------------------------------------
-
 function parseBoolEnv(value: string | undefined): boolean | undefined {
   if (value === undefined || value === '') return undefined
   const normalized = value.trim().toLowerCase()
@@ -225,10 +213,6 @@ export function isPrometheusExporterEnabled(
   if (explicit !== undefined) return explicit
   return !isCloudModeServer(bindings)
 }
-
-// ---------------------------------------------------------------------------
-// ClickHouse querying + 30s single-flight cache.
-// ---------------------------------------------------------------------------
 
 async function queryHostRows(
   clientConfig: ClickHouseConfig,

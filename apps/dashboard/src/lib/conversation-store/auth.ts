@@ -8,14 +8,8 @@ import { ConversationStoreError } from './types'
 import { auth } from '@clerk/tanstack-react-start/server'
 import { isClerkAuthProvider } from '@/lib/auth/provider'
 
-/**
- * Guest user ID constant for unauthenticated users.
- */
 export const GUEST_USER_ID = 'guest'
 
-/**
- * Clerk secret key environment variable name.
- */
 const CLERK_SECRET_KEY = 'CLERK_SECRET_KEY'
 
 /**

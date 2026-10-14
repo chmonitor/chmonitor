@@ -109,10 +109,6 @@ export interface TtlSuggestion {
 
 export type TtlResult = PartLogUnavailable | TtlSuggestion
 
-// ---------------------------------------------------------------------------
-// Pure math — no I/O, fully unit-testable with synthetic series.
-// ---------------------------------------------------------------------------
-
 /**
  * Build a dense, chronologically-ordered daily byte series over `windowDays`,
  * filling any day with no NewPart events as `0`. Index `0` is the oldest day
@@ -274,10 +270,6 @@ export function computeTtlSuggestion(
 
   return { nSafeDays, suggestedTtlDays, meetsUtilizationTarget, riskNote }
 }
-
-// ---------------------------------------------------------------------------
-// Orchestration — ClickHouse-backed. Thin wrappers around the pure math above.
-// ---------------------------------------------------------------------------
 
 async function isPartLogAvailable(hostId: number): Promise<boolean> {
   // 'unknown' means the probe itself failed (network/timeout/auth), not a

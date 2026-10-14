@@ -10,24 +10,12 @@
 
 import type { UIMessage } from 'ai'
 
-/**
- * Storage key for conversations in localStorage.
- */
 const CONVERSATIONS_STORAGE_KEY = 'clickhouse-agent-conversations'
 
-/**
- * Maximum length for conversation titles.
- */
 const MAX_TITLE_LENGTH = 50
 
-/**
- * A conversation message from the AI SDK.
- */
 export type ConversationMessage = UIMessage
 
-/**
- * A conversation object representing a chat session.
- */
 export interface Conversation {
   /** Unique identifier for the conversation */
   id: string
@@ -74,10 +62,8 @@ export function generateConversationId(): string {
  * ```
  */
 export function generateTitleFromMessage(message: string): string {
-  // Extract text content: remove markdown code blocks
   let cleaned = message.replace(/```[\w]*\n?([\s\S]*?)```/g, '$1')
 
-  // Remove markdown formatting characters
   cleaned = cleaned
     .replace(/#{1,6}\s/g, '') // Headers
     .replace(/\*\*/g, '') // Bold
@@ -85,7 +71,6 @@ export function generateTitleFromMessage(message: string): string {
     .replace(/`/g, '') // Inline code
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Links
 
-  // Get first sentence or truncate to max length
   const firstSentenceEnd = cleaned.search(/[.!?]\s/)
   if (firstSentenceEnd > 0 && firstSentenceEnd <= MAX_TITLE_LENGTH) {
     cleaned = cleaned.slice(0, firstSentenceEnd + 1)
@@ -93,7 +78,6 @@ export function generateTitleFromMessage(message: string): string {
     cleaned = cleaned.slice(0, MAX_TITLE_LENGTH)
   }
 
-  // Clean up whitespace and special characters at boundaries
   cleaned = cleaned.trim().replace(/^\s*[#*`-]+\s*/, '')
 
   // Ensure title is not empty
@@ -243,7 +227,6 @@ export function formatRelativeTime(timestamp: number): string {
     return `${diffMins}m ago`
   }
 
-  // Check if today
   const today = new Date()
   const isToday =
     date.getDate() === today.getDate() &&
@@ -257,7 +240,6 @@ export function formatRelativeTime(timestamp: number): string {
     })}`
   }
 
-  // Check if yesterday
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
   const isYesterday =
@@ -405,7 +387,6 @@ export function upsertConversation(conversation: Conversation): void {
     conversations.push(conversation)
   }
 
-  // Sort by updatedAt descending (most recent first)
   conversations.sort((a, b) => b.updatedAt - a.updatedAt)
 
   saveConversations(conversations)

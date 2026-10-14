@@ -78,16 +78,10 @@ export function loadDashboardLocal(name: string): DashboardLayout | null {
   return normalizeLayout(store[name])
 }
 
-/**
- * List all saved dashboard names, sorted alphabetically.
- */
 export function listDashboardsLocal(): string[] {
   return Object.keys(readStore()).sort()
 }
 
-/**
- * Delete a saved dashboard by name.
- */
 export function deleteDashboardLocal(name: string): void {
   const store = readStore()
   delete store[name]

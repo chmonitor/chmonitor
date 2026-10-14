@@ -96,7 +96,6 @@ async function mapWithConcurrency<T, R>(
 const QUERY_LOG_UNAVAILABLE_MESSAGE =
   'system.query_log is not accessible on this host (disabled, or this ClickHouse user lacks the grant). The MV/projection designer needs it to mine aggregation shapes — refusing to fabricate recommendations without it.'
 
-// ---------------------------------------------------------------------------
 // Types
 //
 // `AggregateCall` lives in `./sql-parsing` (where it's first produced),
@@ -109,7 +108,6 @@ const QUERY_LOG_UNAVAILABLE_MESSAGE =
 // surface is still available from `@/lib/ai/advisor/mv-designer` exactly as
 // before. Only the result-level types below — used solely by this file's own
 // orchestrator — are declared here.
-// ---------------------------------------------------------------------------
 
 export interface MvRecommendation {
   kind: DesignKind
@@ -142,11 +140,9 @@ export interface MvDesignerResult {
 
 export type DesignResult = MvDesignerUnavailable | MvDesignerResult
 
-// ---------------------------------------------------------------------------
 // Orchestration — ClickHouse-backed. Thin wrappers around the pure logic in
 // the sibling modules; every query is read-only (`readOnlyQuery` sets
 // `readonly: '1'`).
-// ---------------------------------------------------------------------------
 
 /**
  * Mine frequent aggregation shapes from `system.query_log` and design a

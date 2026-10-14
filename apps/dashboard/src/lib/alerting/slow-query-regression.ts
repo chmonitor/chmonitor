@@ -10,10 +10,6 @@
  * The regression SQL runs entirely in ClickHouse — no client-side aggregation.
  */
 
-// ---------------------------------------------------------------------------
-// Fingerprint normalization
-// ---------------------------------------------------------------------------
-
 /**
  * Normalize a raw SQL string to a stable fingerprint for grouping.
  *
@@ -34,10 +30,6 @@ export function normalizeQueryFingerprint(sql: string): string {
     .trim()
     .toLowerCase()
 }
-
-// ---------------------------------------------------------------------------
-// Regression SQL — runs in ClickHouse, no client aggregation needed
-// ---------------------------------------------------------------------------
 
 /**
  * Build the regression-detection SQL.
@@ -153,10 +145,6 @@ ORDER BY regression_factor DESC
 LIMIT ${maxResults}
 `
 }
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 export interface SlowQueryRegression {
   fingerprint: string

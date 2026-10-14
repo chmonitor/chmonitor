@@ -6,7 +6,6 @@
 // as an OVERRIDE, but with a sane per-mode default it rarely needs to be set.
 //
 //   oss (default)                cloud (dash.chmonitor.dev)
-//   ──────────────────────────   ─────────────────────────────────────────────
 //   operator's real CLICKHOUSE   env hosts are a PUBLIC READ-ONLY DEMO
 //   hosts, full access           (e.g. `duet-ubuntu`) owned by the ANON visitor
 //   auth: none (or clerk/        auth: clerk; anonymous = full read-only demo,
@@ -43,10 +42,6 @@ import {
   modeDefaults,
   parseDeploymentMode,
 } from '../../../scripts/deploy-defaults'
-
-// ---------------------------------------------------------------------------
-// Resolution: per-mode default, then explicit-var override.
-// ---------------------------------------------------------------------------
 
 type EnvGetter = (key: string) => string | undefined
 

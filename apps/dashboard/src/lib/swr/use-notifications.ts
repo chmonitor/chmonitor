@@ -146,7 +146,6 @@ export function useNotifications(hostId: number): NotificationsResult {
     })
   }, [])
 
-  // Add unique keys to notifications and filter out dismissed ones
   const notifications = (() => {
     const hostCluster = `host-${hostId}`
     const rawNotifications = [
@@ -154,13 +153,11 @@ export function useNotifications(hostId: number): NotificationsResult {
       ...(data?.data?.notifications ?? []),
     ]
 
-    // Add unique keys to each notification
     const withKeys: NotificationWithKey[] = rawNotifications.map((n) => ({
       ...n,
       key: getNotificationKey(n),
     }))
 
-    // Filter out dismissed notifications
     return filterActiveNotifications(withKeys)
   })()
 
@@ -169,7 +166,6 @@ export function useNotifications(hostId: number): NotificationsResult {
   // Dismiss a specific notification
   const dismiss = (notification: NotificationWithKey) => {
     dismissNotificationUtil(notification)
-    // Trigger revalidation to update the UI
     mutate()
   }
 
@@ -178,7 +174,6 @@ export function useNotifications(hostId: number): NotificationsResult {
     for (const notification of notifications) {
       dismissNotificationUtil(notification)
     }
-    // Trigger revalidation to update the UI
     mutate()
   }
 

@@ -91,7 +91,6 @@ export function getBreadcrumbPath(
         return true
       }
 
-      // Check if any children match
       if (item.items) {
         if (searchItems(item.items, currentPath)) {
           return true

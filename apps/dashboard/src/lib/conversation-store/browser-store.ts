@@ -58,7 +58,6 @@ export class BrowserStore implements ConversationStore {
         messageCount: conv.messages.length,
       }))
 
-      // Apply retention cutoff when provided
       if (sinceMs != null) {
         meta = meta.filter((m) => m.updatedAt >= sinceMs)
       }
@@ -76,13 +75,6 @@ export class BrowserStore implements ConversationStore {
     }
   }
 
-  /**
-   * Get a single conversation with full messages.
-   *
-   * @param userId - User ID (ignored, accepted for interface compatibility)
-   * @param conversationId - Conversation ID to retrieve
-   * @returns Conversation with messages, or null if not found
-   */
   async get(
     _userId: string,
     conversationId: string
@@ -113,20 +105,12 @@ export class BrowserStore implements ConversationStore {
     }
   }
 
-  /**
-   * Create or update a conversation.
-   *
-   * @param conversation - Full conversation to upsert
-   * @returns `written: true` — localStorage is single-user per browser, so a
-   *   write always succeeds
-   */
   async upsert(
     conversation: StoredConversation
   ): Promise<{ written: boolean }> {
     try {
       const conversations = loadConversations()
 
-      // Convert StoredConversation to Conversation
       const conv: Conversation = {
         id: conversation.id,
         title: conversation.title,
@@ -135,7 +119,6 @@ export class BrowserStore implements ConversationStore {
         messages: conversation.messages,
       }
 
-      // Find existing or add new
       const index = conversations.findIndex((c) => c.id === conversation.id)
 
       if (index >= 0) {
@@ -144,7 +127,6 @@ export class BrowserStore implements ConversationStore {
         conversations.push(conv)
       }
 
-      // Sort by updatedAt descending (most recent first)
       conversations.sort((a, b) => b.updatedAt - a.updatedAt)
 
       saveConversations(conversations)
@@ -158,12 +140,6 @@ export class BrowserStore implements ConversationStore {
     }
   }
 
-  /**
-   * Delete a single conversation.
-   *
-   * @param userId - User ID (ignored, accepted for interface compatibility)
-   * @param conversationId - Conversation ID to delete
-   */
   async delete(_userId: string, conversationId: string): Promise<void> {
     try {
       const conversations = loadConversations()
@@ -210,7 +186,4 @@ export class BrowserStore implements ConversationStore {
   }
 }
 
-/**
- * Singleton instance of BrowserStore for use throughout the application.
- */
 export const browserStore = new BrowserStore()

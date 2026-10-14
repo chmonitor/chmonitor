@@ -17,9 +17,6 @@ import type {
 
 import { apiFetch } from './api-fetch'
 
-/**
- * API response tool type - subset of McpTool without exampleResponse
- */
 export interface ApiMcpTool {
   name: string
   description: string

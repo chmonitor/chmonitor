@@ -34,10 +34,8 @@
 import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
 import { validateAgentSql } from '@/lib/ai/agent/tools/sql-analysis'
 
-// ---------------------------------------------------------------------------
 // Constants — documented, overridable heuristics. Every number this module
 // produces is an ESTIMATE; nothing here is a precise cost model.
-// ---------------------------------------------------------------------------
 
 /** ClickHouse's default `index_granularity`: rows represented per granule. */
 export const DEFAULT_GRANULE_ROWS = 8192
@@ -60,10 +58,6 @@ export const DEFAULT_THROUGHPUT_HINT: ThroughputHint = {
   bytesPerSec: 500_000_000, // 500 MB/s
   rowsPerSec: 100_000_000, // 100M rows/s
 }
-
-// ---------------------------------------------------------------------------
-// Types — parsed EXPLAIN plan
-// ---------------------------------------------------------------------------
 
 export interface ExplainIndexInfo {
   type: string
@@ -97,11 +91,9 @@ export interface ParsedExplainPlan {
   nodeTypes: string[]
 }
 
-// ---------------------------------------------------------------------------
 // parseExplainPlan — pure, no I/O. Tolerant of unknown/missing fields: a
 // plan-shape surprise degrades to fewer signals (lower confidence) rather
 // than throwing.
-// ---------------------------------------------------------------------------
 
 interface RawExplainIndex {
   Type?: string
@@ -228,10 +220,6 @@ export function parseExplainJsonRows(
     return null
   }
 }
-
-// ---------------------------------------------------------------------------
-// Column size stats — per referenced table, from system.columns + system.tables
-// ---------------------------------------------------------------------------
 
 export interface TableColumnStats {
   /** Current row count for the table (system.tables.total_rows). */
@@ -363,10 +351,6 @@ function batchColumnStatsQuery(
         `
   return { sql, query_params }
 }
-
-// ---------------------------------------------------------------------------
-// estimateRowsAndMemory — pure
-// ---------------------------------------------------------------------------
 
 export interface RowsAndMemoryEstimate {
   estRows: number
@@ -511,10 +495,6 @@ export function estimateRowsAndMemory(
   }
 }
 
-// ---------------------------------------------------------------------------
-// estimateWallMs — pure
-// ---------------------------------------------------------------------------
-
 /**
  * Wall-time estimate: `bytes_read / bytes_per_sec + rows / rows_per_sec`.
  * Deliberately additive (not `max`) — a simple, conservative (over-)estimate
@@ -528,10 +508,6 @@ export function estimateWallMs(
   const rowsMs = (estimate.estRows / throughputHint.rowsPerSec) * 1000
   return Math.round(bytesMs + rowsMs)
 }
-
-// ---------------------------------------------------------------------------
-// Confidence
-// ---------------------------------------------------------------------------
 
 export type CostConfidence = 'low' | 'medium' | 'high'
 
@@ -561,10 +537,6 @@ function deriveConfidence(
   if (allPruned || allSized) return 'medium'
   return 'low'
 }
-
-// ---------------------------------------------------------------------------
-// estimateQueryCost — orchestration (I/O via readOnlyQuery, mockable)
-// ---------------------------------------------------------------------------
 
 export interface QueryCostEstimate {
   estRows: number

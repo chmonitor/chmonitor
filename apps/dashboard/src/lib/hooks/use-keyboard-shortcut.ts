@@ -62,11 +62,6 @@ export function matchesKeyboardShortcut(
   return keyMatches && metaCtrlMatches && shiftMatches && altMatches
 }
 
-/**
- * Hook to register keyboard shortcuts
- * @param options - Shortcut configuration
- * @param dependencies - Dependencies for the callback
- */
 export function useKeyboardShortcut(
   options: KeyboardShortcutOptions,
   dependencies: unknown[] = []

@@ -118,8 +118,6 @@ export function buildGroupQuickLinks(
   return { pinned, recent, fallback }
 }
 
-// ── Store ──────────────────────────────────────────────────────────────────
-
 let entries: readonly RecentPage[] = []
 let loaded = false
 const listeners = new Set<() => void>()

@@ -16,9 +16,6 @@ import type {
 import { ConversationStoreError } from './types'
 import { getPlatformBindings } from '@chm/platform'
 
-/**
- * D1 database schema row shape.
- */
 interface D1ConversationRow {
   id: string
   user_id: string
@@ -145,13 +142,6 @@ export class D1Store implements ConversationStore {
     }
   }
 
-  /**
-   * Get a single conversation with full messages.
-   *
-   * @param userId - User ID to scope queries (security check)
-   * @param conversationId - Conversation ID to retrieve
-   * @returns Conversation with messages, or null if not found
-   */
   async get(
     userId: string,
     conversationId: string
@@ -173,7 +163,6 @@ export class D1Store implements ConversationStore {
         return null
       }
 
-      // Parse messages JSON string
       let messages: UIMessage[]
       try {
         messages = JSON.parse(result.messages) as UIMessage[]
@@ -253,12 +242,6 @@ export class D1Store implements ConversationStore {
     }
   }
 
-  /**
-   * Delete a single conversation.
-   *
-   * @param userId - User ID to scope queries (security check)
-   * @param conversationId - Conversation ID to delete
-   */
   async delete(userId: string, conversationId: string): Promise<void> {
     try {
       const db = this.getDb()
@@ -277,11 +260,6 @@ export class D1Store implements ConversationStore {
     }
   }
 
-  /**
-   * Delete all conversations for a user.
-   *
-   * @param userId - User ID to scope queries
-   */
   async deleteAll(userId: string): Promise<void> {
     try {
       const db = this.getDb()

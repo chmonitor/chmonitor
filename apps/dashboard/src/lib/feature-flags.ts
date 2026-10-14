@@ -126,9 +126,6 @@ export const featureFlags = {
   },
 } as const
 
-/**
- * Type-safe feature flag names.
- */
 export type FeatureFlagName = keyof typeof featureFlags
 
 /**

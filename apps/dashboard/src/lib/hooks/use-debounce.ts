@@ -7,9 +7,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-/**
- * Debounce delay presets for common scenarios
- */
 export const DEBOUNCE_DELAY = {
   /** Fast: 150ms - For lightweight operations (UI updates, local filtering) */
   FAST: 150,
@@ -45,12 +42,10 @@ export function useDebounce<T>(
   const [debouncedValue, setDebouncedValue] = useState(value)
 
   useEffect(() => {
-    // Set up timeout to update debounced value after delay
     const handler = setTimeout(() => {
       setDebouncedValue(value)
     }, delay)
 
-    // Clean up timeout if value changes before delay expires
     return () => {
       clearTimeout(handler)
     }
@@ -86,7 +81,6 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
   // function keeps a stable identity across renders.
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Clean up any pending debounced call on unmount.
   useEffect(() => {
     return () => {
       if (timerRef.current) {

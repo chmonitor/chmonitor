@@ -37,8 +37,6 @@ function isFreeTierModelId(modelId: string): boolean {
   return modelId === 'openrouter/free' || modelId.endsWith(':free')
 }
 
-// ── Types (AnyRouter public catalog shape) ───────────────────────────────────
-
 /**
  * Subset of `GET /api/v1/models` list items we actually read.
  * Extra fields are ignored.
@@ -137,8 +135,6 @@ export interface AgentModelListEntry {
   dynamic?: boolean
 }
 
-// ── Constants ────────────────────────────────────────────────────────────────
-
 /** Synthetic picker id: resolves at request time to the current top-by-usage model. */
 export const ANYROUTER_AUTO_MODEL_ID = 'anyrouter:auto'
 
@@ -160,8 +156,6 @@ export const ANYROUTER_DYNAMIC_CACHE_TTL_MS = 300_000
 
 /** Concurrency for per-model metrics fetches. */
 const METRICS_CONCURRENCY = 6
-
-// ── Pure helpers ─────────────────────────────────────────────────────────────
 
 /**
  * True when the model can drive the agent tool loop.
@@ -480,8 +474,6 @@ export function pickTopUsageModelId(
   if (anyUsage) return anyUsage.id
   return null
 }
-
-// ── I/O + cache ──────────────────────────────────────────────────────────────
 
 interface CacheEntry<T> {
   value: T

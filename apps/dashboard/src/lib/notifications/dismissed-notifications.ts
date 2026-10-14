@@ -35,9 +35,6 @@ export function getNotificationKey(notification: Notification): string {
   return `${notification.type}:${notification.cluster}:${notification.count}`
 }
 
-/**
- * Get all dismissed notification keys from localStorage
- */
 export function getDismissedNotifications(): Set<string> {
   if (typeof window === 'undefined') return new Set()
 
@@ -58,9 +55,6 @@ export function isNotificationDismissed(notification: Notification): boolean {
   return dismissed.has(getNotificationKey(notification))
 }
 
-/**
- * Dismiss a notification
- */
 export function dismissNotification(notification: Notification): void {
   if (typeof window === 'undefined') return
 
@@ -74,9 +68,6 @@ export function dismissNotification(notification: Notification): void {
   }
 }
 
-/**
- * Dismiss all current notifications
- */
 export function dismissAllNotifications(
   notifications: readonly Notification[]
 ): void {
@@ -94,9 +85,6 @@ export function dismissAllNotifications(
   }
 }
 
-/**
- * Clear all dismissed notifications (for testing/reset)
- */
 export function clearDismissedNotifications(): void {
   if (typeof window === 'undefined') return
 

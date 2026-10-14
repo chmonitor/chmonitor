@@ -72,14 +72,6 @@ export function analyzeDataForLogScale(
   }
 }
 
-/**
- * Resolve scale type based on data and configuration
- *
- * @param scale - Configured scale type
- * @param data - Chart data
- * @param categories - Category keys to analyze
- * @returns 'linear' | 'log' for Recharts
- */
 export function resolveYAxisScale(
   scale: YAxisScale | undefined,
   data: Record<string, unknown>[],

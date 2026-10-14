@@ -34,7 +34,6 @@ export type {
 
 // Common helpers
 export { extractNestedData, formatReadWritePair } from './transforms/common'
-// Merge data transformations
 export { transformMergeSummaryData } from './transforms/merge-data'
 // Running query transformations
 export { transformRunningQueriesSummaryData } from './transforms/running-queries'

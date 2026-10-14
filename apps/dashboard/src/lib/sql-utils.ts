@@ -55,12 +55,6 @@ export function escapeIdentifier(identifier: string): string {
   return `\`${escaped}\``
 }
 
-/**
- * Escapes a qualified identifier (e.g., database.table)
- *
- * @param parts - The parts of the qualified identifier
- * @returns The escaped qualified identifier
- */
 export function escapeQualifiedIdentifier(...parts: string[]): string {
   return parts.map(escapeIdentifier).join('.')
 }

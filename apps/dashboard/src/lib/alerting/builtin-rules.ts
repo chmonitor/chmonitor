@@ -37,10 +37,6 @@ const fmtCount =
  * Exported so they can be individually imported for tests.
  */
 export const BUILTIN_RULES: readonly AlertRuleDef[] = [
-  // -------------------------------------------------------------------------
-  // Existing health-check parity rules (matching health-checks.ts IDs)
-  // -------------------------------------------------------------------------
-
   {
     id: 'readonly-replicas',
     type: 'readonly-replicas',
@@ -133,10 +129,6 @@ WHERE error = 'KEEPER_EXCEPTION'
     optional: true,
     tableCheck: 'system.error_log',
   },
-
-  // -------------------------------------------------------------------------
-  // New rule types (not yet tracked in HEALTH_CHECKS)
-  // -------------------------------------------------------------------------
 
   {
     id: 'failed-mutations',
