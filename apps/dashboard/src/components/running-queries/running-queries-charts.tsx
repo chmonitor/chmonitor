@@ -23,8 +23,6 @@ import { useHostId } from '@/lib/swr'
 import { REFRESH_INTERVAL } from '@/lib/swr/config'
 import { cn } from '@/lib/utils'
 
-// ───────────────────────── chart data shapes ─────────────────────────
-
 interface CountPoint {
   event_time: string
   query_count: number
@@ -48,8 +46,6 @@ interface TodayPoint {
 
 /** Series color palette for the per-user stacked bars. */
 const USER_COLORS = ['#0d9488', '#1e3a5f', '#f59e0b', '#8b5cf6', '#ef4444']
-
-// ───────────────────────── card primitives ─────────────────────────
 
 const labelClass =
   'text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground'
@@ -254,15 +250,11 @@ function SummaryCard({
   )
 }
 
-// ───────────────────────── helpers ─────────────────────────
-
 /** Split a "560.6 MiB" string into its number and unit halves. */
 function splitSize(readable: string): { value: string; unit: string } {
   const [value, ...rest] = readable.split(' ')
   return { value: value ?? readable, unit: rest.join(' ') }
 }
-
-// ───────────────────────── strip ─────────────────────────
 
 interface RunningQueriesChartsProps {
   /** Live `system.processes` rows — drives the Summary + active-memory card. */

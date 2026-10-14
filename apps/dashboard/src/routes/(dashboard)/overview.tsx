@@ -34,7 +34,6 @@ const DEFAULT_TAB = 'overview'
 /** Underline-active tab styling, overriding the shadcn pill defaults.
  *  Tabs are Base UI: selected is `data-active`, not the Radix state=active attr. */
 const TAB_TRIGGER_CLASS = cn(
-  // layout
   'h-auto shrink-0 whitespace-nowrap px-3 py-2',
   // borders — bottom-only underline (on the trigger so overflow-x-auto
   // on the strip does not clip a hanging `after` bar)
@@ -44,9 +43,7 @@ const TAB_TRIGGER_CLASS = cn(
   // `bg-input/30`.
   'data-active:border-foreground data-active:bg-transparent data-active:shadow-none',
   'dark:data-active:border-foreground dark:data-active:bg-transparent',
-  // typography
   'text-[13px] font-medium text-muted-foreground',
-  // states
   'transition-colors hover:text-foreground data-active:text-foreground',
   // keyboard focus — inset ring stays inside the bottom-border strip
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
@@ -218,7 +215,7 @@ function OverviewPageContent() {
     // Update the URL via the native History API rather than router.replace().
     // A router navigation refetches the route's RSC payload, which re-suspends
     // the searchParams boundary and flashes `OverviewPageFallback` (the 4 KPI
-    // skeletons) on EVERY tab click — even though the cards' SWR data is cached.
+    // skeletons) on EVERY tab click — even though the cards' query data is cached.
     // History.replaceState updates `useUrlSearchParams()` reactively with no
     // navigation, so only the (cached) tab content swaps in. Matches the pattern
     // in use-table-filters.ts / time-range-context.tsx.
@@ -315,7 +312,7 @@ const FIRST_TAB = OVERVIEW_TABS[0]
 /**
  * Full-page loading fallback for the searchParams Suspense boundary.
  *
- * `OverviewPageContent` reads `useUrlSearchParams()`/`useHostId()`, which Next.js
+ * `OverviewPageContent` reads `useUrlSearchParams()`/`useHostId()`, which TanStack Router
  * requires to sit under Suspense. A tiny single-card fallback collapses the
  * document to ~140px during that flash, so the scroll container has nothing to
  * scroll and the viewport snaps back to the top. Reserving the real layout's

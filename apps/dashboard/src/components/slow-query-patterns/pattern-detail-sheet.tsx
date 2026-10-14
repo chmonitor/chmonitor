@@ -189,7 +189,6 @@ function PatternDetailSheetContent({
   const byReason = useMemo(() => {
     const notable = detailData?.data.notable ?? []
     return {
-      // Already reverse-chronological from the API.
       recent: (detailData?.data.executions ?? []).slice(0, 20),
       // Server-ranked (see buildPatternNotableRunsConfig) — NOT sliced from
       // `executions`, which is capped and would misrank hot patterns.

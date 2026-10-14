@@ -48,16 +48,13 @@ export function useVisitedPages() {
   const pathname = useLocation({ select: (l) => l.pathname })
   const [visitedPages, setVisitedPages] = useState<Set<string>>(() => new Set())
 
-  // Load visited pages from cookie on mount
   useEffect(() => {
     setVisitedPages(getVisitedPages())
   }, [])
 
-  // Mark current page as visited when pathname changes
   useEffect(() => {
     if (!pathname) return
 
-    // Normalize pathname (remove query params and trailing slash)
     const normalizedPath = pathname.replace(/\/$/, '') || '/'
 
     setVisitedPages((prev) => {
@@ -71,7 +68,6 @@ export function useVisitedPages() {
   }, [pathname])
 
   const isVisited = (href: string): boolean => {
-    // Normalize href
     const normalizedHref = href.replace(/\/$/, '') || '/'
     return visitedPages.has(normalizedHref)
   }

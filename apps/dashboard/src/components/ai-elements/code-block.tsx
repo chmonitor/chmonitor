@@ -23,7 +23,6 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
-// Register only needed languages (keeps bundle small)
 hljs.registerLanguage('sql', sql)
 hljs.registerLanguage('json', json)
 hljs.registerLanguage('typescript', typescript)

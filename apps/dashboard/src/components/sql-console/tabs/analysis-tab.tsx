@@ -62,7 +62,6 @@ function parseExplain(lines: string[]): ExplainAnalysis {
         const gran = t.match(/^Granules:\s*(.+)$/)
         if (gran) current.granules = gran[1].trim()
       }
-      // Leaving the indented Indexes block.
       if (t && !/^\s/.test(line) && !idxType && !/:/.test(t)) {
         inIndexes = false
         if (current) {

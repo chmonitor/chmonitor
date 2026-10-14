@@ -29,7 +29,6 @@ export function useShortcutHandlers() {
   }
 
   const triggerRevalidate = () => {
-    // Trigger SWR revalidation by dispatching a custom event
     window.dispatchEvent(new CustomEvent('swr:revalidate'))
   }
 

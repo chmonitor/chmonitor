@@ -333,7 +333,6 @@ function EditorFallback() {
 
 function ExplainContent() {
   const hostId = useHostId()
-  // Fire-and-forget product telemetry — no-op unless enabled.
   useFeatureTracking('explain')
   const navigate = useNavigate()
   const pathname = useLocation({ select: (l) => l.pathname })

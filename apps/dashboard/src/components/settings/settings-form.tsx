@@ -38,7 +38,6 @@ export function SettingsForm({
   const [defaultTimezone, setDefaultTimezone] = useState<string | null>(null)
   const [isLoadingDefault, setIsLoadingDefault] = useState(true)
 
-  // Fetch default timezone from API
   useEffect(() => {
     async function fetchDefaultTimezone() {
       try {

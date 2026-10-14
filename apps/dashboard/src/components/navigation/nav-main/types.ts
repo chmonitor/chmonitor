@@ -30,9 +30,7 @@ export interface MenuItemProps {
  * Props for rendering a menu group (section with collapsible items)
  */
 export interface MenuGroupProps {
-  /** Section identifier */
   section: NavRenderSection
-  /** Items in this section */
   items: MenuItemType[]
   /** Current pathname for active state detection */
   pathname: string

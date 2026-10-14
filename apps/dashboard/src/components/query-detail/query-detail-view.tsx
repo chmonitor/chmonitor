@@ -84,7 +84,6 @@ export const QueryDetailView = function QueryDetailView({
       .map(([k, v]) => [k, String(v)] as [string, string])
   })()
 
-  // Settings — show all non-empty entries
   const settingsEntries = (() => {
     const map = row?.Settings
     if (!map || typeof map !== 'object' || Array.isArray(map)) return []
@@ -94,12 +93,10 @@ export const QueryDetailView = function QueryDetailView({
       .map(([k, v]) => [k, String(v)] as [string, string])
   })()
 
-  // ── Loading ──
   if (isLoading) {
     return <TableSkeleton />
   }
 
-  // ── API error ──
   if (error) {
     return (
       <EmptyState
@@ -111,7 +108,6 @@ export const QueryDetailView = function QueryDetailView({
     )
   }
 
-  // ── Not found ──
   if (!row) {
     return (
       <div className="flex h-64 items-center justify-center">

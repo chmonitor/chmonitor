@@ -19,7 +19,6 @@ interface SegmentedControlProps {
   onChange: (value: string) => void
   /** Optional placeholder shown when no value is selected */
   placeholder?: string
-  /** Optional className for styling */
   className?: string
   ariaLabel?: string
   /** `sm` is the dense query-filter pill. `default` is the compare toolbar tab. */

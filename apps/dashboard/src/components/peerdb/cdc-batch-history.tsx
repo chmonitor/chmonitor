@@ -32,7 +32,6 @@ export function CdcBatchHistory({ batches }: { batches: CDCBatch[] }) {
     )
   }
 
-  // Oldest→newest for the chart so time reads left→right.
   const chrono = [...batches].sort(
     (a, b) => toNumber(a.batchId) - toNumber(b.batchId)
   )
@@ -41,7 +40,6 @@ export function CdcBatchHistory({ batches }: { batches: CDCBatch[] }) {
     y: toNumber(b.numRows),
   }))
 
-  // Table shows newest first.
   const rows = [...batches].sort(
     (a, b) => toNumber(b.batchId) - toNumber(a.batchId)
   )

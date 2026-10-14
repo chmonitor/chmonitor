@@ -98,7 +98,6 @@ const ShieldMark = ({ color }: { color: string }) => (
   />
 )
 
-// Shared label sub-line below a node glyph.
 function NodeLabel({
   r,
   host,

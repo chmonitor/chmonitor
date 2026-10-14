@@ -27,7 +27,6 @@ export function ExplorerSkeleton({ className }: { className?: string }) {
             key={`tree-node-${i}`}
             className="flex items-center gap-2 py-1.5"
             style={{
-              // Indent every other node to suggest tree nesting
               paddingLeft: i % 3 === 0 ? '0.25rem' : '1.25rem',
             }}
           >

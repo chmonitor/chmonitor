@@ -17,7 +17,6 @@ function parseNumericValue(value: string | number): {
 } {
   if (typeof value === 'number') return { num: Math.round(value), suffix: '' }
 
-  // Match: optional leading number, optional decimal, optional suffix
   const match = value.match(/^(-?\d*\.?\d+)(.*)$/)
   if (!match) return { num: 0, suffix: String(value) }
 
@@ -56,7 +55,6 @@ export function AnimatedNumber({ value, className }: AnimatedNumberProps) {
     const prevNum = prevNumRef.current
     if (prevNum === targetNum) return
 
-    // Start animation
     startTimeRef.current = performance.now()
     const startNum = prevNum
 
@@ -66,7 +64,6 @@ export function AnimatedNumber({ value, className }: AnimatedNumberProps) {
       const progress = Math.min(elapsed / ANIMATION_DURATION, 1)
       const easedProgress = easeOutQuad(progress)
 
-      // Animate to integer value
       const currentNum = Math.round(
         startNum + (targetNum - startNum) * easedProgress
       )

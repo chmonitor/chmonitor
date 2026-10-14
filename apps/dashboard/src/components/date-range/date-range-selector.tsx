@@ -14,13 +14,9 @@ import { cn } from '@/lib/utils'
 interface DateRangeSelectorProps {
   /** Date range configuration with available options */
   config: DateRangeConfig
-  /** Current selected value */
   value: string
-  /** Callback when range changes */
   onChange: (range: DateRangeValue) => void
-  /** Additional class name */
   className?: string
-  /** Disable the selector */
   disabled?: boolean
   /** When true, button is always visible (40% opacity). When false (default), hidden until parent group or button hover */
   alwaysVisible?: boolean
@@ -53,11 +49,9 @@ export const DateRangeSelector = function DateRangeSelector({
 }: DateRangeSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
 
-  // Find current option for label display
   const currentOption =
     config.options.find((o) => o.value === value) ?? config.options[0]
 
-  // Handle option selection
   const handleSelect = (optionValue: string) => {
     const option = config.options.find((o) => o.value === optionValue)
     if (option) {

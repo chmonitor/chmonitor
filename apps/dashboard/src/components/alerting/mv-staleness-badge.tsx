@@ -46,7 +46,6 @@ export function MvStalenessBadge({ hostId, className }: MvStalenessBadgeProps) {
   const { failed, stale } = countMvIssues(rows)
   const total = failed + stale
 
-  // Dispatch alert when issues are found
   useEffect(() => {
     if (total === 0) return
     void dispatchAlert({

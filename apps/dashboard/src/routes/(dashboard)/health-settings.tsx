@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { pageOgHead } from '@/lib/og'
 
 function HealthSettingsContent() {
-  // Optional deep link into a specific tab: /health-settings?tab=alerts
   const search = useSearch({ strict: false }) as { tab?: string }
   const defaultTab = isHealthSettingsTab(search.tab) ? search.tab : undefined
   return (

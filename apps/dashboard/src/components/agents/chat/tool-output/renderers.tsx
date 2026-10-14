@@ -34,7 +34,6 @@ function renderStructuredOutput(output: unknown): ReactNode {
 
   const outputObj = output as Record<string, unknown>
 
-  // Query insights - rendered as stat cards
   if (
     outputObj.type === 'query_insights' &&
     Array.isArray(outputObj.highlights)

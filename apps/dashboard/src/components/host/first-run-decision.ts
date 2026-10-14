@@ -40,7 +40,6 @@ export function isFirstRunExemptPath(pathname: string): boolean {
 
 /** What FirstRunGate should do this render. */
 export type FirstRunAction =
-  /** Render the routed page. */
   | { type: 'render' }
   /** Render a skeleton and do not navigate (hosts still resolving). */
   | { type: 'wait' }
@@ -108,7 +107,6 @@ export function resolveFirstRunAction(input: FirstRunInput): FirstRunAction {
   if (cloudDemoLeakRisk) {
     // Wait for their own connections rather than briefly flashing demo charts.
     if (isLoading) return { type: 'wait' }
-    // Genuinely empty workspace → welcome/setup.
     if (hostCount === 0 || firstVisibleHostId === null) return { type: 'setup' }
     // They have their own host(s), but `?host` is a stale demo pointer — send
     // them to a real host instead of leaking the demo.

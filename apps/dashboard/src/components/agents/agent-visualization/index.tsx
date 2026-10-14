@@ -39,10 +39,6 @@ export type { AgentVisualizationProps, VizConfig } from './types'
 // would defeat column-def memoization inside DataTable.
 const EMPTY_TABLE_CONTEXT: Record<string, string> = {}
 
-// ============================================================================
-// Lazy-loaded chart primitives
-// ============================================================================
-
 const AreaChartPrimitive = lazy(() =>
   import('@/components/charts/primitives/area').then((m) => ({
     default: m.AreaChart,
@@ -107,19 +103,16 @@ export function AgentVisualization({
   const [logScale, setLogScale] = useState(false)
   const [rightAxisKeys, setRightAxisKeys] = useState<Set<string>>(new Set())
 
-  // Derive numeric columns from rows sample
   const numericColumns = useMemo(
     () => columns.filter((col) => isNumericColumn(rows, col)),
     [columns, rows]
   )
 
-  // Sorted data for chart rendering
   const sortedRows = useMemo(
     () => sortRows(rows, sortBy, sortOrder),
     [rows, sortBy, sortOrder]
   )
 
-  // QueryConfig for DataTable
   const queryConfig = useMemo<QueryConfig<string[]>>(
     () => ({
       name: 'agent-viz-result',
@@ -293,7 +286,6 @@ export function AgentVisualization({
         )
       }
 
-      // area / line
       return (
         <Suspense fallback={<ChartLoadingSkeleton />}>
           <AreaChartPrimitive

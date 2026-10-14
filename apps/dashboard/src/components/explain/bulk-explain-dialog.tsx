@@ -109,7 +109,6 @@ export function BulkExplainDialog({
         })
       }
 
-      // Render each result as it arrives.
       setResults([...collected])
     }
 

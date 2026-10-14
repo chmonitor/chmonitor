@@ -67,7 +67,6 @@ export function PromptInputTextareaWithMentions({
   const autocompleteQuery = autocomplete.state.query
   const setAutocompleteFilteredItems = autocomplete.setFilteredItems
 
-  // Build filterable items based on current trigger
   const allItems = ((): AutocompleteItem[] => {
     if (autocomplete.state.trigger === '@') {
       return [...resources, ...tables, ...skills]
@@ -85,7 +84,6 @@ export function PromptInputTextareaWithMentions({
     return []
   })()
 
-  // Filter items by query
   useEffect(() => {
     const query = autocompleteQuery.toLowerCase()
     const filtered = query
@@ -98,7 +96,6 @@ export function PromptInputTextareaWithMentions({
     setAutocompleteFilteredItems(filtered.slice(0, 50))
   }, [autocompleteQuery, allItems, setAutocompleteFilteredItems])
 
-  // Compute anchor position for popover
   const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(
     null
   )
@@ -141,7 +138,6 @@ export function PromptInputTextareaWithMentions({
 
     onResolvedSubmit?.(resolved)
 
-    // Clear state
     setValue('')
     autocomplete.clear()
   }
@@ -163,7 +159,6 @@ export function PromptInputTextareaWithMentions({
       return
     }
 
-    // Normal Enter = submit form
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       if (isLoading) {

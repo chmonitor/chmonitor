@@ -93,7 +93,6 @@ const fetcher = async (
   const res = await apiFetch(url)
   const json = (await res.json()) as ApiResponse<Record<string, unknown>[]>
 
-  // Check for API-level errors
   if (!json.success && json.error) {
     throw new DataTabError(json.error)
   }

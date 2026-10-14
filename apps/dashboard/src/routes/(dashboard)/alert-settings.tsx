@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import { pageOgHead } from '@/lib/og'
 
 function AlertSettingsContent() {
-  // Optional deep link into a specific tab: /alert-settings?tab=webhooks
   const search = useSearch({ strict: false }) as { tab?: string }
   const defaultTab = isHealthSettingsTab(search.tab) ? search.tab : 'alerts'
   return (

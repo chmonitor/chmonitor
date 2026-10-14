@@ -37,9 +37,7 @@ import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface ShowSQLButtonProps extends Omit<DialogContentProps, 'content'> {
   sql?: string
-  /** Enable full-screen mode */
   fullScreen?: boolean
-  /** Query execution metadata */
   metadata?: Partial<ApiResponseMetadata>
   /** Default beautify state when the user has no stored preference */
   defaultBeautify?: boolean
@@ -68,11 +66,9 @@ function saveBeautifyState(value: boolean) {
   try {
     localStorage.setItem(STORAGE_KEY, String(value))
   } catch {
-    // Ignore storage errors
   }
 }
 
-/** Copyable value component */
 function CopyableValue({
   value,
   className = '',
@@ -158,7 +154,6 @@ export function RequestInfoContent({
       : `${baseUrl}${metadata.api}`
   })()
 
-  // Check if we have metadata to show
   const hasMetadata =
     metadata &&
     (metadata.duration !== undefined ||

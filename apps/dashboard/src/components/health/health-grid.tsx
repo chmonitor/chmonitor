@@ -103,7 +103,6 @@ export function HealthGrid() {
     }
   }, [])
 
-  // Fire-and-forget product telemetry — no-op unless enabled.
   useEffect(() => {
     track('health_viewed')
   }, [])
@@ -353,7 +352,6 @@ export function HealthGrid() {
           incidentId: healthIncidentId(hostId, item.id, s),
         })
       } else if (s === 'ok' && (prev === 'warning' || prev === 'critical')) {
-        // Recovered: report against the severity that just cleared.
         void dispatchRecovery({
           checkId: item.id,
           title: item.alert.title,

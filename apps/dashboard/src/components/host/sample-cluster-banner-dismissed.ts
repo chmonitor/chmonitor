@@ -25,6 +25,5 @@ export function dismissSampleClusterBanner(): void {
   try {
     localStorage.setItem(STORAGE_KEY, '1')
   } catch {
-    // Silently fail if localStorage is full or disabled
   }
 }

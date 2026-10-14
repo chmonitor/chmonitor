@@ -146,7 +146,6 @@ export function useAutocomplete(): UseAutocompleteReturn {
         isOpen: true,
       })
     } else {
-      // No active trigger — close if open
       if (stateRef.current.isOpen) {
         updateState(INITIAL_STATE)
       }
@@ -206,7 +205,6 @@ export function useAutocomplete(): UseAutocompleteReturn {
     const value = textarea.value
     const cursorPos = textarea.selectionStart ?? value.length
 
-    // Build replacement text
     const replacement =
       item.type === 'command' ? `/${item.label} ` : `@${item.label} `
 
@@ -217,9 +215,7 @@ export function useAutocomplete(): UseAutocompleteReturn {
 
     setText(newValue)
 
-    // Move cursor to end of inserted text
     const newCursor = current.triggerIndex + replacement.length
-    // Schedule cursor move after re-render
     requestAnimationFrame(() => {
       if (textareaRef.current) {
         textareaRef.current.selectionStart = newCursor
@@ -227,7 +223,6 @@ export function useAutocomplete(): UseAutocompleteReturn {
       }
     })
 
-    // Track the selection
     if (item.type === 'command') {
       setSlashCommand({
         name: item.label,

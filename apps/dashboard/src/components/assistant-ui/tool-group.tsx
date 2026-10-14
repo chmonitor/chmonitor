@@ -28,10 +28,6 @@ import {
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 
-// ---------------------------------------------------------------------------
-// ToolGroupRoot
-// ---------------------------------------------------------------------------
-
 interface ToolGroupRootProps extends PropsWithChildren {
   className?: string
   defaultOpen?: boolean
@@ -59,7 +55,6 @@ export function ToolGroupRoot({
   const userToggledRef = useRef(false)
   const [open, setOpen] = useState(isRunning ?? defaultOpen)
 
-  // Follow isRunning until the user takes manual control.
   useEffect(() => {
     if (controlled && !userToggledRef.current) {
       setOpen(isRunning ?? false)
@@ -82,10 +77,6 @@ export function ToolGroupRoot({
     </Collapsible>
   )
 }
-
-// ---------------------------------------------------------------------------
-// ToolGroupTrigger
-// ---------------------------------------------------------------------------
 
 interface ToolGroupTriggerProps {
   /** Total number of tool calls in this group. */
@@ -136,10 +127,6 @@ export function ToolGroupTrigger({
     </CollapsibleTrigger>
   )
 }
-
-// ---------------------------------------------------------------------------
-// ToolGroupContent
-// ---------------------------------------------------------------------------
 
 interface ToolGroupContentProps extends PropsWithChildren {
   className?: string

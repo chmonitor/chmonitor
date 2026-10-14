@@ -33,7 +33,6 @@ function writeAuditLog(entries: AuditEntry[]): void {
       JSON.stringify(entries.slice(0, AUDIT_LOG_MAX))
     )
   } catch {
-    // storage unavailable — silent
   }
 }
 

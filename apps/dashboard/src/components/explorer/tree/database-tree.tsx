@@ -81,7 +81,6 @@ export function DatabaseTree({
 
   const handleSelectDatabase = (db: string) => {
     setDatabase(db)
-    // Also expand the database if not already expanded
     if (!isDatabaseExpanded(db)) {
       toggleDatabase(db)
     }

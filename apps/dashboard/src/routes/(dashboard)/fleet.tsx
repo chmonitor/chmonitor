@@ -22,7 +22,6 @@ function FleetSkeleton() {
 
 function FleetPage() {
   const [view, setView] = useFleetView()
-  // Fire-and-forget product telemetry — no-op unless enabled.
   useFeatureTracking('fleet')
 
   return (

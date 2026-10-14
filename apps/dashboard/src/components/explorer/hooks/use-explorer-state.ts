@@ -159,7 +159,6 @@ export function useExplorerState(): ExplorerState & {
         database,
         table,
         engine: engine ?? null,
-        // Preserve the currently selected tab when switching tables
         customQuery: null, // Clear stale query when switching tables
       })
     },

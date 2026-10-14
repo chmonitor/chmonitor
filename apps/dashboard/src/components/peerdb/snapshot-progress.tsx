@@ -13,7 +13,6 @@ import {
 } from './peerdb-utils'
 import { usePeerDB } from '@/lib/swr'
 
-/** Fetch/consolidate phase pill. */
 function PhaseBadge({ label, done }: { label: string; done: boolean }) {
   return (
     <span

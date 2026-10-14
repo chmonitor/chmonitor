@@ -25,8 +25,6 @@ import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
-// ───────────────────────── sorting ─────────────────────────
-
 export type SortKey = 'time' | 'event_type' | 'table' | 'size'
 export interface SortState {
   key: SortKey
@@ -50,8 +48,6 @@ export const SORT_PRESETS: {
   { label: 'Largest', key: 'size', dir: 'desc' },
   { label: 'Most rows', key: 'size', dir: 'asc' },
 ]
-
-// ───────────────────────── small UI bits ─────────────────────────
 
 export function Badge({
   tone,
@@ -126,8 +122,6 @@ export function ThSort({
     </th>
   )
 }
-
-// ───────────────────────── expanded row ─────────────────────────
 
 function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
   const fields: { label: string; value: string; mono?: boolean }[] = [
@@ -272,8 +266,6 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
     </div>
   )
 }
-
-// ───────────────────────── row ─────────────────────────
 
 export function Row({
   row,

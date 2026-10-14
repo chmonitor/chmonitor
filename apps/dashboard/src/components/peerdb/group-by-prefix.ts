@@ -12,7 +12,6 @@
  */
 
 export interface PrefixGroup<T> {
-  /** Display wildcard, e.g. `qrep_sg_fleetreporting1_*`. */
   wildcard: string
   /** Shared prefix without the trailing separator, e.g. `qrep_sg_fleetreporting1`. */
   prefix: string

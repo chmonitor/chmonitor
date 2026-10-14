@@ -91,7 +91,6 @@ function snapshotFromNode(
   }
 }
 
-// ── summary pill ──
 function Pill({
   icon: Icon,
   label,
@@ -177,7 +176,6 @@ export function TopologyView({
     setCpuHist((prev) => [...prev.slice(-(HIST_LEN - 1)), n])
   }, [liveRow?.cpu_pct])
 
-  // Keeper latency history (avg across keepers).
   const [latHist, setLatHist] = useState<number[]>([])
   useEffect(() => {
     if (model.keepers.length === 0) return
@@ -187,7 +185,6 @@ export function TopologyView({
     setLatHist((prev) => [...prev.slice(-(HIST_LEN - 1)), avg])
   }, [model.keepers])
 
-  // ── selection + cluster filter ──
   const [selected, setSelected] = useState<string | null>(null)
   const [activeCluster, setActiveCluster] = useState<string | null>(null)
   const onClearSelect = useOnClearSelect(setSelected)
@@ -270,7 +267,6 @@ export function TopologyView({
 
   const hasTopology = !!topology && model.chNodes.length > 0
 
-  // ── loading / empty states ──
   if (clusterLoading && !hasTopology) {
     return <TopologySkeleton />
   }
@@ -401,7 +397,6 @@ export function TopologyView({
                 Clusters
               </span>
               {model.clusters
-                // Physical/implicit clusters only appear when toggled on.
                 .filter((cl) => showPhysical || !cl.outline)
                 .map((cl) => {
                   const on = activeCluster === cl.id

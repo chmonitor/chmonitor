@@ -20,9 +20,7 @@ export interface UseRefreshTimerReturn {
   remaining: number
   /** Whether the timer is currently paused */
   isPaused: boolean
-  /** Pause the countdown timer */
   pause: () => void
-  /** Resume the countdown timer */
   resume: () => void
   /** Reset the countdown to the initial interval */
   reset: () => void
@@ -54,9 +52,7 @@ export function useRefreshTimer({
   const [remaining, setRemaining] = useState(initialSeconds)
   const [isPaused, setIsPaused] = useState(false)
 
-  // Track if we're currently refreshing to prevent double-triggers
   const isRefreshingRef = useRef(false)
-  // Store the animation frame ID for cleanup
   const animationFrameRef = useRef<number | undefined>(undefined)
 
   /**
@@ -90,18 +86,15 @@ export function useRefreshTimer({
     isRefreshingRef.current = true
     onRefresh?.()
 
-    // Reset the refreshing flag after a short delay
     setTimeout(() => {
       isRefreshingRef.current = false
     }, 1000)
   }
 
-  // Update interval when the interval prop changes
   useEffect(() => {
     setRemaining(Math.floor(intervalMs / 1000))
   }, [intervalMs])
 
-  // Countdown timer using requestAnimationFrame for smooth updates
   useEffect(() => {
     if (!enabled || isPaused) {
       return
@@ -117,7 +110,6 @@ export function useRefreshTimer({
         setRemaining((prev) => {
           const next = prev - 1
 
-          // Trigger refresh when countdown reaches zero
           if (next <= 0) {
             // Use setTimeout to avoid state update during render
             setTimeout(() => {

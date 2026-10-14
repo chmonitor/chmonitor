@@ -192,14 +192,12 @@ export function formatDateTime(
 }
 
 /**
- * True when an SWR error means PeerDB is unconfigured (proxy returns 503).
+ * True when a query error means PeerDB is unconfigured (proxy returns 503).
  * Centralizes the not-configured signal so pages don't hard-code the status.
  */
 export function isPeerDBNotConfigured(error: unknown): boolean {
   return (error as { status?: number } | undefined)?.status === 503
 }
-
-// ─────────────────────── design-spec formatting (CHM Redesign) ───────────────────────
 
 /**
  * Compact count: 1.2K / 3.4M / 1.23B / 2.10T.
@@ -418,8 +416,6 @@ export function peerKind(type?: DBType): PeerKind {
   return PEER_KINDS[normalizeDbType(type)] ?? PEER_KINDS.UNKNOWN
 }
 
-// ─────────────────────── pipeline phase flow ───────────────────────
-
 export interface PhaseNode {
   id: string
   label: string
@@ -488,8 +484,6 @@ export function resolveMirrorPhase(
     ds === 'failed' ? 'failed' : ds === 'paused' ? 'paused' : 'progress'
   return { nodes, currentIdx, mode }
 }
-
-// ─────────────────────── mirror logs ───────────────────────
 
 export interface LogLevelMeta {
   label: string

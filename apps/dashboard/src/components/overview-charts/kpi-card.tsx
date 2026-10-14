@@ -41,7 +41,6 @@ export interface KpiCardProps {
   unit?: string
   /** Optional secondary line below the value / progress bar. */
   sub?: ReactNode
-  /** Icon accent tone. */
   tone?: KpiTone
   /** 0–100 — renders a progress bar between the value and the sub line. */
   progress?: number

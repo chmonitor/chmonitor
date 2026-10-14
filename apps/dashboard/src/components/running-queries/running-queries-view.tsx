@@ -108,12 +108,11 @@ function HostRunningQueriesView({ hostId }: { hostId: number }) {
   const [chartsOpen, setChartsOpen] = useState(true)
   const [live, setLive] = useState(true)
 
-  // Fire-and-forget product telemetry — no-op unless enabled.
   useEffect(() => {
     track('queries_viewed')
   }, [])
 
-  // Pipe URL-driven filter params into the SWR key so the schema-driven
+  // Pipe URL-driven filter params into the query key so the schema-driven
   // header filters and bar (rendered by the underlying DataTable) actually
   // shape the data fetched from /api/v1/tables/running-queries.
   const filterParams = (() => {

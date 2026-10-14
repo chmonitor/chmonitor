@@ -196,7 +196,7 @@ function TableResultFootnote({ metadata }: { metadata: ApiResponseMetadata }) {
 }
 
 /**
- * Client-side table wrapper that handles data fetching with SWR
+ * Client-side table wrapper that handles data fetching
  * Provides loading, error, and empty states with automatic refresh capability
  *
  * @example
@@ -231,7 +231,7 @@ export const TableClient = function TableClient({
   const refreshInterval = queryConfig.refreshInterval ?? 0
 
   // Memoize context to prevent columnDefs recalculation on every render.
-  // Without this, every SWR revalidation cycle triggers full table re-renders
+  // Without this, every refetch triggers full table re-renders
   // because new context object → new contextWithPrefix → new columnDefs → all cells re-render.
   // biome-ignore lint/correctness/useExhaustiveDependencies: JSON.stringify gives value-stable deps when callers pass an inline literal
   const context = useMemo(
@@ -270,7 +270,6 @@ export const TableClient = function TableClient({
     fetchError ??
     (!data || data.length === 0 ? unavailableTableError(metadata) : undefined)
 
-  // Get SQL for display in toolbars
   const sql = queryConfig.sql ? getSqlForDisplay(queryConfig.sql) : undefined
 
   // Whether the schema-driven filter bar should render. When true, the empty
@@ -322,7 +321,6 @@ export const TableClient = function TableClient({
     const variant = detectCardErrorVariant(error as CardError)
     const showRetry = shouldShowRetryButton(error as CardError)
 
-    // 2. Permission / GRANT Suggestion Check
     if (variant === 'permission') {
       const errorTitle = getCardErrorTitle(variant, title)
       // Use standardized copy — never pass through raw ClickHouse error text
@@ -387,7 +385,6 @@ export const TableClient = function TableClient({
       )
     }
 
-    // 3. Table Missing Check
     if (variant === 'table-missing') {
       const errorTitle = getCardErrorTitle(variant, title)
       const errorDescription = getCardErrorDescription(

@@ -108,7 +108,6 @@ export function EnhanceGlyph({ className }: { className?: string }) {
   )
 }
 
-// Template SVG icons (inline, no lucide dep)
 export const TEMPLATE_SVG: Record<
   InsightTemplate['icon'],
   React.ComponentType<{ className?: string }>

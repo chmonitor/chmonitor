@@ -56,12 +56,10 @@ const FULL_GRID_CLASS = 'grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2'
 const COMPACT_GRID_CLASS = 'grid grid-cols-2 gap-2 lg:grid-cols-4'
 
 function TrafficPageContent() {
-  // Fire-and-forget product telemetry — no-op unless enabled.
   useFeatureTracking('traffic')
   const { settings, toggleSectionDensity } = useTrafficSettings()
   const { available: partLogAvailable } = usePartLogAvailability()
 
-  // 'show'/'hide' are explicit user overrides; 'auto' follows detection.
   const resolve = (
     visibility: 'auto' | 'show' | 'hide',
     detected: boolean

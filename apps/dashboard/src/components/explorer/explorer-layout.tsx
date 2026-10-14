@@ -40,7 +40,6 @@ export function ExplorerLayout() {
     )
   }
 
-  // Temporarily disabled ResizablePanelGroup - using simple flex layout
   return (
     <div className="flex h-full">
       <div className="w-64 md:w-72 lg:w-80 shrink-0 border-r overflow-auto">

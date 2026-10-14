@@ -36,7 +36,6 @@ export function PgPatternDetailSheet({
   onOpenChange,
 }: PgPatternDetailSheetProps) {
   const queryText = row ? String(row[queryKey] ?? '') : ''
-  // Every metric column except the query text itself.
   const metricColumns = config.columns.filter((c) => c.key !== queryKey)
 
   return (

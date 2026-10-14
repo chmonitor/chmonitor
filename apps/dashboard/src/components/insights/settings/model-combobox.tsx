@@ -56,7 +56,6 @@ export function ModelCombobox({
     grouped.set(m.provider, list)
   }
 
-  // Filter across all models when the user searches.
   const needle = search.toLowerCase()
   const filteredGroups: Array<[string, ModelDisplayInfo[]]> = Array.from(
     grouped.entries()

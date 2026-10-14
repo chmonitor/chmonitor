@@ -11,9 +11,7 @@ export interface OptionalTableInfoProps {
   tableName: string
   /** Guidance for enabling the table */
   guidance: TableGuidance
-  /** Optional custom title */
   title?: string
-  /** Custom className */
   className?: string
 }
 

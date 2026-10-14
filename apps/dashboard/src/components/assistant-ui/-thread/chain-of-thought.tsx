@@ -72,10 +72,6 @@ type GroupedRenderInfo = {
   readonly children: ReactNode
 }
 
-// ---------------------------------------------------------------------------
-// Leaf part renderers
-// ---------------------------------------------------------------------------
-
 /**
  * Renders an enriched leaf part (text, reasoning, tool-call, etc.) inside
  * GroupedParts. For tool-calls we use the full ToolFallback renderer.
@@ -83,7 +79,6 @@ type GroupedRenderInfo = {
 function renderLeafPart(part: EnrichedPartState) {
   switch (part.type) {
     case 'text': {
-      // Synthetic empty-text loading part: skip (handled by LoadingIndicator)
       if (part.text === '' && part.status?.type === 'running') return null
       return <MarkdownText {...part} />
     }
@@ -103,7 +98,6 @@ function renderLeafPart(part: EnrichedPartState) {
     }
     case 'tool-call': {
       if (part.toolUI) return <>{part.toolUI}</>
-      // Spread all ToolCallMessagePart fields + addResult + resume
       return <ToolFallback {...part} />
     }
     default:

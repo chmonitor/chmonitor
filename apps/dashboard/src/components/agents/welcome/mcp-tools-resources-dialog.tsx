@@ -6,7 +6,7 @@
  * Shows the tools and resources exposed by a single MCP server.
  * Opens when the user clicks on an MCP server row in AgentMcpPanel.
  *
- * Data: fetched once via useMcpServerInfo() (SWR, 5-min cache).
+ * Data: fetched once via useMcpServerInfo() (5-min cache).
  * Layout: mirrors skill-detail-dialog.tsx — muted-bg header, ScrollArea body.
  */
 
@@ -25,29 +25,17 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useMcpServerInfo } from '@/lib/swr/use-mcp-server-info'
 
-// ---------------------------------------------------------------------------
-// Category badge colours
-// ---------------------------------------------------------------------------
-
 const CATEGORY_STYLES: Record<string, string> = {
   query: 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]',
   schema: 'bg-[var(--chart-1)]/10 text-[var(--chart-1)]',
   system: 'bg-[var(--chart-yellow)]/10 text-[var(--chart-yellow)]',
 }
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
-
 interface McpToolsResourcesDialogProps {
   server: McpServer | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function McpToolsResourcesDialog({
   server,

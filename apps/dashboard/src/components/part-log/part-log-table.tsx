@@ -10,8 +10,6 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
-// ───────────────────────── quick filters ─────────────────────────
-
 interface QuickFilter {
   key: string
   label: string
@@ -51,8 +49,6 @@ const QUICK_FILTERS: QuickFilter[] = [
     test: (r) => num(r.size_in_bytes) >= 100 * 1024 * 1024,
   },
 ]
-
-// ───────────────────────── main table ─────────────────────────
 
 export function PartLogTable({
   rows,

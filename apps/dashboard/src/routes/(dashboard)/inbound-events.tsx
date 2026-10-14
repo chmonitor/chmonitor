@@ -37,8 +37,6 @@ import { pageOgHead } from '@/lib/og'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useFeatureTracking } from '@/lib/telemetry'
 
-// ── Types matching GET /api/events response ──────────────────────────────────
-
 type EventSource = 'alertmanager' | 'datadog' | 'generic'
 type EventSeverity = 'critical' | 'warning' | 'info'
 
@@ -61,8 +59,6 @@ interface EventsResponse {
   data: StoredEventDto[]
 }
 
-// ── Data fetcher ──────────────────────────────────────────────────────────────
-
 async function fetchEvents(): Promise<EventsResponse> {
   const res = await apiFetch('/api/events')
   if (!res.ok) {
@@ -78,10 +74,7 @@ const SEVERITY_BADGE_CLASS: Record<EventSeverity, string> = {
   info: 'border-border text-muted-foreground',
 }
 
-// ── Page component ────────────────────────────────────────────────────────────
-
 function InboundEventsPage() {
-  // Fire-and-forget product telemetry — no-op unless enabled.
   useFeatureTracking('inbound_events')
   const [source, setSource] = useState('all')
   const [severity, setSeverity] = useState('all')

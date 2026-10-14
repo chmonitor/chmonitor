@@ -104,7 +104,6 @@ function LiveTag() {
   )
 }
 
-// Tiny inline sparkline (area). Deterministic over its `data`.
 function Sparkline({
   data,
   color,
@@ -418,7 +417,6 @@ export function ChInspector({
   )
 }
 
-// ── Keeper node inspector ──
 export function KeeperInspector({
   node,
   model,
@@ -502,7 +500,6 @@ export function KeeperInspector({
   )
 }
 
-// ── default: cluster overview ──
 export function ClusterOverview({
   model,
   live,

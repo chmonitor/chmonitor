@@ -99,7 +99,6 @@ function detectKeeperSource(
       num(r.port) === 9181
   )
   if (embedded) return 'keeper'
-  // external ZooKeeper defaults to 2181, no feature flags.
   const external = presenceRows.some((r) => num(r.port) === 2181)
   if (external) return 'zookeeper'
   // info rows but no clear hint: default to keeper (system.zookeeper_info is
@@ -319,7 +318,6 @@ export function assembleTopology(
     // A Replicated-DB cluster is always logical regardless of name; otherwise
     // fall back to the name heuristic.
     const physical = !clusterReplicatedDb.get(name) && isPhysicalName(name)
-    // replicas-per-shard: max replica_num seen
     const maxR = Math.max(...clusterReplicas.get(name)!, 1)
     // Every cluster gets its own palette color (physical included) so nested
     // rings stay distinguishable; the physical/logical split is conveyed by the
@@ -349,7 +347,6 @@ export function assembleTopology(
     }
   }
 
-  // ── 3. keepers ──
   const presenceClean = presenceRows.filter((r) => r?.host)
   const keeperRowsClean = keeperRows.filter((r) => r?.host)
   const source = detectKeeperSource(keeperRowsClean, presenceClean)
@@ -396,7 +393,6 @@ export function assembleTopology(
         znodeCount: 0,
         watchCount: 0,
         outstanding: 0,
-        // is_expired=1 means a degraded/dropped session.
         isConnected: !truthy(r.is_expired),
         clusterName: r.name ?? source,
         x: 0,
@@ -413,7 +409,6 @@ export function assembleTopology(
       : keepers.length === 1
         ? (keepers[0]?.id ?? null)
         : null)
-  // Voting members exclude observers/learners.
   const voters = keepers.filter((k) => k.role !== 'observer')
   const quorumHealthy =
     keepers.length > 0 &&
@@ -434,7 +429,6 @@ export function assembleTopology(
       if (k.role === 'observer') raftEdges.push([leaderId, k.id])
     }
   }
-  // Coordination: every CH node ↔ keeper leader (dashed).
   const coordEdges: [string, string][] =
     leaderId && keepers.length > 0
       ? chNodes.map((n) => [n.id, leaderId] as [string, string])

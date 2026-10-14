@@ -116,7 +116,6 @@ export function ChartControls({
   onLogScaleChange,
   onRightAxisKeysChange,
 }: ChartControlsProps) {
-  // Table chart type doesn't need controls
   if (chartType === 'table') return null
 
   // Radial and bar_list: just x/y axis pickers, no sort/stacked/log
@@ -141,7 +140,6 @@ export function ChartControls({
     )
   }
 
-  // Number chart type: show column and row selectors
   if (chartType === 'number') {
     return (
       <div className="flex flex-wrap gap-2 pb-2">

@@ -29,7 +29,6 @@ import { cn } from '@/lib/utils'
 interface ReadonlyTablesWarningProps {
   /** Host ID for the API call */
   hostId: number
-  /** Cluster name to check */
   cluster: string
 }
 

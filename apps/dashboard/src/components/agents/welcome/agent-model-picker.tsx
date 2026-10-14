@@ -34,7 +34,6 @@ import {
 import { useAnyRouterToken } from '@/lib/hooks/use-anyrouter-token'
 import { cn } from '@/lib/utils'
 
-// Same build-time gating as `agent-runtime-provider.tsx`.
 const useClerkIsSignedIn: () => boolean = isClerkEnabled()
   ? useClerkIsSignedInImpl
   : () => true

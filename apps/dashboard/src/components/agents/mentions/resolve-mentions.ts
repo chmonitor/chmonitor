@@ -58,7 +58,6 @@ export async function resolveMentionContext(
   const { hostId } = options
   const contextSections: string[] = []
 
-  // Resolve table/resource mentions
   for (const mention of mentions) {
     if (mention.type === 'table' && mention.database && mention.table) {
       const schema = await fetchTableSchema(
@@ -78,13 +77,11 @@ export async function resolveMentionContext(
     }
   }
 
-  // Build full message
   const contextBlock =
     contextSections.length > 0 ? `${contextSections.join('\n\n')}\n\n` : ''
 
   const messageBody = `${contextBlock}${userText}`
 
-  // Apply slash command template if present
   if (slashCommand?.promptTemplate) {
     return `${slashCommand.promptTemplate}${messageBody}`
   }

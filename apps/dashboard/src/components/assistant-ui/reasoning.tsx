@@ -24,10 +24,6 @@ import {
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 
-// ---------------------------------------------------------------------------
-// ReasoningRoot
-// ---------------------------------------------------------------------------
-
 interface ReasoningRootProps extends PropsWithChildren {
   className?: string
   defaultOpen?: boolean
@@ -58,7 +54,6 @@ export function ReasoningRoot({
   const userToggledRef = useRef(false)
   const [open, setOpen] = useState(isRunning ?? defaultOpen)
 
-  // Follow isRunning until the user takes manual control.
   useEffect(() => {
     if (controlled && !userToggledRef.current) {
       setOpen(isRunning ?? false)
@@ -88,10 +83,6 @@ export function ReasoningRoot({
     </Collapsible>
   )
 }
-
-// ---------------------------------------------------------------------------
-// ReasoningTrigger
-// ---------------------------------------------------------------------------
 
 interface ReasoningTriggerProps extends PropsWithChildren {
   /** When true, shows a shimmer indicating active streaming. */
@@ -131,10 +122,6 @@ export function ReasoningTrigger({
   )
 }
 
-// ---------------------------------------------------------------------------
-// ReasoningContent
-// ---------------------------------------------------------------------------
-
 interface ReasoningContentProps extends PropsWithChildren {
   className?: string
 }
@@ -161,10 +148,6 @@ export function ReasoningContent({
   )
 }
 
-// ---------------------------------------------------------------------------
-// ReasoningText
-// ---------------------------------------------------------------------------
-
 interface ReasoningTextProps {
   text: string
   className?: string
@@ -186,10 +169,6 @@ export function ReasoningText({ text, className }: ReasoningTextProps) {
     </p>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Convenience: Reasoning (all-in-one)
-// ---------------------------------------------------------------------------
 
 interface ReasoningProps {
   text: string

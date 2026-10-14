@@ -2,7 +2,6 @@ import { LayoutGrid, Table2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
-/** Segmented table/cards toggle. */
 export function ViewToggle({
   active,
   onChange,

@@ -26,7 +26,6 @@ const TRACK_CLASS: Record<ReturnType<typeof usageLevel>, string> = {
 }
 
 interface DiskUsageBarProps {
-  /** Used percentage 0-100 */
   percentUsed: number
   className?: string
 }

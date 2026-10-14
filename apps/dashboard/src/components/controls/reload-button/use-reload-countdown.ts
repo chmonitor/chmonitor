@@ -49,33 +49,27 @@ export function useReloadCountdown({
   onCountdownComplete,
   isLoading = false,
 }: ReloadCountdownOptions): ReloadCountdownReturn {
-  // Calculate initial countdown from reloadInterval
   const initialCountDown =
     reloadInterval != null ? reloadInterval / 1000 : DEFAULT_COUNTDOWN_SECONDS
 
   const [countDown, setCountDown] = useState(initialCountDown)
 
-  // Reset countdown when reloadInterval changes
   useEffect(() => {
     if (reloadInterval != null) {
       setCountDown(reloadInterval / 1000)
     }
   }, [reloadInterval])
 
-  // Reset countdown to initial value
   const resetCountDown = () => {
     setCountDown(initialCountDown)
   }
 
-  // Countdown timer using useInterval
   useInterval(
     () => {
       if (countDown <= 1) {
-        // Countdown complete - trigger reload
         onCountdownComplete()
         resetCountDown()
       } else {
-        // Decrement countdown
         setCountDown((prev) => prev - 1)
       }
     },

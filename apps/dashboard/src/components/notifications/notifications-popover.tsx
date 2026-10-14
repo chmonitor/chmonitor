@@ -75,7 +75,6 @@ export const NotificationsPopover = function NotificationsPopover() {
     )
   }
 
-  // Show loading state
   if (isLoading) {
     return (
       <div className="relative hidden sm:flex">
@@ -89,7 +88,6 @@ export const NotificationsPopover = function NotificationsPopover() {
     )
   }
 
-  // Show error state (no badge, just icon)
   if (error) {
     return (
       <IconButton
@@ -244,7 +242,6 @@ const NotificationItem = function NotificationItem({
   const hostId = useHostId()
   const { type, cluster, count, severity, label } = notification
 
-  // Generate link based on notification type
   const href =
     type === 'readonly-tables'
       ? `/readonly-tables?host=${hostId}`
@@ -252,7 +249,6 @@ const NotificationItem = function NotificationItem({
         ? `/health?host=${hostId}`
         : `/clusters?host=${hostId}`
 
-  // Generate title and description based on notification type
   const title =
     type === 'readonly-tables'
       ? 'Readonly Tables'

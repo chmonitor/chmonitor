@@ -51,7 +51,6 @@ export const ChartRow = function ChartRow({
   isCollapsed,
   onToggle,
 }: ChartRowProps) {
-  // Filter out 'break' directives for counting
   const chartCount = charts.filter((c) => c && c !== 'break').length
 
   if (chartCount === 0) {
@@ -84,7 +83,6 @@ export const ChartRow = function ChartRow({
               <div
                 className={cn(
                   'grid gap-3 w-full min-w-0 overflow-hidden items-stretch',
-                  // Single chart: full width (1-column grid)
                   chartCount === 1
                     ? 'grid-cols-1 auto-rows-[minmax(200px,auto)]'
                     : hasColSpan(charts)
@@ -95,7 +93,6 @@ export const ChartRow = function ChartRow({
                 {charts.map((chartConfig, index) => {
                   if (!chartConfig) return null
 
-                  // Handle break directive
                   if (
                     typeof chartConfig === 'string' &&
                     chartConfig === 'break'
@@ -103,7 +100,6 @@ export const ChartRow = function ChartRow({
                     return <div key={`break-${index}`} className="hidden" />
                   }
 
-                  // Extract chart name and props
                   const chartName = Array.isArray(chartConfig)
                     ? chartConfig[0]
                     : chartConfig

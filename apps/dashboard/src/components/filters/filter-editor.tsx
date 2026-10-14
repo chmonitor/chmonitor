@@ -172,7 +172,6 @@ function FilterValueInput({
     )
   }
 
-  // Range (between) — two single inputs.
   if (arity === 2) {
     return (
       <div className="flex items-center gap-2">
@@ -210,7 +209,6 @@ function FilterValueInput({
     )
   }
 
-  // Single free-form value.
   return (
     <SingleValueInput
       field={field}

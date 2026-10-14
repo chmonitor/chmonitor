@@ -1,4 +1,3 @@
-// Properties that affect text rendering in textarea
 const MIRROR_PROPERTIES = [
   'direction',
   'boxSizing',

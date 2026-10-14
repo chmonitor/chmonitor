@@ -1,10 +1,10 @@
 /**
  * Table Availability Hooks
  *
- * Fetches backing table availability via SWR with lazy loading and caching.
+ * Fetches backing table availability with lazy loading and caching.
  *
  * All sidebar items backed by system tables share a single batched request to
- * `/api/v1/table-availability?hostId=<n>` (deduped by SWR via a shared key).
+ * `/api/v1/table-availability?hostId=<n>` (deduped via a shared key).
  *
  * Uses a slow refresh interval to minimize API load since table availability
  * rarely changes.
