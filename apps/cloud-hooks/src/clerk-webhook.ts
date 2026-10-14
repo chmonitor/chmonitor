@@ -27,6 +27,7 @@ import type { NotifyKind } from './telegram'
 import { logError } from './log'
 import { timingSafeEqualString } from '@chm/mcp-server/auth/timing'
 
+/** Thrown by `verifyClerkWebhook` on any signature/header failure. */
 export class SvixVerificationError extends Error {
   constructor(message: string) {
     super(message)
@@ -34,6 +35,7 @@ export class SvixVerificationError extends Error {
   }
 }
 
+/** Minimal KV subset for the sign-in throttle (mirrors probes' KVLike). */
 export interface ClerkKV {
   get(key: string): Promise<string | null>
   put(
@@ -57,11 +59,13 @@ export interface ClerkEvent {
 
 export interface ClerkWebhookDeps {
   notify: (kind: NotifyKind, text: string) => Promise<boolean>
+  /** Defaults to the real Svix HMAC verification. */
   verify?: VerifyClerkFn
   kv?: ClerkKV | null
   now?: () => number
 }
 
+/** Sign-in notifications: at most one per user within this window. */
 export const SIGNIN_THROTTLE_SECONDS = 6 * 60 * 60
 
 function base64ToBytes(b64: string): Uint8Array {
@@ -223,6 +227,7 @@ async function notifyClerkEvent(
       return
     }
     default:
+      // Unknown events are acknowledged (202) and ignored.
       return
   }
 }

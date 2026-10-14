@@ -21,6 +21,7 @@
 
 import { logError as emitLogError, logInfo } from './log'
 
+/** Minimal D1 subset used here (mirrors `D1SummaryDb` in summary.ts). */
 export interface D1UsageDb {
   prepare(sql: string): {
     bind(...values: unknown[]): {
@@ -29,9 +30,13 @@ export interface D1UsageDb {
   }
 }
 
+/** DAU/WAU/MAU for one telemetry stream. */
 export interface ActiveCounts {
+  /** Distinct installs active on the reference day. */
   dau: number
+  /** Distinct installs active in the 7 days ending on the reference day. */
   wau: number
+  /** Distinct installs active in the 30 days ending on the reference day. */
   mau: number
 }
 
@@ -48,10 +53,12 @@ export interface UsageMetrics {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+/** Format a Date as a UTC 'YYYY-MM-DD' day key, matching the telemetry schema. */
 export function utcDay(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
+/** Shift a 'YYYY-MM-DD' day key by `days` (negative = earlier). */
 export function shiftDay(day: string, days: number): string {
   return utcDay(new Date(Date.parse(`${day}T00:00:00Z`) + days * DAY_MS))
 }
@@ -185,6 +192,7 @@ export async function collectUsage(
   }
 }
 
+/** One "DAU x · WAU y · MAU z (stickiness s%)" line for a stream. */
 export function formatActiveLine(label: string, counts: ActiveCounts): string {
   const stick = stickiness(counts)
   const tail = stick === null ? '' : ` · stickiness ${stick}%`

@@ -17,6 +17,7 @@
  * - Binding errors fail open to the in-memory bucket rather than hard-blocking.
  */
 
+/** Cloudflare Rate Limiting binding surface (the "unsafe" ratelimit binding). */
 export interface RateLimitBinding {
   limit(options: { key: string }): Promise<{ success: boolean }>
 }
@@ -58,6 +59,7 @@ export function clientIpKey(request: Request): string {
   )
 }
 
+/** In-memory token bucket; returns seconds to wait, or 0 when allowed. */
 function checkBucket(key: string, limit: number): number {
   const nowMs = Date.now()
   let bucket = buckets.get(key)
@@ -88,6 +90,7 @@ function checkBucket(key: string, limit: number): number {
   return Math.ceil((((1 - bucket.tokens) / limit) * WINDOW_MS) / 1000)
 }
 
+/** 429 with Retry-After — same JSON shape as the dashboard's rateLimitResponse. */
 function rateLimitResponse(retryAfterSec: number): Response {
   return new Response(
     JSON.stringify({
@@ -120,10 +123,16 @@ export interface IpRateLimitOptions {
    * values fall back to `defaultLimitPerMin`.
    */
   limitEnvVar?: string
+  /** Fallback per-60s limit when the env var is unset/invalid. Default 30. */
   defaultLimitPerMin?: number
+  /** Bucket-key namespace prefix. Default "mcp". */
   keyPrefix?: string
 }
 
+/**
+ * Build a `rateLimitCheck` (see http.ts `HandleMcpOptions`) that limits by
+ * client IP. Returns a 429 Response when over budget, null otherwise.
+ */
 export function createIpRateLimitCheck({
   bindingName,
   limitEnvVar = 'RATE_LIMIT_MCP_PER_MIN',

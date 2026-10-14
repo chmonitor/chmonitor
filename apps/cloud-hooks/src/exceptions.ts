@@ -35,11 +35,14 @@ const MAX_TITLE_LEN = 256
 // problem. So on every skip we also compare this window's occurrence count
 // against the last count we saw for that fingerprint.
 const RATE_PREFIX = 'exc-rate:v1:'
+/** Below this many occurrences, a multiple is just noise (2 → 6 is not news). */
 export const SPIKE_MIN_COUNT = 25
+/** How many times the previous count qualifies as a spike. */
 export const SPIKE_MULTIPLE = 3
 /** Do not re-alert about the same fingerprint spiking within this window. */
 export const SPIKE_COOLDOWN_MS = 6 * 60 * 60 * 1000
 
+/** Per-fingerprint spike memory. */
 export interface RateRecord {
   count: number
   alertedAt: number
@@ -64,6 +67,7 @@ export function isSpike(
   return current >= previous.count * SPIKE_MULTIPLE
 }
 
+/** The Telegram message for a known error that is suddenly much louder. */
 export function formatSpike(
   exc: WorkerException,
   previous: RateRecord | null
@@ -154,6 +158,7 @@ export interface IssueResult {
   error?: string
 }
 
+/** POST a new issue to the GitHub REST API. Never throws. */
 export async function createGitHubIssue(
   repo: GitHubRepo,
   token: string,
@@ -244,12 +249,14 @@ export type { KVLike } from './github-app'
 
 export interface RunExceptionScanDeps {
   repo: GitHubRepo
+  /** A ready-to-use GitHub token (App installation token or PAT). */
   githubToken: string
   /**
    * When issues are authed as a GitHub App, the token provider used to refresh
    * once on a 401 (installation token revoked/expired early). Omit for PAT auth.
    */
   auth?: GitHubAppAuth | null
+  /** Fetch aggregated exception fingerprints (from observability.ts). */
   fetchExceptions: () => Promise<WorkerException[]>
   kv?: KVLike | null
   labels?: string[]
@@ -263,8 +270,11 @@ export interface RunExceptionScanDeps {
 }
 
 export interface ExceptionScanResult {
+  /** Fingerprints for which a new issue was filed this run. */
   filed: string[]
+  /** Fingerprints skipped because already known (KV or GitHub search). */
   skipped: string[]
+  /** Whether the run hit the per-run rate cap. */
   cappedAt?: number
 }
 
@@ -342,6 +352,7 @@ export async function runExceptionScan(
 
     const kvKey = `${KV_PREFIX}${exc.fingerprint}`
 
+    // 1. KV memory — the fast path.
     if (deps.kv) {
       try {
         if (await deps.kv.get(kvKey)) {
@@ -356,6 +367,7 @@ export async function runExceptionScan(
       }
     }
 
+    // 2. GitHub search fallback — catches a KV miss/eviction.
     if (
       await issueExistsForFingerprint(
         deps.repo,
@@ -366,6 +378,7 @@ export async function runExceptionScan(
       )
     ) {
       skipped.push(exc.fingerprint)
+      // Backfill KV so we skip the search next time.
       if (deps.kv) {
         try {
           await deps.kv.put(kvKey, String(exc.lastSeen))
@@ -376,6 +389,7 @@ export async function runExceptionScan(
       continue
     }
 
+    // 3. File the issue (refreshing App auth once on a 401).
     const issue = buildExceptionIssue(exc, labels)
     const result = await withTokenRefresh(
       deps.auth ?? null,

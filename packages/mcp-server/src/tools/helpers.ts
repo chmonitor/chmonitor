@@ -9,6 +9,10 @@ import type {
 
 import { fetchData } from '@chm/clickhouse-client'
 
+/**
+ * Shared Zod schema for the optional `hostId` argument used by every tool.
+ * Selects which configured ClickHouse host to query (default: index 0).
+ */
 export const hostIdSchema = z
   .number()
   .optional()
@@ -45,6 +49,7 @@ export const READONLY_ANNOTATIONS: ToolAnnotations = {
   openWorldHint: false,
 }
 
+/** Build an error result envelope with the given (already-formatted) message. */
 export function toErrorResult(text: string): CallToolResult {
   return {
     content: [{ type: 'text' as const, text }],
@@ -106,12 +111,25 @@ function buildFetchArgs(options: ReadonlyFetchOptions) {
   }
 }
 
+/**
+ * Run a read-only ClickHouse query and return the raw fetch result.
+ *
+ * Applies the shared boilerplate used by every MCP tool: `format` defaults to
+ * `JSONEachRow`, `clickhouse_settings.readonly` is forced to `'1'`, and
+ * `hostId` defaults to `0`. Use this when a tool needs to combine several
+ * queries; use {@link runReadonlyQuery} for the common single-query case.
+ */
 export function runReadonlyFetch<
   T extends FetchableData = Array<Record<string, unknown>>,
 >(options: ReadonlyFetchOptions): Promise<FetchDataResult<T>> {
   return fetchData<T>(buildFetchArgs(options))
 }
 
+/**
+ * Run a single read-only ClickHouse query and map it to the MCP result
+ * envelope: on error, `{ isError: true }` with `Error: <message>`; otherwise the
+ * pretty-printed JSON rows.
+ */
 export async function runReadonlyQuery(
   query: string,
   hostId?: number,
@@ -155,6 +173,9 @@ export function capResultRows<T>(
   return { data: data.slice(0, maxRows), truncated: true }
 }
 
+/**
+ * Human-readable note explaining a truncated result set.
+ */
 export function truncationNote(
   maxRows: number = MAX_QUERY_RESULT_ROWS
 ): string {
