@@ -22,10 +22,6 @@ import { join, relative, resolve } from 'node:path'
 const REPO_ROOT = resolve(import.meta.dir, '..')
 export const DATA_DIR = join(REPO_ROOT, 'docs/content/_data')
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 /** JSON with recursively sorted object keys (arrays keep their order). */
 function sortKeys(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeys)
@@ -46,7 +42,6 @@ export function stableJson(value: unknown): string {
 
 const byString = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 
-/** Run `fn` with env vars set, restoring the previous values afterwards. */
 async function withEnv<T>(
   vars: Record<string, string>,
   fn: () => T | Promise<T>
@@ -65,10 +60,6 @@ async function withEnv<T>(
     }
   }
 }
-
-// ---------------------------------------------------------------------------
-// alert-rules.json
-// ---------------------------------------------------------------------------
 
 /**
  * Rule category, derived from the system table the rule reads. A rule whose
@@ -144,10 +135,6 @@ async function buildAlertRules() {
   return { rules, compound }
 }
 
-// ---------------------------------------------------------------------------
-// agent-tools.json
-// ---------------------------------------------------------------------------
-
 /**
  * Env var that adds a group of agent tools. Same gates as tool-docs-sync.test.ts.
  * The integration tools (Postgres, PeerDB) are turned on by the caller after a
@@ -221,10 +208,6 @@ async function buildAgentTools() {
   return { tools, mcpTools: mcp }
 }
 
-// ---------------------------------------------------------------------------
-// env-vars.json
-// ---------------------------------------------------------------------------
-
 /** Source trees scanned for env reads (packages are where e.g. CLICKHOUSE_HOST is read). */
 const ENV_SCAN_ROOTS = ['apps/dashboard/src', 'packages']
 
@@ -275,7 +258,6 @@ function walkSources(dir: string, out: string[] = []): string[] {
   return out
 }
 
-/** Parse `NAME=value` and `# NAME=value` lines of .env.example. */
 function parseEnvExample(): Map<string, { value: string; active: boolean }> {
   const src = readFileSync(
     join(REPO_ROOT, 'apps/dashboard/.env.example'),
@@ -350,10 +332,6 @@ function buildEnvVars() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// version-matrix.json
-// ---------------------------------------------------------------------------
-
 function compareVersion(a: string, b: string): number {
   const pa = a.split('.').map(Number)
   const pb = b.split('.').map(Number)
@@ -389,10 +367,6 @@ async function buildVersionMatrix() {
     configs,
   }
 }
-
-// ---------------------------------------------------------------------------
-// Entry
-// ---------------------------------------------------------------------------
 
 /** File name → file contents. Shared by the CLI and the drift test. */
 export async function generateDocsData(): Promise<Record<string, string>> {

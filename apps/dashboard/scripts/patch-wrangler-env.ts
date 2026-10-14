@@ -137,7 +137,6 @@ generated.vars = vars
 // skipped. If the account regains cron budget, restore the preview-only guard.
 delete generated.triggers
 
-// --- Patch D1 databases ---
 // CI/deploy-only secret — not a browser/runtime CHM_* var, so it has no
 // .env.example entry; set it directly as a CLOUDFLARE deploy secret.
 const conversationsDbId = (process.env.CHM_CLOUD_D1_DATABASE_ID || '').trim()
@@ -153,7 +152,6 @@ if (conversationsDbId) {
     `   d1_databases: injected database_id for CHM_CLOUD_D1 (${conversationsDbId})`
   )
 } else {
-  // Strip CHM_CLOUD_D1 binding if database_id is not provided
   const beforeCount = (generated.d1_databases ?? []).length
   generated.d1_databases = (generated.d1_databases ?? []).filter(
     (db: any) => db.binding !== 'CHM_CLOUD_D1'

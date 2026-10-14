@@ -2,9 +2,6 @@
  * Types for ClickHouse schema documentation generator
  */
 
-/**
- * A single column in a system table
- */
 export interface SchemaColumn {
   name: string
   type: string
@@ -17,9 +14,6 @@ export interface SchemaColumn {
   deprecatedIn?: string
 }
 
-/**
- * Full schema for a system table
- */
 export interface TableSchema {
   name: string
   description?: string
@@ -32,9 +26,6 @@ export interface TableSchema {
   configKey?: string
 }
 
-/**
- * A change to a system table in a specific version
- */
 export interface VersionChange {
   version: string
   table: string
@@ -52,9 +43,6 @@ export interface VersionChange {
   description?: string
 }
 
-/**
- * Parsed changelog entry
- */
 export interface ChangelogEntry {
   version: string
   releaseDate?: string
@@ -62,9 +50,6 @@ export interface ChangelogEntry {
   changes: VersionChange[]
 }
 
-/**
- * CLI options
- */
 export interface CLIOptions {
   /** Specific version to process */
   version?: string

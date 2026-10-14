@@ -4,9 +4,6 @@
 
 import { GITHUB_URLS } from './constants'
 
-/**
- * Fetch the raw CHANGELOG.md content from GitHub
- */
 export async function fetchChangelog(): Promise<string> {
   console.log('Fetching CHANGELOG.md from GitHub...')
 
@@ -24,13 +21,9 @@ export async function fetchChangelog(): Promise<string> {
   return content
 }
 
-/**
- * Fetch system table documentation from ClickHouse docs
- */
 export async function fetchTableDocs(
   tableName: string
 ): Promise<string | null> {
-  // Remove 'system.' prefix
   const shortName = tableName.replace('system.', '')
   const url = `${GITHUB_URLS.docsBase}/${shortName}.md`
 

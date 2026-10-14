@@ -143,14 +143,12 @@ function main(): void {
 
   const envFile = loadEnvFile()
 
-  // Merge env file vars into process env (env file vars don't override existing)
   for (const [key, value] of Object.entries(envFile)) {
     if (!(key in process.env) && value) {
       process.env[key] = value
     }
   }
 
-  // Warn if no auth method is available
   if (!process.env.CLOUDFLARE_API_TOKEN) {
     console.warn(
       '⚠️  CLOUDFLARE_API_TOKEN not set — relying on wrangler login OAuth.\n'

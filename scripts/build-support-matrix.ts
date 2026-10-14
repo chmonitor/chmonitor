@@ -15,10 +15,6 @@ import { LTS_VERSIONS, SUPPORTED_MAJOR_VERSIONS } from './ch-schema/constants'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-// ---------------------------------------------------------------------------
-// Support model
-// ---------------------------------------------------------------------------
-
 type SupportLevel = 'supported' | 'best-effort' | 'untested'
 
 type Flavor = {
@@ -63,10 +59,6 @@ const FLAVORS: Flavor[] = [
   },
 ]
 
-// ---------------------------------------------------------------------------
-// Version list derived from constants (single source of truth)
-// ---------------------------------------------------------------------------
-
 // Expand major versions into representative minor version strings.
 // We list LTS versions first (they are the recommended deployment targets),
 // then append the current major heads for non-LTS majors.
@@ -86,10 +78,6 @@ function buildVersionList(): string[] {
   return result
 }
 
-// ---------------------------------------------------------------------------
-// Level helpers
-// ---------------------------------------------------------------------------
-
 const LEVEL_SYMBOL: Record<SupportLevel, string> = {
   supported: '✓',
   'best-effort': '◐',
@@ -105,10 +93,6 @@ const LEVEL_LABEL: Record<SupportLevel, string> = {
 function isLts(version: string): boolean {
   return (LTS_VERSIONS as readonly string[]).includes(version)
 }
-
-// ---------------------------------------------------------------------------
-// Document renderer
-// ---------------------------------------------------------------------------
 
 function render(versions: string[]): string {
   const now = new Date().toISOString().split('T')[0]
@@ -174,10 +158,6 @@ Long-term support (LTS) releases — currently ${LTS_VERSIONS.join(', ')} — ar
 </Cards>
 `
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 function writeFile(path: string, content: string) {
   mkdirSync(dirname(path), { recursive: true })

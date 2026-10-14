@@ -204,12 +204,9 @@ export function isLikelySecretName(key: string): boolean {
   return SECRET_NAME_RE.test(key)
 }
 
-/** Redacts a value for display: secret-shaped keys are always masked. */
 export function redactValue(key: string, value: string): string {
   return isLikelySecretName(key) ? '***' : value
 }
-
-// --- exec seam (overridable for tests) ---
 
 export interface ExecResult {
   ok: boolean

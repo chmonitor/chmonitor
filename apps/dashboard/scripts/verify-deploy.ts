@@ -110,8 +110,6 @@ async function probeHostStatus(hostId: string): Promise<HostStatusProbe> {
   }
 }
 
-// ── Shared deployment probe ───────────────────────────────────────────────
-
 // `/api/health` hides deployment metadata from anonymous callers (#1768), so we
 // learn the deployed auth provider (for the Clerk-bundle regression check) by
 // minting a token up front and reading the AUTHENTICATED health response.
@@ -152,8 +150,6 @@ async function probeDeployment() {
   }
 }
 
-// ── Unauthenticated scenario ──────────────────────────────────────────────
-
 async function runUnauthenticated() {
   // 1. health — anonymous callers get minimal liveness, NO deployment metadata.
   try {
@@ -180,7 +176,6 @@ async function runUnauthenticated() {
     })
   }
 
-  // 2. prerendered pages + 3. client bundle carries the Clerk key
   try {
     const { status, text } = await http('/overview?host=0')
     const entryAsset = text.match(/\/assets\/index-[A-Za-z0-9_-]+\.js/)?.[0]
@@ -232,7 +227,6 @@ async function runUnauthenticated() {
     })
   }
 
-  // 4. anonymous data call is rejected when API-key auth is enabled
   try {
     const { status, json } = await http(
       `/api/v1/menu-counts?hostId=${HOSTS[0]}`
@@ -265,8 +259,6 @@ async function runUnauthenticated() {
     })
   }
 }
-
-// ── Authenticated scenario ────────────────────────────────────────────────
 
 async function runAuthenticated() {
   if (SKIP_AUTH) return
@@ -303,7 +295,6 @@ async function runAuthenticated() {
       : 'no deployment block returned to authenticated caller',
   })
 
-  // 7. real CH query per host via the registry endpoint
   for (const h of HOSTS) {
     try {
       const { status, json } = await http(`/api/v1/menu-counts?hostId=${h}`, {
@@ -346,8 +337,6 @@ async function runAuthenticated() {
     }
   }
 }
-
-// ── Main ──────────────────────────────────────────────────────────────────
 
 async function main() {
   if (!JSON_OUTPUT) console.log(`\n🔎 Verifying ${BASE_URL}\n`)

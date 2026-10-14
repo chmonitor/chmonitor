@@ -39,8 +39,6 @@ const args = new Set(process.argv.slice(2))
 const DRY_RUN = args.has('--dry-run')
 const LOCAL = args.has('--local')
 
-// --- env loading ----------------------------------------------------------
-
 function parseEnvFile(content: string): Record<string, string> {
   const out: Record<string, string> = {}
   for (const raw of content.split('\n')) {
@@ -72,8 +70,6 @@ function resolveEnv(key: string): string | undefined {
   return undefined
 }
 
-// --- wrangler d1 ----------------------------------------------------------
-
 async function runWrangler(extraArgs: string[]): Promise<string> {
   // `bunx wrangler` resolves the pinned wrangler from node_modules (mirrors
   // set-secrets.ts); a bare `wrangler` ENOENTs when .bin is not on PATH.
@@ -99,7 +95,6 @@ async function runWrangler(extraArgs: string[]): Promise<string> {
   return stdout
 }
 
-/** Count rows for one provider in a table. */
 async function d1Count(table: string, provider: string): Promise<number> {
   const out = await runWrangler([
     'execute',
@@ -115,8 +110,6 @@ async function d1Count(table: string, provider: string): Promise<number> {
   }>
   return parsed[0]?.results?.[0]?.n ?? 0
 }
-
-// --- main -----------------------------------------------------------------
 
 function makeProvider(): IdentityProvider {
   const secretKey = resolveEnv('CLERK_SECRET_KEY')
@@ -161,7 +154,6 @@ async function main() {
     await runWrangler(['execute', DATABASE_NAME, '--file', sqlFile, '--yes'])
   }
 
-  // --- verify ---
   console.log(`\nVerifying row counts against ${provider.name}…`)
   const [dbUsers, dbOrgs, dbMembers] = await Promise.all([
     d1Count('auth_users', provider.name),
