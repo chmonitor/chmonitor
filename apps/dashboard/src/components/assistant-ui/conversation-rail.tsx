@@ -274,7 +274,6 @@ export function ConversationRailBody({
 }
 
 interface ConversationRailProps {
-  /** Desktop inline column open/closed. */
   open: boolean
   onCollapse: () => void
   /**

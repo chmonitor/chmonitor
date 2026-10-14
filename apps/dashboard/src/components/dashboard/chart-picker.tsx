@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-// Category display labels
 const CATEGORY_LABELS: Record<string, string> = {
   query: 'Query',
   merge: 'Merge',
@@ -30,7 +29,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   'page-view': 'Page Views',
 }
 
-// Chart display labels derived from kebab-case name
 function toLabel(name: string): string {
   return name
     .split('-')

@@ -98,7 +98,6 @@ export function InsightsPanel({ hostId, className }: InsightsPanelProps) {
   const hasInsights = insights.length > 0
   const attentionCount = counts.critical + counts.warning
 
-  // Group by category, most-severe category first, then largest.
   const categories = useMemo(() => {
     const byCat = new Map<string, InsightCardData[]>()
     for (const insight of insights) {

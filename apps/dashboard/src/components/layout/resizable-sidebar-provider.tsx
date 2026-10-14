@@ -23,7 +23,6 @@ function ResizeHandle() {
   const startWidthRef = useRef(DEFAULT_WIDTH)
   const shouldCollapseRef = useRef(false)
 
-  // Sync current width on mount
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
@@ -108,10 +107,8 @@ function ResizeHandle() {
     ) as HTMLElement
     if (!wrapper) return
 
-    // Disable transitions during resize for instant feedback
     wrapper.setAttribute('data-resizing', 'true')
 
-    // If starting from collapsed, expand first
     if (state === 'collapsed') {
       setOpen(true)
     }
@@ -124,7 +121,6 @@ function ResizeHandle() {
       // Check if should collapse - only if dragged enough to the left
       if (hasDraggedEnough && rawWidth < COLLAPSE_THRESHOLD) {
         shouldCollapseRef.current = true
-        // Show visual feedback - clamp to minimum visible
         wrapper.style.setProperty('--sidebar-width', `${COLLAPSE_THRESHOLD}px`)
         setCurrentWidth(COLLAPSE_THRESHOLD)
       } else {
@@ -140,9 +136,7 @@ function ResizeHandle() {
       wrapper.removeAttribute('data-resizing')
 
       if (shouldCollapseRef.current) {
-        // Collapse the sidebar
         setOpen(false)
-        // Restore saved width for when it reopens
         const saved = localStorage.getItem(STORAGE_KEY)
         if (saved) {
           wrapper.style.setProperty('--sidebar-width', `${saved}px`)
@@ -231,7 +225,6 @@ export function ResizableSidebarProvider({
   const [sidebarWidth, setSidebarWidth] = useState<string>(`${DEFAULT_WIDTH}px`)
   const [mounted, setMounted] = useState(false)
 
-  // Load saved width on mount
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
@@ -243,7 +236,6 @@ export function ResizableSidebarProvider({
     setMounted(true)
   }, [])
 
-  // Prevent flash by not rendering until mounted
   if (!mounted) {
     return (
       <SidebarProvider

@@ -20,7 +20,6 @@ export interface QueryHistoryEntry {
   durationMs?: number
   /** Row count returned, if known. */
   rows?: number
-  /** Whether the run succeeded. */
   ok: boolean
   /** User-pinned favorite. Pinned entries are never evicted by the cap. */
   pinned?: boolean
@@ -57,7 +56,6 @@ function writeStorage(entries: QueryHistoryEntry[]) {
 export function useQueryHistory() {
   const [entries, setEntries] = useState<QueryHistoryEntry[]>(readStorage)
 
-  // Sync across tabs/windows.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) setEntries(readStorage())

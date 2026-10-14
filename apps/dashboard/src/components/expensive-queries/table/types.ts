@@ -42,8 +42,6 @@ export interface ExpensiveQueryRow {
   [key: string]: unknown
 }
 
-// ───────────────────────── helpers ─────────────────────────
-
 export type Severity = 'critical' | 'warning' | 'normal'
 
 /**
@@ -61,8 +59,6 @@ export function num(value: unknown): number {
   const n = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(n) ? n : 0
 }
-
-// ───────────────────────── derived row ─────────────────────────
 
 /**
  * An `ExpensiveQueryRow` with the metrics the table sorts / filters / renders
@@ -127,8 +123,6 @@ export function derive(row: ExpensiveQueryRow, index: number): DerivedQuery {
   }
 }
 
-// ───────────────────────── sorting ─────────────────────────
-
 export type SortKey =
   | 'rank'
   | 'cnt'
@@ -149,8 +143,6 @@ export const SORT_ACCESSOR: Record<SortKey, (d: DerivedQuery) => number> = {
   readRows: (d) => d.readRows,
 }
 
-// ───────────────────────── columns ─────────────────────────
-
 export type OptionalColumn = 'cnt' | 'cpu' | 'memory' | 'readRows'
 
 export const OPTIONAL_COLUMNS: { key: OptionalColumn; label: string }[] = [
@@ -160,7 +152,6 @@ export const OPTIONAL_COLUMNS: { key: OptionalColumn; label: string }[] = [
   { key: 'readRows', label: 'Rows read' },
 ]
 
-// Always present: Rank, Query, Total time, Actions.
 export const BASE_COLUMN_COUNT = 4
 
 export const SEVERITY_DURATION: Record<Severity, string> = {

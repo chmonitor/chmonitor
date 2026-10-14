@@ -48,7 +48,6 @@ export function useUnavailableResolver(
   )
 }
 
-/** Resolve one row. */
 export function useUnavailableVisibility(
   item: MenuItemType,
   hostId: number

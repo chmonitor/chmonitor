@@ -6,10 +6,6 @@ import { useChartData } from '@/lib/query/use-chart-data'
 import { REFRESH_INTERVAL, useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
 
-// ============================================================================
-// RunningQueriesCard Component
-// ============================================================================
-
 /**
  * RunningQueriesCard - "Active Queries" overview KPI.
  * Headline is the live running count; today's total sits in the sub line.

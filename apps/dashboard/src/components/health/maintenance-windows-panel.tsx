@@ -263,7 +263,6 @@ function AddWindowForm({
 
 export function MaintenanceWindowsPanel({ className }: { className?: string }) {
   const { windows, isLoading, error, refetch } = useMaintenanceWindows()
-  // Maintenance windows also accept a dedicated MAINTENANCE_D1 binding.
   const availability = useHealthStoreAvailability({
     probeError: error,
     store: 'maintenanceWindows',

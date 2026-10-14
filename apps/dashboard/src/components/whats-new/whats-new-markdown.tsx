@@ -14,7 +14,6 @@ const markdownComponents: Components = {
       {children}
     </a>
   ),
-  // Images render as clickable thumbs in WhatsNewScreenshotGallery.
   img: () => null,
 }
 

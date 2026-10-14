@@ -57,7 +57,6 @@ interface PeerTypeIconProps {
   className?: string
 }
 
-/** Standalone peer-type icon (color-coded). */
 export function PeerTypeIcon({ type, className }: PeerTypeIconProps) {
   const { Icon, color } = getPeerTypeIcon(type)
   return (

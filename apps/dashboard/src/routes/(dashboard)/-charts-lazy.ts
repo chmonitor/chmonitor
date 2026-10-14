@@ -8,13 +8,11 @@
 
 import { lazy } from 'react'
 
-// Connection charts
 export const ChartConnectionsPool = lazy(() =>
   import('@/components/charts/connections-pool').then((mod) => ({
     default: mod.ChartConnectionsPool,
   }))
 )
-// Logs charts
 export const ChartCrashFrequency = lazy(() =>
   import('@/components/charts/logs/crash-frequency').then((mod) => ({
     default: mod.ChartCrashFrequency,
@@ -30,7 +28,6 @@ export const ChartLogLevelDistribution = lazy(() =>
     default: mod.ChartLogLevelDistribution,
   }))
 )
-// Merge charts
 export const ChartMergeAvgDuration = lazy(() =>
   import('@/components/charts/merge/merge-avg-duration').then((mod) => ({
     default: mod.ChartMergeAvgDuration,
@@ -61,13 +58,11 @@ export const ChartPartsPerTable = lazy(() =>
     default: mod.ChartPartsPerTable,
   }))
 )
-// Query additional charts
 export const ChartCancelledQueries = lazy(() =>
   import('@/components/charts/query/cancelled-queries').then((mod) => ({
     default: mod.ChartCancelledQueries,
   }))
 )
-// Query charts
 export const ChartFailedQueryCount = lazy(() =>
   import('@/components/charts/query/failed-query-count').then((mod) => ({
     default: mod.ChartFailedQueryCount,
@@ -149,7 +144,6 @@ export const ChartTopQueryFingerprintsPerf = lazy(() =>
     (mod) => ({ default: mod.ChartTopQueryFingerprints })
   )
 )
-// Replication charts
 export const ChartReadonlyReplica = lazy(() =>
   import('@/components/charts/replication/readonly-replica').then((mod) => ({
     default: mod.ChartReadonlyReplica,
@@ -175,7 +169,6 @@ export const ChartSummaryStuckMutations = lazy(() =>
     default: mod.ChartSummaryStuckMutations,
   }))
 )
-// System charts
 export const ChartBackupSize = lazy(() =>
   import('@/components/charts/system/backup-size').then((mod) => ({
     default: mod.ChartBackupSize,
@@ -276,7 +269,6 @@ export const ChartTopMemoryQueries = lazy(() =>
     default: mod.ChartTopMemoryQueries,
   }))
 )
-// Thread charts
 export const ChartThreadUtilization = lazy(() =>
   import('@/components/charts/threads/thread-utilization').then((mod) => ({
     default: mod.ChartThreadUtilization,
@@ -292,7 +284,6 @@ export const ChartSummaryUsedByRunningQueries = lazy(() =>
     default: mod.ChartSummaryUsedByRunningQueries,
   }))
 )
-// ZooKeeper charts
 export const ChartKeeperException = lazy(() =>
   import('@/components/charts/zookeeper/zookeeper-exception').then((mod) => ({
     default: mod.ChartKeeperException,

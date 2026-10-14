@@ -268,7 +268,6 @@ export const TopoCanvas = memo(function TopoCanvas({
             x = Math.min(VB_W - _KP_HALF, Math.max(_KP_HALF, x))
             y = Math.min(model.vbHeight - _KP_DOWN, Math.max(_KP_UP, y))
           }
-          // Store as offset from layout position.
           next[nid] = { x: x - base.x, y: y - base.y }
         }
         return next
@@ -280,7 +279,6 @@ export const TopoCanvas = memo(function TopoCanvas({
     [nodeById, model, activeCluster, onSelect]
   )
 
-  // Keepers rendered with live positions.
   const keepersLive = keepers.map((k) => {
     const p = posById[k.id]
     return p ? { ...k, x: p.x, y: p.y } : k

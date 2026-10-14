@@ -54,7 +54,6 @@ export function SaveFavoriteDialog({
     }
     setSaveError(null)
     onOpenChange(false)
-    // Reset for next open.
     setTitle(defaultTitle)
     setTagsInput('')
   }

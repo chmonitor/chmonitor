@@ -13,7 +13,7 @@ export interface CountBadgeProps {
 }
 
 /**
- * Client-side count badge that fetches count via SWR.
+ * Client-side count badge that fetches count.
  * Uses countKey to fetch from /api/v1/menu-counts/[key] endpoint.
  * No raw SQL is sent from the client - security by design.
  */

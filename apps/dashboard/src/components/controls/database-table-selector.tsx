@@ -56,7 +56,6 @@ export function DatabaseTableSelector({
   const database = searchParams.get('database')
   const table = searchParams.get('table')
 
-  // Fetch databases
   const { data: databasesResponse, isLoading: isLoadingDatabases } = useQuery<
     ApiResponse<DatabaseItem[]>
   >({
@@ -64,7 +63,6 @@ export function DatabaseTableSelector({
     queryFn: () => fetcher(`/api/v1/explorer/databases?hostId=${hostId}`),
   })
 
-  // Fetch tables (only when database is selected)
   const tablesKey = database
     ? `/api/v1/explorer/tables?hostId=${hostId}&database=${encodeURIComponent(database)}`
     : null

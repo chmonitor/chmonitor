@@ -162,7 +162,6 @@ export function writeSkillStorage(state: SkillState): void {
   try {
     localStorage.setItem(SKILL_STORAGE_KEY, JSON.stringify(state))
   } catch {
-    // localStorage may be disabled
   }
 }
 

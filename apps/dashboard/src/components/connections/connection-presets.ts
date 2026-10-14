@@ -56,7 +56,6 @@ export function addHostDialogChrome(preset: ConnectionPreset): {
   }
 }
 
-/** Default Postgres TCP port. */
 export const POSTGRES_DEFAULT_PORT = 5432
 
 /** Host-field placeholder for the Postgres preset (bare hostname, no scheme). */

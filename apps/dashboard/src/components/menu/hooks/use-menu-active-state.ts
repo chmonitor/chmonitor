@@ -29,7 +29,6 @@ export function useMenuActiveState(
   const pathname = useLocation({ select: (l) => l.pathname })
 
   return (() => {
-    // Check if item itself is active
     if (item.href) {
       if (siblingHrefs) {
         return isMenuItemActiveAmongSiblings(item.href, siblingHrefs, pathname)
@@ -39,7 +38,6 @@ export function useMenuActiveState(
       }
     }
 
-    // Check if any child is active
     if (item.items) {
       return item.items.some(
         (child) => child.href && isMenuItemActive(child.href, pathname)

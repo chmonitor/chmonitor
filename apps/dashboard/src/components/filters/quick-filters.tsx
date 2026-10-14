@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils'
 interface QuickFiltersProps {
   /** Quick filter configs from schema */
   configs: QuickFilterConfig[]
-  /** Currently active filters */
   activeFilters: ActiveFilter[]
   /** Callback to set a filter value */
   onSetFilter: (key: string, draft: FilterDraft) => void
@@ -35,7 +34,6 @@ export function QuickFilters({
 }: QuickFiltersProps) {
   if (configs.length === 0) return null
 
-  // Map active filters by key for quick lookup
   const activeByKey = new Map(activeFilters.map((f) => [f.key, f]))
 
   return (
@@ -46,7 +44,6 @@ export function QuickFilters({
 
         const handleValueChange = (value: string) => {
           if (value === '') {
-            // Clear the filter (for "All" option)
             onSetFilter(config.key, {
               operator: 'eq',
               values: [],

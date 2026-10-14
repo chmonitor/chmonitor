@@ -90,7 +90,6 @@ export function IndexesTab() {
   const hostId = useHostId()
   const { database, table } = useExplorerState()
 
-  // Fetch indexes data
   const indexesKey =
     database && table
       ? `/api/v1/explorer/indexes?hostId=${hostId}&database=${encodeURIComponent(database)}&table=${encodeURIComponent(table)}`
@@ -105,7 +104,6 @@ export function IndexesTab() {
     enabled: Boolean(indexesKey),
   })
 
-  // Fetch skip indexes data
   const skipIndexesKey =
     database && table
       ? `/api/v1/explorer/skip-indexes?hostId=${hostId}&database=${encodeURIComponent(database)}&table=${encodeURIComponent(table)}`
@@ -120,7 +118,6 @@ export function IndexesTab() {
     enabled: Boolean(skipIndexesKey),
   })
 
-  // Fetch projections data
   const projectionsKey =
     database && table
       ? `/api/v1/explorer/projections?hostId=${hostId}&database=${encodeURIComponent(database)}&table=${encodeURIComponent(table)}`

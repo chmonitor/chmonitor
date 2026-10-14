@@ -30,7 +30,6 @@ export interface RelatedLink {
 
 export interface DocsLink {
   label: string
-  /** External URL. */
   url: string
 }
 
@@ -42,11 +41,9 @@ export interface HealthCheckDef {
   chartName: string
   /** Field on first data row to read the numeric value from. */
   valueKey: string
-  /** Default warning/critical thresholds. */
   defaults: Thresholds
   /** Human-readable label for the value (lowercase). */
   unit?: string
-  /** Format the displayed label. */
   formatLabel?: (value: number | null) => string
   /** Format the displayed value (defaults to toLocaleString). */
   formatValue?: (value: number | null) => string
@@ -58,7 +55,6 @@ export interface HealthCheckDef {
   commonCauses?: readonly string[]
   /** Internal pages relevant to the check. */
   relatedLinks?: readonly RelatedLink[]
-  /** External documentation links. */
   docsLinks?: readonly DocsLink[]
   /**
    * The SQL query that computes this check's value. Shown in the detail dialog

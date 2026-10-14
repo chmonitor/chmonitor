@@ -15,8 +15,8 @@ export const OverviewStatusStrip = function OverviewStatusStrip({
   className?: string
 }) {
   const hostId = useHostId()
-  // Shares the `useHostStatus` SWR key with ClickHouseInfoCard — keep the
-  // refresh interval identical so SWR dedupes to a single 5-minute poll
+  // Shares the `useHostStatus` query key with ClickHouseInfoCard — keep the
+  // refresh interval identical so queries dedupe to a single 5-minute poll
   // (host version / uptime / hostname are near-static).
   const { data, error, isLoading } = useHostStatus(hostId, {
     refreshInterval: REFRESH_INTERVAL.VERY_SLOW_5M,

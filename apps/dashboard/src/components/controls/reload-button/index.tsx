@@ -42,20 +42,17 @@ export const ReloadButton = function ReloadButton({
   const [isLoading, startTransition] = useTransition()
   const { reloadInterval, setReloadInterval } = useAppContext()
 
-  // Handle manual refresh
   const revalidateCacheAndReload = () =>
     startTransition(async () => {
       router.invalidate()
     })
 
-  // Countdown timer hook
   const { countDown } = useReloadCountdown({
     reloadInterval,
     onCountdownComplete: revalidateCacheAndReload,
     isLoading,
   })
 
-  // Interval management hook
   const { intervals, setInterval, disableAutoReload } = useReloadIntervals({
     reloadInterval,
     setReloadInterval,

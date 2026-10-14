@@ -515,7 +515,6 @@ function enforceMinDistance(
             nodes[j].x += nx * push
             nodes[j].y += ny * push
           } else {
-            // Coincident — push apart at a spread angle.
             const angle = (Math.PI * 2 * (i + 1)) / nodes.length
             nodes[i].x -= Math.cos(angle) * (minDist / 2)
             nodes[i].y -= Math.sin(angle) * (minDist / 2)

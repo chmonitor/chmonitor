@@ -77,7 +77,6 @@ export const DatabaseNode = function DatabaseNode({
   const hostId = useHostId()
   const [shouldFetch, setShouldFetch] = useState(false)
 
-  // Auto-trigger fetch when expanded (including from URL state)
   useEffect(() => {
     if (isExpanded && !shouldFetch) {
       setShouldFetch(true)

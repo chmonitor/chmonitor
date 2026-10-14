@@ -8,10 +8,6 @@ import { useChartData } from '@/lib/query/use-chart-data'
 import { REFRESH_INTERVAL, useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
 
-// ============================================================================
-// DiskSizeCard Component
-// ============================================================================
-
 /**
  * DiskSizeCard - "Storage" overview KPI.
  * Headline is the used size; a progress bar and `used / total / free`

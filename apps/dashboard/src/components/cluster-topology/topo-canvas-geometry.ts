@@ -63,7 +63,6 @@ export interface DragState {
   kind: DragKind
   /** Primary id (node id or cluster id). */
   id: string
-  /** Node ids being moved. */
   nodeIds: string[]
   /** Pointer position in SVG space at drag start. */
   origin: Pos
@@ -193,7 +192,6 @@ export function clampToHull(
   const maxX = hull.maxX - CLAMP_PAD_X
   const minY = hull.minY + CLAMP_PAD_Y_TOP
   const maxY = hull.maxY - CLAMP_PAD_Y_BOT
-  // Degenerate / tiny boxes: fall back to center.
   if (minX > maxX || minY > maxY) {
     return {
       x: (hull.minX + hull.maxX) / 2,

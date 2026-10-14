@@ -57,7 +57,6 @@ export function useTreeState(
 } {
   const [state, setState] = useState<TreeState>(loadTreeState)
 
-  // Auto-expand path to selected item
   useEffect(() => {
     if (database) {
       setState((prev) => {
@@ -67,7 +66,6 @@ export function useTreeState(
           ? prev.expandedTables.has(tableKey)
           : true
 
-        // Skip state update if nothing needs to change
         if (dbAlreadyExpanded && tableAlreadyExpanded) return prev
 
         const newExpandedDatabases = dbAlreadyExpanded

@@ -52,10 +52,6 @@ import { useMcpServerInfo } from '@/lib/swr/use-mcp-server-info'
 // Re-exported for existing consumers; canonical definition lives in mcp-types.ts.
 export type { McpServer }
 
-// ---------------------------------------------------------------------------
-// Status badge helper
-// ---------------------------------------------------------------------------
-
 function StatusBadge({ status }: { status: McpServer['status'] }) {
   if (status === 'connected') {
     return (
@@ -83,10 +79,6 @@ function StatusBadge({ status }: { status: McpServer['status'] }) {
   }
   return <span className="text-muted-foreground text-[10px]">Unconfigured</span>
 }
-
-// ---------------------------------------------------------------------------
-// Single server row
-// ---------------------------------------------------------------------------
 
 interface McpServerRowProps {
   server: McpServer
@@ -211,10 +203,6 @@ function CustomMcpServerRow({
     />
   )
 }
-
-// ---------------------------------------------------------------------------
-// Panel root
-// ---------------------------------------------------------------------------
 
 export function AgentMcpPanel({ config }: { config: UseMcpConfigResult }) {
   const { data, isLoading, error } = useMcpServerInfo()

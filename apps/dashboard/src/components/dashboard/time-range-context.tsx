@@ -31,7 +31,6 @@ interface DashboardTimeRangeContextValue {
   interval: DateRangeValue['interval']
   /** Full current range value, for the `DateRangeSelector`. */
   range: DateRangeValue
-  /** Update the shared range. */
   setRange: (range: DateRangeValue) => void
 }
 

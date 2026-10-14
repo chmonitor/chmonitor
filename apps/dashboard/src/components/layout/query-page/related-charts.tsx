@@ -40,10 +40,8 @@ export const RelatedCharts = function RelatedCharts({
     return null
   }
 
-  // Filter out 'break' directives and null values
   const validCharts = relatedCharts.filter((c) => c && c !== 'break')
 
-  // Always group into rows with toggle controls
   const rows = groupChartsIntoRows(validCharts)
 
   return (

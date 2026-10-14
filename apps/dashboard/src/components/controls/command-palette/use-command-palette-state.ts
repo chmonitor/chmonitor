@@ -44,7 +44,6 @@ export function useCommandPaletteState({
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Cmd+K or Ctrl+K to open
       if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
         event.preventDefault()
         setOpen(!open)

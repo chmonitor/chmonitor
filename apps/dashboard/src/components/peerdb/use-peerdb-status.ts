@@ -32,7 +32,7 @@ async function fetchStatus(url: string): Promise<PeerDBStatusPayload> {
 }
 
 /**
- * Shared SWR hook for the server-side PeerDB connection probe. Validates the
+ * Shared hook for the server-side PeerDB connection probe. Validates the
  * response shape so callers (the header pill + mirrors header chip) never
  * consume malformed data.
  *

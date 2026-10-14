@@ -135,7 +135,6 @@ export function SqlEditor({
   const isProgrammaticChange = useRef(false)
   const { resolvedTheme } = useTheme()
 
-  // Keep refs in sync
   onChangeRef.current = onChange
   onRunRef.current = onRun
 

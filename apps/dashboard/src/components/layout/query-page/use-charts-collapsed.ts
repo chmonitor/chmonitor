@@ -33,23 +33,19 @@ const DEFAULT_STATE: ChartsRowsState = {
  * Only call this on client after hydration
  */
 function loadFromStorage(): ChartsRowsState {
-  // Check for new format first
   const stored = localStorage.getItem(CHARTS_ROWS_KEY)
   if (stored) {
     try {
       return JSON.parse(stored)
     } catch {
-      // Invalid JSON, use defaults
     }
   }
 
-  // Migrate from old format
   const oldStored = localStorage.getItem(OLD_CHARTS_COLLAPSED_KEY)
   if (oldStored !== null) {
     const allCollapsed = oldStored === 'true'
     const newState = { allCollapsed, collapsedRows: [] }
 
-    // Save to new format and delete old key
     localStorage.setItem(CHARTS_ROWS_KEY, JSON.stringify(newState))
     localStorage.removeItem(OLD_CHARTS_COLLAPSED_KEY)
 

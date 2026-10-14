@@ -38,7 +38,6 @@ export function DatabaseOverview({ database }: DatabaseOverviewProps) {
   // Use unified query that includes all dependency types + standalone tables
   const depsUrl = `/api/v1/explorer/dependencies?hostId=${hostId}&database=${encodeURIComponent(database)}&direction=all`
 
-  // Fetch all dependencies using unified query
   const { data: depsData, isLoading } = useQuery<ApiResponse<DependencyEdge[]>>(
     {
       queryKey: [depsUrl],
@@ -48,7 +47,6 @@ export function DatabaseOverview({ database }: DatabaseOverviewProps) {
 
   const graphData = depsData?.data || []
 
-  // Count actual dependencies (edges with targets)
   const { tableCount, depCount } = (() => {
     const tables = new Set<string>()
     let deps = 0

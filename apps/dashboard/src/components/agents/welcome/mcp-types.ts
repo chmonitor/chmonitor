@@ -17,7 +17,6 @@ export interface McpServer {
   /** Whether this server ships with the app and cannot be removed */
   builtin: boolean
   enabled: boolean
-  /** Connection status */
   status: 'connected' | 'connecting' | 'error' | 'unconfigured'
   /**
    * Tool names from a live probe (custom servers only).

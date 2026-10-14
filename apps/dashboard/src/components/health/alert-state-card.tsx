@@ -90,7 +90,6 @@ export function AlertStateCard() {
   const alertName = useCheckAlertNames()
   const now = Date.now()
 
-  // Firing conditions first, then most-recently-transitioned.
   const sorted = useMemo(
     () =>
       [...states].sort((a, b) => {

@@ -19,7 +19,6 @@ export interface OverviewChartConfig<
 > {
   /** Unique identifier for this chart configuration */
   id: string
-  /** Chart component to render */
   component: ComponentType<ChartProps & T>
   /** Display title for the chart */
   title?: string
@@ -27,9 +26,7 @@ export interface OverviewChartConfig<
   interval?: ClickHouseInterval
   /** Number of hours of historical data to display */
   lastHours?: number
-  /** Custom CSS className */
   className?: string
-  /** Custom chart CSS className */
   chartClassName?: string
   /** Custom chart card content className */
   chartCardContentClassName?: string
@@ -52,7 +49,6 @@ export interface OverviewChartConfig<
  * Tab configuration for organizing charts into tabs
  */
 export interface OverviewTabConfig {
-  /** Tab value identifier */
   value: string
   /** Display label for the tab */
   label: string

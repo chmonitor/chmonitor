@@ -52,7 +52,6 @@ interface DependencyGraphProps {
   className?: string
 }
 
-// Layout direction type
 type LayoutDirection = 'TB' | 'LR'
 
 // Node dimensions for dagre layout (must match actual rendered size)
@@ -221,14 +220,12 @@ function getLayoutedElements(
 ): { nodes: Node[]; edges: Edge[] } {
   const isHorizontal = direction === 'LR'
 
-  // Find connected node IDs (nodes that have edges)
   const connectedNodeIds = new Set<string>()
   edges.forEach((edge) => {
     connectedNodeIds.add(edge.source)
     connectedNodeIds.add(edge.target)
   })
 
-  // Separate connected and isolated nodes
   const connectedNodes = nodes.filter((n) => connectedNodeIds.has(n.id))
   const isolatedNodes = nodes.filter((n) => !connectedNodeIds.has(n.id))
 
@@ -262,7 +259,6 @@ function getLayoutedElements(
 
   // Layout isolated nodes in a grid below/beside the connected graph
   if (isolatedNodes.length > 0) {
-    // Calculate bounding box of connected nodes
     let maxY = 0
     let maxX = 0
     layoutedNodes.forEach((node) => {
@@ -309,7 +305,6 @@ function buildInitialGraph(
   >()
   const edges: Edge[] = []
 
-  // Collect all unique tables and build edges
   for (const dep of dependencies) {
     const sourceKey = `${dep.source_database}.${dep.source_table}`
     if (!nodeMap.has(sourceKey)) {
@@ -330,7 +325,6 @@ function buildInitialGraph(
         })
       }
 
-      // Create styled edge
       const edgeColor = getDependencyColor(dep.dependency_type)
       const edgeLabel = getDependencyLabel(dep.dependency_type)
       edges.push({
@@ -437,7 +431,6 @@ export function DependencyGraph({
     setEdges(layoutedEdges)
   }, [layoutedNodes, layoutedEdges, setNodes, setEdges])
 
-  // Fit view when nodes change
   useEffect(() => {
     if (reactFlowInstance.current && nodes.length > 0) {
       const timer = setTimeout(() => {
@@ -454,7 +447,6 @@ export function DependencyGraph({
     }, 100)
   }
 
-  // Toggle layout direction
   const onLayoutChange = (newDirection: LayoutDirection) => {
     setDirection(newDirection)
   }

@@ -23,7 +23,6 @@ export function CompactErrorAlert({
   className,
   variant,
 }: CompactErrorAlertProps) {
-  // Extract just the first line for compact mode
   const compactMessage =
     typeof message === 'string' ? message.split('\n')[0] : message
 

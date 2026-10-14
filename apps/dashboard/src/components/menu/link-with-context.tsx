@@ -85,7 +85,6 @@ export const HostPrefixedLink = ({
   const toPath = href.split('?')[0]
   const searchParams = mergeHrefSearch(href, hostId)
 
-  // Check if this link is active
   const isActive = siblingHrefs
     ? isMenuItemActiveAmongSiblings(href, siblingHrefs, pathname)
     : isMenuItemActive(href, pathname)

@@ -9,7 +9,6 @@ const SEVERITY_LABEL: Record<SeverityFilter, string> = {
   warning: 'Warning+',
 }
 
-/** Segmented severity (heat) filter. */
 export function SeverityFilterBar({
   value,
   onChange,

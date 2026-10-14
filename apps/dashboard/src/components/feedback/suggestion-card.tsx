@@ -113,13 +113,11 @@ interface TextPart {
 function parseIntelligent(text: string): TextPart[] {
   const parts: TextPart[] = []
 
-  // Handle markdown code blocks first
   const codeBlockRegex = /```([\s\S]*?)```/g
   let lastIndex = 0
   let match
 
   while ((match = codeBlockRegex.exec(text)) !== null) {
-    // Add text before code block
     if (match.index > lastIndex) {
       parts.push({
         type: 'text',
@@ -127,7 +125,6 @@ function parseIntelligent(text: string): TextPart[] {
       })
     }
 
-    // Detect if it's SQL
     const codeContent = match[1].trim()
     const isSql =
       /^\s*(SELECT|CREATE|SET|ALTER|DROP|INSERT|UPDATE|DELETE|SHOW|EXPLAIN)/i.test(
@@ -142,7 +139,6 @@ function parseIntelligent(text: string): TextPart[] {
     lastIndex = match.index + match[0].length
   }
 
-  // Add remaining text
   if (lastIndex < text.length) {
     parts.push({
       type: 'text',
@@ -180,7 +176,6 @@ function parseIntelligent(text: string): TextPart[] {
     }
   }
 
-  // Filter out empty parts
   return parts.filter((p) => p.content.trim().length > 0)
 }
 
@@ -200,7 +195,6 @@ function renderTextWithLinks(text: string): React.ReactNode {
   return parts.map((part, idx) => {
     if (!part) return null
 
-    // Check if this part is a URL
     if (urlTest.test(part)) {
       const href = part.startsWith('www.') ? `https://${part}` : part
 

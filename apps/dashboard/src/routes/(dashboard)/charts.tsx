@@ -35,7 +35,6 @@ interface DynamicChartProps {
 }
 
 function DynamicChart({ chartName, hostId }: DynamicChartProps) {
-  // Check if chart exists in registry
   if (!hasChart(chartName)) {
     return null
   }
@@ -61,7 +60,6 @@ function ChartsPageContent() {
   const hostId = useHostId()
   const searchParams = useUrlSearchParams()
 
-  // Get chart names from URL search params
   const chartNames: string[] = (() => {
     const chartsParam = searchParams.get('name')
     if (!chartsParam) return []
@@ -98,7 +96,6 @@ function ChartsPageContent() {
     )
   }
 
-  // Format chart names for display
   const displayTitle =
     chartNames.length === 1
       ? chartNames[0]

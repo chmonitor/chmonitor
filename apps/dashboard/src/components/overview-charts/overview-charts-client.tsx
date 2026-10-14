@@ -4,10 +4,6 @@ import { DiskSizeCard } from './disk-size-card'
 import { RunningQueriesCard } from './running-queries-card'
 import { cn } from '@/lib/utils'
 
-// ============================================================================
-// OverviewCharts Component
-// ============================================================================
-
 /**
  * Overview KPI strip: 1 column on phones, 2×2 from `sm`, four-across from `xl`.
  * `md:grid-cols-4` (768) and `lg:grid-cols-4` (1024) both crush: at `lg` the

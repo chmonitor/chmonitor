@@ -147,7 +147,6 @@ export function summarizeToolError(
       }
     }
   } catch {
-    // Not JSON — errorText is already plain text.
   }
 
   return { message: trimmed, detail: null }

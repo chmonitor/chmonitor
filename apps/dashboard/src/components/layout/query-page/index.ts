@@ -16,7 +16,6 @@ export {
   type CollapsedChartsRowProps,
 } from './collapsed-charts-row'
 export { DynamicChart, type DynamicChartProps } from './dynamic-chart'
-// Re-export PageLayout as alias for backward compatibility
 export {
   type CreateQueryPageOptions,
   createQueryPage,

@@ -31,7 +31,6 @@ export type CardToolbarMetadata = Partial<ApiResponseMetadata>
 export interface CardToolbarProps {
   sql?: string
   data?: ChartDataPoint[] | Record<string, unknown>[]
-  /** Query execution metadata */
   metadata?: CardToolbarMetadata
   /** Always show the button (not just on hover) */
   alwaysVisible?: boolean
@@ -67,7 +66,6 @@ export const CardToolbar = function CardToolbar({
     }
   }
 
-  // Check if we have metadata to show
   const hasMetadata =
     metadata &&
     (metadata.duration !== undefined ||
@@ -77,7 +75,6 @@ export const CardToolbar = function CardToolbar({
       metadata.queryId ||
       metadata.api)
 
-  // Check if we have data to show
   const hasData = data && (Array.isArray(data) ? data.length > 0 : true)
 
   // Check if we have request info to show (metadata or SQL)

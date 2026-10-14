@@ -43,8 +43,6 @@ export interface RunningQueryRow {
   [key: string]: unknown
 }
 
-// ───────────────────────── helpers ─────────────────────────
-
 export type Severity = 'critical' | 'warning' | 'normal'
 
 /** Classify a query by how long it has been running (seconds). */
@@ -83,8 +81,6 @@ function profileEvent(events: unknown, key: string): number {
   }
   return 0
 }
-
-// ───────────────────────── derived row ─────────────────────────
 
 /**
  * A `RunningQueryRow` with every metric the table sorts, filters, or renders
@@ -200,8 +196,6 @@ export function derive(row: RunningQueryRow): DerivedQuery {
   }
 }
 
-// ───────────────────────── sorting ─────────────────────────
-
 export type SortKey =
   | 'progress'
   | 'memory'
@@ -222,8 +216,6 @@ export const SORT_ACCESSOR: Record<SortKey, (d: DerivedQuery) => number> = {
   duration: (d) => d.elapsed,
 }
 
-// ───────────────────────── columns ─────────────────────────
-
 /** The metric columns the user can show / hide via the column menu. */
 export type OptionalColumn =
   | 'memory'
@@ -240,7 +232,6 @@ export const OPTIONAL_COLUMNS: { key: OptionalColumn; label: string }[] = [
   { key: 'duration', label: 'Duration' },
 ]
 
-// Always-present columns: Type, Query, Progress, Actions.
 export const BASE_COLUMN_COUNT = 4
 
 export const SEVERITY_DURATION: Record<Severity, string> = {

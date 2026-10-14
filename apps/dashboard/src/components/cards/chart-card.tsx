@@ -72,12 +72,10 @@ interface ChartCardProps
   contentClassName?: string
   sql?: string
   data?: ChartDataPoint[]
-  /** Query execution metadata */
   metadata?: CardToolbarMetadata
   children: string | React.ReactNode
   /** Date range configuration (opt-in feature) */
   dateRangeConfig?: DateRangeConfig
-  /** Current selected range value */
   currentRange?: string
   /** Callback when date range changes */
   onRangeChange?: (range: DateRangeValue) => void

@@ -60,10 +60,8 @@ export function DependenciesTab() {
   const apiUrl = (() => {
     if (!database) return null
     if (table) {
-      // Table-level: get all dependencies for this specific table
       return `/api/v1/explorer/dependencies?hostId=${hostId}&database=${encodeURIComponent(database)}&table=${encodeURIComponent(table)}&direction=table`
     }
-    // Database-level: get all dependencies in the database
     return `/api/v1/explorer/dependencies?hostId=${hostId}&database=${encodeURIComponent(database)}&direction=all`
   })()
 
@@ -79,7 +77,6 @@ export function DependenciesTab() {
 
   const dependencies = response?.data || []
 
-  // Count actual dependency edges (not standalone nodes)
   const { depCount, hasRealDeps } = (() => {
     let count = 0
     for (const dep of dependencies) {
@@ -90,7 +87,6 @@ export function DependenciesTab() {
     return { depCount: count, hasRealDeps: count > 0 }
   })()
 
-  // Build summary of dependency types
   const depTypeSummary = (() => {
     const types = new Map<DependencyType, number>()
     for (const dep of dependencies) {

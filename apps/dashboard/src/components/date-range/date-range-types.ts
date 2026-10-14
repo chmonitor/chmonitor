@@ -6,13 +6,11 @@ import type { ClickHouseInterval } from '@chm/types/clickhouse-interval'
 export interface DateRangeOption {
   /** Display label (e.g., "24h", "7d") */
   label: string
-  /** Unique value identifier */
   value: string
   /** Number of hours of historical data (undefined for "all" data) */
   lastHours?: number
   /** Recommended interval granularity for this range */
   interval: ClickHouseInterval
-  /** Optional description for tooltip */
   description?: string
 }
 
@@ -20,9 +18,7 @@ export interface DateRangeOption {
  * Configuration for a chart's available date ranges
  */
 export interface DateRangeConfig {
-  /** Available range options */
   options: DateRangeOption[]
-  /** Default selected value */
   defaultValue: string
 }
 
@@ -34,6 +30,5 @@ export interface DateRangeValue {
   value: string
   /** Number of hours (undefined for "all" data) */
   lastHours?: number
-  /** Interval granularity */
   interval: ClickHouseInterval
 }

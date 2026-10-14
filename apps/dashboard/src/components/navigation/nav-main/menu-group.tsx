@@ -23,7 +23,6 @@ export const MenuGroup = function MenuGroup({
   items,
   pathname,
 }: MenuGroupProps) {
-  // Filter items belonging to this section
   const sectionItems = items.filter((item) => item.section === section)
 
   // Don't render empty sections

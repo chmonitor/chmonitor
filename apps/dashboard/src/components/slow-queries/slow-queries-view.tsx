@@ -43,8 +43,6 @@ const PRESET_GROUPS: { key: string; icon: typeof Timer; label: string }[] = [
   { key: 'min_duration_s', icon: Gauge, label: 'Min duration' },
 ]
 
-// LoadingState is replaced by QueryPageSkeleton from @/components/query-tables/query-page-skeleton
-
 /** A single-select chip group bound to one filter param key. */
 function FilterGroup({
   groupKey,
@@ -101,7 +99,6 @@ function FilterGroup({
  */
 export function SlowQueriesView() {
   const hostId = useHostId()
-  // Fire-and-forget product telemetry — no-op unless enabled.
   useFeatureTracking('slow_queries')
   const { timeRange } = useTimeRange()
   const navigate = useNavigate()
@@ -144,7 +141,6 @@ export function SlowQueriesView() {
     title: truncateSql(String(r.query ?? ''), 60),
   }))
 
-  // Slowest duration drives the header highlight.
   const slowest = useMemo(() => {
     let max = 0
     for (const row of rows) {

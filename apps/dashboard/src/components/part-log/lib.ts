@@ -20,7 +20,6 @@ export interface PartLogRow {
   event_type: string
   database: string
   table_name: string
-  /** `database.table` */
   table: string
   part_name: string
   partition_id: string
@@ -67,7 +66,6 @@ export const TONE_BADGE: Record<Tone, string> = {
   neutral: 'border-border bg-muted text-muted-foreground dark:bg-muted/40',
 }
 
-/** `event_type` → tone. */
 export const EVENT_TONE: Record<string, Tone> = {
   NewPart: 'green',
   MergeParts: 'violet',
@@ -91,7 +89,6 @@ export function lifecycleClass(eventType: string): LifecycleClass {
   return 'move' // MovePart, DownloadPart
 }
 
-/** `merge_reason` → dot color. */
 export const REASON_TONE: Record<string, Tone> = {
   NotAMerge: 'neutral',
   RegularMerge: 'green',
@@ -114,14 +111,10 @@ export function tableTone(table: string): Tone {
   return TABLE_TONES[sum % TABLE_TONES.length]
 }
 
-// ───────────────────────── numeric coercion ─────────────────────────
-
 export const num = (v: unknown): number => {
   const n = Number(v)
   return Number.isFinite(n) ? n : 0
 }
-
-// ───────────────────────── time formatting ─────────────────────────
 
 /** Format epoch-seconds into a "Ns / Nm / Nh ago" relative label. */
 export function relativeAgo(unixSeconds: number, nowSeconds: number): string {
@@ -137,8 +130,6 @@ export function timeOfDay(eventTime: string): string {
   const m = eventTime.match(/(\d{2}:\d{2}:\d{2})/)
   return m ? m[1] : eventTime
 }
-
-// ───────────────────────── size distribution ─────────────────────────
 
 export interface SizeBin {
   label: string

@@ -13,20 +13,17 @@ export const NetworkStatusBanner = function NetworkStatusBanner() {
   const wasOfflineRef = useRef(false)
 
   useEffect(() => {
-    // Initial check
     const updateStatus = () => {
       const isOnline = navigator.onLine
       setStatus(isOnline ? 'online' : 'offline')
       if (isOnline && wasOfflineRef.current) {
         wasOfflineRef.current = false
-        // Trigger a page reload when coming back online
         window.location.reload()
       }
     }
 
     updateStatus()
 
-    // Listen for online/offline events
     const handleOnline = () => {
       setStatus('online')
       wasOfflineRef.current = true
@@ -45,7 +42,6 @@ export const NetworkStatusBanner = function NetworkStatusBanner() {
     }
   }, [])
 
-  // Only show banner when offline
   if (status === 'online' || status === 'checking') {
     return null
   }

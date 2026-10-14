@@ -43,7 +43,6 @@ export function DbLogo({
     )
   }
 
-  // Define SVG path mappings for other databases
   let d = ''
   let color = 'currentColor'
   const viewBox = '0 0 24 24'

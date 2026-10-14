@@ -171,7 +171,6 @@ const MetricCardSkeleton = () => (
   </div>
 )
 
-/** Compact stat card skeleton */
 const StatSkeleton = () => (
   <div className="flex flex-col gap-1.5 py-1 px-1">
     <Skeleton className="h-6 w-24 opacity-80" />
@@ -214,7 +213,6 @@ export const ChartSkeleton = function ChartSkeleton({
   type = 'area',
   headerClassName,
 }: ChartSkeletonProps = {}) {
-  // Render appropriate loader based on type
   const renderContent = () => {
     switch (type) {
       case 'bar':

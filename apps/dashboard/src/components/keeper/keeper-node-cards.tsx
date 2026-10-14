@@ -18,10 +18,6 @@ import { useTableData } from '@/lib/query/use-table-data'
 import { useHostId } from '@/lib/swr/use-host'
 import { cn } from '@/lib/utils'
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 interface KeeperInfoRow {
   zookeeper_cluster_name: string
   host: string
@@ -48,10 +44,6 @@ interface KeeperInfoRow {
   last_committed_idx: number | string
   [key: string]: unknown
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 /** Coerce a value that may arrive as boolean, number, or string "1"/"true". */
 function isTruthy(v: boolean | number | string | undefined): boolean {
@@ -80,10 +72,6 @@ function fmtCount(v: number | string | undefined): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
   return n.toLocaleString()
 }
-
-// ---------------------------------------------------------------------------
-// Role badge
-// ---------------------------------------------------------------------------
 
 type RoleVariant = 'leader' | 'follower' | 'observer' | 'standalone'
 
@@ -127,10 +115,6 @@ function RoleBadge({ role }: { role: RoleVariant }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Keeper-type badge
-// ---------------------------------------------------------------------------
-
 const KEEPER_TYPE_STYLES: Record<KeeperType, string> = {
   'clickhouse-keeper':
     'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700/60 dark:bg-orange-900/20 dark:text-orange-300',
@@ -171,10 +155,6 @@ function KeeperTypeBadge({ version }: { version: string | undefined }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Metric row inside a card
-// ---------------------------------------------------------------------------
-
 function MetricRow({
   label,
   value,
@@ -200,10 +180,6 @@ function MetricRow({
     </div>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Single node card
-// ---------------------------------------------------------------------------
 
 const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
   const connected = isTruthy(row.is_connected)
@@ -348,10 +324,6 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
   )
 })
 
-// ---------------------------------------------------------------------------
-// Loading skeleton
-// ---------------------------------------------------------------------------
-
 function NodeCardSkeleton() {
   return (
     <div className="rounded-xl border border-border bg-card p-3 flex flex-col gap-2">
@@ -371,10 +343,6 @@ function NodeCardSkeleton() {
     </div>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Public component
-// ---------------------------------------------------------------------------
 
 export function KeeperNodeCards() {
   const hostId = useHostId()

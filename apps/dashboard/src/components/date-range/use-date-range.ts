@@ -3,11 +3,9 @@ import type { DateRangeConfig, DateRangeValue } from './date-range-types'
 import { useState } from 'react'
 
 interface UseDateRangeOptions {
-  /** Date range configuration */
   config: DateRangeConfig
   /** Override initial value (instead of config.defaultValue) */
   initialValue?: string
-  /** Callback when range changes */
   onRangeChange?: (range: DateRangeValue) => void
 }
 
@@ -16,20 +14,16 @@ interface UseDateRangeReturn {
   value: string
   /** Current lastHours number (undefined for "all" range) */
   lastHours?: number
-  /** Current interval */
   interval: string
-  /** Full DateRangeValue object */
   range: DateRangeValue
-  /** Handler for DateRangeSelector onChange */
   setRange: (range: DateRangeValue) => void
-  /** Reset to default value */
   reset: () => void
 }
 
 /**
  * Hook for managing date range state
  *
- * Provides local state management that works with SWR caching.
+ * Provides local state management that works with query caching.
  * Different lastHours values create different cache keys, enabling
  * instant switching back to previously-fetched ranges.
  *
@@ -52,7 +46,6 @@ export function useDateRange({
   initialValue,
   onRangeChange,
 }: UseDateRangeOptions): UseDateRangeReturn {
-  // Get initial option
   const defaultOption = (() => {
     const targetValue = initialValue ?? config.defaultValue
     return (
@@ -60,20 +53,17 @@ export function useDateRange({
     )
   })()
 
-  // Local state
   const [range, setRangeState] = useState<DateRangeValue>({
     value: defaultOption.value,
     lastHours: defaultOption.lastHours,
     interval: defaultOption.interval,
   })
 
-  // Change handler with callback
   const setRange = (newRange: DateRangeValue) => {
     setRangeState(newRange)
     onRangeChange?.(newRange)
   }
 
-  // Reset to default
   const reset = () => {
     const resetRange: DateRangeValue = {
       value: defaultOption.value,

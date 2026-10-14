@@ -49,7 +49,6 @@ export const DebouncedInput = memo(function DebouncedInput({
   className,
   ...props
 }: DebouncedInputProps) {
-  // Support both controlled and uncontrolled modes
   const isControlled = controlledValue !== undefined
 
   // Internal value tracks what the user is typing (for debouncing)

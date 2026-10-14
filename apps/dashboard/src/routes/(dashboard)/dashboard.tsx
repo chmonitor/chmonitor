@@ -55,7 +55,6 @@ function readInitialLayout(): DashboardLayout {
     try {
       return normalizeLayout(JSON.parse(stored))
     } catch {
-      // ignore — fall through to default
     }
   }
   return defaultLayout()

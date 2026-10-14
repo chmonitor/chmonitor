@@ -11,8 +11,6 @@ interface IconProps {
   size?: number
 }
 
-// ── Non-svgl.app providers (custom geometric marks) ───────────────────────────
-
 export function MistralIcon({ className, size = 16 }: IconProps) {
   return (
     <svg
