@@ -56,6 +56,7 @@ export const ChartDiskSize = createCustomChart({
     const rows = dataArray as DiskRow[]
     if (!rows.length) return null
 
+    // Primary disk: prefer the one named "default", fall back to largest by total_space
     const primary =
       rows.find((r) => r.name === 'default') ??
       rows.reduce((a, b) => (a.total_space >= b.total_space ? a : b))

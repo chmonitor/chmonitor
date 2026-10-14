@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
+// Day-of-week rows that get a left-gutter label (GitHub shows Mon/Wed/Fri).
 const LABELLED_ROWS = new Set([1, 3, 5])
 
 // Fixed dot size for every day cell. Kept small so the full year stays compact
@@ -165,6 +166,7 @@ function CalendarBody({
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Full per-day record (all metrics) keyed by ISO date, for the day dialog.
   const rowByIso = useMemo(() => {
     const m = new Map<string, HeatmapDayRow>()
     for (const r of data) m.set(r.date, r)
@@ -244,10 +246,12 @@ function CalendarBody({
   const { max, rangeLabel } = summary
   const hasTraffic = max > 0
 
+  // Render one day cell (or an empty spacer for masked/out-of-range slots).
   const renderDay = (day: CalendarDay | null, dow: number) => {
     if (!day) {
       return <div key={dow} className={CELL} aria-hidden />
     }
+    // Future days of the current month: shown dimmed, not interactive.
     if (day.isFuture) {
       return (
         <div

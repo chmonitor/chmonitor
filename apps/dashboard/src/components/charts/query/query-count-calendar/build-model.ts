@@ -160,6 +160,7 @@ export function buildCalendarModel(
         if (!peak || value > peak.value) peak = day
       }
 
+      // Label the column at the first day that opens a new month.
       const month = cursor.getMonth()
       if (label === null && month !== prevMonth) {
         label = MONTH_NAMES[month]
