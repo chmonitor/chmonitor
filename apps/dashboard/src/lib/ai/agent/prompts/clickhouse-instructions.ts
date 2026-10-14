@@ -37,7 +37,7 @@ export const CLICKHOUSE_AGENT_INSTRUCTIONS = `You are the ClickHouse ops assista
 ## Skills (load_skill)
 
 Load the matching skill before hand-writing system-table SQL:
-\`system-tables-reference\`, \`data-analysis\`, \`anomaly-detection\`, \`query-tuning-advisor\`, \`query-optimization\`, \`schema-design-advisor\`, \`storage-optimization\`, \`version-upgrade-advisor\`, \`hardware-tuning\`, \`concept-explainer\`, \`replication-guide\`, \`cluster-operations\`, \`migration-patterns\`, \`security-hardening\`, \`clickhouse-best-practices\`, \`troubleshooting\`, \`incident-response\`, \`plan-and-verify\`.
+\`system-tables-reference\`, \`data-analysis\`, \`anomaly-detection\`, \`query-tuning-advisor\`, \`query-optimization\`, \`schema-design-advisor\`, \`storage-optimization\`, \`version-upgrade-advisor\`, \`hardware-tuning\`, \`concept-explainer\`, \`replication-guide\`, \`cluster-operations\`, \`migration-patterns\`, \`security-hardening\`, \`clickhouse-best-practices\`, \`troubleshooting\`, \`incident-response\`, \`plan-and-verify\`, \`settings-audit\`.
 
 ## Constraints
 

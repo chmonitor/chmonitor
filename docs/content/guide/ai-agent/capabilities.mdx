@@ -92,7 +92,7 @@ The Postgres tools (`run_postgres_select_query`, `get_postgres_metrics`, `list_p
 
 ## Skills
 
-Skills are expert guides — with copy-pasteable SQL recipes against `system.*` — that the agent loads on demand. Because the toolset is lean, **skills are how the agent stays powerful**. Eighteen skills are included:
+Skills are expert guides — with copy-pasteable SQL recipes against `system.*` — that the agent loads on demand. Because the toolset is lean, **skills are how the agent stays powerful**. Nineteen skills are included:
 
 | Skill | Covers |
 |---|---|
@@ -114,6 +114,7 @@ Skills are expert guides — with copy-pasteable SQL recipes against `system.*` 
 | `troubleshooting` | OOM, slow merges, stuck mutations, error-code diagnosis |
 | `incident-response` | Structured triage recipes (disk full, errors, replication lag, health sweep) |
 | `plan-and-verify` | Decompose with `update_plan` and verify each result before concluding |
+| `settings-audit` | Read-only audit of changed settings; flags Experimental, Beta, Obsolete |
 
 List available skills with `GET /api/v1/agent/skills`.
 

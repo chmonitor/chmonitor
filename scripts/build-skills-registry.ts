@@ -51,6 +51,7 @@ const DOMAIN_SKILLS: readonly string[] = [
   'system-tables-reference',
   'storage-optimization',
   'clickhouse-best-practices',
+  'settings-audit',
 ]
 
 function parseFrontmatter(raw: string): {
