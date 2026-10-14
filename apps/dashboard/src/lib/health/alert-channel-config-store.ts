@@ -290,6 +290,10 @@ export async function deleteChannelConfig(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Declarative reader: Channel config — merge key `channel`
+// ---------------------------------------------------------------------------
+
 const URL_TARGET_CHANNELS = new Set(['webhook', 'healthchecks', 'ntfy'])
 
 async function declarativeChannelConfigs(): Promise<

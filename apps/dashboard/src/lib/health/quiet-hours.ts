@@ -137,6 +137,10 @@ function rowToQuietHours(row: D1QuietRow): QuietHours {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Pure matchers — no I/O, no D1 (unit-tested directly).
+// ---------------------------------------------------------------------------
+
 /** `'HH:mm'` → minutes-of-day (0..1439), or null when malformed. */
 export function parseHmToMinutes(value: string): number | null {
   const m = /^(\d{1,2}):(\d{2})$/.exec(value.trim())
@@ -270,10 +274,12 @@ export function quietWindowEndMs(window: QuietHours, now: number): number {
   return now + minutesUntilEnd * 60_000
 }
 
+// ---------------------------------------------------------------------------
 // Catch-up tracker — remembers criticals suppressed during a quiet window so
 // the sweep can label the (naturally re-delivered) notification once the
 // window closes. In-memory + module-level, like `alert-state-store.ts`; keyed
 // by `${hostId}:${ruleId}`.
+// ---------------------------------------------------------------------------
 interface CatchUpMarker {
   severity: QuietSeverity
   /** unix ms the covering window ends — catch-up is due once now >= this. */
@@ -324,6 +330,10 @@ export function clearQuietSuppression(hostId: number, ruleId: string): void {
 export function _resetQuietCatchUpTracker(): void {
   catchUpTracker.clear()
 }
+
+// ---------------------------------------------------------------------------
+// D1-backed store — mirrors maintenance-windows.ts.
+// ---------------------------------------------------------------------------
 
 function getDb(): HealthSqlDb | null {
   return getHealthDb({ bindingNames: D1_BINDING_NAMES })
@@ -508,6 +518,10 @@ export async function deleteQuietHours(
     warn(`failed to delete quiet hours ${id} for owner ${ownerId}: ${err}`)
   }
 }
+
+// ---------------------------------------------------------------------------
+// Declarative reader: Quiet hours — merge key `id`
+// ---------------------------------------------------------------------------
 
 async function declarativeQuietHours(
   ownerId: string

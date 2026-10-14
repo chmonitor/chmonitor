@@ -334,6 +334,8 @@ export async function deleteRoute(
   }
 }
 
+// --- Pure matching core ------------------------------------------------------
+
 /** `*` always matches; otherwise glob-match against every candidate value. */
 function matchesPattern(
   pattern: string,
@@ -630,6 +632,10 @@ export function resolvePushoverTargets(
 
   return envFallback ? [envFallback] : []
 }
+
+// ---------------------------------------------------------------------------
+// Declarative reader: Alert routes — merge key `id`
+// ---------------------------------------------------------------------------
 
 async function declarativeRoutes(
   ownerId: string

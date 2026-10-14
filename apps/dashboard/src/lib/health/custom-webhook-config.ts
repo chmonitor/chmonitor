@@ -102,6 +102,10 @@ export function toPublicCustomWebhookTarget(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Declarative reader: Custom webhook targets — merge key `name`
+// ---------------------------------------------------------------------------
+
 async function declarativeWebhookTargets(): Promise<
   SourceLayer<CustomWebhookTarget>[]
 > {

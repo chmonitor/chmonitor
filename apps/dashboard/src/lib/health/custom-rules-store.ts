@@ -337,6 +337,10 @@ export async function loadCustomRulesIntoRegistry(): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Declarative reader: Custom rules — merge key `id`, normalised to `custom:<id>`
+// ---------------------------------------------------------------------------
+
 /**
  * The registry's id for a declarative rule. `custom:` keeps it out of the
  * built-in rule namespace and inside the sweep's `custom:*` unregister pass.
