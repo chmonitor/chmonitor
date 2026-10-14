@@ -10,9 +10,18 @@ export function isCloudflareWorkers(): boolean {
   }
 
   return (
-    (typeof caches !== 'undefined' ||
-      typeof (globalThis as any).WebSocketPair !== 'undefined' ||
-      typeof (globalThis as any).DurableObject !== 'undefined') &&
+    (typeof caches !== 'undefined' || hasWorkersGlobals()) &&
     typeof process === 'undefined'
+  )
+}
+
+/**
+ * True when Workers-only globals exist. Read via Reflect so this compiles both
+ * with and without `@cloudflare/workers-types` in scope.
+ */
+export function hasWorkersGlobals(): boolean {
+  return (
+    typeof Reflect.get(globalThis, 'WebSocketPair') !== 'undefined' ||
+    typeof Reflect.get(globalThis, 'DurableObject') !== 'undefined'
   )
 }
