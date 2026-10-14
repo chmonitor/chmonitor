@@ -1,10 +1,3 @@
-/**
- * Column definition generator for TanStack Table
- *
- * Generates an array of column definitions based on query configuration.
- * Handles formatting, sorting, filtering, and cell rendering.
- */
-
 import type {
   Column,
   ColumnDef,
@@ -47,7 +40,6 @@ export const UTILITY_COLUMN_IDS: ReadonlySet<string> = new Set([
   'action',
 ])
 
-/** Build the synthetic leftmost column that renders an expand/collapse chevron. */
 export function buildExpandColumnDef<
   TData extends RowData,
   TValue extends React.ReactNode,
@@ -102,11 +94,9 @@ export function estimateColumnSizes<TData extends RowData>(
     const name = normalizeColumnName(column)
     const explicit =
       config.columnSizing?.[name] ?? config.columnSizing?.[column]
-    // An explicit size wins; no estimate needed.
     if (explicit?.size !== undefined) continue
 
     let maxChars = name.length
-    // Sample cell values for content width estimation
     const sampleSize = Math.min(data.length, SAMPLE_SIZE)
     if (sampleSize > 0) {
       const step =
@@ -126,27 +116,6 @@ export function estimateColumnSizes<TData extends RowData>(
   return sizes
 }
 
-/**
- * Generates an array of column definitions based on the provided configuration.
- *
- * @param config - The configuration object for the query.
- * @param data - The data array for cell rendering context.
- * @param context - Additional context for cell formatting.
- * @param filterContext - Optional filter context for column filtering.
- *
- * @returns An array of column definitions.
- *
- * @example
- * ```tsx
- * const columns = getColumnDefs(config, data, {}, {
- *   enableColumnFilters: true,
- *   filterableColumns: ['name', 'status'],
- *   columnFilters: { name: 'foo' },
- *   setColumnFilter: (col, val) => {...},
- *   clearColumnFilter: (col) => {...},
- * })
- * ```
- */
 export function getColumnDefs<
   TData extends RowData,
   TValue extends React.ReactNode,
@@ -182,8 +151,6 @@ export function getColumnDefs<
     const sortingFnName = config.sortingFns?.[name]
     let sizing = config.columnSizing?.[name] ?? config.columnSizing?.[column]
 
-    // Apply the content-aware width estimate when no explicit size is
-    // configured (see estimateColumnSizes for the heuristic).
     if (!sizing || sizing.size === undefined) {
       const estimatedSize = columnSizes[name]
       if (estimatedSize !== undefined) {
@@ -191,7 +158,6 @@ export function getColumnDefs<
       }
     }
 
-    // Check if this column should have a filter
     const isFilterable = isColumnFilterable(
       name,
       enableColumnFilters,
@@ -227,7 +193,6 @@ export function getColumnDefs<
           }
         : undefined
 
-    // Create the column definition
     const columnDef: ColumnDef<TData, TValue> = {
       id: name,
       accessorKey: column,
@@ -296,7 +261,6 @@ export function getColumnDefs<
       columnDef.maxSize = sizing.maxSize
     }
 
-    // Add the sorting function if specified
     assignSortingFn(columnDef, sortingFnName, customSortingFns)
 
     return columnDef

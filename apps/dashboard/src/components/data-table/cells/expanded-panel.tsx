@@ -78,8 +78,6 @@ export interface CreateExpandedPanelOptions {
   sections: ReadonlyArray<ExpandedSection>
 }
 
-// ───────────────────────── value helpers ─────────────────────────
-
 function hasValue(value: unknown): boolean {
   return value !== undefined && value !== null && String(value).trim() !== ''
 }
@@ -159,8 +157,6 @@ function sectionHasData(
       return false
   }
 }
-
-// ───────────────────────── section primitives ─────────────────────────
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (

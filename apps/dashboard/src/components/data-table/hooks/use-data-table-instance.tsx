@@ -77,7 +77,6 @@ export function useDataTableInstance<
 }: UseDataTableInstanceParams<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
 
-  // Selection column definition using TanStack Table's row selection
   const selectionColumn: ColumnDef<TData, unknown> = {
     id: 'select',
     header: ({ table }) => {
@@ -124,11 +123,8 @@ export function useDataTableInstance<
     maxSize: 48,
   }
 
-  // Expand chevron column (inserted at the very left when expansion is on)
   const expandColumn = buildExpandColumnDef<TData, TValue>()
 
-  // Combine special columns with data columns:
-  // [expand?, select?, ...columnDefs]
   // Memoized so the array reference is stable across re-renders caused by data
   // refetches — without this, TanStack Table sees a new columns array every
   // render and remounts cells, causing visible flash.
@@ -176,10 +172,8 @@ export function useDataTableInstance<
   // useReactTable a new getRowId every render (which would bust its row models).
   const getRowId = useCallback((row: TData, index: number) => {
     const record = row as Record<string, unknown>
-    // Try common ID fields first
     if (record.query_id) return String(record.query_id)
     if (record.id) return String(record.id)
-    // Fallback to index
     return String(index)
   }, [])
 
@@ -193,24 +187,18 @@ export function useDataTableInstance<
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
-    // Add custom sorting functions
     // Ref: https://tanstack.com/table/v8/docs/guide/sorting#custom-sorting-functions
     sortingFns: customSortingFns,
     getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange,
-    // Column resizing (configurable via queryConfig.tableBehavior)
     enableColumnResizing,
     columnResizeMode,
     onColumnSizingChange,
-    // Column reordering
     onColumnOrderChange,
-    // Row selection - pass true to enable for all rows
     enableRowSelection: !!enableRowSelection,
     getRowId,
     onRowSelectionChange,
-    // Sorting (configurable via queryConfig.tableBehavior)
     enableSorting,
-    // Inline row expansion (only enabled when the QueryConfig opts in)
     enableExpanding: !!expandable,
     getRowCanExpand: () => !!expandable,
     getExpandedRowModel: getExpandedRowModel(),

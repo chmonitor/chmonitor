@@ -22,17 +22,6 @@ import {
 import { lazy, Suspense } from 'react'
 import { ColumnFormat } from '@/types/column-format'
 
-/**
- * Code dialog formatter - displays code in a dialog for long content
- *
- * @example
- * ```tsx
- * <CodeDialogFormat
- *   value="SELECT * FROM table"
- *   options={{ dialog_title: 'Query', max_truncate: 50 }}
- * />
- * ```
- */
 export const codeDialogFormatter: ValueOnlyFormatter = (value, options) => (
   <CodeDialogFormat
     value={value as string}
@@ -40,18 +29,6 @@ export const codeDialogFormatter: ValueOnlyFormatter = (value, options) => (
   />
 )
 
-/**
- * Code toggle formatter - displays code with expand/collapse accordion
- *
- * @example
- * ```tsx
- * <CodeToggleFormat
- *   row={row}
- *   value="SELECT * FROM table WHERE..."
- *   options={{ max_truncate: 50 }}
- * />
- * ```
- */
 export const codeToggleFormatter: RowContextFormatter = <
   TData extends RowData,
   TValue,
@@ -68,17 +45,6 @@ export const codeToggleFormatter: RowContextFormatter = <
   )
 }
 
-/**
- * Markdown formatter - renders markdown content
- *
- * @example
- * ```tsx
- * <MarkdownFormat
- *   value="**Bold** and *italic* text"
- *   options={{ className: 'text-sm' }}
- * />
- * ```
- */
 /**
  * `react-markdown` + its plugins are ~160 KB, and this registry is imported by
  * the data-table formatter lookup — so a static import pulled markdown into
@@ -103,17 +69,6 @@ export const markdownFormatter: ValueOnlyFormatter = (value, options) => (
   </Suspense>
 )
 
-/**
- * Colored badge formatter - displays value with deterministically colored badge
- *
- * @example
- * ```tsx
- * <ColoredBadgeFormat
- *   value="status_value"
- *   options={{ className: 'text-xs' }}
- * />
- * ```
- */
 export const coloredBadgeFormatter: ValueOnlyFormatter = (value, options) =>
   value ? (
     <ColoredBadgeFormat
@@ -122,10 +77,6 @@ export const coloredBadgeFormatter: ValueOnlyFormatter = (value, options) =>
     />
   ) : null
 
-/**
- * Registry of advanced formatters
- * These include value-only and row-context formatters for complex use cases
- */
 export const ADVANCED_FORMATTERS: Record<
   | ColumnFormat.CodeDialog
   | ColumnFormat.CodeToggle

@@ -1,20 +1,3 @@
-/**
- * Column Filter Component
- *
- * Provides debounced text input for filtering table columns
- * Can be added to table headers for client-side filtering
- *
- * @example
- * ```tsx
- * <ColumnFilter
- *   column="query"
- *   value={filterValue}
- *   onChange={setFilterValue}
- *   placeholder="Filter queries..."
- * />
- * ```
- */
-
 import { Search, X } from 'lucide-react'
 
 import { memo, useCallback, useMemo, useState } from 'react'
@@ -101,18 +84,6 @@ export const ColumnFilter = memo(function ColumnFilter({
   )
 })
 
-/**
- * Column Filter Provider Hook
- *
- * Manages filter state for table columns
- * Returns filtered data and filter controls
- *
- * @example
- * ```tsx
- * const { filteredData, filters, setFilter, clearFilter } = useColumnFilters(data, ['query', 'user'])
- * ```
- */
-
 export interface ColumnFiltersState {
   filteredData: unknown[]
   filters: Record<string, string>
@@ -126,7 +97,6 @@ export function useColumnFilters<T extends Record<string, unknown>>(
   data: T[],
   columns: string[] = []
 ): ColumnFiltersState {
-  // Get all column keys from data if not provided
   const _filterColumns = useMemo(() => {
     if (columns.length > 0) return columns
     if (data.length === 0) return []
@@ -153,7 +123,6 @@ export function useColumnFilters<T extends Record<string, unknown>>(
     setFiltersState({})
   }, [])
 
-  // Filter data based on active filters
   const filteredData = useMemo(() => {
     const activeFilters = Object.entries(filters).filter(
       ([_, value]) => value.length > 0

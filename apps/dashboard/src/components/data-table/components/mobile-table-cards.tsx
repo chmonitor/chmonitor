@@ -238,8 +238,6 @@ const MobileTableCard = function MobileTableCard<TData extends RowData>({
     )
   )
 
-  // Metric chips: a compact icon+value row of the most glanceable live metrics.
-  // Only populated when the config opts in via `card.metrics`.
   const metricEntries = (card?.metrics ?? [])
     .map((name) => ({ name, cell: matchCell(cells, name) }))
     .filter(
@@ -279,7 +277,6 @@ const MobileTableCard = function MobileTableCard<TData extends RowData>({
   const hasHeader =
     isExpandable || !!selectCell || badgeCells.length > 0 || !!actionCell
 
-  // Density-aware spacing for cards
   const { density } = useTableDensityContext()
   const densitySpacing = {
     comfortable: {

@@ -70,7 +70,6 @@ function toNumberOrNull(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-/** Prefer a precomputed `readable_<key>` companion, else format the raw value. */
 function readable(
   row: Record<string, unknown>,
   key: string,
@@ -82,7 +81,6 @@ function readable(
   return raw === null ? '' : format(raw)
 }
 
-/** Humanize a microsecond duration as "s / ms / us". */
 function formatMicros(us: number | null): string {
   if (us === null) return ''
   if (us >= 1_000_000) return `${(us / 1_000_000).toFixed(2)} s`
@@ -165,7 +163,6 @@ export default function QueryMetricLogExpandedDetails({ row }: Props) {
     },
   })
 
-  // ── Metric sample tiles (already in the row) ──────────────────────────────
   const sampleTiles = (
     <div>
       <SectionTitle>Resource sample</SectionTitle>
@@ -207,7 +204,6 @@ export default function QueryMetricLogExpandedDetails({ row }: Props) {
     </div>
   )
 
-  // ── query_log enrichment tiles (fetched) ──────────────────────────────────
   const logTiles = (() => {
     if (!data) return null
     const tiles = [
@@ -279,7 +275,6 @@ export default function QueryMetricLogExpandedDetails({ row }: Props) {
     )
   })()
 
-  // ── SQL section ───────────────────────────────────────────────────────────
   const sql = toStringSafe(data?.query)
   const kind = toStringSafe(data?.query_kind)
   const exception = toStringSafe(data?.exception)

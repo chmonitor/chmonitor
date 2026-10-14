@@ -8,27 +8,10 @@ import { RelatedTimeFormat } from '../cells/related-time-format'
 import { TextFormat } from '../cells/text-format'
 import { ColumnFormat } from '@/types/column-format'
 
-/**
- * Badge formatter - wraps value in a styled badge component
- *
- * @example
- * ```tsx
- * <BadgeFormat value="completed" />
- * ```
- */
 export const badgeFormatter: ValueOnlyFormatter = (value) => (
   <BadgeFormat value={value as React.ReactNode} />
 )
 
-/**
- * Boolean formatter - displays boolean values as check/cross icons
- *
- * @example
- * ```tsx
- * <BooleanFormat value={true} />  // CheckCircledIcon
- * <BooleanFormat value={false} /> // CrossCircledIcon
- * ```
- */
 export const booleanFormatter: ValueOnlyFormatter = (value) => (
   <BooleanFormat value={value as string | number | boolean} />
 )
@@ -42,38 +25,14 @@ export const booleanInvertedFormatter: ValueOnlyFormatter = (value) => (
   <BooleanFormat value={value as string | number | boolean} invert />
 )
 
-/**
- * Duration formatter - converts seconds to human-readable duration
- *
- * @example
- * ```tsx
- * <DurationFormat value={123} /> // "2 minutes"
- * ```
- */
 export const durationFormatter: ValueOnlyFormatter = (value) => (
   <DurationFormat value={value as string | number} />
 )
 
-/**
- * Related time formatter - displays datetime as relative time
- *
- * @example
- * ```tsx
- * <RelatedTimeFormat value="2024-01-01 12:00:00" /> // "2 hours ago"
- * ```
- */
 export const relatedTimeFormatter: ValueOnlyFormatter = (value) => (
   <RelatedTimeFormat value={value as string} />
 )
 
-/**
- * Text formatter - displays text with optional truncation and styling
- *
- * @example
- * ```tsx
- * <TextFormat value="long text..." options={{ truncate: 50 }} />
- * ```
- */
 export const textFormatter: ValueOnlyFormatter = (value, options) => (
   <TextFormat
     value={value as React.ReactNode}
@@ -81,10 +40,6 @@ export const textFormatter: ValueOnlyFormatter = (value, options) => (
   />
 )
 
-/**
- * Registry of value-only formatters
- * These formatters only need the value (and optionally options) to render
- */
 export const VALUE_FORMATTERS: Record<
   | ColumnFormat.Badge
   | ColumnFormat.Boolean

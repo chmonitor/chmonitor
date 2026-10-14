@@ -25,27 +25,6 @@ import { FilterBar } from '@/components/filters/filter-bar'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { cn } from '@/lib/utils'
 
-/**
- * DataTable - Main data table component with sorting, filtering, virtualization
- *
- * High-level orchestrator that delegates rendering to specialized sub-components:
- * - DataTableHeader: Title, toolbar, column visibility controls
- * - DataTableContent: Table with virtualization support
- * - DataTableFooter: Pagination and footnote
- *
- * Features:
- * - Virtual scrolling for datasets larger than the standard pagination range
- * - Client-side column filtering
- * - URL filter synchronization for shareable links
- * - Custom sorting functions
- * - Column visibility controls
- * - Responsive design with shadcn/ui components
- *
- * Performance optimizations:
- * - Memoized sub-components prevent unnecessary re-renders
- * - Virtualization reduces DOM nodes from thousands to ~100
- * - Efficient column calculations with useMemo
- */
 export function DataTable<
   TData extends RowData,
   TValue extends React.ReactNode,
@@ -80,10 +59,8 @@ export function DataTable<
   onRowClick,
   showFilterBar = true,
 }: DataTableProps<TData>) {
-  // Resolve expansion config: explicit prop wins over QueryConfig declaration
   const expandable = expandableProp ?? queryConfig.expandable
 
-  // Check if schema-driven filter bar has active URL filters (q param or field keys)
   const searchParams = useUrlSearchParams()
   const hasActiveSchemaFilters = Boolean(
     queryConfig.filterSchema &&
@@ -121,7 +98,6 @@ export function DataTable<
     filterableColumns,
   })
 
-  // Column calculations and definitions
   const { columnDefs } = useTableColumns<TData, TValue>({
     queryConfig,
     context,
@@ -131,21 +107,17 @@ export function DataTable<
     schemaFilterContext,
   })
 
-  // Column visibility
   const { columnVisibility, setColumnVisibility, initialColumnVisibility } =
     useColumnVisibility({
       configuredColumns,
     })
 
-  // Density mode with localStorage persistence
   const { density, setDensity, cellClassName } = useTableDensity(
     compact ? 'compact' : undefined
   )
 
-  // Column sizing for resize support
   const { columnSizing, setColumnSizing } = useColumnSizing()
 
-  // Column ordering for drag-and-drop reordering (with optional localStorage persistence)
   const { columnOrder, handleColumnOrderChange, resetColumnOrder } =
     useColumnOrderState({
       columnOrderStorageKey,
@@ -153,12 +125,9 @@ export function DataTable<
       enabled: resolvedEnableColumnReordering,
     })
 
-  // Row selection state
   const { rowSelection, handleRowSelectionChange } =
     useRowSelectionState(onRowSelectionChange)
 
-  // Composes the utility columns (expand/select) with the data columns and
-  // builds the TanStack Table instance.
   const { table, finalColumnDefs } = useDataTableInstance<TData, TValue>({
     data: filteredData,
     columnDefs,

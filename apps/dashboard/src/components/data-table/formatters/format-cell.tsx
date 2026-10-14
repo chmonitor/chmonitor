@@ -1,9 +1,3 @@
-/**
- * Main cell formatting function
- *
- * Orchestrates formatter selection and application.
- */
-
 import type { Row, RowData, Table } from '@tanstack/react-table'
 
 import type { RowContextFormatter, ValueOnlyFormatter } from './types'
@@ -23,21 +17,6 @@ import {
 import { ExpandableCell } from '@/components/data-table/components/expandable-cell'
 import { ColumnFormat, type ColumnFormatOptions } from '@/types/column-format'
 
-/**
- * Format a cell value using the appropriate formatter
- *
- * This is the main entry point for cell formatting.
- * It checks formatters in order: inline → value → advanced → context
- *
- * @param table - TanStack Table instance
- * @param data - Full table data array
- * @param row - Current row being formatted
- * @param value - Cell value to format
- * @param columnName - Name of the column
- * @param context - Template variable context
- * @param format - Format type to apply
- * @param columnFormatOptions - Optional formatter-specific options
- */
 export function formatCell<
   TData extends RowData,
   TValue extends React.ReactNode,
@@ -51,7 +30,6 @@ export function formatCell<
   format: ColumnFormat,
   columnFormatOptions?: ColumnFormatOptions
 ): React.ReactNode {
-  // 1. Check inline formatters first (fastest - pure functions)
   if (hasInlineFormatter(format)) {
     const formatter = getInlineFormatter(format)
     if (formatter) {
@@ -59,7 +37,6 @@ export function formatCell<
     }
   }
 
-  // 2. Check value-only formatters (need value + options)
   if (hasValueFormatter(format)) {
     const formatter = getValueFormatter(format)
     if (formatter) {
@@ -67,12 +44,9 @@ export function formatCell<
     }
   }
 
-  // 3. Check advanced formatters (value-only or context)
   if (hasAdvancedFormatter(format)) {
     const formatter = getAdvancedFormatter<TData, TValue>(format)
     if (formatter) {
-      // Advanced formatters can be either value-only or context-based
-      // Check if it's CodeToggle (needs row context)
       if (format === ColumnFormat.CodeToggle) {
         return (formatter as RowContextFormatter<TData, TValue>)({
           table,
@@ -84,12 +58,10 @@ export function formatCell<
           options: columnFormatOptions,
         })
       }
-      // Other advanced formatters are value-only
       return (formatter as ValueOnlyFormatter)(value, columnFormatOptions)
     }
   }
 
-  // 4. Check context formatters (need full context)
   if (hasContextFormatter(format)) {
     const formatter = getContextFormatter<TData, TValue>(format)
     if (formatter) {
@@ -105,7 +77,6 @@ export function formatCell<
     }
   }
 
-  // 5. Default fallback - expandable text display for long content
   const strValue = String(value ?? '')
   return <ExpandableCell value={strValue} />
 }

@@ -21,18 +21,6 @@ import {
 } from '@/components/data-table/cells/stacked-share-format'
 import { ColumnFormat } from '@/types/column-format'
 
-/**
- * Action formatter - renders action menu for row operations
- *
- * @example
- * ```tsx
- * <ActionFormat
- *   row={row}
- *   value={value}
- *   actions={[{ label: 'Delete', onClick: () => {} }]}
- * />
- * ```
- */
 export const actionFormatter: RowContextFormatter = <
   TData extends RowData,
   TValue,
@@ -49,9 +37,6 @@ export const actionFormatter: RowContextFormatter = <
   )
 }
 
-/**
- * Inline action formatter - renders action buttons as inline icons (no dropdown)
- */
 export const inlineActionFormatter: RowContextFormatter = <
   TData extends RowData,
   TValue,
@@ -68,20 +53,6 @@ export const inlineActionFormatter: RowContextFormatter = <
   )
 }
 
-/**
- * Link formatter - creates clickable links with template variable replacement
- *
- * @example
- * ```tsx
- * <LinkFormat
- *   row={row}
- *   data={data}
- *   value={value}
- *   context={{ database: 'system' }}
- *   options={{ href: '/database/[database]/details' }}
- * />
- * ```
- */
 export const linkFormatter: RowContextFormatter = <
   TData extends RowData,
   TValue,
@@ -100,20 +71,6 @@ export const linkFormatter: RowContextFormatter = <
   )
 }
 
-/**
- * Background bar formatter - displays value with proportional background bar
- *
- * @example
- * ```tsx
- * <BackgroundBarFormat
- *   table={table}
- *   row={row}
- *   columnName="size"
- *   value={value}
- *   options={{ numberFormat: true }}
- * />
- * ```
- */
 export const backgroundBarFormatter: RowContextFormatter = <
   TData extends RowData,
   TValue,
@@ -132,18 +89,6 @@ export const backgroundBarFormatter: RowContextFormatter = <
   )
 }
 
-/**
- * Hover card formatter - shows additional content on hover
- *
- * @example
- * ```tsx
- * <HoverCardFormat
- *   row={row}
- *   value={value}
- *   options={{ content: 'Additional info: [column_name]' }}
- * />
- * ```
- */
 export const hoverCardFormatter: RowContextFormatter = <
   TData extends RowData,
   TValue,
@@ -160,9 +105,6 @@ export const hoverCardFormatter: RowContextFormatter = <
   )
 }
 
-/**
- * Running query summary formatter - renders a responsive process row.
- */
 export const runningQuerySummaryFormatter: RowContextFormatter = <
   TData extends RowData,
   TValue,

@@ -38,7 +38,6 @@ function hasValue(value: unknown): boolean {
   return value !== undefined && value !== null && String(value).trim() !== ''
 }
 
-/** snake_case / camelCase → "Title Case" for human-readable field labels. */
 function humanizeKey(key: string): string {
   return key
     .replace(/_/g, ' ')
