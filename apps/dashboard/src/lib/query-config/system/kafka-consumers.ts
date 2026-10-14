@@ -9,7 +9,6 @@ export const kafkaConsumersConfig: QueryConfig = {
   description:
     'Kafka table engine consumer state: poll/commit activity, messages read, and last exception per consumer',
   refreshInterval: 15_000,
-  // system.kafka_consumers only exists if Kafka table engines are configured
   optional: true,
   tableCheck: 'system.kafka_consumers',
   // CH 25.12 adds dependencies / missing_dependencies to detect broken Kafka→MV pipelines

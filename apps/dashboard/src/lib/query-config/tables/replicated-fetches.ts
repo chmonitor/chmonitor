@@ -6,8 +6,6 @@ export const replicatedFetchesConfig: QueryConfig = {
   card: { primary: 'table' },
   description:
     'Currently executing background part downloads from replica sources',
-  // system.replicated_fetches can be absent on servers/versions without
-  // replicated tables or active fetches
   optional: true,
   tableCheck: 'system.replicated_fetches',
   refreshInterval: 30_000,

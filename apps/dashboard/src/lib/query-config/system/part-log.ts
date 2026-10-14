@@ -11,7 +11,6 @@ export const partLogConfig: QueryConfig = {
     'Part lifecycle timeline: creation, merges, mutations, downloads, and removals from system.part_log',
   docs: PART_LOG,
   refreshInterval: 30_000,
-  // system.part_log is opt-in and may not exist on every server / version
   optional: true,
   tableCheck: 'system.part_log',
   sql: `

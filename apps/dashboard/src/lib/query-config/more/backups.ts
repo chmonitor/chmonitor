@@ -10,7 +10,6 @@ export const backupsConfig: QueryConfig = {
   description: `To restore a backup:
       RESTORE TABLE data_lake.events AS data_lake.events_restore FROM Disk('s3_backup', 'data_lake.events_20231212')`,
   docs: BACKUP_LOG,
-  // system.backup_log can be not exist if no backups were made
   optional: true,
   tableCheck: 'system.backup_log',
   sql: `

@@ -6,7 +6,6 @@ export const warningsConfig: QueryConfig = {
   card: { primary: 'message' },
   description:
     'Server-side warnings about potential configuration or operational issues',
-  // system.warnings may not exist on every server / ClickHouse version
   optional: true,
   tableCheck: 'system.warnings',
   refreshInterval: 30_000,

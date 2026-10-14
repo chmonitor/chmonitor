@@ -16,18 +16,6 @@ export const errorsConfig: QueryConfig = {
   description: 'System error logs and history',
   optional: true,
   tableCheck: 'system.error_log',
-  // NOTE (issue #2138): A previous `since: '25.12'` variant SELECTed
-  // last_error_time / last_error_message / last_error_query_id /
-  // last_error_trace FROM system.error_log. In verified ClickHouse versions
-  // those `last_error_*` columns belong to the AGGREGATED system.errors table
-  // (see queries/common-errors.ts), NOT the per-event system.error_log
-  // (hostname, event_date, event_time, code, error, value, remote). A
-  // non-existent column makes ClickHouse fail the ENTIRE query on servers, and
-  // the table-validator checks table existence, not columns, so it cannot save
-  // this. The variant was removed as a conservative fix (a broken variant is
-  // worse than a missing feature). If a maintainer confirms on a live 25.12+
-  // server that system.error_log actually exposes these `last_error_*` columns,
-  // the variant may be re-added here (sourced from the correct table).
   sql: [
     {
       since: '23.8',
@@ -59,9 +47,6 @@ export const errorsConfig: QueryConfig = {
     remote: ColumnFormat.Boolean,
   },
   defaultParams: { error: '' },
-  // Common ClickHouse error types for quick filtering
-  // These are frequently occurring errors in production environments
-  // Future improvement: fetch distinct error types dynamically from system.error_log
   filterParamPresets: [
     ...[
       'KEEPER_EXCEPTION',

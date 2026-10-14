@@ -1,62 +1,25 @@
-/**
- * QueryConfig types for the TanStack Start dashboard (dashboard).
- *
- * Ported from apps/dashboard/types/query-config.ts, trimmed to the
- * *foundation* surface: the fields the server-side query executor and the
- * registries actually consume. The dashboard's full QueryConfig couples to
- * web-app-only types (ChartProps, CustomSortingFnNames, FeaturePermission,
- * ColumnFormat) that belong to the not-yet-ported component / data-table
- * layer. Those UI-formatting fields are DEFERRED and intentionally omitted
- * here. `filterSchema` IS included — it drives server-side WHERE injection
- * (see the table registry), and `@/lib/filters/types` is ported.
- *
- * VersionedSql / getAllSqlStrings come from @chm/sql-builder (aliased to
- * source in tsconfig.json) so this app never depends on the dashboard package.
- */
-
 import type { ClickHouseSettings } from '@clickhouse/client'
 
 import type { VersionedSql } from '@chm/sql-builder'
 import type { FeaturePermission } from '@/lib/feature-permissions/types'
 import type { FilterSchema } from '@/lib/filters/types'
 
-// Re-export the version-compat SQL primitives from the shared package so
-// `@/lib/query-config/types` consumers can import them from one place,
-// mirroring the dashboard's `@/types/query-config` re-export.
 export { getAllSqlStrings, type VersionedSql } from '@chm/sql-builder'
 
-/**
- * Foundation QueryConfig.
- *
- * Generic over the column-name tuple, exactly like the dashboard. Only the
- * fields the executor / registry need are kept:
- * - identity + SQL (name, sql, columns)
- * - version compat (sql: VersionedSql[] | string)
- * - execution knobs (defaultParams, clickhouseSettings, optional, tableCheck)
- * - validation toggle (disableSqlValidation)
- *
- * To extend with UI-formatting later (columnFormats, filterSchema, card, …),
- * add them here as the corresponding component layer is ported. Keeping them
- * out now avoids importing un-ported app types.
- */
 export interface QueryConfig<TColumns extends readonly string[] = string[]> {
-  /** Unique registry key. */
   name: string
-  /** Optional human description. */
   description?: string
   /**
    * SQL — a plain string (version-independent) or VersionedSql[] (ordered
    * oldest→newest; the executor picks the highest `since` <= CH version).
    */
   sql: string | VersionedSql[]
-  /** Result column names (drives row typing + display ordering). */
   columns: TColumns
   /**
    * Default ClickHouse query parameters, e.g. `{ database: 'default' }` for
    * `WHERE database = {database:String}`. Merged under URL search params.
    */
   defaultParams?: Record<string, string | number | boolean>
-  /** Per-query ClickHouse settings (e.g. result limits, timezone). */
   clickhouseSettings?: ClickHouseSettings
   /**
    * Opt out of the ClickHouse query-cache settings (#2182) that
@@ -81,7 +44,6 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
    * are auto-extracted from the SQL by the underlying validator.
    */
   tableCheck?: string | string[]
-  /** Qualified column(s) `database.table.column` that may be absent. */
   columnCheck?: string | string[]
   /**
    * Schema-driven dynamic filtering. When present, the table registry parses
@@ -90,9 +52,7 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
    * The schema is the trusted SQL source (column UI is sugar over it).
    */
   filterSchema?: FilterSchema
-  /** Disable SQL validation (used by the query-config test suite). */
   disableSqlValidation?: boolean
-  /** Optional docs URL surfaced on query error. */
   docs?: string
   /**
    * Deployment-level feature gate. The table / data API routes pass it to
@@ -102,12 +62,10 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
   permission?: FeaturePermission
 }
 
-/** Map a column-name tuple to a permissive row-data shape. */
 export type QueryConfigRowData<T extends readonly string[]> = {
   [K in T[number]]: unknown
 }
 
-/** Extract the row-data shape from a QueryConfig. */
 export type QueryConfigToRowData<T extends QueryConfig> = QueryConfigRowData<
   T['columns']
 >

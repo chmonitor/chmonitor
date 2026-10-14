@@ -6,7 +6,6 @@ export const stackTracesConfig: QueryConfig = {
   name: 'stack-traces',
   description: 'Current stack traces for all server threads',
   docs: 'https://clickhouse.com/docs/en/operations/system-tables/stack_trace',
-  // system.stack_trace is always available, not optional
   sql: `
     SELECT
       thread_name,

@@ -10,7 +10,6 @@ export const zookeeperConfig: QueryConfig = {
   description:
     'Exposes data from the Keeper cluster defined in the config. https://clickhouse.com/docs/en/operations/system-tables/zookeeper',
   docs: ZOOKEEPER,
-  // system.zookeeper can be not exist if no zookeeper is configured
   optional: true,
   tableCheck: 'system.zookeeper',
   sql: `
