@@ -52,7 +52,14 @@ Key system-table deltas that affect chmonitor monitoring queries. LTS rows match
 - [README](README.md) - Overview
 - Per-version notes: [v24.1](v24.1.md), [v25.12](v25.12.md), [v26.1](v26.1.md), [v26.2](v26.2.md), [v26.6](v26.6.md)
 
+- Generated from ClickHouse itself: [column-descriptions.md](column-descriptions.md) (`system.columns.comment`), [settings-tiers.md](settings-tiers.md) (Experimental and Beta settings)
+
 ## Updating These Docs
+
+```bash
+# Regenerate column descriptions + settings tiers from `clickhouse local`
+bun run scripts/build-ch-schema-docs.ts --live
+```
 
 ```bash
 # Regenerate from changelog + KNOWN_COLUMN_CHANGES seed (network)

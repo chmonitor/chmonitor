@@ -8,6 +8,7 @@
  *   bun run scripts/build-ch-schema-docs.ts --version 24.1
  *   bun run scripts/build-ch-schema-docs.ts --table query_log
  *   bun run scripts/build-ch-schema-docs.ts --verbose
+ *   bun run scripts/build-ch-schema-docs.ts --live  (clickhouse local; CH_LOCAL_BIN overrides the binary)
  */
 
 import type { CLIOptions } from './ch-schema/types'
@@ -16,6 +17,7 @@ import { fetchChangelog } from './ch-schema/changelog-fetcher'
 import { parseChangelog } from './ch-schema/changelog-parser'
 import { DEFAULT_OUTPUT_DIR } from './ch-schema/constants'
 import { generateDocs } from './ch-schema/docs-generator'
+import { clickhouseLocalQuery, generateLiveDocs } from './ch-schema/live-docs'
 import { parseArgs } from 'node:util'
 
 async function main() {
@@ -28,6 +30,7 @@ async function main() {
       table: { type: 'string', short: 't' },
       output: { type: 'string', short: 'o', default: DEFAULT_OUTPUT_DIR },
       verbose: { type: 'boolean', default: false },
+      live: { type: 'boolean', default: false },
     },
   })
 
@@ -39,6 +42,14 @@ async function main() {
   }
 
   try {
+    if (values.live) {
+      await generateLiveDocs(
+        clickhouseLocalQuery(process.env.CH_LOCAL_BIN),
+        options.output
+      )
+      return
+    }
+
     const changelog = await fetchChangelog()
 
     console.log('\nParsing changelog...')
