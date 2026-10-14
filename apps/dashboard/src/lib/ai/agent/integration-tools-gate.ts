@@ -113,8 +113,6 @@ export function formatIntegrationReason(d: IntegrationDecision): string {
     : d.reason
 }
 
-// ── Env readers (server) ─────────────────────────────────────────────────────
-
 /** `CHM_FEATURE_PEERDB_ENABLED=false` hides PeerDB everywhere, agent included. */
 export function peerdbKillSwitch(): boolean {
   return parseBool(process.env.CHM_FEATURE_PEERDB_ENABLED) === false
@@ -141,7 +139,6 @@ export function postgresGateInput(
   return { ...ctx, flag: process.env.CHM_FEATURE_POSTGRES_SOURCE }
 }
 
-// ── Per-conversation pin ─────────────────────────────────────────────────────
 //
 // The probe result is stored WITH the conversation: the route writes it as a
 // `data-integration-tools` part on the assistant message, the client sends the

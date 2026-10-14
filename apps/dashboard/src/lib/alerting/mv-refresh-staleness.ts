@@ -11,10 +11,6 @@
  * for threshold evaluation and badge rendering.
  */
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface MvRefreshRow {
   database: string
   view: string
@@ -39,10 +35,6 @@ export interface MvStalenessResult {
   status: string
   exception: string | null
 }
-
-// ---------------------------------------------------------------------------
-// SQL
-// ---------------------------------------------------------------------------
 
 /**
  * SQL to surface stale/failed MV refreshes.
@@ -92,13 +84,6 @@ FROM system.view_refreshes
 `
 }
 
-// ---------------------------------------------------------------------------
-// Pure helpers (no ClickHouse dependency — unit-testable)
-// ---------------------------------------------------------------------------
-
-/**
- * Classify a single MV refresh row into a staleness level.
- */
 export function classifyMvRefresh(
   row: Pick<
     MvRefreshRow,
@@ -131,9 +116,6 @@ export function countMvIssues(rows: MvRefreshRow[]): {
   return { failed, stale, total: rows.length }
 }
 
-/**
- * Format a staleness duration for display.
- */
 export function formatMvStaleness(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
   if (seconds < 3600) return `${Math.round(seconds / 60)}m`

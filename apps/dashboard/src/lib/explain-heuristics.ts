@@ -33,8 +33,6 @@ export interface ExplainAnalysis {
   error?: string
 }
 
-// ─────────────────────────── helpers ───────────────────────────
-
 function formatNumber(n: number): string {
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -51,11 +49,6 @@ export function truncateSql(sql: string, maxLen = 80): string {
   return `${collapsed.slice(0, maxLen)}…`
 }
 
-// ─────────────────────────── checks ───────────────────────────
-
-/**
- * Detect a MergeTree scan with no PREWHERE filter applied.
- */
 export function checkFullScanWithoutPrewhere(
   sql: string,
   planLines: string[]
@@ -133,9 +126,6 @@ export function checkHighReadRowsToResultRatio(
   }
 }
 
-/**
- * Detect hash or cross joins that may lack keyed conditions.
- */
 export function checkLargeJoinWithoutKey(
   sql: string,
   planLines: string[]
@@ -182,11 +172,6 @@ export function checkNoIndexUsed(
   }
 }
 
-// ─────────────────────────── aggregate ───────────────────────────
-
-/**
- * Run all heuristic checks and return deduplicated suggestions.
- */
 export function analyzeExplain(
   sql: string,
   planLines: string[],

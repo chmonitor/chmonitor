@@ -379,7 +379,6 @@ export function useAgentModel(): UseAgentModelResult {
     return withCustomModels([...catalog, ...byok], customIds)
   }, [catalog, customIds, byokProviders])
 
-  // Read inside the load effect without making it re-run on every edit.
   const customIdsRef = useRef(customIds)
   customIdsRef.current = customIds
 

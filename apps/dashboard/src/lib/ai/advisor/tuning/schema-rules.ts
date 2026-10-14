@@ -42,10 +42,6 @@ function bytesEvidence(c: ColumnProfile): string {
   return `${formatBytes(c.compressedBytes)} on disk (${formatBytes(c.uncompressedBytes)} uncompressed, ${ratioText})${c.rows > 0 ? `, ${c.rows.toLocaleString()} rows` : ''}`
 }
 
-// ---------------------------------------------------------------------------
-// Rule 1 — needless Nullable.
-// ---------------------------------------------------------------------------
-
 /**
  * Flag `Nullable(T)` columns as candidates for dropping the wrapper. Nullable
  * keeps a separate null-map subcolumn (one byte/row uncompressed) and blocks
@@ -88,10 +84,6 @@ export function ruleNullableColumns(columns: ColumnProfile[]): TuningFinding[] {
   }
   return findings
 }
-
-// ---------------------------------------------------------------------------
-// Rule 2 — oversized integers.
-// ---------------------------------------------------------------------------
 
 /** Ordered widest→narrowest so we can propose the next step down. */
 const INT_WIDTHS: Record<string, number> = {
@@ -172,10 +164,6 @@ export function ruleOversizedIntegers(
   return findings
 }
 
-// ---------------------------------------------------------------------------
-// Rule 3 — compression codec opportunities.
-// ---------------------------------------------------------------------------
-
 const TIMESERIES_TYPE = /^(Date|DateTime|DateTime64)/i
 const FLOAT_TYPE = /^(Float32|Float64)$/i
 
@@ -239,10 +227,6 @@ export function ruleCompressionCodec(
   }
   return findings
 }
-
-// ---------------------------------------------------------------------------
-// Rule 4 — LowCardinality candidates.
-// ---------------------------------------------------------------------------
 
 /**
  * Flag plain `String` / `FixedString` columns (not already LowCardinality) as

@@ -162,16 +162,10 @@ export function isProviderConfigured(providerId: string): boolean {
   )
 }
 
-/**
- * Human-readable name for a provider id (for error messages).
- */
 export function getProviderName(providerId: string): string {
   return PROVIDERS[providerId]?.name ?? providerId
 }
 
-/**
- * Provider ids that currently have an API key on this deployment.
- */
 export function getConfiguredProviderIds(): string[] {
   return Object.keys(PROVIDERS).filter((id) => isProviderConfigured(id))
 }

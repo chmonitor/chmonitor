@@ -10,10 +10,6 @@
 
 import type { EventSeverity, EventSource, NormalizedEvent } from './types'
 
-// ---------------------------------------------------------------------------
-// Small parsing guards (untrusted JSON in, never throw)
-// ---------------------------------------------------------------------------
-
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     return null
@@ -62,10 +58,6 @@ function parseDatadogTags(tags: unknown): Record<string, string> {
   return labels
 }
 
-// ---------------------------------------------------------------------------
-// Severity mapping
-// ---------------------------------------------------------------------------
-
 const CRITICAL_ALIASES = new Set([
   'critical',
   'crit',
@@ -94,10 +86,6 @@ function normalizeSeverity(raw: unknown): EventSeverity {
   if (INFO_ALIASES.has(key)) return 'info'
   return 'warning'
 }
-
-// ---------------------------------------------------------------------------
-// Source detection
-// ---------------------------------------------------------------------------
 
 /**
  * Detect the source shape of an inbound payload. Alertmanager webhook
@@ -245,10 +233,6 @@ function normalizeGeneric(
     receivedAt,
   }
 }
-
-// ---------------------------------------------------------------------------
-// Dedup hash
-// ---------------------------------------------------------------------------
 
 /**
  * Content hash of `(source, resource, title, severity)` — the D1 upsert key.

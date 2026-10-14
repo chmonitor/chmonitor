@@ -32,14 +32,8 @@ export type ShadeNumber =
   | 650
   | 700
 
-/**
- * Color map structure mapping color names to their shades.
- */
 export type ColorMap = Record<string, Record<ShadeNumber, HSLColor>>
 
-/**
- * Valid color names in the color bank.
- */
 export type ColorBankColor =
   | 'mint'
   | 'blue'

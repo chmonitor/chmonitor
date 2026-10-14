@@ -8,10 +8,6 @@
 
 import { validateIdentifier } from '@/lib/sql-utils'
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 /** Wrap a ClickHouse identifier in backticks, escaping any literal backticks. */
 function quoteId(name: string): string {
   return `\`${name.replace(/`/g, '``')}\``
@@ -21,10 +17,6 @@ function quoteId(name: string): string {
 function escapeLiteral(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 }
-
-// ---------------------------------------------------------------------------
-// User DDL
-// ---------------------------------------------------------------------------
 
 export type CreateUserOptions = {
   username: string
@@ -97,10 +89,6 @@ export function generateDropUserDdl(username: string): string {
   return `DROP USER ${quoteId(username)}`
 }
 
-// ---------------------------------------------------------------------------
-// Role DDL
-// ---------------------------------------------------------------------------
-
 export function generateGrantRoleDdl(role: string, toUser: string): string {
   return `GRANT ${quoteId(role)} TO ${quoteId(toUser)}`
 }
@@ -108,10 +96,6 @@ export function generateGrantRoleDdl(role: string, toUser: string): string {
 export function generateRevokeRoleDdl(role: string, fromUser: string): string {
   return `REVOKE ${quoteId(role)} FROM ${quoteId(fromUser)}`
 }
-
-// ---------------------------------------------------------------------------
-// Privilege DDL
-// ---------------------------------------------------------------------------
 
 export type PrivilegeTarget = {
   /** e.g. 'SELECT', 'INSERT', 'ALL' */
@@ -186,10 +170,6 @@ export function generateRevokePrivilegeDdl(
   const validOn = validateGrantTarget(on)
   return `REVOKE ${validPrivilege} ON ${validOn} FROM ${quoteId(fromUser)}`
 }
-
-// ---------------------------------------------------------------------------
-// Feature flag
-// ---------------------------------------------------------------------------
 
 /**
  * Check if ClickHouse RBAC management is enabled.

@@ -4,9 +4,6 @@ import { apiFetch } from './api-fetch'
 import { throwIfNotOk } from './fetch-error'
 import { getBrowserConnectionSessionToken } from '@/lib/connection-sessions/session-manager'
 
-/**
- * Parameters for the browser proxy fetch
- */
 interface BrowserProxyFetchParams {
   connection: BrowserConnection
   query: string
@@ -14,9 +11,6 @@ interface BrowserProxyFetchParams {
   format?: string
 }
 
-/**
- * Generic response from the proxy endpoint
- */
 interface ProxyResponse<T = unknown> {
   success: boolean
   data: T[]

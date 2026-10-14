@@ -20,18 +20,8 @@ import {
   type TableGuidance,
 } from './table-guidance'
 
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * All possible error types that can be handled by card components
- */
 export type CardError = Error | ApiError | FetchDataError
 
-/**
- * Unified error variant for EmptyState component
- */
 export type CardErrorVariant =
   | 'error'
   | 'offline'
@@ -52,9 +42,6 @@ export function toEmptyStateVariant(
   return variant === 'permission' ? 'error' : variant
 }
 
-/**
- * Standardized error styling configuration
- */
 export interface CardErrorStyle {
   /** Border color classes */
   border: string
@@ -64,13 +51,6 @@ export interface CardErrorStyle {
   isDestructive: boolean
 }
 
-// ============================================================================
-// Error Detection & Classification
-// ============================================================================
-
-/**
- * Keywords that indicate different error types
- */
 const ERROR_KEYWORDS = {
   offline: [
     'offline',
@@ -112,9 +92,6 @@ const ERROR_KEYWORDS = {
   ],
 } as const
 
-/**
- * Detects the type of error from Error | ApiError | FetchDataError
- */
 export function detectCardErrorVariant(error: CardError): CardErrorVariant {
   const apiError = error as ApiError
   const fetchError = error as FetchDataError
@@ -190,13 +167,6 @@ export function detectCardErrorVariant(error: CardError): CardErrorVariant {
   return 'error'
 }
 
-// ============================================================================
-// Error Messages (Standardized)
-// ============================================================================
-
-/**
- * Standardized error messages for each variant
- */
 const ERROR_MESSAGES: Record<
   CardErrorVariant,
   { title: string; description: string; short?: string }
@@ -244,19 +214,16 @@ export function getCardErrorDescription(
   variant: CardErrorVariant,
   compact: boolean = false
 ): string {
-  // Use compact message if requested and available
   if (compact && ERROR_MESSAGES[variant].short) {
     return ERROR_MESSAGES[variant].short
   }
 
-  // Use original message if it's short and helpful
   const originalMessage = error.message?.trim()
   if (
     originalMessage &&
     originalMessage.length < 100 &&
     originalMessage.length > 10
   ) {
-    // Check if original message is generic/unhelpful
     const genericMessages = [
       'error',
       'failed',
@@ -271,7 +238,6 @@ export function getCardErrorDescription(
     }
   }
 
-  // Use standardized message
   return ERROR_MESSAGES[variant].description
 }
 
@@ -284,12 +250,6 @@ export function getCardErrorMessage(error: unknown): string {
   return getCardErrorDescription(err, detectCardErrorVariant(err))
 }
 
-/**
- * Gets the standardized error title
- *
- * @param variant - The error variant
- * @param customTitle - Optional custom title to override default
- */
 export function getCardErrorTitle(
   variant: CardErrorVariant,
   customTitle?: string
@@ -297,16 +257,6 @@ export function getCardErrorTitle(
   return customTitle || ERROR_MESSAGES[variant].title
 }
 
-// ============================================================================
-// Error Styling
-// ============================================================================
-
-/**
- * Gets the standardized styling for error cards
- *
- * @param variant - The error variant
- * @returns Style configuration object
- */
 export function getCardErrorStyle(variant: CardErrorVariant): CardErrorStyle {
   switch (variant) {
     case 'error':
@@ -356,10 +306,6 @@ export function getCardErrorClassName(variant: CardErrorVariant): string {
   return `${style.border} ${style.background}`
 }
 
-// ============================================================================
-// Utility Functions
-// ============================================================================
-
 /**
  * Checks if an error is retryable
  *
@@ -404,13 +350,6 @@ export function formatCardErrorForLogging(error: CardError): {
   }
 }
 
-// ============================================================================
-// Table-Specific Guidance
-// ============================================================================
-
-/**
- * Extended error info with table-specific guidance
- */
 export interface TableMissingInfo {
   /** Names of missing tables */
   missingTables: readonly string[]
@@ -438,7 +377,7 @@ export function getTableMissingInfo(
   }
 
   // Check both error.missingTables and error.details.missingTables
-  // SWR hooks store it in details, API responses may have it directly
+  // Query hooks store it in details, API responses may have it directly
   const missingTables =
     apiError.missingTables || apiError.details?.missingTables
 
@@ -451,10 +390,6 @@ export function getTableMissingInfo(
     guidance: getGuidanceForMissingTables(missingTables),
   }
 }
-
-// ============================================================================
-// Version & Permission Helpers
-// ============================================================================
 
 export interface SimpleVersion {
   major: number
@@ -493,9 +428,6 @@ export function isVersionOlder(current: string, required: string): boolean {
   }
 }
 
-/**
- * Extracts table name from ClickHouse permission error messages
- */
 export function extractTableFromPermissionError(
   message: string
 ): string | undefined {

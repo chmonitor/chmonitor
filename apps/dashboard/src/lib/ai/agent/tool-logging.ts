@@ -34,9 +34,6 @@ const SENSITIVE_KEYS = new Set([
 /** Maximum length for a stringified arg value in logs. */
 const MAX_ARG_LOG_LENGTH = 256
 
-/**
- * Redact sensitive fields and truncate long strings in tool input args.
- */
 function redactArgs(input: unknown): unknown {
   if (typeof input !== 'object' || input === null) return input
 
@@ -74,9 +71,6 @@ function countResults(result: unknown): number | undefined {
   return undefined
 }
 
-/**
- * Classify an error into a short category string for structured logs.
- */
 function classifyToolError(err: unknown): string {
   if (err instanceof Error) {
     const msg = err.message.toLowerCase()

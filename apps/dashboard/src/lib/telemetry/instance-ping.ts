@@ -23,7 +23,6 @@ import { getLicenseKey, sanitizeLicenseKey } from './license-key'
 import { redactPingPayload } from './redact'
 import { APP_VERSION } from '@/lib/whats-new/app-version'
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Constants
 
 export const PING_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24 hours
@@ -37,7 +36,6 @@ const STORAGE_KEY_LAST_PING = 'chm_telemetry_last_ping_at'
 export const DEFAULT_TELEMETRY_ENDPOINT =
   'https://telemetry.chmonitor.dev/v1/ping'
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Pure helpers (no globals — unit-testable in isolation)
 
 /**
@@ -132,7 +130,6 @@ export function getPingEndpoint(
   return import.meta.env.VITE_TELEMETRY_ENDPOINT ?? DEFAULT_TELEMETRY_ENDPOINT
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Orchestrator with injected dependencies (for testability)
 
 export type PingResult =
@@ -291,12 +288,8 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
   return 'pinged'
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Browser entrypoint
 
-/**
- * SHA-256 hex digest via SubtleCrypto.
- */
 async function sha256hex(s: string): Promise<string> {
   const enc = new TextEncoder()
   const buf = await crypto.subtle.digest('SHA-256', enc.encode(s))

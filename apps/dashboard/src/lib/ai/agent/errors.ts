@@ -69,9 +69,6 @@ type MutableParsedErrorEnvelope = {
   -readonly [Key in keyof ParsedErrorEnvelope]?: ParsedErrorEnvelope[Key]
 }
 
-/**
- * Returns an actionable suggestion string for a given error type.
- */
 export function getErrorSuggestion(
   type: AgentErrorType,
   provider?: string
@@ -408,7 +405,6 @@ export function classifyError(
     parsed.upstreamMessage ?? ''
   }`.toLowerCase()
 
-  // Extract the first HTTP status code present in the message (4xx/5xx).
   const statusMatch = effectiveMessage.match(/\b([45]\d{2})\b/)
   const statusCode =
     parsed.statusCode ??
@@ -524,9 +520,6 @@ export function classifyError(
   }
 }
 
-/**
- * Parse a client-side Error created from an AgentError JSON payload.
- */
 export function parseAgentError(error: Error): AgentError | null {
   const parsed = tryParseJsonObject(error.message)
   if (!parsed) return null

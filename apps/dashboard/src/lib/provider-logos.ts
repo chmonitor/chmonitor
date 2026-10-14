@@ -9,8 +9,6 @@
  * Providers not on svgl.app get a deterministic letter monogram.
  */
 
-// ── svgl.app CDN URLs ─────────────────────────────────────────────────────────
-
 const SVGL_BASE = 'https://svgl.app/library'
 
 /**

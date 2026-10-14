@@ -76,10 +76,6 @@ export function mapRegistryError(
   )
 }
 
-// ---------------------------------------------------------------------------
-// Request-body parsing (shared by servers.ts + probe.ts)
-// ---------------------------------------------------------------------------
-
 export function parseTransport(value: unknown): McpTransport {
   return value === 'sse' ? 'sse' : 'http'
 }

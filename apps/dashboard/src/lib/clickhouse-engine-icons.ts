@@ -31,9 +31,6 @@ import {
   Waves,
 } from 'lucide-react'
 
-/**
- * Engine category for grouping and styling
- */
 export type EngineCategory =
   | 'mergetree' // All MergeTree family (including Replicated/Shared variants)
   | 'log'
@@ -50,9 +47,6 @@ export type EngineCategory =
   | 'utility'
   | 'unknown'
 
-/**
- * Engine icon configuration
- */
 export interface EngineIconConfig {
   icon: LucideIcon
   category: EngineCategory
@@ -60,9 +54,6 @@ export interface EngineIconConfig {
   color?: string // Tailwind color class
 }
 
-/**
- * Database integration engines (PostgreSQL, MySQL, etc.)
- */
 const DATABASE_ENGINES = new Set([
   'PostgreSQL',
   'MySQL',
@@ -75,14 +66,8 @@ const DATABASE_ENGINES = new Set([
   'EmbeddedRocksDB',
 ])
 
-/**
- * Message queue integration engines
- */
 const QUEUE_ENGINES = new Set(['Kafka', 'RabbitMQ', 'NATS'])
 
-/**
- * Cloud storage engines
- */
 const CLOUD_STORAGE_ENGINES = new Set([
   'S3',
   'S3Queue',
@@ -92,24 +77,12 @@ const CLOUD_STORAGE_ENGINES = new Set([
   'URL',
 ])
 
-/**
- * Data lake engines
- */
 const DATA_LAKE_ENGINES = new Set(['Iceberg', 'DeltaLake', 'Hudi', 'Hive'])
 
-/**
- * Log family engines
- */
 const LOG_ENGINES = new Set(['TinyLog', 'StripeLog', 'Log'])
 
-/**
- * Memory/buffer engines
- */
 const MEMORY_ENGINES = new Set(['Memory', 'Set', 'Join'])
 
-/**
- * MergeTree family base engines (without prefix)
- */
 const MERGETREE_VARIANTS = new Set([
   'MergeTree',
   'ReplacingMergeTree',
@@ -125,9 +98,7 @@ const MERGETREE_VARIANTS = new Set([
  * Check if engine is a MergeTree variant (including Replicated/Shared)
  */
 function isMergeTreeFamily(engine: string): boolean {
-  // Check base MergeTree variants
   if (MERGETREE_VARIANTS.has(engine)) return true
-  // Check Replicated* and Shared* prefixes
   if (engine.startsWith('Replicated') || engine.startsWith('Shared')) {
     const baseEngine = engine.replace(/^(Replicated|Shared)/, '')
     return MERGETREE_VARIANTS.has(baseEngine)
@@ -135,9 +106,6 @@ function isMergeTreeFamily(engine: string): boolean {
   return false
 }
 
-/**
- * Get icon configuration for a ClickHouse engine
- */
 export function getEngineIconConfig(engine: string): EngineIconConfig {
   // MergeTree family (including Replicated*, Shared*) - standard table icon
   if (isMergeTreeFamily(engine)) {
@@ -293,7 +261,6 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
     }
   }
 
-  // Log engines
   if (LOG_ENGINES.has(engine)) {
     return {
       icon: FileText,
@@ -407,16 +374,10 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
   }
 }
 
-/**
- * Get just the icon for an engine (convenience function)
- */
 export function getEngineIcon(engine: string): LucideIcon {
   return getEngineIconConfig(engine).icon
 }
 
-/**
- * Get the category for an engine
- */
 export function getEngineCategory(engine: string): EngineCategory {
   return getEngineIconConfig(engine).category
 }

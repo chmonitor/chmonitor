@@ -4,9 +4,6 @@ const RECENT_MESSAGE_COUNT = 8
 const MIN_CONTEXT_TOKEN_LENGTH = 3
 const DEFAULT_PROMPT_LIMIT = 3
 
-/**
- * Operational group used to organize reusable agent prompt suggestions.
- */
 export type SuggestedPromptCategory =
   | 'Insights'
   | 'Performance'

@@ -212,9 +212,6 @@ export function buildHistoryPickerQuery(
   return { sql, params }
 }
 
-/**
- * Build the DISTINCT-user facet query used to populate the user filter.
- */
 export function buildHistoryUsersQuery(hours?: number): BuiltHistoryQuery {
   const h = clampInt(
     hours,

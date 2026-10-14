@@ -2,9 +2,6 @@
  * CSV export utility for agent query results
  */
 
-/**
- * Convert an array of row objects to a CSV string.
- */
 export function rowsToCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return ''
 
@@ -32,12 +29,6 @@ export function rowsToCsv(rows: Record<string, unknown>[]): string {
   return [headerRow, ...dataRows].join('\n')
 }
 
-/**
- * Export an array of row objects to a CSV file download.
- *
- * @param rows - Array of row objects to export
- * @param filename - Optional filename (defaults to `export-<timestamp>.csv`)
- */
 export function exportToCsv(
   rows: Record<string, unknown>[],
   filename?: string

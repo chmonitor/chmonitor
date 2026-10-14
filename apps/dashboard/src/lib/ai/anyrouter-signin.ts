@@ -81,8 +81,6 @@ const DEFAULT_EXPIRES_IN_SECONDS = 30 * 24 * 60 * 60 // 30 days, per the docs
 /** Raised for any AnyRouter sign-in failure with a message safe to surface to the user. */
 export class AnyRouterSigninError extends Error {}
 
-// ── base64url + PKCE ─────────────────────────────────────────────────────
-
 function toBase64Url(bytes: Uint8Array): string {
   let binary = ''
   for (const byte of bytes) binary += String.fromCharCode(byte)
@@ -112,8 +110,6 @@ export function generateState(): string {
   return toBase64Url(bytes)
 }
 
-// ── redirect URI / origin derivation ─────────────────────────────────────
-
 function isLocalHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1'
 }
@@ -138,8 +134,6 @@ export function deriveOriginUrl(request: Request): string {
   const url = new URL(request.url)
   return `${url.protocol}//${url.host}`
 }
-
-// ── client registration (cached) ─────────────────────────────────────────
 
 interface RegisterResponse {
   client_id?: string
@@ -205,8 +199,6 @@ export function __resetClientIdCacheForTests(): void {
   cachedClientIdOrigin = null
 }
 
-// ── start flow: authorize URL ────────────────────────────────────────────
-
 export interface StartSigninResult {
   authorizeUrl: string
   state: string
@@ -244,8 +236,6 @@ export async function buildAuthorizeUrl(
 
   return { authorizeUrl: url.toString(), state, codeVerifier, clientId }
 }
-
-// ── PKCE/state cookie ─────────────────────────────────────────────────────
 
 export interface SigninCookiePayload {
   /** PKCE code_verifier. */
@@ -320,8 +310,6 @@ export function parseSigninCookie(
   return null
 }
 
-// ── token exchange ───────────────────────────────────────────────────────
-
 export interface TokenExchangeResult {
   accessToken: string
   tokenType: string
@@ -394,8 +382,6 @@ export async function exchangeCodeForToken(
       Date.now() + (data.expires_in ?? DEFAULT_EXPIRES_IN_SECONDS) * 1000,
   }
 }
-
-// ── popup result page ─────────────────────────────────────────────────────
 
 export type SigninResultMessage =
   | {

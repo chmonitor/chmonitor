@@ -46,9 +46,6 @@ export function shouldShowDetailedErrors(): boolean {
   return isDevelopment()
 }
 
-/**
- * Get current environment name
- */
 export function getEnvironment(): string {
   return getNodeEnv()
 }

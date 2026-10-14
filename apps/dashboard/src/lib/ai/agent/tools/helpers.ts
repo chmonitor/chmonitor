@@ -125,7 +125,6 @@ export async function readOnlyQuery(options: {
     )
   }
 
-  // Check cache for metadata queries
   if (useCache) {
     const cached = metadataCache.get(hostId, query, query_params)
     if (cached !== null) {

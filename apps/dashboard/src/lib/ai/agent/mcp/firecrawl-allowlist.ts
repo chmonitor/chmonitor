@@ -137,10 +137,6 @@ export function wrapFirecrawlToolExecute(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Internals
-// ---------------------------------------------------------------------------
-
 function collectHosts(
   value: unknown,
   parentKey: string | undefined,

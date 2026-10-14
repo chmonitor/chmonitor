@@ -65,9 +65,6 @@ export type LimitKey =
   | 'aiRequestsPerDay'
   | 'aiMonthlyUsdBudget'
 
-/**
- * Enforcement status for each numeric limit.
- */
 export const LIMIT_ENFORCEMENT: Record<LimitKey, Enforcement> = {
   hosts: {
     status: 'inherent',

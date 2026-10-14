@@ -167,28 +167,24 @@ export function createSchemaTools(hostId: number) {
 
         // Mode 3: Database and table - full schema exploration
         const [columns, indexes, partitions, constraints] = await Promise.all([
-          // Get columns
           readOnlyQuery({
             query:
               'SELECT name, type, default_kind, default_expression, comment FROM system.columns WHERE database = {database:String} AND table = {table:String} ORDER BY position',
             hostId: effectiveHostId,
             query_params: { database, table },
           }),
-          // Get indexes
           readOnlyQuery({
             query:
               'SELECT name, type, expr, granularity FROM system.data_skipping_indices WHERE database = {database:String} AND table = {table:String} ORDER BY name',
             hostId: effectiveHostId,
             query_params: { database, table },
           }),
-          // Get partition info
           readOnlyQuery({
             query:
               'SELECT partition, count() AS parts, countIf(active = 0) AS inactive_parts FROM system.parts WHERE database = {database:String} AND table = {table:String} GROUP BY partition ORDER BY partition LIMIT 500',
             hostId: effectiveHostId,
             query_params: { database, table },
           }),
-          // Get table constraints (primary key, etc.)
           readOnlyQuery({
             query:
               'SELECT partition_key, primary_key, sorting_key FROM system.tables WHERE database = {database:String} AND name = {table:String}',

@@ -84,9 +84,6 @@ export function formatReadableSecondDuration(seconds: number) {
   return `${m}m ${s}s`
 }
 
-/**
- * Format a query string.
- */
 export function formatQuery({
   query,
   comment_remove = false,

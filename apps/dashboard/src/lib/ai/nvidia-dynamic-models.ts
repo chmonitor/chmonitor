@@ -42,8 +42,6 @@ import { MODEL_REGISTRY } from './agent-model-registry'
 import { isProviderConfigured } from './providers'
 import { formatCompactNumber } from '@/lib/format-number'
 
-// ── Types (NVIDIA NIM public catalog shape) ──────────────────────────────────
-
 /**
  * Subset of `GET /models` list items we actually read. The upstream response
  * carries no capability or pricing fields at all — see the module header.
@@ -69,8 +67,6 @@ export interface RankedNvidiaModel {
   /** Position in {@link NVIDIA_TOOL_CAPABLE_MODEL_IDS} (lower is stronger). */
   tier: number
 }
-
-// ── Constants ────────────────────────────────────────────────────────────────
 
 /** In-memory cache TTL for the catalog + ranked result (ms). */
 export const NVIDIA_DYNAMIC_CACHE_TTL_MS = 300_000
@@ -128,8 +124,6 @@ const CURATED_NVIDIA_DESCRIPTIONS = new Map(
     (entry) => [entry.id, entry.description]
   )
 )
-
-// ── Pure helpers ─────────────────────────────────────────────────────────────
 
 /** Whether a catalog model is allowed to surface in the picker. */
 export function isNvidiaToolCapable(model: NvidiaCatalogModel): boolean {
@@ -230,8 +224,6 @@ export function mergeNvidiaDynamicModels<T extends { id: string }>(
   const extras = dynamic.filter((m) => !seen.has(m.id))
   return [...base, ...extras]
 }
-
-// ── I/O + cache ──────────────────────────────────────────────────────────────
 
 interface CacheEntry<T> {
   value: T

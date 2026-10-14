@@ -131,10 +131,6 @@ function distributedTableName(
   return `${table.table}_dist`
 }
 
-// ---------------------------------------------------------------------------
-// Rule — missing TTL on a time-based PARTITION BY.
-// ---------------------------------------------------------------------------
-
 export function ruleMissingTtl(tables: TableProfile[]): TuningFinding[] {
   const findings: TuningFinding[] = []
   for (const t of tables) {
@@ -176,10 +172,6 @@ export function ruleMissingTtl(tables: TableProfile[]): TuningFinding[] {
   return findings
 }
 
-// ---------------------------------------------------------------------------
-// Rule — too many / high partition counts.
-// ---------------------------------------------------------------------------
-
 export function rulePartitionCount(tables: TableProfile[]): TuningFinding[] {
   const findings: TuningFinding[] = []
   for (const t of tables) {
@@ -220,10 +212,6 @@ export function rulePartitionCount(tables: TableProfile[]): TuningFinding[] {
   return findings
 }
 
-// ---------------------------------------------------------------------------
-// Rule — MergeTree on a multi-replica cluster (should be Replicated / Shared).
-// ---------------------------------------------------------------------------
-
 export function ruleNonReplicatedOnCluster(
   tables: TableProfile[],
   cluster: ClusterContext
@@ -254,10 +242,6 @@ export function ruleNonReplicatedOnCluster(
   }
   return findings
 }
-
-// ---------------------------------------------------------------------------
-// Rule — local MergeTree without a Distributed wrapper on a cluster.
-// ---------------------------------------------------------------------------
 
 export function ruleMissingDistributed(
   tables: TableProfile[],
@@ -294,10 +278,6 @@ export function ruleMissingDistributed(
   }
   return findings
 }
-
-// ---------------------------------------------------------------------------
-// Rule — UUID as the leading ORDER BY column.
-// ---------------------------------------------------------------------------
 
 export function ruleUuidLeadingSortKey(
   tables: TableProfile[]

@@ -7,9 +7,6 @@
 
 import { isEnabled } from '@/lib/edition'
 
-// ---------------------------------------------------------------------------
-// Permission union
-// ---------------------------------------------------------------------------
 // Coarse permission set that mirrors the app's actual action surface.
 // Expand as needed; the guard logic is O(1) regardless of set size.
 
@@ -23,20 +20,12 @@ export type Permission =
   | 'metric:read' // View metrics, charts, health panels
   | 'insight:write' // Create / dismiss AI insights
 
-// ---------------------------------------------------------------------------
-// Role type
-// ---------------------------------------------------------------------------
-
 export type Role = {
   id: string
   name: string
   /** '*' grants all permissions; an explicit array is an allow-list. */
   permissions: readonly Permission[] | '*'
 }
-
-// ---------------------------------------------------------------------------
-// Built-in roles
-// ---------------------------------------------------------------------------
 
 /**
  * The community single-operator role.
@@ -52,10 +41,6 @@ export const COMMUNITY_ROLE: Role = {
   permissions: '*',
 }
 
-// ---------------------------------------------------------------------------
-// hasPermission
-// ---------------------------------------------------------------------------
-
 /**
  * Pure guard: does the given role grant the requested permission?
  *
@@ -68,10 +53,6 @@ export function hasPermission(role: Role, permission: Permission): boolean {
   if (role.permissions === '*') return true
   return role.permissions.includes(permission)
 }
-
-// ---------------------------------------------------------------------------
-// canPerform — the guard the app calls
-// ---------------------------------------------------------------------------
 
 /**
  * Application-level guard.

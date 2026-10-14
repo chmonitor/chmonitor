@@ -20,9 +20,6 @@ import { normalizeLayout } from '@/types/dashboard-layout'
 
 const D1_BINDING_NAME = 'CHM_CLOUD_D1'
 
-/**
- * D1 database row shape.
- */
 interface D1DashboardRow {
   id: string
   owner_id: string

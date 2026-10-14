@@ -24,9 +24,6 @@ const EVENTS_TABLE_GUIDANCE: TableGuidance = {
     'On a read-only host (such as the public demo) it stays unavailable by design. Once created, dashboard views are recorded automatically.',
 }
 
-/**
- * Guidance for optional ClickHouse system tables
- */
 export const TABLE_GUIDANCE: Record<string, TableGuidance> = {
   'system.query_thread_log': {
     description: 'Per-thread query execution statistics',
@@ -174,9 +171,6 @@ export const TABLE_GUIDANCE: Record<string, TableGuidance> = {
   },
 }
 
-/**
- * Get guidance for a specific table
- */
 export function getTableGuidance(tableName: string): TableGuidance | undefined {
   return TABLE_GUIDANCE[tableName]
 }

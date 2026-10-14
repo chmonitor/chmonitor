@@ -104,10 +104,6 @@ export {
   scoreSkipIndex,
 } from '@chm/query-advisor-core'
 
-// ---------------------------------------------------------------------------
-// Orchestration — gathers read-only data, builds QueryContext, ranks output.
-// ---------------------------------------------------------------------------
-
 export interface AnalyzeQueryInput {
   hostId: number
   sql?: string

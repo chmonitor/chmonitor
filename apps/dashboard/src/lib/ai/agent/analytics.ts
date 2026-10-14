@@ -7,10 +7,6 @@
 
 import type { LanguageModelUsage } from 'ai'
 
-// ============================================================================
-// Types
-// ============================================================================
-
 export interface AgentUsageStats {
   /** Total input (prompt) tokens across all steps */
   totalInputTokens: number
@@ -29,10 +25,6 @@ export interface AgentUsageStats {
   /** Estimated cost in USD, or null if model is unknown */
   estimatedCostUsd: number | null
 }
-
-// ============================================================================
-// Pricing table
-// ============================================================================
 
 /**
  * Per-million-token pricing for known models.
@@ -117,16 +109,6 @@ export const MODEL_PRICING: Record<string, [number, number]> = {
   'x-ai/grok-4.7': [1.6, 4.8],
 }
 
-// ============================================================================
-// Functions
-// ============================================================================
-
-/**
- * Aggregate token usage across multiple LLM steps.
- *
- * @param steps - Array of LanguageModelUsage from each step
- * @returns Summed usage statistics (model-agnostic, no cost estimate)
- */
 export function aggregateUsage(steps: LanguageModelUsage[]): AgentUsageStats {
   let totalInputTokens = 0
   let totalOutputTokens = 0

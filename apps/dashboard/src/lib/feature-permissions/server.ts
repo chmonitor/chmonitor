@@ -43,10 +43,6 @@ import { type AuthProvider, getAuthProvider } from '@/lib/auth/provider'
 import { resolveConfig } from '@/lib/config/deployment-mode'
 import { parseBool } from '@/lib/config/parse-bool'
 
-// ---------------------------------------------------------------------------
-// Env access: Cloudflare binding first, then process.env.
-// ---------------------------------------------------------------------------
-
 type EnvBindings = Record<string, string | undefined>
 
 function readEnv(key: string): string | undefined {
@@ -63,10 +59,6 @@ function readEnv(key: string): string | undefined {
   }
   return undefined
 }
-
-// ---------------------------------------------------------------------------
-// Config resolution: built-in defaults < CHM_CONFIG_FILE < env vars.
-// ---------------------------------------------------------------------------
 
 function parseBoolean(
   value: string | undefined,
@@ -176,10 +168,6 @@ export function publicReadEnabled(): boolean {
   return resolveConfig(readEnv).clerkPublicRead
 }
 
-// ---------------------------------------------------------------------------
-// Auth check.
-// ---------------------------------------------------------------------------
-
 async function isAuthenticatedRequest(
   request: Request,
   config: AppConfig,
@@ -233,10 +221,6 @@ async function isAuthenticatedRequest(
     return false
   }
 }
-
-// ---------------------------------------------------------------------------
-// Public helpers.
-// ---------------------------------------------------------------------------
 
 function jsonFeatureError(
   status: number,

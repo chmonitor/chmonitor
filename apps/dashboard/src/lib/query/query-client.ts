@@ -24,8 +24,7 @@ export function createQueryClient(): QueryClient {
         staleTime: 30_000,
 
         // Keep the previous/cached data visible while a query refetches or its
-        // key changes, instead of dropping to a pending state. Equivalent to
-        // SWR's keepPreviousData, applied globally so pages using the default
+        // key changes, instead of dropping to a pending state. Applied globally so pages using the default
         // client options (direct useQuery callers) get smooth in-place
         // transitions; the chart/table hooks already set their own
         // placeholderData and are unaffected. NOTE: this does not change
@@ -48,22 +47,16 @@ export function createQueryClient(): QueryClient {
         // whose gcTime has not elapsed are restored from localStorage on load.
         gcTime: 30 * 60_000,
 
-        // SWR revalidateOnFocus: false
         // Don't refetch when the browser tab regains focus.
         refetchOnWindowFocus: false,
 
-        // SWR errorRetryCount: 3
         // Retry failed queries up to 3 times before surfacing the error.
         retry: 3,
 
-        // SWR onErrorRetry uses exponential backoff starting at 1 s (errorRetryInterval: 1000),
-        // doubling each attempt and capped at 30 s.
-        // attempt index is 0-based; match SWR's 2^n * 1000 formula.
+        // Exponential backoff from 1 s, doubling per 0-based attempt, capped at 30 s.
         retryDelay: (attempt) => Math.min(30_000, 1_000 * 2 ** attempt),
 
-        // SWR sets no global refreshInterval — polling is opt-in per query.
-        // TanStack Query default (false) matches: no background refetch unless
-        // the caller passes refetchInterval explicitly.
+        // Polling is opt-in per query.
         refetchInterval: false,
       },
     },

@@ -22,9 +22,6 @@ import type {
 import { ConversationStoreError } from './types'
 import postgres from 'postgres'
 
-/**
- * PostgreSQL database schema row shape.
- */
 interface PostgresConversationRow {
   id: string
   user_id: string
@@ -123,7 +120,6 @@ export class PostgresStore implements ConversationStore {
     }
 
     try {
-      // Run migration (idempotent)
       await this.sql.unsafe(MIGRATION_SQL)
       this.initialized = true
     } catch (error) {

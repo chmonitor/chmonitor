@@ -49,7 +49,6 @@ export function transformRunningQueriesSummaryData(
 
   const items: SummaryMetricsItem[] = []
 
-  // Add memory usage comparison (first for queries)
   items.push({
     current: main.memory_usage,
     target: totalMem.total,
@@ -57,7 +56,6 @@ export function transformRunningQueriesSummaryData(
     targetReadable: `${totalMem.readable_total} total`,
   })
 
-  // Add query count comparison
   items.push({
     current: main.query_count,
     target: todayQueryCount ?? main.query_count,
@@ -65,7 +63,6 @@ export function transformRunningQueriesSummaryData(
     targetReadable: `${todayQueryCount ?? main.query_count} today`,
   })
 
-  // Add rows comparison (smaller value first for visual consistency)
   if (rowsReadWritten.rows_read < rowsReadWritten.rows_written) {
     items.push({
       current: rowsReadWritten.rows_read,

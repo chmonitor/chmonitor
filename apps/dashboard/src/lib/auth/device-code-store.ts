@@ -115,8 +115,6 @@ async function ensureTable(db: D1Database): Promise<boolean> {
   }
 }
 
-// ── In-memory fallback (single-node self-hosted) ───────────────────────────
-
 const memoryByDevice = new Map<string, DeviceCodeRecord>()
 const memoryByUser = new Map<string, string>()
 

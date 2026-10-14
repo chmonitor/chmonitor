@@ -19,10 +19,6 @@ import {
   parseMajorMinor,
 } from '../telemetry/environment'
 
-// ---------------------------------------------------------------------------
-// Public types
-// ---------------------------------------------------------------------------
-
 /**
  * A normalised, deterministic snapshot of a ClickHouse instance's capability
  * surface: which system tables + columns exist, what version/flavor it is, and
@@ -71,9 +67,6 @@ export interface CapabilityInput {
   buildOptions?: Array<{ name: string; value: string }>
 }
 
-/**
- * The difference between two capability snapshots (baseline → next).
- */
 export interface CapabilityDiff {
   /** Tables present in `next` but not in `baseline` */
   addedTables: string[]
@@ -92,10 +85,6 @@ export interface CapabilityDiff {
   versionChanged: boolean
 }
 
-// ---------------------------------------------------------------------------
-// ChClient interface (thin abstraction for discoverCapabilities)
-// ---------------------------------------------------------------------------
-
 /**
  * Minimal ClickHouse client interface required by discoverCapabilities().
  * Compatible with @clickhouse/client and @clickhouse/client-web result shapes.
@@ -107,18 +96,10 @@ export interface ChClient {
   }): Promise<{ json(): Promise<unknown> }>
 }
 
-// ---------------------------------------------------------------------------
-// Pure helpers
-// ---------------------------------------------------------------------------
-
 /** Build the canonical table key from an optional database + table name. */
 function tableKey(database: string | null | undefined, table: string): string {
   return database && database.length > 0 ? `${database}.${table}` : table
 }
-
-// ---------------------------------------------------------------------------
-// normalizeCapabilities
-// ---------------------------------------------------------------------------
 
 /**
  * Build a deterministic CapabilitySnapshot from raw discovery inputs.
@@ -153,7 +134,6 @@ export function normalizeCapabilities(
     tableMap.get(key)!.add(row.name)
   }
 
-  // Build sorted tables record
   const sortedKeys = [...tableMap.keys()].sort()
   const tables: Record<string, string[]> = {}
   for (const key of sortedKeys) {
@@ -180,10 +160,6 @@ export function normalizeCapabilities(
     buildFlags,
   }
 }
-
-// ---------------------------------------------------------------------------
-// diffCapabilities
-// ---------------------------------------------------------------------------
 
 /**
  * Compute the diff between two capability snapshots.
@@ -226,10 +202,6 @@ export function diffCapabilities(
     versionChanged: baseline.version !== next.version,
   }
 }
-
-// ---------------------------------------------------------------------------
-// discoverCapabilities (live — requires a real ClickHouse client)
-// ---------------------------------------------------------------------------
 
 /**
  * Introspect a live ClickHouse instance and return a normalised capability

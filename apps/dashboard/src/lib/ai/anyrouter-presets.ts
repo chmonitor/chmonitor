@@ -29,8 +29,6 @@ import type { AgentModelListEntry } from './anyrouter-dynamic-models'
 import { ANYROUTER_DYNAMIC_CACHE_TTL_MS } from './anyrouter-dynamic-models'
 import { isProviderConfigured } from './providers'
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
 /** Subset of the AnyRouter preset object we actually read. */
 export interface AnyRouterPreset {
   slug: string
@@ -44,8 +42,6 @@ export interface AnyRouterPreset {
   }
 }
 
-// ── Constants ────────────────────────────────────────────────────────────────
-
 /** Model-id prefix identifying an AnyRouter preset (vs. a concrete model). */
 export const ANYROUTER_PRESET_MODEL_PREFIX = '@preset/'
 
@@ -54,8 +50,6 @@ const ANYROUTER_PRESET_MODEL_PREFIX_ALT = '@presets/'
 
 /** Default max presets surfaced in the picker (env-overridable). */
 const DEFAULT_PRESETS_MAX = 8
-
-// ── Pure helpers ─────────────────────────────────────────────────────────────
 
 /**
  * True when `id` (the full `provider:model` agent id) addresses an AnyRouter
@@ -145,8 +139,6 @@ function parsePresets(body: unknown): AnyRouterPreset[] {
   return out
 }
 
-// ── Env gating ───────────────────────────────────────────────────────────────
-
 /**
  * Whether AnyRouter presets should be surfaced.
  * Fail-closed: requires the AnyRouter provider configured (API key present).
@@ -168,8 +160,6 @@ function getPresetsMax(): number {
   if (!Number.isFinite(n) || n <= 0) return DEFAULT_PRESETS_MAX
   return Math.min(Math.max(n, 1), 32)
 }
-
-// ── I/O + cache ──────────────────────────────────────────────────────────────
 
 function anyRouterBaseURL(): string {
   return (

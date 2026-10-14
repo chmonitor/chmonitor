@@ -64,7 +64,6 @@ export function useAutocompleteData() {
         `/api/v1/tables?hostId=${hostId}&limit=${AUTOCOMPLETE_LIMIT}`
       ),
     enabled: hostId != null,
-    // SWR dedupingInterval: 60000 → keep results fresh for 60s before refetch.
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   })
@@ -87,7 +86,6 @@ export function useAutocompleteData() {
       fetchJson<{ data: Array<{ name: string; description: string }> }>(
         '/api/v1/agent/skills'
       ),
-    // SWR dedupingInterval: 300000 → effectively static, cache for 5 minutes.
     staleTime: 300_000,
     refetchOnWindowFocus: false,
   })

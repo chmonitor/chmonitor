@@ -35,8 +35,6 @@ import { MODEL_REGISTRY } from './agent-model-registry'
 import { isProviderConfigured } from './providers'
 import { formatCompactNumber } from '@/lib/format-number'
 
-// ── Types (OpenRouter public catalog shape) ──────────────────────────────────
-
 /** Subset of `GET /api/v1/models` list items we actually read. */
 export interface OpenRouterCatalogModel {
   id: string
@@ -81,8 +79,6 @@ export interface RankedOpenRouterModel {
   score: number
 }
 
-// ── Constants ────────────────────────────────────────────────────────────────
-
 /** In-memory cache TTL for the catalog + ranked result (ms). */
 export const OPENROUTER_DYNAMIC_CACHE_TTL_MS = 300_000
 
@@ -117,8 +113,6 @@ const SCORE_CONTEXT_LENGTH_LOG_WEIGHT = 5
 const SCORE_RECENCY_WEIGHT = 30
 /** Recency window: models older than this contribute ~0 recency score. */
 const RECENCY_HALF_LIFE_MS = 180 * 24 * 60 * 60 * 1000 // ~180 days
-
-// ── Pure helpers ─────────────────────────────────────────────────────────────
 
 /** The set of upstream OpenRouter model ids present in the curated registry. */
 const CURATED_OPENROUTER_MODEL_IDS = new Set(
@@ -315,8 +309,6 @@ export function mergeOpenRouterDynamicModels<T extends { id: string }>(
   const extras = dynamic.filter((m) => !seen.has(m.id))
   return [...base, ...extras]
 }
-
-// ── I/O + cache ──────────────────────────────────────────────────────────────
 
 interface CacheEntry<T> {
   value: T

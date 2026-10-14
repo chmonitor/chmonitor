@@ -31,9 +31,6 @@ const createShades = (
   700: { h, s: s200 + sStep * 8, l: l200 - lStep * 10 },
 })
 
-/**
- * Color bank with HSL values for all shades.
- */
 export const COLOR_MAP: Readonly<ColorMap> = {
   // Mint green - fresh and airy
   mint: createShades(156, 35, 1, 94, 3),

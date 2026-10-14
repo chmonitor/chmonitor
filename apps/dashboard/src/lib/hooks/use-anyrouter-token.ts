@@ -54,11 +54,6 @@ function isExpired(credential: AnyRouterCredential): boolean {
   )
 }
 
-/**
- * Read the stored AnyRouter credential.
- *
- * @returns The credential, or `null` when absent, unreadable, or expired
- */
 export function getAnyRouterCredential(): AnyRouterCredential | null {
   if (typeof window === 'undefined') return null
 

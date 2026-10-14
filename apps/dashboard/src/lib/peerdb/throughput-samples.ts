@@ -100,10 +100,6 @@ export function computePeerDBThroughput(
   return { flatSec, upserts, deletes }
 }
 
-// ---------------------------------------------------------------------------
-// Health-DB store (D1 or Postgres)
-// ---------------------------------------------------------------------------
-
 const TABLE = 'peerdb_throughput_samples'
 
 // Kept in sync with db/conversations-migrations/0034_peerdb_throughput_samples.sql
