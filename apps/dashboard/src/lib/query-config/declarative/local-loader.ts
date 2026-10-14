@@ -131,11 +131,9 @@ export function loadLocalConfigs(dir: string): LoadLocalConfigsResult {
   return { loaded, skipped }
 }
 
-// ---------------------------------------------------------------------------
 // Process-lifetime memo. "At startup, scan" — the directory is read once per
 // process and cached, matching how self-hosted operators already expect a
 // container/pod restart to pick up new or changed queries.d files.
-// ---------------------------------------------------------------------------
 
 let cachedCatalog: Record<string, DeclarativeQueryConfig> | undefined
 

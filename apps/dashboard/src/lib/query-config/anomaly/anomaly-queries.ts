@@ -1,21 +1,8 @@
-/**
- * Anomaly Detection Query Configuration
- *
- * Query configurations for fetching anomaly detection metrics from ClickHouse.
- * These queries support the baseline analyzer and anomaly detection system.
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- */
 
 import type { QueryConfig } from '@/types/query-config'
 
 import { ColumnFormat } from '@/types/column-format'
 
-/**
- * Query count baseline analysis
- *
- * Aggregates query counts by time interval for baseline comparison.
- */
 export const queryCountBaselineConfig: QueryConfig = {
   name: 'query-count-baseline',
   description: 'Historical query counts for baseline analysis',
@@ -38,11 +25,6 @@ export const queryCountBaselineConfig: QueryConfig = {
   optional: true,
 }
 
-/**
- * Memory usage baseline analysis
- *
- * Aggregates memory usage by time interval for baseline comparison.
- */
 export const memoryUsageBaselineConfig: QueryConfig = {
   name: 'memory-usage-baseline',
   description: 'Historical memory usage for baseline analysis',
@@ -106,11 +88,6 @@ export const memoryUsageBaselineConfig: QueryConfig = {
   optional: true,
 }
 
-/**
- * Merge operation baseline analysis
- *
- * Aggregates merge operation durations for baseline comparison.
- */
 export const mergePerformanceBaselineConfig: QueryConfig = {
   name: 'merge-performance-baseline',
   description: 'Historical merge performance for baseline analysis',
@@ -148,11 +125,6 @@ export const mergePerformanceBaselineConfig: QueryConfig = {
   },
 }
 
-/**
- * Replication lag baseline analysis
- *
- * Aggregates replication lag for baseline comparison.
- */
 export const replicationLagBaselineConfig: QueryConfig = {
   name: 'replication-lag-baseline',
   description: 'Historical replication lag for baseline analysis',
@@ -189,11 +161,6 @@ export const replicationLagBaselineConfig: QueryConfig = {
   },
 }
 
-/**
- * Error rate baseline analysis
- *
- * Aggregates query error rates for baseline comparison.
- */
 export const errorRateBaselineConfig: QueryConfig = {
   name: 'error-rate-baseline',
   description: 'Historical error rates for baseline analysis',
@@ -231,11 +198,6 @@ export const errorRateBaselineConfig: QueryConfig = {
   optional: true,
 }
 
-/**
- * Disk usage change detection
- *
- * Monitors disk usage changes over time for anomaly detection.
- */
 export const diskUsageChangeConfig: QueryConfig = {
   name: 'disk-usage-change',
   description: 'Disk usage changes over time',
@@ -274,11 +236,6 @@ export const diskUsageChangeConfig: QueryConfig = {
   },
 }
 
-/**
- * Anomaly detection summary query
- *
- * Provides a quick overview of potential anomalies across multiple metrics.
- */
 export const anomalySummaryConfig: QueryConfig = {
   name: 'anomaly-summary',
   description: 'Quick overview of potential anomalies',
@@ -358,9 +315,6 @@ export const anomalySummaryConfig: QueryConfig = {
   optional: true,
 }
 
-/**
- * Export all anomaly detection query configurations
- */
 export const anomalyQueries = [
   queryCountBaselineConfig,
   memoryUsageBaselineConfig,

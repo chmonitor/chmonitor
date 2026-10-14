@@ -20,8 +20,6 @@ Learn more:
 https://clickhouse.com/docs/en/operations/query-cache`,
   docs: QUERY_CACHE,
   // system.query_cache only exists once the query cache is enabled (CH 23.5+).
-  // Mark optional so a missing table degrades to a graceful "table missing"
-  // empty state (via tableCheck) instead of a hard SQL error.
   optional: true,
   tableCheck: 'system.query_cache',
   sql: `

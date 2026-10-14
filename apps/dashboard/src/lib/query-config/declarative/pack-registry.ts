@@ -55,10 +55,6 @@ import { error, warn } from '@chm/logger'
 import { parse as parseYaml } from 'yaml'
 import { createHostValidationFetch } from '@/lib/browser-connections/host-url'
 
-// ---------------------------------------------------------------------------
-// Env
-// ---------------------------------------------------------------------------
-
 /**
  * Parse `CHM_PACK_REGISTRY_URL` into a trimmed URL list, or `[]` when unset.
  * Pure — pass any env getter (mirrors `getConfigDirectory`'s runtimeEnv-first
@@ -78,10 +74,6 @@ export function parsePackRegistryUrls(
     .filter(Boolean)
 }
 
-// ---------------------------------------------------------------------------
-// Manifest schema
-// ---------------------------------------------------------------------------
-
 const packManifestSchema = z.object({
   name: z.string().min(1, 'pack name is required'),
   version: z.string().min(1, 'pack version is required'),
@@ -91,10 +83,6 @@ const packManifestSchema = z.object({
   minChmVersion: z.string().min(1).optional(),
   queries: z.array(z.unknown()).min(1, 'pack must declare at least one query'),
 })
-
-// ---------------------------------------------------------------------------
-// loadPacks — fetch, parse, validate, dedupe, merge
-// ---------------------------------------------------------------------------
 
 export interface LoadPacksResult {
   /** Deduped, name-keyed catalog — last writer (by URL/queries order) wins. */
@@ -215,12 +203,10 @@ export async function loadPacks(
   return { catalog, skipped }
 }
 
-// ---------------------------------------------------------------------------
 // Process-lifetime memo — startup-only (v1), matching getLocalConfigCatalog's
 // convention. Real callers (route handlers) `await ensurePacksLoaded` before
 // the synchronous `getQueryConfigByName` lookup, so the catalog is guaranteed
 // warm by the time it's read — no cold-start race.
-// ---------------------------------------------------------------------------
 
 let packCatalogSnapshot: Record<string, DeclarativeQueryConfig> = {}
 let warmupPromise: Promise<Record<string, DeclarativeQueryConfig>> | undefined

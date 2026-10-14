@@ -11,7 +11,6 @@
 
 import type { DeclarativeQueryConfig } from '../schema'
 
-// Anomaly
 import {
   anomalySummaryDeclarative,
   diskUsageChangeDeclarative,
@@ -21,7 +20,6 @@ import {
   queryCountBaselineDeclarative,
   replicationLagBaselineDeclarative,
 } from './anomaly/anomaly-queries'
-// Explorer
 import { explorerColumnsDeclarative } from './explorer/columns'
 import { explorerDatabasesDeclarative } from './explorer/databases'
 import { explorerDdlDeclarative } from './explorer/ddl'
@@ -37,22 +35,18 @@ import { explorerIndexesDeclarative } from './explorer/indexes'
 import { explorerProjectionsDeclarative } from './explorer/projections'
 import { explorerSkipIndexesDeclarative } from './explorer/skip-indexes'
 import { explorerTablesDeclarative } from './explorer/tables'
-// Keeper
 import { keeperConnectionLogDeclarative } from './keeper/keeper-connection-log'
 import { keeperInfoDeclarative } from './keeper/keeper-info'
 import { keeperLogDeclarative } from './keeper/keeper-log'
 import { keeperOverviewDeclarative } from './keeper/keeper-overview'
 import { keeperPresenceDeclarative } from './keeper/keeper-presence'
 import { keeperWatchesDeclarative } from './keeper/keeper-watches'
-// Logs
 import { crashLogDeclarative } from './logs/crashes'
 import { stackTracesDeclarative } from './logs/stack-traces'
 import { textLogDeclarative } from './logs/text-log'
-// Merges
 import { mergePerformanceDeclarative } from './merges/merge-performance'
 import { mergesDeclarative } from './merges/merges'
 import { mutationsDeclarative } from './merges/mutations'
-// More
 import { asynchronousMetricsDeclarative } from './more/asynchronous-metrics'
 import { backupsDeclarative } from './more/backups'
 import { dictionariesDeclarative } from './more/dictionaries'
@@ -65,7 +59,6 @@ import { topUsageColumnsDeclarative } from './more/top-usage-columns'
 import { topUsageTablesDeclarative } from './more/top-usage-tables'
 import { usersDeclarative } from './more/users'
 import { zookeeperDeclarative } from './more/zookeeper'
-// Queries
 import { commonErrorsDeclarative } from './queries/common-errors'
 import { parallelizationDeclarative } from './queries/parallelization'
 import { profilerDeclarative } from './queries/profiler'
@@ -74,14 +67,12 @@ import { queryConditionCacheDeclarative } from './queries/query-condition-cache'
 import { queryDetailDeclarative } from './queries/query-detail'
 import { queryViewsLogDeclarative } from './queries/query-views-log'
 import { threadAnalysisDeclarative } from './queries/thread-analysis'
-// Security
 import { loginAttemptsDeclarative } from './security/login-attempts'
 import { sessionsDeclarative } from './security/sessions'
 import { asynchronousInsertLogDeclarative } from './system/asynchronous-insert-log'
 import { asynchronousInsertsDeclarative } from './system/asynchronous-inserts'
 import { backgroundSchedulePoolDeclarative } from './system/background-schedule-pool'
 import { backgroundSchedulePoolLogDeclarative } from './system/background-schedule-pool-log'
-// System
 import {
   clusterLiveMetricsAllDeclarative,
   clusterLiveMetricsDeclarative,
@@ -113,7 +104,6 @@ import {
 import { replicatedMergeTreeSettingsDeclarative } from './system/replicated-merge-tree-settings'
 import { schedulerDeclarative } from './system/scheduler'
 import { workloadsDeclarative } from './system/workloads'
-// Tables
 import { detachedPartsDeclarative } from './tables/detached-parts'
 import { distributedDdlQueueDeclarative } from './tables/distributed-ddl-queue'
 import { droppedTablesDeclarative } from './tables/dropped-tables'
@@ -127,12 +117,7 @@ import { tablesOverviewDeclarative } from './tables/tables-overview'
 import { userProcessesDeclarative } from './tables/user-processes'
 import { viewRefreshesDeclarative } from './tables/view-refreshes'
 
-// ---------------------------------------------------------------------------
-// Build the catalog
-// ---------------------------------------------------------------------------
-
 const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
-  // Anomaly
   queryCountBaselineDeclarative,
   memoryUsageBaselineDeclarative,
   mergePerformanceBaselineDeclarative,
@@ -141,7 +126,6 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   diskUsageChangeDeclarative,
   anomalySummaryDeclarative,
 
-  // Explorer
   explorerColumnsDeclarative,
   explorerDatabasesDeclarative,
   explorerDdlDeclarative,
@@ -156,7 +140,6 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   explorerSkipIndexesDeclarative,
   explorerTablesDeclarative,
 
-  // Keeper
   keeperConnectionLogDeclarative,
   keeperInfoDeclarative,
   keeperLogDeclarative,
@@ -164,17 +147,14 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   keeperPresenceDeclarative,
   keeperWatchesDeclarative,
 
-  // Logs
   crashLogDeclarative,
   stackTracesDeclarative,
   textLogDeclarative,
 
-  // Merges
   mergesDeclarative,
   mergePerformanceDeclarative,
   mutationsDeclarative,
 
-  // More
   asynchronousMetricsDeclarative,
   backupsDeclarative,
   dictionariesDeclarative,
@@ -188,7 +168,6 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   usersDeclarative,
   zookeeperDeclarative,
 
-  // Queries
   commonErrorsDeclarative,
   parallelizationDeclarative,
   profilerDeclarative,
@@ -198,11 +177,9 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   queryViewsLogDeclarative,
   threadAnalysisDeclarative,
 
-  // Security
   loginAttemptsDeclarative,
   sessionsDeclarative,
 
-  // System
   clusterLiveMetricsDeclarative,
   clusterLiveMetricsAllDeclarative,
   clustersTopologyDeclarative,
@@ -231,7 +208,6 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   indexAnalyticsDeclarative,
   projectionAnalyticsDeclarative,
 
-  // Tables
   detachedPartsDeclarative,
   distributedDdlQueueDeclarative,
   droppedTablesDeclarative,

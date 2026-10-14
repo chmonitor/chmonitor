@@ -14,7 +14,6 @@ export const mutationsConfig: QueryConfig = {
   refreshInterval: 30_000,
   description:
     'Information about mutations of MergeTree tables and their progress',
-  // Version-aware queries (oldest → newest)
   // 25.12 adds parts_in_progress_names: names of parts currently being mutated.
   // 26.2 adds parts_postpone_reasons: why parts were postponed from mutating.
   // The expanded row panel surfaces both fields (expandable: true below).
@@ -116,9 +115,6 @@ export const mutationsConfig: QueryConfig = {
     elapsed: ColumnFormat.Duration,
     readable_parts_to_do: ColumnFormat.BackgroundBar,
   },
-  // Expanding a row surfaces parts_to_do_names, parts_in_progress_names
-  // (CH 25.12+), and parts_postpone_reasons (CH 26.2+) in the full-width
-  // JSON detail panel.
   expandable: true,
   rowClassName: (row) => {
     const isStuck = Number(row.is_stuck || 0)

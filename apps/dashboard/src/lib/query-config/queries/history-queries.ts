@@ -111,13 +111,6 @@ const queryLogDynamicOptions = (column: string) => ({
   where: 'event_time > now() - toIntervalDay(7)',
 })
 
-/**
- * Schema-driven filter definition for the History Queries page.
- *
- * Each field declares the column it targets, the operators it supports, and
- * how its value editor should render. The server validates active filters
- * against this schema before building the SQL `WHERE` clause.
- */
 export const historyQueryFilterSchema: FilterSchema = {
   fields: [
     {

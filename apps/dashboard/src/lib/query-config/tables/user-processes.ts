@@ -51,7 +51,6 @@ export const userProcessesConfig: QueryConfig = {
     { name: 'Last 24h', key: 'last_hours', value: '24' },
     { name: 'Last 7d', key: 'last_hours', value: '168' },
   ],
-  // BackgroundBar requires base + readable_{column} + pct_{column}.
   sql: `
     WITH
       live AS (

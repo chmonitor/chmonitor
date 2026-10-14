@@ -25,9 +25,6 @@ export interface RowStyle {
   default?: string
 }
 
-/**
- * Compile a single condition into a predicate over a row.
- */
 function compileCondition(cond: RowStyleCondition): (row: Row) => boolean {
   if ('all' in cond) {
     const subs = cond.all.map(compileCondition)

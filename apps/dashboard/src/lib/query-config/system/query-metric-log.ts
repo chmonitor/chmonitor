@@ -69,7 +69,6 @@ export const queryMetricLogConfig: QueryConfig = {
     'Per-query resource usage sampled over each query lifetime from system.query_metric_log',
   docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_metric_log',
   refreshInterval: 30_000,
-  // system.query_metric_log is opt-in and may not exist on every server / version
   optional: true,
   tableCheck: 'system.query_metric_log',
   defaultParams: {

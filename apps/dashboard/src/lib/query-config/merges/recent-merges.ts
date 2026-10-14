@@ -26,7 +26,6 @@ export const recentMergesConfig: QueryConfig = {
   docs: PART_LOG,
   tableCheck: 'system.part_log',
   optional: true,
-  // Version-aware queries (oldest → newest).
   // The base branch sticks to long-standing part_log columns. 23.8 adds the
   // two this page also likes to show; they are stubbed below that so an older
   // server degrades to blank cells instead of an unknown-identifier error.

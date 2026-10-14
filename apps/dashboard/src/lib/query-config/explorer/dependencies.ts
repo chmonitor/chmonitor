@@ -1,9 +1,5 @@
 import type { QueryConfig } from '@/types/query-config'
 
-/**
- * Query to get all dependencies for a database.
- * Used for the database-level dependency graph visualization.
- */
 export const explorerDatabaseDependenciesConfig: QueryConfig = {
   name: 'explorer-database-dependencies',
   description: 'All table dependencies within a database',
@@ -57,10 +53,6 @@ export const explorerDatabaseDependenciesConfig: QueryConfig = {
   defaultParams: { database: 'default' },
 }
 
-/**
- * Query to get dictionary source information.
- * Parses the source string to extract the source table for ClickHouse dictionaries.
- */
 export const explorerDictionarySourceConfig: QueryConfig = {
   name: 'explorer-dictionary-source',
   description: 'Source table for a dictionary',
@@ -87,10 +79,6 @@ export const explorerDictionarySourceConfig: QueryConfig = {
   defaultParams: { database: 'default', table: '' },
 }
 
-/**
- * Query to get downstream dependencies (tables that depend on this table).
- * This uses the dependencies_database and dependencies_table arrays in system.tables.
- */
 export const explorerDependenciesDownstreamConfig: QueryConfig = {
   name: 'explorer-dependencies-downstream',
   description: 'Tables and views that depend on this table (downstream)',
@@ -117,10 +105,6 @@ export const explorerDependenciesDownstreamConfig: QueryConfig = {
   defaultParams: { database: 'default', table: '' },
 }
 
-/**
- * Query to get upstream dependencies (tables that this table depends on).
- * This reads the dependencies arrays for the current table.
- */
 export const explorerDependenciesUpstreamConfig: QueryConfig = {
   name: 'explorer-dependencies-upstream',
   description: 'Tables that this table depends on (upstream)',

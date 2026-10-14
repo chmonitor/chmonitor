@@ -8,8 +8,6 @@ export const readOnlyTablesConfig: QueryConfig = {
   defaultView: 'auto',
   card: { primary: 'table', badges: ['is_readonly'] },
   description: `Readonly tables and their replicas`,
-  // Version-aware queries: system.replicas schema is stable across versions
-  // No documented schema changes - using version-aware pattern for consistency
   sql: [
     {
       since: '19.1',

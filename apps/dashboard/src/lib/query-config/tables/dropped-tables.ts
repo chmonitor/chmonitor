@@ -9,7 +9,6 @@ export const droppedTablesConfig: QueryConfig = {
   refreshInterval: 30_000,
   description:
     'Tables awaiting final asynchronous drop (Atomic database engine)',
-  // system.dropped_tables may not exist on every server / version
   optional: true,
   tableCheck: 'system.dropped_tables',
   sql: `SELECT index, database, table, uuid, engine, metadata_dropped_path, table_dropped_time FROM system.dropped_tables ORDER BY table_dropped_time DESC`,

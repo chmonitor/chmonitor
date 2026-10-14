@@ -10,7 +10,6 @@ export type { QueryConfig } from './types'
 
 export { getSqlForDisplay } from './types'
 
-// Anomaly Detection
 import { anomalyQueries } from './anomaly/anomaly-queries'
 import {
   explorerAllDependenciesConfig,
@@ -44,7 +43,6 @@ import {
 } from './keeper'
 import { crashLogConfig } from './logs/crashes'
 import { stackTracesConfig } from './logs/stack-traces'
-// Logs
 import { textLogConfig } from './logs/text-log'
 import { mergePerformanceConfig } from './merges/merge-performance'
 import { mergesConfig } from './merges/merges'
@@ -80,12 +78,10 @@ import { recentQueriesConfig } from './queries/recent-queries'
 import { runningQueriesConfig } from './queries/running-queries'
 import { slowQueriesConfig } from './queries/slow-queries'
 import { slowQueryPatternsConfig } from './queries/slow-query-patterns'
-// Thread Analysis
 import { threadAnalysisConfig } from './queries/thread-analysis'
 import { topCpuQueriesConfig } from './queries/top-cpu-queries'
 import { topMemoryQueriesLiveConfig } from './queries/top-memory-queries-live'
 import { loginAttemptsConfig } from './security/login-attempts'
-// Security
 import { sessionsConfig } from './security/sessions'
 import { asynchronousInsertLogConfig } from './system/asynchronous-insert-log'
 import { asynchronousInsertsConfig } from './system/asynchronous-inserts'
@@ -142,7 +138,6 @@ import { userProcessesConfig } from './tables/user-processes'
 import { viewRefreshesConfig } from './tables/view-refreshes'
 import { trafficPerTableConfig } from './traffic/per-table-ingestion'
 export const queries: Array<QueryConfig> = [
-  // Explorer
   explorerDatabasesConfig,
   explorerDatabaseCountsConfig,
   explorerTablesConfig,
@@ -161,7 +156,6 @@ export const queries: Array<QueryConfig> = [
   explorerDictionaryOverviewConfig,
   explorerTableDependenciesConfig,
 
-  // Tables
   tablesOverviewConfig,
   distributedDdlQueueConfig,
   replicasConfig,
@@ -175,7 +169,6 @@ export const queries: Array<QueryConfig> = [
   projectionsConfig,
   viewRefreshesConfig,
 
-  // Queries
   queryCacheConfig,
   queryConditionCacheConfig,
   queryViewsLogConfig,
@@ -196,26 +189,21 @@ export const queries: Array<QueryConfig> = [
   userProcessesConfig,
   queryMetricLogConfig,
 
-  // Merges
   mergesConfig,
   recentMergesConfig,
   mergePerformanceConfig,
   mutationsConfig,
   partLogConfig,
 
-  // Traffic
   trafficPerTableConfig,
 
-  // Settings
   settingsConfig,
   mergeTreeSettingsConfig,
   replicatedMergeTreeSettingsConfig,
 
-  // Top Usage
   topUsageTablesConfig,
   topUsageColumnsConfig,
 
-  // More
   backupsConfig,
   metricsConfig,
   asynchronousMetricsConfig,
@@ -225,7 +213,6 @@ export const queries: Array<QueryConfig> = [
   errorsConfig,
   pageViewsConfig,
 
-  // Keeper / ZooKeeper
   keeperOverviewConfig,
   keeperInfoConfig,
   keeperConnectionsConfig,
@@ -236,7 +223,6 @@ export const queries: Array<QueryConfig> = [
   keeperSnapshotsConfig,
   keeperChangelogsConfig,
 
-  // System
   clustersConfig,
   clustersTopologyConfig,
   clusterLiveMetricsConfig,
@@ -267,24 +253,19 @@ export const queries: Array<QueryConfig> = [
   indexAnalyticsConfig,
   projectionAnalyticsConfig,
 
-  // Security
   sessionsConfig,
   loginAttemptsConfig,
 
-  // Logs
   textLogConfig,
   stackTracesConfig,
   crashLogConfig,
 
-  // Thread Analysis
   threadAnalysisConfig,
   parallelizationConfig,
   profilerConfig,
 
-  // Dictionaries
   dictionariesConfig,
 
-  // Anomaly Detection
   ...anomalyQueries,
 ]
 

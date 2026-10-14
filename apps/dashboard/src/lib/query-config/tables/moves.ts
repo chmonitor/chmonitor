@@ -7,7 +7,6 @@ export const movesConfig: QueryConfig = {
   description:
     'In-progress part moves between disks and volumes (TTL / storage policy)',
   refreshInterval: 30_000,
-  // system.moves may not exist on every server / version
   optional: true,
   tableCheck: 'system.moves',
   sql: `SELECT database, table, elapsed, formatReadableTimeDelta(elapsed) AS readable_elapsed, target_disk_name, target_disk_path, part_name, formatReadableSize(part_size) AS readable_part_size, thread_id FROM system.moves ORDER BY elapsed DESC`,
