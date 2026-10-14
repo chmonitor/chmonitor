@@ -355,8 +355,11 @@ jobs:
             -e POSTGRES_DB=chm_test \
             postgres:17 -c shared_preload_libraries=pg_stat_statements
 
+          # Probe over TCP, not the Unix socket: the image's entrypoint first
+          # runs a socket-only temporary server for init, then restarts it, so a
+          # socket probe can pass just before that shutdown.
           for i in $(seq 1 30); do
-            if docker exec pg pg_isready -U postgres >/dev/null 2>&1; then
+            if docker exec pg pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then
               echo "Postgres is ready"
               break
             fi
@@ -368,7 +371,7 @@ jobs:
             sleep 1
           done
 
-          docker exec pg psql -U postgres -d chm_test \
+          docker exec pg psql -h 127.0.0.1 -U postgres -d chm_test \
             -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements;'
 
       - name: Run Postgres integration tests
