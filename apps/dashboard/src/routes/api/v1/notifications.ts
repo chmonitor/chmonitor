@@ -46,7 +46,6 @@ import {
 const NOTIFICATIONS_CACHE_TTL_SECONDS = 30
 
 // ---------------------------------------------------------------------------
-// Types
 // ---------------------------------------------------------------------------
 
 export interface Notification {
@@ -85,7 +84,6 @@ export interface NotificationsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Route
 // ---------------------------------------------------------------------------
 
 export const Route = createFileRoute('/api/v1/notifications')({

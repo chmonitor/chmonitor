@@ -37,7 +37,6 @@ export async function handler(
   const bindings = env as Record<string, string | undefined>
   const { searchParams } = new URL(request.url)
 
-  // Validate hostId
   const hostIdStr = searchParams.get('hostId') ?? '0'
   const hostId = Number(hostIdStr)
   if (!Number.isInteger(hostId) || hostId < 0) {
@@ -70,7 +69,6 @@ export async function handler(
     })
   }
 
-  // Check if table config exists
   if (!hasTable(name)) {
     return Response.json(
       {
@@ -135,7 +133,6 @@ export async function handler(
   )
   if (permissionResponse) return permissionResponse
 
-  // Validate timezone
   const timezoneParam = searchParams.get('timezone') || undefined
   let timezone: string | undefined
   if (timezoneParam) {

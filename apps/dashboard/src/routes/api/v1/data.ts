@@ -155,7 +155,6 @@ function handleQueryError(
 }
 
 // ---------------------------------------------------------------------------
-// Handlers
 // ---------------------------------------------------------------------------
 
 /**
@@ -171,13 +170,11 @@ const handleGet = withApiHandler(async (request: Request) => {
   const url = new URL(request.url)
   const searchParams = url.searchParams
 
-  // Parse query parameters from URL
   const query =
     searchParams.get('sql') || searchParams.get('query') || undefined
   const format = searchParams.get('format') as DataFormat | null
   const timezone = searchParams.get('timezone') || undefined
 
-  // Validate required parameters
   const validationError = validateSearchParams(searchParams, ['hostId'])
   if (validationError) {
     return createValidationError(validationError.message, {
@@ -212,7 +209,6 @@ const handleGet = withApiHandler(async (request: Request) => {
     )
   }
 
-  // Get and validate hostId from search params
   const hostIdResult = getAndValidateHostId(searchParams)
   if (typeof hostIdResult !== 'number') {
     return createValidationError(hostIdResult.message, {
@@ -254,7 +250,6 @@ const handleGet = withApiHandler(async (request: Request) => {
     )
   }
 
-  // Execute the query
   const result = await fetchData({
     query,
     format: (format || 'JSONEachRow') as DataFormat,
@@ -266,7 +261,6 @@ const handleGet = withApiHandler(async (request: Request) => {
     },
   })
 
-  // Handle errors
   if (result.error) {
     error('[GET /api/v1/data] Query error:', result.error)
     return handleQueryError(result.error, hostId, 'GET')
@@ -407,7 +401,6 @@ async function handleNamedConfigPost(
 export const handlePost = withApiHandler(async (request: Request) => {
   bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
-  // Parse request body
   let body: Partial<ApiRequest>
   try {
     body = (await request.json()) as Partial<ApiRequest>
@@ -517,10 +510,8 @@ export const handlePost = withApiHandler(async (request: Request) => {
     )
   }
 
-  // Convert format string to DataFormat if needed
   const dataFormat = (format || 'JSONEachRow') as DataFormat
 
-  // Execute the query
   const result = await fetchData({
     query,
     query_params: queryParams,
@@ -533,7 +524,6 @@ export const handlePost = withApiHandler(async (request: Request) => {
     },
   })
 
-  // Handle errors
   if (result.error) {
     error('[POST /api/v1/data] Query error:', result.error)
     return handleQueryError(result.error, hostId, 'POST')

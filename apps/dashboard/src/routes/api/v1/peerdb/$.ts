@@ -139,7 +139,6 @@ function errorResponse(message: string, status: number): Response {
 }
 
 // ---------------------------------------------------------------------------
-// Shared handler
 // ---------------------------------------------------------------------------
 
 async function handle(

@@ -53,7 +53,6 @@ export const Route = createFileRoute('/api/v1/health/checks')({
         const bindings = env as Record<string, string | undefined>
         const { searchParams } = new URL(request.url)
 
-        // Validate hostId
         const hostId = Number(searchParams.get('hostId') ?? '0')
         if (!Number.isInteger(hostId) || hostId < 0) {
           return Response.json(

@@ -64,7 +64,6 @@ async function handleGet(id: string): Promise<Response> {
       requestId,
     })
 
-    // Validate conversation ID
     if (!id) {
       return createApiErrorResponse(
         {
@@ -93,7 +92,6 @@ async function handleGet(id: string): Promise<Response> {
 
     const questions = await store.followUps(userId, id)
 
-    // Create response with standardized builder
     const response = createSuccessResponse(
       { questions },
       {
@@ -102,7 +100,6 @@ async function handleGet(id: string): Promise<Response> {
       }
     )
 
-    // Add request ID header
     const newHeaders = new Headers(response.headers)
     newHeaders.set('X-Request-ID', requestId)
     newHeaders.set('Cache-Control', CacheControl.NONE)
@@ -117,7 +114,6 @@ async function handleGet(id: string): Promise<Response> {
       requestId,
     })
 
-    // Handle conversation store errors
     if (
       err instanceof ConversationStoreError &&
       (err.code === 'NOT_FOUND' || err.code === 'UNAUTHORIZED')
@@ -142,7 +138,6 @@ async function handleGet(id: string): Promise<Response> {
       requestId
     )
 
-    // Add request ID header to error response
     const errorHeaders = new Headers(errorResponse.headers)
     errorHeaders.set('X-Request-ID', requestId)
 
