@@ -78,7 +78,6 @@ export const Route = createFileRoute('/api/v1/table-availability')({
         try {
           const searchParams = new URL(request.url).searchParams
 
-          // Validate hostId parameter
           const hostIdResult = HostIdSchema.safeParse(
             searchParams.get('hostId') ?? '0'
           )

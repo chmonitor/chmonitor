@@ -114,11 +114,9 @@ async function handleGet(request: Request): Promise<Response> {
       // Non-cloud / unauthenticated: no retention filter
     }
 
-    // Resolve store and fetch conversations
     const store = await resolveStore()
     const conversations = await store.list(userId, limit, sinceMs)
 
-    // Transform response to exclude internal fields
     const responseMeta: ConversationMeta[] = conversations.map((conv) => ({
       id: conv.id,
       userId: conv.userId,
@@ -128,7 +126,6 @@ async function handleGet(request: Request): Promise<Response> {
       messageCount: conv.messageCount,
     }))
 
-    // Create response with standardized builder
     const response = createSuccessResponse(
       { conversations: responseMeta },
       {
@@ -137,7 +134,6 @@ async function handleGet(request: Request): Promise<Response> {
       }
     )
 
-    // Add request ID header
     const newHeaders = new Headers(response.headers)
     newHeaders.set('X-Request-ID', requestId)
     newHeaders.set('Cache-Control', CacheControl.NONE)
@@ -150,7 +146,6 @@ async function handleGet(request: Request): Promise<Response> {
   } catch (err) {
     error('[GET /api/v1/conversations] Error:', err, { requestId })
 
-    // Handle conversation store errors
     if (err instanceof ConversationStoreError && err.code === 'UNAUTHORIZED') {
       return createApiErrorResponse(
         {
@@ -169,7 +164,6 @@ async function handleGet(request: Request): Promise<Response> {
       requestId
     )
 
-    // Add request ID header to error response
     const errorHeaders = new Headers(errorResponse.headers)
     errorHeaders.set('X-Request-ID', requestId)
 
@@ -209,7 +203,6 @@ async function handlePost(request: Request): Promise<Response> {
     const userId = await resolveUserId()
     debug('[POST /api/v1/conversations] User resolved', { userId, requestId })
 
-    // Parse request body
     let body: CreateConversationRequest
     try {
       body = (await request.json()) as CreateConversationRequest
@@ -226,7 +219,6 @@ async function handlePost(request: Request): Promise<Response> {
     }
     const { title, messages = [] } = body
 
-    // Validate messages array if provided
     if (!Array.isArray(messages)) {
       return createApiErrorResponse(
         {
@@ -239,7 +231,6 @@ async function handlePost(request: Request): Promise<Response> {
       )
     }
 
-    // Generate conversation ID and timestamp
     const conversationId = crypto.randomUUID()
     const now = Date.now()
 
@@ -248,7 +239,6 @@ async function handlePost(request: Request): Promise<Response> {
     if (!title && messages.length > 0) {
       const firstUserMessage = messages.find((m) => m.role === 'user')
       if (firstUserMessage?.parts && firstUserMessage.parts.length > 0) {
-        // Find the first text part
         const textPart = firstUserMessage.parts.find(
           (part) => part.type === 'text'
         )
@@ -264,7 +254,6 @@ async function handlePost(request: Request): Promise<Response> {
       }
     }
 
-    // Build stored conversation
     const storedConversation: StoredConversation = {
       id: conversationId,
       userId,
@@ -293,7 +282,6 @@ async function handlePost(request: Request): Promise<Response> {
       )
     }
 
-    // Build response
     const responseData: CreateConversationResponse = {
       id: storedConversation.id,
       userId: storedConversation.userId,
@@ -312,7 +300,6 @@ async function handlePost(request: Request): Promise<Response> {
       201
     )
 
-    // Add request ID header
     const newHeaders = new Headers(response.headers)
     newHeaders.set('X-Request-ID', requestId)
     newHeaders.set('Cache-Control', CacheControl.NONE)
@@ -325,7 +312,6 @@ async function handlePost(request: Request): Promise<Response> {
   } catch (err) {
     error('[POST /api/v1/conversations] Error:', err, { requestId })
 
-    // Handle conversation store errors
     if (
       err instanceof ConversationStoreError &&
       (err.code === 'VALIDATION_ERROR' || err.code === 'UNAUTHORIZED')
@@ -344,7 +330,6 @@ async function handlePost(request: Request): Promise<Response> {
       )
     }
 
-    // Handle JSON parsing errors
     if (err instanceof SyntaxError && err.message.includes('JSON')) {
       return createApiErrorResponse(
         {
@@ -363,7 +348,6 @@ async function handlePost(request: Request): Promise<Response> {
       requestId
     )
 
-    // Add request ID header to error response
     const errorHeaders = new Headers(errorResponse.headers)
     errorHeaders.set('X-Request-ID', requestId)
 

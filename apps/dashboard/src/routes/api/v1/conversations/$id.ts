@@ -83,7 +83,6 @@ async function handleGet(id: string): Promise<Response> {
       requestId,
     })
 
-    // Validate conversation ID
     if (!id) {
       return createApiErrorResponse(
         {
@@ -96,11 +95,9 @@ async function handleGet(id: string): Promise<Response> {
       )
     }
 
-    // Resolve store and fetch conversation
     const store = await resolveStore()
     const conversation = await store.get(userId, id)
 
-    // Check if conversation exists
     if (!conversation) {
       return createApiErrorResponse(
         {
@@ -116,7 +113,6 @@ async function handleGet(id: string): Promise<Response> {
       )
     }
 
-    // Create response with standardized builder
     const response = createSuccessResponse(
       { conversation },
       {
@@ -125,7 +121,6 @@ async function handleGet(id: string): Promise<Response> {
       }
     )
 
-    // Add request ID header
     const newHeaders = new Headers(response.headers)
     newHeaders.set('X-Request-ID', requestId)
     newHeaders.set('Cache-Control', CacheControl.NONE)
@@ -138,7 +133,6 @@ async function handleGet(id: string): Promise<Response> {
   } catch (err) {
     error('[GET /api/v1/conversations/$id] Error:', err, { requestId })
 
-    // Handle conversation store errors
     if (
       err instanceof ConversationStoreError &&
       (err.code === 'NOT_FOUND' || err.code === 'UNAUTHORIZED')
@@ -163,7 +157,6 @@ async function handleGet(id: string): Promise<Response> {
       requestId
     )
 
-    // Add request ID header to error response
     const errorHeaders = new Headers(errorResponse.headers)
     errorHeaders.set('X-Request-ID', requestId)
 
@@ -217,7 +210,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       requestId,
     })
 
-    // Validate conversation ID
     if (!id) {
       return createApiErrorResponse(
         {
@@ -230,7 +222,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       )
     }
 
-    // Parse request body
     let body: UpdateConversationRequest
     try {
       body = (await request.json()) as UpdateConversationRequest
@@ -247,7 +238,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
     }
     const { title, messages } = body
 
-    // Validate at least one field is being updated
     if (title === undefined && messages === undefined) {
       return createApiErrorResponse(
         {
@@ -260,7 +250,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       )
     }
 
-    // Validate messages array if provided
     if (messages !== undefined && !Array.isArray(messages)) {
       return createApiErrorResponse(
         {
@@ -273,7 +262,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       )
     }
 
-    // Resolve store and fetch existing conversation
     const store = await resolveStore()
     const existingConversation = await store.get(userId, id)
 
@@ -311,7 +299,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       )
     }
 
-    // Create response with standardized builder
     const response = createSuccessResponse(
       { conversation: updatedConversation },
       {
@@ -320,7 +307,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       }
     )
 
-    // Add request ID header
     const newHeaders = new Headers(response.headers)
     newHeaders.set('X-Request-ID', requestId)
     newHeaders.set('Cache-Control', CacheControl.NONE)
@@ -333,7 +319,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
   } catch (err) {
     error('[PUT /api/v1/conversations/$id] Error:', err, { requestId })
 
-    // Handle conversation store errors
     if (
       err instanceof ConversationStoreError &&
       (err.code === 'NOT_FOUND' ||
@@ -354,7 +339,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       )
     }
 
-    // Handle JSON parsing errors
     if (err instanceof SyntaxError && err.message.includes('JSON')) {
       return createApiErrorResponse(
         {
@@ -373,7 +357,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       requestId
     )
 
-    // Add request ID header to error response
     const errorHeaders = new Headers(errorResponse.headers)
     errorHeaders.set('X-Request-ID', requestId)
 
@@ -418,7 +401,6 @@ async function handleDelete(id: string): Promise<Response> {
       requestId,
     })
 
-    // Validate conversation ID
     if (!id) {
       return createApiErrorResponse(
         {
@@ -435,7 +417,6 @@ async function handleDelete(id: string): Promise<Response> {
     const store = await resolveStore()
     const existingConversation = await store.get(userId, id)
 
-    // Check if conversation exists
     if (!existingConversation) {
       return createApiErrorResponse(
         {
@@ -451,10 +432,8 @@ async function handleDelete(id: string): Promise<Response> {
       )
     }
 
-    // Delete conversation
     await store.delete(userId, id)
 
-    // Create response with standardized builder
     const response = createSuccessResponse(
       { deleted: true, conversationId: id },
       {
@@ -463,7 +442,6 @@ async function handleDelete(id: string): Promise<Response> {
       }
     )
 
-    // Add request ID header
     const newHeaders = new Headers(response.headers)
     newHeaders.set('X-Request-ID', requestId)
     newHeaders.set('Cache-Control', CacheControl.NONE)
@@ -476,7 +454,6 @@ async function handleDelete(id: string): Promise<Response> {
   } catch (err) {
     error('[DELETE /api/v1/conversations/$id] Error:', err, { requestId })
 
-    // Handle conversation store errors
     if (
       err instanceof ConversationStoreError &&
       (err.code === 'NOT_FOUND' || err.code === 'UNAUTHORIZED')
@@ -501,7 +478,6 @@ async function handleDelete(id: string): Promise<Response> {
       requestId
     )
 
-    // Add request ID header to error response
     const errorHeaders = new Headers(errorResponse.headers)
     errorHeaders.set('X-Request-ID', requestId)
 

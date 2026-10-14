@@ -57,7 +57,6 @@ async function handler(
     const url = new URL(request.url)
     const searchParams = url.searchParams
 
-    // Validate count key format
     const countKeyResult = MenuCountKeySchema.safeParse(countKey)
     if (!countKeyResult.success) {
       error(
@@ -82,7 +81,6 @@ async function handler(
       })
     }
 
-    // Validate count key exists in registry
     if (!hasClusterCountKey(countKey)) {
       error(
         '[GET /api/v1/cluster-counts] Count key not registered:',
@@ -131,7 +129,6 @@ async function handler(
       })
     }
 
-    // Validate hostId parameter
     const hostIdResult = HostIdSchema.safeParse(
       searchParams.get('hostId') ?? '0'
     )
@@ -219,7 +216,6 @@ async function handler(
 
     bridgeClickHouseEnv(env as Record<string, string | undefined>)
 
-    // Execute the query with cluster parameter
     const result = await fetchData({
       query: clusterCount.query,
       format: 'JSONEachRow',
@@ -271,7 +267,6 @@ async function handler(
       })
     }
 
-    // Extract count from result
     const data = result.data as Array<{ count?: number | string }>
     const count =
       data.length > 0 && data[0].count !== undefined

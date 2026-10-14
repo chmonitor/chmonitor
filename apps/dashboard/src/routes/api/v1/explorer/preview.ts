@@ -42,7 +42,6 @@ export const Route = createFileRoute('/api/v1/explorer/preview')({
 
         const { searchParams } = new URL(request.url)
 
-        // Validate hostId
         const hostIdRaw = searchParams.get('hostId')
         if (hostIdRaw === null || hostIdRaw === '') {
           return Response.json(

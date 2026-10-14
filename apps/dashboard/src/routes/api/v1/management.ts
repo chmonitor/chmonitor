@@ -30,7 +30,6 @@ import {
 } from '@/lib/security/management-ddl'
 
 // ---------------------------------------------------------------------------
-// Types
 // ---------------------------------------------------------------------------
 
 type ManagementOperation =
@@ -48,7 +47,6 @@ interface ManagementRequest {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
 // ---------------------------------------------------------------------------
 
 function isManagementEnabled(): boolean {
@@ -213,7 +211,6 @@ function isValidOperation(op: unknown): op is ManagementOperation {
 }
 
 // ---------------------------------------------------------------------------
-// Route
 // ---------------------------------------------------------------------------
 
 export const Route = createFileRoute('/api/v1/management')({
@@ -236,7 +233,6 @@ export const Route = createFileRoute('/api/v1/management')({
         )
         if (permissionResponse) return permissionResponse
 
-        // Parse hostId
         const url = new URL(request.url)
         const hostIdRaw = url.searchParams.get('hostId')
         if (hostIdRaw === null || hostIdRaw === '') {
@@ -276,7 +272,6 @@ export const Route = createFileRoute('/api/v1/management')({
           )
         }
 
-        // Parse body
         let body: unknown
         try {
           body = await request.json()
@@ -315,7 +310,6 @@ export const Route = createFileRoute('/api/v1/management')({
           )
         }
 
-        // Execute
         const { error } = await fetchData({ query: ddl, hostId })
         if (error) {
           return Response.json(
