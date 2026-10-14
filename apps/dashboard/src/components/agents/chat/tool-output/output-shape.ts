@@ -146,8 +146,7 @@ export function summarizeToolError(
         detail: JSON.stringify(parsed, null, 2),
       }
     }
-  } catch {
-  }
+  } catch {}
 
   return { message: trimmed, detail: null }
 }

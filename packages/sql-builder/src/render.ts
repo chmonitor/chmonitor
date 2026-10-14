@@ -42,7 +42,6 @@ import type {
   WhereGroup,
 } from './types'
 
-
 export function renderQuery(state: BuilderState, pretty: boolean): string {
   const nl = pretty ? '\n' : ' '
   const indent = pretty ? '  ' : ''
@@ -237,7 +236,6 @@ function formatValue(value: unknown): string {
   }
   return String(value)
 }
-
 
 /**
  * Renders SQL for {@link ExtendedBuilder}

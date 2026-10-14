@@ -17,7 +17,6 @@
  * - https://uptrace.dev/glossary/structured-logging
  */
 
-
 const isDevelopment =
   typeof globalThis !== 'undefined' &&
   (globalThis as { process?: { env?: Record<string, string | undefined> } })
@@ -33,7 +32,6 @@ const debugEnabled =
  * only needed to build debug log payloads, avoiding it entirely in production.
  */
 export const isDebugEnabled = (): boolean => isDevelopment || debugEnabled
-
 
 export interface ErrorContext {
   digest?: string
@@ -53,7 +51,6 @@ const LogLevel = {
   warn: 'warn' as const,
   error: 'error' as const,
 } as const
-
 
 function createLogEntry(
   level: LogLevel,
@@ -162,7 +159,6 @@ export const error = (
   console.error(createLogEntry(LogLevel.error, msg, extra))
 }
 
-
 /**
  * Structured error logger for component-level error handling
  *
@@ -186,7 +182,6 @@ export class ErrorLogger {
   }
 }
 
-
 /**
  * Generate a unique request ID for request correlation and tracing
  * Format: uuid-like string with timestamp for uniqueness
@@ -201,7 +196,6 @@ export function generateRequestId(): string {
   const random = Math.random().toString(36).substring(2, 10)
   return `${timestamp}-${random}`
 }
-
 
 export function formatErrorForDisplay(error: Error & { digest?: string }): {
   title: string

@@ -65,8 +65,7 @@ function saveBeautifyState(value: boolean) {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(STORAGE_KEY, String(value))
-  } catch {
-  }
+  } catch {}
 }
 
 function CopyableValue({

@@ -32,7 +32,6 @@ export const TOKEN_EXPIRY_MARGIN_MS = 5 * 60_000
 const DEFAULT_API_BASE = 'https://api.github.com'
 const UA = 'chmonitor-hooks'
 
-
 function base64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64)
   const bytes = new Uint8Array(bin.length)
@@ -49,7 +48,6 @@ function bytesToBase64Url(bytes: Uint8Array): string {
 function stringToBase64Url(input: string): string {
   return bytesToBase64Url(new TextEncoder().encode(input))
 }
-
 
 /**
  * Normalize a PEM private-key secret into raw PKCS#8 DER bytes.
@@ -97,7 +95,6 @@ async function importSigningKey(pem: string): Promise<CryptoKey> {
   )
 }
 
-
 export interface JwtClaims {
   /** issued-at, backdated 60s to tolerate minor clock skew (GitHub guidance). */
   iat: number
@@ -134,7 +131,6 @@ export async function createAppJwt(
   )
   return `${signingInput}.${bytesToBase64Url(new Uint8Array(signature))}`
 }
-
 
 export interface GitHubAppConfig {
   appId: string
@@ -345,7 +341,6 @@ export async function withTokenRefresh<T extends { status: number }>(
   const refreshed = await auth.getToken(true)
   return op(refreshed)
 }
-
 
 export type GitHubAuthMode = 'app' | 'pat' | 'disabled'
 

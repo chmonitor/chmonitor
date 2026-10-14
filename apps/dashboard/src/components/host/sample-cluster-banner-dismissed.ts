@@ -24,6 +24,5 @@ export function dismissSampleClusterBanner(): void {
 
   try {
     localStorage.setItem(STORAGE_KEY, '1')
-  } catch {
-  }
+  } catch {}
 }

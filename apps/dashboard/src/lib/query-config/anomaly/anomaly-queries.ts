@@ -1,4 +1,3 @@
-
 import type { QueryConfig } from '@/types/query-config'
 
 import { ColumnFormat } from '@/types/column-format'

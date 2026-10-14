@@ -31,7 +31,6 @@ export interface ParsedEmail {
   sentry?: SentryMeta
 }
 
-
 const RE_SENTRY_URL = /https:\/\/[a-z0-9-]+\.sentry\.io\/issues\/[^\s"')>]*/i
 
 /**
@@ -128,7 +127,6 @@ export function extractSentryMeta(
     return undefined
   }
 }
-
 
 /**
  * Parse a raw email (ReadableStream, ArrayBuffer, or string) into a structured

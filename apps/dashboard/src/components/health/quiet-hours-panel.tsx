@@ -62,8 +62,7 @@ function timezoneOptions(): string[] {
       Intl as unknown as { supportedValuesOf?: (k: string) => string[] }
     ).supportedValuesOf?.('timeZone')
     if (supported && supported.length > 0) return supported
-  } catch {
-  }
+  } catch {}
   const tz = browserTimezone()
   return [...new Set(['UTC', tz])]
 }
