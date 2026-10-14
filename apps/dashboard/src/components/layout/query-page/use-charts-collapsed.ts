@@ -37,8 +37,7 @@ function loadFromStorage(): ChartsRowsState {
   if (stored) {
     try {
       return JSON.parse(stored)
-    } catch {
-    }
+    } catch {}
   }
 
   const oldStored = localStorage.getItem(OLD_CHARTS_COLLAPSED_KEY)

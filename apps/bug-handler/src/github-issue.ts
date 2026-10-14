@@ -28,7 +28,6 @@ export interface IssueResult {
   error?: string
 }
 
-
 /**
  * Compose the GitHub issue title and markdown body from a parsed email.
  * Pure function — no I/O.

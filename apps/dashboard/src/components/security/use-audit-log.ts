@@ -32,8 +32,7 @@ function writeAuditLog(entries: AuditEntry[]): void {
       AUDIT_LOG_KEY,
       JSON.stringify(entries.slice(0, AUDIT_LOG_MAX))
     )
-  } catch {
-  }
+  } catch {}
 }
 
 function appendAuditEntry(entry: AuditEntry): void {

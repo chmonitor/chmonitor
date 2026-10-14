@@ -18,7 +18,6 @@ import type {
   TableSchema,
 } from './types'
 
-
 const RANGE_OPERATORS = new Set(['<', '>', '<=', '>=', 'BETWEEN'])
 const EQUALITY_OPERATORS = new Set(['=', 'IN'])
 
@@ -168,7 +167,6 @@ export function parseExplainIndexes(
   return { primaryKey, skipIndexes }
 }
 
-
 const TABLE_REFERENCE_PATTERN =
   /\b(?:FROM|JOIN)\s+((?:`[^`]+`|"[^"]+"|[a-zA-Z_][\w$]*)(?:\s*\.\s*(?:`[^`]+`|"[^"]+"|[a-zA-Z_][\w$]*))?)/gi
 
@@ -238,7 +236,6 @@ export function formatQualifiedTable(database: string, table: string): string {
   return `${quoteIdentifier(database)}.${quoteIdentifier(table)}`
 }
 
-
 const CLAUSE_STOP_WORDS =
   'GROUP BY|ORDER BY|LIMIT|HAVING|SETTINGS|FORMAT|WITH|UNION'
 
@@ -296,7 +293,6 @@ export function findWhereSpan(
     body: match[1].trim(),
   }
 }
-
 
 export interface BuildQueryContextInput {
   sql: string

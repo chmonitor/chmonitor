@@ -161,8 +161,7 @@ export function writeSkillStorage(state: SkillState): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(SKILL_STORAGE_KEY, JSON.stringify(state))
-  } catch {
-  }
+  } catch {}
 }
 
 export function countActiveTools(activeSkillIds: readonly string[]): number {

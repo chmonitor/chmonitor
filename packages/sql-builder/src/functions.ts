@@ -18,7 +18,6 @@
  * ```
  */
 export const fn = {
-
   /**
    * Format bytes as human-readable size
    *
@@ -66,7 +65,6 @@ export const fn = {
   readableTimeDelta(column: string): string {
     return `formatReadableTimeDelta(${column})`
   },
-
 
   /**
    * Sum aggregate function
@@ -151,7 +149,6 @@ export const fn = {
     return `min(${column})`
   },
 
-
   /**
    * Calculate percentage of max value using window function
    *
@@ -172,7 +169,6 @@ export const fn = {
     return `round(100 * ${column} / max(${column}) OVER (), ${precision})`
   },
 
-
   /**
    * Access ProfileEvents array element
    *
@@ -188,7 +184,6 @@ export const fn = {
   profileEvent(name: string): string {
     return `ProfileEvents['${name}']`
   },
-
 
   /**
    * Convert to Date type

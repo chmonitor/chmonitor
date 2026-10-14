@@ -1,4 +1,3 @@
-
 import type { FetchDataResult } from './clickhouse/types'
 
 export type { PooledClient } from './clickhouse/connection-pool'

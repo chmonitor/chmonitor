@@ -421,7 +421,6 @@ export const EXAMPLE_PROMPTS = [
   },
 ]
 
-
 export interface McpToolCategoryInfo {
   readonly name: string
   readonly icon: string
