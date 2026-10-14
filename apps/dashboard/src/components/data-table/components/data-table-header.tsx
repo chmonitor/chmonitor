@@ -127,6 +127,7 @@ export const DataTableHeader = memo(function DataTableHeader<
 }: DataTableHeaderProps<TData>) {
   const displaySql = executedSql || getSqlForDisplay(queryConfig.sql)
 
+  // Popover filter draft state
   const [filterDrafts, setFilterDrafts] = useState<TableFilterCondition[]>([])
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
 
@@ -150,6 +151,7 @@ export const DataTableHeader = memo(function DataTableHeader<
     const cols = table
       .getAllLeafColumns()
       .filter((col) => !UTILITY_COLUMN_IDS.has(col.id))
+    // Pre-compute labels once
     return cols.map((col) => {
       const header = col.columnDef.header
       const label = typeof header === 'string' ? header : col.id
@@ -157,11 +159,13 @@ export const DataTableHeader = memo(function DataTableHeader<
     })
   }, [table])
 
+  // Resolve a human-readable label for a column (uses memoized label)
   const getColumnLabel = (colId: string) => {
     const found = filterableColumns.find((item) => item.column.id === colId)
     return found?.label || colId
   }
 
+  // Memoize operator options to avoid recreating SelectItems on every render
   const operatorOptions = useMemo(
     () =>
       Object.entries(OPERATOR_LABELS).map(([value, label]) => ({
@@ -171,6 +175,7 @@ export const DataTableHeader = memo(function DataTableHeader<
     []
   )
 
+  // Open popover: sync draft state with committed state
   const handleOpenFilters = (open: boolean) => {
     setIsFiltersOpen(open)
     if (open) {
@@ -201,6 +206,7 @@ export const DataTableHeader = memo(function DataTableHeader<
   }
 
   const applyFilters = () => {
+    // Only apply valid filters with values
     const validFilters = filterDrafts.filter(
       (draft) => draft.value.trim() !== ''
     )
@@ -227,6 +233,7 @@ export const DataTableHeader = memo(function DataTableHeader<
         embedded ? 'flex flex-col' : 'flex flex-col gap-2.5 pb-2.5'
       )}
     >
+      {/* Row 1: Title and Description */}
       {!embedded ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -265,6 +272,7 @@ export const DataTableHeader = memo(function DataTableHeader<
         </div>
       ) : null}
 
+      {/* Row 2: Unified toolbar — single row for all modes */}
       {filterBarSlot ? (
         /* Schema-driven mode: FilterBar slot (left) + action buttons (right) */
         <div className={toolbarClassName}>
@@ -275,6 +283,7 @@ export const DataTableHeader = memo(function DataTableHeader<
           ) : null}
           {filterBarSlot}
           <div className="flex flex-wrap items-center gap-2 ml-auto">
+            {/* Sort control for card view — moved from separate row into unified toolbar */}
             {offerViewToggle && (view === 'cards' || view === 'auto') && (
               <div className={view === 'auto' ? 'sm:hidden' : ''}>
                 <MobileSortMenu table={table} />
@@ -302,6 +311,7 @@ export const DataTableHeader = memo(function DataTableHeader<
               {toolbarExtras}
             </div>
           ) : null}
+          {/* Search TextBox on left */}
           <div className="relative basis-full sm:basis-auto flex-1 sm:min-w-[200px]">
             <SearchIcon
               className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60"
@@ -326,7 +336,9 @@ export const DataTableHeader = memo(function DataTableHeader<
             )}
           </div>
 
+          {/* Buttons on Right */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Filters Button with Advanced Popover */}
             <Popover open={isFiltersOpen} onOpenChange={handleOpenFilters}>
               <PopoverTrigger
                 render={
@@ -365,12 +377,14 @@ export const DataTableHeader = memo(function DataTableHeader<
                   </button>
                 </div>
 
+                {/* List of active filters rules */}
                 <div className="flex flex-col gap-3 py-4 max-h-[300px] overflow-y-auto">
                   {filterDrafts.map((draft) => (
                     <div
                       key={draft.id}
                       className="flex flex-col sm:flex-row sm:items-center gap-2"
                     >
+                      {/* Column Select */}
                       <Select
                         value={draft.columnId}
                         onValueChange={(val) =>
@@ -398,6 +412,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                         </SelectContent>
                       </Select>
 
+                      {/* Operator Select */}
                       <Select
                         value={draft.operator}
                         onValueChange={(val) =>
@@ -421,6 +436,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                         </SelectContent>
                       </Select>
 
+                      {/* Value Input */}
                       <Input
                         placeholder="value"
                         value={draft.value}
@@ -436,6 +452,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                         className="h-8 w-full sm:w-auto sm:flex-1 text-xs shadow-none"
                       />
 
+                      {/* Trash Delete button */}
                       <Button
                         variant="ghost"
                         size="icon-sm"
@@ -449,6 +466,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                   ))}
                 </div>
 
+                {/* Add and Apply footer */}
                 <div className="flex items-center justify-between pt-2.5 border-t border-border/40 text-xs">
                   <Button
                     variant="ghost"
@@ -474,9 +492,11 @@ export const DataTableHeader = memo(function DataTableHeader<
               </PopoverContent>
             </Popover>
 
+            {/* View Toggle */}
             {offerViewToggle && (
               <ViewToggle view={view} onViewChange={onViewChange} />
             )}
+            {/* Combined Display Options Dropdown */}
             <DisplayOptionsDropdown
               table={table}
               density={density}
@@ -484,8 +504,10 @@ export const DataTableHeader = memo(function DataTableHeader<
               getColumnLabel={getColumnLabel}
             />
 
+            {/* Export CSV button */}
             <CsvExportButton table={table} filename={queryConfig.name} />
 
+            {/* Column Reordering Reset */}
             {enableColumnReordering && onResetColumnOrder && (
               <ResetColumnOrderButton onReset={onResetColumnOrder} />
             )}
@@ -493,12 +515,15 @@ export const DataTableHeader = memo(function DataTableHeader<
         </div>
       )}
 
+      {/* Row 3: Records Count & Active Filter Chips (only for client-side filters) */}
       {!filterBarSlot && (
         <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs px-1 min-h-[24px]">
+          {/* Count */}
           <span className="text-[12.5px] font-semibold text-muted-foreground">
             {table.getFilteredRowModel().rows.length} records
           </span>
 
+          {/* Filter chips on the right */}
           {(advancedFilters.length > 0 || globalSearch) && (
             <div className="flex flex-wrap items-center gap-1.5">
               {globalSearch && (

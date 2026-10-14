@@ -29,6 +29,23 @@ import { Table, TableBody, TableHeader } from '@/components/ui/table'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
+/**
+ * Props for the DataTableContent component
+ *
+ * @template TData - The row data type (extends RowData from TanStack Table)
+ * @template TValue - The cell value type
+ *
+ * @param title - Table title for accessibility and empty state
+ * @param description - Table description for accessibility
+ * @param queryConfig - Query configuration defining columns, formats, sorting
+ * @param table - TanStack Table instance
+ * @param columnDefs - Column definitions for rendering
+ * @param tableContainerRef - Ref for the table container (used for virtualization)
+ * @param isVirtualized - Whether virtualization is enabled
+ * @param virtualizer - Virtual row instance from useVirtualRows hook
+ * @param activeFilterCount - Number of active column filters
+ * @param onAutoFit - Callback when double-clicking column resizer to auto-fit
+ */
 export interface DataTableContentProps<
   TData extends RowData,
   TValue extends React.ReactNode,
@@ -92,6 +109,22 @@ export interface DataTableContentProps<
   bodyRenderKey?: string
 }
 
+/**
+ * DataTableContent - Content wrapper with virtualization logic
+ *
+ * Handles:
+ * - Virtual scrolling for datasets larger than the standard pagination range
+ * - Standard scrolling for smaller datasets
+ * - Table header and body rendering
+ * - Empty state handling with contextual messaging
+ * - Accessibility with proper ARIA labels
+ * - Auto-fit column sizing callback propagation
+ *
+ * Performance considerations:
+ * - Virtualization reduces DOM nodes from thousands to ~100
+ * - Memoized to prevent unnecessary re-renders
+ * - Auto-enables virtualization beyond the standard pagination range
+ */
 export const DataTableContent = memo(function DataTableContent<
   TData extends RowData,
   TValue extends React.ReactNode,
@@ -127,8 +160,9 @@ export const DataTableContent = memo(function DataTableContent<
   const tableVisibility =
     view === 'table' ? 'block' : view === 'cards' ? 'hidden' : 'sm:block hidden'
 
-  // Utility columns (__expand, select, action) are pinned and must not be
-  // drag-reordered.
+  // Extract column IDs for SortableContext.
+  // Exclude utility columns (__expand chevron, selection checkbox, row action
+  // menu) — they are pinned/fixed and must not be drag-reordered.
   //
   // Memoized on a value-stable key so `columnIds` keeps its identity while the
   // order is unchanged. The announcements below read it to name a position, and
@@ -142,9 +176,13 @@ export const DataTableContent = memo(function DataTableContent<
         .getAllLeafColumns()
         .map((col) => col.id)
         .filter((id) => !UTILITY_COLUMN_IDS.has(id)),
+    // `table.getAllLeafColumns()` re-orders when the column order changes, and
+    // that is the only thing this reads.
     [columnOrderKey]
   )
 
+  // Configure drag-and-drop sensors.
+  //
   // The grip spreads dnd-kit's `attributes`, which set role="button",
   // aria-roledescription="sortable" and aria-describedby pointing at dnd-kit's
   // own hidden "press the space bar to pick up" text. With only the
@@ -153,12 +191,14 @@ export const DataTableContent = memo(function DataTableContent<
   // makes the already-announced control real — Space/Enter picks up, arrows
   // move, Space/Enter drops, Escape cancels.
   //
-  // The PointerSensor must keep its 8px distance constraint: it stops a click
-  // on the grip from being read as the start of a drag, for mouse and touch.
+  // Order matters for nothing here (each sensor binds its own activator), but
+  // the PointerSensor must keep its 8px distance constraint: it is what stops a
+  // click on the grip from being read as the start of a drag, for both mouse
+  // and touch. Adding the keyboard sensor changes no pointer behaviour.
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 8, // 8px movement required to start drag (prevents accidental drags)
       },
     }),
     useSensor(KeyboardSensor, {
@@ -168,6 +208,8 @@ export const DataTableContent = memo(function DataTableContent<
     })
   )
 
+  // Screen-reader announcements for a keyboard reorder.
+  //
   // dnd-kit ships a live region and announces by default, but its default text
   // is generic library wording — "Picked up draggable item a." and "Draggable
   // item a was moved over droppable area b." That names an opaque column id and
@@ -202,6 +244,7 @@ export const DataTableContent = memo(function DataTableContent<
     [columnIds]
   )
 
+  // Handle drag end event for column reordering
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event
@@ -212,9 +255,13 @@ export const DataTableContent = memo(function DataTableContent<
     [onColumnOrderChange]
   )
 
-  // The memoized body reads rows from the stable `table` instance, so it needs
-  // this key to re-render. Without the parent-provided key, state like
-  // `expanded` changes no prop here and expansion would silently no-op.
+  // The memoized body reads row output from the stable `table` instance, so it
+  // needs an explicit signal to re-render when that output changes. The parent
+  // (DataTable) computes this from its controlled state and passes it in — that
+  // matters because THIS component is memoized: state like `expanded` does not
+  // change any prop here, so without the parent-provided key the memo would
+  // never bust and expansion (chevron + detail row) would silently no-op.
+  // The local computation is only a fallback for callers that don't pass it.
   const bodyState = table.getState()
   const resolvedRenderKey =
     bodyRenderKey ??
@@ -235,6 +282,7 @@ export const DataTableContent = memo(function DataTableContent<
       // descendant lets keyboard users scroll the region (WCAG 2.1.1).
       tabIndex={0}
       style={{ width: table.getTotalSize(), minWidth: '100%' }}
+      // Force re-render when column order changes
       key={table.getState().columnOrder.join(',')}
     >
       <caption id="table-description" className="sr-only">
@@ -283,6 +331,7 @@ export const DataTableContent = memo(function DataTableContent<
           aria-label={`${title || 'Data'} table`}
           style={isVirtualized ? { height: '60vh' } : undefined}
         >
+          {/* Card layout: on mobile by default, and at all widths when view==='cards'. */}
           {!compact && (
             <div className={cn('p-3', cardsVisibility)}>
               {!offerViewToggle && (
