@@ -43,6 +43,8 @@ export interface CompletedQueryRow {
   [key: string]: unknown
 }
 
+// KIND_BADGE, kindBadgeClass, and KindBadge are imported from @/components/query-tables/kind-badge
+
 /**
  * Baseline cap for the completed list: only the newest finished queries are
  * rendered so the first paint stays a tight "just finished" window rather than
@@ -72,6 +74,8 @@ function StatusBadge({ failed }: { failed: boolean }) {
     </span>
   )
 }
+
+// KindBadge is imported from @/components/query-tables/kind-badge
 
 /** Format the `event_time` string as a short clock label. */
 function formatTime(value: unknown): string {

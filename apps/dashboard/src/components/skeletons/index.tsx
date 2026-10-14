@@ -8,6 +8,7 @@ export { Skeleton }
 // The previous inline placeholder here used a default shadcn <Card> (py-6,
 // shadow, fixed h-48) that mismatched the chart card and caused the flash.
 export { ChartSkeleton, type ChartSkeletonType } from './chart'
+// Additional page-scoped skeletons re-exported from their sub-files.
 export { ExplorerSkeleton } from './explorer'
 export {
   AgentsPageSkeleton,

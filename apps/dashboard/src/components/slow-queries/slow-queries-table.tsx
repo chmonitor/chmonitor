@@ -47,6 +47,8 @@ export interface SlowQueryRow {
   [key: string]: unknown
 }
 
+// ───────────────────────── helpers ─────────────────────────
+
 type Severity = 'critical' | 'warning' | 'normal'
 
 /** Classify a query by how long it took (seconds). */
@@ -55,6 +57,8 @@ function getSeverity(durationS: number): Severity {
   if (durationS > 10) return 'warning'
   return 'normal'
 }
+
+// formatDuration is imported from @/components/query-tables/format-duration
 
 /** Toned chip for the query-cache usage enum. */
 const CACHE_BADGE: Record<string, string> = {
@@ -67,6 +71,8 @@ const CACHE_BADGE: Record<string, string> = {
 function cacheBadgeClass(value: string): string {
   return CACHE_BADGE[value] ?? 'bg-muted text-muted-foreground'
 }
+
+// ───────────────────────── derived row ─────────────────────────
 
 /**
  * A `SlowQueryRow` with every metric the view sorts or renders pre-computed
@@ -124,6 +130,8 @@ function derive(row: SlowQueryRow): DerivedQuery {
   }
 }
 
+// ───────────────────────── sorting ─────────────────────────
+
 type SortKey = 'duration' | 'readRows' | 'readBytes' | 'memory'
 type SortDir = 'asc' | 'desc'
 
@@ -133,6 +141,8 @@ const SORT_ACCESSOR: Record<SortKey, (d: DerivedQuery) => number> = {
   readBytes: (d) => d.readBytes,
   memory: (d) => d.memory,
 }
+
+// ───────────────────────── cells ─────────────────────────
 
 const SEVERITY_DURATION: Record<Severity, string> = {
   critical: 'text-rose-600 dark:text-rose-400',
@@ -152,6 +162,7 @@ function RankBadge({ rank }: { rank: number }) {
   )
 }
 
+/** A toned cache-usage chip. */
 function CacheBadge({ value }: { value: string }) {
   if (!value) return <span className="text-muted-foreground">—</span>
   return (
@@ -186,6 +197,8 @@ function MetricBar({ label, pct }: { label: string; pct: number }) {
 
 // SortableHeader is imported from @/components/query-tables/sortable-header
 // DetailField is imported from @/components/query-tables/detail-field
+
+// ───────────────────────── expanded row ─────────────────────────
 
 /**
  * Expanded row — secondary-metric grid, the full query with syntax
@@ -285,6 +298,8 @@ function ExpandedDetail({ d }: { d: DerivedQuery }) {
     </div>
   )
 }
+
+// ───────────────────────── row ─────────────────────────
 
 interface QueryRowProps {
   d: DerivedQuery
@@ -416,6 +431,8 @@ const QueryRow = memo(function QueryRow({
     </>
   )
 })
+
+// ───────────────────────── table ─────────────────────────
 
 export interface SlowQueriesTableProps {
   rows: SlowQueryRow[]

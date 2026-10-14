@@ -32,7 +32,7 @@ export interface MirrorMetricsSummary {
 }
 
 /**
- * Fetch per-mirror status + throughput; shared (query-deduped) with the row.
+ * Fetch per-mirror status + throughput; shared (SWR-deduped) with the row.
  * `enabled` gates the network calls so large mirror lists don't fan out to the
  * PeerDB API for every collapsed row — metrics load lazily on expand.
  */

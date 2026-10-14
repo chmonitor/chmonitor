@@ -169,6 +169,7 @@ function SuggestionCard({
 export function AlertSuggestionsPanel({ className }: { className?: string }) {
   const { suggestions, isLoading, error, refetch } = useAlertSuggestions()
 
+  // 501 vetoes; `unknown` keeps accept/dismiss disabled (#3495).
   const availability = useHealthStoreAvailability({ probeError: error })
   const canWrite = canWriteHealthStore(availability)
 
