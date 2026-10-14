@@ -74,16 +74,15 @@ function fakeRunHost(
 }
 
 describe('sweepHosts (#3798)', () => {
-  test('slow hosts overlap: wall time is near the slowest host, not the sum', async () => {
-    const started = performance.now()
+  test('slow hosts overlap instead of running one after another', async () => {
+    const inFlight = { now: 0, peak: 0 }
     await sweepHosts(
       [host(0), host(1), host(2)],
       ctx,
       async () => {},
-      fakeRunHost({ 0: 200, 1: 200, 2: 200 })
+      fakeRunHost({ 0: 50, 1: 50, 2: 50 }, new Set(), inFlight)
     )
-    // Serial would take ~600ms.
-    expect(performance.now() - started).toBeLessThan(400)
+    expect(inFlight.peak).toBe(3)
   })
 
   test('never runs more than HOST_SWEEP_CONCURRENCY hosts at once', async () => {
