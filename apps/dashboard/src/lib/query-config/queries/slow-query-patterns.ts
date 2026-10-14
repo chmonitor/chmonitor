@@ -31,6 +31,13 @@ const rawRowsSelect = `
         exception_code,
         ProfileEvents`
 
+/**
+ * Filter definition for the Slow Query Patterns page — the shared Query
+ * Insights schema (time / user / query kind / database / client), re-exported
+ * under this page's historical name. See
+ * {@link queryInsightsFilterSchema} for the single source of truth shared
+ * with Recent Queries (#2262) and the overview grid (#2260).
+ */
 export const slowQueryPatternsFilterSchema = queryInsightsFilterSchema
 
 /**
