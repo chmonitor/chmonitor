@@ -342,6 +342,22 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ['skill', 'guide', 'recipe', 'best practices', 'instructions', 'knowledge'],
     true
   ),
+  explain_clickhouse_symbol: e(
+    'explain_clickhouse_symbol',
+    'knowledge',
+    "Read ClickHouse's built-in docs for a function, setting, MergeTree setting, server setting, metric, or event from this host, so the answer matches its version. kind 'search' finds names by keyword.",
+    [
+      'function docs',
+      'what does this function do',
+      'setting default',
+      'what does this setting do',
+      'syntax',
+      'documentation',
+      'introduced in',
+      'which version',
+      'metric meaning',
+    ]
+  ),
   find_reference_query: e(
     'find_reference_query',
     'knowledge',

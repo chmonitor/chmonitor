@@ -94,7 +94,7 @@ describe('ClickHouse agent system prompt — every tool is named', () => {
     delete process.env.CHM_FEATURE_POSTGRES_SOURCE
     const { createAllTools } = await import('../../tools/index')
     const toolNames = Object.keys(createAllTools(0, false))
-    expect(toolNames.length).toBe(32)
+    expect(toolNames.length).toBe(33)
     for (const name of toolNames) {
       expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(name)
     }
@@ -107,7 +107,7 @@ describe('ClickHouse agent system prompt — every tool is named', () => {
     const toolNames = Object.keys(
       createAllTools(0, true, undefined, { peerdb: true, postgres: true })
     )
-    expect(toolNames.length).toBe(41)
+    expect(toolNames.length).toBe(42)
     for (const name of toolNames) {
       expect(CLICKHOUSE_AGENT_INSTRUCTIONS).toContain(name)
     }

@@ -2612,6 +2612,7 @@ and version-aware:
 | Replication health? | \`get_replication_status\` |
 | Disk space? | \`get_disk_usage\` |
 | Server version/uptime/connections? | \`get_metrics\` |
+| What does a function, setting, metric, or event do on this version? | \`explain_clickhouse_symbol\` |
 
 Only fall back to the \`query\` tool for ad-hoc questions that no dedicated tool
 covers. If a dedicated tool returns an error, fix the call (e.g. \`hostId\` is a
