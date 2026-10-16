@@ -1,4 +1,4 @@
-import { createErrorResponse } from '@/lib/api/error-handler'
+import { createErrorResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 
@@ -9,7 +9,8 @@ import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
  * deployment without PeerDB answers every caller the same way and the check
  * only applies where PeerDB is actually configured.
  *
- * Returns a 401 Response when the caller is not signed in, else null.
+ * Returns a 401 Response when the caller is not signed in, else null. Not
+ * logged: signed-out polling would flood the error log.
  */
 export async function requirePeerDBSignIn(
   request: Request,
