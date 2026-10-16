@@ -382,6 +382,7 @@ leak into the agent bundle). Current dev skills:
   "the agent does not answer", and before any rollback. It replaced the stale
   `.claude/skills/verify-deploy.md`, which pointed at the deleted
   `apps/dashboard-tsr/` path. Backs the `local:prod` desk job.
+- **`api-self-audit`** — find API routes without an auth guard (`auth-guard-coverage.test.ts`) and triage each: guard it, or allowlist it with a reason.
 - **`release-screenshots`** — capture, privacy-check, pick, crop, and frame
   release images (blog posts, changelog, social) with the bundled
   `frame.html` + `render.mjs`. Backed by `docs/knowledge/release-screenshots.md`.
