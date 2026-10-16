@@ -13,6 +13,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 import {
   renameCheckAlert,
   resetCheckAlert,
@@ -25,6 +26,9 @@ const ROUTE_PUT = { route: ROUTE, method: 'PUT' }
 const ROUTE_DELETE = { route: ROUTE, method: 'DELETE' }
 
 async function handlePut(checkId: string, request: Request): Promise<Response> {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
   let body: { name?: unknown }
   try {
     body = (await request.json()) as { name?: unknown }
@@ -49,7 +53,13 @@ async function handlePut(checkId: string, request: Request): Promise<Response> {
   }
 }
 
-async function handleDelete(checkId: string): Promise<Response> {
+async function handleDelete(
+  checkId: string,
+  request: Request
+): Promise<Response> {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
   try {
     const ownerId = await resolveCustomRuleOwnerId()
     return createSuccessResponse(await resetCheckAlert(ownerId, checkId))
@@ -67,7 +77,8 @@ export const Route = createFileRoute('/api/v1/health/check-alerts/$checkId')({
   server: {
     handlers: {
       PUT: async ({ params, request }) => handlePut(params.checkId, request),
-      DELETE: async ({ params }) => handleDelete(params.checkId),
+      DELETE: async ({ params, request }) =>
+        handleDelete(params.checkId, request),
     },
   },
 })

@@ -19,6 +19,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 import {
   dismissSuggestion,
   SuggestionDismissalStoreError,
@@ -34,7 +35,10 @@ import { createCustomRule } from '@/lib/health/custom-rules-store'
 const ROUTE_GET = { route: '/api/v1/health/alert-suggestions', method: 'GET' }
 const ROUTE_POST = { route: '/api/v1/health/alert-suggestions', method: 'POST' }
 
-async function handleGet(): Promise<Response> {
+async function handleGet(request: Request): Promise<Response> {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
   try {
     const ownerId = await resolveCustomRuleOwnerId()
     const suggestions = await computeAlertSuggestions(ownerId)
@@ -93,6 +97,9 @@ async function handleDismiss(
 }
 
 async function handlePost(request: Request): Promise<Response> {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
   let body: PostBody
   try {
     body = (await request.json()) as PostBody
@@ -139,7 +146,7 @@ async function handlePost(request: Request): Promise<Response> {
 export const Route = createFileRoute('/api/v1/health/alert-suggestions')({
   server: {
     handlers: {
-      GET: async () => handleGet(),
+      GET: async ({ request }) => handleGet(request),
       POST: async ({ request }) => handlePost(request),
     },
   },

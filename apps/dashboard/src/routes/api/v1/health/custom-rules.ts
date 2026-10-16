@@ -16,6 +16,7 @@ import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 import { mapCustomRuleApiError } from '@/lib/health/custom-rules-api-errors'
 import { resolveCustomRuleOwnerId } from '@/lib/health/custom-rules-auth'
 import {
@@ -44,7 +45,10 @@ function toPublicRule(
   }
 }
 
-async function handleGet(): Promise<Response> {
+async function handleGet(request: Request): Promise<Response> {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
   try {
     const ownerId = await resolveCustomRuleOwnerId()
     const rules = await listCustomRules(ownerId)
@@ -63,6 +67,9 @@ interface CreateRequest {
 }
 
 async function handlePost(request: Request): Promise<Response> {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
   let body: CreateRequest
   try {
     body = (await request.json()) as CreateRequest
@@ -107,7 +114,7 @@ export const Route = createFileRoute('/api/v1/health/custom-rules')({
         if (url.searchParams.get('catalog') === '1') {
           return handleGetCatalog()
         }
-        return handleGet()
+        return handleGet(request)
       },
       POST: async ({ request }) => handlePost(request),
     },
