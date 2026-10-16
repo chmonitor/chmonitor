@@ -13,7 +13,9 @@ import {
   RATE_LIMIT_BINDING_BROWSER_CONN,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
+import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { queryConnection } from '@/lib/connection-query/connection-client'
 import { toSessionPayload } from '@/lib/connection-query/resolve-credentials'
 import { createConnectionSession } from '@/lib/connection-sessions/store'
@@ -54,6 +56,11 @@ interface SessionRequest {
 }
 
 async function handlePost(request: Request): Promise<Response> {
+  // Cloud only: self-hosted visitors keep using browser connections anonymously.
+  if (isCloudModeServer() && !(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
   // Cheap, no-socket check first: don't spend a rate-limit bucket token on a
   // request this deployment can never service anyway.
   if (!isEncryptionConfigured()) {
