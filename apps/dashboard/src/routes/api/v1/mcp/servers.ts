@@ -36,6 +36,7 @@ import {
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 
 const ROUTE = '/api/v1/mcp/servers'
 const CTX = (method: string) => ({ route: ROUTE, method })
@@ -250,13 +251,34 @@ async function handleDelete(request: Request): Promise<Response> {
   }
 }
 
+// Registrations are per-user and carry stored secrets; isAuthenticatedRequest()
+// ignores public-read, so anonymous cloud visitors never reach the store.
+async function guarded(
+  request: Request,
+  handler: (request: Request) => Promise<Response>
+): Promise<Response> {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
+  return handler(request)
+}
+
+const guardedHandlers = {
+  GET: (request: Request) => guarded(request, handleGet),
+  POST: (request: Request) => guarded(request, handlePost),
+  PATCH: (request: Request) => guarded(request, handlePatch),
+  DELETE: (request: Request) => guarded(request, handleDelete),
+}
+
+export const __guardedHandlersForTests = guardedHandlers
+
 export const Route = createFileRoute('/api/v1/mcp/servers')({
   server: {
     handlers: {
-      GET: async ({ request }) => handleGet(request),
-      POST: async ({ request }) => handlePost(request),
-      PATCH: async ({ request }) => handlePatch(request),
-      DELETE: async ({ request }) => handleDelete(request),
+      GET: async ({ request }) => guardedHandlers.GET(request),
+      POST: async ({ request }) => guardedHandlers.POST(request),
+      PATCH: async ({ request }) => guardedHandlers.PATCH(request),
+      DELETE: async ({ request }) => guardedHandlers.DELETE(request),
     },
   },
 })

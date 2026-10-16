@@ -23,6 +23,7 @@ import {
   resolveRegistryUserId,
 } from '@/lib/ai/agent/mcp/registry-http'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
+import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 
 const CTX = { route: '/api/v1/mcp/servers/$id/probe', method: 'POST' }
 
@@ -37,6 +38,9 @@ async function handlePost(
   request: Request,
   id: string | undefined
 ): Promise<Response> {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
   if (!id) {
     return mapRegistryError(
       new McpRegistryError('id is required', 'VALIDATION'),
@@ -89,6 +93,8 @@ async function handlePost(
     return mapRegistryError(error, CTX)
   }
 }
+
+export const __handlePostForTests = handlePost
 
 export const Route = createFileRoute('/api/v1/mcp/servers/$id/probe')({
   server: {
