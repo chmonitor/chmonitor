@@ -6,7 +6,7 @@ description: >-
   changing a route under apps/dashboard/src/routes/api/, when
   auth-guard-coverage.test.ts fails, or when reviewing auth on an API change.
   Triggers: "new API route", "unguarded route", "auth guard", "public route",
-  "PUBLIC_ROUTES", "KNOWN_GAPS", "api self-audit".
+  "PUBLIC_ROUTES", "api self-audit".
 ---
 
 # API self-audit
@@ -33,8 +33,7 @@ takes the path from `createFileRoute('...')`, and decides:
 
 A route that needs a guard passes when its file calls a name in `GUARDS`
 (`name(`, after comments and import lines are stripped; a mention in a comment
-or an import does not count), or its path is in `PUBLIC_ROUTES`, `READ_ONLY_POSTS`, or
-`KNOWN_GAPS`. The check is per file: one guard anywhere in the file counts for
+or an import does not count), or its path is in `PUBLIC_ROUTES` or `READ_ONLY_POSTS`. The check is per file: one guard anywhere in the file counts for
 all its handlers. When a file mixes a public GET with a guarded POST, read it.
 
 ## Triage a failing route
@@ -50,9 +49,8 @@ all its handlers. When a file mixes a public GET with a guarded POST, read it.
    discovery documents, RFC 8628 device-flow steps, capability-slug reads. Add
    the path to `PUBLIC_ROUTES` with a one-line reason.
 3. **v1 POST that only reads** (a body for tokens, no write): `READ_ONLY_POSTS`.
-4. **Unsure, or looks sensitive**: add it to `KNOWN_GAPS` with the reason
-   `tracked privately: ...` and track it outside the public repo. No issue
-   numbers and no exploit detail in the reason string or the PR.
+4. **Unsure, or looks sensitive**: do not allowlist it. Guard it, or ask the
+   maintainer; keep exploit detail out of the public repo and the PR.
 
 ## Adding a guard name
 

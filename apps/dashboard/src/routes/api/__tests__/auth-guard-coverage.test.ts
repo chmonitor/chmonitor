@@ -5,9 +5,8 @@
  *  1. the global `/api/v1/*` middleware (`resolveApiGuard` in start.ts), for
  *     read-only (GET) handlers on non-exempt v1 paths;
  *  2. a recognized guard referenced in the route file (see GUARDS);
- *  3. an entry in PUBLIC_ROUTES (intentionally public, with a reason),
- *     READ_ONLY_POSTS (v1 POST that only reads), or KNOWN_GAPS (looks
- *     unguarded, tracked for follow-up).
+ *  3. an entry in PUBLIC_ROUTES (intentionally public, with a reason) or
+ *     READ_ONLY_POSTS (v1 POST that only reads).
  *
  * Mutating handlers (POST/PUT/PATCH/DELETE) on v1 paths still need a route
  * guard: in Clerk public-read mode the middleware passes every /api/v1/*
@@ -66,11 +65,21 @@ const GUARDS = [
   'resolveBillingOwnerId',
   'resolveSubscriptionUserId',
   'requireWriteAccess',
+  // lib/peerdb/require-sign-in.ts: 401 unless isAuthenticatedRequest
+  'requirePeerDBSignIn',
   // lib/health/alert-routing-auth.ts: 401 for the anonymous owner under Clerk
   'requiresSignInForWrite',
 ] as const
 
 const GUARD_CALL_RE = new RegExp(`\\b(${GUARDS.join('|')})\\s*\\(`)
+
+/**
+ * authenticateRequest alone is not a guard (the `none` provider passes it),
+ * but called on the resolved server provider it is how session routes check
+ * for a subject. Only this exact chain counts.
+ */
+const PROVIDER_AUTH_RE =
+  /\bresolveServerAuthProvider\([^)]*\)\s*\.authenticateRequest\s*\(/
 
 /** Source with comments and import lines removed, so a guard must be called. */
 function stripNonCode(src: string): string {
@@ -81,7 +90,8 @@ function stripNonCode(src: string): string {
 }
 
 function callsGuard(src: string): boolean {
-  return GUARD_CALL_RE.test(stripNonCode(src))
+  const code = stripNonCode(src)
+  return GUARD_CALL_RE.test(code) || PROVIDER_AUTH_RE.test(code)
 }
 
 /** Route path -> why it is intentionally reachable without a guard. */
@@ -111,31 +121,6 @@ const READ_ONLY_POSTS: Record<string, string> = {
     'read-only catalog compare; POST carries session tokens',
   '/api/v1/settings-diff':
     'read-only settings compare; POST carries session tokens',
-}
-
-/**
- * Route path -> neutral reason. These look unguarded and need a decision
- * (guard or move to PUBLIC_ROUTES). Listed so the gap stays visible.
- */
-const KNOWN_GAPS: Record<string, string> = {
-  '/api/v1/auth/device/approve': 'tracked privately: needs an auth decision',
-  '/api/v1/browser-connections/proxy':
-    'tracked privately: needs an auth decision',
-  '/api/v1/browser-connections/sessions':
-    'tracked privately: needs an auth decision',
-  '/api/v1/browser-connections/test':
-    'tracked privately: needs an auth decision',
-  '/api/v1/health/alert-suggestions':
-    'tracked privately: needs an auth decision',
-  '/api/v1/health/check-alerts/$checkId':
-    'tracked privately: needs an auth decision',
-  '/api/v1/health/custom-rules': 'tracked privately: needs an auth decision',
-  '/api/v1/health/custom-rules/$id':
-    'tracked privately: needs an auth decision',
-  '/api/v1/mcp/servers': 'tracked privately: needs an auth decision',
-  '/api/v1/mcp/servers/$id/probe': 'tracked privately: needs an auth decision',
-  '/api/v1/peerdb/$': 'tracked privately: needs an auth decision',
-  '/api/v1/peerdb/validate': 'tracked privately: needs an auth decision',
 }
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const
@@ -210,8 +195,7 @@ describe('API auth guard coverage', () => {
       (r) =>
         needsRouteGuard(r, exempt) &&
         !callsGuard(r.src) &&
-        !(r.path in PUBLIC_ROUTES) &&
-        !(r.path in KNOWN_GAPS)
+        !(r.path in PUBLIC_ROUTES)
     )
     if (offenders.length > 0) {
       throw new Error(
@@ -234,10 +218,7 @@ describe('API auth guard coverage', () => {
         stale.push(`${path}: has a write verb, cannot be read-only`)
       if (reason.trim().length < 10) stale.push(`${path}: reason too short`)
     }
-    for (const [path, reason] of Object.entries({
-      ...PUBLIC_ROUTES,
-      ...KNOWN_GAPS,
-    })) {
+    for (const [path, reason] of Object.entries(PUBLIC_ROUTES)) {
       const route = byPath.get(path)
       if (!route) stale.push(`${path}: no such route`)
       else if (!needsRouteGuard(route, exempt))
@@ -258,12 +239,16 @@ describe('API auth guard coverage', () => {
     ].join('\n')
     expect(callsGuard(fixture)).toBe(false)
     expect(callsGuard(`${fixture}\nawait resolveUserId(request)`)).toBe(true)
+    const chain = 'resolveServerAuthProvider(p).authenticateRequest(request)'
+    expect(callsGuard(`// ${chain}`)).toBe(false)
+    expect(callsGuard(`await ${chain}`)).toBe(true)
+    expect(callsGuard('await provider.authenticateRequest(request)')).toBe(
+      false
+    )
   })
 
   test('allowlists do not overlap', () => {
-    const keys = [PUBLIC_ROUTES, KNOWN_GAPS, READ_ONLY_POSTS].flatMap((o) =>
-      Object.keys(o)
-    )
+    const keys = [PUBLIC_ROUTES, READ_ONLY_POSTS].flatMap((o) => Object.keys(o))
     const both = keys.filter((k, i) => keys.indexOf(k) !== i)
     expect(both).toEqual([])
   })
