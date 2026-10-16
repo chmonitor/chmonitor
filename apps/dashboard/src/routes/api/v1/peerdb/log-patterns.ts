@@ -36,6 +36,7 @@ import {
   buildPeerDBAuthHeader,
   type ResolvedPeerDBConfig,
 } from '@/lib/peerdb/peerdb-auth'
+import { requirePeerDBSignIn } from '@/lib/peerdb/require-sign-in'
 import {
   PEERDB_CONNECTION_PARAM,
   resolvePeerDBRequestConfig,
@@ -152,6 +153,12 @@ async function handleGet(request: Request): Promise<Response> {
     )
   }
 
+  const unauthorized = await requirePeerDBSignIn(
+    request,
+    '/api/v1/peerdb/log-patterns'
+  )
+  if (unauthorized) return unauthorized
+
   const useCache = connectionId === null
   const cacheKey = `log-patterns:env:${window}`
   if (useCache) {
@@ -224,3 +231,5 @@ export const Route = createFileRoute('/api/v1/peerdb/log-patterns')({
     },
   },
 })
+
+export { handleGet as __handlerForTests }

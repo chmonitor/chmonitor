@@ -39,10 +39,12 @@ import { PeerGraph } from '@/components/peerdb/peer-graph'
 import { EAGER_METRICS_LIMIT } from '@/components/peerdb/peerdb-derive'
 import { PeerDBInsightsPanel } from '@/components/peerdb/peerdb-insights-panel'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
+import { PeerDBSignInRequired } from '@/components/peerdb/peerdb-sign-in-required'
 import {
   DESIGN_STATUS_META,
   type DesignStatus,
   isPeerDBNotConfigured,
+  isPeerDBSignInRequired,
   pdbFmtNum,
   toDesignStatus,
 } from '@/components/peerdb/peerdb-utils'
@@ -148,7 +150,7 @@ function PeerDBMirrorsPage() {
   }
 
   useEffect(() => {
-    if (error) {
+    if (error && !isPeerDBSignInRequired(error)) {
       toast.error('Could not load mirrors', {
         description: getCardErrorDescription(
           error,
@@ -159,7 +161,7 @@ function PeerDBMirrorsPage() {
   }, [error])
 
   useEffect(() => {
-    if (peersError) {
+    if (peersError && !isPeerDBSignInRequired(peersError)) {
       toast.error('Could not load peers', {
         description: getCardErrorDescription(
           peersError,
@@ -170,7 +172,7 @@ function PeerDBMirrorsPage() {
   }, [peersError])
 
   useEffect(() => {
-    if (statusError) {
+    if (statusError && !isPeerDBSignInRequired(statusError)) {
       toast.error(`Connection Probe Error: ${statusError.message}`)
     }
   }, [statusError])
@@ -330,6 +332,9 @@ function PeerDBMirrorsPage() {
 
   if (isPeerDBNotConfigured(error)) {
     return <PeerDBNotConfigured />
+  }
+  if ([error, peersError, statusError].some((e) => isPeerDBSignInRequired(e))) {
+    return <PeerDBSignInRequired />
   }
 
   const eagerSlice = mirrors.slice(0, EAGER_METRICS_LIMIT)

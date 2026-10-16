@@ -25,12 +25,12 @@ import {
   RATE_LIMIT_BINDING_BROWSER_CONN,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
-import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import {
   buildPeerDBAuthHeader,
   parsePeerDBAuthScheme,
 } from '@/lib/peerdb/peerdb-auth'
+import { requirePeerDBSignIn } from '@/lib/peerdb/require-sign-in'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/peerdb/validate',
@@ -73,9 +73,8 @@ interface ValidateResponse {
 }
 
 async function handlePost(request: Request): Promise<Response> {
-  if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
-  }
+  const unauthorized = await requirePeerDBSignIn(request, ROUTE_CONTEXT.route)
+  if (unauthorized) return unauthorized
   let body: Partial<ValidateRequest>
   try {
     body = (await request.json()) as Partial<ValidateRequest>

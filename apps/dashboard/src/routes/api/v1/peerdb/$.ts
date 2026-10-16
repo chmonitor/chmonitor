@@ -17,11 +17,11 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
 import { generateRequestId } from '@chm/logger'
-import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 import {
   buildPeerDBAuthHeader,
   type ResolvedPeerDBConfig,
 } from '@/lib/peerdb/peerdb-auth'
+import { requirePeerDBSignIn } from '@/lib/peerdb/require-sign-in'
 import {
   PEERDB_CONNECTION_PARAM,
   resolvePeerDBRequestConfig,
@@ -147,9 +147,6 @@ async function handle(
   request: Request,
   splat: string
 ): Promise<Response> {
-  if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
-  }
   const requestId = generateRequestId()
   const bindings = env as Record<string, string | undefined>
   // Resolve env config, OR a per-connection PeerDB link when `?connection=<id>`
@@ -166,6 +163,9 @@ async function handle(
       { status: 503 }
     )
   }
+
+  const unauthorized = await requirePeerDBSignIn(request, '/api/v1/peerdb/$')
+  if (unauthorized) return unauthorized
 
   const path = buildPath(splat)
 

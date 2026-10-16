@@ -199,6 +199,14 @@ export function isPeerDBNotConfigured(error: unknown): boolean {
   return (error as { status?: number } | undefined)?.status === 503
 }
 
+/**
+ * True when the PeerDB API answered 401: PeerDB is configured but the caller
+ * is signed out. Pages show a sign-in prompt instead of an error.
+ */
+export function isPeerDBSignInRequired(error: unknown): boolean {
+  return (error as { status?: number } | undefined)?.status === 401
+}
+
 // ─────────────────────── design-spec formatting (CHM Redesign) ───────────────────────
 
 /**

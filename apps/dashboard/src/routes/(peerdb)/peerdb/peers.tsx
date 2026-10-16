@@ -13,9 +13,11 @@ import { PeerGraph } from '@/components/peerdb/peer-graph'
 import { PeerTypeIcon } from '@/components/peerdb/peer-type-icon'
 import { PeerDBConnectionStatus } from '@/components/peerdb/peerdb-connection-status'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
+import { PeerDBSignInRequired } from '@/components/peerdb/peerdb-sign-in-required'
 import {
   dbTypeLabel,
   isPeerDBNotConfigured,
+  isPeerDBSignInRequired,
   normalizeDbType,
   peerKind,
   statusTone,
@@ -126,6 +128,9 @@ function PeerDBPeersPage() {
 
   if (isPeerDBNotConfigured(peersReq.error)) {
     return <PeerDBNotConfigured />
+  }
+  if (isPeerDBSignInRequired(peersReq.error)) {
+    return <PeerDBSignInRequired />
   }
 
   return (
