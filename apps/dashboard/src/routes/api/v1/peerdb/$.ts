@@ -21,6 +21,7 @@ import {
   buildPeerDBAuthHeader,
   type ResolvedPeerDBConfig,
 } from '@/lib/peerdb/peerdb-auth'
+import { requirePeerDBSignIn } from '@/lib/peerdb/require-sign-in'
 import {
   PEERDB_CONNECTION_PARAM,
   resolvePeerDBRequestConfig,
@@ -163,6 +164,9 @@ async function handle(
     )
   }
 
+  const unauthorized = await requirePeerDBSignIn(request, '/api/v1/peerdb/$')
+  if (unauthorized) return unauthorized
+
   const path = buildPath(splat)
 
   if (!isAllowed(method, path)) {
@@ -214,6 +218,8 @@ async function handle(
     )
   }
 }
+
+export const __handleForTests = handle
 
 export const Route = createFileRoute('/api/v1/peerdb/$')({
   server: {

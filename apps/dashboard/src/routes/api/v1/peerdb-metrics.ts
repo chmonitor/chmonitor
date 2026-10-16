@@ -46,6 +46,7 @@ import {
   envPeerDBConfig,
   type ResolvedPeerDBConfig,
 } from '@/lib/peerdb/peerdb-auth'
+import { requirePeerDBSignIn } from '@/lib/peerdb/require-sign-in'
 import {
   PEERDB_CONNECTION_PARAM,
   resolvePeerDBRequestConfig,
@@ -194,6 +195,12 @@ async function handleGet(request: Request): Promise<Response> {
     }
     return Response.json(body, { headers: responseHeaders(requestId) })
   }
+
+  const unauthorized = await requirePeerDBSignIn(
+    request,
+    '/api/v1/peerdb-metrics'
+  )
+  if (unauthorized) return unauthorized
 
   // Env-wide responses are cached (per-connection responses never are — see
   // the docblock). The not-configured branch above returns before any cache

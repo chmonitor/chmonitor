@@ -11,8 +11,10 @@ import { MiniAreaChart } from '@/components/charts/mini-charts'
 import { PeerDetailSkeleton } from '@/components/peerdb/peer-detail-skeleton'
 import { PeerInfoCard } from '@/components/peerdb/peer-info-card'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
+import { PeerDBSignInRequired } from '@/components/peerdb/peerdb-sign-in-required'
 import {
   isPeerDBNotConfigured,
+  isPeerDBSignInRequired,
   toNumber,
 } from '@/components/peerdb/peerdb-utils'
 import { AppLink } from '@/components/ui/app-link'
@@ -59,6 +61,9 @@ function PeerDetailContent() {
 
   if (isPeerDBNotConfigured(slots.error)) {
     return <PeerDBNotConfigured />
+  }
+  if (isPeerDBSignInRequired(slots.error)) {
+    return <PeerDBSignInRequired />
   }
 
   if (!name) {

@@ -15,6 +15,7 @@ import {
   buildPeerDBAuthHeader,
   type ResolvedPeerDBConfig,
 } from '@/lib/peerdb/peerdb-auth'
+import { requirePeerDBSignIn } from '@/lib/peerdb/require-sign-in'
 import { resolvePeerDBRequestConfig } from '@/lib/peerdb/resolve-request-config'
 
 /** Browser-safe PeerDB connection status payload. */
@@ -122,6 +123,12 @@ export const Route = createFileRoute('/api/v1/peerdb-status')({
             { status: 200 }
           )
         }
+
+        const unauthorized = await requirePeerDBSignIn(
+          request,
+          '/api/v1/peerdb-status'
+        )
+        if (unauthorized) return unauthorized
 
         const host = sanitizeHost(config.baseUrl)
 

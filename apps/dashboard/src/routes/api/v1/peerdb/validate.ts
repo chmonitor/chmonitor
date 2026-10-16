@@ -30,6 +30,7 @@ import {
   buildPeerDBAuthHeader,
   parsePeerDBAuthScheme,
 } from '@/lib/peerdb/peerdb-auth'
+import { requirePeerDBSignIn } from '@/lib/peerdb/require-sign-in'
 
 const ROUTE_CONTEXT = {
   route: '/api/v1/peerdb/validate',
@@ -72,6 +73,8 @@ interface ValidateResponse {
 }
 
 async function handlePost(request: Request): Promise<Response> {
+  const unauthorized = await requirePeerDBSignIn(request, ROUTE_CONTEXT.route)
+  if (unauthorized) return unauthorized
   let body: Partial<ValidateRequest>
   try {
     body = (await request.json()) as Partial<ValidateRequest>
@@ -147,6 +150,8 @@ async function handlePost(request: Request): Promise<Response> {
     clearTimeout(timeout)
   }
 }
+
+export const __handlePostForTests = handlePost
 
 export const Route = createFileRoute('/api/v1/peerdb/validate')({
   server: {

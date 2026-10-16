@@ -17,9 +17,11 @@ import { MirrorStatusBadge } from '@/components/peerdb/mirror-status-badge'
 import { OperationMixChart } from '@/components/peerdb/operation-mix-chart'
 import { PdbBarChart } from '@/components/peerdb/pdb-charts'
 import { PeerDBNotConfigured } from '@/components/peerdb/peerdb-not-configured'
+import { PeerDBSignInRequired } from '@/components/peerdb/peerdb-sign-in-required'
 import {
   formatDateTime,
   isPeerDBNotConfigured,
+  isPeerDBSignInRequired,
   pdbFmtDuration,
   pdbFmtNum,
   toNumber,
@@ -124,6 +126,9 @@ function MirrorDetailContent() {
 
   if (isPeerDBNotConfigured(status.error)) {
     return <PeerDBNotConfigured />
+  }
+  if (isPeerDBSignInRequired(status.error)) {
+    return <PeerDBSignInRequired />
   }
 
   if (!name) {
