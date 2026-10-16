@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-10-13
+updated: 2026-10-16
 tags:
   - saas
   - cloud
@@ -100,6 +100,7 @@ split-brain. Detection is pure and unit-tested (`cloud-mode.test.ts`); the
 | Agent integration tools (PeerDB, Postgres; read-only) | **on** when configured and reachable (probe pinned per conversation); `false` flag turns off | **off** for anonymous visitors whatever the flag; signed-in users need `CHM_FEATURE_PEERDB_AGENT=true` / `CHM_FEATURE_POSTGRES_SOURCE=true` (the sources are the operator's env). Resolver: `lib/ai/agent/integration-tools-gate.ts` |
 | Agent (signed-in) | env hosts; own saved connections if enabled | demo → 403 `demo_hidden`; own saved connection → queried directly. Errors render as actionable notices (`mapAgentConnectionError`); zero hosts → add-connection prompt on the welcome screen |
 | Maintenance windows / quiet hours | saved under owner `''`; the sweep reads them and silences env-host alerts | saved under the signed-in owner; the sweep only checks env hosts with owner `''`, so they silence nothing yet. Both panels show `SilencingScopeNotice` (`components/health/silencing-scope-notice.tsx`) saying so. Per-owner sweep is the real fix (#3802) |
+| Browser connections (`browser-connections/{proxy,sessions,test}`, `AddHostDialog`) | anonymous allowed; browser-only storage works without an account | **require sign-in** (or a valid `chm_` key): routes answer 401 `Authentication required` via `isAuthenticatedRequest` + `jsonError` (`CHM_CLERK_PUBLIC_READ` does not relax it). `AddHostDialog` gates inside the dialog: anonymous visitors see `SignInToConnect`, not the form, whatever opened it; the "Browser-only storage still works" line is hidden. Classified as `sign_in_required` in `lib/connection-errors.ts` |
 
 **The agent on a user's own connection.** `POST /api/v1/agent` accepts a
 negative `hostId`. After resolving the caller, the route calls
@@ -271,7 +272,7 @@ automatic demo, so they don't see this CTA.
 ## Connection-error help
 
 `lib/connection-errors.ts` → `classifyConnectionError(raw)` maps a raw "Test
-connection" error string to a kind (`host_not_allowed`, `invalid_url`,
+connection" error string to a kind (`sign_in_required`, `host_not_allowed`, `invalid_url`,
 `auth_failed`, `access_denied`, `dns_error`, `connection_refused`, `tls_error`,
 `timeout`, `mixed_content`, `unknown`) with title + explanation + fix + docs
 slug. `extractConnectionErrorMessage(body)` handles both response shapes

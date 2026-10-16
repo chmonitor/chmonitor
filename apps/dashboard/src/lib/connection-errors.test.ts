@@ -132,3 +132,18 @@ describe('classifyConnectionError — Postgres (SQLSTATE-appended) rules', () =>
     expect(e.kind).toBe('dns_error')
   })
 })
+
+describe('sign_in_required', () => {
+  test('cloud 401 "Authentication required" -> sign_in_required, not auth_failed', () => {
+    const e = classifyConnectionError('Authentication required')
+    expect(e.kind).toBe('sign_in_required')
+    expect(e.title).toBe('Sign in required')
+    expect(e.fix.toLowerCase()).toContain('sign in')
+  })
+
+  test('ClickHouse "Authentication failed" stays auth_failed', () => {
+    expect(classifyConnectionError('Authentication failed').kind).toBe(
+      'auth_failed'
+    )
+  })
+})

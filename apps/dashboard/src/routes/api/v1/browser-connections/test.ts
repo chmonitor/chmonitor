@@ -21,7 +21,7 @@ import {
   RATE_LIMIT_BINDING_BROWSER_CONN,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
-import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
+import { isAuthenticatedRequest, jsonError } from '@/lib/auth/api-guard'
 import {
   createHostValidationFetch,
   validateHostUrl,
@@ -75,7 +75,7 @@ interface TestConnectionResponse {
 async function handlePost(request: Request): Promise<Response> {
   // Cloud only: self-hosted visitors keep using browser connections anonymously.
   if (isCloudModeServer() && !(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
+    return jsonError('Authentication required', 401)
   }
 
   let body: Partial<TestConnectionRequest>
