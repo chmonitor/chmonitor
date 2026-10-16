@@ -5,7 +5,9 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 
+import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
+import { ApiErrorType } from '@/lib/api/types'
 import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 import { mapCustomRuleApiError } from '@/lib/health/custom-rules-api-errors'
 import { resolveCustomRuleOwnerId } from '@/lib/health/custom-rules-auth'
@@ -21,7 +23,14 @@ async function handleDelete(
   request: Request
 ): Promise<Response> {
   if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.PermissionError,
+        message: 'Authentication required',
+      },
+      401,
+      ROUTE_DELETE
+    )
   }
   try {
     const ownerId = await resolveCustomRuleOwnerId()

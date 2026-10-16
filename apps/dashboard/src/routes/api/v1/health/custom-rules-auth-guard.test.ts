@@ -114,6 +114,9 @@ describe('health rule routes auth guard', () => {
         params,
       })
       expect(res.status).toBe(401)
+      expect(JSON.stringify(await res.json())).toContain(
+        'Authentication required'
+      )
       expect(storeCalls).toBe(0)
     })
 

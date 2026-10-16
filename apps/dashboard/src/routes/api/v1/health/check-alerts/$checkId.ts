@@ -27,7 +27,14 @@ const ROUTE_DELETE = { route: ROUTE, method: 'DELETE' }
 
 async function handlePut(checkId: string, request: Request): Promise<Response> {
   if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.PermissionError,
+        message: 'Authentication required',
+      },
+      401,
+      ROUTE_PUT
+    )
   }
   let body: { name?: unknown }
   try {
@@ -58,7 +65,14 @@ async function handleDelete(
   request: Request
 ): Promise<Response> {
   if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.PermissionError,
+        message: 'Authentication required',
+      },
+      401,
+      ROUTE_DELETE
+    )
   }
   try {
     const ownerId = await resolveCustomRuleOwnerId()

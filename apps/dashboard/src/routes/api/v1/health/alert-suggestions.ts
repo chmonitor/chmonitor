@@ -37,7 +37,14 @@ const ROUTE_POST = { route: '/api/v1/health/alert-suggestions', method: 'POST' }
 
 async function handleGet(request: Request): Promise<Response> {
   if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.PermissionError,
+        message: 'Authentication required',
+      },
+      401,
+      ROUTE_GET
+    )
   }
   try {
     const ownerId = await resolveCustomRuleOwnerId()
@@ -98,7 +105,14 @@ async function handleDismiss(
 
 async function handlePost(request: Request): Promise<Response> {
   if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.PermissionError,
+        message: 'Authentication required',
+      },
+      401,
+      ROUTE_POST
+    )
   }
   let body: PostBody
   try {
