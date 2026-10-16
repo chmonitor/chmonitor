@@ -24,10 +24,12 @@ import {
   createSuccessResponse,
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
+import { isAuthenticatedRequest, jsonError } from '@/lib/auth/api-guard'
 import {
   createHostValidationFetch,
   validateHostUrl,
 } from '@/lib/browser-connections/host-url'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { resolveProxyCredentials } from '@/lib/connection-query/resolve-credentials'
 
 const ROUTE_CONTEXT = {
@@ -50,6 +52,11 @@ interface ProxyRequest {
 }
 
 async function handlePost(request: Request): Promise<Response> {
+  // Cloud only: self-hosted visitors keep using browser connections anonymously.
+  if (isCloudModeServer() && !(await isAuthenticatedRequest(request))) {
+    return jsonError('Authentication required', 401)
+  }
+
   let body: Partial<ProxyRequest>
   try {
     body = (await request.json()) as Partial<ProxyRequest>
@@ -175,3 +182,6 @@ export const Route = createFileRoute('/api/v1/browser-connections/proxy')({
     },
   },
 })
+
+// Exported for unit tests only.
+export { handlePost as __handlePostForTests }

@@ -82,6 +82,7 @@ baked provider is never lowered by a runtime mode). Public read is
 | Agent control tools (`kill_query`, `optimize_table`, `kill_mutation`) | **on** when auth is `none` or the caller is signed in; off for an anonymous Clerk visitor | **off**; `AGENT_ENABLE_CONTROL_TOOLS=true` enables them for signed-in callers only — anonymous visitors never get them. Resolver: `lib/ai/agent/control-tools-gate.ts`; `actions` permission still applies; own connections stay read-only |
 | Agent integration tools (PeerDB, Postgres; read-only) | **on** when configured and reachable (probe pinned per conversation); `false` flag turns off | **off** for anonymous visitors whatever the flag; signed-in users need `CHM_FEATURE_PEERDB_AGENT=true` / `CHM_FEATURE_POSTGRES_SOURCE=true` (the sources are the operator's env). Resolver: `lib/ai/agent/integration-tools-gate.ts` |
 | Maintenance windows / quiet hours | saved under owner `''`; the sweep reads them and silences env-host alerts | saved under the signed-in owner; the sweep only checks env hosts with owner `''`, so they silence nothing yet. Both panels show `SilencingScopeNotice` (`components/health/silencing-scope-notice.tsx`) saying so. Per-owner sweep is the real fix (#3802) |
+| Browser connections (`browser-connections/{proxy,sessions,test}`, `AddHostDialog`) | anonymous allowed; "Browser-only storage still works without signing in" copy shown | **require sign-in** (or a valid `chm_` key): the routes 401 via `isAuthenticatedRequest` + `jsonError` (public-read does NOT relax it); `AddHostDialog` shows `SignInToConnect` to anonymous visitors instead of the form, so every entry point is covered; the browser-only copy is hidden. The 401 text classifies as `sign_in_required` |
 | CLI device login (`CHM_DEVICE_LOGIN`) | **off** by default (`auto`); set `true` for device-only tokens when `auth=none` (trusted LAN) | **on** when `CHM_API_KEY_SECRET` is set; `/device` needs Clerk session |
 
 Resolver: `lib/auth/device-login-config.ts`. Store: D1 or in-memory
@@ -172,7 +173,7 @@ hardening unchanged.
 
 `lib/connection-errors.ts`:
 - `classifyConnectionError(raw)` → `{kind,title,explanation,fix,docsSlug,raw}`.
-  Kinds: host_not_allowed, invalid_url, auth_failed, access_denied, dns_error,
+  Kinds: sign_in_required, host_not_allowed, invalid_url, auth_failed, access_denied, dns_error,
   connection_refused, tls_error, timeout, mixed_content, unknown. Add new
   patterns by extending `RULES` (first match wins, specific first).
 - `extractConnectionErrorMessage(body)` handles `{error:string}` (test route)

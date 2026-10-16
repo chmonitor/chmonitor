@@ -8,6 +8,7 @@ import { ConnectionHelpPanel } from './connection-help-panel'
 import { addHostDialogChrome, engineForPreset } from './connection-presets'
 import { isSampleClusterHost, SAMPLE_CLUSTER_PRESET } from './sample-preset'
 import { useEffect, useState } from 'react'
+import { SignInToConnect } from '@/components/host/first-run/sign-in-to-connect'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { trackEvent } from '@/lib/analytics/analytics'
+import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
@@ -86,6 +88,10 @@ export function AddHostDialog({
   const dbStorageConfigured = config.userConnections?.dbStorageEnabled === true
   const dbStorageEnabled = dbStorageConfigured && isSignedIn
   const dbStorageRequiresSignIn = dbStorageConfigured && !isSignedIn
+  // Cloud: browser connections need an account, so anonymous visitors get a
+  // sign-in prompt instead of the form (the server routes 401 them too).
+  const cloudMode = isCloudModeClient()
+  const requiresSignIn = cloudMode && !isSignedIn
   const allowPostgres = isFeatureEnabled('postgresSource')
 
   const handleSave = async (data: ConnectionFormData) => {
@@ -147,44 +153,61 @@ export function AddHostDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>{chrome.title}</DialogTitle>
-          <DialogDescription>{chrome.description}</DialogDescription>
-        </DialogHeader>
+        {requiresSignIn ? (
+          <>
+            <DialogHeader className="sr-only">
+              <DialogTitle>Sign in to add a host</DialogTitle>
+              <DialogDescription>
+                Sign in to connect your own cluster.
+              </DialogDescription>
+            </DialogHeader>
+            <SignInToConnect />
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>{chrome.title}</DialogTitle>
+              <DialogDescription>{chrome.description}</DialogDescription>
+            </DialogHeader>
 
-        {/* Two columns on md+ (form left, guidance right); stacks with the form
-            on top on narrow screens. */}
-        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
-          <div className="space-y-4">
-            {dbStorageRequiresSignIn && (
-              <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-xs">
-                <p className="font-medium text-foreground">Sign in to sync</p>
-                <p className="mt-0.5 text-muted-foreground">
-                  Save connections to the server, pick a plan, or join an
-                  organization. Browser-only storage still works without signing
-                  in.
-                </p>
+            {/* Two columns on md+ (form left, guidance right); stacks with the form
+              on top on narrow screens. */}
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
+              <div className="space-y-4">
+                {dbStorageRequiresSignIn && (
+                  <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-xs">
+                    <p className="font-medium text-foreground">
+                      Sign in to sync
+                    </p>
+                    <p className="mt-0.5 text-muted-foreground">
+                      Save connections to the server, pick a plan, or join an
+                      organization.
+                      {!cloudMode &&
+                        ' Browser-only storage still works without signing in.'}
+                    </p>
+                  </div>
+                )}
+
+                <ConnectionForm
+                  onSave={handleSave}
+                  onCancel={() => onOpenChange(false)}
+                  initialValues={initialValues}
+                  storageMode={storageMode}
+                  onStorageModeChange={setStorageMode}
+                  dbStorageEnabled={dbStorageEnabled}
+                  dbStorageRequiresSignIn={dbStorageRequiresSignIn}
+                  showSamplePreset={showSamplePreset}
+                  allowPostgres={allowPostgres}
+                  allowPeerdb
+                  initialPreset={initialEngine}
+                  onEngineChange={setEngine}
+                />
               </div>
-            )}
 
-            <ConnectionForm
-              onSave={handleSave}
-              onCancel={() => onOpenChange(false)}
-              initialValues={initialValues}
-              storageMode={storageMode}
-              onStorageModeChange={setStorageMode}
-              dbStorageEnabled={dbStorageEnabled}
-              dbStorageRequiresSignIn={dbStorageRequiresSignIn}
-              showSamplePreset={showSamplePreset}
-              allowPostgres={allowPostgres}
-              allowPeerdb
-              initialPreset={initialEngine}
-              onEngineChange={setEngine}
-            />
-          </div>
-
-          <ConnectionHelpPanel engine={engineForPreset(engine)} />
-        </div>
+              <ConnectionHelpPanel engine={engineForPreset(engine)} />
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )

@@ -14,6 +14,7 @@
  */
 
 export type ConnectionErrorKind =
+  | 'sign_in_required'
   | 'host_not_allowed'
   | 'invalid_url'
   | 'auth_failed'
@@ -52,6 +53,15 @@ interface Rule {
 // Order matters: more specific rules first. The first rule whose any-substring
 // matches the lowercased message wins.
 const RULES: Rule[] = [
+  {
+    kind: 'sign_in_required',
+    match: ['authentication required'],
+    title: 'Sign in required',
+    explanation:
+      'The hosted service only lets signed-in users connect their own clusters from the browser. This request was sent without a signed-in session.',
+    fix: 'Sign in, then try again. The read-only demo cluster stays available without an account.',
+    docsSlug: 'guides/connection-errors',
+  },
   {
     kind: 'host_not_allowed',
     match: [

@@ -116,7 +116,7 @@ export function publicReadEnabled(): boolean {
   return resolveConfig((key) => process.env[key]).clerkPublicRead
 }
 
-function jsonError(message: string, status: number): Response {
+export function jsonError(message: string, status: number): Response {
   return Response.json({ error: message }, { status })
 }
 
@@ -278,6 +278,8 @@ export async function enforceAuth(request: Request): Promise<Response | null> {
  * Whether a request is genuinely authenticated — a valid `chm_` API key OR an
  * authenticated provider session (clerk/proxy). Use this to gate exposure of
  * sensitive deployment/security metadata (e.g. `/api/health`), NOT data access.
+ * Also gates the cloud-mode `browser-connections/{proxy,sessions,test}` routes,
+ * which answer a failed check with `jsonError('Authentication required', 401)`.
  *
  * Deliberately stricter than {@link enforceAuth}: it does NOT honor
  * `publicReadEnabled()`. Public read-only mode grants anonymous visitors access
