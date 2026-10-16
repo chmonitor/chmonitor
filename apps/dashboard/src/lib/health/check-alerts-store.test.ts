@@ -88,6 +88,11 @@ const KNOWN_ID_COUNT = new Set([
   ...BUILTIN_COMPOUND_RULES.map((r) => r.id),
 ]).size
 
+const deleteRequest = () =>
+  new Request('http://localhost/api/v1/health/check-alerts/max-parts', {
+    method: 'DELETE',
+  })
+
 const putRequest = (body: unknown) =>
   new Request('http://localhost/api/v1/health/check-alerts/max-parts', {
     method: 'PUT',
@@ -287,7 +292,7 @@ describe('check-alerts API', () => {
       (await handlePut('max-parts', putRequest({ name: '' }))).status
     ).toBe(400)
     expect((await handlePut('max-parts', putRequest({}))).status).toBe(400)
-    expect((await handleDelete('max-parts')).status).toBe(200)
+    expect((await handleDelete('max-parts', deleteRequest())).status).toBe(200)
   })
 
   test('no metadata DB: GET still lists defaults, writes answer 501', async () => {
@@ -303,6 +308,6 @@ describe('check-alerts API', () => {
     expect(
       (await handlePut('max-parts', putRequest({ name: 'x' }))).status
     ).toBe(501)
-    expect((await handleDelete('max-parts')).status).toBe(501)
+    expect((await handleDelete('max-parts', deleteRequest())).status).toBe(501)
   })
 })
