@@ -100,3 +100,5 @@ export const Route = createFileRoute('/api/v1/auth/device/approve')({
     },
   },
 })
+
+export { handlePost as __handlePostForTests }
