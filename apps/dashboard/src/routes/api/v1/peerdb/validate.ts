@@ -25,6 +25,7 @@ import {
   RATE_LIMIT_BINDING_BROWSER_CONN,
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
+import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import {
   buildPeerDBAuthHeader,
@@ -72,6 +73,9 @@ interface ValidateResponse {
 }
 
 async function handlePost(request: Request): Promise<Response> {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 })
+  }
   let body: Partial<ValidateRequest>
   try {
     body = (await request.json()) as Partial<ValidateRequest>
@@ -147,6 +151,8 @@ async function handlePost(request: Request): Promise<Response> {
     clearTimeout(timeout)
   }
 }
+
+export const __handlePostForTests = handlePost
 
 export const Route = createFileRoute('/api/v1/peerdb/validate')({
   server: {
