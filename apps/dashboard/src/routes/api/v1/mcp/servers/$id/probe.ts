@@ -39,7 +39,10 @@ async function handlePost(
   id: string | undefined
 ): Promise<Response> {
   if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
+    return Response.json(
+      { error: { message: 'Authentication required' } },
+      { status: 401 }
+    )
   }
   if (!id) {
     return mapRegistryError(

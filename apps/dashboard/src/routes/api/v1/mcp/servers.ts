@@ -258,7 +258,10 @@ async function guarded(
   handler: (request: Request) => Promise<Response>
 ): Promise<Response> {
   if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: 'Authentication required' }, { status: 401 })
+    return Response.json(
+      { error: { message: 'Authentication required' } },
+      { status: 401 }
+    )
   }
   return handler(request)
 }

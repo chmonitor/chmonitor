@@ -5,7 +5,8 @@
  * Uses the real isAuthenticatedRequest (no guard mock) so a handler that forgets
  * to call it fails here.
  */
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import * as apiGuard from '@/lib/auth/api-guard'
 
 const { __guardedHandlersForTests: handlers } = await import('../servers')
 const { __handlePostForTests: probePost } = await import('../servers/$id/probe')
@@ -64,6 +65,27 @@ describe('mcp servers auth guard', () => {
       'x'
     )
     expect(res.status).toBe(401)
+  })
+
+  test('401 body uses the shared {error:{message}} shape', async () => {
+    cloudMode()
+    const res = await handlers.GET(new Request(url))
+    const body = (await res.json()) as { error?: { message?: string } }
+    expect(body.error?.message).toBe('Authentication required')
+  })
+
+  test('an authenticated request gets past the guard', async () => {
+    cloudMode()
+    const spy = spyOn(apiGuard, 'isAuthenticatedRequest').mockResolvedValue(
+      true
+    )
+    try {
+      const res = await handlers.GET(new Request(url))
+      expect(spy).toHaveBeenCalled()
+      expect(res.status).not.toBe(401)
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   test('auth none passes the guard', async () => {
