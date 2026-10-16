@@ -52,7 +52,9 @@ describe('browser-connections cloud-mode sign-in', () => {
       process.env.CHM_CLERK_PUBLIC_READ = 'true'
       const res = await handler(req())
       expect(res.status).toBe(401)
-      expect(await res.json()).toEqual({ error: 'Authentication required' })
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Authentication required',
+      })
     })
 
     test(`${name}: cloud request with a valid chm_ key is let through`, async () => {
