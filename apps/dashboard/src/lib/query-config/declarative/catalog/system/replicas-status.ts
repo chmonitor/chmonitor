@@ -45,6 +45,10 @@ export const clustersReplicasStatusDeclarative: DeclarativeQueryConfig = {
       ORDER BY
           1 ASC,
           2 DESC
+      SETTINGS
+      skip_unavailable_shards = 1,
+      connections_with_failover_max_tries = 1,
+      connect_timeout_with_failover_ms = 2000
   `,
   columns: [
     'host',
@@ -114,6 +118,10 @@ export const replicaTablesDeclarative: DeclarativeQueryConfig = {
       ORDER BY
           1 ASC,
           2 DESC
+      SETTINGS
+      skip_unavailable_shards = 1,
+      connections_with_failover_max_tries = 1,
+      connect_timeout_with_failover_ms = 2000
   `,
   columns: [
     'host',
