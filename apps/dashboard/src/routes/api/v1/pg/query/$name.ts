@@ -31,6 +31,7 @@ import {
   executePgQuery,
   isPgExtensionInstalled,
 } from '@/lib/connection-query/execute-pg-query'
+import { mapConnectionApiError } from '@/lib/connection-store/api-errors'
 import { resolveConnectionUserId } from '@/lib/connection-store/auth'
 import { resolveConnectionStore } from '@/lib/connection-store/resolve-store'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
@@ -38,6 +39,7 @@ import { featureFlags } from '@/lib/feature-flags'
 import { getPgQueryConfigByName } from '@/lib/pg-query-config'
 
 const ROUTE = '/api/v1/pg/query/$name'
+const ROUTE_CONTEXT = { route: ROUTE, method: 'POST' }
 
 interface InlinePgConnection {
   host: string
@@ -88,6 +90,15 @@ async function resolvePgConfig(
   }
 
   if (body.connectionId) {
+    // Auth before the feature check: an anonymous caller gets 401, never a
+    // 501 that reveals how storage is configured (#4016).
+    let userId: string
+    try {
+      userId = await resolveConnectionUserId()
+    } catch (error) {
+      return { error: mapConnectionApiError(error, ROUTE_CONTEXT) }
+    }
+
     if (!getUserConnectionsServerConfig().dbStorageEnabled) {
       return {
         error: jsonError(
@@ -97,7 +108,6 @@ async function resolvePgConfig(
         ),
       }
     }
-    const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
     const credentials = await store.getCredentials(userId, body.connectionId)
     if (!credentials) {
