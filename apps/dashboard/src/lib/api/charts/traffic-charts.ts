@@ -1,9 +1,4 @@
 /**
- * Traffic / Ingestion Charts
- * Charts answering "how much data is flowing into this cluster?" —
- * rows/bytes written over time, insert query counts, a 24h KPI summary, plus
- * merges & data movement (merge volume, part moves, write amplification).
- *
  * Data sources:
  * - system.query_log (Insert queries): written_rows / written_bytes are the
  *   UNCOMPRESSED payload as ingested.
@@ -18,11 +13,6 @@ import type { ChartQueryBuilder } from './types'
 import { applyInterval, buildTimeFilter, fillStep, nowOrToday } from './types'
 
 export const trafficCharts: Record<string, ChartQueryBuilder> = {
-  /**
-   * KPI summary: current window vs previous window ingestion totals from
-   * query_log. Single-row result consumed by the /traffic KPI strip. The
-   * window follows the global time-range picker via lastHours (default 24h).
-   */
   'traffic-summary': ({ lastHours = 24 }) => {
     const hours = Math.max(1, Math.floor(Number(lastHours) || 24))
     return {
@@ -72,10 +62,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     tableCheck: 'system.part_log',
   }),
 
-  /**
-   * Overall compression across active parts — how much smaller data is on
-   * disk vs its raw (uncompressed) form. system.parts is always available.
-   */
   'traffic-compression': () => ({
     query: `
     SELECT
@@ -89,9 +75,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
   `,
   }),
 
-  /**
-   * Rows ingested over time (uncompressed source of truth: query_log).
-   */
   'traffic-inserted-rows': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
@@ -112,9 +95,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Bytes ingested over time — uncompressed payload from query_log.
-   */
   'traffic-inserted-bytes': ({
     interval = 'toStartOfHour',
     lastHours = 24,
@@ -138,11 +118,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Bytes written to disk over time — compressed on-disk size of new parts
-   * (part_log NewPart). Compare against traffic-inserted-bytes to read the
-   * effective compression of incoming data.
-   */
   'traffic-bytes-on-disk': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
@@ -162,10 +137,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Insert query count over time, split by success/failure so ingestion
-   * incidents are visible at a glance.
-   */
   'traffic-insert-queries': ({
     interval = 'toStartOfHour',
     lastHours = 24,
@@ -189,11 +160,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Insert (write) performance over time — average, p95, and p99 duration of
-   * successful insert queries, so slow-ingest regressions are visible next to
-   * the insert volume charts.
-   */
   'traffic-insert-performance': ({
     interval = 'toStartOfHour',
     lastHours = 24,
@@ -218,11 +184,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Ingest speed over time — effective write bandwidth of insert queries:
-   * uncompressed bytes (and rows) written per second of insert execution time.
-   * Volume charts answer "how much"; this answers "how fast".
-   */
   'traffic-ingest-speed': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
@@ -244,12 +205,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Disk write speed over time — how fast the storage layer absorbs writes:
-   * on-disk bytes per second of part-write time, split into foreground new
-   * parts (inserts flushing) and background merges. A falling trend under
-   * constant ingest volume points at disk saturation.
-   */
   'traffic-disk-write-speed': ({
     interval = 'toStartOfHour',
     lastHours = 24,
@@ -274,11 +229,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Data merged over time — total on-disk size of parts produced by merges
-   * (part_log MergeParts). High merge volume is background write work that
-   * competes with ingestion for disk and CPU.
-   */
   'traffic-merged-bytes': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
@@ -300,11 +250,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Part moves over time — count and size of parts relocated across volumes
-   * (part_log MovePart), e.g. TTL-driven moves to cold storage. Spikes signal
-   * tiered-storage churn.
-   */
   'traffic-part-moves': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
@@ -325,12 +270,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Write amplification over time — bytes merged ÷ bytes newly written per
-   * bucket (part_log MergeParts vs NewPart). A ratio well above 1 means the
-   * cluster rewrites much more than it ingests; useful for spotting overly
-   * aggressive merges or small-insert patterns.
-   */
   'traffic-write-amplification': ({
     interval = 'toStartOfHour',
     lastHours = 24,
@@ -371,11 +310,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
   `,
   }),
 
-  /**
-   * Replica fetch traffic — inbound replication volume: parts this replica
-   * downloaded from other replicas (part_log DownloadPart). Non-zero only on a
-   * replicated cluster; part_log is opt-in, hence optional + tableCheck.
-   */
   'traffic-replica-fetches': ({
     interval = 'toStartOfHour',
     lastHours = 24,
@@ -399,11 +333,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Distributed query fan-out — initial (client-facing) vs secondary
-   * (shard-local, fanned-out by a Distributed table) queries over time. The
-   * secondary count is only meaningful on a sharded cluster.
-   */
   'traffic-distributed-queries': ({
     interval = 'toStartOfHour',
     lastHours = 24,
@@ -474,11 +403,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * Bytes ingested by PeerDB over time, split by destination table — same
-   * attribution as traffic-peerdb-rows (user/agent/client contains 'peerdb'),
-   * but measuring uncompressed payload size instead of row count.
-   */
   'traffic-peerdb-bytes': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
@@ -499,11 +423,6 @@ export const trafficCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  /**
-   * PeerDB insert performance over time — average, p95, and p99 duration of
-   * PeerDB-attributed insert queries, so CDC sync slowdowns are visible
-   * separately from overall insert latency.
-   */
   'traffic-peerdb-performance': ({
     interval = 'toStartOfHour',
     lastHours = 24,

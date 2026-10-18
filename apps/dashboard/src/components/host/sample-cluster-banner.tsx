@@ -10,18 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 
-/**
- * Persistent, dismissible "Connect your own cluster" convert nudge.
- *
- * Shown right below the host switcher once the sample ClickHouse preset
- * (`sample-preset.ts`) is connected and no real (non-sample) host has been
- * added yet. Dismissing it is remembered per-browser
- * (`sample-cluster-banner-dismissed.ts`); connecting a real cluster also
- * retires it for good (no non-sample host left to convert from).
- *
- * Collapsed (icon-only) sidebar has no room for a text banner, so this
- * renders nothing in that state — same gating `HostSwitcher` uses.
- */
+/** Renders nothing in the collapsed sidebar: no room for a text banner. */
 export function SampleClusterBanner() {
   const { hosts, isLoading } = useMergedHosts()
   const { isMobile, state } = useSidebar()

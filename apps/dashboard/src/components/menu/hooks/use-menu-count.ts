@@ -29,20 +29,6 @@ interface MenuCountsResponse {
   error?: { message: string }
 }
 
-/**
- * Fetches the full map of menu counts for a host in a single request.
- *
- * All callers share the same query key (`['/api/v1/menu-counts', hostId]`), so
- * TanStack Query dedupes the N badge invocations into ONE network request per host.
- *
- * Features:
- * - 2-minute refresh interval (non-critical data)
- * - 1-minute stale time to prevent duplicate requests
- * - No revalidation on focus/reconnect (reduces API load)
- * - Silent failure - returns an empty map on error
- *
- * @param hostId - The current host ID
- */
 export function useMenuCounts(hostId: number): {
   counts: Record<string, number | null>
   isLoading: boolean
@@ -58,10 +44,10 @@ export function useMenuCounts(hostId: number): {
       return res.json()
     },
     refetchInterval: visibilityAwareInterval(REFRESH_INTERVAL.SLOW_2M),
-    staleTime: 60_000, // 1 minute deduping
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    retry: false, // Don't retry on error (non-critical)
+    retry: false,
   })
 
   return {
@@ -71,15 +57,6 @@ export function useMenuCounts(hostId: number): {
   }
 }
 
-/**
- * Selects a single menu count by key from the batched counts map.
- *
- * Backed by {@link useMenuCounts}, so every badge reuses the one shared
- * request instead of fetching independently.
- *
- * @param countKey - The count key from menu-count-registry
- * @param hostId - The current host ID
- */
 export function useMenuCount(
   countKey: string | undefined,
   hostId: number

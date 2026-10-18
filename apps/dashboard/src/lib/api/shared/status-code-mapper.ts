@@ -1,9 +1,3 @@
-/**
- * Status Code Mapper Utilities
- *
- * Maps API error types to HTTP status codes.
- */
-
 import { ApiErrorType } from '@/lib/api/types'
 
 const ERROR_TYPE_STATUS_MAP: Readonly<Record<ApiErrorType, number>> = {

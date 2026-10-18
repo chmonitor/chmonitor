@@ -118,7 +118,6 @@ export function HealthAuditPromptDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Section toggles — trim the prompt to control its size/cost. */}
         <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-md border p-3">
           {toggles
             .filter((t) => t.available)

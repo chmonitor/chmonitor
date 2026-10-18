@@ -1,5 +1,5 @@
 /**
- * Quiet hours panel (#2662).
+ * Quiet hours panel.
  *
  * The recurring sibling of `MaintenanceWindowsPanel`: an operator declares a
  * recurring weekday + time-of-day range (in an IANA timezone) during which the

@@ -24,7 +24,6 @@ export type TableResultRowCap<T> = {
 }
 
 export type TableClickHouseSettings = ClickHouseSettings & {
-  /** IANA timezone for ClickHouse session time conversion */
   session_timezone?: string
 }
 
@@ -78,13 +77,8 @@ export function dropUnsupportedSettings<T extends Record<string, unknown>>(
 }
 
 /**
- * Build the `clickhouse_settings` for a table query, applying the row cap
- * (`max_result_rows` + `result_overflow_mode: 'break'`) so ClickHouse
- * truncates server-side instead of shipping an unbounded result set (#2490).
- * A config's own `max_result_rows` is respected as long as it doesn't exceed
- * the resolved cap. Passing `cap: 0` (`CHM_TABLE_MAX_RESULT_ROWS=0`) disables
- * the cap entirely — no `max_result_rows`/`result_overflow_mode` are set.
- * Settings `version` rejects are dropped first (see `dropUnsupportedSettings`).
+ * A config's own `max_result_rows` is respected as long as it doesn't exceed the cap; `cap: 0`
+ * disables the cap. Settings `version` rejects are dropped first (see `dropUnsupportedSettings`).
  */
 export function getTableClickHouseSettings(
   config: QueryConfig | undefined,

@@ -1,10 +1,3 @@
-/**
- * Data freshness, compression, and top-memory-query charts.
- *
- * Split out of system-charts.ts (#2898). Behaviour-preserving move — no SQL,
- * key names, or gating changed.
- */
-
 import { buildTimeFilter, type ChartQueryBuilder } from '../types'
 
 export const dataQualityCharts: Record<string, ChartQueryBuilder> = {

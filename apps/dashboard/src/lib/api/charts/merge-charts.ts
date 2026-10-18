@@ -1,16 +1,3 @@
-/**
- * Merge Operation Charts
- * Charts for tracking merge performance and resource usage
- *
- * Version Compatibility:
- * - merge-count: Requires system.metric_log (ClickHouse 20.5+, needs config)
- * - merge-avg-duration: Requires system.part_log (available in most versions)
- * - summary-used-by-merges: Uses system.merges (always available)
- *
- * For ClickHouse servers without metric_log configured, these charts will
- * show empty state with a helpful configuration message.
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, buildTimeFilter, fillStep, nowOrToday } from './types'
@@ -32,7 +19,6 @@ export const mergeCharts: Record<string, ChartQueryBuilder> = {
   'merge-count': ({ interval = 'toStartOfFiveMinutes', lastHours = 12 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {
-      // Default query for ClickHouse 20.5+ with metric_log configured
       query: `
     SELECT ${applyInterval(interval, 'event_time')},
            avg(CurrentMetric_Merge) AS avg_CurrentMetric_Merge,
@@ -48,7 +34,6 @@ export const mergeCharts: Record<string, ChartQueryBuilder> = {
       // metric_log exists from v20.5; older versions fall back to the
       // point-in-time system.metrics. VersionedSql picks the highest `since`
       // <= CH version (first/oldest entry is the unknown-version fallback).
-      // Replaces the deprecated `variants` form (not selected by the executor).
       sql: [
         {
           since: '1.0',

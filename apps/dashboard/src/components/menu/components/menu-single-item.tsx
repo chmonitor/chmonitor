@@ -1,9 +1,3 @@
-/**
- * Single menu item component (no children)
- *
- * Displays a single navigation link with active state styling.
- */
-
 import type { MenuItem } from '../types'
 
 import { useMenuActiveState } from '../hooks/use-menu-active-state'

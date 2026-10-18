@@ -37,9 +37,9 @@ interface HealthDetailDialogProps {
   thresholds: { warning: number; critical: number }
   row?: Record<string, unknown>
   clickhouseVersion?: string
-  /** Already-alerting state for this check, resolved by the grid (#3437). */
+  /** Already-alerting state for this check, resolved by the grid. */
   signals?: MetricAlertSignals
-  /** Whether the D1-backed named-alert store can be written here (#3437). */
+  /** Whether the D1-backed named-alert store can be written here. */
   availability?: AlertRuleStoreAvailability
 }
 

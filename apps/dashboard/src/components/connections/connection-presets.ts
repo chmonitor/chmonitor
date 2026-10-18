@@ -1,26 +1,13 @@
 /**
- * Pure logic for the "Self-hosted vs ClickHouse Cloud" connection-type
- * selector in {@link ConnectionForm}, extracted so the host-URL normalization
- * can be unit-tested without a React harness (mirrors `first-run-decision.ts`).
- *
- * chmonitor's connection model stores a single `host` URL string (e.g.
- * `https://my.clickhouse.cloud:8443`) — there is no separate `secure`/`port`
- * field (see `BrowserConnection.host`, `validateHostUrl`). So the ClickHouse
- * Cloud preset ("TLS on, port 8443") is realized by normalizing that URL
- * string, not by toggling separate fields.
+ * Pure connection-type preset logic, kept free of React so it can be unit-tested.
+ * The connection model stores one `host` URL string (no separate secure/port
+ * field), so the ClickHouse Cloud preset is realized by normalizing that URL.
  */
 
 import type { SourceEngine } from '@chm/types'
 
-/**
- * Connection-type selector value. The two ClickHouse presets differ only in
- * host-URL normalization + hints; `postgres` (phase 2, #2449) selects a
- * DIFFERENT engine and field set (host/port/database/sslmode), gated behind
- * `CHM_FEATURE_POSTGRES_SOURCE`.
- */
 export type ConnectionPreset = 'self-hosted' | 'clickhouse-cloud' | 'postgres'
 
-/** Map the connection-type preset to the persisted {@link SourceEngine}. */
 export function engineForPreset(preset: ConnectionPreset): SourceEngine {
   switch (preset) {
     case 'clickhouse-cloud':
@@ -32,12 +19,6 @@ export function engineForPreset(preset: ConnectionPreset): SourceEngine {
   }
 }
 
-/**
- * Title + description for the Add-host dialog header, keyed on the active
- * connection preset. Postgres is a distinct source engine (host/port/database),
- * so its chrome reads "Add Postgres source" rather than "Add ClickHouse host".
- * Pure so it can be unit-tested without a React harness.
- */
 export function addHostDialogChrome(preset: ConnectionPreset): {
   title: string
   description: string
@@ -58,17 +39,13 @@ export function addHostDialogChrome(preset: ConnectionPreset): {
 
 export const POSTGRES_DEFAULT_PORT = 5432
 
-/** Host-field placeholder for the Postgres preset (bare hostname, no scheme). */
 export const POSTGRES_HOST_PLACEHOLDER = 'db.example.com'
 
-/** HTTPS interface port ClickHouse Cloud services listen on. */
 export const CLOUD_DEFAULT_PORT = 8443
 
-/** Shown as the host-field placeholder when the Cloud preset is active. */
 export const CLOUD_HOST_PLACEHOLDER =
   'https://<service-id>.<region>.<cloud>.clickhouse.cloud:8443'
 
-/** Shown as the host-field placeholder for the default self-hosted preset. */
 export const SELF_HOSTED_HOST_PLACEHOLDER =
   'https://clickhouse.example.com:8123'
 

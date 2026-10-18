@@ -4,14 +4,8 @@ import type { DerivedQuery } from './types'
 
 import { cn } from '@/lib/utils'
 
-/** Emerald "Done" completion color, shared by the badge and progress bar. */
 const DONE_COLOR = 'hsl(158 64% 42%)'
 
-/**
- * "Done" status pill for a query that finished while the user was inspecting
- * it. Mirrors the emerald pill on the Recently-completed table so a retained
- * row reads as intentionally finished, not as a live query.
- */
 export function DoneBadge() {
   return (
     <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
@@ -87,7 +81,6 @@ export function ProgressCell({ d, done }: { d: DerivedQuery; done?: boolean }) {
   )
 }
 
-/** A small CPU-utilisation bar + percentage. */
 export function CpuMeter({ pct }: { pct: number }) {
   const rounded = Math.round(pct)
   return (

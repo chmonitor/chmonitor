@@ -2,11 +2,8 @@ import type { ClickHouseConfig } from '@chm/clickhouse-client'
 
 import { filterToDemoHosts } from '@/lib/cloud/demo-hosts'
 
-// Shared ClickHouse host-config resolver for server routes. Builds
-// ClickHouseConfig[] from the comma-separated env lists (the Cloudflare binding
-// or process.env), mirroring @chm/clickhouse-client getClickHouseConfigs() but
-// sourcing from the passed bindings. Extracted to one place (was duplicated in
-// every CH route — flagged in review).
+// Resolves ClickHouseConfig[] from the comma-separated env lists, mirroring
+// @chm/clickhouse-client getClickHouseConfigs() but sourcing from the passed bindings.
 export function splitByComma(value: string | undefined): string[] {
   return (value ?? '')
     .split(',')

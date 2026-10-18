@@ -1,17 +1,3 @@
-/**
- * System Metrics Charts
- * Charts for CPU, memory, disk, and other system-level metrics
- *
- * The actual chart builders live under `lib/api/charts/system/`, split by
- * subject area (#2898): cpu, memory, disk, backup, merges (merge/mutation
- * progress), data-quality (freshness/compression/top-memory-queries),
- * health + health-detail-a/b (health checks, split in two because the
- * combined slice exceeded ~250 lines), and keeper. This module re-exports
- * `systemCharts` as a single map, referencing each entry from its owning
- * slice so the original key insertion order is preserved exactly (see
- * system-charts.test.ts).
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { backupCharts } from './system/backup'

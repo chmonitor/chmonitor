@@ -1,16 +1,3 @@
-/**
- * ChartRow Component
- *
- * Renders a collapsible row of charts with inline chevron toggle.
- *
- * Features:
- * - Inline chevron toggle (▶/▼) with smooth rotation animation
- * - Responsive grid layout (1→2→4 columns) when expanded
- * - Collapsed state shows "Row N (X charts)" label
- * - Uses Radix Collapsible for smooth animations
- * - Equal height cards via auto-rows-fr grid
- */
-
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 
 import type { QueryConfig } from '@/types/query-config'
@@ -29,7 +16,6 @@ import { cn } from '@/lib/utils'
 
 type ChartConfig = NonNullable<QueryConfig['relatedCharts']>[number]
 
-/** Check if any chart in the list has a colSpan defined */
 function hasColSpan(charts: ChartConfig[]): boolean {
   return charts.some((c) => {
     if (!c || c === 'break') return false
@@ -60,7 +46,6 @@ export const ChartRow = function ChartRow({
   return (
     <Collapsible open={!isCollapsed} onOpenChange={onToggle}>
       <div className="group relative">
-        {/* Collapsed state - compact chart summaries, click to expand */}
         {isCollapsed && (
           <CollapsibleTrigger
             nativeButton={false}
@@ -76,7 +61,6 @@ export const ChartRow = function ChartRow({
           </CollapsibleTrigger>
         )}
 
-        {/* Expanded state - charts grid */}
         <CollapsibleContent>
           {!isCollapsed && (
             <div className="relative group pb-6 overflow-hidden">
@@ -107,7 +91,6 @@ export const ChartRow = function ChartRow({
                     ? chartConfig[1] || {}
                     : {}
 
-                  // Get colSpan from props (default to full width on mobile, half on desktop)
                   const colSpan = (chartProps as { colSpan?: number }).colSpan
 
                   return (
@@ -135,7 +118,6 @@ export const ChartRow = function ChartRow({
                   )
                 })}
               </div>
-              {/* Hide pill - bottom center, shows on hover / keyboard focus */}
               <CollapsibleTrigger
                 render={
                   <Button

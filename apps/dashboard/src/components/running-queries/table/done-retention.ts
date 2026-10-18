@@ -21,12 +21,6 @@ import type { RunningQueryRow } from './types'
  *
  * Returns the SAME `prevDone` reference when nothing changed, so a React state
  * setter fed with it bails out of a re-render.
- *
- * @param prevDone     Previously-retained Done rows, keyed by query_id.
- * @param finishedRows Rows present on the previous poll but gone on this one.
- * @param currentIds   query_ids present on this poll.
- * @param expandedKeys Currently-expanded row keys (equal to query_id for keyed
- *                     rows).
  */
 export function reconcileDoneRows(
   prevDone: Map<string, RunningQueryRow>,

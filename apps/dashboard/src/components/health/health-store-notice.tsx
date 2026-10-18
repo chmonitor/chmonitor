@@ -1,6 +1,6 @@
 /**
  * The one line an alert settings panel shows when its store cannot (or may
- * not yet be known to) persist writes (#3495). Pair it with
+ * not yet be known to) persist writes. Pair it with
  * `canWriteHealthStore(availability)` on every write control: `unknown` and
  * `unavailable` both render the control disabled.
  */
@@ -33,7 +33,6 @@ export function HealthStoreNotice({
   className,
 }: {
   availability: HealthStoreAvailability
-  /** Plural noun phrase, e.g. "Custom alert rules". */
   feature: string
   className?: string
 }) {
@@ -50,7 +49,7 @@ export function HealthStoreNotice({
 }
 
 /**
- * Stated where the operator tunes alert sensitivity (#3498): with no metadata
+ * Stated where the operator tunes alert sensitivity: with no metadata
  * database the sweep's alert state machine lives in memory per worker
  * instance, so it cannot survive a restart. Only rendered when the backend is
  * positively `unavailable` — `unknown` says nothing rather than guess.

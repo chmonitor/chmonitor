@@ -7,7 +7,6 @@
  * testable and reusable across API routes.
  */
 
-/** Backtick-quote a single identifier, escaping any internal backticks. */
 export function quoteIdent(part: string): string {
   const inner =
     part.length >= 2 && part.startsWith('`') && part.endsWith('`')

@@ -114,15 +114,6 @@ const CollapsedSubMenuItem = function CollapsedSubMenuItem({
   )
 }
 
-/**
- * CollapsedSubmenu - Renders submenu in a Popover for collapsed sidebar mode
- *
- * Features:
- * - Hover to open popover
- * - Click to toggle popover state
- * - Closes on click outside or Escape key
- * - Shows active state for child items
- */
 export const CollapsedSubmenu = function CollapsedSubmenu({
   item,
   pathname,

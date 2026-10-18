@@ -1,5 +1,5 @@
 /**
- * Webhook subscriptions panel (plan 44).
+ * Webhook subscriptions panel.
  *
  * Lets a signed-in user subscribe a URL to one or more event types and see
  * delivery history / dead-letters. Lives as a tab on the health settings page

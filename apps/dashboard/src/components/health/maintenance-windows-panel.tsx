@@ -1,5 +1,5 @@
 /**
- * Maintenance windows panel (plan 28).
+ * Maintenance windows panel.
  *
  * Lets an operator declare a maintenance window (one host or all hosts) so
  * the health sweep suppresses outbound alerts while `now` falls inside it —

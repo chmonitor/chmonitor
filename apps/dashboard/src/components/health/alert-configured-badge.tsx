@@ -1,15 +1,6 @@
 'use client'
 
-/**
- * "This metric already alerts" badge (#3437).
- *
- * Its own module because three surfaces render it — the card header, the dense
- * healthy row, and the detail dialog — and none of them should have to import
- * the whole dialog to get a 10-line badge.
- *
- * Deliberately NOT gated on the metadata database: the `threshold` signal comes
- * from localStorage, so a D1-less deployment still gets a truthful answer.
- */
+/** Not gated on the metadata database: the `threshold` signal comes from localStorage. */
 
 import { BellRing } from 'lucide-react'
 

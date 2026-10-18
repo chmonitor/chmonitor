@@ -18,11 +18,7 @@ import {
 } from '@/lib/health/alert-settings-storage'
 import { loadThresholds } from '@/lib/health/thresholds-storage'
 
-/**
- * Deterministic sample series for the threshold demo — fixed values (no
- * Date/random) so SSR and client render identically and the preview never
- * depends on live data.
- */
+/** Fixed values (no Date/random) so SSR and client render identically. */
 const SAMPLE_SERIES = [
   22, 28, 25, 34, 31, 42, 38, 47, 55, 51, 63, 71, 66, 78, 84, 74, 69, 61, 52,
   44, 39, 33, 30, 26,
@@ -87,11 +83,6 @@ function ThresholdDemo() {
   )
 }
 
-/**
- * The alert pipeline in one line: health check → threshold crossing → routing,
- * quiet hours and maintenance → the enabled channels. Plain tokens + lucide
- * arrows, so it reads correctly in both themes.
- */
 function AlertFlowStrip() {
   const steps = [
     {
@@ -156,12 +147,6 @@ function StatTile({
   )
 }
 
-/**
- * Bento overview for the alert settings page: a sample threshold viz plus
- * at-a-glance stats (enabled channels, threshold overrides, 24h alert volume).
- * Counts come from local settings storage and the alert history API; the viz
- * is a deterministic sample, never a live query.
- */
 export function AlertSettingsHero() {
   const [channelsEnabled, setChannelsEnabled] = useState<number>(0)
   const [overrides, setOverrides] = useState<number>(0)

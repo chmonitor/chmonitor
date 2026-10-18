@@ -24,7 +24,7 @@ export function CustomWebhookTargetsPanel() {
   const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
   // The list's own `storage: 'unavailable'` answer vetoes like a 501 does;
-  // `unknown` keeps every write control disabled (#3495).
+  // `unknown` keeps every write control disabled.
   const declared = useHealthStoreAvailability({ probeError: error })
   const availability = storage === 'unavailable' ? 'unavailable' : declared
   const canWrite = canWriteHealthStore(availability)

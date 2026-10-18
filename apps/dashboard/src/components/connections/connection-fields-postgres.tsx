@@ -18,11 +18,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-/**
- * The Postgres field group — a bare hostname + port (not a URL, unlike
- * ClickHouse) plus the Postgres-only database and SSL-mode fields. Extracted
- * verbatim from `ConnectionForm`; behavior and layout are unchanged.
- */
 export function ConnectionFieldsPostgres({
   form,
   setForm,

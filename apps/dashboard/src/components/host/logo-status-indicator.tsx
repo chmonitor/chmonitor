@@ -1,10 +1,3 @@
-/**
- * Status indicator overlay for the logo in collapsed sidebar state
- *
- * Shows a small colored dot at the corner of the logo indicating
- * ClickHouse connection status (online/offline/checking).
- */
-
 import { useHostStatus } from '@/lib/swr/use-host-status'
 import { cn } from '@/lib/utils'
 
@@ -15,10 +8,6 @@ interface LogoStatusIndicatorProps {
 const indicatorBaseStyles =
   'absolute -bottom-0.5 -left-1 size-1.5 rounded-full ring-2 ring-sidebar'
 
-/**
- * Small status indicator positioned at bottom-right corner of logo
- * Only visible when sidebar is collapsed.
- */
 export const LogoStatusIndicator = function LogoStatusIndicator({
   hostId,
 }: LogoStatusIndicatorProps) {

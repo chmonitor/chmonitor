@@ -27,9 +27,6 @@ type SampleClusterPreset = Pick<
  * will show their normal empty/error states against this endpoint. Copy
  * referencing this preset should not overpromise a full monitoring demo.
  *
- * A single named constant so the endpoint can be swapped in one place (e.g.
- * for a differently-provisioned public demo with broader `system.*` access)
- * without touching call sites.
  */
 export const SAMPLE_CLUSTER_PRESET: SampleClusterPreset = {
   name: 'Sample ClickHouse (read-only)',
@@ -38,7 +35,6 @@ export const SAMPLE_CLUSTER_PRESET: SampleClusterPreset = {
   password: '',
 }
 
-/** True when `host` (as saved/entered) matches the sample preset's endpoint. */
 export function isSampleClusterHost(host: string): boolean {
   return host.trim() === SAMPLE_CLUSTER_PRESET.host
 }

@@ -1,8 +1,3 @@
-/**
- * ZooKeeper Charts
- * Charts for tracking ZooKeeper/ClickHouse Keeper metrics
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, buildTimeFilter, fillStep } from './types'
@@ -122,8 +117,6 @@ export const zookeeperCharts: Record<string, ChartQueryBuilder> = {
     tableCheck: 'system.zookeeper_info',
   }),
 
-  // Operation mix from cumulative ProfileEvents — which Keeper request types
-  // dominate. Bar chart (operation vs count).
   'keeper-operation-mix': () => ({
     query: `
     SELECT
@@ -141,7 +134,6 @@ export const zookeeperCharts: Record<string, ChartQueryBuilder> = {
   `,
   }),
 
-  // Keeper network throughput over time (bytes sent/received) from metric_log.
   'keeper-bytes': ({ interval = 'toStartOfHour', lastHours = 24 * 7 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     return {

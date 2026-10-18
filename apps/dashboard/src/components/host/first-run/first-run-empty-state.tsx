@@ -9,21 +9,6 @@ import { useState } from 'react'
 import { AddHostDialog } from '@/components/connections'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 
-/**
- * First-run onboarding / welcome surface.
- *
- * Rendered by `FirstRunGate` when the visitor has ZERO usable ClickHouse hosts.
- * The exact framing depends on the deployment:
- *
- *  - Cloud (SaaS), signed in → "Connect your ClickHouse" setup page. The demo
- *    was hidden once they signed in, so this is the moment to bring their own
- *    host. Primary action opens the Add-host dialog (server storage).
- *  - Cloud (SaaS), anonymous → "Sign in to connect" with the value prop.
- *  - Self-hosted (OSS) → operator-oriented guidance: set CLICKHOUSE_HOST env
- *    vars, or add a browser connection. Unchanged from the original behaviour.
- *
- * @see components/host/first-run-gate.tsx
- */
 export function FirstRunEmptyState() {
   const { cloudMode, isSignedIn } = useMergedHosts()
   const [addOpen, setAddOpen] = useState(false)

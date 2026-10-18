@@ -1,19 +1,3 @@
-/**
- * Chart query registry for dashboard.
- *
- * Ported from apps/dashboard/lib/api/chart-registry.ts. A chart is a builder
- * function `(params) => ChartQueryResult` registered under a name. The
- * dashboard composes 15 domain chart modules into one map; this module does
- * the same by importing every domain module and registering its builders at
- * load time (see the registration block at the bottom of this file). The
- * `registerChartQuery`/`registerChartQueries` surface is also exposed for
- * dynamic registration, plus the same get/has/list surface the route uses.
- *
- * Chart-data types are defined locally; they mirror `@/types/chart-data` so
- * ported chart builders (typed with the canonical types) need no edits — the
- * canonical result type only adds optional fields, so builders stay assignable.
- */
-
 import type { VersionedSql } from '@chm/sql-builder'
 import type { FeaturePermission } from '@/lib/feature-permissions/types'
 import type { ClickHouseInterval } from './query-executor'
@@ -37,7 +21,6 @@ import { trafficCharts } from './charts/traffic-charts'
 import { zookeeperCharts } from './charts/zookeeper-charts'
 import { chartCachePolicy } from '@/lib/swr/chart-freshness'
 
-/** Cache policy → Cache-Control TTL bucket (handler maps to headers). */
 export type CachePolicy = 'realtime' | 'standard' | 'historical'
 
 /**
@@ -59,17 +42,14 @@ export function cachePolicyToQueryCacheTtlSeconds(
   }
 }
 
-/** A single chart row — permissive, like the dashboard's ChartDataPoint. */
 export interface ChartDataPoint {
   [key: string]: unknown
 }
 
-/** Time-series row with a required `event_time`. */
 export interface TimeSeriesPoint extends ChartDataPoint {
   event_time: string
 }
 
-/** Params passed to a chart builder. */
 export interface ChartQueryParams {
   interval?: ClickHouseInterval
   lastHours?: number
@@ -78,16 +58,12 @@ export interface ChartQueryParams {
   timezone?: string
 }
 
-/** Per-request settings a chart may carry; see `ChartQueryResult.clickhouseSettings`. */
 export interface ChartQuerySettings {
   max_execution_time?: number
 }
 
-/** Single-query chart result. */
 export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
-  /** SQL (string) — required; the executor runs this. */
   query: string
-  /** Optional version-aware SQL; takes precedence over `query` when present. */
   sql?: VersionedSql[]
   queryParams?: Record<string, unknown>
   optional?: boolean
@@ -97,11 +73,11 @@ export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
   /**
    * Per-request ClickHouse settings, sent as `clickhouse_settings` rather than
    * a `SETTINGS` clause in the SQL text so the client's central read-only rule
-   * can normalize the request (#3684). Use `CHART_QUERY_SETTINGS`.
+   * can normalize the request. Use `CHART_QUERY_SETTINGS`.
    */
   clickhouseSettings?: ChartQuerySettings
   /**
-   * Opt out of the ClickHouse query-cache settings (#2182) the route applies
+   * Opt out of the ClickHouse query-cache settings the route applies
    * by default for read-only chart polling. Set this when a chart's result
    * must never be served from the query cache (e.g. it should reflect a
    * change made moments ago more eagerly than `cachePolicy`'s TTL allows).
@@ -115,7 +91,6 @@ export interface ChartQueryResult<_T extends ChartDataPoint = ChartDataPoint> {
   permission?: FeaturePermission
 }
 
-/** Multi-query chart result (executed in parallel, keyed). */
 export interface MultiChartQueryResult {
   queries: Array<{ key: string; query: string; optional?: boolean }>
   cachePolicy?: CachePolicy
@@ -125,18 +100,12 @@ export interface MultiChartQueryResult {
   permission?: FeaturePermission
 }
 
-/** A chart builder maps params to a (multi-)query result. */
 export type ChartQueryBuilder<T extends ChartDataPoint = ChartDataPoint> = (
   params: ChartQueryParams
 ) => ChartQueryResult<T> | MultiChartQueryResult
 
-/**
- * Lazy registry map. Empty in the foundation; populated by ported chart
- * modules via `registerChartQuery` (or a bulk `registerChartQueries`).
- */
 const chartRegistry = new Map<string, ChartQueryBuilder<ChartDataPoint>>()
 
-/** Register one chart builder. Last write wins (overwrite warns in dev). */
 export function registerChartQuery(
   name: string,
   builder: ChartQueryBuilder<ChartDataPoint>
@@ -144,7 +113,6 @@ export function registerChartQuery(
   chartRegistry.set(name, builder)
 }
 
-/** Register a map of chart builders (spread a ported domain module). */
 export function registerChartQueries(
   builders: Record<string, ChartQueryBuilder<ChartDataPoint>>
 ): void {
@@ -153,7 +121,6 @@ export function registerChartQueries(
   }
 }
 
-/** Build a chart query by name. Returns null if unknown. */
 export function getChartQuery(
   chartName: string,
   params: ChartQueryParams = {}
@@ -161,19 +128,17 @@ export function getChartQuery(
   const builder = chartRegistry.get(chartName)
   if (!builder) return null
   const result = builder(params)
-  // Audited charts get an explicit HTTP/query-cache TTL (#3005 item 3).
+  // Audited charts get an explicit HTTP/query-cache TTL.
   // A builder that already set cachePolicy wins.
   const cachePolicy = result.cachePolicy ?? chartCachePolicy(chartName)
   if (!cachePolicy || result.cachePolicy === cachePolicy) return result
   return { ...result, cachePolicy }
 }
 
-/** All registered chart names. */
 export function getAvailableCharts(): string[] {
   return Array.from(chartRegistry.keys())
 }
 
-/** Does a chart exist? */
 export function hasChart(chartName: string): boolean {
   return chartRegistry.has(chartName)
 }

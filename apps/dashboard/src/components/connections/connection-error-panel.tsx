@@ -4,17 +4,11 @@ import { BrokenWireIllustration } from '@/components/illustrations/broken-wire-i
 import { classifyConnectionError } from '@/lib/connection-errors'
 import { docsSiteUrl } from '@/lib/docs-site'
 
-/**
- * Renders a classified connection error: a clear title, why it likely happened,
- * the concrete fix, the raw technical detail, and a docs link for that exact
- * failure kind (host not allowed, auth failed, permissions, DNS, TLS, …).
- */
 export function ConnectionErrorPanel({
   message,
   cloudPreset = false,
 }: {
   message?: string
-  /** Whether the ClickHouse Cloud preset was active for this test attempt. */
   cloudPreset?: boolean
 }) {
   const e = classifyConnectionError(message)

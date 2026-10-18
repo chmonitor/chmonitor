@@ -1,9 +1,6 @@
 /**
  * Batched data hook for the /health page.
  *
- * Replaces the previous "one `useChartData` per card" pattern (~12 parallel
- * requests, each with its own "Loading…" flash) with a SINGLE TanStack Query
- * that feeds every card:
  *
  *  - Standard env hosts hit the batched `/api/v1/health/checks` endpoint, so
  *    all checks resolve in one HTTP round-trip.
@@ -32,7 +29,6 @@ import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 
 const REFRESH_INTERVAL_MS = 30_000
 
-/** Resolved data for a single health check, consumed by the cards. */
 export interface HealthCheckState {
   data: ChartDataPoint[]
   status?: DataStatus
@@ -60,9 +56,6 @@ const EMPTY_STATE: HealthCheckState = { data: [] }
 /**
  * Fetch every requested health check in a single query.
  *
- * @param chartNames Chart names backing the cards (from the health card defs).
- * @param hostId Active host.
- * @param timezone Optional IANA timezone for the ClickHouse session.
  */
 export function useHealthChecks(
   chartNames: readonly string[],

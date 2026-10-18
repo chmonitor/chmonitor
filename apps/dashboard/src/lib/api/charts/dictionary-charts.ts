@@ -1,8 +1,3 @@
-/**
- * Dictionary Monitoring Charts
- * Charts for tracking dictionary memory usage and performance
- */
-
 import type { ChartQueryBuilder } from './types'
 
 export const dictionaryCharts: Record<string, ChartQueryBuilder> = {

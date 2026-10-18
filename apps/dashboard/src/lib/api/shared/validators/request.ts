@@ -1,11 +1,3 @@
-/**
- * Request Validators
- *
- * Validation utilities for API request bodies and search parameters.
- *
- * @module lib/api/shared/validators/request
- */
-
 import type { ApiError, ApiRequest } from '@/lib/api/types'
 
 import { validateFormat } from './format'
@@ -13,19 +5,6 @@ import { validateHostIdWithError } from './host-id'
 import { VALID_INTERVALS } from '@chm/types'
 import { ApiErrorType } from '@/lib/api/types'
 
-/**
- * Validate that a required string field is present and non-empty
- *
- * @param value - The value to validate
- * @param fieldName - The name of the field for error messages
- * @returns ApiError if validation fails, undefined otherwise
- *
- * @example
- * ```ts
- * const error = validateRequiredString(body.query, 'query')
- * if (error) return createErrorResponse(error, 400)
- * ```
- */
 export function validateRequiredString(
   value: unknown,
   fieldName: string
@@ -39,22 +18,6 @@ export function validateRequiredString(
   return undefined
 }
 
-/**
- * Validate an API request body for the /api/v1/data endpoint
- *
- * Validates that required fields (query, hostId) are present and valid.
- * Optionally validates the format field if provided.
- *
- * @param body - Partial API request body to validate
- * @returns ApiError if validation fails, undefined otherwise
- *
- * @example
- * ```ts
- * const body = await request.json()
- * const error = validateDataRequest(body)
- * if (error) return createErrorResponse(error, 400)
- * ```
- */
 export function validateDataRequest(
   body: Partial<ApiRequest>
 ): ApiError | undefined {
@@ -70,22 +33,6 @@ export function validateDataRequest(
   return undefined
 }
 
-/**
- * Validate URL search parameters for GET requests
- *
- * Ensures that all required parameters are present and non-empty.
- *
- * @param searchParams - URLSearchParams object from request URL
- * @param requiredParams - Array of required parameter names
- * @returns ApiError if validation fails, undefined otherwise
- *
- * @example
- * ```ts
- * const url = new URL(request.url)
- * const error = validateSearchParams(url.searchParams, ['hostId', 'sql'])
- * if (error) return createErrorResponse(error, 400)
- * ```
- */
 export function validateSearchParams(
   searchParams: URLSearchParams,
   requiredParams: string[]
@@ -104,13 +51,8 @@ export function validateSearchParams(
 
 /** Maximum allowed limit to prevent DoS via large result sets */
 const MAX_LIMIT = 10_000
-/** Default limit when not specified */
 const DEFAULT_LIMIT = 100
 
-/**
- * Validate pagination parameters (limit and offset)
- * Prevents DoS via excessively large limits and invalid offsets
- */
 export function validatePaginationParams(searchParams: URLSearchParams): {
   limit: number
   offset: number
@@ -163,9 +105,6 @@ export function validatePaginationParams(searchParams: URLSearchParams): {
   return { limit, offset }
 }
 
-/**
- * Validate ClickHouse interval parameter
- */
 export function validateIntervalParam(
   interval: string | null
 ): ApiError | undefined {
@@ -181,28 +120,15 @@ export function validateIntervalParam(
   return undefined
 }
 
-/**
- * Validate that a query parameter is one of the allowed values
- *
- * Generic validator for enum-like parameters. Useful for validating
- * formats, sort orders, and other finite-value parameters.
- *
- * @param value - The value to validate
- * @param allowedValues - Array of allowed string values
- * @param fieldName - The name of the field for error messages
- * @returns ApiError if validation fails, undefined otherwise
- */
 export function validateEnumValue<T extends string>(
   value: unknown,
   allowedValues: readonly T[],
   fieldName: string
 ): ApiError | undefined {
-  // Optional field - undefined/null is allowed
   if (value === undefined || value === null) {
     return undefined
   }
 
-  // Type check
   if (typeof value !== 'string') {
     return {
       type: ApiErrorType.ValidationError,
@@ -210,7 +136,6 @@ export function validateEnumValue<T extends string>(
     }
   }
 
-  // Value check
   if (!allowedValues.includes(value as T)) {
     return {
       type: ApiErrorType.ValidationError,

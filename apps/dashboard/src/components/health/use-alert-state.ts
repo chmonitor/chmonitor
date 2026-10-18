@@ -1,8 +1,4 @@
 /**
- * Data hook for the "Current alert state" card (#2767).
- *
- * Thin TanStack Query wrapper around GET /api/v1/health/alert-state — mirrors
- * the conventions of `use-alert-history.ts`.
  */
 import { useQuery } from '@tanstack/react-query'
 

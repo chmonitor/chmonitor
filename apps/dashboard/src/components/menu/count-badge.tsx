@@ -12,11 +12,6 @@ export interface CountBadgeProps {
   variant?: BadgeVariant
 }
 
-/**
- * Client-side count badge that fetches count.
- * Uses countKey to fetch from /api/v1/menu-counts/[key] endpoint.
- * No raw SQL is sent from the client - security by design.
- */
 export const CountBadge = function CountBadge({
   countKey,
   className,

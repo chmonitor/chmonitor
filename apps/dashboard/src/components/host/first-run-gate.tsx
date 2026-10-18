@@ -39,10 +39,6 @@ import { keepHostSearch } from '@/routes/-root-search'
  *
  * While hosts are still loading (outside the cloud demo-leak case) we render
  * children so existing skeletons / Suspense fallbacks keep showing.
- *
- * NOTE: `FirstRunUnauthorizedState` is intentionally no longer rendered here. The
- * component is kept for a possible future inline sign-in prompt rather than a
- * full-page wall.
  */
 export function FirstRunGate({ children }: { children: React.ReactNode }) {
   const { hosts, isLoading, isUnauthorized, cloudMode, isSignedIn } =
@@ -86,8 +82,6 @@ export function FirstRunGate({ children }: { children: React.ReactNode }) {
     }
   }, [goSetup, repointHostId, pathname, searchParams, navigate])
 
-  // Render a skeleton (never the routed page's demo-backed charts) whenever we
-  // are waiting on host resolution or a pending navigation.
   if (action.type !== 'render') {
     return <PageSkeleton />
   }

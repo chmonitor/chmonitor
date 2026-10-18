@@ -1,5 +1,5 @@
 /**
- * PeerDB mirror rules panel (#3699).
+ * PeerDB mirror rules panel.
  *
  * List / create / edit / enable / mute per-mirror PeerDB alert thresholds.
  * Persisted through `/api/v1/health/peerdb-rules` (the shared health DB, like

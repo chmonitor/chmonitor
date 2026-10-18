@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
 
-/** Segmented query-kind filter ("All / SELECT / INSERT / …"). */
 export function KindFilter({
   options,
   value,

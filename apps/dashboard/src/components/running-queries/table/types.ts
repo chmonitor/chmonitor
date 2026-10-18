@@ -1,10 +1,5 @@
 import { formatCompactNumber, formatReadableSize } from '@/lib/format-readable'
 
-/**
- * Shape of a single `system.processes` row as returned by the
- * `running-queries` table API. Only the fields the table reads are typed;
- * the index signature keeps it tolerant of extra columns.
- */
 export interface RunningQueryRow {
   query_id: string
   query: string
@@ -45,7 +40,6 @@ export interface RunningQueryRow {
 
 export type Severity = 'critical' | 'warning' | 'normal'
 
-/** Classify a query by how long it has been running (seconds). */
 function getSeverity(elapsed: number): Severity {
   if (elapsed > 30) return 'critical'
   if (elapsed > 5) return 'warning'
@@ -72,7 +66,6 @@ function interfaceName(value: unknown): string | null {
   return INTERFACE_NAMES[String(value)] ?? String(value)
 }
 
-/** Safely read a numeric counter out of the ProfileEvents map. */
 function profileEvent(events: unknown, key: string): number {
   if (events && typeof events === 'object' && !Array.isArray(events)) {
     const value = (events as Record<string, unknown>)[key]
@@ -216,7 +209,6 @@ export const SORT_ACCESSOR: Record<SortKey, (d: DerivedQuery) => number> = {
   duration: (d) => d.elapsed,
 }
 
-/** The metric columns the user can show / hide via the column menu. */
 export type OptionalColumn =
   | 'memory'
   | 'dataRead'

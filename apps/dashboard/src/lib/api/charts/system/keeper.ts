@@ -1,10 +1,3 @@
-/**
- * ClickHouse Keeper (ZooKeeper) request/wait charts.
- *
- * Split out of system-charts.ts (#2898). Behaviour-preserving move — no SQL,
- * key names, or gating changed.
- */
-
 import {
   applyInterval,
   buildTimeFilter,

@@ -1,8 +1,3 @@
-/**
- * Query Monitoring Charts
- * Charts for tracking query performance, counts, and memory usage
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import {
@@ -399,7 +394,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   },
 
   /**
-   * Slow query regression detection (#1921).
+   * Slow query regression detection.
    *
    * Compares P95 query_duration_ms per normalized fingerprint between the
    * current window (last 1h) and the baseline (previous 24h). Returns
@@ -471,7 +466,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   }),
 
   /**
-   * MV refresh staleness (#1925).
+   * MV refresh staleness.
    * Returns all view_refreshes rows enriched with staleness_seconds.
    */
   'mv-staleness': () => {

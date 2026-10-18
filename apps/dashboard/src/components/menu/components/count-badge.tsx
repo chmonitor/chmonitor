@@ -1,11 +1,3 @@
-/**
- * Count Badge component for menu items
- *
- * Displays a count badge with hover animation that reveals a label.
- * Uses CSS transitions with max-width trick for smooth animation.
- * Uses useHostId hook internally - no prop drilling needed.
- */
-
 import type { BadgeVariant } from '@/types/badge-variant'
 
 import { useMenuCount } from '../hooks/use-menu-count'
@@ -33,7 +25,6 @@ export const CountBadge = memo(function CountBadge({
     isFirstRenderRef.current = false
   }, [])
 
-  // Don't render if loading, no count, or count is 0
   if (isLoading || count === null || count === 0) {
     return null
   }

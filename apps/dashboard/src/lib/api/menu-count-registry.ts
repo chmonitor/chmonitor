@@ -1,11 +1,4 @@
-/**
- * Menu count registry that maps count keys to their SQL queries.
- * This centralizes all menu count queries on the server side,
- * preventing SQL from being sent from the frontend.
- *
- * SECURITY: Only whitelisted count keys are allowed.
- * Clients send a countKey, not raw SQL.
- */
+/** SECURITY: only whitelisted count keys are allowed; clients send a countKey, never raw SQL. */
 
 import { QUERY_COMMENT } from '@chm/clickhouse-client/constants'
 import { EVENTS_TABLE } from '@/lib/app-tables'
@@ -22,12 +15,7 @@ export interface MenuCountQuery {
   disableQueryCache?: boolean
 }
 
-/**
- * Registry of menu count queries.
- * Keys match the countKey in menu.ts MenuItem definitions.
- */
 export const menuCountRegistry: Record<string, MenuCountQuery> = {
-  // Tables menu
   'tables-explorer': {
     query: `SELECT COUNT() as count FROM system.tables WHERE lower(database) NOT IN ('system', 'information_schema') AND ${LOCAL_DATABASES_FILTER} AND is_temporary = 0 AND engine LIKE '%MergeTree%'`,
   },
@@ -53,17 +41,14 @@ export const menuCountRegistry: Record<string, MenuCountQuery> = {
     query: `SELECT COUNT() as count FROM system.view_refreshes`,
   },
 
-  // Queries menu
   'running-queries': {
     query: `SELECT COUNT() as count FROM system.processes WHERE is_cancelled = 0 AND query NOT LIKE '%${QUERY_COMMENT}%'`,
   },
 
-  // Merges menu
   merges: {
     query: `SELECT COUNT() as count FROM system.merges WHERE 1 = 1`,
   },
 
-  // More menu
   disks: {
     query: `SELECT COUNT() as count FROM system.disks`,
   },
@@ -98,23 +83,14 @@ export const menuCountRegistry: Record<string, MenuCountQuery> = {
   },
 }
 
-/**
- * Get a menu count query by key
- */
 export function getMenuCountQuery(countKey: string): MenuCountQuery | null {
   return menuCountRegistry[countKey] || null
 }
 
-/**
- * Check if a count key exists in the registry
- */
 export function hasMenuCountKey(countKey: string): boolean {
   return countKey in menuCountRegistry
 }
 
-/**
- * Get all available count keys
- */
 export function getAvailableMenuCountKeys(): string[] {
   return Object.keys(menuCountRegistry)
 }

@@ -45,12 +45,6 @@ import {
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
 import { cn, getHost } from '@/lib/utils'
 
-/**
- * Host switcher component for sidebar header.
- *
- * Provides dropdown menu for switching between ClickHouse hosts.
- * Shows host icon, name, and status in collapsed/expanded states.
- */
 export function HostSwitcher() {
   const navigate = useNavigate()
   const pathname = useLocation({ select: (l) => l.pathname })
@@ -86,7 +80,7 @@ export function HostSwitcher() {
 
   const handleHostChange = (hostId: number) => {
     // Selecting a ClickHouse host clears any active Postgres source (`?pg=`) so
-    // the nav menu reverts to the ClickHouse menu (#2450 engine-aware swap).
+    // the nav menu reverts to the ClickHouse menu.
     const next = new URLSearchParams(searchParams)
     next.delete('pg')
     const url = buildUrl(pathname, { host: hostId }, next)
@@ -103,7 +97,6 @@ export function HostSwitcher() {
   }
 
   const handleFleetOverview = () => {
-    // Jump to the all-hosts status view, preserving the current host selection.
     navigate(
       splitHref(
         buildUrl('/fleet', currentHostId != null ? { host: currentHostId } : {})
@@ -119,7 +112,6 @@ export function HostSwitcher() {
     return <HostSwitcherLoadingSkeleton showExpanded={showExpanded} />
   }
 
-  // No active host: keep switcher shape and surface why
   if (!activeHost) {
     // Genuine empty state — signed in, no host configured yet, and neither an
     // auth nor a fetch error. Show a one-click "Add Host" CTA (opens the dialog
@@ -128,7 +120,6 @@ export function HostSwitcher() {
       return <HostSwitcherEmptyAddHost showExpanded={showExpanded} />
     }
 
-    // Auth or fetch error: keep the informative dropdown shape.
     return (
       <HostSwitcherEmptyError
         showExpanded={showExpanded}

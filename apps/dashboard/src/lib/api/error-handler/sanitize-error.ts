@@ -25,13 +25,6 @@ export const SANITIZED_MESSAGES = {
 export type SanitizedMessage =
   (typeof SANITIZED_MESSAGES)[keyof typeof SANITIZED_MESSAGES]
 
-/**
- * Classifies a raw ClickHouse error message and returns a safe client-facing
- * string. The raw message is NEVER included in the return value.
- *
- * @param raw - Raw error message from ClickHouse (logged server-side separately)
- * @returns A stable, classified message safe for client HTTP responses
- */
 export function sanitizeClickHouseError(raw: string): SanitizedMessage {
   const lower = raw.toLowerCase()
 

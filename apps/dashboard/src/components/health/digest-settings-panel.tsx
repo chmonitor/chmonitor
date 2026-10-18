@@ -1,5 +1,5 @@
 /**
- * Time-window digest settings panel (feat #2663).
+ * Time-window digest settings panel.
  *
  * In-pass grouping (a burst to one target → one message) is ALWAYS on, so this
  * panel only exposes the optional time-window mode: a switch to enable it and a
@@ -7,7 +7,7 @@
  * window and flushed together; criticals always send immediately. Server-
  * persisted via `/api/v1/health/alert-digest` (D1 or Postgres); with no alert
  * backend the env-derived value still shows but Save is disabled, as it is
- * while the capability is `unknown` (#3495) — the operator sets
+ * while the capability is `unknown` — the operator sets
  * `HEALTH_ALERT_DIGEST_MINUTES` instead.
  */
 

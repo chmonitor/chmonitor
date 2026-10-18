@@ -1,8 +1,3 @@
-/**
- * Security & Audit Charts
- * Charts for tracking authentication, sessions, and security events
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, buildTimeFilter, fillStep, nowOrToday } from './types'

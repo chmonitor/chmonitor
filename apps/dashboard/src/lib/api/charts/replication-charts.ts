@@ -1,8 +1,3 @@
-/**
- * Replication Charts
- * Charts for tracking ClickHouse replication status and queue
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, buildTimeFilter } from './types'
@@ -79,7 +74,6 @@ export const replicationCharts: Record<string, ChartQueryBuilder> = {
 
   /**
    * Replication lag trend — time-series of max and avg lag from metric_log.
-   * Used by the lag trend chart added in #1914.
    */
   'replication-lag-trend': ({
     interval = 'toStartOfFiveMinutes',

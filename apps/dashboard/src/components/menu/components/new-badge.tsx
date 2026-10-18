@@ -1,9 +1,3 @@
-/**
- * New Badge component for menu items
- *
- * Displays a "New" badge that disappears after the user visits the page
- */
-
 import { useShowNewBadge } from '../hooks/use-visited-pages'
 
 interface NewBadgeProps {

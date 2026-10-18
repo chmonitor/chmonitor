@@ -1,8 +1,3 @@
-/**
- * Utility functions for query page layout components
- */
-
-/** Number of charts per logical row for toggle grouping */
 export const CHARTS_PER_ROW = 2
 
 /**

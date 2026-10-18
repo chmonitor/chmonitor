@@ -1,10 +1,3 @@
-/**
- * Cluster health check charts (detail variants, part 1: replication/parts/queries/mutations).
- *
- * Split out of system-charts.ts (#2898). Behaviour-preserving move — no SQL,
- * key names, or gating changed.
- */
-
 import type { ChartQueryBuilder } from '../types'
 
 import { buildPartsPressureProjectionSql } from '@/lib/health/parts-pressure'

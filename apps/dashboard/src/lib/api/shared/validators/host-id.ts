@@ -1,11 +1,3 @@
-/**
- * Host ID Validators
- *
- * Validation utilities for hostId parameter from URL search params.
- *
- * @module lib/api/shared/validators/host-id
- */
-
 import type { ApiError } from '@/lib/api/types'
 
 import { ApiErrorType } from '@/lib/api/types'
@@ -34,28 +26,11 @@ export function parseHostIdParam(raw: unknown): number {
   return Number.isSafeInteger(n) ? n : NaN
 }
 
-/** Non-negative-only variant used by the validators below. */
 function parseStrictHostId(raw: string): number {
   const n = parseHostIdParam(raw)
   return n >= 0 ? n : NaN
 }
 
-/**
- * Validate and extract hostId from URL search params
- *
- * @param hostId - The hostId value from URLSearchParams (can be null)
- * @returns Parsed hostId as number
- * @throws {Error} If hostId is missing, null, or invalid
- *
- * @example
- * ```ts
- * const url = new URL(request.url)
- * const hostId = validateHostId(url.searchParams.get('hostId'))
- * // Returns: 0, 1, 2, etc.
- * // Throws: "Missing required parameter: hostId"
- * // Throws: "Invalid hostId: must be a non-negative number"
- * ```
- */
 export function validateHostId(hostId: string | null): number {
   if (!hostId) {
     throw new Error('Missing required parameter: hostId')
@@ -70,18 +45,6 @@ export function validateHostId(hostId: string | null): number {
   return parsed
 }
 
-/**
- * Validate hostId parameter (returns ApiError instead of throwing)
- *
- * @param hostId - The hostId value to validate
- * @returns ApiError if validation fails, undefined otherwise
- *
- * @example
- * ```ts
- * const error = validateHostIdWithError(body.hostId)
- * if (error) return createErrorResponse(error, 400)
- * ```
- */
 export function validateHostIdWithError(hostId: unknown): ApiError | undefined {
   if (hostId === undefined || hostId === null || hostId === '') {
     return {
@@ -107,22 +70,6 @@ export function validateHostIdWithError(hostId: unknown): ApiError | undefined {
   return undefined
 }
 
-/**
- * Validate and parse hostId from URL search params (returns ApiError instead of throwing)
- *
- * @param searchParams - URLSearchParams object from request URL
- * @returns Parsed hostId as number, or ApiError if validation fails
- *
- * @example
- * ```ts
- * const url = new URL(request.url)
- * const result = getAndValidateHostId(url.searchParams)
- * if (typeof result !== 'number') {
- *   return createValidationError(result.message, { route: '/api/v1/data', method: 'GET' })
- * }
- * const hostId = result
- * ```
- */
 export function getAndValidateHostId(
   searchParams: URLSearchParams
 ): number | ApiError {

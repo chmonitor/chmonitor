@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * "Configure alert" for one health check, opened from the detail dialog (#3437).
+ * "Configure alert" for one health check, opened from the detail dialog.
  *
  * The point of this form is that the operator never has to re-derive anything:
  * it arrives pre-filled with the check id, the value the dialog is already
@@ -57,7 +57,6 @@ export function ConfigureAlertForm({
   check: HealthCheckDef
   /** Current observed value, shown read-only next to the thresholds it informs. */
   value: number | null
-  /** Effective thresholds for this check (override or default). */
   thresholds: Thresholds
   signals: MetricAlertSignals
   availability: AlertRuleStoreAvailability
@@ -141,7 +140,6 @@ export function ConfigureAlertForm({
         </p>
       </div>
 
-      {/* --- Thresholds: localStorage, works on every deployment ---------- */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-medium">Alert thresholds</span>
@@ -188,7 +186,6 @@ export function ConfigureAlertForm({
 
       <Separator />
 
-      {/* --- Named alert: D1-backed, gated on what the write path can do -- */}
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium">Named alert</span>

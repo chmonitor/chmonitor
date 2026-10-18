@@ -1,22 +1,14 @@
-/**
- * Insight Charts
- * Charts for the insights page displaying record-breaking query and storage statistics
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { buildTimeFilter } from '@/lib/clickhouse-query'
 
-/**
- * Default percentile when the request omits or supplies an invalid value.
- */
 const DEFAULT_PERCENTILE = '99'
 
 /**
  * Coerce a request-supplied `percentile` param to a safe numeric string before
  * it is spliced into raw SQL as the quantile level (`0.${p}`).
  *
- * SECURITY (issue #2464): `percentile` reaches ClickHouse via string
+ * SECURITY: `percentile` reaches ClickHouse via string
  * interpolation, not a bind parameter, so an unvalidated value is direct SQL
  * injection (e.g. `50)),arbitrary--`). This endpoint is unauthenticated on the
  * default self-hosted posture and public-read for cloud anonymous visitors, so
@@ -219,7 +211,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Busiest day by query count
   'insight-busiest-day-queries': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
     return {
@@ -237,7 +228,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Busiest day by data scanned
   'insight-busiest-day-bytes': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
     return {
@@ -256,7 +246,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Busiest second by query starts (renamed from "peak concurrent" for accuracy)
   'insight-busiest-second': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
     return {
@@ -275,7 +264,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Query duration percentile (p95/p99/p100)
   'insight-avg-duration': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
     const percentile = (params.params?.percentile as string) || '99'
@@ -291,7 +279,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Query error rate
   'insight-error-rate': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
     return {
@@ -306,7 +293,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Total queries executed in the period
   'insight-total-queries': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
     const percentile = (params.params?.percentile as string) || '99'
@@ -323,7 +309,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Total data scanned across all queries
   'insight-total-scanned': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
     const percentile = (params.params?.percentile as string) || '99'
@@ -340,7 +325,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Total rows read across all queries
   'insight-total-rows-read': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
     const percentile = (params.params?.percentile as string) || '99'
@@ -357,7 +341,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Peak memory usage across all completed queries
   'insight-peak-memory': (params) => {
     const timeFilter = buildTimeFilter(params.lastHours)
     const percentile = (params.params?.percentile as string) || '99'
@@ -374,7 +357,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Currently executing queries
   'insight-active-queries': () => ({
     query: `
       SELECT
@@ -384,7 +366,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     `,
   }),
 
-  // Current memory tracking from system.metrics
   'insight-current-memory': () => ({
     query: `
       SELECT
@@ -395,7 +376,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     `,
   }),
 
-  // HTTP connections from system.metrics
   'insight-http-connections': () => ({
     query: `
       SELECT
@@ -406,7 +386,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     `,
   }),
 
-  // Active merge operations
   'insight-active-merges': () => ({
     query: `
       SELECT
@@ -416,7 +395,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     `,
   }),
 
-  // Total active parts across all tables
   'insight-active-parts': () => ({
     query: `
       SELECT
@@ -429,7 +407,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     `,
   }),
 
-  // Detached parts count (optional — table may not exist)
   'insight-detached-parts': () => ({
     query: `
       SELECT
@@ -441,7 +418,6 @@ export const insightCharts: Record<string, ChartQueryBuilder> = {
     tableCheck: 'system.detached_parts',
   }),
 
-  // Active (in-progress) mutations
   'insight-active-mutations': () => ({
     query: `
       SELECT

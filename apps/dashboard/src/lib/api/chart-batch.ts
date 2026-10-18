@@ -18,7 +18,6 @@ import {
 import { executeChartQuery } from '@/lib/api/query-executor'
 import { chartCachePolicy } from '@/lib/swr/chart-freshness'
 
-/** Insight stats-grid tiles — one grouping, one request. */
 export const INSIGHTS_STATS_GROUPING = Object.freeze([
   'insight-largest-scan',
   'insight-fastest-scan',
@@ -42,7 +41,6 @@ export const INSIGHTS_STATS_GROUPING = Object.freeze([
   'insight-error-rate',
 ] as const)
 
-/** Query Insights overview grid — 15 charts, one batch request. */
 export const QUERY_INSIGHTS_GROUPING = Object.freeze([
   'query-insights-qps',
   'query-insights-latency',
@@ -237,7 +235,6 @@ function policyForName(name: string): string | undefined {
   return chartCachePolicy(name)
 }
 
-/** Tightest cache policy among grouping members (realtime < standard < historical). */
 export function groupingCachePolicy(
   groupingId: ChartGroupingId,
   _params?: unknown
@@ -257,7 +254,6 @@ export function groupingCachePolicy(
   return policy
 }
 
-/** Cache-Control using the minimum s-maxage of grouping members. */
 export function groupingCacheControl(names: readonly string[]): string {
   let min = Number.POSITIVE_INFINITY
   for (const name of names) {

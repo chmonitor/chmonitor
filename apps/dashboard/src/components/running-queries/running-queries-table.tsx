@@ -50,12 +50,9 @@ import {
 import { useLayoutView } from '@/hooks/use-layout-view'
 import { cn } from '@/lib/utils'
 
-// Re-exported so sibling modules can keep importing the row type from this
-// path (`./running-queries-table`).
 export type { RunningQueryRow } from './table/types'
 
 interface RunningQueriesTableProps {
-  /** Live `system.processes` rows. Drives the toolbar/footer counts and CSV. */
   rows: RunningQueryRow[]
   /**
    * Retained "Done" rows — queries the user had expanded that have since left
@@ -68,22 +65,10 @@ interface RunningQueriesTableProps {
    * a Done row even when the live list (and this table) would otherwise unmount.
    */
   expanded: Set<string>
-  /** Toggle a row's expansion by its stable key. */
   onToggle: (key: string) => void
-  /** Dismiss a retained Done row by query_id. */
   onDismiss: (id: string) => void
 }
 
-/**
- * RunningQueriesTable — a dense, sortable, responsive table of in-flight
- * ClickHouse queries.
- *
- * The toolbar carries search, a query-kind segment, a user filter, a
- * "more filters" popover (interface + long-running), a column-visibility menu
- * and CSV export. Columns also collapse progressively as the viewport narrows;
- * hidden values reappear inline under the query text. Rows expand to a full
- * execution-details panel.
- */
 export const RunningQueriesTable = memo(function RunningQueriesTable({
   rows,
   doneRows,
@@ -115,7 +100,6 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
   // search / filter / sort so they stay put until dismissed.
   const derivedDone = useMemo(() => doneRows.map(derive), [doneRows])
 
-  // Filter options come from the values actually present in the data.
   const kindOptions = useMemo(() => {
     const kinds = new Set<string>()
     for (const d of derived) kinds.add(d.kind)
@@ -200,23 +184,19 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-2.5 py-2.5 sm:px-3">
-        {/* Search */}
         <TableSearchInput
           value={search}
           onChange={setSearch}
           placeholder="Search query, id, user…"
         />
 
-        {/* Query-kind segment */}
         <KindFilter
           options={kindOptions}
           value={filterKind}
           onChange={setFilterKind}
         />
 
-        {/* User filter */}
         <DropdownMenu>
           <DropdownMenuTrigger
             render={<ToolbarButton active={filterUser !== 'all'} />}
@@ -246,7 +226,6 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* More filters */}
         <Popover>
           <PopoverTrigger render={<ToolbarButton active={moreFiltersActive} />}>
             <ListFilter className="size-3.5" />
@@ -308,17 +287,14 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
           </span>
           <div className="h-5 w-px bg-border" />
 
-          {/* Table / cards view */}
           <ViewToggle active={view} onChange={setView} />
 
-          {/* Column visibility */}
           <ColumnVisibilityMenu
             columns={OPTIONAL_COLUMNS}
             hiddenColumns={hiddenColumns}
             onToggle={toggleColumn}
           />
 
-          {/* Export */}
           <ToolbarButton
             onClick={() => downloadRunningCsv(visible)}
             disabled={visible.length === 0}
@@ -330,7 +306,6 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
       </div>
 
       {view === 'cards' ? (
-        /* Card list — SQL-first, the default on phones. */
         <div
           className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3"
           data-testid="running-queries-cards"
@@ -479,7 +454,6 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
         </div>
       )}
 
-      {/* Footer */}
       <div className="border-t border-border px-3 py-2 text-[11.5px] text-muted-foreground">
         Showing{' '}
         <span className="font-medium tabular-nums text-foreground">

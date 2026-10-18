@@ -39,25 +39,12 @@ import {
 import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { cn } from '@/lib/utils'
 
-/**
- * The seven alerting surfaces that used to sit together behind the Advanced
- * tab, each a launcher card that opens its panel in a dialog.
- *
- * #3438 sorts them into three groups by what they do, and renders each group
- * next to the thing it belongs with (placement lives in
- * `ADVANCED_SECTION_PLACEMENT`): `define` under the built-in alert list,
- * `delivery` under the channels, `silencing` on the Advanced tab. Nothing is
- * removed — each panel renders unchanged (its own write-capability notice and
- * source badges included), and every old `?tab=` deep link still opens the
- * right dialog on whichever tab now hosts it.
- */
 interface AdvancedSection {
   id: AdvancedSectionId
   title: string
   description: string
   icon: LucideIcon
   group: AdvancedGroupId
-  /** Wider dialog for the panels that render tables/forms side by side. */
   wide?: boolean
   /** Hidden from cloud signed-out visitors: its API answers them 401. */
   requiresSignIn?: boolean
@@ -168,11 +155,6 @@ export const ADVANCED_GROUPS: Readonly<
   },
 }
 
-/**
- * One group of launcher cards plus the dialog they open. `initialSection` is
- * ignored unless it belongs to this group, so every group on a tab can be
- * handed the same resolved deep link.
- */
 export function AlertSectionGroup({
   group,
   initialSection,
@@ -269,7 +251,6 @@ export function AlertSectionGroup({
   )
 }
 
-/** The Advanced tab: now only the silencing group. */
 export function AdvancedSettingsPanel({
   initialSection,
 }: {

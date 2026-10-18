@@ -1,15 +1,3 @@
-/**
- * "Alerts cannot be delivered" notice (#3701).
- *
- * With `HEALTH_ALERT_ENABLED` unset the scheduled sweep (PeerDB cycle included)
- * runs dry-run, and with the sweep disabled it never runs — either way nothing
- * reaches a channel, yet every card still looks armed. This notice says so,
- * from the `delivery` field of `GET /api/v1/health/alert-config`.
- *
- * Renders nothing while loading, on error, or when the server does not report
- * the field: an unknown state is not a problem worth a banner.
- */
-
 import { BellOff } from 'lucide-react'
 
 import type { AlertDeliveryStatus } from '@/lib/hooks/use-alert-channel-config'
@@ -38,7 +26,6 @@ export function AlertDeliveryNotice({
   hostId,
 }: {
   className?: string
-  /** Active host, kept on the settings link. */
   hostId?: number
 }) {
   const { delivery } = useAlertChannelConfig()

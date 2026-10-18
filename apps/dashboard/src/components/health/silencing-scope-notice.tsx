@@ -1,5 +1,5 @@
 /**
- * Cloud-mode scope notice for the silencing panels (#3802).
+ * Cloud-mode scope notice for the silencing panels.
  *
  * In cloud mode a maintenance window or quiet hours is saved under the
  * signed-in user, but the scheduled sweep only checks the env hosts and never
@@ -27,7 +27,6 @@ export function SilencingScopeNotice({
   feature,
   className,
 }: {
-  /** Plural noun phrase, e.g. "Maintenance windows". */
   feature: string
   className?: string
 }) {

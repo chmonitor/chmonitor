@@ -1,13 +1,3 @@
-/**
- * Suggested alerts panel (issue #2667).
- *
- * Renders the server-computed smart alert suggestions as cards: a reason, the
- * proposed thresholds (editable inline), and Accept / Dismiss. Accepting posts
- * the (possibly edited) thresholds through the same custom-rules path the rule
- * builder uses, so a one-click accept lands a working custom rule. There is no
- * free-form SQL surface — every suggestion targets a whitelisted metric.
- */
-
 import { Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 

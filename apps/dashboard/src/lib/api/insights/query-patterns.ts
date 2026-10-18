@@ -1,20 +1,7 @@
-/**
- * Query Insights API helpers — list + detail for slow query patterns.
- *
- * Backs `/api/v1/insights/query-patterns` (list) and
- * `/api/v1/insights/query-patterns/$hash` (detail). Reuses the same
- * aggregation SQL as the Slow Query Patterns page
- * (`lib/query-config/queries/slow-query-patterns.ts` `buildQueryPatternsSql`)
- * instead of duplicating the query text — the list config filters by the
- * page's schema-driven filters; the detail config scopes the same
- * aggregation to a single `normalized_query_hash`.
- */
-
 import type { QueryConfig } from '@/lib/query-config'
 
 import { buildQueryPatternsSql } from '@/lib/query-config/queries/slow-query-patterns'
 
-/** `system.query_log` rows contributing to a pattern, individually. */
 const EXECUTION_TYPES = "('QueryFinish', 'ExceptionWhileProcessing')"
 
 /** Numeric-string `normalized_query_hash` values only (ClickHouse UInt64). */
@@ -66,11 +53,6 @@ export function sortPatternRows<T extends Record<string, unknown>>(
   })
 }
 
-/**
- * Build the ad-hoc QueryConfig for one pattern's aggregated stats, scoped to
- * `normalized_query_hash` + a relative time window. Expects query params
- * `{ normalized_query_hash: string, range_hours: number }`.
- */
 export function buildPatternDetailConfig(): QueryConfig {
   return {
     name: 'insights-query-pattern-detail',
@@ -83,11 +65,6 @@ export function buildPatternDetailConfig(): QueryConfig {
   }
 }
 
-/**
- * Build the ad-hoc QueryConfig for the individual `system.query_log`
- * executions behind one pattern, reverse-chronological. Expects query params
- * `{ normalized_query_hash: string, range_hours: number, executions_limit: number }`.
- */
 export function buildPatternExecutionsConfig(): QueryConfig {
   return {
     name: 'insights-query-pattern-executions',
@@ -121,7 +98,6 @@ export function buildPatternExecutionsConfig(): QueryConfig {
   }
 }
 
-/** The "Notable runs" categories the pattern detail flyout renders. */
 export type NotableRunReason = 'slowest' | 'largest_result' | 'errored'
 
 /**

@@ -11,11 +11,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-/**
- * The ClickHouse (self-hosted / Cloud) "Host URL" field — a full HTTP(S) URL,
- * unlike the bare hostname + port Postgres uses. Extracted verbatim from
- * `ConnectionForm`; behavior and layout are unchanged.
- */
 export function ConnectionFieldsClickHouse({
   form,
   preset,

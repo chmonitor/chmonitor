@@ -27,10 +27,6 @@ export interface PublicApiRoute {
   readonly methods: readonly PublicHttpMethod[]
 }
 
-/**
- * Convert a TanStack file-route path to the OpenAPI form:
- * `$name` → `{name}`, trailing slash stripped.
- */
 export function tanstackPathToOpenApiPath(tanstackPath: string): string {
   const braced = tanstackPath.replace(/\$([A-Za-z0-9_]+)/g, '{$1}')
   if (braced.length > 1 && braced.endsWith('/')) {
@@ -124,7 +120,6 @@ export const PUBLIC_API_ROUTES = [
 /** Hard floor so GET /api/v1/openapi.json cannot silently become a 2-path stub. */
 export const MIN_PUBLIC_API_PATHS = 10
 
-/** Paths every published spec must include (subset of PUBLIC_API_ROUTES). */
 export const REQUIRED_PUBLIC_API_PATHS = [
   '/api/health',
   '/api/v1/openapi.json',

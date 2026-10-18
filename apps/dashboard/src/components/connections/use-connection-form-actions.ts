@@ -11,12 +11,6 @@ import {
 } from './connection-presets'
 import { SAMPLE_CLUSTER_PRESET } from './sample-preset'
 
-/**
- * Field-change / preset-change / save handlers for `ConnectionForm`.
- * Extracted verbatim from `ConnectionForm`; behavior is unchanged — same
- * validation, same envelope shape sent to `onSave`, same test-status reset
- * timing.
- */
 export function useConnectionFormActions({
   form,
   setForm,
@@ -46,7 +40,6 @@ export function useConnectionFormActions({
     (field: keyof ConnectionFormData) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }))
-      // Reset test status when form changes
       resetTestStatus()
     }
 

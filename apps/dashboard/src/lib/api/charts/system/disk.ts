@@ -1,10 +1,3 @@
-/**
- * Disk size, usage, IO throughput, storage policy, and table/part charts.
- *
- * Split out of system-charts.ts (#2898). Behaviour-preserving move — no SQL,
- * key names, or gating changed.
- */
-
 import {
   applyInterval,
   buildTimeFilterInterval,

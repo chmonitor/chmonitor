@@ -31,10 +31,6 @@ interface ExpandedRowProps {
   onDismiss?: () => void
 }
 
-/**
- * Expanded row — an execution-details grid, the full query as a scrollable
- * code block, then row actions.
- */
 export function ExpandedRow({
   d,
   onKill,
@@ -52,7 +48,6 @@ export function ExpandedRow({
     : ''
   const lineCount = (d.query.match(/\n/g)?.length ?? 0) + 1
 
-  // Every field is backed by a real `system.processes` column.
   const fields: { label: string; value: React.ReactNode; mono?: boolean }[] = [
     { label: 'Query ID', value: d.id },
     { label: 'User', value: d.user, mono: false },
@@ -77,7 +72,6 @@ export function ExpandedRow({
 
   return (
     <div className="space-y-3 border-t border-border bg-muted/40 px-3 py-3.5 sm:px-5">
-      {/* Execution details — a compact key/value grid */}
       <div className="overflow-hidden rounded-md border border-border bg-card">
         <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Execution details
@@ -121,7 +115,6 @@ export function ExpandedRow({
         </CodeBlock>
       </div>
 
-      {/* Actions */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="outline"

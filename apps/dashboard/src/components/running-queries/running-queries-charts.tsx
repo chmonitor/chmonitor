@@ -44,13 +44,11 @@ interface TodayPoint {
   [key: string]: unknown
 }
 
-/** Series color palette for the per-user stacked bars. */
 const USER_COLORS = ['#0d9488', '#1e3a5f', '#f59e0b', '#8b5cf6', '#ef4444']
 
 const labelClass =
   'text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground'
 
-/** A stat card: label + headline value + sub line + area chart. */
 function StatCard({
   label,
   value,
@@ -132,7 +130,6 @@ function StatCard({
   )
 }
 
-/** Queries-by-user card: stacked bars + a per-user legend. */
 function ByUserCard({
   data,
   series,
@@ -191,7 +188,6 @@ interface SummaryItem {
   unit?: string
 }
 
-/** Summary card: an icon-labelled key / value list. */
 function SummaryCard({
   items,
   compact,
@@ -250,7 +246,6 @@ function SummaryCard({
   )
 }
 
-/** Split a "560.6 MiB" string into its number and unit halves. */
 function splitSize(readable: string): { value: string; unit: string } {
   const [value, ...rest] = readable.split(' ')
   return { value: value ?? readable, unit: rest.join(' ') }
@@ -262,14 +257,6 @@ interface RunningQueriesChartsProps {
   compact?: boolean
 }
 
-/**
- * RunningQueriesCharts — the four-card strip above the Running Queries table.
- *
- * "Running over time" and "Queries by user" come from `system.query_log`
- * (14-day history); "Memory consumed" pairs the live active total with the
- * query-memory trend; "Summary" is aggregated straight from the live rows.
- * Every number is real — there is no synthetic series.
- */
 export const RunningQueriesCharts = function RunningQueriesCharts({
   rows,
   compact = false,
@@ -302,7 +289,6 @@ export const RunningQueriesCharts = function RunningQueriesCharts({
     refreshInterval: REFRESH_INTERVAL.SLOW_2M,
   })
 
-  // "Running over time" — 14-day query volume + a recent-vs-prior-week trend.
   const running = useMemo(() => {
     const series = (countSwr.data ?? []).map((d) => Number(d.query_count) || 0)
     const total = series.reduce((s, v) => s + v, 0)
@@ -359,7 +345,6 @@ export const RunningQueriesCharts = function RunningQueriesCharts({
     }
   }, [memorySwr.data])
 
-  // "Queries by user" — pivot the long-form rows into stacked daily bars.
   const byUser = useMemo(() => {
     const points = byUserSwr.data ?? []
     const totals = new Map<string, number>()
@@ -395,7 +380,6 @@ export const RunningQueriesCharts = function RunningQueriesCharts({
     return { data, series }
   }, [byUserSwr.data])
 
-  // "Summary" — aggregated from the live rows (initial queries only).
   const summary = useMemo((): SummaryItem[] => {
     const sum = (key: keyof RunningQueryRow) =>
       initialRows.reduce((s, r) => s + (Number(r[key]) || 0), 0)

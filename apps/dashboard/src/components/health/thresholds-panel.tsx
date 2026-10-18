@@ -34,11 +34,6 @@ import { cn } from '@/lib/utils'
 /**
  * Thresholds tab — presets first, forms only where they are needed.
  *
- * The old tab rendered all 16 checks as raw number-input pairs. This one shows a
- * single sensitivity preset that covers every check, and then only the checks
- * the operator has actually tuned away from that baseline; the rest are picked
- * from a dialog. Same storage shape (`ThresholdsMap`, sparse, key present ⇒
- * tuned), so nothing about save/load changes.
  */
 export function ThresholdsPanel({
   thresholds,
