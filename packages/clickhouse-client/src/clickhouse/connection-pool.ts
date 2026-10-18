@@ -1,10 +1,3 @@
-/**
- * ClickHouse Connection Pool
- * Manages pooled ClickHouse clients using singleton pattern
- * Reuses existing clients instead of creating new ones for each request
- * Max 10 concurrent connections per client config
- */
-
 import type { ClickHouseClient } from '@clickhouse/client'
 import type { ClickHouseClient as WebClickHouseClient } from '@clickhouse/client-web'
 
@@ -32,7 +25,6 @@ let cleanupTimer: ReturnType<typeof setInterval> | null = null
 function startPeriodicCleanup(): void {
   if (cleanupTimer) return
   cleanupTimer = setInterval(cleanupStaleClients, CLEANUP_INTERVAL)
-  // Don't prevent process from exiting
   if (
     cleanupTimer &&
     typeof cleanupTimer === 'object' &&
@@ -57,9 +49,6 @@ function secretFingerprint(secret: string): string {
   return (hash >>> 0).toString(36)
 }
 
-/**
- * Generate a pool key from client configuration and web flag
- */
 export function getPoolKey(config: ClickHouseConfig, web: boolean): PoolKey {
   // The password is part of the client's identity: without it, two configs
   // sharing host+user+web+db collide, so a rotated CLICKHOUSE_PASSWORD kept
@@ -67,13 +56,9 @@ export function getPoolKey(config: ClickHouseConfig, web: boolean): PoolKey {
   // digest goes into the key — the key itself is debug-logged below.
   const pw = secretFingerprint(config.password ?? '')
   const base = `${config.host}:${config.user}:${web}:pw=${pw}`
-  // Scope a distinct pooled client per default database.
   return config.database ? `${base}:db=${config.database}` : base
 }
 
-/**
- * Cleanup stale clients from the pool
- */
 export function cleanupStaleClients(): void {
   const now = Date.now()
   const staleKeys: PoolKey[] = []
@@ -90,9 +75,6 @@ export function cleanupStaleClients(): void {
   }
 }
 
-/**
- * Get or create a pooled client
- */
 export function getPooledClient(
   client: ClickHouseClient | WebClickHouseClient,
   config: ClickHouseConfig,
@@ -119,9 +101,6 @@ export function getPooledClient(
   return pooled
 }
 
-/**
- * Get memory usage stats for the connection pool
- */
 export function getConnectionPoolStats() {
   const clients = Array.from(clientPool.entries()).map(([key, pooled]) => ({
     key,

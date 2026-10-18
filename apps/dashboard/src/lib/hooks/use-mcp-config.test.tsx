@@ -209,7 +209,7 @@ describe('useMcpConfig across two consumers in one tab', () => {
 
     expect(sent).toEqual([])
 
-    // 1. Registering a server in the panel must reach the runtime.
+    // Registering a server in the panel must reach the runtime.
     act(() => {
       addedId =
         captured.panel?.addServer({
@@ -220,20 +220,18 @@ describe('useMcpConfig across two consumers in one tab', () => {
     expect(addedId).toBeTruthy()
     expect(sent).toEqual([{ id: addedId }])
 
-    // 2. Toggling it off must drop it from the next request, not just grey the
+    // Toggling it off must drop it from the next request, not just grey the
     //    row out in the panel.
     act(() => {
       captured.panel?.setServerEnabled(addedId, false)
     })
     expect(sent).toEqual([])
 
-    // 3. Toggling back on must bring it back.
     act(() => {
       captured.panel?.setServerEnabled(addedId, true)
     })
     expect(sent).toEqual([{ id: addedId }])
 
-    // 4. Removing it must reach the runtime too.
     act(() => {
       captured.panel?.removeServer(addedId)
     })

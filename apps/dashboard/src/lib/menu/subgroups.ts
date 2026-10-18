@@ -69,7 +69,6 @@ export function groupChildrenBySubgroup(
   return merged
 }
 
-/** Storage key for one subgroup's open state: `<group>/<subgroup>`. */
 export function subgroupKey(groupTitle: string, subgroup: string): string {
   return `${groupTitle}/${subgroup}`
 }

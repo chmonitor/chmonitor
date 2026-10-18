@@ -12,12 +12,10 @@ import { menuItemsConfig } from '@/menu'
 import type { MenuItem } from '@/components/menu/types'
 
 export interface HubSection {
-  /** Section heading, from the children's `subgroup`. */
   name: string
   items: MenuItem[]
 }
 
-/** The group row whose `hubHref` is `hubHref`, if any. */
 export function findHubGroup(
   hubHref: string,
   items: MenuItem[] = menuItemsConfig
@@ -25,7 +23,6 @@ export function findHubGroup(
   return items.find((item) => item.hubHref === hubHref)
 }
 
-/** Every group that declares a hub, in sidebar order. */
 export function getHubGroups(items: MenuItem[] = menuItemsConfig): MenuItem[] {
   return items.filter((item) => Boolean(item.hubHref))
 }

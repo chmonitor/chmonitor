@@ -27,10 +27,8 @@ export interface ChartQueryKeyParams {
   hostId?: number | string
   interval?: string
   lastHours?: number
-  /** Precompute via `serializeChartParams(params)`. */
   paramsKey: string
   timezone?: string
-  /** Precompute via `hostConnectionKey(numericHostId, browserConnection)`. */
   connectionKey: string | undefined
 }
 
@@ -98,10 +96,8 @@ export function serializeTableSearchParams(
 export interface TableQueryKeyParams {
   queryConfigName: string
   hostId?: number
-  /** Precompute via `serializeTableSearchParams(searchParams)`. */
   searchParamsKey: string
   timezone?: string
-  /** Precompute via `hostConnectionKey(hostId, browserConnection)`. */
   connectionKey: string | undefined
 }
 
@@ -122,7 +118,6 @@ export function tableQueryKey({
   ] as const
 }
 
-/** Index of `hostId` in every host-scoped key built by this module. */
 const HOST_KEY_INDEX = 2
 
 /**

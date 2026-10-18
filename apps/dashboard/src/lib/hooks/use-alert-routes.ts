@@ -1,10 +1,6 @@
 /**
- * Per-rule / per-host alert routing (plan 30). Unlike
- * `use-webhook-subscriptions.ts`, this is NOT Clerk-gated — the API
- * (`/api/v1/health/routes`) resolves an OSS single-tenant owner id when no
- * Clerk session exists, so self-hosted deployments can manage routes with
- * zero auth (see `lib/health/alert-routing-auth.ts`). Query/mutation split
- * mirrors the webhook-subscriptions hook.
+ * Not Clerk-gated: the API resolves an OSS single-tenant owner id when no
+ * Clerk session exists (see `lib/health/alert-routing-auth.ts`).
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -15,10 +11,6 @@ import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
-/**
- * Destination provider: `'webhook'` (plan 30), `'pagerduty'` (plan 34),
- * `'telegram'` (#2655), `'ntfy'` (#2657), or `'pushover'` (#2659).
- */
 export type AlertRouteProvider =
   | 'webhook'
   | 'pagerduty'
@@ -49,9 +41,9 @@ export interface AlertRouteInfo {
   pushoverUser: string | null
   /** Masked Pushover application token (last 4 chars only) — never the raw secret. */
   pushoverTokenMasked: string | null
-  /** Per-route severity floor (#2661); `null` = inherit the channel/global gate. */
+  /** Per-route severity floor; `null` = inherit the channel/global gate. */
   minSeverity: 'warning' | 'critical' | null
-  /** `file`/`env` definitions are read-only (#3497); absent = `d1`. */
+  /** `file`/`env` definitions are read-only; absent = `d1`. */
   source?: HealthDefinitionSource
 }
 
@@ -129,15 +121,13 @@ export function useAlertRoutesMutations() {
   return { createRoute, deleteRoute, invalidate }
 }
 
-/** One PagerDuty service, for the setup dialog's picker. */
 export interface PagerDutyServiceOption {
   id: string
   name: string
 }
 
 /**
- * List PagerDuty services via the account's REST API token (plan 34) — used
- * to populate the picker. Degrades to an empty list (never throws) when no
+ * Degrades to an empty list (never throws) when no
  * token is configured, so the dialog always falls back to pasting a routing
  * key by hand.
  */

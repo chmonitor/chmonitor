@@ -9,38 +9,17 @@ import type {
 
 import { fetchData } from '@chm/clickhouse-client'
 
-/**
- * Shared Zod schema for the optional `hostId` argument used by every tool.
- * Selects which configured ClickHouse host to query (default: index 0).
- */
 export const hostIdSchema = z
   .number()
   .optional()
   .describe('Host index (default: 0)')
 
 /**
- * Shared MCP tool annotations for every tool registered by this package.
- *
- * Every tool executes exactly one thing: a ClickHouse query run through
- * {@link runReadonlyFetch} / {@link runReadonlyQuery}, which force
- * `clickhouse_settings.readonly = '1'` (see `buildFetchArgs` below). That
- * makes the four hints uniform across the whole server, not just a default:
- * - `readOnlyHint: true` — never writes, matching the enforced `readonly`
- *   ClickHouse setting.
- * - `destructiveHint: false` — meaningless once `readOnlyHint` is true, but
- *   set explicitly so clients that don't special-case read-only tools still
- *   see the correct (non-destructive) signal.
- * - `idempotentHint: true` — a read has no side effects, so repeating the
- *   same call never has "additional effect" beyond the first (the MCP
- *   definition of idempotent) — true even for the freeform `query` tool,
- *   since `validateSqlQuery` restricts it to SELECT/WITH.
- * - `openWorldHint: false` — every tool talks only to the operator's own
- *   configured ClickHouse host(s) (`hostId` selects among them), a closed,
- *   known set of systems — never the open web or arbitrary external
- *   services.
- *
- * Spread this into each `server.registerTool(...)` call and add a tool-specific
- * `title` so every registration stays in sync (see #2703).
+ * Uniform across every tool: all run through {@link runReadonlyFetch}, which
+ * forces `clickhouse_settings.readonly = '1'`, and the freeform `query` tool is
+ * restricted to SELECT/WITH by `validateSqlQuery`. Only the operator's own
+ * ClickHouse hosts are contacted, hence `openWorldHint: false`. Spread into each
+ * `server.registerTool(...)` and add a tool-specific `title`.
  */
 export const READONLY_ANNOTATIONS: ToolAnnotations = {
   readOnlyHint: true,
@@ -49,7 +28,6 @@ export const READONLY_ANNOTATIONS: ToolAnnotations = {
   openWorldHint: false,
 }
 
-/** Build an error result envelope with the given (already-formatted) message. */
 export function toErrorResult(text: string): CallToolResult {
   return {
     content: [{ type: 'text' as const, text }],
@@ -58,12 +36,8 @@ export function toErrorResult(text: string): CallToolResult {
 }
 
 /**
- * Normalize any tool payload to the object shape `structuredContent` takes.
- *
- * Pre-2026 revisions type `structuredContent` as an object, so an array or a
- * scalar result (every row-returning tool) must be wrapped. One uniform rule —
- * plain object passes through, anything else becomes `{ data: <value> }` — so
- * clients can rely on the shape without per-tool knowledge.
+ * Pre-2026 revisions type `structuredContent` as an object, so arrays and
+ * scalars are wrapped as `{ data }`.
  */
 export function toStructuredContent(data: unknown): Record<string, unknown> {
   const isPlainObject =
@@ -73,14 +47,7 @@ export function toStructuredContent(data: unknown): Record<string, unknown> {
     : { data: data ?? null }
 }
 
-/**
- * Build a success result envelope from data serialized as pretty JSON.
- *
- * Emits BOTH representations required for interop: `content` text (every client
- * can read it, including pre-2025 ones) and `structuredContent` (2025-06-18+,
- * loosened to any JSON value by SEP-2106 in 2026-07-28) so modern clients get
- * machine-readable results without re-parsing the text block.
- */
+/** Emits both `content` text (pre-2025 clients) and `structuredContent`. */
 export function toJsonResult(data: unknown): CallToolResult {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
@@ -111,25 +78,13 @@ function buildFetchArgs(options: ReadonlyFetchOptions) {
   }
 }
 
-/**
- * Run a read-only ClickHouse query and return the raw fetch result.
- *
- * Applies the shared boilerplate used by every MCP tool: `format` defaults to
- * `JSONEachRow`, `clickhouse_settings.readonly` is forced to `'1'`, and
- * `hostId` defaults to `0`. Use this when a tool needs to combine several
- * queries; use {@link runReadonlyQuery} for the common single-query case.
- */
+/** For tools combining several queries; see {@link runReadonlyQuery}. */
 export function runReadonlyFetch<
   T extends FetchableData = Array<Record<string, unknown>>,
 >(options: ReadonlyFetchOptions): Promise<FetchDataResult<T>> {
   return fetchData<T>(buildFetchArgs(options))
 }
 
-/**
- * Run a single read-only ClickHouse query and map it to the MCP result
- * envelope: on error, `{ isError: true }` with `Error: <message>`; otherwise the
- * pretty-printed JSON rows.
- */
 export async function runReadonlyQuery(
   query: string,
   hostId?: number,
@@ -150,19 +105,12 @@ export async function runReadonlyQuery(
 }
 
 /**
- * Max rows returned to the model by the standalone MCP server's freeform
- * `query` tool. Mirrors
- * `apps/dashboard/src/lib/ai/agent/tools/helpers.ts` (`MAX_QUERY_RESULT_ROWS`)
- * — kept in sync manually since this package cannot import from `apps/*`.
+ * Mirrors `MAX_QUERY_RESULT_ROWS` in the dashboard agent's tool helpers; kept in
+ * sync manually since this package cannot import from `apps/*`.
  */
 export const MAX_QUERY_RESULT_ROWS = 1000
 
-/**
- * Cap an array of query result rows to `maxRows`, flagging truncation so the
- * caller can surface a visible note to the model instead of silently
- * dropping rows. Mirrors `capResultRows` in the dashboard agent's tool
- * helpers.
- */
+/** Mirrors `capResultRows` in the dashboard agent's tool helpers. */
 export function capResultRows<T>(
   data: T[],
   maxRows: number = MAX_QUERY_RESULT_ROWS
@@ -173,9 +121,6 @@ export function capResultRows<T>(
   return { data: data.slice(0, maxRows), truncated: true }
 }
 
-/**
- * Human-readable note explaining a truncated result set.
- */
 export function truncationNote(
   maxRows: number = MAX_QUERY_RESULT_ROWS
 ): string {

@@ -1,14 +1,5 @@
 'use client'
 
-/**
- * useAgentWidgetMode Hook
- *
- * Remembers whether the floating agent widget is shown as the small bottom-right
- * popover (`floating`) or docked as a full-height right sidebar (`docked`).
- * Persisted to localStorage so the preferred layout survives reloads and is
- * shared across tabs of the same browser.
- */
-
 import { useEffect, useState } from 'react'
 
 export type AgentWidgetMode = 'floating' | 'docked'
@@ -56,11 +47,7 @@ export interface UseAgentWidgetModeResult {
   toggleMode: () => void
 }
 
-/**
- * Manages the floating-vs-docked layout of the agent widget. Writing the mode
- * persists it and broadcasts a custom event so any other consumer in the tab
- * stays in sync without a reload.
- */
+/** Writing the mode persists it and broadcasts a custom event so other consumers in the tab stay in sync. */
 export function useAgentWidgetMode(): UseAgentWidgetModeResult {
   const [mode, setModeState] = useState<AgentWidgetMode>(() => getSavedMode())
 

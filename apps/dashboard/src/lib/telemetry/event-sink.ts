@@ -66,7 +66,6 @@ export function installTelemetryEventSink(
   })
 }
 
-/** Remove the event sink (teardown / tests). */
 export function uninstallTelemetryEventSink(): void {
   if (unregister) {
     unregister()

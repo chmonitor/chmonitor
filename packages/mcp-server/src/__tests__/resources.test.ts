@@ -1,6 +1,5 @@
 import { describe, expect, mock, test } from 'bun:test'
 
-// Mock fetchData before importing
 const mockFetchData = mock(() => Promise.resolve({ data: [], error: null }))
 
 mock.module('@chm/clickhouse-client', () => ({
@@ -10,13 +9,7 @@ mock.module('@chm/clickhouse-client', () => ({
 import { registerResources } from '../resources'
 import { McpServer } from '@modelcontextprotocol/server'
 
-/**
- * Resolves a resource URI the same way the SDK's internal
- * `ReadResourceRequestSchema` handler does: an exact match against
- * `_registeredResources`, falling back to the first `_registeredResourceTemplates`
- * entry whose `uriTemplate` matches. See
- * `@modelcontextprotocol/server`'s `McpServer` `setResourceRequestHandlers`.
- */
+/** Mirrors the SDK's resolution: exact match, then the first matching template. */
 async function readResource(server: McpServer, uriStr: string) {
   const uri = new URL(uriStr)
   const resources = (server as any)._registeredResources

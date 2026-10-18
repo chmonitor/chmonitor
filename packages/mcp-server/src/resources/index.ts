@@ -177,16 +177,9 @@ export function registerResources(server: McpServer) {
     }
   )
 
-  // Host-scoped variants: same data, but with an explicit {hostId} path segment
-  // so multi-host deployments can address a specific ClickHouse host, mirroring
-  // the `hostId` parameter every MCP tool already supports (see tools/helpers.ts).
-  //
-  // These are registered as a parallel `clickhouse://hosts/{hostId}/...`
-  // namespace rather than folding `{hostId}` into the existing templates above:
-  // the SDK's RFC 6570 `UriTemplate.match()` treats a `{?hostId}` query
-  // expression as a required literal, not an optional one, so a template like
-  // `clickhouse://databases{?hostId}` would fail to match the legacy
-  // (no-hostId) URI and break backward compatibility.
+  // A parallel `clickhouse://hosts/{hostId}/...` namespace rather than a
+  // `{?hostId}` query expression: the SDK's UriTemplate.match() treats it as a
+  // required literal, so it would stop matching the no-hostId URIs above.
 
   server.registerResource(
     'databases-by-host',
@@ -291,11 +284,6 @@ function jsonResource(uri: string, data: unknown[]) {
   }
 }
 
-/**
- * Runs a read-only query via the same `runReadonlyFetch` helper every MCP
- * tool uses (see tools/helpers.ts), so resources honour `hostId` the exact
- * same way tools do — including the `?? 0` default when `hostId` is omitted.
- */
 async function queryClickHouse(
   query: string,
   query_params?: Record<string, string>,
@@ -309,12 +297,7 @@ async function queryClickHouse(
   return data ?? []
 }
 
-/**
- * Parses the `{hostId}` URI template variable into a number, falling back to
- * `undefined` (which `runReadonlyFetch`/`queryClickHouse` then default to
- * host 0) for a missing or non-numeric value — fail-safe like every other
- * `hostId` entry point in this package.
- */
+/** Missing or non-numeric yields `undefined`, which defaults to host 0. */
 function parseHostId(value: string | string[] | undefined): number | undefined {
   const raw = Array.isArray(value) ? value[0] : value
   if (raw === undefined) return undefined

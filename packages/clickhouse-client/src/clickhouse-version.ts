@@ -26,9 +26,6 @@ import { QUERY_COMMENT } from './clickhouse/constants'
 import { checkTableExists } from './table-existence-cache'
 import { debug, error as logError } from '@chm/logger'
 
-/**
- * Parsed ClickHouse version
- */
 export interface ClickHouseVersion {
   major: number
   minor: number
@@ -37,10 +34,6 @@ export interface ClickHouseVersion {
   raw: string
 }
 
-/**
- * Version cache to avoid repeated queries
- * Key: hostId, Value: { version, timestamp }
- */
 const versionCache = new Map<
   number,
   { version: ClickHouseVersion; timestamp: number }
@@ -91,9 +84,6 @@ export function setVersionCacheL2Provider(
   l2CacheProvider = provider
 }
 
-/**
- * Parse a version string like "24.3.1.1" into components
- */
 export function parseVersion(versionStr: string): ClickHouseVersion {
   const parts = versionStr.split('.')
   return {
@@ -105,9 +95,6 @@ export function parseVersion(versionStr: string): ClickHouseVersion {
   }
 }
 
-/**
- * Compare two versions: returns -1 if a < b, 0 if equal, 1 if a > b
- */
 export function compareVersions(
   a: ClickHouseVersion,
   b: ClickHouseVersion
@@ -118,9 +105,6 @@ export function compareVersions(
   return 0
 }
 
-/**
- * Check if version meets minimum requirement
- */
 export function meetsMinVersion(
   version: ClickHouseVersion,
   minMajor: number,
@@ -146,17 +130,9 @@ export function dropUnsupportedSessionTimezone<
   return rest as T
 }
 
-/**
- * Get cached version or fetch from ClickHouse
- *
- * Uses raw client directly to avoid circular dependency with fetchData.
- * fetchData calls getClickHouseVersion for version-aware query selection,
- * so we can't use fetchData here.
- */
 export async function getClickHouseVersion(
   hostId: number
 ): Promise<ClickHouseVersion | null> {
-  // L1: check the per-isolate cache first
   const cached = versionCache.get(hostId)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return cached.version
@@ -196,7 +172,6 @@ async function fetchClickHouseVersion(
   }
 
   try {
-    // Get client config for this host
     const configs = getClickHouseConfigs()
     const clientConfig = configs[hostId]
 
@@ -207,7 +182,6 @@ async function fetchClickHouseVersion(
       return null
     }
 
-    // Use raw client to avoid circular dependency with fetchData
     const client = await getClient({ clientConfig })
     // getClient leases the pooled client (inUse++) — release it so the pool
     // entry stays reclaimable by cleanupStaleClients (issue #2946).
@@ -295,9 +269,6 @@ export async function checkTableHasData(
   }
 }
 
-/**
- * Table availability info
- */
 export interface TableAvailability {
   exists: boolean
   hasData: boolean
@@ -370,9 +341,6 @@ export async function checkTableAvailability(
   return { exists: true, hasData: true }
 }
 
-/**
- * Known system tables and their requirements
- */
 export const SYSTEM_TABLE_INFO: Record<
   string,
   {
@@ -429,9 +397,6 @@ export const SYSTEM_TABLE_INFO: Record<
   },
 }
 
-/**
- * Get info message for a system table
- */
 export function getTableInfoMessage(fullTableName: string): string {
   const info = SYSTEM_TABLE_INFO[fullTableName]
   if (!info) {
@@ -440,16 +405,10 @@ export function getTableInfoMessage(fullTableName: string): string {
   return info.description
 }
 
-/**
- * Clear version cache (useful for testing)
- */
 export function clearVersionCache(): void {
   versionCache.clear()
 }
 
-/**
- * Check if a version string matches a range
- */
 export function versionMatchesRange(
   version: ClickHouseVersion,
   minVersion?: string,
@@ -472,9 +431,6 @@ export function versionMatchesRange(
   return true
 }
 
-/**
- * Structured bounds for semver range parsing
- */
 export interface SemverRangeBounds {
   min?: ClickHouseVersion
   max?: ClickHouseVersion
@@ -493,29 +449,6 @@ export interface SemverRangeBounds {
  * - "^24.1" → >=24.1 <25.0 (caret: compatible with version, allow minor/patch changes)
  * - "~24.1.2" → >=24.1.2 <24.2.0 (tilde: compatible with version, allow patch changes only)
  * - "24.1" → >=24.1 <25.0 (shorthand, same as ^24.1)
- *
- * @param range - Semver range string
- * @returns Parsed bounds with inclusive/exclusive flags
- *
- * @example
- * // Parse simple range
- * const bounds = parseSemverRange('>=24.1 <24.5')
- * // → { min: {major: 24, minor: 1, ...}, max: {major: 24, minor: 5, ...},
- * //     minInclusive: true, maxInclusive: false }
- *
- * @example
- * // Parse caret range
- * const bounds = parseSemverRange('^24.1.2')
- * // → { min: {major: 24, minor: 1, patch: 2, ...},
- * //     max: {major: 25, minor: 0, patch: 0, ...},
- * //     minInclusive: true, maxInclusive: false }
- *
- * @example
- * // Parse tilde range
- * const bounds = parseSemverRange('~24.1.2')
- * // → { min: {major: 24, minor: 1, patch: 2, ...},
- * //     max: {major: 24, minor: 2, patch: 0, ...},
- * //     minInclusive: true, maxInclusive: false }
  */
 export function parseSemverRange(range: string): SemverRangeBounds {
   const bounds: SemverRangeBounds = {
@@ -523,15 +456,12 @@ export function parseSemverRange(range: string): SemverRangeBounds {
     maxInclusive: true,
   }
 
-  // Handle empty or whitespace-only range
   if (!range || !range.trim()) {
     return bounds
   }
 
   const trimmed = range.trim()
 
-  // Handle caret (^) - allows minor and patch updates
-  // ^24.1.2 → >=24.1.2 <25.0.0
   if (trimmed.startsWith('^')) {
     const version = parseVersion(trimmed.slice(1))
     bounds.min = version
@@ -546,8 +476,6 @@ export function parseSemverRange(range: string): SemverRangeBounds {
     return bounds
   }
 
-  // Handle tilde (~) - allows patch updates only
-  // ~24.1.2 → >=24.1.2 <24.2.0
   if (trimmed.startsWith('~')) {
     const version = parseVersion(trimmed.slice(1))
     bounds.min = version
@@ -562,7 +490,6 @@ export function parseSemverRange(range: string): SemverRangeBounds {
     return bounds
   }
 
-  // Handle compound ranges like ">=24.1 <24.5"
   const parts = trimmed.split(/\s+/)
   for (const part of parts) {
     if (part.startsWith('>=')) {
@@ -578,7 +505,6 @@ export function parseSemverRange(range: string): SemverRangeBounds {
       bounds.max = parseVersion(part.slice(1))
       bounds.maxInclusive = false
     } else if (part.startsWith('=') || part.match(/^\d/)) {
-      // Handle plain version number as "^version" (allow minor/patch changes)
       const version = parseVersion(part.startsWith('=') ? part.slice(1) : part)
       bounds.min = version
       bounds.minInclusive = true
@@ -595,27 +521,12 @@ export function parseSemverRange(range: string): SemverRangeBounds {
   return bounds
 }
 
-/**
- * Check if a version matches a semver range string
- *
- * @param version - ClickHouse version to check
- * @param range - Semver range string (e.g., ">=24.1", "^24.1", ">=24.1 <24.5")
- * @returns true if version matches the range, false otherwise
- *
- * @example
- * const v = parseVersion('24.3.1.1')
- * matchesSemverRange(v, '>=24.1 <24.5') // true
- * matchesSemverRange(v, '^24.1') // true (>=24.1 <25.0)
- * matchesSemverRange(v, '~24.3.1') // false (requires >=24.3.1)
- * matchesSemverRange(v, '<24.1') // false
- */
 export function matchesSemverRange(
   version: ClickHouseVersion,
   range: string
 ): boolean {
   const bounds = parseSemverRange(range)
 
-  // Check minimum version
   if (bounds.min) {
     const cmp = compareVersions(version, bounds.min)
     if (bounds.minInclusive) {
@@ -625,7 +536,6 @@ export function matchesSemverRange(
     }
   }
 
-  // Check maximum version
   if (bounds.max) {
     const cmp = compareVersions(version, bounds.max)
     if (bounds.maxInclusive) {
@@ -644,46 +554,29 @@ export function matchesSemverRange(
  * Uses the new "since" format where queries are defined chronologically
  * (oldest → newest) and the system picks the highest `since` version
  * that is <= current ClickHouse version.
- *
- * @param sqlDef - Either a simple string or array of VersionedSql
- * @param currentVersion - ClickHouse version (null-safe)
- * @returns The selected SQL query string
- *
- * @example
- * const sql = selectVersionedSql([
- *   { since: '23.8', sql: 'SELECT col1 FROM t' },
- *   { since: '24.1', sql: 'SELECT col1, col2 FROM t' },
- * ], parseVersion('24.5.1.1'))
- * // Returns: 'SELECT col1, col2 FROM t' (24.1 is highest <= 24.5)
  */
 export function selectVersionedSql(
   sqlDef: string | VersionedSql[],
   currentVersion: ClickHouseVersion | null
 ): string {
-  // If simple string, return as-is
   if (typeof sqlDef === 'string') {
     return sqlDef
   }
 
-  // If empty array, throw error
   if (!Array.isArray(sqlDef) || sqlDef.length === 0) {
     throw new Error('VersionedSql array cannot be empty')
   }
 
-  // If no version info, return oldest (first) query as fallback
   if (!currentVersion) {
     return sqlDef[0].sql
   }
 
-  // Sort entries by version descending (newest first)
-  // Create shallow copy to avoid mutating original array
   const sortedSql = [...sqlDef].sort((a, b) => {
     const versionA = parseVersion(a.since)
     const versionB = parseVersion(b.since)
     return compareVersions(versionB, versionA) // Descending order
   })
 
-  // Find highest `since` version that current version satisfies (>=)
   for (const entry of sortedSql) {
     const sinceVersion = parseVersion(entry.since)
     if (compareVersions(currentVersion, sinceVersion) >= 0) {
@@ -691,6 +584,5 @@ export function selectVersionedSql(
     }
   }
 
-  // If no match, return oldest (first in original array) as fallback
   return sqlDef[0].sql
 }

@@ -17,7 +17,6 @@ export type TelemetrySink = (payload: TelemetryPayload) => void
 
 const sinks = new Set<TelemetrySink>()
 
-/** Register a telemetry sink. Returns an unsubscribe function. */
 export function registerTelemetrySink(sink: TelemetrySink): () => void {
   sinks.add(sink)
   return () => {
@@ -25,7 +24,6 @@ export function registerTelemetrySink(sink: TelemetrySink): () => void {
   }
 }
 
-/** Drop all registered sinks (used in teardown / tests). */
 export function clearTelemetrySinks(): void {
   sinks.clear()
 }

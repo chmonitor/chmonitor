@@ -1,12 +1,8 @@
 /**
- * Fetch wrapper for first-party dashboard API calls (ported from the Next app).
- *
  * Intercepts non-stream HTML error responses (e.g. Cloudflare's "Worker
  * exceeded resource limits" page) so they surface as real errors rather than
  * being rendered as content. Framework-agnostic — used by the TanStack Query
  * hooks as the queryFn fetcher.
- *
- * Shared by TanStack Query hooks and the AI agent chat transport.
  */
 export async function apiFetch(
   input: RequestInfo | URL,

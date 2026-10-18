@@ -1,6 +1,3 @@
-/**
- * Detect Cloudflare Workers without importing server-only ClickHouse clients.
- */
 export function isCloudflareWorkers(): boolean {
   if (
     typeof process !== 'undefined' &&

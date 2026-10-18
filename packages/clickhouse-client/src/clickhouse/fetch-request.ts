@@ -1,11 +1,3 @@
-/**
- * Request-preparation seams of the fetch funnel: host/config resolution,
- * optional-table validation, and version-aware SQL selection.
- *
- * Extracted from `clickhouse-fetch.ts` — behaviour is unchanged, including the
- * exact log calls each entrypoint made before the split.
- */
-
 import type { QueryConfigLike } from '@chm/sql-builder'
 import type { ClickHouseConfig, FetchDataResult } from './types'
 
@@ -37,7 +29,6 @@ export function resolveHostConfig(
     extraNoConfigLogs = [],
   }: { label: string; extraNoConfigLogs?: string[] }
 ): HostResolution & { currentHostId: number } {
-  // Parse and validate hostId to prevent NaN
   const currentHostId = Number(hostId)
   if (Number.isNaN(currentHostId)) {
     throw new Error(`Invalid hostId: ${hostId}. Must be a valid number.`)
@@ -45,7 +36,6 @@ export function resolveHostConfig(
 
   const configs = getClickHouseConfigs()
 
-  // Check if any configs are available
   if (configs.length === 0) {
     const errorMessage =
       'No ClickHouse hosts configured. Please set CLICKHOUSE_HOST environment variable.\n' +
@@ -66,7 +56,6 @@ export function resolveHostConfig(
 
   const clientConfig = configs[currentHostId]
 
-  // Check if clientConfig exists before using it
   if (!clientConfig) {
     const availableHosts = configs.map((c) => c.id).join(', ')
     const errorMessage = `Invalid hostId: ${currentHostId}. Available hosts: ${availableHosts} (total: ${configs.length})`
@@ -199,10 +188,8 @@ export async function resolveEffectiveQuery({
   let clickhouseVersion: Awaited<ReturnType<typeof getClickHouseVersion>> = null
 
   if (queryConfig) {
-    // Get ClickHouse version for query selection
     clickhouseVersion = await getClickHouseVersion(currentHostId)
 
-    // New format: sql is an array of VersionedSql
     if (Array.isArray(queryConfig.sql)) {
       effectiveQuery = selectVersionedSql(queryConfig.sql, clickhouseVersion)
 
@@ -211,9 +198,7 @@ export async function resolveEffectiveQuery({
           `detected=${clickhouseVersion?.raw ?? 'null'}, ` +
           `selected=${effectiveQuery.substring(0, 60).replace(/\s+/g, ' ')}...`
       )
-    }
-    // Simple string sql
-    else if (typeof queryConfig.sql === 'string') {
+    } else if (typeof queryConfig.sql === 'string') {
       effectiveQuery = queryConfig.sql
     }
   }

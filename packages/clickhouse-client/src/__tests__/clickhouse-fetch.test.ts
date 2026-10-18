@@ -38,7 +38,6 @@ mock.module('../wasm/monitor-core', () => ({
     JSON.parse(await mockTransformClickHouseJsonEachRowWasmJson(input)),
 }))
 
-// Clean up all module mocks after tests complete
 afterAll(() => {
   mock.restore()
 })

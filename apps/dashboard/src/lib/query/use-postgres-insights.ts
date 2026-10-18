@@ -1,15 +1,3 @@
-/**
- * Postgres AI Insights hook.
- *
- * The Postgres analog of `use-insights.ts`, keyed by an env-based `pgHostId`
- * (index into the `POSTGRES_*` lists — the same id the agent tools and cron
- * sweep use). Reads cards from GET /api/v1/insights/postgres, auto-generates
- * once per source on mount (respecting the server throttle), filters
- * user-dismissed cards (shared localStorage, engine-prefixed keys), and exposes
- * dismiss / refresh / generate. Deliberately leaner than `useInsights` — no
- * per-user settings, model picker, or localStorage cache.
- */
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { InsightCard } from '@/lib/insights/types'

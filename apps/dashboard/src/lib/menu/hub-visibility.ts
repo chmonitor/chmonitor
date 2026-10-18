@@ -10,18 +10,13 @@ import type { HubSection } from '@/lib/menu/hub'
 import type { UnavailableVisibility } from '@/lib/menu/unavailable-visibility'
 
 export interface HubVisibilityInput {
-  /** Hrefs the user hid through the workspace (preset + custom). */
   hiddenHrefs: ReadonlySet<string>
-  /** The unavailable-pages verdict for one item. */
   visibilityOf: (item: MenuItem) => UnavailableVisibility
-  /** The local, non-persisted "Show hidden pages" toggle. */
   showHidden: boolean
 }
 
 export interface HubVisibilityResult {
-  /** Sections to render; a section with no cards left is omitted. */
   sections: HubSection[]
-  /** Pages hidden by the user's settings, whether or not they are shown. */
   hiddenCount: number
 }
 

@@ -1,9 +1,7 @@
 /**
- * Smart alert suggestions (issue #2667). Like custom rules this works
- * self-hosted without Clerk too — the API resolves a fixed single-tenant owner
- * id server-side, so the query is always enabled. GET is 501-tolerant (surfaced
- * so the panel can show a "requires a database backend" note, mirroring the
- * rule builder).
+ * Works self-hosted without Clerk: the API resolves a fixed single-tenant owner
+ * id server-side, so the query is always enabled. GET is 501-tolerant so the
+ * panel can show a "requires a database backend" note.
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'

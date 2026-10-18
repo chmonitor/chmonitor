@@ -10,22 +10,13 @@ import {
 } from '@/lib/types/user-settings'
 
 /**
- * Shared cache key for the resolved user settings.
- *
- * The settings are read by many components at once — notably `MenuItem` /
- * `SubMenuItem`, which call this hook *once per navigation entry*. Routing the
- * resolution through TanStack Query under a single key is what collapses that
- * fan-out: previously every caller ran its own `useEffect` + `apiFetch`, which
- * fired 8-16 concurrent `GET /api/v1/dashboard/settings` on a single page load
- * (measured on the cloud demo) because a plain `useState` hook has no request
- * deduplication and no shared cache.
+ * Shared cache key. `MenuItem` / `SubMenuItem` call this hook once per
+ * navigation entry; one query key dedupes what would otherwise be 8-16
+ * concurrent settings requests per page load.
  */
 export const USER_SETTINGS_QUERY_KEY = ['user-settings'] as const
 
-/**
- * Fetch default settings from backend API
- * Returns null if backend is unavailable or has no custom defaults
- */
+/** Returns null if backend is unavailable or has no custom defaults. */
 async function fetchBackendDefaults(): Promise<Partial<UserSettings> | null> {
   try {
     const response = await apiFetch('/api/v1/dashboard/settings?hostId=0')
@@ -84,8 +75,6 @@ function saveSettings(settings: UserSettings): void {
 /**
  * Resolve the effective settings: locally stored values win outright; only a
  * first-run browser (nothing in localStorage) consults the backend defaults.
- * Extracted so it can run as a query function — identical logic to the previous
- * in-effect implementation.
  */
 export async function resolveUserSettings(): Promise<UserSettings> {
   const stored = loadSettings()
@@ -119,9 +108,8 @@ export function useUserSettings() {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: false,
-    // localStorage does not exist during SSR. Keeping the query disabled on the
-    // server preserves the previous behaviour, where resolution happened in a
-    // client-only effect and the first render always matched the server output.
+    // localStorage does not exist during SSR; staying disabled keeps the first
+    // render identical to the server output.
     enabled: typeof window !== 'undefined',
   })
 
@@ -142,9 +130,8 @@ export function useUserSettings() {
   return {
     settings: data ?? DEFAULT_USER_SETTINGS,
     updateSettings,
-    // Mirrors the previous flag: false until the client-side resolution lands,
-    // so hydration-sensitive consumers still avoid rendering stored values on
-    // the server pass.
+    // False until client-side resolution lands, so hydration-sensitive
+    // consumers avoid rendering stored values on the server pass.
     mounted: !isPending && data !== undefined,
   }
 }

@@ -12,8 +12,8 @@ describe('track', () => {
     const seen: TelemetryPayload[] = []
     registerTelemetrySink((payload) => seen.push(payload))
 
-    track('app_loaded', { num_hosts: 1 }, { DO_NOT_TRACK: '1' }) // opt-out wins
-    track('health_viewed', {}, { CHM_TELEMETRY: 'off' }) // explicit off
+    track('app_loaded', { num_hosts: 1 }, { DO_NOT_TRACK: '1' })
+    track('health_viewed', {}, { CHM_TELEMETRY: 'off' })
 
     expect(seen).toHaveLength(0)
   })

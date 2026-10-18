@@ -1,11 +1,3 @@
-/**
- * JSONEachRow → normalized-JSON fetching.
- *
- * Extracted from `clickhouse-fetch.ts` (which re-exports
- * `fetchJsonEachRowAsNormalizedJson` unchanged). Streams the raw JSONEachRow
- * text through the WASM normalizer instead of parsing it in JS.
- */
-
 import type { QueryParams } from '@clickhouse/client'
 
 import type { QueryConfigLike } from '@chm/sql-builder'

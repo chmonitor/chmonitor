@@ -26,9 +26,7 @@ export interface MergedHostInfo extends HostInfo {
    * engine. Fail-closed: defaults to `'clickhouse'` everywhere.
    */
   engine: SourceEngine
-  /** True for the public cloud demo — writes/agent are disabled on it. */
   readOnly?: boolean
-  /** Server-stored connection UUID when source is database. */
   connectionId?: string
 }
 
@@ -56,11 +54,6 @@ export function isServerHost(source: MergedHostInfo['source']): boolean {
  *
  * Self-hosted (default, cloud mode off) is unchanged: env hosts are `env`,
  * always shown, full access.
- *
- * @example
- * ```typescript
- * const { hosts, isLoading } = useMergedHosts()
- * ```
  */
 export function useMergedHosts() {
   const { hosts: envHosts, error, isLoading, isUnauthorized } = useHosts()
@@ -150,9 +143,7 @@ export function useMergedHosts() {
     isLoading:
       isLoading || !mounted || (dbFeatureEnabled && isSignedIn && dbLoading),
     getConnectionByHostId,
-    /** Cloud SaaS mode is active for this deployment. */
     cloudMode,
-    /** Whether the visitor is signed in (always false outside Clerk builds). */
     isSignedIn,
   }
 }

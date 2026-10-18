@@ -23,9 +23,7 @@ import { getLicenseKey, sanitizeLicenseKey } from './license-key'
 import { redactPingPayload } from './redact'
 import { APP_VERSION } from '@/lib/whats-new/app-version'
 
-// Constants
-
-export const PING_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24 hours
+export const PING_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 const STORAGE_KEY_INSTANCE_ID = 'chm_telemetry_instance_id'
 const STORAGE_KEY_LAST_PING = 'chm_telemetry_last_ping_at'
@@ -36,13 +34,6 @@ const STORAGE_KEY_LAST_PING = 'chm_telemetry_last_ping_at'
 export const DEFAULT_TELEMETRY_ENDPOINT =
   'https://telemetry.chmonitor.dev/v1/ping'
 
-// Pure helpers (no globals — unit-testable in isolation)
-
-/**
- * Returns true when a ping is due.
- * - Always true when lastPingAt is null (never pinged).
- * - True when >= intervalMs has elapsed since the last ping.
- */
 export function shouldPing(
   now: number,
   lastPingAt: number | null,
@@ -126,11 +117,8 @@ export function getPingEndpoint(
   if (runtimeEnv) {
     return runtimeEnv.CHM_TELEMETRY_ENDPOINT ?? DEFAULT_TELEMETRY_ENDPOINT
   }
-  // Client bundle: build-time inline
   return import.meta.env.VITE_TELEMETRY_ENDPOINT ?? DEFAULT_TELEMETRY_ENDPOINT
 }
-
-// Orchestrator with injected dependencies (for testability)
 
 export type PingResult =
   | 'skipped-disabled'
@@ -139,40 +127,24 @@ export type PingResult =
   | 'pinged'
 
 export interface PingDeps {
-  /** isTelemetryEnabled(runtimeEnv) */
   enabled: boolean
-  /** getPingEndpoint(runtimeEnv) */
   endpoint: string
-  /** Date.now() */
   now: number
-  /** localStorage.getItem */
   getItem: (k: string) => string | null
-  /** localStorage.setItem */
   setItem: (k: string, v: string) => void
-  /** crypto.randomUUID */
   randomId: () => string
-  /** SHA-256 hex digest of s */
   hash: (s: string) => Promise<string>
-  /** POST url with body (fire-and-forget at this layer; caller may catch) */
   post: (url: string, body: string) => Promise<void>
-  /** Raw ClickHouse version string (optional) */
   version?: string
-  /** ClickHouse server hostname (optional) */
   chHostname?: string
-  /** Deploy target string */
   deployTarget: string
-  /** Detect ClickHouse flavor (oss/altinity/cloud/unknown) */
   detectFlavor: (
     version: string | null | undefined,
     hostname?: string | null
   ) => string
-  /** Detect country from timezone (privacy-safe) */
   detectCountry: () => string
-  /** Detect platform/OS from userAgent (generic categories only) */
   detectPlatform: () => string
-  /** CHM product version string (e.g. '0.3.1') */
   chmVersion?: string
-  /** Compute install_place hash from deployment environment signals */
   computeInstallPlace: () => Promise<string | undefined>
   /** Polar checkout id (`CHM_LICENSE_KEY`) when already resolved. */
   licenseKey?: string
@@ -288,8 +260,6 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
   return 'pinged'
 }
 
-// Browser entrypoint
-
 async function sha256hex(s: string): Promise<string> {
   const enc = new TextEncoder()
   const buf = await crypto.subtle.digest('SHA-256', enc.encode(s))
@@ -331,7 +301,6 @@ export function maybePingInstance(
   chVersion?: string,
   chHostname?: string
 ): void {
-  // Guard: require browser globals before attempting anything.
   if (
     typeof window === 'undefined' ||
     typeof localStorage === 'undefined' ||

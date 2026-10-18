@@ -1,13 +1,3 @@
-/**
- * Cluster Count Hook
- *
- * Fetches cluster-level counts via SWR with appropriate caching.
- * Uses a 30-second refresh interval for critical operational metrics.
- *
- * Unlike menu counts (2-minute refresh), cluster counts are more critical
- * as they indicate potential issues like readonly tables or replication lag.
- */
-
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { apiFetch } from './api-fetch'
@@ -21,7 +11,6 @@ interface ClusterCountResult {
   count: number | null
   isLoading: boolean
   error?: Error
-  /** Mutate function to manually refresh the data */
   refresh: () => void
 }
 
@@ -31,19 +20,6 @@ interface ClusterCountResponse {
   error?: { message: string }
 }
 
-/**
- * Fetches a cluster count by key for a specific cluster.
- *
- * Features:
- * - 30-second refresh interval (critical operational data)
- * - 15-second deduping to prevent duplicate requests
- * - Revalidates on focus (critical metrics should be fresh)
- * - Returns null on error to prevent UI disruption
- *
- * @param countKey - The count key from cluster-count-registry
- * @param hostId - The current host ID
- * @param cluster - The cluster name (required)
- */
 export function useClusterCount(
   countKey: string | undefined,
   hostId: number,

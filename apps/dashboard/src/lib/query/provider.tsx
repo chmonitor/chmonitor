@@ -9,16 +9,11 @@ import { useEffect, useState } from 'react'
 import { USER_CONNECTIONS_QUERY_PREFIX } from '@/lib/hooks/use-user-connections'
 import { USER_SETTINGS_QUERY_KEY } from '@/lib/hooks/use-user-settings'
 
-/** Max concurrent invalidations per refresh tick. */
 export const REFRESH_BATCH_SIZE = 6
 
 /** Pause between refresh batches so the Worker/ClickHouse burst stays bounded. */
 export const REFRESH_BATCH_DELAY_MS = 50
 
-/**
- * Invalidate currently-active queries in chunks instead of one
- * `invalidateQueries({ type: 'active' })` fan-out.
- */
 export async function invalidateActiveQueriesInBatches(
   queryClient: QueryClient,
   options?: { batchSize?: number; delayMs?: number }
@@ -65,10 +60,6 @@ const NEVER_PERSIST_QUERY_KEYS = new Set<string>([
   String(USER_SETTINGS_QUERY_KEY[0]),
 ])
 
-/**
- * Decide whether a query may be written to the persisted cache. Exported so the
- * exclusions can be tested without rendering the provider.
- */
 /**
  * PeerDB `/mirrors/status`, batches, logs, and per-table counts are large
  * (hundreds of QRep partitions). Persisting them blows the ~5 MB localStorage

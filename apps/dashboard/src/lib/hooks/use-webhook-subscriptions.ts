@@ -1,9 +1,3 @@
-/**
- * Outbound webhook subscriptions (plan 44). Mirrors
- * `use-user-connections.ts`'s query/mutation split exactly — same Clerk +
- * feature-flag gating, same `apiFetch`/`throwIfNotOk` helpers.
- */
-
 import type { QueryClient } from '@tanstack/react-query'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
@@ -18,7 +12,7 @@ export interface WebhookSubscriptionInfo {
   url: string
   eventTypes: string[]
   enabled: boolean
-  /** 'user' (default): only the creator's own events. 'instance' (#2664):
+  /** 'user' (default): only the creator's own events. 'instance':
    * also eligible for alert.fired/alert.resolved (env/operator hosts, no
    * per-user owner) — see event-types.ts's docblock. */
   scope: 'user' | 'instance'

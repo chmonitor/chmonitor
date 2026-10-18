@@ -1,28 +1,11 @@
 /**
- * @chm/query-advisor-core — the shared ClickHouse query-advisor engine.
+ * @chm/query-advisor-core: the ClickHouse query-advisor engine shared by
+ * `apps/dashboard/src/lib/ai/advisor/` and `packages/mcp-server/src/tools/advisor/`.
+ * Scores skip-index, projection, partition-key and PREWHERE candidates and ranks
+ * them by estimated granules/bytes saved.
  *
- * Given a slow query, this package scores candidate ClickHouse-specific
- * optimizations (skip index, projection, partition key, PREWHERE rewrite) and
- * ranks them by estimated granules/bytes saved. It is the single source of
- * truth for two surfaces that used to carry byte-for-byte copies of the same
- * logic (issue #2936):
- *
- *  - `apps/dashboard/src/lib/ai/advisor/` (agent tool + `/api/v1/advisor`)
- *  - `packages/mcp-server/src/tools/advisor/` (`get_optimization_recommendations`)
- *
- * ABSOLUTE INVARIANT: this package RECOMMENDS ONLY. It does no I/O at all —
- * callers gather EXPLAIN/schema/parts data with their own read-only fetcher,
- * hand it over as a `QueryContext`, and get back inert data (strings +
- * numbers). No function here executes, applies, or mutates anything, and none
- * should ever be added — see `src/recommend-only.test.ts` for the enforcing
- * test.
- *
- * Layers:
- *  - `types.ts` — the shared vocabulary (`QueryContext`, `Recommendation`, …).
- *  - `sql-parsing.ts` — hand-rolled, best-effort SQL/EXPLAIN parsing.
- *  - `advisor-errors.ts` — shared no-table / missing-input classification.
- *  - `scorers.ts` — the pure scoring rules + ranking.
- *  - `impact.ts` — estimate math and the honest estimate summaries.
+ * ABSOLUTE INVARIANT: RECOMMENDS ONLY. No I/O; callers gather EXPLAIN/schema/parts
+ * data with their own read-only fetcher and get back inert strings and numbers.
  */
 
 export {

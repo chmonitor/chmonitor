@@ -26,7 +26,6 @@ const DISABLED_VALUES = new Set(['off', '0', 'false', 'no'])
 // values mean "tracking allowed"; anything else that is set opts out.
 const DNT_DISABLED_VALUES = new Set(['0', 'false', 'no', ''])
 
-/** True when the value explicitly turns telemetry off (off/0/false/no). */
 export function isTelemetryFlagDisabled(
   value: string | null | undefined
 ): boolean {
@@ -52,7 +51,6 @@ export function isTelemetryEnabled(
   if (isDoNotTrack(source.DO_NOT_TRACK ?? import.meta.env.VITE_DO_NOT_TRACK)) {
     return false
   }
-  // On by default: enabled unless explicitly disabled.
   return !isTelemetryFlagDisabled(
     source.CHM_TELEMETRY ?? import.meta.env.VITE_TELEMETRY_ENABLED
   )

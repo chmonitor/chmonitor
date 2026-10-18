@@ -1,8 +1,4 @@
-// parse-email.ts — MIME parsing layer for the bug-handler worker.
-//
-// Uses postal-mime (workerd-compatible) to turn the raw email stream into a
-// structured object.  extractSentryMeta does a best-effort parse of common
-// Sentry alert fields from the subject/body; it never throws.
+// postal-mime (workerd-compatible) parsing; extractSentryMeta is best-effort and never throws.
 
 import PostalMime from 'postal-mime'
 
@@ -48,23 +44,11 @@ const RE_PROJECT = /\bproject(?:\s+name)?[:\s]+([^\s,\n|]+)/i
 
 const RE_ENV = /\benvironment[:\s]+([^\s,\n|]+)/i
 
-/**
- * Sentry short IDs look like "PROJ-1A2B" or "PROJ-123".
- * Match the first word that looks like an all-caps project prefix + dash + alphanumeric.
- */
+/** Sentry short IDs look like "PROJ-1A2B" or "PROJ-123". */
 const RE_SHORT_ID = /\b([A-Z][A-Z0-9_-]+-[A-Z0-9]{3,})\b/
 
-/**
- * Culprit lines often appear after "Culprit:" or "in " patterns in the body.
- * We look for the first "Culprit:" label.
- */
 const RE_CULPRIT = /\bculprit[:\s]+([^\n]+)/i
 
-/**
- * Best-effort extraction of Sentry alert metadata from a parsed email.
- * Returns undefined when no Sentry signals are found.
- * Never throws.
- */
 export function extractSentryMeta(
   subject: string,
   text: string
@@ -101,7 +85,6 @@ export function extractSentryMeta(
     const shortIdMatch = combined.match(RE_SHORT_ID)
     const shortId = shortIdMatch ? shortIdMatch[1] : undefined
 
-    // Only return metadata when at least one Sentry signal exists
     if (
       !issueUrl &&
       !level &&
@@ -123,15 +106,10 @@ export function extractSentryMeta(
 
     return meta
   } catch {
-    // Never propagate — best-effort only
     return undefined
   }
 }
 
-/**
- * Parse a raw email (ReadableStream, ArrayBuffer, or string) into a structured
- * `ParsedEmail` object.  Uses postal-mime which is fully workerd-compatible.
- */
 export async function parseEmail(
   raw: ReadableStream<Uint8Array> | ArrayBuffer | string
 ): Promise<ParsedEmail> {
@@ -163,11 +141,9 @@ export async function parseEmail(
 
   const parsed = await parser.parse(input)
 
-  // Normalise the from field — postal-mime exposes { address, name }
   const fromAddress = parsed.from?.address ?? ''
   const fromName = parsed.from?.name || undefined
 
-  // Collect all To addresses
   const to = (parsed.to ?? [])
     .map((r) => r.address)
     .filter((a): a is string => Boolean(a))

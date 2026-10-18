@@ -8,12 +8,6 @@
 
 import type { MenuItem } from '@/components/menu/types'
 
-/**
- * Recursively flattens a menu tree into leaf items (items with a real href).
- * Parent group headers (`href: ''`, e.g. "Queries", "Tables") are dropped —
- * they aren't independently navigable and can't be favorited themselves, but
- * their children are still included.
- */
 export function flattenMenuItems(items: readonly MenuItem[]): MenuItem[] {
   return items.flatMap((item) => {
     const children = item.items ? flattenMenuItems(item.items) : []
@@ -21,10 +15,6 @@ export function flattenMenuItems(items: readonly MenuItem[]): MenuItem[] {
   })
 }
 
-/**
- * Resolves pinned hrefs (in pin order) against the live menu tree. Hrefs that
- * no longer match any menu item are dropped silently.
- */
 export function getFavoriteMenuItems(
   items: readonly MenuItem[],
   favoriteHrefs: readonly string[]

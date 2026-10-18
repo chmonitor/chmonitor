@@ -1,12 +1,3 @@
-/**
- * Maintenance windows (plan 28) — client hook for the /api/v1/health/maint-windows
- * CRUD endpoint. Unlike webhook subscriptions, this feature is free/OSS and
- * does NOT require Clerk sign-in: the server resolves the caller's owner
- * (Clerk org/user when signed in, `''` OSS single-tenant otherwise) and the
- * global /api/v1 middleware already gates the request per the deployment's
- * auth posture — this hook just calls the endpoint and surfaces the result.
- */
-
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
@@ -24,7 +15,7 @@ export interface MaintenanceWindowInfo {
   endsAt: number
   createdBy: string
   createdAt: number
-  /** `file`/`env` definitions are read-only (#3497); absent = `d1`. */
+  /** `file`/`env` definitions are read-only; absent = `d1`. */
   source?: HealthDefinitionSource
 }
 

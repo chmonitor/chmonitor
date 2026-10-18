@@ -1,40 +1,9 @@
-/**
- * Running query summary transformation utilities.
- *
- * These functions transform running query metrics into structured formats
- * suitable for display in overview cards and summaries.
- */
-
 import type {
   SummaryDataTransformed,
   SummaryInputData,
   SummaryMetricsItem,
 } from '../types'
 
-/**
- * Transforms running query summary data into a structured format for display.
- *
- * Similar to merge summary but optimized for query monitoring,
- * extracting memory usage, query count, and row throughput metrics.
- *
- * @param data - Combined API response with nested metric arrays
- * @returns Transformed data with primary display info and metric items
- * @returns null if required data (main, totalMem, rowsReadWritten) is missing
- *
- * @example
- * ```ts
- * const input = {
- *   main: [{ query_count: 5, memory_usage: 1024, readable_memory_usage: '1 GiB' }],
- *   totalMem: [{ total: 8192, readable_total: '8 GiB' }],
- *   rowsReadWritten: [{ rows_read: 1000, rows_written: 500, ... }],
- *   todayQueryCount: [{ query_count: 1000 }],
- * }
- *
- * const result = transformRunningQueriesSummaryData(input)
- * // result.primary = { memoryUsage: '1 GiB', queryCount: 5, description: '...' }
- * // result.items = [formatted comparison items]
- * ```
- */
 export function transformRunningQueriesSummaryData(
   data: SummaryInputData
 ): SummaryDataTransformed | null {

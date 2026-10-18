@@ -1,10 +1,7 @@
 /**
- * Built-in check alerts (#3438): the operator's display name per built-in
- * alert, keyed by the stable check id (= `alert_state` / ACK `ruleId`).
- *
- * `GET /api/v1/health/check-alerts` always answers (defaults with no metadata
- * DB), so the list and name resolution work read-only. Rename / reset are
- * write controls — gate them on `useHealthStoreAvailability`.
+ * Operator display name per built-in alert, keyed by the stable check id
+ * (= `alert_state` / ACK `ruleId`). The GET always answers, so names resolve
+ * read-only; gate rename / reset on `useHealthStoreAvailability`.
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -16,7 +13,6 @@ import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
 export interface CheckAlertInfo {
   checkId: string
-  /** Always equal to `checkId`. */
   ruleId: string
   name: string
   defaultName: string

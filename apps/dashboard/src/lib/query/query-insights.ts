@@ -1,12 +1,4 @@
 /**
- * Heuristic, fully client-side query insights for the /query detail page.
- *
- * These are cheap red-flags derived from the `system.query_log` row the page
- * already loads — no extra fetch, no LLM. They surface the obvious "why is this
- * slow / why did it fail" signals a human would point at first: a thrown
- * exception, a long duration, a large memory footprint, a full scan, or a tiny
- * result set relative to rows read.
- *
  * Keep the bar conservative — only flag what is clearly actionable, so the
  * section earns trust rather than crying wolf.
  */
@@ -17,12 +9,10 @@ export interface QueryInsightInput {
   type?: string
   exception_code?: number | string
   exception_text?: string
-  /** Seconds (query_log.query_duration_ms / 1000). */
   query_duration?: number | string
   read_rows?: number | string
   result_rows?: number | string
   written_rows?: number | string
-  /** Bytes. */
   memory_usage?: number | string
   /** query_log.query_cache_usage — a 0..1 ratio. */
   query_cache_usage?: number | string
@@ -59,11 +49,6 @@ function hasWhereClause(query: string): boolean {
   return /\bWHERE\b/i.test(query)
 }
 
-/**
- * Derive insight cards from a single query-log row. Order is stable: critical
- * findings first, then warnings, then info — so the most important signal is
- * seen first.
- */
 export function deriveQueryInsights(row: QueryInsightInput): QueryInsight[] {
   const insights: QueryInsight[] = []
 
@@ -74,7 +59,6 @@ export function deriveQueryInsights(row: QueryInsightInput): QueryInsight[] {
   const exceptionCode = toNum(row.exception_code)
   const query = row.query ?? ''
 
-  // 1. Exception — the single most useful signal on a failed query.
   if (exceptionCode !== 0) {
     insights.push({
       id: 'exception',
@@ -86,7 +70,6 @@ export function deriveQueryInsights(row: QueryInsightInput): QueryInsight[] {
     })
   }
 
-  // 2. Duration.
   if (duration >= DURATION_CRITICAL_S) {
     insights.push({
       id: 'duration-critical',
@@ -103,7 +86,6 @@ export function deriveQueryInsights(row: QueryInsightInput): QueryInsight[] {
     })
   }
 
-  // 3. Memory.
   if (memory >= MEMORY_CRITICAL_B) {
     insights.push({
       id: 'memory-critical',
@@ -122,7 +104,7 @@ export function deriveQueryInsights(row: QueryInsightInput): QueryInsight[] {
     })
   }
 
-  // 4. Full-scan heuristic — SELECT without a WHERE. Deliberately info-level
+  // Full-scan heuristic — SELECT without a WHERE. Deliberately info-level
   //    (a missing WHERE is sometimes intended, e.g. small dimension tables).
   if (query && looksLikeSelect(query) && !hasWhereClause(query)) {
     insights.push({
@@ -134,7 +116,7 @@ export function deriveQueryInsights(row: QueryInsightInput): QueryInsight[] {
     })
   }
 
-  // 5. Low selectivity — read a lot, returned a little. Only when material.
+  // Low selectivity — read a lot, returned a little. Only when material.
   if (
     readRows >= SELECTIVITY_MIN_READ &&
     resultRows > 0 &&

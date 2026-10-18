@@ -1,12 +1,4 @@
 /**
- * PeerDB AI Insights hook.
- *
- * The PeerDB analog of `use-postgres-insights.ts`, and of `use-insights.ts` for
- * ClickHouse. Reads cards from `GET /api/v1/insights/peerdb`, auto-generates
- * once per session when nothing is stored (respecting the server throttle),
- * filters user-dismissed cards through the same shared localStorage keys, and
- * exposes dismiss / refresh / generate.
- *
  * ## Why PeerDB findings are page-local, not in the global strip
  *
  * The shared surfaces (`useInsights` → `insights-strip` / `insights-panel` /
@@ -22,9 +14,6 @@
  * dimension is the PeerDB connection. The decision is deliberate, not an
  * omission: mixing engines into one strip would either mislead the host
  * dimension or ship a chart-less card.
- *
- * Deliberately leaner than `useInsights` — no per-user settings, model picker,
- * or localStorage cache — matching the Postgres pair exactly.
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -58,7 +47,6 @@ export interface UsePeerDBInsightsResult {
   readonly counts: { critical: number; warning: number; info: number }
   isLoading: boolean
   isGenerating: boolean
-  /** True when PeerDB is not configured on this deployment. */
   isUnavailable: boolean
   refresh: () => void
   generate: () => void

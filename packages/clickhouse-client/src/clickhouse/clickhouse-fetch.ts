@@ -1,15 +1,3 @@
-/**
- * ClickHouse Data Fetching
- * Main fetchData function for executing queries with error handling
- *
- * The pieces of the funnel live in sibling modules so they can be tested in
- * isolation:
- * - `fetch-headers.ts` — response-header / JSONEachRow parsers (pure)
- * - `fetch-request.ts` — host resolution, optional-table check, versioned SQL
- * - `fetch-errors.ts` — error classification, logging, error-result shape
- * - `fetch-normalize.ts` — `fetchJsonEachRowAsNormalizedJson`
- */
-
 import type { QueryParams } from '@clickhouse/client'
 
 import type { QueryConfigLike } from '@chm/sql-builder'
@@ -35,9 +23,6 @@ export type { FetchJsonEachRowTextResult } from './fetch-normalize'
 
 export { fetchJsonEachRowAsNormalizedJson } from './fetch-normalize'
 
-/**
- * Fetch data from ClickHouse with comprehensive error handling
- */
 export const fetchData = async <
   T extends
     | unknown[]
@@ -89,7 +74,6 @@ export const fetchData = async <
       : clientConfig
 
   try {
-    // Perform table validation if queryConfig is provided and query is optional
     const skipped = await checkOptionalTables({
       queryConfig,
       currentHostId,
@@ -108,7 +92,6 @@ export const fetchData = async <
     })
 
     try {
-      // Select version-appropriate query
       const { effectiveQuery, clickhouseVersion } = await resolveEffectiveQuery(
         { query, queryConfig, currentHostId }
       )
@@ -125,7 +108,6 @@ export const fetchData = async <
 
       const query_id = resultSet.query_id
 
-      // Use the client's json() method which handles format-specific parsing
       const data = (await resultSet.json()) as T
 
       // Lazily serialize the parsed data — only needed for debug logging and the
@@ -180,9 +162,7 @@ export const fetchData = async <
         duration,
         rows,
         host: redactHostCredentials(clientConfig.host),
-        // Include detected ClickHouse version
         clickhouseVersion: clickhouseVersion?.raw ?? 'unknown',
-        // Include the actual SQL that was executed (normalized for readability)
         sql: effectiveQuery.replace(/\s+/g, ' ').trim(),
       }
 
@@ -203,7 +183,6 @@ export const fetchData = async <
         metadata.rows_before_limit_at_least = rowsBeforeLimitAtLeast
       }
 
-      // Include raw response for debugging (lazily evaluated to avoid performance overhead)
       Object.defineProperties(metadata, {
         rawResponseLength: {
           get() {

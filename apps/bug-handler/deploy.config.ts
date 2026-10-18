@@ -1,10 +1,5 @@
-// Deploy manifest for scripts/deploy-worker.ts — declares which env vars and
-// secrets this worker needs so the unified deploy script never guesses.
-//
-// wrangler.toml already ships committed defaults for the vars below ([vars] /
-// [env.preview.vars]); listing them here only lets an operator override them
-// via env files without editing wrangler.toml. See apps/bug-handler/wrangler.toml
-// for the full behavioural description.
+// Env vars and secrets for scripts/deploy-worker.ts. wrangler.toml ships the
+// defaults; listing a var here only lets env files override it.
 export default {
   vars: [
     'GITHUB_REPOSITORY',

@@ -1,11 +1,3 @@
-/**
- * Quiet hours (#2662) — client hook for the /api/v1/health/quiet-hours CRUD
- * endpoint. Like maintenance windows, this is a free/OSS feature that does NOT
- * require Clerk sign-in: the server resolves the caller's owner and the global
- * /api/v1 middleware gates the request per the deployment's auth posture — this
- * hook just calls the endpoint and surfaces the result.
- */
-
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
@@ -24,7 +16,7 @@ export interface QuietHoursInfo {
   severityCap: 'critical' | null
   createdBy: string
   createdAt: number
-  /** `file`/`env` definitions are read-only (#3497); absent = `d1`. */
+  /** `file`/`env` definitions are read-only; absent = `d1`. */
   source?: HealthDefinitionSource
 }
 

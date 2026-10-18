@@ -1,17 +1,5 @@
 'use client'
 
-/**
- * useInsightsSettings — per-user AI Insights preferences.
- *
- * Persists the operator's insight settings (model / prompt style / enrichment /
- * window) to localStorage and broadcasts a CustomEvent so every consumer on the
- * page (the panel, the settings page, any summary widget) stays in sync without
- * a reload. Mirrors `useAgentModel` and the dismissed-insights store.
- *
- * The stored value is always run through `sanitizeInsightsSettings`, so a
- * corrupt or partial payload degrades to defaults rather than breaking the UI.
- */
-
 import { useCallback, useEffect, useState } from 'react'
 import {
   DEFAULT_INSIGHTS_SETTINGS,
@@ -51,9 +39,7 @@ function emitChange(settings: InsightsSettings): void {
 
 export interface UseInsightsSettingsResult {
   readonly settings: InsightsSettings
-  /** Merge a partial update, persist, and broadcast. */
   update: (patch: Partial<InsightsSettings>) => void
-  /** Reset to defaults. */
   reset: () => void
 }
 

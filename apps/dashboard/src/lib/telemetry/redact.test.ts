@@ -75,11 +75,11 @@ describe('redactProps', () => {
       num_hosts: 3,
       enabled: true,
       duration_ms: 1200,
-      host: 'ch.internal', // blocked key
-      email: 'me@example.com', // blocked key
-      note: 'reach me@example.com', // sensitive value
-      endpoint: 'https://x', // blocked key
-      missing: undefined, // dropped (undefined)
+      host: 'ch.internal',
+      email: 'me@example.com',
+      note: 'reach me@example.com',
+      endpoint: 'https://x',
+      missing: undefined,
     })
 
     expect(out).toEqual({

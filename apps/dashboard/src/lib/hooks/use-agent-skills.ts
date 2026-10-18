@@ -1,12 +1,4 @@
-/**
- * useAgentSkills Hook
- *
- * Manages which "skill" bundles are active. A skill maps to a fixed set of
- * MCP tools — toggling a skill off disables every tool it owns so the agent
- * surface stays narrow.
- *
- * Persists to localStorage so the choice survives page reloads.
- */
+/** A skill maps to a fixed set of MCP tools; toggling it off disables every tool it owns. */
 
 'use client'
 

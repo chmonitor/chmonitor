@@ -1,19 +1,8 @@
 'use client'
 
-/**
- * useInsightsBackend Hook
- *
- * Reports which storage backend the engine uses to persist AI Insights
- * (`INSIGHTS_STORE_BACKEND`). The backend is fixed at deploy time, so the
- * result is fetched once and module-cached. Mirrors `use-conversation-backend`.
- *
- * Fails safe: any error resolves to the ClickHouse backend (the default).
- */
-
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
-/** Known insight storage backend identifiers. */
 export type InsightsBackendKind =
   | 'clickhouse'
   | 'd1'
@@ -21,7 +10,6 @@ export type InsightsBackendKind =
   | 'agentstate'
   | 'memory'
 
-/** Human-readable label for each backend kind. */
 export const INSIGHTS_BACKEND_LABELS: Record<InsightsBackendKind, string> = {
   clickhouse: 'ClickHouse (cluster)',
   d1: 'Cloudflare D1',
@@ -50,8 +38,7 @@ const VALID = new Set<InsightsBackendKind>([
   'memory',
 ])
 
-// Module-level cache so the endpoint is hit once per page load regardless of
-// how many components mount the hook.
+// Backend is fixed at deploy time: fetched once per page load.
 let cachedData: InsightsBackendData | null = null
 let inFlight: Promise<InsightsBackendData> | null = null
 
@@ -84,9 +71,6 @@ async function fetchBackend(): Promise<InsightsBackendData> {
   return inFlight
 }
 
-/**
- * Hook returning the active insights storage backend (read-only).
- */
 export function useInsightsBackend(): UseInsightsBackendResult {
   const [state, setState] = useState<UseInsightsBackendResult>({
     backend: cachedData?.backend ?? 'clickhouse',
@@ -114,7 +98,7 @@ export function useInsightsBackend(): UseInsightsBackendResult {
   return state
 }
 
-/** Test-only: clear the module cache so the next mount refetches. */
+// Test-only: clear the module cache so the next mount refetches.
 export function __resetInsightsBackendCache(): void {
   cachedData = null
   inFlight = null

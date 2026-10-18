@@ -1,6 +1,5 @@
 import { describe, expect, mock, test } from 'bun:test'
 
-// Mock fetchData before importing tools
 mock.module('@chm/clickhouse-client', () => ({
   fetchData: async () => ({ data: [], error: null }),
 }))
@@ -20,11 +19,8 @@ describe('registerAllTools', () => {
 })
 
 describe('tool annotations (#2703)', () => {
-  // The MCP SDK keeps registrations in `_registeredTools` (name → { title,
-  // annotations, ... }). In v2, `title` is a top-level config property (not
-  // inside annotations). Internal, but the only introspection surface that
-  // doesn't require a connected transport — same approach as the
-  // MCP_TOOLS-vs-registered-tools drift test.
+  // `_registeredTools` is internal, but the only introspection surface that
+  // needs no connected transport. In v2 `title` is top-level, not in annotations.
   function registeredTools(): Record<
     string,
     { title?: string; annotations?: ToolAnnotations }

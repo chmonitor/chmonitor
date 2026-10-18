@@ -1,9 +1,4 @@
 /**
- * TanStack Query hooks for the per-user MCP server registry
- * (`/api/v1/mcp/servers`) plus the `/api/v1/mcp/probe` test-connection helper.
- *
- * Matches the codebase data-fetching pattern (apiFetch + useQuery/useMutation).
- * The list query and every mutation share one query key so mutations invalidate
  * the list. Secrets are write-only — they are POSTed but the server never
  * returns them (the DTO carries only `authKind` / `hasSecret`).
  */
@@ -42,7 +37,6 @@ export class McpRegistryRequestError extends Error {
   }
 }
 
-/** Parse the shared `{ success, data }` envelope; throw on non-2xx. */
 async function parseEnvelope<T>(res: Response): Promise<T> {
   const body = (await res.json().catch(() => null)) as {
     data?: T
@@ -61,7 +55,6 @@ export interface UseMcpRegistryResult {
   servers: McpRegistrationDto[]
   isLoading: boolean
   error: McpRegistryRequestError | null
-  /** True when the registry is not enabled on this deployment (501). */
   notEnabled: boolean
 }
 
@@ -160,7 +153,6 @@ export interface TestMcpConnectionResult {
   error?: string
 }
 
-/** Probe an endpoint (test-before-save). Returns the advertised tools. */
 export async function testMcpConnection(
   input: TestMcpConnectionInput
 ): Promise<TestMcpConnectionResult> {
@@ -191,12 +183,6 @@ export interface McpServerStatusResult {
   error?: string
 }
 
-/**
- * Live connection status for an already-registered server, re-validated
- * server-side (with its stored, decrypted auth) via
- * `/api/v1/mcp/servers/$id/probe`. Only fires while `enabled` — a disabled
- * server isn't loaded by the agent, so there's nothing useful to probe.
- */
 export function useMcpServerStatus(
   id: string,
   enabled: boolean

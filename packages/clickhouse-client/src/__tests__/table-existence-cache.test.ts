@@ -13,11 +13,6 @@ const { clientPool: bustedPool } = await import(
 )
 const { clientPool: plainPool } = await import('../clickhouse/connection-pool')
 
-// These tests only touch the public side-effect-free shims around the LRU
-// cache (size / invalidate / clear / metrics). The async checkTableExists
-// path is skipped here — it hits the ClickHouse client and lives in the
-// integration-suite.
-
 beforeEach(() => {
   cache.clearTableCache?.()
 })
@@ -46,11 +41,6 @@ describe('tableExistenceCache shims', () => {
     expect(cache.tableCacheSize()).toBe(0)
   })
 
-  // Note: a namespace-shape assertion lived here briefly but had to be
-  // removed because table-validator.test.ts uses
-  // `jest.mock('./table-existence-cache', () => ({ tableExistenceCache: {
-  // checkTableExists } }))` and the mock survives across files in the same
-  // Bun session, leaving the other shim methods undefined.
   it('checkTableExists is exposed through the legacy namespace', () => {
     expect(typeof cache.tableExistenceCache.checkTableExists).toBe('function')
   })
@@ -150,7 +140,6 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
       false
     )
 
-    // The table is created; the probe would now report it.
     await l2cache.invalidateTable(0, 'system', 'backup_log')
 
     expect(await l2cache.checkTableExists(0, 'system', 'backup_log')).toBe(true)

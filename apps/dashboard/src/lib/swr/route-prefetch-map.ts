@@ -14,12 +14,10 @@ export interface PrefetchConfig {
 
 export const routePrefetchMap: Record<string, PrefetchConfig> = {
   '/overview': {
-    // Overview top cards
     charts: [
       'running-queries-count',
       'query-count-today',
       'disk-size-single',
-      // Overview tab (default tab)
       'query-count',
       'query-count-by-user',
       'memory-usage',

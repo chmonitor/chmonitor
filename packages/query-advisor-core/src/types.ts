@@ -1,11 +1,4 @@
-/**
- * Query advisor — shared types and ordering constants.
- *
- * These are the vocabulary both advisor surfaces speak: the dashboard engine
- * (`apps/dashboard/src/lib/ai/advisor/`) and the MCP tool
- * (`packages/mcp-server/src/tools/advisor/`). Keeping them here is what stops
- * the two from drifting apart (issue #2936).
- */
+/** Shared types and ordering constants for both advisor surfaces. */
 
 export type RecommendationKind =
   | 'skip_index'

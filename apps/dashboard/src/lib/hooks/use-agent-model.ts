@@ -1,11 +1,6 @@
 'use client'
 
 /**
- * useAgentModel Hook
- *
- * Client-side hook for managing agent model selection.
- * Persists selection to localStorage and provides model metadata.
- *
  * Model IDs use `provider:model` format (e.g., `openrouter:qwen/qwen3-coder:free`).
  * Legacy IDs without `:` are treated as `openrouter:{model}`.
  */
@@ -32,14 +27,10 @@ export type { OpenAIModel } from '@/lib/ai/agent-models'
 
 const MODEL_STORAGE_KEY = 'clickhouse-monitor-agent-model'
 
-/** Recently selected model ids, most recent first. */
 const RECENT_STORAGE_KEY = 'clickhouse-monitor-agent-model-recent'
-/** Model ids typed by hand in the picker's custom-model input. */
 const CUSTOM_STORAGE_KEY = 'clickhouse-monitor-agent-model-custom'
 
-/** How many recently used models the picker keeps pinned to the top. */
 export const MAX_RECENT_MODELS = 5
-/** Upper bound on hand-entered model ids, so localStorage cannot grow forever. */
 const MAX_CUSTOM_MODELS = 20
 
 function readStoredList(key: string): string[] {
@@ -76,16 +67,10 @@ function pushRecentModel(id: string): void {
 }
 
 /**
- * Validate a hand-entered model id.
- *
  * Deliberately shape-only (`provider:model`): the whole point of the custom
  * input is to reach a model the dynamic catalog does not list, so it must NOT
  * be checked against the fetched list. The provider must still be one the
  * server knows how to route, otherwise the first message would 400.
- *
- * @param raw - Raw text from the picker input
- * @param knownProviders - Provider ids the server reports (empty = accept any)
- * @returns The normalized id, or an error message explaining the rejection
  */
 export function parseCustomModelId(
   raw: string,
@@ -119,22 +104,11 @@ const DEFAULT_MODEL: OpenAIModel = FALLBACK_AGENT_MODEL.includes(':')
   ? (FALLBACK_AGENT_MODEL as OpenAIModel)
   : (`openrouter:${FALLBACK_AGENT_MODEL}` as OpenAIModel)
 
-/**
- * Ensure a model identifier is in `provider:model` form.
- *
- * @param id - A model identifier, either already provider-qualified (`provider:model`) or legacy (just the model name)
- * @returns The normalized identifier in `provider:model` form; if `id` has no `:`, `openrouter:` is prefixed
- */
 function normalizeModelId(id: string): string {
   if (id.includes(':')) return id
   return `openrouter:${id}`
 }
 
-/**
- * Return the configured default agent model.
- *
- * @returns The default `OpenAIModel` value used when no saved model exists
- */
 function getDefaultModel(): OpenAIModel {
   return DEFAULT_MODEL
 }
@@ -154,13 +128,6 @@ export function getSavedModel(): OpenAIModel {
   return getDefaultModel()
 }
 
-/**
- * Persist the selected agent model identifier to browser localStorage.
- *
- * Does nothing when not running in a browser or if storage is unavailable or disabled; storage errors are silently ignored.
- *
- * @param model - Model identifier to store under the key 'clickhouse-monitor-agent-model'
- */
 function saveModel(model: OpenAIModel): void {
   if (typeof window === 'undefined') return
 
@@ -171,11 +138,6 @@ function saveModel(model: OpenAIModel): void {
   }
 }
 
-/**
- * Removes the persisted agent model selection from browser localStorage.
- *
- * Does nothing when not running in a browser. Any errors thrown by storage access are ignored.
- */
 function clearSavedModel(): void {
   if (typeof window === 'undefined') return
   try {
@@ -193,7 +155,6 @@ export interface ModelDisplayInfo {
   description: string
   contextLength: number
   formattedContextLength: string
-  /** Max completion (output) tokens, when the upstream API reports it. */
   maxOutputTokens?: number
   formattedMaxOutputTokens?: string
   isFree: boolean
@@ -210,7 +171,6 @@ export interface UseAgentModelResult {
   models: readonly ModelDisplayInfo[]
   setModel: (model: OpenAIModel) => void
   resetModel: () => void
-  /** Recently selected model ids, most recent first (max {@link MAX_RECENT_MODELS}). */
   recentModelIds: readonly string[]
   /**
    * Add a hand-entered `provider:model` id and select it.
@@ -218,9 +178,7 @@ export interface UseAgentModelResult {
    * @returns `null` on success, or a human-readable rejection reason
    */
   addCustomModel: (raw: string) => string | null
-  /** Forget a hand-entered model id. */
   removeCustomModel: (id: string) => void
-  /** True once /api/v1/agents/models has returned (possibly empty). */
   modelsLoaded: boolean
   /**
    * Provider ids with a key on this deployment (from models API).
@@ -253,12 +211,7 @@ function getStaticModels(): ModelDisplayInfo[] {
   })
 }
 
-/**
- * Build a display entry for a hand-entered model id.
- *
- * The catalog knows nothing about it, so metadata is deliberately minimal —
- * the picker badges these rows as `custom`.
- */
+/** Minimal metadata on purpose: the catalog knows nothing about a hand-entered id. */
 function customModelEntry(id: string): ModelDisplayInfo {
   const idx = id.indexOf(':')
   const provider = id.slice(0, idx)
@@ -288,7 +241,6 @@ export function byokProviderModels(
   return getStaticModels().filter((m) => providers.includes(m.provider))
 }
 
-/** Append custom entries that the catalog does not already list. */
 function withCustomModels(
   models: ModelDisplayInfo[],
   customIds: readonly string[]
@@ -335,13 +287,8 @@ function emitModelChange(model: OpenAIModel | null): void {
 }
 
 /**
- * Manages the selected agent model, the available model list (with best-effort
- * capability fetch), and handlers to change or reset the selection.
- *
  * Changing the model updates `localStorage` and broadcasts a custom event so
- * any other `useAgentModel` consumer on the page picks up the new value
- * without a full page reload — the agent runtime swaps to the new model on
- * the next request.
+ * other `useAgentModel` consumers pick up the new value without a reload.
  */
 export function useAgentModel(): UseAgentModelResult {
   const [model, setModelState] = useState<OpenAIModel>(() => getSavedModel())
@@ -424,7 +371,7 @@ export function useAgentModel(): UseAgentModelResult {
         return fallbackId ?? current
       })
 
-      // Side effects outside the updater — save and broadcast fallback
+      // Side effects outside the updater
       if (fallbackId) {
         saveModel(fallbackId)
         emitModelChange(fallbackId)

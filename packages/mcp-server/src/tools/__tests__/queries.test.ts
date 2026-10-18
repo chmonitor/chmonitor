@@ -1,6 +1,5 @@
 import { describe, expect, mock, test } from 'bun:test'
 
-// Mock fetchData before importing the tool
 const mockFetchData = mock(() => Promise.resolve({ data: [], error: null }))
 
 mock.module('@chm/clickhouse-client', () => ({
@@ -12,7 +11,6 @@ import { z } from 'zod'
 import { registerQueryTools } from '../queries'
 import { McpServer } from '@modelcontextprotocol/server'
 
-/** Helper to get the registered tool handler */
 function getToolHandler(server: McpServer, name: string) {
   const tools = (server as any)._registeredTools
   const tool = tools?.[name]
@@ -39,7 +37,6 @@ describe('get_running_queries limit param (#2705)', () => {
     registerQueryTools(server)
     const call = getToolHandler(server, 'get_running_queries')
 
-    // Explicit limit
     await call({ limit: 5, hostId: 0 })
 
     expect(calls).toHaveLength(1)

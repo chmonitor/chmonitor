@@ -4,7 +4,6 @@ import { apiFetch } from './api-fetch'
 import { NON_CRITICAL_RETRY, visibilityAwareInterval } from './config'
 import { maybePingInstance } from '@/lib/telemetry'
 
-/** API response format for host status */
 type HostStatusApiResponse = {
   success: boolean
   data?: {
@@ -27,7 +26,6 @@ type HostStatusApiResponse = {
   error?: string
 }
 
-/** Host status information */
 export type HostStatus = {
   version: string
   uptime: string
@@ -81,20 +79,6 @@ interface UseHostStatusOptions {
   fleet?: boolean
 }
 
-/**
- * TanStack Query hook to fetch host status (version, uptime, hostname).
- * Uses a unified API endpoint for better caching efficiency.
- *
- * @param hostId - The host ID to fetch status for
- * @param options - Query configuration options
- * @returns {Object} Query state with data, error, isLoading, and online state
- *
- * @example
- * ```typescript
- * const { data, error, isLoading } = useHostStatus(0)
- * // data: { version: '24.3.1.1', uptime: '1 day 2 hours', hostname: 'clickhouse-01' }
- * ```
- */
 export function useHostStatus(
   hostId: number | null,
   options: UseHostStatusOptions = {}

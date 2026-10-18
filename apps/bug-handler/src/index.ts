@@ -1,47 +1,25 @@
-// chmonitor bug-handler — Cloudflare Email Worker
-//
-// This worker is the target of a Cloudflare Email Routing rule that forwards
-// inbound mail sent to a configured address (e.g. bug@chmonitor.dev) to this
-// worker.  It parses the email, extracts Sentry alert metadata when present,
-// and opens a well-formatted GitHub issue automatically.
-//
-// Pipeline:
-//   Sentry alert → email → Cloudflare Email Routing → this worker → GitHub issue
-//
-// Everything is configurable via environment variables — the target address,
-// GitHub repository, labels, assignees, and token are all injected at deploy
-// time or via `wrangler secret put`.  Nothing is hardcoded.
-//
-// Email Routing setup (Cloudflare dashboard, NOT wrangler):
-//   Zone: chmonitor.dev → Email → Email Routing
-//   Rule: Custom address  bug@chmonitor.dev  →  Send to Worker  →  chmonitor-bug-handler
-//
-// Required secrets (set via `wrangler secret put GITHUB_TOKEN`):
-//   GITHUB_TOKEN — PAT or GitHub App installation token with issues:write
+// Cloudflare Email Worker: Sentry alert mail -> Email Routing -> GitHub issue.
+// Email Routing rule is set in the Cloudflare dashboard, not wrangler.
+// Required secret: `wrangler secret put GITHUB_TOKEN` (issues:write).
 
 import { isSenderAllowed, parseConfig } from './config'
 import { buildIssue, createGitHubIssue } from './github-issue'
 import { parseEmail } from './parse-email'
 
-// Cloudflare Workers env bindings — all values arrive as strings or undefined.
 export interface Env {
-  // Target recipient address for this worker (e.g. bug@chmonitor.dev).
   // When unset the worker accepts mail sent to any address.
   BUG_HANDLER_TARGET_ADDRESS?: string
 
-  // GitHub repository in "owner/repo" format.  Required for issue creation.
+  // "owner/repo"
   GITHUB_REPOSITORY?: string
 
-  // GitHub PAT or App token with issues:write.  Set via `wrangler secret put`.
   GITHUB_TOKEN?: string
 
-  // Comma-separated issue labels (default: bug,sentry,automated).
+  // Default: bug,sentry,automated
   BUG_ISSUE_LABELS?: string
 
-  // Comma-separated GitHub usernames to assign (default: none).
   BUG_ISSUE_ASSIGNEES?: string
 
-  // Optional prefix prepended to the issue title (default: '').
   BUG_ISSUE_TITLE_PREFIX?: string
 
   // Comma-separated allowed sender addresses / domains. Unset defaults to
@@ -49,7 +27,6 @@ export interface Env {
   // "*" explicitly allows every sender.
   BUG_ALLOWED_SENDERS?: string
 
-  // GitHub API base URL — override for GitHub Enterprise or tests.
   GITHUB_API_BASE?: string
 }
 
@@ -60,10 +37,8 @@ export default {
     ctx: ExecutionContext
   ): Promise<void> {
     try {
-      // 1. Parse runtime configuration from env
       const config = parseConfig(env as Record<string, string | undefined>)
 
-      // 2. Recipient guard — ignore mail not addressed to the configured target
       if (
         config.targetAddress &&
         message.to.toLowerCase() !== config.targetAddress.toLowerCase()
@@ -74,7 +49,6 @@ export default {
         return
       }
 
-      // 3. Parse the raw MIME message
       const parsed = await parseEmail(message.raw)
 
       // 4. Sender allowlist check — use the SMTP envelope sender (message.from)
@@ -89,7 +63,6 @@ export default {
         return
       }
 
-      // 5. Misconfiguration guard — log clearly and bail without crashing
       if (!config.githubRepo) {
         console.error(
           '[bug-handler] GITHUB_REPOSITORY is missing or malformed — ' +
@@ -105,11 +78,9 @@ export default {
         return
       }
 
-      // 6. Build the issue payload
       const issue = buildIssue(parsed, config)
 
-      // 7. Create the GitHub issue (use waitUntil so the email handler returns
-      //    promptly while the API call completes in the background)
+      // waitUntil: return promptly while the API call completes
       ctx.waitUntil(
         createGitHubIssue(issue, config).then((result) => {
           if (result.ok) {
@@ -124,8 +95,7 @@ export default {
         })
       )
     } catch (err) {
-      // Top-level catch: log the error without re-throwing so the worker never
-      // surfaces an unhandled rejection to Cloudflare's runtime.
+      // Never re-throw: avoids an unhandled rejection in the runtime.
       console.error('[bug-handler] unexpected error:', err)
     }
   },

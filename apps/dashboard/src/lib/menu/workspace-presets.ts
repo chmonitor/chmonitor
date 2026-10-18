@@ -32,7 +32,6 @@ export interface WorkspaceVisibility {
   hiddenMenuHrefs: readonly string[]
 }
 
-/** Top-level `MenuItem.title` values kept by each named preset. */
 export const PRESET_GROUP_TITLES: Record<
   Exclude<WorkspacePreset, 'full' | 'custom'>,
   readonly string[]
@@ -78,11 +77,6 @@ function isHiddenByHref(item: MenuItem, hidden: ReadonlySet<string>): boolean {
   return hidden.has(item.href)
 }
 
-/**
- * Drop items whose href is on the hide list (and any parent left empty).
- * Footer items are never removed. Recursive, same empty-parent rule as
- * `filterCloudOnly`.
- */
 export function filterHiddenMenuHrefs(
   items: readonly MenuItem[],
   hiddenHrefs: readonly string[]
@@ -135,7 +129,6 @@ export function applyWorkspaceVisibility(
   return filterHiddenMenuHrefs(byGroup, hiddenMenuHrefs)
 }
 
-/** Flatten leaf hrefs for the customize picker (skip empty parent hrefs). */
 export function hrefsOutsidePresetGroups(
   items: readonly MenuItem[],
   allowedTitles: readonly string[]
@@ -227,7 +220,6 @@ function hideListForPreset(
   )
 }
 
-/** Apply a role pill. Named presets clear the hide list; Custom materializes one. */
 export function applyWorkspacePreset(
   items: readonly MenuItem[],
   current: WorkspaceVisibility,
@@ -308,7 +300,6 @@ export function showMenuHref(
   return materializeIfDiverged(items, current, next)
 }
 
-/** A parent is hidden when every descendant leaf is on the hide list. */
 export function menuItemIsHidden(
   item: MenuItem,
   hidden: ReadonlySet<string>

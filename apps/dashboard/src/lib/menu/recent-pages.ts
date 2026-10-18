@@ -1,11 +1,4 @@
 /**
- * Recently visited pages — browser-local only, ordered newest first.
- *
- * Backs the sidebar group flyout ("hover a group to see pinned and recent
- * pages"). Same external-store shape as `favorites-store.ts`: a module-level
- * snapshot + listener set, read via `useSyncExternalStore`
- * (`components/menu/hooks/use-recent-pages.ts`).
- *
  * Entries are pathnames only (no `?host=`): the host is re-applied by
  * `HostPrefixedLink` at render time, so one visit history serves every host.
  * Resolution against the live menu tree happens in {@link recentInGroup}, so
@@ -19,19 +12,15 @@ const STORAGE_KEY = 'chm-recent-pages'
 /** Enough history to fill every group's flyout without growing unbounded. */
 export const RECENT_PAGES_CAP = 50
 
-/** Recent rows shown per group flyout. */
 export const RECENT_PER_GROUP = 5
 
-/** Rows shown when a group has neither pins nor history. */
 export const FALLBACK_PER_GROUP = 3
 
 export interface RecentPage {
   path: string
-  /** Epoch milliseconds of the last visit. */
   at: number
 }
 
-/** Strip query, hash and trailing slash so `/tables/` and `/tables?x` match. */
 export function normalizePath(href: string): string {
   const path = href.split(/[?#]/)[0] ?? ''
   return path.replace(/\/+$/, '') || '/'
@@ -82,7 +71,6 @@ export function recentInGroup(
 export interface GroupQuickLinks {
   pinned: MenuItem[]
   recent: MenuItem[]
-  /** Top pages of the group, only when there is nothing pinned or recent. */
   fallback: MenuItem[]
 }
 
@@ -165,7 +153,6 @@ export function subscribeRecentPages(listener: () => void): () => void {
   return () => listeners.delete(listener)
 }
 
-/** Stable reference for `useSyncExternalStore` — only reassigned on change. */
 export function getRecentPagesSnapshot(): readonly RecentPage[] {
   ensureLoaded()
   return entries
@@ -177,7 +164,6 @@ export function getRecentPagesServerSnapshot(): readonly RecentPage[] {
   return EMPTY
 }
 
-/** Test-only: reset in-memory state between test cases. */
 export function __resetRecentPagesForTests(): void {
   entries = []
   loaded = false

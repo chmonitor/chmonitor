@@ -1,10 +1,4 @@
 /**
- * useMcpConfig Hook
- *
- * Manages MCP server configuration for the agent:
- *   - Enabled/disabled state per server (toggle state)
- *   - User-added custom servers
- *
  * One config lives in a module-level store per tab and is read through
  * `useSyncExternalStore`, so every consumer in the tab — the settings panel the
  * user edits and the agent runtime that decides which servers to connect to —
@@ -12,14 +6,8 @@
  * reload. A `storage` listener alone would not do: it only fires in *other*
  * tabs, and both of those consumers are in this one.
  *
- * The store persists to localStorage so the configuration survives page reloads
- * — mirrors the `useToolConfig` pattern used for individual MCP tools. The
- * built-in `clickhouse-monitor` server is provided by the caller and is never
- * stored here; only user overrides (toggles + custom servers) live in
- * localStorage.
- *
- * Same external-store shape as the other module-level snapshot stores
- * (`lib/traffic/traffic-settings.ts`, `lib/menu/favorites-store.ts`).
+ * The built-in `clickhouse-monitor` server is provided by the caller and is
+ * never stored here; only user overrides (toggles + custom servers) persist.
  */
 
 'use client'
@@ -30,7 +18,6 @@ import { useSyncExternalStore } from 'react'
 
 export const MCP_CONFIG_STORAGE_KEY = 'clickhouse-monitor-mcp-config'
 
-/** Custom server fields the user supplies when registering a new server. */
 export interface CustomMcpServer {
   id: string
   name: string
@@ -38,15 +25,12 @@ export interface CustomMcpServer {
 }
 
 export interface McpConfigStorage {
-  /** Server ids the user has explicitly disabled. Absent means enabled. */
   disabled: string[]
-  /** User-added custom servers, beyond the built-in one. */
   customServers: CustomMcpServer[]
 }
 
 const EMPTY: McpConfigStorage = { disabled: [], customServers: [] }
 
-/** Toggle the enabled state of a server, returning a new config. */
 export function withServerEnabled(
   config: McpConfigStorage,
   id: string,
@@ -62,7 +46,6 @@ export function withServerEnabled(
   }
 }
 
-/** Create a custom server with a freshly generated unique id. */
 export function createCustomServer(
   server: Omit<CustomMcpServer, 'id'>
 ): CustomMcpServer {
@@ -76,7 +59,6 @@ export function createCustomServer(
   }
 }
 
-/** Append a custom server, returning the new config and the created server. */
 export function withAddedServer(
   config: McpConfigStorage,
   server: Omit<CustomMcpServer, 'id'>
@@ -88,7 +70,6 @@ export function withAddedServer(
   }
 }
 
-/** Remove a custom server and any toggle override for it. */
 export function withRemovedServer(
   config: McpConfigStorage,
   id: string
@@ -99,7 +80,6 @@ export function withRemovedServer(
   }
 }
 
-/** Read the persisted config from localStorage; SSR-safe and fault-tolerant. */
 function readStorage(): McpConfigStorage {
   if (typeof window === 'undefined') return EMPTY
   try {
@@ -117,7 +97,6 @@ function readStorage(): McpConfigStorage {
   }
 }
 
-/** Persist the config to localStorage; SSR-safe and fault-tolerant. */
 function writeStorage(config: McpConfigStorage): void {
   if (typeof window === 'undefined') return
   try {
@@ -127,10 +106,6 @@ function writeStorage(config: McpConfigStorage): void {
   }
 }
 
-// Tab-wide store — the single source both the settings panel and the agent
-// runtime read, so a toggle made in one reaches the other without a reload.
-
-/** Same-tab subscribers to re-render on change. */
 const listeners = new Set<() => void>()
 
 /**
@@ -146,7 +121,7 @@ function getSnapshot(): McpConfigStorage {
   return snapshot
 }
 
-/** SSR has no localStorage; render empty, then pick up the stored config. */
+// SSR has no localStorage; render empty, then pick up the stored config.
 function getServerSnapshot(): McpConfigStorage {
   return EMPTY
 }
@@ -158,7 +133,6 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-/** Commit a config: cache it, persist it, then notify this tab's consumers. */
 function setSnapshot(next: McpConfigStorage): void {
   snapshot = next
   writeStorage(next)
@@ -166,28 +140,14 @@ function setSnapshot(next: McpConfigStorage): void {
 }
 
 export interface UseMcpConfigResult {
-  /** Server ids the user has disabled. */
   disabledServers: readonly string[]
-  /** User-added custom servers. */
   customServers: readonly CustomMcpServer[]
-  /** Check if a server is enabled (defaults to true for unknown ids). */
   isServerEnabled: (id: string) => boolean
-  /** Set the enabled state of a server. */
   setServerEnabled: (id: string, enabled: boolean) => void
-  /** Register a new custom server. Returns the created server. */
   addServer: (server: Omit<CustomMcpServer, 'id'>) => CustomMcpServer
-  /** Remove a custom server and any toggle override for it. */
   removeServer: (id: string) => void
 }
 
-/**
- * Hook for managing MCP server configuration.
- *
- * By default all servers are enabled. Every caller in the tab reads the same
- * store, so the panel's list and the agent's effective server set cannot
- * disagree. Toggle state and custom servers persist in localStorage so the
- * configuration is restored on reload.
- */
 export function useMcpConfig(): UseMcpConfigResult {
   const config = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
@@ -219,7 +179,6 @@ export function useMcpConfig(): UseMcpConfigResult {
   }
 }
 
-/** Build the display list of {@link McpServer}s from persisted config. */
 export function toMcpServers(
   customServers: readonly CustomMcpServer[],
   isServerEnabled: (id: string) => boolean

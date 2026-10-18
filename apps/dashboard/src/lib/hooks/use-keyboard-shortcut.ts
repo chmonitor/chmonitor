@@ -11,8 +11,6 @@ export interface KeyboardShortcutOptions {
 }
 
 /**
- * Pure predicate: does a keyboard event satisfy the requested shortcut?
- *
  * Modifier rules (each requested modifier is matched exactly):
  * - `shiftKey` / `altKey`: `event.<mod>` must equal the requested value.
  * - Meta/Ctrl, cross-platform aware:
@@ -43,10 +41,8 @@ export function matchesKeyboardShortcut(
   // input. Guard against it so we never throw on `.toLowerCase()`.
   const keyMatches = (event.key ?? '').toLowerCase() === key.toLowerCase()
 
-  // Meta/Ctrl matching with cross-platform support.
   let metaCtrlMatches: boolean
   if (metaKey && ctrlKey) {
-    // Cross-platform "Cmd/Ctrl": either modifier satisfies the shortcut.
     metaCtrlMatches = event.metaKey || event.ctrlKey
   } else if (metaKey) {
     metaCtrlMatches = event.metaKey && !event.ctrlKey

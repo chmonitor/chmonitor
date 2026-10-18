@@ -16,13 +16,6 @@ import {
   type WorkspaceVisibility,
 } from '@/lib/menu/workspace-presets'
 
-/**
- * Drop `cloudOnly` items (and any parent left empty by their removal) when the
- * deployment is not the cloud product. Recursive so a `cloudOnly` child inside
- * a group is hidden too. Mirrors `filterMenuItemsByPermissions`' empty-parent
- * semantics: a group whose children all vanish is removed rather than rendered
- * childless.
- */
 export function filterCloudOnly(
   items: readonly MenuItem[],
   cloudMode: boolean
@@ -55,10 +48,6 @@ function itemMatchesEngine(item: MenuItem, engine: SourceEngine): boolean {
   return item.engines.includes(engine)
 }
 
-/**
- * Drop items that don't apply to the active host's engine (and any parent left
- * empty by their removal). Recursive, mirroring {@link filterCloudOnly}.
- */
 export function filterMenuItemsByEngine(
   items: readonly MenuItem[],
   engine: SourceEngine

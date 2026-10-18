@@ -15,7 +15,6 @@ import {
   workspaceFromSettings,
 } from '@/lib/menu/workspace-presets'
 
-/** Allowed catalog + workspace hide set for hover-Add, More, and in-page links. */
 export function useMenuWorkspaceCatalog() {
   const { config } = useFeaturePermissions()
   const engine = useActiveHostEngine()

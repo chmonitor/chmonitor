@@ -5,7 +5,6 @@ import {
 } from './license-key'
 import { describe, expect, test } from 'bun:test'
 
-/** Polar checkout ids are UUIDs — this is the identifier operators set. */
 const POLAR_CHECKOUT_ID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
 
 describe('sanitizeLicenseKey', () => {

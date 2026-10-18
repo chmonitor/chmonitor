@@ -3,7 +3,7 @@
  *
  * Sibling to `@chm/clickhouse-client`. Holds the Postgres connection SHAPE and
  * id-space convention (below) plus the runtime read-only query client
- * (`./client`, added in Phase 2, #2449). The `pg` driver runs in BOTH runtimes
+ * (`./client`). The `pg` driver runs in BOTH runtimes
  * off one code path — `pg-cloudflare` (`cloudflare:sockets`) in workerd under
  * `nodejs_compat`, `net.Socket` on Node — so Cloud and self-hosted share it.
  * Keeping Postgres out of `@chm/clickhouse-client` keeps the ClickHouse package

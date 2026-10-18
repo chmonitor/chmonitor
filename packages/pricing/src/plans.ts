@@ -15,7 +15,7 @@
  * Keep this module pure data + pure functions (no framework / app imports) so
  * the standalone Astro landing app can import it without dragging deps in.
  *
- * ── Pricing strategy (see docs/knowledge + plan) ──────────────────────────────
+ * Pricing strategy:
  * Deliberately below-market for early access: ~$10/host vs Datadog ~$15–23/host
  * and pganalyze ~$100–149/host. Raise toward ~$49 Pro / ~$149 Max at GA and
  * grandfather early-access accounts. Yearly = 10× monthly (≈2 months free).
@@ -23,7 +23,7 @@
 
 export const PLAN_IDS = ['free', 'pro', 'max', 'enterprise'] as const
 /**
- * `'fleet'` is the B4 experiment tier (#2381) — a $199/mo mid-anchor plan for
+ * `'fleet'` is the B4 experiment tier — a $199/mo mid-anchor plan for
  * 5-10 host clusters, gated behind `CHM_FEATURE_FLEET_TIER` (see
  * `getVisiblePlans`). Deliberately NOT in `PLAN_IDS`/`BILLING_PLAN_LIST`: it is
  * not (yet) a real checkout/entitlement target, only a presentation-layer A/B
@@ -190,7 +190,7 @@ export const BILLING_PLANS: Record<PlanId, Plan> = {
     ],
   },
   /**
-   * B4 experiment (#2381): mid-anchor tier between Pro and Max for teams that
+   * B4 experiment: mid-anchor tier between Pro and Max for teams that
    * outgrow Pro's 1 host but don't need Max's full feature set — 5 hosts
    * included at a flat $199 avoids the "surprise overage bill" objection from
    * stacking Pro/Max host overage. Not in `PLAN_IDS`; only rendered when
@@ -273,7 +273,7 @@ export const BILLING_PLAN_LIST: Plan[] = PLAN_IDS.map((id) => BILLING_PLANS[id])
 
 /**
  * Rendering list for surfaces that want to A/B the B4 "Fleet" experiment tier
- * (#2381). `includeFleet` should come from the `CHM_FEATURE_FLEET_TIER` flag
+ *. `includeFleet` should come from the `CHM_FEATURE_FLEET_TIER` flag
  * (env-gated, off by default, fail-closed like other `CHM_FEATURE_*` flags —
  * see `apps/dashboard/src/lib/feature-flags.ts`). When off this returns the
  * exact same array as `BILLING_PLAN_LIST`; when on, Fleet is inserted between

@@ -1,12 +1,7 @@
 /**
- * TanStack Query hook that fetches a `PgQueryConfig`'s rows for the active
- * Postgres source via `POST /api/v1/pg/query/:name` (issue #2450).
- *
- * Sends `{ connectionId }` for server-stored (database) connections or inline
- * `{ connection }` credentials for browser connections — the server runs the
- * read-only statement through the Phase 2 Postgres client. Surfaces the
- * graceful `extensionMissing` signal so the page can render an EmptyState
- * instead of an error.
+ * Sends `{ connectionId }` for server-stored connections or inline
+ * `{ connection }` credentials for browser connections. Surfaces the graceful
+ * `extensionMissing` signal so the page can render an EmptyState instead of an error.
  */
 
 import { useQuery } from '@tanstack/react-query'
@@ -88,7 +83,6 @@ export function usePgQuery(
     refetchInterval: options?.refetchInterval
       ? visibilityAwareInterval(options.refetchInterval)
       : undefined,
-    // Keep prior rows visible during background refresh (graceful pattern).
     placeholderData: (prev) => prev,
   })
 }

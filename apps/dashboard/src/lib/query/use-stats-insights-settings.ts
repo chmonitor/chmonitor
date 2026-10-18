@@ -1,14 +1,5 @@
 'use client'
 
-/**
- * useStatsInsightsSettings — per-user Statistics Insights preferences.
- *
- * Persists the anomaly-overlay settings (moving-average window, ±k·σ band
- * multiplier, absolute threshold, and the two visibility toggles) to
- * localStorage and broadcasts a CustomEvent so the settings page and the charts
- * stay in sync without a reload. Mirrors `useInsightsSettings`.
- */
-
 import { useCallback, useEffect, useState } from 'react'
 import {
   DEFAULT_STATS_INSIGHTS_SETTINGS,

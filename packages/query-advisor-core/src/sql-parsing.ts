@@ -1,11 +1,4 @@
-/**
- * Query advisor — SQL parsing helpers.
- *
- * Best-effort, top-level only (no nested parens/OR handling). Everything here
- * degrades to "nothing extracted" rather than throwing, matching the advisor's
- * "read-only, degrade gracefully" invariant. Pure string → structure functions:
- * no I/O, no dependency on the rest of the advisor.
- */
+/** Best-effort, top-level-only parsing. Everything degrades to "nothing extracted" rather than throwing. */
 
 import type {
   ExplainIndexesInfo,
@@ -22,12 +15,9 @@ const RANGE_OPERATORS = new Set(['<', '>', '<=', '>=', 'BETWEEN'])
 const EQUALITY_OPERATORS = new Set(['=', 'IN'])
 
 /**
- * Extract top-level `WHERE`/`AND`-joined predicates as `{ column, operator }`.
- * Deliberately excludes `OR`-joined and `PREWHERE`/`ON` conditions — this
- * engine only reasons about conditions it can confidently attribute to a
- * single column with AND semantics (same scoping as `WHERE_COLUMN_PATTERN` in
- * the dashboard's `agent/tools/sql-analysis.ts`, but this one also captures
- * the operator so callers can tell equality/IN from range).
+ * Excludes `OR`-joined and `PREWHERE`/`ON` conditions: only predicates
+ * attributable to one column with AND semantics. Captures the operator so
+ * callers can tell equality/IN from range.
  */
 export function extractPredicates(sql: string): SqlPredicate[] {
   const pattern =
@@ -72,11 +62,8 @@ export function extractClauseColumns(
 }
 
 /**
- * Parse `EXPLAIN PLAN indexes=1` text output into structured granule/part
- * counts. Best-effort line-scanner (not a real parser) — tolerant of missing
- * sections; returns `primaryKey: null` / `skipIndexes: []` rather than
- * throwing when the shape doesn't match what it expects (degrades
- * gracefully, e.g. non-MergeTree tables or older/newer CH output variants).
+ * Line-scanner for `EXPLAIN PLAN indexes=1`. Returns `primaryKey: null` /
+ * `skipIndexes: []` on unexpected shapes (non-MergeTree, other CH versions).
  */
 export function parseExplainIndexes(
   explainLines: string[]
@@ -185,11 +172,7 @@ export function normalizeIdentifier(value: string): string {
   return stripQuotedIdentifier(value.trim()).replace(/\s+/g, '')
 }
 
-/**
- * Extract the real tables a query reads from (`FROM`/`JOIN`), skipping CTE
- * aliases declared by a leading `WITH ... AS (...)` — those are query-local
- * names, not tables the advisor can look up in `system.tables`.
- */
+/** Skips CTE aliases: query-local names that are not in `system.tables`. */
 export function extractReferencedTables(
   sql: string,
   defaultDatabase = 'default'
@@ -240,12 +223,9 @@ const CLAUSE_STOP_WORDS =
   'GROUP BY|ORDER BY|LIMIT|HAVING|SETTINGS|FORMAT|WITH|UNION'
 
 /**
- * Split a WHERE body on top-level `AND` (i.e. not inside parentheses),
- * so a parenthesized `OR` group is kept intact as one condition instead of
- * being incorrectly torn apart. Not a full SQL parser — good enough for the
- * common case; anything it can't confidently segment is left as a single
- * condition (the caller then just won't find its target column in it, and
- * `proposePrewhereRewrite` returns `null` rather than risk a broken rewrite).
+ * Splits on top-level `AND` so a parenthesized `OR` group stays intact. Anything
+ * it can't segment stays one condition, and `proposePrewhereRewrite` then
+ * returns `null` rather than risk a broken rewrite.
  */
 export function splitTopLevelAnd(whereBody: string): string[] {
   // Track paren depth per character so an AND inside `(...)` (e.g. a
@@ -277,7 +257,7 @@ export function splitTopLevelAnd(whereBody: string): string[] {
   return parts.filter(Boolean)
 }
 
-/** Locate the WHERE clause span `[start, end)` in `sql` — `start` is the index of the `WHERE` keyword itself. */
+/** `start` is the index of the `WHERE` keyword itself. */
 export function findWhereSpan(
   sql: string
 ): { start: number; end: number; body: string } | null {
@@ -303,11 +283,6 @@ export interface BuildQueryContextInput {
   explain: ExplainIndexesInfo | null
 }
 
-/**
- * Assemble the caller's read-only findings (schema, parts, EXPLAIN) plus the
- * SQL parsed here into the `QueryContext` every scorer consumes. Pure: the
- * caller does the fetching, this only parses and packs.
- */
 export function buildQueryContext(input: BuildQueryContextInput): QueryContext {
   const { sql, database, table, schema, parts, explain } = input
   return {

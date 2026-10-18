@@ -1,10 +1,3 @@
-/**
- * useToolConfig Hook
- *
- * Manages enabled/disabled state for individual MCP tools.
- * Persists selections to localStorage so preferences survive page reloads.
- */
-
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -12,7 +5,6 @@ import { useEffect, useState } from 'react'
 const TOOL_CONFIG_STORAGE_KEY = 'clickhouse-monitor-tool-config'
 
 type ToolConfigStorage = {
-  /** Map of tool name → enabled boolean. Absent means enabled (default). */
   disabled: string[]
 }
 
@@ -38,34 +30,20 @@ function writeStorage(config: ToolConfigStorage): void {
 }
 
 export interface UseToolConfigResult {
-  /** Check if a tool is enabled (defaults to true for unknown tools) */
   isToolEnabled: (toolName: string) => boolean
-  /** Toggle a tool on/off */
   toggleTool: (toolName: string) => void
-  /** Enable a tool */
   enableTool: (toolName: string) => void
-  /** Disable a tool */
   disableTool: (toolName: string) => void
-  /** Enable all tools */
   enableAll: () => void
-  /** Get the list of disabled tool names */
   disabledTools: readonly string[]
-  /** Get list of enabled tool names from a given set of all tool names */
   getEnabledTools: (allToolNames: string[]) => string[]
 }
 
-/**
- * Hook for managing which MCP tools are active.
- *
- * By default all tools are enabled. Users can disable individual tools
- * from the sidebar; the state persists in localStorage.
- */
 export function useToolConfig(): UseToolConfigResult {
   const [disabledTools, setDisabledTools] = useState<string[]>(() => {
     return readStorage().disabled
   })
 
-  // Sync to localStorage whenever the disabled list changes
   useEffect(() => {
     writeStorage({ disabled: disabledTools })
   }, [disabledTools])

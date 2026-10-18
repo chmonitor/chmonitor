@@ -21,30 +21,24 @@ import type { MenuItem } from '@/components/menu/types'
  * who prefers discoverability gets every row back.
  */
 
-/** The fields of a `MenuItem` this policy reads. */
 export type UnavailabilityItem = Pick<
   MenuItem,
   'tableCheck' | 'requiresMetadataDb' | 'hideWhenUnavailable'
 >
 
-/** Everything the policy needs besides the item itself. */
 export interface UnavailableState {
-  /** The item's `tableCheck` table is readable on this host (fail-open). */
   tableAvailable: boolean
-  /** The deployment has the metadata DB a `requiresMetadataDb` item needs. */
   metadataDbSatisfied: boolean
   /**
    * The shared availability map is still in flight. A row is never hidden from
    * an unsettled map — see {@link unavailableVisibility}.
    */
   availabilityLoading: boolean
-  /** Settings → Navigation → *Unavailable pages*: `true` = Dim, `false` = Hide. */
   dimUnavailablePages: boolean
 }
 
 export type UnavailableVisibility = 'available' | 'dimmed' | 'hidden'
 
-/** The full resolution for one item: the verdict plus the signals behind it. */
 export interface UnavailableResolution {
   visibility: UnavailableVisibility
   tableAvailable: boolean
@@ -66,12 +60,6 @@ export function hidesWhenUnavailable(item: UnavailabilityItem): boolean {
   return Boolean(item.tableCheck)
 }
 
-/**
- * Resolve one item's rail visibility. The only place that decision is made.
- *
- * @param item - The menu item being rendered
- * @param state - Host availability, config, load state, and the user setting
- */
 export function resolveUnavailable(
   item: UnavailabilityItem,
   state: UnavailableState

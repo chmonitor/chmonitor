@@ -1,14 +1,3 @@
-/**
- * useAgentConfigCheck Hook
- *
- * Fetches the AI agent's LLM provider configuration status from
- * `GET /api/v1/agents/config-check` — which provider(s) have API keys
- * configured, the selected model's provider, and whether a base URL override
- * is set. Provider/model selection itself is set at deploy time via
- * environment variables (`LLM_MODEL`, `OPENROUTER_API_KEY`, etc.), so this is
- * read-only status, not an editable form.
- */
-
 import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch } from './api-fetch'

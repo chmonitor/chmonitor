@@ -1,10 +1,7 @@
 /**
- * Shared advisor input errors — used by the dashboard engine, `/api/v1/advisor`,
- * and the MCP tool so all three surfaces classify the same "cannot analyze"
- * cases the same way (no FROM/JOIN, missing input, unresolved query_id).
- *
- * Pure: no I/O. Callers still run `validateSqlQuery` themselves (that lives
- * in `@chm/sql-builder`).
+ * Shared "cannot analyze" classification for the dashboard engine,
+ * `/api/v1/advisor`, and the MCP tool. Pure: callers still run
+ * `validateSqlQuery` (in `@chm/sql-builder`) themselves.
  */
 
 import type { ReferencedTable } from './types'

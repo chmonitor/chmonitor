@@ -148,19 +148,13 @@ export function detectChFlavor(
  *   - Uses timezone mapping, NOT IP geolocation (no IP involved)
  *   - Returns 'unknown' when timezone cannot be mapped to a country
  *   - Uses Intl API which is built into the browser
- *   - Maps ALL IANA timezones to their primary country (comprehensive)
  */
 export function detectCountry(): string {
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
     if (!timezone) return 'unknown'
 
-    // Extract country code from timezone IANA identifier
-    // Format: Area/Location or Area/Location/SubLocation (e.g., 'America/New_York', 'Europe/London')
-    // The country is determined by the timezone's geographic region
-    // This is a comprehensive mapping covering all IANA timezones
     const tzCountryMap: Record<string, string> = {
-      // Africa
       'Africa/Abidjan': 'ci',
       'Africa/Accra': 'gh',
       'Africa/Addis_Ababa': 'et',
@@ -213,7 +207,6 @@ export function detectCountry(): string {
       'Africa/Tripoli': 'ly',
       'Africa/Tunis': 'tn',
       'Africa/Windhoek': 'na',
-      // America
       'America/Adak': 'us',
       'America/Anchorage': 'us',
       'America/Anguilla': 'ai',
@@ -370,7 +363,6 @@ export function detectCountry(): string {
       'America/Winnipeg': 'ca',
       'America/Yakutat': 'us',
       'America/Yellowknife': 'ca',
-      // Antarctica
       'Antarctica/Casey': 'au',
       'Antarctica/Davis': 'au',
       'Antarctica/DumontDUrville': 'fr',
@@ -382,9 +374,7 @@ export function detectCountry(): string {
       'Antarctica/Syowa': 'jp',
       'Antarctica/Troll': 'aj',
       'Antarctica/Vostok': 'aj',
-      // Arctic
       'Arctic/Longyearbyen': 'sj',
-      // Asia
       'Asia/Aden': 'ye',
       'Asia/Almaty': 'kz',
       'Asia/Amman': 'jo',
@@ -478,7 +468,6 @@ export function detectCountry(): string {
       'Asia/Yakutsk': 'ru',
       'Asia/Yekaterinburg': 'ru',
       'Asia/Yerevan': 'am',
-      // Atlantic
       'Atlantic/Azores': 'pt',
       'Atlantic/Bermuda': 'bm',
       'Atlantic/Canary': 'es',
@@ -489,7 +478,6 @@ export function detectCountry(): string {
       'Atlantic/South_Georgia': 'gs',
       'Atlantic/St_Helena': 'sh',
       'Atlantic/Stanley': 'fk',
-      // Australia
       'Australia/Adelaide': 'au',
       'Australia/Brisbane': 'au',
       'Australia/Broken_Hill': 'au',
@@ -502,7 +490,6 @@ export function detectCountry(): string {
       'Australia/Melbourne': 'au',
       'Australia/Perth': 'au',
       'Australia/Sydney': 'au',
-      // Europe
       'Europe/Amsterdam': 'nl',
       'Europe/Andorra': 'ad',
       'Europe/Athens': 'gr',
@@ -557,7 +544,6 @@ export function detectCountry(): string {
       'Europe/Volgograd': 'ru',
       'Europe/Zagreb': 'hr',
       'Europe/Zurich': 'ch',
-      // Indian
       'Indian/Antananarivo': 'mg',
       'Indian/Chagos': 'io',
       'Indian/Christmas': 'cx',
@@ -568,7 +554,6 @@ export function detectCountry(): string {
       'Indian/Mauritius': 'mu',
       'Indian/Mayotte': 'yt',
       'Indian/Reunion': 're',
-      // Pacific
       'Pacific/Apia': 'ws',
       'Pacific/Auckland': 'nz',
       'Pacific/Bougainville': 'pg',

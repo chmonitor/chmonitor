@@ -1,9 +1,7 @@
 /**
- * Resolves the ACTIVE Postgres source from the `?pg=<connectionId>` search
- * param (issue #2450). This is the Postgres analog of `?host=<n>` — a SEPARATE
- * routing dimension so a Postgres source is never overloaded onto a hostId.
- * When a valid `?pg=` is present, the active engine is `'postgres'`
- * and the nav menu swaps to Postgres pages (decision 4).
+ * Resolves the active Postgres source from `?pg=<connectionId>`, a routing
+ * dimension separate from `?host=<n>` so a Postgres source is never overloaded
+ * onto a hostId.
  *
  * Fail-closed: without the feature flag / a resolvable connection, the engine
  * is {@link DEFAULT_SOURCE_ENGINE}, so the default menu is byte-for-byte
@@ -17,10 +15,8 @@ import {
   usePgConnections,
 } from '@/lib/hooks/use-pg-connections'
 
-/** The `?pg=` query-param name carrying the active Postgres connection id. */
 export const PG_HOST_PARAM = 'pg'
 
-/** The active Postgres connection, or `null` when no Postgres source is active. */
 export function useActivePgConnection(): PgConnectionInfo | null {
   const searchParams = useUrlSearchParams()
   const pgId = searchParams.get(PG_HOST_PARAM)
