@@ -93,6 +93,10 @@
       "since": ["19.1", "21.11", "26.6"]
     },
     {
+      "name": "mergetree-settings",
+      "since": ["23.3", "23.8"]
+    },
+    {
       "name": "mutations",
       "since": ["19.1", "25.12", "26.2"]
     },
