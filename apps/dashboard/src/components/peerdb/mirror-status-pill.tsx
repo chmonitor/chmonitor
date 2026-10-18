@@ -8,11 +8,7 @@ interface MirrorStatusPillProps {
   className?: string
 }
 
-/**
- * Colored status pill with a live dot.
- * Uses inline hex tints (dot + '14'/'40') so the tone matches the design exactly
- * regardless of theme.
- */
+/** Inline hex tints (dot + '14'/'40') keep the tone identical across themes. */
 export function MirrorStatusPill({ status, className }: MirrorStatusPillProps) {
   const meta = DESIGN_STATUS_META[toDesignStatus(status)]
   return (

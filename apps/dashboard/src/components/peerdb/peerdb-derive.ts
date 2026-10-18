@@ -7,10 +7,8 @@ import {
 } from '@/lib/peerdb/slot-lag-thresholds'
 
 /**
- * Wall-clock duration of a CDC batch in seconds, from start→end timestamps.
- * Returns null when either endpoint is missing or unparseable so callers can
- * render an em-dash rather than a bogus 0. Negative spans (clock skew) clamp
- * to 0.
+ * Null when a timestamp is missing so callers render an em-dash, not a bogus 0.
+ * Negative spans (clock skew) clamp to 0.
  */
 export function batchDurationSec(batch: CDCBatch): number | null {
   const start = parseTs(batch.startTime)
@@ -28,11 +26,7 @@ export interface CloneProgress {
   done: boolean
 }
 
-/**
- * Snapshot / initial-load progress for one cloned table. Percent is driven by
- * partitions completed vs total; a table with fetch+consolidate both complete
- * is treated as 100% done even if the partition counters lag.
- */
+/** Fetch+consolidate both complete counts as 100% even if partition counters lag. */
 export function cloneProgress(summary: CloneTableSummary): CloneProgress {
   const completed = toNumber(summary.numPartitionsCompleted)
   const total = toNumber(summary.numPartitionsTotal)
@@ -55,12 +49,7 @@ export function cloneProgress(summary: CloneTableSummary): CloneProgress {
  */
 export const EAGER_METRICS_LIMIT = 24
 
-/**
- * Whether the mirror at `visibleIndex` should fetch its metrics eagerly, i.e.
- * without waiting for the user to expand the row. The first EAGER_METRICS_LIMIT
- * rows always load so the header KPIs / sparklines / lag triage are non-zero on
- * mount — regardless of fleet size.
- */
+/** The first EAGER_METRICS_LIMIT rows load before expand so header KPIs are non-zero on mount. */
 export function shouldEagerLoadMetrics(
   visibleIndex: number,
   limit: number = EAGER_METRICS_LIMIT
@@ -78,8 +67,6 @@ export {
 } from '@/lib/peerdb/slot-lag-thresholds'
 
 /**
- * Classify a replication slot's health from its lag and WAL status.
- *
  * - `critical` — lag past the critical threshold, an inactive slot still
  *   retaining WAL, or a non-`reserved`/`extended` WAL status ("unreserved" or
  *   "lost" mean Postgres may drop or has dropped required WAL).

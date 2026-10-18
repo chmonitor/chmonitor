@@ -1,11 +1,5 @@
 'use client'
 
-/**
- * Templates section — pick an insight "vibe" in one click.
- *
- * Extracted from `insights-settings-form.tsx`.
- */
-
 import type { InsightsSettingsUpdate } from './use-insights-settings-form'
 
 import { TEMPLATE_SVG } from './icons'

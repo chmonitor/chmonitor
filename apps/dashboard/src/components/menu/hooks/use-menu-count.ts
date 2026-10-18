@@ -1,15 +1,6 @@
 /**
- * Menu Count Hooks
- *
- * Fetches menu item counts via TanStack Query with lazy loading and caching.
- *
- * The sidebar renders up to ~18 count badges. Rather than firing one request
- * per badge, all badges share a single batched request to
- * `/api/v1/menu-counts?hostId=<n>` (deduped by TanStack Query via a shared key). Each
- * badge then selects its own value from the returned map.
- *
- * Uses a 2-minute refresh interval to minimize API load while keeping counts
- * fresh.
+ * All ~18 sidebar badges share one batched request (deduped by a shared query
+ * key) and each selects its own value from the map.
  */
 
 import { useQuery } from '@tanstack/react-query'

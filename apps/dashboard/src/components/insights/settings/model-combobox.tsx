@@ -1,13 +1,5 @@
 'use client'
 
-/**
- * Searchable, provider-grouped model combobox for the insights settings form.
- *
- * Extracted from `insights-settings-form.tsx`. Groups the available models by
- * provider (preserving order), filters across name/provider/id on search, and
- * exposes a "Default" option (`value === null`).
- */
-
 import { Check, ChevronDown } from 'lucide-react'
 
 import type { ModelDisplayInfo } from '@/lib/hooks/use-agent-model'

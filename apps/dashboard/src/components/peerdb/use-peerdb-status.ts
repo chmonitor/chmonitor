@@ -32,10 +32,6 @@ async function fetchStatus(url: string): Promise<PeerDBStatusPayload> {
 }
 
 /**
- * Shared hook for the server-side PeerDB connection probe. Validates the
- * response shape so callers (the header pill + mirrors header chip) never
- * consume malformed data.
- *
  * `connection` targets a per-user connection's PeerDB link (`?connection=<id>`);
  * omitted, it defaults to the active `?connection=` URL search param, and
  * `null`/`''` forces the env-wide config.

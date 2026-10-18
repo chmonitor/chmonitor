@@ -14,20 +14,11 @@ import { formatRelativeTime } from '@/lib/utils/format-relative-time'
 
 interface InsightCardProps {
   insight: InsightCardData
-  /**
-   * ClickHouse host the deep-link should carry as `?host=`. Omit it for a
-   * finding that has no ClickHouse host at all (PeerDB findings belong to the
-   * env-wide PeerDB deployment, not to a host in the host list) — the link then
-   * carries no `?host=` rather than a fabricated one.
-   */
+  /** Omit for PeerDB findings, which have no ClickHouse host. */
   hostId?: number
   onDismiss: (insight: InsightCardData) => void
   className?: string
-  /**
-   * Search params to attach to the card's action deep-link, overriding the
-   * default `{ host: hostId }`. Postgres insights pass the active `?pg=` source
-   * so the link stays on the Postgres routing dimension instead of `?host`.
-   */
+  /** Overrides `{ host: hostId }`; Postgres insights pass their `?pg=` source. */
   linkSearch?: Record<string, string | number>
 }
 

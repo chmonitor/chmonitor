@@ -16,12 +16,7 @@ interface PinButtonProps {
   hasBadge?: boolean
 }
 
-/**
- * Hover-revealed pin/unpin affordance for a top-level sidebar menu item
- * — same reveal pattern as `CardToolbar`. Renders as a sibling
- * of `SidebarMenuButton` via `SidebarMenuAction` rather than nesting inside
- * the link, so clicking it never triggers navigation.
- */
+/** A sibling of the link rather than nested inside it, so a click never navigates. */
 export function PinButton({ href, title, hasBadge }: PinButtonProps) {
   const isPinned = useIsFavorite(href)
   const toggleFavorite = useToggleFavorite()
@@ -56,10 +51,8 @@ interface SubPinButtonProps {
 }
 
 /**
- * Hover-revealed pin/unpin affordance for a sidebar sub-item.
- * `SidebarMenuSubButton` has no `peer/menu-button` sizing hooks like the
- * top-level button, so this is a standalone absolutely-positioned sibling
- * tied to the existing `group/menu-sub-item` hover group instead of reusing
+ * `SidebarMenuSubButton` has no `peer/menu-button` sizing hooks, so this is a
+ * standalone absolute sibling on `group/menu-sub-item` instead of a
  * `SidebarMenuAction`.
  */
 export function SubPinButton({ href, title, hasBadge }: SubPinButtonProps) {

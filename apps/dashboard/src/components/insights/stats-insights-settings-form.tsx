@@ -1,15 +1,5 @@
 'use client'
 
-/**
- * Statistics Insights settings form.
- *
- * Per-user controls for the anomaly overlays drawn on the statistical charts
- * (`/queries/insights`, Cluster Statistics): a moving-average line + ±k·σ band,
- * and an optional absolute threshold line. Persisted by
- * `useStatsInsightsSettings`; changes apply immediately and broadcast to the
- * charts. Mirrors the AI Insights settings form layout.
- */
-
 import { RotateCcw } from 'lucide-react'
 
 import { useId } from 'react'

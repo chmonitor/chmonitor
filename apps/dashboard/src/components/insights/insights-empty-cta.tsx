@@ -12,11 +12,6 @@ interface InsightsEmptyCtaProps {
   className?: string
 }
 
-/**
- * Slim, dashed-border call-to-action shown when a host has no active insights.
- * Shared by the overview strip and the insights-page board so the empty state
- * looks identical on both surfaces (never an empty box).
- */
 export function InsightsEmptyCta({
   hostId,
   isGenerating,

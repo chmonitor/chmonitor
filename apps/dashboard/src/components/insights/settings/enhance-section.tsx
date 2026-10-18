@@ -1,11 +1,5 @@
 'use client'
 
-/**
- * "Enhance with AI" toggle + the provider-unavailable warning.
- *
- * Extracted from `insights-settings-form.tsx`.
- */
-
 import { AlertTriangle, ExternalLink } from 'lucide-react'
 
 import type { InsightsSettings } from '@/lib/insights/settings'

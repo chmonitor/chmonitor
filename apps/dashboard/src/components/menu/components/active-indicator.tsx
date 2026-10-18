@@ -5,11 +5,6 @@ interface ActiveIndicatorProps {
   active?: boolean
 }
 
-/**
- * Visual indicator showing active menu item state
- *
- * Displays as an underline (bottom) or left border (left).
- */
 export function ActiveIndicator({
   position,
   active = false,

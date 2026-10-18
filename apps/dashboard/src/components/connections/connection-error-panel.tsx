@@ -12,11 +12,8 @@ export function ConnectionErrorPanel({
   cloudPreset?: boolean
 }) {
   const e = classifyConnectionError(message)
-  // Cloud-specific nudge on top of the generic classification — reachability
-  // failures on the Cloud preset are almost always a TLS/port mismatch (the
-  // 8443 HTTPS interface, never plain HTTP). Additive only: the shared
-  // classifier in `lib/connection-errors.ts` (also used by self-host) is
-  // untouched.
+  // Cloud preset reachability failures are almost always a TLS/port mismatch
+  // (8443 HTTPS, never plain HTTP).
   const showCloudTlsHint =
     cloudPreset &&
     (e.kind === 'tls_error' ||

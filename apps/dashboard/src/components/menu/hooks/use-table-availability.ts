@@ -1,14 +1,4 @@
-/**
- * Table Availability Hooks
- *
- * Fetches backing table availability with lazy loading and caching.
- *
- * All sidebar items backed by system tables share a single batched request to
- * `/api/v1/table-availability?hostId=<n>` (deduped via a shared key).
- *
- * Uses a slow refresh interval to minimize API load since table availability
- * rarely changes.
- */
+/** All sidebar items share one batched request (deduped via a shared key). */
 
 import { useQuery } from '@tanstack/react-query'
 
@@ -50,18 +40,9 @@ export function useTableAvailability(hostId: number): {
 }
 
 /**
- * Resolve one `tableCheck` against the batched availability map.
- *
- * Fail-open by contract: a table is available unless the map EXPLICITLY reports
- * `false`. Callers that also need the loading state must gate their decision on
- * it themselves (see `lib/menu/unavailable-visibility.ts`) so the one-sided
- * fail-open default here is never mistaken for a settled answer.
- *
- * Pure, so a group can resolve all of its children from one map read instead of
- * one hook call per child.
- *
- * @param available - The host's availability map
- * @param tableCheck - The table name or array of table names to check
+ * Fail-open: available unless the map EXPLICITLY reports `false`. Callers must
+ * gate on the loading state themselves so this default is never mistaken for a
+ * settled answer.
  */
 export function tableCheckAvailable(
   available: Record<string, boolean>,

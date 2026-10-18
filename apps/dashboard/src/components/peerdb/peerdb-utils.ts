@@ -150,11 +150,7 @@ export function downsample(data: number[], threshold: number): number[] {
   return sampled
 }
 
-/**
- * Bucket an (x,y) series down to at most `maxBars` bars by summing adjacent
- * groups, keeping the first label of each group. Used by the partition
- * sync-history chart so long histories stay legible and cheap to render.
- */
+/** Sums adjacent groups into at most `maxBars` bars, keeping each group's first label. */
 export function bucketSeries(
   data: { x: string; y: number }[],
   maxBars: number
@@ -186,28 +182,19 @@ export function formatDateTime(
     : new Date(t).toLocaleString(undefined, options)
 }
 
-/**
- * True when an SWR error means PeerDB is unconfigured (proxy returns 503).
- * Centralizes the not-configured signal so pages don't hard-code the status.
- */
+/** The proxy returns 503 when PeerDB is unconfigured. */
 export function isPeerDBNotConfigured(error: unknown): boolean {
   return (error as { status?: number } | undefined)?.status === 503
 }
 
-/**
- * True when the PeerDB API answered 401: PeerDB is configured but the caller
- * is signed out. Pages show a sign-in prompt instead of an error.
- */
+/** 401: PeerDB is configured but the caller is signed out. */
 export function isPeerDBSignInRequired(error: unknown): boolean {
   return (error as { status?: number } | undefined)?.status === 401
 }
 
 /**
- * Compact count: 1.2K / 3.4M / 1.23B / 2.10T.
- *
- * Note: intentionally separate from formatCompactNumber (lib/format-readable.ts) due to
- * different thresholds (adds T tier) and sub-1000 formatting (toLocaleString).
- * Do not merge without design sign-off.
+ * Separate from formatCompactNumber: adds a T tier and uses toLocaleString
+ * below 1000. Do not merge without design sign-off.
  */
 export function pdbFmtNum(n?: number | null): string {
   if (n == null) return '—'
@@ -493,14 +480,7 @@ export const LOG_LEVEL_META: Record<string, LogLevelMeta> = {
   info: { label: 'INFO', dot: '#3b82f6' },
 }
 
-/**
- * Normalize a PeerDB log `errorType` to a canonical level. PeerDB is not
- * consistent about casing (`ERROR`, `WARNING`, `warn`), so fold to lowercase
- * and collapse the `warning` synonym before matching tabs/colors.
- *
- * Single implementation lives in `@/lib/peerdb/mirror-logs` (shared with the
- * alert lane); this wrapper keeps existing imports working.
- */
+/** Re-export of `@/lib/peerdb/mirror-logs`, shared with the alert lane. */
 export function normalizePdbLogLevel(
   errorType?: string | null
 ): 'error' | 'warn' | 'info' {

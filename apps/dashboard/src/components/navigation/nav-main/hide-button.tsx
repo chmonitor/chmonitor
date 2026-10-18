@@ -48,10 +48,8 @@ interface HideButtonProps {
 }
 
 /**
- * Hover-revealed hide control for a top-level sidebar leaf. Sibling of the
- * link (via `SidebarMenuAction`) so the click never navigates. Same reveal as
- * `PinButton`. Docked rail (`lg`+) only: the overlay sidebar customizes
- * through the group heading dialog, so leaf rows there keep just the pin.
+ * Docked rail (`lg`+) only: the overlay sidebar customizes through the group
+ * heading dialog. A sibling of the link, so a click never navigates.
  */
 export function HideButton({ href, title, hasBadge }: HideButtonProps) {
   const hideMenuItem = useHideMenuItem()
@@ -85,10 +83,7 @@ interface SubHideButtonProps {
   hasBadge?: boolean
 }
 
-/**
- * Hover-revealed hide control for a sidebar sub-item. Matches `SubPinButton`
- * (standalone absolute sibling on `group/menu-sub-item`).
- */
+/** Standalone absolute sibling for the same reason as `SubPinButton`. */
 export function SubHideButton({ href, title, hasBadge }: SubHideButtonProps) {
   const hideMenuItem = useHideMenuItem()
 

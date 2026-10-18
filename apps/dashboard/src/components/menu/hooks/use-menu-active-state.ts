@@ -8,13 +8,8 @@ import {
 } from '@/lib/menu/breadcrumb'
 
 /**
- * Check if a menu item or any of its children are active.
- *
- * `siblingHrefs`, when provided, scopes the item's own active check to
- * `isMenuItemActiveAmongSiblings` — pass the hrefs of the OTHER items
- * rendered alongside it (e.g. the other children of the same group) so a
- * shorter sibling href doesn't light up together with a more specific one
- * (e.g. "Chat" `/agents` vs "Agent Settings" `/agents/settings`).
+ * Pass the OTHER items' hrefs as `siblingHrefs` so a shorter sibling
+ * (`/agents`) stays inactive on `/agents/settings`.
  */
 export function useMenuActiveState(
   item: MenuItem,

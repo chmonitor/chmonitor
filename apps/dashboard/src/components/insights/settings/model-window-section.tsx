@@ -1,11 +1,5 @@
 'use client'
 
-/**
- * Model picker + lookback window — 2-col grid.
- *
- * Extracted from `insights-settings-form.tsx`.
- */
-
 import { Clock, Cpu, ExternalLink } from 'lucide-react'
 
 import type { ModelDisplayInfo } from '@/lib/hooks/use-agent-model'

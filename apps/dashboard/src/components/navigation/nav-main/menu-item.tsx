@@ -300,10 +300,8 @@ const SubMenuItem = function SubMenuItem({
 }
 
 /**
- * One subgroup heading inside an expanded group: a real <button> that
- * shows or hides its pages. The subgroup holding the active page opens (and
- * re-opens when navigation lands on one of its pages); other subgroups start
- * from the saved state, else collapsed. Pages keep every leaf affordance.
+ * The subgroup holding the active page opens (and re-opens on navigation into
+ * it); others start from the saved state, else collapsed.
  */
 const SubgroupSection = function SubgroupSection({
   groupTitle,

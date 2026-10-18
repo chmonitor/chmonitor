@@ -96,13 +96,8 @@ function sortGroups<G extends LogPatternGroup<LogFeedEntry>>(
 }
 
 /**
- * Unified logs / alerts feed across all mirrors on the index page. The server
- * reads every mirror's `POST /v1/mirrors/logs` with bounded concurrency and
- * returns in-window lines (1h / 24h / 7d) plus coverage; this view filters by
- * level (error / warn / info). The default Patterns view groups repeats (by
- * message pattern, mirror, mirror prefix group, or table, sorted by level, last seen, or count)
- * with info groups collapsed behind errors and warnings; Raw shows every line.
- * Rows deep-link to the mirror detail page.
+ * Logs feed across all mirrors. The server fans out to every mirror's logs with
+ * bounded concurrency; this view only filters and groups what comes back.
  */
 export function FleetLogsFeed() {
   const [view, setView] = useState<View>('patterns')

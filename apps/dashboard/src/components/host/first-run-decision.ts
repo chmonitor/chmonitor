@@ -1,35 +1,14 @@
 /**
- * Pure decision logic for {@link FirstRunGate}, extracted so the cloud-mode
- * host-resolution invariant can be unit-tested without a React/router harness.
- *
- * ## Why this exists (the bug it fixes)
- *
- * In cloud (SaaS) mode the env `CLICKHOUSE_HOST` surfaces as a public read-only
- * `demo`. Once a user signs in, {@link useMergedHosts} HIDES that demo so their
- * workspace starts empty. But the active host for data fetching comes from the
- * `?host=` search param (default `0`) via `useHostId()`, which is decoupled from
- * the visible host list. A stale `?host=0` — carried over from browsing the demo
- * while anonymous — then points at the now-hidden demo.
- *
- * `resolve-host-fetch.ts` treats a host id that is NOT in the merged list as
- * "server host" and falls back to `/api/v1/charts/...?hostId=0`, which serves the
- * demo. So a signed-in, zero-connection user could still see real demo data,
- * violating the documented invariant (demo hidden → own connections only → zero
- * ⇒ welcome/setup). See docs/knowledge/cloud-saas-mode.md.
- *
- * The discriminator is deterministic: user connections (browser/database) always
- * use NEGATIVE host ids (`DB_CONNECTION_HOST_ID_START = -1000`, browser ids count
- * down from -1), while env/demo hosts use non-negative indices `0, 1, 2, …`. So a
- * non-negative `?host` for a signed-in cloud user can only ever be the hidden
- * demo — never one of their own hosts. We key off "is the resolved host actually
- * visible" rather than the raw id, which stays correct for every source.
+ * In cloud mode a signed-in user's hosts hide the env demo, but a stale
+ * `?host=0` from anonymous browsing still points at it, and resolve-host-fetch
+ * falls back to the server (demo) host for an id not in the merged list. That
+ * leaks demo data into their workspace. We key off "is the resolved host
+ * visible" rather than the raw id. See docs/knowledge/cloud-saas-mode.md.
  */
 
 /**
- * Paths that stay reachable with zero hosts configured and are never re-pointed:
- *  - `/setup` renders the onboarding surface (exempting it avoids a redirect loop);
- *  - `/about` is a static version-info page with no host dependency.
- * These render as footer rows (About) — see AppSidebar.
+ * Reachable with zero hosts: `/setup` (exempt to avoid a redirect loop),
+ * `/billing` (a paying user with no host must manage their plan), `/about`.
  */
 export const FIRST_RUN_EXEMPT_PATHS = ['/setup', '/billing', '/about'] as const
 
@@ -64,13 +43,6 @@ export interface FirstRunInput {
   firstVisibleHostId: number | null
 }
 
-/**
- * Decide what FirstRunGate renders / navigates to.
- *
- * OSS and anonymous-cloud behaviour is unchanged: the only new branch is
- * "cloud + signed-in + the active host is not one of the user's visible hosts",
- * which must never fall through to rendering demo-backed charts.
- */
 export function resolveFirstRunAction(input: FirstRunInput): FirstRunAction {
   const {
     isLoading,
@@ -92,11 +64,7 @@ export function resolveFirstRunAction(input: FirstRunInput): FirstRunAction {
   // not be re-pointed.
   if (onExemptPath) return { type: 'render' }
 
-  // Cloud + signed-in: the env host is a hidden read-only demo. If the active
-  // `?host` does not resolve to one of the user's OWN visible hosts, rendering
-  // the routed page would leak demo data (resolve-host-fetch falls back to the
-  // server/demo host for an unresolved id). Guard BEFORE we ever render charts,
-  // and independently of whether their connections have finished loading.
+  // Guard before rendering charts, even while connections are still loading.
   const cloudDemoLeakRisk = cloudMode && isSignedIn && !hasVisibleResolvedHost
   if (cloudDemoLeakRisk) {
     // Wait for their own connections rather than briefly flashing demo charts.

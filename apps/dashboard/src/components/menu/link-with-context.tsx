@@ -44,13 +44,7 @@ export const HostPrefixedLink = ({
   href: string
   children?: React.ReactNode
   className?: string
-  /**
-   * Hrefs of sibling menu items rendered alongside this link (e.g. the other
-   * children of the same collapsible group). When provided, active state
-   * resolves via `isMenuItemActiveAmongSiblings` so a shorter sibling href
-   * (`/agents`) never lights up together with a more specific one
-   * (`/agents/settings`) — see that function's doc comment.
-   */
+  /** Lets a shorter sibling href (`/agents`) stay inactive on `/agents/settings`. */
   siblingHrefs?: string[]
 } & Omit<
   ComponentProps<typeof Link>,

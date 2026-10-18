@@ -1,12 +1,3 @@
-/**
- * Shared visual metadata for insight severities.
- *
- * Single source of truth for the label, icon, and token classes used to render
- * a severity across the insight surfaces (card, overview strip, insights-page
- * board). Keeping it here avoids each surface re-deriving colors / labels and
- * drifting — e.g. a card that says "Notice" next to a header that says "info".
- */
-
 import type { LucideIcon } from 'lucide-react'
 import { AlertTriangle, Info, TriangleAlert } from 'lucide-react'
 

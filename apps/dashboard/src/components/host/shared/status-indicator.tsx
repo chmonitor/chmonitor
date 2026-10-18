@@ -15,11 +15,7 @@ export interface StatusIndicatorProps {
    */
   label: string
 
-  /**
-   * Optional CSS className for styling the indicator.
-   * - If provided: renders with custom color (e.g., 'bg-emerald-500' for online)
-   * - If omitted: renders default red color (offline state)
-   */
+  /** Omitted renders the default red (offline) color. */
   className?: string
 
   size?: string
