@@ -70,6 +70,21 @@ export function clickHouseErrorType(err: unknown): string | undefined {
 }
 
 /**
+ * `merge('system', '^error_log')` on a server that never created the log
+ * table fails with code 636 instead of 60. The same code also covers failed
+ * schema inference (s3, file, url), so the message decides.
+ */
+function isNoTablesMatchRegexpError(
+  errorMessage: string,
+  clickHouseType: string
+): boolean {
+  return (
+    clickHouseType === 'CANNOT_EXTRACT_TABLE_STRUCTURE' &&
+    errorMessage.includes('no tables satisfied provided regexp')
+  )
+}
+
+/**
  * Categorize an error into a `FetchDataErrorType`. A ClickHouse server error
  * is classified by its error type alone: its message text names user
  * identifiers (`access_type`, `system.certificates`) that the substring
@@ -81,6 +96,9 @@ export function classifyFetchError(
   clickHouseType?: string
 ): FetchDataErrorType {
   if (clickHouseType) {
+    if (isNoTablesMatchRegexpError(errorMessage, clickHouseType)) {
+      return 'table_not_found'
+    }
     return CLICKHOUSE_ERROR_TYPES[clickHouseType] ?? 'query_error'
   }
   // SSL/TLS errors (Cloudflare 525/526 as standalone status codes, not
