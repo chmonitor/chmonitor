@@ -12,7 +12,7 @@ export const settingsDeclarative: DeclarativeQueryConfig = {
   sql: `
       SELECT *
       FROM system.settings
-      WHERE if({changed: String} != '', changed = {changed: String}, true)
+      WHERE {changed: String} = '' OR toString(changed) = {changed: String}
       ORDER BY name
   `,
   columns: SETTINGS_COLUMNS,
