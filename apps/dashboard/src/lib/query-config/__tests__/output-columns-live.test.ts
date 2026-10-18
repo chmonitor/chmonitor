@@ -33,16 +33,13 @@ import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-versio
 import type { QueryConfig } from '../../../types/query-config'
 
 import { queries } from '../index'
-import { beforeAll, describe, expect, it } from 'bun:test'
 import {
-  getClickHouseVersion,
-  selectVersionedSql,
-} from '@chm/clickhouse-client/clickhouse-version'
-
-const HAS_LIVE_SERVER = Boolean(process.env.CLICKHOUSE_HOST)
-const HOST = process.env.CLICKHOUSE_HOST ?? ''
-const USER = process.env.CLICKHOUSE_USER ?? 'default'
-const PASSWORD = process.env.CLICKHOUSE_PASSWORD ?? ''
+  classifyRejection,
+  getLiveVersion,
+  postToLiveServer,
+} from './live-clickhouse'
+import { beforeAll, describe, expect, it } from 'bun:test'
+import { selectVersionedSql } from '@chm/clickhouse-client/clickhouse-version'
 
 /**
  * Configs whose output columns MUST be verifiable live. Everything else is
@@ -53,68 +50,24 @@ const PASSWORD = process.env.CLICKHOUSE_PASSWORD ?? ''
  */
 const MUST_VERIFY = ['merges', 'detached_parts', 'replication-queue'] as const
 
-async function getLiveVersion(): Promise<ClickHouseVersion | null> {
-  if (!HAS_LIVE_SERVER) return null
-  try {
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Connection timeout')), 3000)
-    )
-    return await Promise.race([getClickHouseVersion(0), timeout])
-  } catch {
-    return null
-  }
-}
-
 /**
- * Run the shipped SQL verbatim and hand back the UNTOUCHED server response.
+ * Run the shipped SQL verbatim with `FORMAT JSON` and hand back the UNTOUCHED
+ * server response.
  *
  * Goes over raw HTTP rather than through `fetchData` on purpose: the client
  * parses rows into objects, and duplicate keys silently collapse during JSON
- * parsing — destroying the very evidence this test looks for. Both the status
- * and the body come back so a caller can assert on an ERROR (#3681) rather than
- * skipping past it.
+ * parsing — destroying the very evidence this test looks for.
  */
-async function runShipped(
-  sql: string,
-  params: Record<string, unknown>,
-  analyzer: 0 | 1
-): Promise<{ ok: boolean; body: unknown; text: string }> {
-  const url = new URL(HOST)
-  url.searchParams.set('user', USER)
-  if (PASSWORD) url.searchParams.set('password', PASSWORD)
-  url.searchParams.set('enable_analyzer', String(analyzer))
+function runShipped(sql: string, config: QueryConfig, analyzer: 0 | 1) {
   // Cap the result via SETTINGS rather than wrapping the query in
   // `SELECT * FROM (...)`: that wrapper's own star COLLAPSES a duplicate
   // column under the legacy analyzer, hiding the very defect being tested.
   // The shipped SQL must be sent verbatim.
-  url.searchParams.set('max_result_rows', '1')
-  url.searchParams.set('result_overflow_mode', 'break')
-  for (const [key, value] of Object.entries(params)) {
-    url.searchParams.set(`param_${key}`, String(value))
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      // A fresh connection per request. ClickHouse 25.8 answers an exception
-      // with `Connection: Close`, but Bun still reuses the pooled socket, so
-      // the NEXT config fails with "socket connection was closed" and drops
-      // out of `verified` (that is how `merges` failed on 25.8 after
-      // `query-metric-log` was rejected).
-      headers: { Connection: 'close' },
-      body: `${sql} FORMAT JSON`,
-    })
-    const text = await response.text()
-    let body: unknown = null
-    try {
-      body = JSON.parse(text)
-    } catch {
-      body = null
-    }
-    return { ok: response.ok, body, text }
-  } catch (e) {
-    return { ok: false, body: null, text: `network: ${String(e)}` }
-  }
+  return postToLiveServer(`${sql} FORMAT JSON`, config, {
+    enable_analyzer: analyzer,
+    max_result_rows: 1,
+    result_overflow_mode: 'break',
+  })
 }
 
 function defectsIn(names: string[]): string[] {
@@ -160,14 +113,12 @@ describe('shipped SQL output columns against a live ClickHouse (optional)', () =
     it(`emits no duplicate or qualified output column (enable_analyzer=${analyzer})`, async () => {
       if (!liveVersion) return // Skip - no live ClickHouse
       const offenders: string[] = []
-      // #3681: `any(query) AS query` / `sum(read_rows) AS read_rows` makes the
-      // server reject the query outright, so `outputColumns` returns null and
-      // the `continue` below skips it as "not verifiable" — which is how
-      // `slow-query-patterns` and `storage-compression` shipped broken with
-      // this job green. Collected in the SAME pass (no extra requests): a
-      // rejection whose text carries the error is a SQL defect, not an
-      // environment gap.
+      // #3681 (ILLEGAL_AGGREGATION) and #3851 (UNKNOWN_IDENTIFIER) both shipped
+      // with this job green because a rejected query was skipped as "not
+      // verifiable" (or, on 25.8, counted as verified). A rejection is now a
+      // failure unless `classifyRejection` calls it an environment gap.
       const rejected: string[] = []
+      const skipped: string[] = []
       const verified: string[] = []
 
       for (const config of Object.values(queries) as QueryConfig[]) {
@@ -175,24 +126,18 @@ describe('shipped SQL output columns against a live ClickHouse (optional)', () =
         // ONE request per config; both the column names and the rejection are
         // read off the same response, so a healthy registry costs exactly what
         // it did before this change.
-        const run = await runShipped(
-          sql,
-          (config.defaultParams ?? {}) as Record<string, unknown>,
-          analyzer
-        )
-        if (!run.ok) {
-          const meta = (run.body as { meta?: { name: string }[] } | null)?.meta
-          if (!meta) {
-            // Match on the error TEXT, and only for a rejection: system.query_log
-            // stores the text of queries that failed earlier, so a 200 response
-            // can legitimately CONTAIN this string as data.
-            if (/ILLEGAL_AGGREGATION/.test(run.text)) {
-              rejected.push(
-                `${config.name}: ${run.text.split('\n')[0].slice(0, 160)}`
-              )
-            }
-            continue
-          }
+        const run = await runShipped(sql, config, analyzer)
+        // 25.8 answers a rejected `FORMAT JSON` query with a 4xx/5xx AND a
+        // JSON body carrying an empty `meta` plus an `exception` field, so a
+        // present `meta` never means the query ran. Read the error from the
+        // `exception` field, not the whole body: system.query_log rows can
+        // CONTAIN the text of earlier failed queries as data.
+        const exception = (run.body as { exception?: string } | null)?.exception
+        if (!run.ok || exception) {
+          const rejection = classifyRejection(config, exception ?? run.text)
+          if (rejection.kind === 'skip') skipped.push(rejection.reason)
+          else rejected.push(rejection.reason)
+          continue
         }
         const names = (run.body as { meta: { name: string }[] }).meta.map(
           (column) => column.name
@@ -203,6 +148,11 @@ describe('shipped SQL output columns against a live ClickHouse (optional)', () =
         }
       }
 
+      console.log(
+        `enable_analyzer=${analyzer}: ${verified.length} verified, ${skipped.length} skipped, ${rejected.length} rejected`
+      )
+      for (const reason of skipped) console.log(`  skipped ${reason}`)
+
       expect(offenders).toEqual([])
       expect(rejected).toEqual([])
       // A query that fails to run must not masquerade as a pass for the
@@ -210,7 +160,7 @@ describe('shipped SQL output columns against a live ClickHouse (optional)', () =
       for (const name of MUST_VERIFY) {
         expect(verified).toContain(name)
       }
-    })
+    }, 60_000)
   }
 
   it('produces every declared display column for the collision-prone configs', async () => {
@@ -223,11 +173,7 @@ describe('shipped SQL output columns against a live ClickHouse (optional)', () =
       if (!config) continue
 
       const sql = selectVersionedSql(config.sql, liveVersion)
-      const run = await runShipped(
-        sql,
-        (config.defaultParams ?? {}) as Record<string, unknown>,
-        1
-      )
+      const run = await runShipped(sql, config, 1)
       expect(run.ok).toBe(true)
 
       const names = (
