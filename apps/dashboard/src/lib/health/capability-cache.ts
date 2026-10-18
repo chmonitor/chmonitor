@@ -76,6 +76,8 @@ export interface HostCapabilities {
   readonly tables: ReadonlySet<string>
   /** Cluster names from `system.clusters`, sorted. */
   readonly clusters: readonly string[]
+  /** The subset of `clusters` this node is a member of (`is_local = 1`), sorted. */
+  readonly localClusters: readonly string[]
   /** True when the probe failed; `tables` is empty and `clusters` is unknown. */
   readonly probeFailed: boolean
   /** Unix-ms when this snapshot was taken. */
@@ -93,6 +95,7 @@ interface CacheEntry {
 const EMPTY_SNAPSHOT: HostCapabilities = {
   tables: new Set<string>(),
   clusters: [],
+  localClusters: [],
   probeFailed: true,
   probedAt: 0,
 }
@@ -135,8 +138,9 @@ export function resetHostCapabilities(hostId?: number): void {
  * (a custom `CLICKHOUSE_DATABASE`) does not have to edit the string.
  *
  * Verified verbatim on 23.8.16.16, 24.3.18.7 and 26.7.22.4 — the
- * `UNION ALL` over a derived `SELECT DISTINCT` is the only shape that parses
- * on all three.
+ * `UNION ALL` over a derived subquery is the only shape that parses on all
+ * three. The cluster half (GROUP BY with `is_local`) was re-checked on 25.8
+ * and 26.5.
  */
 export function buildCapabilityProbeSql(
   appDatabase: string = APP_DATABASE
@@ -147,8 +151,8 @@ export function buildCapabilityProbeSql(
     WHERE database IN ('system', {appDatabase: String})
       AND ${LOCAL_DATABASES_FILTER}
     UNION ALL
-    SELECT 'cluster' AS kind, cluster AS name
-    FROM (SELECT DISTINCT cluster FROM system.clusters)
+    SELECT if(is_local = 1, 'local_cluster', 'cluster') AS kind, cluster AS name
+    FROM (SELECT cluster, max(is_local) AS is_local FROM system.clusters GROUP BY cluster)
   `
 }
 
@@ -180,16 +184,21 @@ async function probe(hostId: number): Promise<HostCapabilities> {
 
   const tables = new Set<string>()
   const clusters = new Set<string>()
+  const localClusters = new Set<string>()
   for (const row of result.data) {
     const name = row?.name
     if (typeof name !== 'string' || name === '') continue
-    if (row.kind === 'cluster') clusters.add(name)
+    if (row.kind === 'local_cluster') {
+      clusters.add(name)
+      localClusters.add(name)
+    } else if (row.kind === 'cluster') clusters.add(name)
     else tables.add(name)
   }
 
   return {
     tables,
     clusters: [...clusters].sort(),
+    localClusters: [...localClusters].sort(),
     probeFailed: false,
     probedAt: clock(),
   }
