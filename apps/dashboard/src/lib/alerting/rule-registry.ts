@@ -32,6 +32,7 @@ export type AlertRuleType =
   | 'ttl-partition-health'
   | 'replication-queue-stuck'
   | 'replica-session-expired'
+  | 'distribution-queue'
   | 'delayed-inserts'
   | 'rejected-inserts'
   | 'memory-pressure'
