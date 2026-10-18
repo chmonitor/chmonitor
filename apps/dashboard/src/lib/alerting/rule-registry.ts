@@ -28,6 +28,7 @@ export type AlertRuleType =
   | 'failed-backups'
   | 'keeper-unavailable'
   | 'mv-refresh-failures'
+  | 'dictionary-failures'
   | 'slow-query-regression'
   | 'parts-pressure'
   | 'ttl-partition-health'

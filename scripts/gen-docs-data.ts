@@ -82,6 +82,7 @@ const TABLE_CATEGORY: Record<string, string> = {
   'system.text_log': 'logs',
   'system.backup_log': 'backups',
   'system.view_refreshes': 'views',
+  'system.dictionaries': 'dictionaries',
 }
 
 async function buildAlertRules() {

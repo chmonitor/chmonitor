@@ -362,6 +362,21 @@ describe('mv-refresh-failures rule', () => {
   })
 })
 
+describe('dictionary-failures rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'dictionary-failures')
+
+  test('is a built-in, optional on system.dictionaries', () => {
+    expect(rule?.tableCheck).toBe('system.dictionaries')
+    expect(rule?.optional).toBe(true)
+  })
+
+  test('first failing dictionary warns, five are critical', () => {
+    expect(classifyValue(0, rule!.defaults)).toBe('ok')
+    expect(classifyValue(1, rule!.defaults)).toBe('warning')
+    expect(classifyValue(5, rule!.defaults)).toBe('critical')
+  })
+})
+
 describe('ttl-partition-health rule', () => {
   const rule = BUILTIN_RULES.find((r) => r.id === 'ttl-partition-health')!
 
