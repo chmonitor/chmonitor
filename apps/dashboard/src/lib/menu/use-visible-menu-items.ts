@@ -13,12 +13,6 @@ import { workspaceFromSettings } from '@/lib/menu/workspace-presets'
 import { useHostId } from '@/lib/swr'
 import { useNotifications } from '@/lib/swr/use-notifications'
 
-/**
- * Sidebar catalog after permission / engine / workspace gates, with Alerts
- * injected only while the notifications poll reports a count. Groups with
- * one visible child keep their parent (chevron + nested leaf) so hover +
- * can add hidden siblings under that parent.
- */
 export function useVisibleMenuItems() {
   const { config } = useFeaturePermissions()
   const engine = useActiveHostEngine()

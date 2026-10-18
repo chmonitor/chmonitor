@@ -5,48 +5,35 @@ import { join } from 'node:path'
 const calls: Array<{ query: string; hostId?: number }> = []
 
 /**
- * How many times the batched schema statement (#3640, #3642) was answered by
- * the fixture. The column and skip-index coverage below is worthless without
- * it — the partition-key and PREWHERE scorers produce recommendations on their
- * own, so a batched payload that silently degraded to "no columns" used to
- * leave every test green (issue #3655).
+ * How many times the fixture answered the batched schema statement. Without it
+ * the column/skip-index tests are worthless: the partition-key and PREWHERE
+ * scorers recommend on their own, so a payload degraded to "no columns" would
+ * stay green.
  */
 let batchedSchemaHits = 0
 
 /**
- * `fetchTableSchema` reads `system.tables` + `system.columns` +
- * `system.data_skipping_*` in ONE statement, so the three sources appear
- * together and the single-table branches below all match it. Recognise the
- * batched statement on that combination, ahead of them, rather than relying on
- * branch order.
+ * `fetchTableSchema` reads all three system tables in ONE statement, which the
+ * single-table branches below would also match; recognise it first.
  */
 function isBatchedSchemaQuery(q: string): boolean {
   return (
     q.includes('system.tables') &&
     q.includes('system.columns') &&
-    // Bare prefix so the check holds for the shipped identifier and for a
-    // corrected one (#3654) without changing what this mock matches today.
     q.includes('system.data_skipping_ind')
   )
 }
 
 /**
- * Batched schema row, reusing the payload of `__tests__/table-schema-batch.test.ts`
- * (same table, same keys, same columns/indexes) with three rows added so the
- * assertions below have something the scorers can only get from the decoded
- * arrays:
- *   - `created_at` (DateTime, outside the partition key) — partition-key scoring
- *   - `payload` (large, unindexed, outside the sorting key) — skip-index scoring
- *   - `region` (small, already indexed, outside the sorting key) — an existing
- *     index must SUPPRESS the recommendation `payload` gets
+ * Batched schema row. Extra columns exercise decoded-array-only paths:
+ * `created_at` (partition-key scoring), `payload` (skip-index scoring), and
+ * `region` (already indexed, so it must NOT be recommended).
  *
- * `columns` and `skip_indexes` are `Array(Tuple)` values, so JSONEachRow hands
- * them over as arrays of arrays in the SQL's field order
+ * Tuple field order is load-bearing: columns are
  * (position, name, type, is_in_partition_key, is_in_sorting_key,
- * data_compressed_bytes, data_uncompressed_bytes) and
- * (name, type, expression, granularity). The order is load-bearing: the decoder
- * reads positionally, so a scrambled tuple silently pairs every column with the
- * wrong name/type/bytes instead of failing.
+ * data_compressed_bytes, data_uncompressed_bytes), skip indexes are
+ * (name, type, expression, granularity). The decoder reads positionally, so a
+ * scrambled tuple silently mis-pairs fields instead of failing.
  */
 const BATCHED_SCHEMA_ROW = {
   partition_key: 'toYYYYMM(event_date)',
@@ -192,15 +179,8 @@ describe('registerAdvisorTool', () => {
     expect(result.isError).toBe(true)
   })
 
-  // -------------------------------------------------------------------------
-  // Coverage guards for the batched schema read (#3640, #3642). Before this
-  // fixture knew the single batched statement, the `system.tables` branch
-  // matched it first and answered `{ partition_key, sorting_key }` only —
-  // `columns` and `skip_indexes` never reached the engine, and every test in
-  // this file stayed green because the PREWHERE scorer alone produces a
-  // recommendation (issue #3655). Each assertion below is pinned to data that
-  // exists only in the batched `columns` / `skip_indexes` arrays.
-  // -------------------------------------------------------------------------
+  // Each assertion below is pinned to data that exists only in the batched
+  // `columns` / `skip_indexes` arrays.
 
   async function analyze(sql: string) {
     const server = new McpServer({ name: 'test', version: '0.0.1' })
@@ -290,9 +270,7 @@ describe('registerAdvisorTool', () => {
       ).toBe(false)
     }
 
-    // The pure engine now lives in @chm/query-advisor-core, which carries its
-    // own recommend-only guard (src/recommend-only.test.ts). What is left here
-    // is the MCP orchestration + I/O layer.
+    // The engine's recommend-only guard is in @chm/query-advisor-core.
     const advisorDir = join(import.meta.dir, '..', 'tools', 'advisor')
     const files = ['index.ts', 'data-fetchers.ts']
     for (const file of files) {

@@ -1,24 +1,11 @@
 /**
- * Query advisor MCP tool — analyzes a slow query and returns ranked,
- * recommend-only DDL/rewrite suggestions (skip-index, projection, partition
- * key, PREWHERE). See plans/46-query-advisor-engine.md.
+ * Query advisor MCP tool: ranked, recommend-only DDL/rewrite suggestions.
+ * Scoring lives in `@chm/query-advisor-core`, shared with the dashboard; only
+ * the I/O layer differs.
  *
- * The parsing/scoring/impact/rewrite logic used to be a byte-for-byte copy of
- * the dashboard's advisor engine. It now lives in `@chm/query-advisor-core`
- * (issue #2936), which both surfaces import, so a scoring change lands in both
- * at once. Only the I/O layer differs (`runReadonlyFetch` here vs. the
- * dashboard's `readOnlyQuery`).
- *
- * ABSOLUTE INVARIANT: recommend-only. Nothing here executes, applies, or
- * mutates anything — every ClickHouse call goes through `runReadonlyFetch`
- * (which forces `clickhouse_settings.readonly = '1'`), and the returned
- * recommendations are inert DDL/rewrite text, never executed.
- *
- * File layout:
- * - `data-fetchers.ts` — the I/O layer (`runReadonlyFetch` calls).
- * - `index.ts` (this file) — orchestration: resolves/validates the SQL, builds
- *   the `QueryContext`, runs the shared scorers, ranks the results, and
- *   registers the MCP tool.
+ * ABSOLUTE INVARIANT: recommend-only. Every ClickHouse call goes through
+ * `runReadonlyFetch` (forces `readonly = '1'`), and the returned DDL/rewrite
+ * text is never executed.
  */
 
 import { z } from 'zod'

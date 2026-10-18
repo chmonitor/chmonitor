@@ -1,8 +1,5 @@
-// Opt-in, privacy-first product telemetry. OFF by default.
-//
-// Enable with CHM_TELEMETRY=on (server) or VITE_TELEMETRY_ENABLED=true (client
-// build). See docs/content/advanced/telemetry.mdx for the privacy stance and
-// the kill-switch.
+// Anonymous, privacy-first product telemetry, ON unless opted out. See
+// docs/content/advanced/telemetry.mdx for the privacy stance and the kill-switch.
 
 export {
   ACTIVATION_ANY_OF,

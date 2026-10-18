@@ -13,14 +13,6 @@ import { useEffect } from 'react'
 /**
  * Tracks a `feature_viewed` event for the given feature name.
  *
- * @example
- * ```tsx
- * function MyPage() {
- *   useFeatureTracking('overview')
- *   return <PageContent />
- * }
- * ```
- *
  * @param feature - Short, stable feature identifier (e.g. 'overview', 'tables',
  *   'explorer', 'sql_console'). Must not contain PII or hostnames.
  */

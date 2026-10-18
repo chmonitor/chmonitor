@@ -1,6 +1,5 @@
 /**
- * Custom alert rules (plan 32). Unlike webhook subscriptions this works on
- * self-hosted without Clerk too — the API falls back to a fixed
+ * Works on self-hosted without Clerk: the API falls back to a fixed
  * single-tenant owner id server-side (`resolveCustomRuleOwnerId`), so the
  * query is always enabled.
  */
@@ -21,7 +20,7 @@ export interface CustomAlertRuleInfo {
   critical: number
   enabled: boolean
   createdAt: number
-  /** `file`/`env` definitions are read-only (#3497); absent = `d1`. */
+  /** `file`/`env` definitions are read-only; absent = `d1`. */
   source?: HealthDefinitionSource
 }
 
@@ -47,7 +46,7 @@ export function useMetricCatalog() {
       }
       return json.data ?? []
     },
-    staleTime: Number.POSITIVE_INFINITY, // static server-side catalog
+    staleTime: Number.POSITIVE_INFINITY,
   })
 
   return { catalog: query.data ?? [], isLoading: query.isLoading }

@@ -6,7 +6,6 @@ import {
   validateTableExistence,
 } from '../table-validator'
 
-// Mock the table existence cache
 jest.mock('../table-existence-cache', () => ({
   tableExistenceCache: {
     checkTableExists: jest.fn(),
@@ -188,7 +187,6 @@ describe('Table Validator', () => {
 
   describe('validateTableExistence', () => {
     beforeEach(() => {
-      // Reset mocks before each test
       jest.clearAllMocks()
     })
 
@@ -212,7 +210,6 @@ describe('Table Validator', () => {
           typeof tableExistenceCache.checkTableExists
         >
 
-      // Mock the table existence check to return false
       mockCheckTableExists.mockResolvedValue(false)
 
       const config: QueryConfigLike = {
@@ -240,7 +237,6 @@ describe('Table Validator', () => {
           typeof tableExistenceCache.checkTableExists
         >
 
-      // Mock the table existence check to return false
       mockCheckTableExists.mockResolvedValue(false)
 
       const config: QueryConfigLike = {
@@ -248,7 +244,6 @@ describe('Table Validator', () => {
         sql: 'SELECT * FROM system.backup_log WHERE status = "BACKUP_CREATED"',
         columns: ['name'],
         optional: true,
-        // No tableCheck provided - should use SQL parsing
       }
 
       const result = await validateTableExistence(config, 0)

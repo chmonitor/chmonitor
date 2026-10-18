@@ -1,6 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 
-// Mock logger so tests don't pollute stdout
 mock.module('@chm/logger', () => ({
   debug: mock(() => {}),
   error: mock(() => {}),
@@ -154,7 +153,6 @@ describe('validateClickHouseEnv', () => {
     process.env.CLICKHOUSE_HOST = 'http://host1'
 
     const first = validateClickHouseEnv()
-    // Change env after first call — cache should still return old value
     process.env.CLICKHOUSE_HOST = 'http://host2'
 
     const second = validateClickHouseEnv()

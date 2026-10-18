@@ -1,14 +1,7 @@
 import { toErrorResult, toJsonResult, toStructuredContent } from '../helpers'
 import { describe, expect, it } from 'bun:test'
 
-/**
- * MCP 2026-07-28 structured tool output.
- *
- * Every successful result must carry BOTH the human/legacy `content` text and a
- * machine-readable `structuredContent` object, so a modern client never has to
- * re-parse the JSON out of a text block. Errors carry text only — there is no
- * structured payload to describe.
- */
+/** Successes carry both `content` text and `structuredContent`; errors text only. */
 describe('toStructuredContent', () => {
   it('passes a plain object through unchanged', () => {
     const data = { rows: 2, truncated: false }

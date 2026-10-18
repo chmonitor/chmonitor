@@ -9,7 +9,6 @@ import {
 } from './unavailable-visibility'
 import { describe, expect, it } from 'bun:test'
 
-/** A settled host: nothing loading, user on the default Hide setting. */
 function settled(overrides: Partial<UnavailableState> = {}): UnavailableState {
   return {
     tableAvailable: true,

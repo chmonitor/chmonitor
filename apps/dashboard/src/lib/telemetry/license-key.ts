@@ -4,7 +4,7 @@
 // lookup already accepts. Cloud-hooks does not mint a dedicated key. Honor
 // system: the value is never used to gate features or fail startup.
 
-/** Polar checkout ids are UUIDs (36 chars). Cap above that for order-id variants. */
+// Cap above the 36-char UUID length for order-id variants.
 export const LICENSE_KEY_MAX_LEN = 80
 export const LICENSE_KEY_MIN_LEN = 8
 

@@ -26,7 +26,6 @@ export function findCatalogGroupForHref(
   return undefined
 }
 
-/** Top-level (or nested) catalog group whose `title` matches. */
 export function findCatalogGroupByTitle(
   items: readonly MenuItem[],
   title: string
@@ -42,7 +41,6 @@ export function findCatalogGroupByTitle(
   return undefined
 }
 
-/** Leaf children of a catalog group (skip nested folders). */
 export function catalogGroupLeaves(group: MenuItem | undefined): MenuItem[] {
   if (!group?.items?.length) return []
   return group.items.filter(
@@ -50,7 +48,6 @@ export function catalogGroupLeaves(group: MenuItem | undefined): MenuItem[] {
   )
 }
 
-/** Hidden leaves in the same catalog group as `href`, excluding `href`. */
 export function hiddenSiblingLeaves(
   items: readonly MenuItem[],
   href: string,

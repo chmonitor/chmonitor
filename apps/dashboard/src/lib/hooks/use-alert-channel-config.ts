@@ -1,11 +1,8 @@
 /**
- * Unified alert channel config (feat #2665) — the client hook over
- * `/api/v1/health/alert-config`. Like `use-alert-routes.ts`, this is NOT
- * Clerk-gated: the API resolves an OSS single-tenant owner when no Clerk
- * session exists, so self-hosted deployments manage channel config with zero
- * auth. In cloud a signed-out visitor skips the read (the API answers 401).
- * Secrets are never returned in full — only `hasSecret` + a `secretMasked`
- * preview, and an empty secret on save keeps the stored one.
+ * Not Clerk-gated: the API resolves an OSS single-tenant owner when no Clerk
+ * session exists. In cloud a signed-out visitor skips the read (the API answers
+ * 401). Secrets are never returned in full: only `hasSecret` + `secretMasked`,
+ * and an empty secret on save keeps the stored one.
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -29,16 +26,14 @@ export type AlertConfigChannel =
 export interface AlertChannelConfigInfo {
   channel: AlertConfigChannel
   enabled: boolean
-  /** `null` = inherit the channel/global gate (#2661). */
+  /** `null` = inherit the channel/global gate. */
   minSeverity: 'warning' | 'critical' | null
   /** Non-secret destination fields (urls, chat ids, regions, to/from, …). */
   target: Record<string, string>
-  /** Whether a secret is stored (the raw secret is never returned). */
   hasSecret: boolean
-  /** Masked secret preview (last 4 chars), or `null` when none is stored. */
   secretMasked: string | null
   updatedAt: number
-  /** `file`/`env` definitions are read-only (#3497); absent = `d1`. */
+  /** `file`/`env` definitions are read-only; absent = `d1`. */
   source?: HealthDefinitionSource
 }
 
@@ -55,7 +50,6 @@ interface AlertConfigResponse {
   delivery?: AlertDeliveryStatus
 }
 
-/** Server-side alert delivery switches, from `GET /api/v1/health/alert-config`. */
 export interface AlertDeliveryStatus {
   /** `HEALTH_ALERT_ENABLED`: false = the sweep runs dry-run, sends nothing. */
   alertingEnabled: boolean

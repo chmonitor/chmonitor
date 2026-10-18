@@ -17,7 +17,6 @@ const HOST_CACHE_KEY = 'chm-tsr-hosts'
  * (use-hosts.ts) and any future consumer key off the same string. */
 export const HOSTS_QUERY_KEY = ['/api/v1/hosts'] as const
 
-/** Read the cached host list, or `undefined` if absent/unparseable/non-browser. */
 export function readCachedHosts(): HostInfo[] | undefined {
   if (typeof window === 'undefined') return undefined
   try {
@@ -43,7 +42,6 @@ export function readCachedHosts(): HostInfo[] | undefined {
   }
 }
 
-/** Persist the latest host list so the next cold load can seed it instantly. */
 export function writeCachedHosts(hosts: HostInfo[]): void {
   if (typeof window === 'undefined') return
   try {

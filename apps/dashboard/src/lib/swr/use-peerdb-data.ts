@@ -10,15 +10,10 @@ import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
 
 /**
- * SWR hook for the view-only PeerDB proxy at `/api/v1/peerdb/*`.
- *
  * `path` is the PeerDB API path WITHOUT the `/v1` prefix (the proxy adds it),
  * e.g. `/mirrors/list`. Pass `null` to disable fetching (conditional SWR).
  * When `body` is provided the request is POSTed (PeerDB uses POST for status,
  * graph, batches, logs, and lag_history); otherwise GET.
- *
- * The proxy wraps payloads in the standard `ApiResponse` envelope, so the
- * fetcher unwraps `.data` and returns the bare PeerDB payload.
  *
  * `options.connection` targets a per-user connection's PeerDB link
  * (`?connection=<id>`). When omitted it defaults to the active `?connection=`

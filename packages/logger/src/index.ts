@@ -10,11 +10,6 @@
  * - "info" (30)
  * - "warn" (40)
  * - "error" (50)
- *
- * Sources:
- * - https://betterstack.com/community/comparisons/pino-vs-winston/
- * - https://signoz.io/guides/pino-logger/
- * - https://uptrace.dev/glossary/structured-logging
  */
 
 const isDevelopment =

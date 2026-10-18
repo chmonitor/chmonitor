@@ -1,40 +1,9 @@
-/**
- * Merge operation summary transformation utilities.
- *
- * These functions transform merge operation metrics into structured formats
- * suitable for display in overview cards and summaries.
- */
-
 import type {
   SummaryDataTransformed,
   SummaryInputData,
   SummaryMetricsItem,
 } from '../types'
 
-/**
- * Transforms merge summary data into a structured format for display.
- *
- * Extracts memory usage, rows read/written, and bytes read/written metrics,
- * creating formatted comparison items showing current vs total values.
- *
- * @param data - Combined API response with nested metric arrays
- * @returns Transformed data with primary display info and metric items
- * @returns null if required data (used, totalMem, rowsReadWritten) is missing
- *
- * @example
- * ```ts
- * const input = {
- *   used: [{ memory_usage: 1024, readable_memory_usage: '1 GiB' }],
- *   totalMem: [{ total: 8192, readable_total: '8 GiB' }],
- *   rowsReadWritten: [{ rows_read: 1000, rows_written: 500, ... }],
- *   bytesReadWritten: [{ bytes_read: 10000, bytes_written: 5000, ... }],
- * }
- *
- * const result = transformMergeSummaryData(input)
- * // result.primary = { memoryUsage: '1 GiB', description: 'memory used for merges' }
- * // result.items = [formatted comparison items]
- * ```
- */
 export function transformMergeSummaryData(
   data: SummaryInputData
 ): SummaryDataTransformed | null {

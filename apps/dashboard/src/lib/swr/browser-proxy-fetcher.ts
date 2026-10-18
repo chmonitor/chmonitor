@@ -17,10 +17,6 @@ interface ProxyResponse<T = unknown> {
   metadata: Record<string, unknown>
 }
 
-/**
- * Sends a query through the browser connections proxy endpoint.
- * Shared between useChartData and useTableData hooks.
- */
 export async function fetchViaBrowserProxy<T = unknown>({
   connection,
   query,

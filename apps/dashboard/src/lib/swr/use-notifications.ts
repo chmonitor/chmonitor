@@ -1,18 +1,3 @@
-/**
- * Notifications Hook
- *
- * Fetches notifications/alerts across all clusters via SWR with appropriate caching.
- * Uses a 30-second refresh interval for critical operational metrics.
- *
- * Notifications include:
- * - Readonly tables warnings across all clusters
- * - Future: replication issues, ZooKeeper problems, etc.
- *
- * Features:
- * - Filters out dismissed notifications (stored in localStorage)
- * - Provides dismiss functionality
- */
-
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { Notification } from '@/lib/notifications/dismissed-notifications'
@@ -28,7 +13,6 @@ import {
 } from '@/lib/notifications/dismissed-notifications'
 import { REFRESH_INTERVAL, visibilityAwareInterval } from '@/lib/swr/config'
 
-// Extended notification with required key for UI
 export interface NotificationWithKey extends Omit<Notification, 'key'> {
   readonly key: string
 }
@@ -45,11 +29,8 @@ interface NotificationsResult {
   readonly clusterViewUnavailable: ClusterViewUnavailable | null
   isLoading: boolean
   error?: Error
-  /** Mutate function to manually refresh the data */
   refresh: () => void
-  /** Dismiss a specific notification */
   dismiss: (notification: NotificationWithKey) => void
-  /** Dismiss all current notifications */
   dismissAll: () => void
 }
 
@@ -81,18 +62,6 @@ interface NotificationsResponse {
   error?: { message: string }
 }
 
-/**
- * Fetches notifications across all clusters.
- *
- * Features:
- * - 30-second refresh interval (critical operational data)
- * - 15-second deduping to prevent duplicate requests
- * - Revalidates on focus (critical metrics should be fresh)
- * - Filters out dismissed notifications
- * - Returns empty array on error to prevent UI disruption
- *
- * @param hostId - The current host ID
- */
 export function useNotifications(hostId: number): NotificationsResult {
   const queryClient = useQueryClient()
   const queryKey = [`/api/v1/notifications?hostId=${hostId}`]
@@ -116,7 +85,6 @@ export function useNotifications(hostId: number): NotificationsResult {
 
   const mutate = () => queryClient.invalidateQueries({ queryKey })
 
-  // In-memory store of health-check alerts emitted via CustomEvent
   const [healthAlerts, setHealthAlerts] = useState<Notification[]>([])
   useEffect(() => {
     return subscribeInAppAlerts((alert) => {
@@ -163,13 +131,11 @@ export function useNotifications(hostId: number): NotificationsResult {
 
   const totalCount = notifications.length
 
-  // Dismiss a specific notification
   const dismiss = (notification: NotificationWithKey) => {
     dismissNotificationUtil(notification)
     mutate()
   }
 
-  // Dismiss all current notifications
   const dismissAll = () => {
     for (const notification of notifications) {
       dismissNotificationUtil(notification)

@@ -1,23 +1,7 @@
 /**
- * Table Validator
- *
- * This module provides table existence validation for optional queries.
- *
- * It solves the issue where queries fail when trying to access tables that don't exist
- * (e.g., system.backup_log, system.error_log, system.zookeeper).
- *
- * Features:
- * - Caches table existence checks to avoid repeated queries
- * - Supports explicit table checking via QueryConfig.tableCheck
- * - Automatically extracts table names from SQL if not specified
- * - Gracefully handles missing tables for optional queries
- *
- * Usage:
- * 1. Mark QueryConfig with `optional: true`
- * 2. Optionally specify `tableCheck: "system.backup_log"`
- * 3. Use `fetchData` with `queryConfig` parameter
- *
- * @see https://github.com/chmonitor/chmonitor/issues/510
+ * Table existence validation for optional queries (system.backup_log,
+ * system.error_log, system.zookeeper may not exist on a given server).
+ * @see issue 510
  */
 
 import type { QueryConfigLike } from '@chm/sql-builder'

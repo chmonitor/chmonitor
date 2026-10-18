@@ -1,26 +1,11 @@
 import { describe, expect, mock, test } from 'bun:test'
 
 /**
- * #3644 — `get_metrics` must answer one health snapshot from ONE read.
- *
- * The tool used to fire three independent `runReadonlyFetch` calls
- * (`version()`, `uptime()`, and `system.metrics`) inside one `Promise.all`.
- * Three reads for one snapshot. This file pins both halves of the fix:
- *
- *  1. **cost** — one `fetchData` invocation per tool call, and a makespan no
- *     worse than half the sequential cost of the three reads it replaced;
- *  2. **fidelity** — the payload the model receives is deep-equal to what the
- *     uncoordinated three-read path produced: same keys, same order, same
- *     types. Collapsing fetches must never quietly drop or retype a field, so
- *     the comparison runs against a baseline *pinned in this file* (the three
- *     reads verbatim, plus the exact combination the old handler performed)
- *     rather than against whatever the code happens to do today.
- *
- * On the two cost assertions: the old reads were already inside a
- * `Promise.all`, so they were concurrent and the invocation count is what
- * actually distinguishes "batched" from "uncoordinated". The makespan ceiling
- * catches the regression that *does* cost wall time — three reads re-issued
- * one after another.
+ * `get_metrics` must answer one health snapshot from ONE read, with a payload
+ * deep-equal to the old three-read path (pinned below, not derived from the
+ * current code). The invocation count distinguishes "batched" from
+ * "uncoordinated"; the makespan ceiling catches the three reads being re-issued
+ * sequentially.
  */
 
 type MetricsRow = { metric: string; value: number }
@@ -31,7 +16,7 @@ interface SnapshotFixture {
   metrics: MetricsRow[]
 }
 
-/** The three reads `get_metrics` issued before #3644, verbatim. */
+/** The three reads `get_metrics` used to issue, verbatim. */
 const BASELINE_VERSION_SQL = 'SELECT version() AS version'
 const BASELINE_UPTIME_SQL = 'SELECT uptime() AS uptime_seconds'
 const BASELINE_METRICS_SQL =
@@ -40,12 +25,7 @@ const BASELINE_METRICS_SQL =
 
 const BASELINE_READ_COUNT = 3
 
-/**
- * Every simulated read charges the same wall time, so "the sum of those three
- * unit delays" is a predictable number instead of a racy timer. Sized well
- * above `setTimeout` granularity so the makespan ceiling keeps its headroom
- * on a loaded machine.
- */
+/** Sized well above `setTimeout` granularity so the makespan ceiling has headroom. */
 const UNIT_DELAY_MS = 30
 
 /**
@@ -88,15 +68,10 @@ const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 /**
- * Stand-in for ClickHouse: answers whatever the SQL asked for and records what
- * each invocation cost (bytes both ways plus the delay it charged).
- *
- * A query naming exactly one of the three things gets that thing back in the
- * narrow shape the pre-batching tool consumed. A query naming several gets one
- * wide row, because that is the shape a single read has to use — ClickHouse
- * serializes `Array(Tuple(String, Int64))` as a JSON array of two-element
- * arrays under JSONEachRow (confirmed against ClickHouse 26.5), which is why
- * `metrics` arrives as `[[name, value], ...]`.
+ * Stand-in for ClickHouse. A query naming one thing gets the old narrow shape;
+ * one naming several gets a single wide row, where ClickHouse serializes
+ * `Array(Tuple(String, Int64))` as two-element arrays under JSONEachRow
+ * (confirmed against 26.5).
  */
 function respondTo(query: string, fixture: SnapshotFixture): unknown[] {
   const wants = {
@@ -167,7 +142,6 @@ mock.module('@chm/clickhouse-client', () => ({
 import { registerMetricsTool } from '../tools/metrics'
 import { McpServer } from '@modelcontextprotocol/server'
 
-/** Reach the registered handler the way the MCP runtime does. */
 function getToolHandler(server: McpServer, name: string) {
   const tools = (
     server as unknown as {
@@ -189,10 +163,6 @@ interface ToolRun {
   makespanMs: number
 }
 
-/**
- * Invoke the shipped tool once against a recording fetch, timing the whole
- * handler call and handing back every invocation it made.
- */
 async function runTool(
   fixture: SnapshotFixture = FIXTURE,
   outcome?: (args: FetchArgs) => FetchOutcome,
@@ -225,11 +195,7 @@ async function runTool(
   }
 }
 
-/**
- * The uncoordinated baseline: the three pre-#3644 reads issued concurrently,
- * combined exactly the way the old handler combined them. Pinned here so the
- * fidelity comparison survives the source change.
- */
+/** The old three concurrent reads, combined as the old handler did. */
 async function runUncoordinatedBaseline() {
   const { calls, fetchImpl } = createRecordingFetch(FIXTURE)
 
@@ -269,14 +235,9 @@ const INVOCATION_CEILING = 0.5 * BASELINE_READ_COUNT
 const SEQUENTIAL_COST_FRACTION = 0.5
 
 /**
- * Ceiling for the batched makespan: half the sum of three unit delays, where
- * "unit delay" is what one read actually cost *in this run*. Deriving it from
- * the run's own recorded `observedMs` keeps the assertion honest under timer
- * jitter — and it still fails loudly if the three reads are ever re-issued
- * one after another, because that costs three units against a 1.5-unit bar.
- *
- * Throws on an empty run rather than returning 0: a `makespan <= 0` ceiling
- * would let a tool that read *nothing at all* sail through.
+ * Half the sum of three unit delays, with the unit measured in this run to
+ * survive timer jitter. Throws on an empty run: a ceiling of 0 would let a tool
+ * that read nothing pass.
  */
 function makespanCeilingMs(calls: RecordedFetch[]): number {
   const unitMs = calls[0]?.observedMs

@@ -1,9 +1,5 @@
-// github-issue.ts — build and create GitHub issues from parsed emails.
-//
-// buildIssue produces a clean, agent-friendly markdown body so that an
-// automated coding agent can pick up the issue and act on it without manual
-// triage.  createGitHubIssue POSTs to the GitHub REST API — it never throws;
-// all failures are captured in the return value.
+// buildIssue writes an agent-friendly markdown body; createGitHubIssue never
+// throws, failures are captured in its return value.
 
 import type { BugHandlerConfig } from './config'
 import type { ParsedEmail } from './parse-email'
@@ -28,15 +24,10 @@ export interface IssueResult {
   error?: string
 }
 
-/**
- * Compose the GitHub issue title and markdown body from a parsed email.
- * Pure function — no I/O.
- */
 export function buildIssue(
   parsed: ParsedEmail,
   config: BugHandlerConfig
 ): IssuePayload {
-  // Title: prefix + subject, hard-capped at 256 characters
   const rawTitle = `${config.titlePrefix}${parsed.subject || 'Bug report (no subject)'}`
   const title =
     rawTitle.length > MAX_TITLE_LEN
@@ -124,15 +115,6 @@ _Filed automatically by the bug-handler email worker._`
   }
 }
 
-// ─── Create ───────────────────────────────────────────────────────────────────
-
-/**
- * POST a new issue to the GitHub REST API.
- *
- * @param issue   - Payload from buildIssue
- * @param config  - Parsed worker config (must have githubRepo + githubToken)
- * @param fetchImpl - Injectable fetch for testing (defaults to globalThis.fetch)
- */
 export async function createGitHubIssue(
   issue: IssuePayload,
   config: BugHandlerConfig,
@@ -140,7 +122,6 @@ export async function createGitHubIssue(
 ): Promise<IssueResult> {
   const { githubRepo, githubToken, apiBase } = config
 
-  // Caller is responsible for checking these before calling, but guard anyway.
   if (!githubRepo || !githubToken) {
     return { ok: false, status: 0, error: 'missing githubRepo or githubToken' }
   }
@@ -153,8 +134,7 @@ export async function createGitHubIssue(
     body: issue.body,
     labels: issue.labels,
   }
-  // Omit assignees when empty — GitHub returns a validation error for unknown
-  // usernames, and an empty array is treated the same as omitting by the API.
+  // Omitted when empty: GitHub rejects unknown usernames.
   if (issue.assignees.length > 0) {
     bodyObj.assignees = issue.assignees
   }

@@ -1,6 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 
-// Mock logger so tests don't pollute stdout
 const mockDebug = mock(() => {})
 // Simulate DEBUG unset / production: the redaction + debug logging blocks in
 // getClickHouseConfigs() are guarded behind isDebugEnabled().
@@ -60,8 +59,6 @@ describe('getClickHouseHosts', () => {
 
   it('returns empty array for whitespace-only value', () => {
     process.env.CLICKHOUSE_HOST = '    '
-    // whitespace-only string gets split by comma, trimmed, filtered
-    // "    ".split(',') -> ["    "], trimmed -> [""], filter(Boolean) -> []
     expect(getClickHouseHosts()).toEqual([])
   })
 
@@ -90,7 +87,6 @@ describe('getClickHouseConfigs', () => {
 
   it('returns a single config with defaults', () => {
     process.env.CLICKHOUSE_HOST = 'http://localhost:8123'
-    // user/password default to "default" and ""
     process.env.CLICKHOUSE_USER = 'default'
     process.env.CLICKHOUSE_PASSWORD = ''
 
@@ -128,7 +124,6 @@ describe('getClickHouseConfigs', () => {
 
     const configs = getClickHouseConfigs()
     expect(configs).toHaveLength(2)
-    // When both user and password have length === 1, the shared path is taken
     expect(configs[0].user).toBe('shared_user')
     expect(configs[0].password).toBe('shared_pw')
     expect(configs[1].user).toBe('shared_user')

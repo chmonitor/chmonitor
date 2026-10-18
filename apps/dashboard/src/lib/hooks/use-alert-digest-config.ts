@@ -1,12 +1,7 @@
 /**
- * Time-window digest settings (feat #2663) — the client hook over
- * `/api/v1/health/alert-digest`. Like `use-alert-channel-config.ts`, this is NOT
- * Clerk-gated: the API resolves an OSS single-tenant owner when no Clerk session
- * exists, so self-hosted deployments manage it with zero auth.
- *
- * In-pass grouping is always on and needs no config; these settings only govern
- * the OPTIONAL time-window mode (buffer non-critical findings, flush after N
- * minutes).
+ * Not Clerk-gated: the API resolves an OSS single-tenant owner when no Clerk
+ * session exists. In-pass grouping is always on; these settings only govern the
+ * optional time-window mode (buffer non-critical findings, flush after N minutes).
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'

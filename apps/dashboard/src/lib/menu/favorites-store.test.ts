@@ -13,7 +13,6 @@ import {
 } from './favorites-store'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
-// In-memory localStorage shim — mirrors recent-items.test.ts / dismissed-insights.test.ts
 class MemoryStorage {
   private store = new Map<string, string>()
 

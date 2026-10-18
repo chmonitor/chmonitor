@@ -9,12 +9,6 @@ interface HostStatusResponse {
   data?: { version: string; uptime: string; hostname: string }
 }
 
-/**
- * Fetches the ClickHouse server version string for the given host.
- *
- * Reuses the /api/v1/host-status endpoint (which already queries version()).
- * Stale for 5 minutes — version only changes on server upgrade.
- */
 export function useServerVersion(hostId: number) {
   return useQuery({
     queryKey: ['server-version', hostId],
@@ -26,6 +20,6 @@ export function useServerVersion(hostId: number) {
       const json = (await res.json()) as HostStatusResponse
       return json.data?.version ?? ''
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   })
 }

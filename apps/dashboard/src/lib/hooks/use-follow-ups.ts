@@ -1,14 +1,5 @@
 'use client'
 
-/**
- * useFollowUps Hook
- *
- * On-demand fetch of AI-generated follow-up question suggestions for a
- * conversation. Follow-ups are only produced by the AgentState backend; for any
- * other backend the endpoint returns 501, which this hook treats as "not
- * supported" (empty list, no error) rather than a failure.
- */
-
 import type { ApiResponse } from '@/lib/api/types'
 
 import { useCallback, useState } from 'react'
@@ -20,18 +11,14 @@ interface FollowUpsData {
 
 export interface UseFollowUpsResult {
   questions: string[]
-  /** Trigger a fetch on demand. Resolves to the fetched questions. */
   fetchFollowUps: () => Promise<string[]>
   isLoading: boolean
   error: Error | null
 }
 
 /**
- * Returns follow-up suggestions for `conversationId`, fetched on demand via
- * {@link UseFollowUpsResult.fetchFollowUps}.
- *
- * @param conversationId - Server-side conversation id, or `null`/`undefined`
- *   when no conversation is active (fetching is then a no-op).
+ * Follow-ups come only from the AgentState backend; other backends return 501,
+ * treated as "not supported" (empty list, no error).
  */
 export function useFollowUps(
   conversationId: string | null | undefined

@@ -1,16 +1,3 @@
-/**
- * useAgentGreeting Hook
- *
- * Generates a dynamic welcome heading for the AI Agent page based on:
- *   1. The signed-in user's first name (from Clerk), if available.
- *   2. The local time of day (morning/afternoon/evening).
- *   3. The current cluster status (degraded clusters get an alert-style line).
- *
- * Falls back to a generic prompt when nothing else is known. The hook is
- * lazily memoised so the heading is stable across renders within the same
- * cluster-status window.
- */
-
 import { useMemo } from 'react'
 
 type GreetingTone = 'default' | 'alert'
@@ -37,9 +24,6 @@ export interface AgentGreetingInput {
   now?: Date
 }
 
-/**
- * Pure helper — useful for tests. The hook below wraps this in `useMemo`.
- */
 export function buildAgentGreeting(input: AgentGreetingInput): AgentGreeting {
   const now = input.now ?? new Date()
   const name = input.firstName?.trim() ?? ''

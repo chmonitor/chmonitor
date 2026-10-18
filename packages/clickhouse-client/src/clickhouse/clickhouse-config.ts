@@ -1,8 +1,3 @@
-/**
- * ClickHouse Configuration
- * Parses environment variables and creates ClickHouse configurations
- */
-
 import type { ClickHouseEnv } from './env-schema'
 import type { ClickHouseConfig } from './types'
 
@@ -18,8 +13,6 @@ import { debug, error, isDebugEnabled } from '@chm/logger'
  */
 export { _resetEnvCache }
 
-// Canonical home is ./redact-host (dependency-free for subpath imports);
-// re-exported here so existing './clickhouse-config' import sites keep working.
 export { redactHostCredentials }
 
 /**
@@ -32,11 +25,6 @@ export { redactHostCredentials }
 let _cachedEnv: ClickHouseEnv | null = null
 let _cachedConfigs: ClickHouseConfig[] | null = null
 
-/**
- * Retrieve a single ClickHouseConfig by hostId, throwing if the id is out of
- * range.  Centralises the "lookup + validate" logic so callers like getClient
- * and fetchExplainAsText don't duplicate it.
- */
 export function getAndValidateClientConfig(hostId: number): ClickHouseConfig {
   const configs = getClickHouseConfigs()
   if (configs.length === 0) {
@@ -88,7 +76,6 @@ export const getClickHouseConfigs = (): ClickHouseConfig[] => {
   const passwordEnv = env.CLICKHOUSE_PASSWORD
   const customNameEnv = env.CLICKHOUSE_NAME || ''
 
-  // Debug logging for environment variables
   if (!hostEnv) {
     error(
       '[ClickHouse Config] CRITICAL: CLICKHOUSE_HOST environment variable is not set!'

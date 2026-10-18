@@ -3,14 +3,8 @@ import type {
   PersistRetryer,
 } from '@tanstack/react-query-persist-client'
 
-/** Abort persist retries after this many quota evictions. */
 export const PERSIST_RETRY_MAX_ERROR_COUNT = 5
 
-/**
- * True when `setItem` failed because localStorage is over quota.
- * Matches the DOM `QuotaExceededError` name, the Firefox
- * `NS_ERROR_DOM_QUOTA_REACHED` name, and a message that names either.
- */
 export function isQuotaExceededError(error: Error): boolean {
   if (error.name === 'QuotaExceededError') return true
   if (error.name === 'NS_ERROR_DOM_QUOTA_REACHED') return true

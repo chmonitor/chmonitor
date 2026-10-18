@@ -1,11 +1,7 @@
 /**
- * Client-side registry of the visitor's Postgres connections (issue #2450).
- *
  * Postgres sources are deliberately EXCLUDED from `useMergedHosts` / the
  * ClickHouse host id-space (they would be mis-queried as ClickHouse hostIds).
- * The engine-aware host switcher and the Postgres pages instead select a
- * Postgres source by its `connectionId` via this hook, which unifies the two
- * storage origins:
+ * This hook unifies the two storage origins:
  *   - `database` — per-user connections stored encrypted on the server (D1).
  *     Credentials never reach the client; the query route resolves them by
  *     `connectionId`.
@@ -21,11 +17,9 @@ import { useBrowserConnections } from '@/lib/hooks/use-browser-connections'
 import { useUserConnections } from '@/lib/hooks/use-user-connections'
 
 export interface PgConnectionInfo {
-  /** UUID — server connection id (database) or browser connection id. */
   connectionId: string
   source: 'database' | 'browser'
   name: string
-  /** Bare hostname/IP (no scheme). */
   host: string
   user: string
   database?: string

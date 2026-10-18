@@ -1,7 +1,3 @@
-/**
- * Shared fetch error handling (ported from the Next app). Reads the JSON error
- * body and throws a richly-annotated FetchError. Used by the data hooks.
- */
 interface ApiErrorBody {
   error?: {
     message?: string

@@ -16,7 +16,6 @@ interface HostsResponse {
   data?: HostInfo[]
 }
 
-/** Error carrying the HTTP status so callers can distinguish 401 from empty. */
 class HostsFetchError extends Error {
   constructor(
     message: string,
@@ -27,17 +26,6 @@ class HostsFetchError extends Error {
   }
 }
 
-/**
- * TanStack Query hook to fetch the list of configured ClickHouse hosts.
- * Provides automatic caching and deduplication.
- *
- * On failure the fetcher THROWS (rather than swallowing to `[]`) so callers can
- * tell "no hosts configured" (success, empty list) apart from "couldn't load /
- * unauthorized" (error). `hosts` still falls back to `[]` so existing consumers
- * are unaffected; new `error` / `isUnauthorized` surface the failure mode.
- *
- * @returns {Object} Query state: hosts, error, isLoading, isUnauthorized
- */
 export function useHosts() {
   const fetcher = useCallback(async (): Promise<HostInfo[]> => {
     const response = await apiFetch('/api/v1/hosts')
@@ -60,7 +48,6 @@ export function useHosts() {
   const { data, error, isLoading } = useQuery<HostInfo[]>({
     queryKey: HOSTS_QUERY_KEY,
     queryFn: fetcher,
-    // Hosts list changes rarely, so cache for 5 minutes
     staleTime: 300000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,

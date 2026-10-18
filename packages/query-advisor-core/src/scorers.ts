@@ -1,13 +1,8 @@
 /**
- * Query advisor — pure scorers.
+ * Pure scorers: a `QueryContext` in, a `Recommendation` (or `null`/`[]`) out.
  *
- * Each scorer takes an already-gathered `QueryContext` and returns a
- * `Recommendation` (or `null`/`[]` when its trigger condition doesn't apply).
- * No I/O, fully unit-testable with fixtures.
- *
- * ABSOLUTE INVARIANT: recommend-only. Every scorer returns inert data
- * (strings + numbers); the DDL and rewritten SQL they produce is text for a
- * human to review, and nothing in this package ever executes it.
+ * ABSOLUTE INVARIANT: recommend-only. The DDL and rewritten SQL are text for a
+ * human to review; nothing here executes it.
  */
 
 import type {
@@ -29,11 +24,7 @@ import { EFFORT_ORDER, RISK_ORDER } from './types'
 
 const DEFAULT_GRANULARITY = 4
 
-/**
- * Skip-index scorer: a selective predicate on a column that is NOT part of
- * the table's sorting key (so the sparse primary-key index can't prune it).
- * Picks `set`/`bloom_filter`-style index for equality/IN, `minmax` for range.
- */
+/** Predicate on a column outside the sorting key: `set`/bloom for equality/IN, `minmax` for range. */
 export function scoreSkipIndex(ctx: QueryContext): Recommendation[] {
   const results: Recommendation[] = []
   const alreadyIndexed = new Set(
@@ -81,11 +72,7 @@ export function scoreSkipIndex(ctx: QueryContext): Recommendation[] {
   return results
 }
 
-/**
- * Projection scorer: the query's GROUP BY / ORDER BY doesn't match (as a
- * prefix of) the table's sorting key, forcing an in-memory sort/aggregate
- * over data ordered for something else.
- */
+/** GROUP BY / ORDER BY that is not a prefix of the sorting key. */
 export function scoreProjection(ctx: QueryContext): Recommendation | null {
   const targetColumns =
     ctx.groupByColumns.length > 0 ? ctx.groupByColumns : ctx.orderByColumns
@@ -139,11 +126,7 @@ export function scoreProjection(ctx: QueryContext): Recommendation | null {
   }
 }
 
-/**
- * Partition-key scorer: a range filter on a Date/DateTime column that is not
- * part of the partition key today, so no parts are pruned by partition.
- * Always high-effort/high-risk — this cannot be `ALTER`ed in place.
- */
+/** Always high-effort/high-risk: a partition key cannot be `ALTER`ed in place. */
 export function scorePartitionKey(ctx: QueryContext): Recommendation | null {
   const candidate = ctx.predicates.find(
     (p) =>
@@ -183,10 +166,6 @@ export function scorePartitionKey(ctx: QueryContext): Recommendation | null {
   }
 }
 
-// PREWHERE rewrite — the one "no DDL" recommendation: a read-only text
-// transform the user reviews and runs themselves.
-
-/** Pick the best PREWHERE candidate: prefer equality/IN (typically most selective) on a below-average-size column; fall back to any predicate. */
 export function pickPrewhereCandidate(ctx: QueryContext): SqlPredicate | null {
   if (ctx.predicates.length === 0) return null
 
@@ -211,13 +190,7 @@ export function pickPrewhereCandidate(ctx: QueryContext): SqlPredicate | null {
   return ranked[0] ?? null
 }
 
-/**
- * Propose moving the most selective/cheap WHERE predicate into PREWHERE.
- * Returns `null` when there's no WHERE clause to rewrite, no predicate the
- * engine recognizes, or the WHERE body can't be confidently segmented (e.g.
- * a single complex boolean expression) — never guesses at a rewrite it isn't
- * confident produces equivalent, valid SQL.
- */
+/** Returns `null` rather than guess when the WHERE body can't be confidently segmented. */
 export function proposePrewhereRewrite(
   ctx: QueryContext
 ): PrewhereRewrite | null {
@@ -246,7 +219,6 @@ export function proposePrewhereRewrite(
   return { rewrittenSql, movedPredicate: candidate }
 }
 
-/** Wrap a proposed PREWHERE rewrite (plus its measured impact) as a `Recommendation`. */
 export function buildPrewhereRecommendation(
   rewrite: PrewhereRewrite,
   estImpact: EstimatedImpact
@@ -265,7 +237,6 @@ export function buildPrewhereRecommendation(
   }
 }
 
-/** Rank recommendations by estimated granules saved (desc), tie-broken by lower risk then lower effort. */
 export function rankRecommendations(
   recommendations: Recommendation[]
 ): Recommendation[] {

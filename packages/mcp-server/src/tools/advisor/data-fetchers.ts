@@ -1,11 +1,4 @@
-/**
- * MCP-specific I/O layer for the query advisor — everything that reaches out
- * to ClickHouse via `runReadonlyFetch`. The pure parsing/scoring/estimating
- * logic lives in `@chm/query-advisor-core`, shared with the dashboard engine
- * (`apps/dashboard/src/lib/ai/advisor/`) so the two surfaces cannot recommend
- * different things for the same query — see `./index.ts` for the invariant
- * this whole `advisor/` tree preserves.
- */
+/** I/O layer for the query advisor; pure logic is in `@chm/query-advisor-core`. */
 
 import type {
   EstimatedImpact,
@@ -22,7 +15,6 @@ import {
   summarizePrewhereMarks,
 } from '@chm/query-advisor-core'
 
-/** Runs a read-only fetch and throws on error, mirroring the dashboard's `readOnlyQuery` so the orchestration logic reads the same way. */
 export async function readOnly<T>(
   query: string,
   hostId: number,
@@ -280,11 +272,7 @@ export interface MeasurePrewhereImpactInput {
   movedColumn: string
 }
 
-/**
- * Best-effort "validate no plan breakage" check for the PREWHERE rewrite: two
- * read-only `EXPLAIN ESTIMATE` calls whose mark counts are handed to the
- * shared verdict function. Never executes either query for real.
- */
+/** Best-effort PREWHERE plan check via two `EXPLAIN ESTIMATE` calls. */
 export async function measurePrewhereImpact(
   input: MeasurePrewhereImpactInput
 ): Promise<EstimatedImpact> {

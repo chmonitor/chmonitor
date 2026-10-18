@@ -1,11 +1,3 @@
-/**
- * Error classification and error-result construction for the fetch funnel.
- *
- * Extracted from `clickhouse-fetch.ts`. `classifyFetchError` and
- * `extractHttpStatusCode` are pure; `handleFetchError` additionally performs
- * the (unchanged) error logging both fetch entrypoints share.
- */
-
 import type { FetchDataErrorType, FetchDataResult } from './types'
 
 import { error } from '@chm/logger'
@@ -102,7 +94,6 @@ export function classifyFetchError(
   ) {
     return 'ssl_error'
   }
-  // Timeout errors
   if (
     errorMessage.toLowerCase().includes('timeout') ||
     errorMessage.includes('ETIMEDOUT') ||
@@ -110,7 +101,6 @@ export function classifyFetchError(
   ) {
     return 'timeout_error'
   }
-  // Table not found errors
   if (
     (errorMessage.toLowerCase().includes('table') &&
       errorMessage.toLowerCase().includes('not') &&
@@ -119,7 +109,6 @@ export function classifyFetchError(
   ) {
     return 'table_not_found'
   }
-  // Permission errors
   if (
     errorMessage.toLowerCase().includes('permission') ||
     errorMessage.toLowerCase().includes('access') ||
@@ -129,7 +118,6 @@ export function classifyFetchError(
   ) {
     return 'permission_error'
   }
-  // Network errors
   if (
     errorMessage.toLowerCase().includes('network') ||
     errorMessage.toLowerCase().includes('connection') ||
@@ -165,18 +153,15 @@ export function handleFetchError({
       ? originalError.message
       : String(originalError)
 
-  // Categorize error types based on error message patterns
   const errorType = classifyFetchError(
     errorMessage,
     clickHouseErrorType(originalError)
   )
 
-  // Extract HTTP status code from fetch errors
   const httpStatusCode = extractHttpStatusCode(errorMessage)
 
   const enrichedMessage = `${errorMessage} (host: ${host})`
 
-  // Enhanced error logging with full details
   error(`Query failed (host: ${host}):`, errorMessage)
   error(`[Error Details]`, {
     errorType,
@@ -186,7 +171,6 @@ export function handleFetchError({
     fullMessage: errorMessage,
   })
 
-  // Log specific guidance for SSL errors
   if (errorType === 'ssl_error') {
     error(
       `[SSL Error Help] SSL/TLS handshake failed with ${host}. ` +

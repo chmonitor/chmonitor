@@ -88,11 +88,7 @@ describe('resolveUserSettings', () => {
 })
 
 describe('user-settings query key', () => {
-  // This is the regression guard for #2984. Before the fix each consumer ran
-  // its own useEffect + apiFetch, so a page whose nav renders `useUserSettings`
-  // once per menu entry fired 8-16 concurrent requests for the same data.
-  // Resolving under ONE shared key is what collapses that to a single fetch, so
-  // the property under test is "N concurrent consumers => 1 backend call".
+  // N concurrent consumers (one per menu entry) must produce 1 backend call.
   test('concurrent consumers sharing the key trigger exactly one fetch', async () => {
     installStorage()
     const client = new QueryClient()

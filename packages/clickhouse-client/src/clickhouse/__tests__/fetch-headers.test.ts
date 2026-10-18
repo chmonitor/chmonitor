@@ -1,7 +1,3 @@
-/**
- * Tests for clickhouse/fetch-headers.ts — pure parsers, no mocks needed.
- */
-
 import {
   countJsonEachRowRows,
   parseReadBytesFromHeaders,

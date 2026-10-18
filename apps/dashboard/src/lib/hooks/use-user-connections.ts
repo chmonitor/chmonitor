@@ -27,7 +27,6 @@ interface UserConnectionsResponse {
   data: UserConnectionInfo[]
 }
 
-/** Prefix for all user-connection query keys (used for cache eviction). */
 export const USER_CONNECTIONS_QUERY_PREFIX = '/api/v1/user-connections' as const
 
 export function userConnectionsQueryKey(userId: string | null) {
@@ -86,13 +85,10 @@ export function useUserConnectionsMutations() {
     host: string
     user: string
     password: string
-    /** Omit to default to 'clickhouse' (validated + defaulted server-side). */
     engine?: SourceEngine
-    /** Postgres-only (engine === 'postgres'). */
     port?: number
     database?: string
     sslmode?: string
-    /** Optional PeerDB monitoring link (any engine). */
     peerdbApiUrl?: string
     peerdbAuthScheme?: 'basic' | 'bearer'
     peerdbAuthSecret?: string

@@ -18,7 +18,6 @@ mock.module('@chm/logger', () => ({
   isDebugEnabled: mock(() => false),
 }))
 
-// Mock the cloudflare-workers runtime detection
 const mockIsCloudflareWorkers = mock(() => false)
 mock.module('../../runtime/cloudflare-workers', () => ({
   isCloudflareWorkers: mockIsCloudflareWorkers,
@@ -30,7 +29,6 @@ const { getClient, releaseClient, isCloudflareWorkers, _resetEnvCache } =
   await import(
     new URL('../clickhouse-client.ts?test=client', import.meta.url).href
   )
-// Import connection-pool to clear between tests
 const { clientPool, cleanupStaleClients, getPoolKey } = await import(
   new URL('../connection-pool.ts?test=client', import.meta.url).href
 )
@@ -182,7 +180,6 @@ describe('getClient', () => {
     const client1 = await getClient({ web: false })
     const client2 = await getClient({ web: false })
 
-    // Should only create one client
     expect(mockCreateClient).toHaveBeenCalledTimes(1)
     expect(client1).toBe(client2)
   })
@@ -322,7 +319,6 @@ describe('releaseClient', () => {
     releaseClient({ web: false })
     expect(pooled?.inUse).toBe(0)
 
-    // Clamp to 0
     releaseClient({ web: false })
     expect(pooled?.inUse).toBe(0)
   })
@@ -354,20 +350,15 @@ describe('releaseClient', () => {
     const pooled = clientPool.get(key)
     expect(pooled).toBeDefined()
 
-    // Simulate idle timeout
     pooled!.lastUsed = Date.now() - 600_000
 
-    // Should not clean up since it's in use
     cleanupStaleClients()
     expect(clientPool.has(key)).toBe(true)
 
-    // Release the client
     releaseClient({ web: false })
 
-    // Simulate idle timeout again after release (since releaseClient resets lastUsed)
     pooled!.lastUsed = Date.now() - 600_000
 
-    // Now it should clean up
     cleanupStaleClients()
     expect(clientPool.has(key)).toBe(false)
   })

@@ -115,11 +115,8 @@ describe('getPooledClient', () => {
     const first = getPooledClient(fakeClient1, config, false)
     const second = getPooledClient(fakeClient2, config, false)
 
-    // Should return the same pooled entry (with the first client)
     expect(second.client).toBe(fakeClient1)
-    // The pool entry is the same object reference
     expect(first).toBe(second)
-    // lastUsed should have been updated
     expect(second.lastUsed).toBeGreaterThanOrEqual(first.createdAt)
   })
 
@@ -145,8 +142,6 @@ describe('cleanupStaleClients', () => {
     const fakeClient = { query: mock(() => {}) }
 
     const pooled = getPooledClient(fakeClient, config, false)
-    // Simulate a very old lastUsed by manually setting it
-    // The default timeout is 5 minutes (300000ms)
     pooled.lastUsed = Date.now() - 600_000 // 10 minutes ago
     pooled.inUse = 0
 
@@ -171,7 +166,6 @@ describe('cleanupStaleClients', () => {
     const fakeClient = { query: mock(() => {}) }
 
     getPooledClient(fakeClient, config, false)
-    // lastUsed is just now, so not stale
 
     cleanupStaleClients()
     expect(clientPool.size).toBe(1)

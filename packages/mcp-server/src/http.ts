@@ -1,18 +1,8 @@
 /**
- * Runtime-agnostic HTTP glue for the MCP endpoint.
- *
- * Both the Next.js dashboard route (apps/dashboard/app/api/mcp/route.ts) and the
- * standalone Cloudflare Worker (apps/mcp/src/index.ts) wrap the SAME MCP server.
- * Pre-unification each owned its own copy of the auth gate + transport + CORS,
- * and they had already drifted (the Worker added CORS, the route had none). This
- * module is the single source of truth so they cannot drift again.
- *
- * Everything here speaks the Web standard Request/Response, so it runs unchanged
- * in Node (Docker, in-process Next route) and in Workers.
- *
- * Auth is injectable: handleMcp/handleMcpInfo take an `authenticate` function so
- * a caller can layer Clerk OAuth (or anything else) on top of the default
- * API-key check without this Clerk-free package taking a Clerk dependency.
+ * Runtime-agnostic HTTP glue for the MCP endpoint, shared by the dashboard route
+ * and the standalone Cloudflare Worker. Auth is injectable so a caller can layer
+ * Clerk OAuth on top of the default API-key check without this package taking a
+ * Clerk dependency.
  */
 
 import pkg from '../package.json'
@@ -35,15 +25,9 @@ import { createMcpServer } from './server'
 import { createMcpHandler } from '@modelcontextprotocol/server'
 
 export { handleProtectedResourceMetadata } from './auth/oauth-metadata'
-// CORS helpers live in ./cors (SDK-free) so lightweight routes can reuse them
-// without pulling the MCP SDK into their bundle. Re-export for the Worker, which
-// imports everything from this one module.
 export { corsPreflight, withCors } from './cors'
 
-/**
- * Workers Route patterns are exact-match; proxies and address-bar normalization
- * can append a trailing slash. Normalize so /api/mcp and /api/mcp/ are identical.
- */
+/** Workers Route patterns are exact-match, so /api/mcp/ must equal /api/mcp. */
 export function normalizePath(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith('/')) {
     return pathname.replace(/\/+$/, '')
@@ -51,11 +35,6 @@ export function normalizePath(pathname: string): string {
   return pathname
 }
 
-/**
- * 401 response. When Clerk OAuth is enabled, attach the RFC 9728
- * WWW-Authenticate header pointing at our resource metadata so MCP clients can
- * discover the authorization server and start the login/consent flow.
- */
 function unauthorized(req?: Request): Response {
   const headers = new Headers()
   // Only advertise discovery when it will actually work end to end (verifier +
@@ -72,28 +51,20 @@ function unauthorized(req?: Request): Response {
 }
 
 /**
- * Tokens split by source. The Authorization bearer is the only credential we are
- * willing to forward to Clerk's REST verifier — a server-issued API key sent via
- * x-api-key must NEVER be relayed to a third party as if it were an OAuth token.
+ * Only the Authorization bearer may be forwarded to Clerk's REST verifier — a
+ * server-issued x-api-key must NEVER be relayed to a third party.
  */
 function getRequestTokens(req: Request): {
   bearer: string | null
   apiKey: string | null
 } {
   const bearer = getBearerToken(req.headers.get('authorization'))
-  // Keep the credentials distinct. An earlier version folded x-api-key into the
-  // bearer (`bearer ?? x-api-key`), which masked a real x-api-key whenever an
-  // Authorization header was also present — so `Bearer bad` + valid `x-api-key`
-  // was wrongly rejected. Returning them separately lets the authenticator try
-  // each against the right verifier.
+  // Kept distinct: folding x-api-key into the bearer rejected `Bearer bad` + a
+  // valid `x-api-key`.
   return { bearer, apiKey: req.headers.get('x-api-key') }
 }
 
-/**
- * An API key may be presented either via `x-api-key` or, by CLI convention, as
- * `Authorization: Bearer <key>`. Accept it from either source — both are local
- * HMAC checks (no network), so trying both is cheap and order-independent.
- */
+/** An API key may arrive via `x-api-key` or, by CLI convention, as a bearer. */
 async function anyApiKeyValid(
   ...candidates: (string | null)[]
 ): Promise<boolean> {
@@ -103,19 +74,10 @@ async function anyApiKeyValid(
   return false
 }
 
-/**
- * Resolves a request to a Response (auth failed) or null (allowed).
- * Returning a Response — not throwing — lets callers compose authenticators by
- * short-circuiting on the first non-null result.
- */
+/** Returns a Response (denied) or null (allowed), so authenticators compose. */
 export type Authenticator = (req: Request) => Promise<Response | null>
 
-/**
- * HMAC API-key authenticator.
- *
- * When CHM_API_KEY_SECRET is unset this returns null (allow) — see
- * defaultAuthenticator for the full "open when nothing configured" rationale.
- */
+/** Allows everything when CHM_API_KEY_SECRET is unset. */
 export const apiKeyAuthenticator: Authenticator = async (req) => {
   if (!apiKeyAuthEnabled()) return null
   const { bearer, apiKey } = getRequestTokens(req)
@@ -147,8 +109,7 @@ export const defaultAuthenticator: Authenticator = async (req) => {
   if (!apiKeyOn && !clerkOn) {
     // Secure by default: deny unless the operator has explicitly opted in.
     if (process.env.CHM_MCP_PUBLIC !== 'true') return unauthorized(req)
-    // Explicit opt-in — allow, but warn loudly on every request so the
-    // exposure is visible in logs and not silently forgotten.
+    // Explicit opt-in: warn on every request so the exposure stays visible.
     console.warn(
       '[chm/mcp] WARNING: MCP endpoint is open to anonymous access ' +
         '(CHM_MCP_PUBLIC=true, no auth configured). ' +
@@ -171,56 +132,29 @@ export const defaultAuthenticator: Authenticator = async (req) => {
 }
 
 /**
- * Resolves a request to a Response (rate limited, typically 429) or null
- * (allowed). Injectable for the same reason as `Authenticator`: this package is
- * forbidden (dependency-cruiser `no-packages-to-apps`) from importing any
- * app's rate limiter, so each caller supplies its own — the dashboard route
- * keeps its `checkMcpRateLimit` at the route layer (it must run before the
- * plan-capability gate), and the standalone Worker (apps/mcp) passes one here.
+ * Returns a Response (rate limited) or null (allowed). Injected because
+ * dependency-cruiser `no-packages-to-apps` forbids importing an app's limiter.
  */
 export type RateLimitCheck = (req: Request) => Promise<Response | null>
 
 interface HandleMcpOptions {
   authenticate?: Authenticator
-  /**
-   * Optional pre-auth rate-limit gate (#2728). Runs before `authenticate` —
-   * cheap counter first, network-touching auth (Clerk REST) second — and its
-   * Response is returned with CORS headers applied. No default: callers that
-   * already guard at their route layer simply omit it.
-   */
+  /** Runs before `authenticate`: cheap counter first, Clerk REST second. */
   rateLimitCheck?: RateLimitCheck
 }
 
 /**
- * MCP HTTP handler for the 2026-07-28 protocol revision.
- *
- * `createMcpHandler` from @modelcontextprotocol/server/v2 manages per-request
- * server lifecycle and protocol negotiation. With the default `legacy:
- * 'stateless'` option it serves BOTH the 2026-07-28 (stateless, header-routed,
- * MRTR) protocol AND a stateless 2025-era fallback — so existing MCP clients
- * keep working while 2026-07-28 clients get the new stateless core,
- * `Mcp-Method`/`Mcp-Name` header routing, cache hints, and `server/discover`.
- *
- * The factory creates a fresh `McpServer` per request (stateless), matching the
- * previous `sessionIdGenerator: undefined` transport behaviour — no shared
- * session state between requests. The handler itself is a module-level
- * singleton; only the factory output is per-request.
+ * `legacy: 'stateless'` serves both the 2026-07-28 protocol and a stateless
+ * 2025-era fallback, so older MCP clients keep working. A fresh McpServer is
+ * built per request; the handler itself is a singleton.
  */
 const mcpHandler = createMcpHandler(() => createMcpServer(), {
   legacy: 'stateless',
 })
 
 /**
- * Handle an MCP transport request (POST/GET/DELETE on /api/mcp).
- *
- * With the default authenticator, "no auth configured" means 401 unless the
- * operator has set CHM_MCP_PUBLIC=true. See defaultAuthenticator for the full
- * opt-in rationale.
- *
- * Auth and rate limiting run BEFORE the MCP handler so the protocol layer only
- * ever sees authenticated, within-budget requests. The handler itself performs
- * no token verification — it is strictly pass-through for `authInfo`, which we
- * do not inject (current tools are read-only and need no per-user identity).
+ * Auth and rate limiting run BEFORE the MCP handler, which performs no token
+ * verification itself and gets no `authInfo` (tools are read-only).
  */
 export async function handleMcp(
   req: Request,
@@ -239,17 +173,12 @@ export async function handleMcp(
     const res = await mcpHandler.fetch(req)
     return withCors(res)
   } catch {
-    // Never let an unhandled rejection escape as a CORS-less 500 (the Worker
-    // would surface a raw 1101). Keep the error shape consistent across runtimes.
+    // An escaped rejection would surface as a CORS-less 500 (raw 1101 on Workers).
     return withCors(new Response('Internal Server Error', { status: 500 }))
   }
 }
 
-/**
- * Server-info wire shape. Intentionally a *subset* of McpTool — the /info
- * endpoint omits each tool's `exampleResponse` to keep the sidebar payload
- * small. This preserves the exact format both handlers returned pre-unification.
- */
+/** Subset of McpTool: omits `exampleResponse` to keep the payload small. */
 interface McpToolSummary {
   name: string
   description: string
@@ -268,9 +197,6 @@ export interface McpServerInfoResponse {
 export function buildServerInfo(): McpServerInfoResponse {
   return {
     name: 'chmonitor',
-    // Live version from the @chm/mcp-server package.json — bundlers (esbuild for
-    // the worker, Next for the in-process route, bun for tests) inline the JSON
-    // import, so there is no runtime fs read and it stays correct across bumps.
     version: pkg.version,
     description: 'ClickHouse monitoring and query tools',
     tools: MCP_TOOLS.map((tool) => ({
@@ -297,14 +223,8 @@ export function buildServerInfo(): McpServerInfoResponse {
 }
 
 /**
- * Handle GET /api/v1/mcp/info with inline auth.
- *
- * Used by the standalone Worker, which has no middleware. The dashboard gates
- * /api/v1/* in middleware.ts instead, so its route uses buildServerInfo()
- * directly — same auth posture, different layer. The payload is static
- * tools/resources metadata (names only, no secrets, no ClickHouse access), so
- * deployments may serve it publicly by passing a no-op `authenticate` — the
- * production MCP worker does exactly that (the `mcp` feature is `public`).
+ * GET /api/v1/mcp/info with inline auth. The payload is static metadata (no
+ * secrets), so deployments may serve it publicly with a no-op `authenticate`.
  */
 export async function handleMcpInfo(
   req: Request,

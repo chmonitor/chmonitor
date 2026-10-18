@@ -1,23 +1,9 @@
-/**
- * Refresh-interval presets (ported from the Next app). The SWR-typed
- * `swrConfig`/`onErrorRetry` presets are intentionally dropped — retry/backoff
- * now lives in the TanStack Query client defaults (src/lib/query/provider.tsx).
- * The interval constants + visibility-aware helper are kept because the data
- * hooks reference them.
- */
-
 export const REFRESH_INTERVAL = {
-  /** Never refresh (static data) */
   NEVER: 0,
-  /** Refresh every 15 seconds - critical real-time data only */
   FAST_15S: 15_000,
-  /** Refresh every 30 seconds - important real-time metrics */
   MEDIUM_30S: 30_000,
-  /** Refresh every 60 seconds - default for most metrics */
   DEFAULT_60S: 60_000,
-  /** Refresh every 2 minutes - slower changing data */
   SLOW_2M: 120_000,
-  /** Refresh every 5 minutes - historical/trend data */
   VERY_SLOW_5M: 300_000,
 } as const
 
@@ -38,11 +24,6 @@ export type RefreshInterval =
  */
 export const NON_CRITICAL_RETRY = 1
 
-/**
- * Visibility-aware refresh interval. Returns `false` (paused) when the tab is
- * hidden, otherwise the given interval — shape matches TanStack Query's
- * `refetchInterval: number | false | (() => number | false)`.
- */
 export function visibilityAwareInterval(ms: number): () => number | false {
   return () => (typeof document !== 'undefined' && document.hidden ? false : ms)
 }

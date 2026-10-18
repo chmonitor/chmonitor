@@ -17,12 +17,6 @@
 import type { MenuItem } from '@/components/menu/types'
 import type { PublicFeaturePermissionConfig } from '@/lib/feature-permissions/types'
 
-/**
- * Whether the item's metadata-DB requirement is satisfied. Items without the
- * flag always pass. An ABSENT `metadataDb` block in the config (older server,
- * config fetch failed) also passes — fail-open so the menu never dims on a
- * transient config error.
- */
 export function metadataDbSatisfied(
   item: Pick<MenuItem, 'requiresMetadataDb'>,
   config: PublicFeaturePermissionConfig

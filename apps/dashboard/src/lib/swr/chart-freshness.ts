@@ -1,6 +1,4 @@
 /**
- * Per-chart poll interval + HTTP cache policy.
- *
  * Factory charts default to 60s / `standard` (30s s-maxage). That is the
  * right bucket for live metric series (CPU, memory, connection pool). It is
  * the wrong bucket for day-granularity heatmaps, storage snapshots, and
@@ -23,7 +21,6 @@ export type ChartFreshness = {
 }
 
 export const CHART_FRESHNESS = {
-  // --- Live process / metrics tiles (keep fast) ---
   'running-queries-count': {
     refreshInterval: REFRESH_INTERVAL.FAST_15S,
     cachePolicy: 'realtime',
@@ -53,7 +50,6 @@ export const CHART_FRESHNESS = {
     cachePolicy: 'realtime',
   },
 
-  // --- Day-granularity / multi-year historical ---
   'query-count-heatmap': {
     refreshInterval: REFRESH_INTERVAL.VERY_SLOW_5M,
     cachePolicy: 'historical',
@@ -87,7 +83,6 @@ export const CHART_FRESHNESS = {
     cachePolicy: 'historical',
   },
 
-  // --- Storage snapshots (parts / disks / table sizes) ---
   'top-table-size': {
     refreshInterval: REFRESH_INTERVAL.SLOW_2M,
     cachePolicy: 'historical',
@@ -153,7 +148,6 @@ export const CHART_FRESHNESS = {
     cachePolicy: 'historical',
   },
 
-  // --- Hourly / long-window query_log and metric_log aggregates ---
   'query-count': {
     refreshInterval: REFRESH_INTERVAL.SLOW_2M,
     cachePolicy: 'historical',

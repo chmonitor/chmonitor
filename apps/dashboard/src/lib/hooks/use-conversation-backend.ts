@@ -1,23 +1,10 @@
 'use client'
 
-/**
- * useConversationBackend Hook
- *
- * Client-side hook that reports which conversation-history backend the Worker
- * is configured to use, and whether that backend supports AI enrichment
- * (follow-up suggestions, auto titles). The backend is fixed at deploy time via
- * environment variables, so the result is fetched once and cached.
- *
- * Fails safe: any error resolves to the browser (localStorage) backend with AI
- * enrichment disabled.
- */
-
 import type { ApiResponse } from '@/lib/api/types'
 
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
-/** Known conversation store backend identifiers. */
 export type ConversationBackendKind =
   | 'browser'
   | 'd1'
@@ -25,7 +12,6 @@ export type ConversationBackendKind =
   | 'memory'
   | 'agentstate'
 
-/** Human-readable label for each backend kind. */
 export const CONVERSATION_BACKEND_LABELS: Record<
   ConversationBackendKind,
   string
@@ -54,8 +40,7 @@ const FAIL_SAFE: ConversationBackendData = {
   supportsAiEnrichment: false,
 }
 
-// Module-level cache so the endpoint is hit once per page load regardless of
-// how many components mount the hook.
+// Backend is fixed at deploy time: fetched once per page load.
 let cachedData: ConversationBackendData | null = null
 let inFlight: Promise<ConversationBackendData> | null = null
 
@@ -87,12 +72,6 @@ async function fetchBackend(): Promise<ConversationBackendData> {
   return inFlight
 }
 
-/**
- * Reports the active conversation-history backend and its capabilities.
- *
- * The value is read-only: the backend is configured at deploy time. Result is
- * cached at module scope so repeated mounts do not re-fetch.
- */
 export function useConversationBackend(): UseConversationBackendResult {
   const [data, setData] = useState<ConversationBackendData | null>(
     () => cachedData

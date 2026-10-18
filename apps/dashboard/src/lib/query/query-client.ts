@@ -1,13 +1,5 @@
 import { keepPreviousData, QueryClient } from '@tanstack/react-query'
 
-/**
- * Build the app-wide TanStack QueryClient with our default query options.
- *
- * Extracted from provider.tsx (which wires the returned client into
- * PersistQueryClientProvider) so these defaults can be unit-tested without
- * pulling the React / persister / Clerk module graph into the test —
- * see __tests__/provider.test.tsx.
- */
 export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -47,16 +39,13 @@ export function createQueryClient(): QueryClient {
         // whose gcTime has not elapsed are restored from localStorage on load.
         gcTime: 30 * 60_000,
 
-        // Don't refetch when the browser tab regains focus.
         refetchOnWindowFocus: false,
 
-        // Retry failed queries up to 3 times before surfacing the error.
         retry: 3,
 
         // Exponential backoff from 1 s, doubling per 0-based attempt, capped at 30 s.
         retryDelay: (attempt) => Math.min(30_000, 1_000 * 2 ** attempt),
 
-        // Polling is opt-in per query.
         refetchInterval: false,
       },
     },

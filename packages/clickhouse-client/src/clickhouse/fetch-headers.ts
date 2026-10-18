@@ -1,11 +1,4 @@
 /**
- * Pure parsers for ClickHouse HTTP response headers and JSONEachRow payloads.
- *
- * Extracted from `clickhouse-fetch.ts` — no I/O, no config, directly unit
- * testable.
- */
-
-/**
  * Parse `read_bytes` out of the `X-ClickHouse-Summary` response header (always
  * sent by the ClickHouse HTTP interface, regardless of format). Returns
  * `undefined` when the header is absent/unparseable — or when the result set

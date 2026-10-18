@@ -1,12 +1,12 @@
 /**
  * Postgres runtime client — the read-only query path for Postgres sources.
  *
- * Phase 2 (#2449) landed the connectivity decision: the standard `pg` driver
+ * The connectivity decision: the standard `pg` driver
  * runs in BOTH runtimes off ONE code path. In the Cloudflare Workers runtime
  * `pg` (>=8.11) auto-selects its `pg-cloudflare` (`cloudflare:sockets` raw TCP)
  * transport under `nodejs_compat`; on Node it uses `net.Socket`. So self-hosted
  * (Docker/K8s, real Node) and Cloud (Worker) share this module with full parity
- * — no second driver, no Hyperdrive binding (see the POC evidence on #2449).
+ * — no second driver, no Hyperdrive binding.
  *
  * Safety posture — this is a MONITORING client, never a write path:
  *   1. Every session is pinned read-only (`SET default_transaction_read_only`),

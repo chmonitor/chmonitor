@@ -1,8 +1,6 @@
 /**
- * CORS helpers, deliberately free of any MCP-SDK import so that lightweight
- * routes (e.g. the dashboard's /.well-known/oauth-protected-resource) can reuse
- * them WITHOUT pulling @modelcontextprotocol/server + createMcpServer into the
- * dashboard worker bundle — which would undo the separate MCP-worker split.
+ * Deliberately free of any MCP-SDK import so lightweight routes can reuse these
+ * without pulling the SDK into the dashboard worker bundle.
  */
 
 // `*` is safe because MCP payloads are auth-gated by bearer token, not cookies.
@@ -10,12 +8,10 @@
 // discovery challenge on a 401 (browsers hide non-exposed response headers).
 //
 // Allow-Headers must list every header a browser MCP client sends, or the
-// preflight fails and the real request is never made. The 2026-07-28 Streamable
-// HTTP transport REQUIRES `Mcp-Method` / `Mcp-Name` on POST and carries the
-// negotiated revision in `MCP-Protocol-Version`; `Mcp-Session-Id` and
-// `Last-Event-ID` are only used by the pre-2026 legacy fallback but stay listed
-// so older clients keep working. `accept` is needed because MCP clients send
-// `Accept: application/json, text/event-stream` (not a CORS-safelisted value).
+// preflight fails. `Mcp-Method` / `Mcp-Name` are required by the 2026-07-28
+// transport; `Mcp-Session-Id` / `Last-Event-ID` serve the legacy fallback;
+// `accept` is needed because `application/json, text/event-stream` is not
+// CORS-safelisted.
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',

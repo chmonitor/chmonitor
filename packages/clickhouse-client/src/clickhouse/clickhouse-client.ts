@@ -1,9 +1,3 @@
-/**
- * ClickHouse Client Factory
- * Creates ClickHouse clients with connection pooling
- * Auto-detects Cloudflare Workers environment and uses appropriate client
- */
-
 import type { ClickHouseClient, ClickHouseSettings } from '@clickhouse/client'
 import { createClient } from '@clickhouse/client'
 import {
@@ -51,11 +45,9 @@ export const getClient = async ({
     ? clientConfig
     : getAndValidateClientConfig(hostId ?? 0)
 
-  // Check if client exists in pool
   const poolKey = getPoolKey(config, isWeb)
   let pooled = clientPool.get(poolKey)
 
-  // If not in pool, create new client
   if (!pooled) {
     const newClient = clientFactory({
       url: config.host,
@@ -83,10 +75,8 @@ export const getClient = async ({
     pooled = getPooledClient(withReadonlyEnforcement(newClient), config, isWeb)
   }
 
-  // Update usage stats
   pooled.inUse++
 
-  // Return the pooled client
   return Promise.resolve(pooled.client)
 }
 
@@ -111,11 +101,6 @@ export const releaseClient = ({
   }
 }
 
-// Re-export connection pool stats
 export { getConnectionPoolStats, isCloudflareWorkers }
 
-/**
- * Re-export env cache reset so tests can reset the SAME env-schema instance
- * that this module's getClient() uses internally via clickhouse-config + env-schema.
- */
 export { _resetEnvCache } from './env-schema'

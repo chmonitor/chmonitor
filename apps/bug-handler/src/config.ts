@@ -1,8 +1,4 @@
-// config.ts — pure configuration parsing for the bug-handler worker.
-//
-// All behavioural knobs come from environment variables so that the same
-// worker binary can serve different repos, addresses, and label sets without
-// a redeploy.  No side effects — safe to call in tests with plain objects.
+// Pure configuration parsing; all knobs come from environment variables.
 
 export interface GitHubRepo {
   owner: string
@@ -58,16 +54,11 @@ function splitList(raw: string | undefined): string[] {
     .filter(Boolean)
 }
 
-/**
- * Parse a "owner/repo" string into its components.
- * Returns null when the value is missing or does not contain exactly one "/".
- */
 function parseRepo(raw: string | undefined): GitHubRepo | null {
   if (!raw) return null
   const trimmed = raw.trim()
   const slash = trimmed.indexOf('/')
   if (slash <= 0 || slash === trimmed.length - 1) return null
-  // Reject more than one slash to catch malformed values like "a/b/c".
   if (trimmed.indexOf('/', slash + 1) !== -1) return null
   return {
     owner: trimmed.slice(0, slash),
@@ -75,11 +66,7 @@ function parseRepo(raw: string | undefined): GitHubRepo | null {
   }
 }
 
-/**
- * Build a `BugHandlerConfig` from the raw environment object.
- * Never throws — missing/malformed required values are represented as null/undefined
- * so the caller can emit a single coherent error message.
- */
+/** Never throws: missing/malformed required values become null/undefined. */
 export function parseConfig(
   env: Record<string, string | undefined>
 ): BugHandlerConfig {

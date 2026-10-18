@@ -1,8 +1,3 @@
-/**
- * Zod schema for ClickHouse environment variables
- * Validates at parse-time with clear error messages
- */
-
 import { z } from 'zod'
 
 export const clickhouseEnvSchema = z.object({
@@ -34,7 +29,6 @@ export const clickhouseEnvSchema = z.object({
 
 export type ClickHouseEnv = z.infer<typeof clickhouseEnvSchema>
 
-/** Graceful degradation fallback when CLICKHOUSE_HOST is missing */
 const ENV_FALLBACK: ClickHouseEnv = {
   CLICKHOUSE_HOST: '',
   CLICKHOUSE_USER: 'default',
@@ -79,9 +73,6 @@ export function validateClickHouseEnv(): ClickHouseEnv {
   return _cachedEnv
 }
 
-/**
- * Reset the cached env — for use in tests only.
- */
 export function _resetEnvCache(): void {
   _cachedEnv = null
 }

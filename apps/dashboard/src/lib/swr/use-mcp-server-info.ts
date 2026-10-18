@@ -1,10 +1,3 @@
-/**
- * useMcpServerInfo Hook
- *
- * Fetches MCP server information including available tools and resources.
- * Includes retry logic with exponential backoff for transient errors.
- */
-
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type {
@@ -47,35 +40,6 @@ async function fetchMcpServerInfo(): Promise<ApiMcpServerInfo> {
   return response.json()
 }
 
-/**
- * Hook to fetch MCP server information with retry support
- *
- * @returns Object with server info, loading/error states, and retry function
- *
- * @example
- * ```tsx
- * const { data, isLoading, error, retry } = useMcpServerInfo()
- *
- * if (isLoading) return <Skeleton />
- * if (error) {
- *   return (
- *     <div>
- *       <ErrorAlert error={error} />
- *       <Button onClick={retry}>Retry</Button>
- *     </div>
- *   )
- * }
- * if (!data) return null
- *
- * return (
- *   <div>
- *     <h4>{data.name} v{data.version}</h4>
- *     <p>{data.description}</p>
- *     {/* Display tools and resources *\/}
- *   </div>
- * )
- * ```
- */
 export function useMcpServerInfo(): McpServerInfoResult {
   const queryClient = useQueryClient()
   const queryKey = ['/api/v1/mcp/info']
@@ -99,5 +63,4 @@ export function useMcpServerInfo(): McpServerInfoResult {
   }
 }
 
-// Re-export types from mcp-tools-data.ts for convenience
 export type { McpTool, McpResource, McpServerInfo }

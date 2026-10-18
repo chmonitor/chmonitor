@@ -174,8 +174,6 @@ export function navHref(item: NavItem, origin = ''): string {
   return isExternalHref(item.href) ? item.href : `${origin}${item.href}`
 }
 
-// ─── String renderers (non-Astro consumers: the telemetry Worker) ────────────
-
 export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')

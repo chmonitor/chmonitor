@@ -6,14 +6,9 @@ import { getGroupHubHref } from '@/lib/menu/group-hub'
 
 export interface BreadcrumbItem {
   title: string
-  /** Empty string means this item is a non-navigable section label */
   href: string
 }
 
-/**
- * Convert a URL path segment to a human-readable title.
- * Used as a fallback when a page is not registered in the menu.
- */
 function segmentToTitle(segment: string): string {
   return segment
     .split('-')
@@ -103,21 +98,16 @@ export function getBreadcrumbPath(
   const found = searchItems(items, [])
 
   if (!found) {
-    // Fallback: derive breadcrumbs from URL path segments
     return buildFallbackPath(normalizedPath, items)
   }
 
   return result
 }
 
-/**
- * Check if a menu item is active for the current pathname
- */
 export function isMenuItemActive(itemHref: string, pathname: string): boolean {
   const normalizedPath = pathname.split('?')[0]
   const normalizedHref = itemHref.split('?')[0]
 
-  // Exact match
   if (normalizedHref === normalizedPath) {
     return true
   }

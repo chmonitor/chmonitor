@@ -1,7 +1,3 @@
-/**
- * Format microseconds into a compact human duration for query-stage bars:
- * `980µs`, `12.3ms`, `1.20s`, `2m 3s`. Pure — unit tested.
- */
 export function formatMicros(us: number): string {
   if (!Number.isFinite(us) || us <= 0) return '0µs'
   if (us < 1000) return `${Math.round(us)}µs`
@@ -16,11 +12,6 @@ export function formatMicros(us: number): string {
   return `${m}m ${rem}s`
 }
 
-/**
- * Width (0..100) of a segment relative to the largest row's total, so the
- * heaviest stage spans the full track and others scale against it. Floors at
- * 0 when there is no max (avoids NaN / divide-by-zero).
- */
 export function segmentWidthPct(segment: number, maxTotal: number): number {
   if (maxTotal <= 0) return 0
   const pct = (segment / maxTotal) * 100

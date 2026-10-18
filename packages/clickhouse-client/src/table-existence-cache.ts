@@ -2,19 +2,13 @@ import { getClient, releaseClient } from './clickhouse/clickhouse-client'
 import { debug, error } from '@chm/logger'
 import { LRUCache } from 'lru-cache'
 
-/**
- * Cache configuration with memory limits
- * - max: 500 entries (reduced from 1000)
- * - maxSize: 1MB total memory limit
- * - TTL: 5 minutes
- */
 const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
 const cache = new LRUCache<string, boolean>({
+  max: 500,
+  maxSize: 1024 * 1024,
+  sizeCalculation: () => 1,
   ttl: CACHE_TTL_MS,
-  max: 500, // Reduced from 1000 for memory efficiency
-  maxSize: 1024 * 1024, // 1MB total cache size limit
-  sizeCalculation: () => 1, // Each entry counts as 1 unit (simplified size tracking)
   dispose: (value: boolean, key: string) => {
     debug(`[Table Cache] Evicted: ${key} = ${value}`)
   },

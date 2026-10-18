@@ -63,11 +63,6 @@ function collectHideableLeaves(
   return out
 }
 
-/**
- * Hide list for the Essential first-run default. Complementary to
- * {@link DEFAULT_VISIBLE_MENU_HREFS} over the current menu catalog.
- * Hide = sidebar / More membership only — not the command palette.
- */
 export const DEFAULT_HIDDEN_MENU_HREFS: string[] = collectHideableLeaves(
   menuItemsConfig
 )

@@ -1,15 +1,3 @@
-/**
- * useMcpProbe
- *
- * Probes a custom MCP server endpoint and returns its live connection status,
- * tool count, and tool list. Uses TanStack Query (matching the rest of the
- * codebase's data-fetching pattern) keyed by the endpoint URL so each server
- * gets an independent cache entry.
- *
- * Only fires when `enabled` is true (i.e. the server is toggled on in the
- * panel). Disabled servers are never probed.
- */
-
 import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch } from './api-fetch'
@@ -37,11 +25,8 @@ async function fetchMcpProbe(
 }
 
 export interface UseMcpProbeOptions {
-  /** The custom server's endpoint URL. */
   endpoint: string
-  /** The human-readable server name (used as the probe name). */
   name: string
-  /** Only probe while this is true (i.e. the server toggle is on). */
   enabled: boolean
 }
 
@@ -52,12 +37,6 @@ export interface UseMcpProbeResult {
   error?: string
 }
 
-/**
- * Probe a custom MCP endpoint and return live status for the panel row.
- *
- * Returns `{ status: 'connecting' }` while the request is in-flight, then
- * `'connected'` or `'error'` from the probe response.
- */
 export function useMcpProbe({
   endpoint,
   name,

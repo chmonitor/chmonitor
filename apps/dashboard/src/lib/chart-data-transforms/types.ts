@@ -1,30 +1,12 @@
-/**
- * Shared TypeScript types for chart data transformations.
- *
- * This module defines all the type definitions used across the chart-data-transforms
- * package, providing a single source of truth for data structures.
- */
-
-/**
- * Input data structure for user event count transformations.
- * Represents a row containing event timestamp, user identifier, and count.
- */
 export type UserEventCountItem = {
   event_time: string
   user: string
   count: number
 }
 
-/**
- * Output structure for user event count transformations.
- * Provides organized data for stacked bar charts with user breakdown.
- */
 export type UserEventCountsTransformed<T extends string = string> = {
-  /** Nested record: event_time -> user -> count */
   data: Record<T, Record<string, number>>
-  /** Alphabetically sorted unique users */
   users: string[]
-  /** Flattened data for chart libraries: array of objects with event_time and user keys */
   chartData: Array<Record<T, string> & Record<string, number>>
 }
 
@@ -46,9 +28,6 @@ export type RowsReadWrittenData = {
   readable_rows_written: string
 }
 
-/**
- * Bytes read/written data structure.
- */
 export type BytesReadWrittenData = {
   bytes_read: number
   bytes_written: number
@@ -67,10 +46,6 @@ export type SummaryMetricsItem = {
   targetReadable: string
 }
 
-/**
- * Input data structure for summary transformations.
- * Combines multiple related metrics from different queries.
- */
 export type SummaryInputData = {
   used?: MemoryUsageData[]
   totalMem?: TotalMemData[]
@@ -81,14 +56,11 @@ export type SummaryInputData = {
 }
 
 export type SummaryDataTransformed = {
-  /** Primary display values for the card header */
   primary: {
     memoryUsage: string
     description: string
   }
-  /** Array of metric items for comparison display */
   items: SummaryMetricsItem[]
-  /** Raw data for additional logic if needed */
   raw: {
     used: MemoryUsageData & Partial<QueryCountData>
     totalMem: TotalMemData

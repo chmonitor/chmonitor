@@ -9,9 +9,6 @@ import {
 } from './instance-ping'
 import { describe, expect, test } from 'bun:test'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// shouldPing
-
 describe('shouldPing', () => {
   const NOW = 1_000_000_000_000
 
@@ -56,9 +53,6 @@ describe('shouldPing', () => {
     )
   })
 })
-
-// ─────────────────────────────────────────────────────────────────────────────
-// buildPingPayload
 
 describe('buildPingPayload', () => {
   test('includes instance_hash and deploy_target', () => {
@@ -155,9 +149,6 @@ describe('buildPingPayload', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Fake deps factory
-
 function makeDeps(
   overrides: Partial<PingDeps> & {
     storageOverrides?: Record<string, string>
@@ -197,9 +188,6 @@ function makeDeps(
     ...overrides,
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// runInstancePing — gate tests (MUST prove post is NOT called)
 
 describe('runInstancePing gates', () => {
   test('returns skipped-disabled when enabled:false, post NOT called', async () => {
@@ -245,9 +233,6 @@ describe('runInstancePing gates', () => {
     expect(deps.store.chm_telemetry_last_ping_version).toBe('24.8.1.2')
   })
 })
-
-// ─────────────────────────────────────────────────────────────────────────────
-// runInstancePing — happy path
 
 describe('runInstancePing happy path', () => {
   test('returns pinged and calls post exactly once when all conditions met', async () => {
@@ -309,9 +294,6 @@ describe('runInstancePing happy path', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// runInstancePing — error resilience
-
 describe('runInstancePing error resilience', () => {
   test('does not reject when post throws', async () => {
     const deps = makeDeps({
@@ -335,9 +317,6 @@ describe('runInstancePing error resilience', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Endpoint resolution + kill-switch.
-//
 // Telemetry is ON by default and the endpoint defaults to the project collector,
 // so getPingEndpoint({}) resolves to DEFAULT_TELEMETRY_ENDPOINT. Setting the env
 // to an explicit empty string is the hard kill-switch: '' is preserved and
@@ -444,9 +423,6 @@ describe('runInstancePing license_key', () => {
     expect(resolved).toBe(0)
   })
 })
-
-// ─────────────────────────────────────────────────────────────────────────────
-// cadence: after a successful ping, skips until interval elapses
 
 describe('runInstancePing cadence', () => {
   test('skips on second call within interval', async () => {

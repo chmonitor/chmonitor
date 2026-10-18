@@ -1,8 +1,3 @@
-/**
- * ClickHouse Client Types
- * Shared types for ClickHouse client and data fetching
- */
-
 import type { QueryParams } from '@clickhouse/client'
 
 export type ClickHouseConfig = {

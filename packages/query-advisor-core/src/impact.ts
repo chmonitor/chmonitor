@@ -1,24 +1,15 @@
 /**
- * Query advisor — impact estimation (pure).
- *
- * Translates EXPLAIN granule/part counts + table byte totals into a rough
- * "bytes read saved" figure, and turns a before/after `EXPLAIN ESTIMATE` mark
- * comparison into the PREWHERE rewrite's validation verdict.
- *
- * Every number here is explicitly an ESTIMATE — see `summarizeImpact`'s
- * `summary` text, which always says so. Nothing in this file does I/O: the two
- * `EXPLAIN ESTIMATE` calls behind `summarizePrewhereMarks` are issued by the
- * caller's read-only fetcher, which then hands the mark counts to this module.
+ * Impact estimation (pure): granule/part counts + table bytes become a rough
+ * "bytes read saved" figure, and before/after `EXPLAIN ESTIMATE` marks become
+ * the PREWHERE verdict. Every number is an ESTIMATE and the summaries say so.
  */
 
 import type { EstimatedImpact } from './types'
 
 /**
- * Byte formatter used in the estimate summaries. Kept byte-identical to the
- * dashboard's `formatBytes` (`apps/dashboard/src/lib/utils.ts`) so both
- * advisor surfaces phrase the same estimate the same way — a package cannot
- * import app code (depcruise `no-packages-to-apps`), so this is the shared
- * copy the app defers to for advisor summaries.
+ * Kept byte-identical to the dashboard's `formatBytes`
+ * (`apps/dashboard/src/lib/utils.ts`); a package cannot import app code
+ * (depcruise `no-packages-to-apps`).
  */
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -31,12 +22,7 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / k ** safeIndex).toFixed(1)} ${sizes[safeIndex]}`
 }
 
-/**
- * Estimate bytes read saved from a granules-saved figure, proportional to the
- * table's total bytes on disk. This is a rough average-bytes-per-granule
- * projection, not a per-column measurement — labeled as an estimate
- * everywhere it's surfaced.
- */
+/** Average-bytes-per-granule projection, not a per-column measurement. */
 export function estimateBytesSaved(
   granulesSaved: number,
   granulesTotal: number,
@@ -56,7 +42,6 @@ export interface SummarizeImpactInput {
   label: string
 }
 
-/** Build an `EstimatedImpact` with an honest, explicitly-labeled-as-estimate summary. */
 export function summarizeImpact(input: SummarizeImpactInput): EstimatedImpact {
   const {
     granulesRead,
@@ -94,7 +79,6 @@ export function summarizeImpact(input: SummarizeImpactInput): EstimatedImpact {
   }
 }
 
-/** Sum the `marks` column of an `EXPLAIN ESTIMATE` result set, tolerating string/undefined values. */
 export function sumEstimateMarks(
   rows: Array<{ marks?: number | string }>
 ): number {
@@ -108,14 +92,9 @@ export interface PrewhereMarksInput {
 }
 
 /**
- * Turn a before/after `EXPLAIN ESTIMATE` mark comparison into the PREWHERE
- * rewrite's verdict.
- *
- * EXPLAIN ESTIMATE reflects granules selected by the primary key/parts
- * pruning, which PREWHERE alone does not change (PREWHERE still reads the
- * same granules, just avoids materializing wide columns for filtered-out rows
- * within them) — so an increase means the rewrite altered pruning, i.e. a real
- * regression signal worth surfacing plainly.
+ * EXPLAIN ESTIMATE reflects primary-key/parts pruning, which PREWHERE alone does
+ * not change, so an increase means the rewrite altered pruning: a real
+ * regression signal.
  */
 export function summarizePrewhereMarks(
   input: PrewhereMarksInput
@@ -149,7 +128,6 @@ export interface PrewhereFallbackInput {
   movedColumn: string
 }
 
-/** Degraded (but still honest) PREWHERE impact for when `EXPLAIN ESTIMATE` cannot be run at all. */
 export function prewhereFallbackImpact(
   input: PrewhereFallbackInput
 ): EstimatedImpact {

@@ -1,6 +1,5 @@
 import { describe, expect, mock, test } from 'bun:test'
 
-// Mock fetchData before importing the tool
 const mockFetchData = mock(() => Promise.resolve({ data: [], error: null }))
 
 mock.module('@chm/clickhouse-client', () => ({
@@ -10,7 +9,6 @@ mock.module('@chm/clickhouse-client', () => ({
 import { registerQueryTool } from '../tools/query'
 import { McpServer } from '@modelcontextprotocol/server'
 
-/** Helper to get the registered tool handler */
 function getToolHandler(server: McpServer, name: string) {
   const tools = (server as any)._registeredTools
   const tool = tools?.[name]

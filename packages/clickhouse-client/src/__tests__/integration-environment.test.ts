@@ -12,10 +12,8 @@ const { getClickHouseConfigs } = await import(
   ).href
 )
 
-// Helper function to check if ClickHouse is available
 async function isClickHouseAvailable(): Promise<boolean> {
   if (!process.env.CLICKHOUSE_HOST) {
-    // Skip if no ClickHouse config
     return false
   }
 
@@ -27,7 +25,6 @@ async function isClickHouseAvailable(): Promise<boolean> {
       ).href
     )
 
-    // Use a very short timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Connection timeout')), 2000)
     )
@@ -49,7 +46,6 @@ describe('ClickHouse Integration Tests (Optional)', () => {
   let clickHouseAvailable: boolean
 
   beforeAll(async () => {
-    // Reduce timeout to prevent hanging in CI
     const _timeout = process.env.CI === 'true' ? 2000 : 10000
 
     try {
@@ -110,7 +106,6 @@ describe('ClickHouse Integration Tests (Optional)', () => {
       return
     }
 
-    // Test first two hosts
     const results = await Promise.all([
       fetchData({ query: 'SELECT 1 as test', hostId: 0 }),
       fetchData({ query: 'SELECT 1 as test', hostId: 1 }),
@@ -134,7 +129,6 @@ describe('ClickHouse Integration Tests (Optional)', () => {
       ).href
     )
 
-    // Test a few essential system tables
     const essentialTables = [
       'system.query_log',
       'system.metrics',

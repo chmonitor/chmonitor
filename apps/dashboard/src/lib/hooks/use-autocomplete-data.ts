@@ -11,14 +11,12 @@ import {
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 
-// Sanitized autocomplete limit from environment
 const AUTOCOMPLETE_LIMIT = (() => {
   const envLimit =
     typeof process !== 'undefined'
       ? import.meta.env.VITE_AUTOCOMPLETE_LIMIT
       : undefined
   const parsed = envLimit ? parseInt(envLimit, 10) : 500
-  // Clamp between 1 and 1000, fallback to 500 if invalid
   if (Number.isNaN(parsed)) return 500
   return Math.max(1, Math.min(1000, parsed))
 })()
@@ -37,18 +35,6 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-/**
- * Provides autocomplete items and related resources for UI typeahead controls.
- *
- * Produces mapped autocomplete lists for database tables and agent skills, returns static system resources and slash commands, and exposes the loading state of the tables request.
- *
- * @returns An object containing:
- * - `tables`: Array of autocomplete items for tables (group "Tables").
- * - `resources`: Static system resources.
- * - `skills`: Array of autocomplete items for agent skills (group "Skills").
- * - `commands`: Static slash commands.
- * - `isLoading`: `true` while the tables list is being fetched, `false` otherwise.
- */
 export function useAutocompleteData() {
   const hostId = useHostId()
 
@@ -77,7 +63,6 @@ export function useAutocompleteData() {
     group: 'Tables',
   }))
 
-  // Skills from agent tools metadata (static, loaded once)
   const { data: skillsData } = useQuery<{
     data: Array<{ name: string; description: string }>
   }>({

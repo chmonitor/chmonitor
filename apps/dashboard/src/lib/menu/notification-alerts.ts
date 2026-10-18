@@ -30,11 +30,6 @@ function insertAlertsChild(health: MenuItem): MenuItem {
   return { ...health, items: children }
 }
 
-/**
- * Show an Alerts row only while notifications are active. Reuses
- * `/alert-settings` (Active Alerts). No-op when that href is already visible
- * (user restored Alert Settings) or when the count is zero.
- */
 export function revealAlertsWhenActive(
   items: readonly MenuItem[],
   hasActiveNotifications: boolean

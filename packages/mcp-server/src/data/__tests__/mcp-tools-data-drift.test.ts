@@ -1,15 +1,6 @@
 /**
- * Drift guard for issue #2701: `MCP_TOOLS` (the hand-maintained catalog behind
- * the `GET /api/v1/mcp/info` discovery endpoint and the dashboard's MCP
- * Playground / tool docs) must exactly match the tools actually registered on
- * the real MCP server by `registerAllTools()`.
- *
- * The catalog had drifted badly before this test existed: it advertised five
- * tools that did not exist anywhere on the server (`spot_issues`,
- * `repair_query`, `analyze_query_optimization`, `recommend_table_design`,
- * `discover_data_sources` — Playground calls to them were guaranteed dead),
- * and omitted two real ones (`analyze_performance`,
- * `get_optimization_recommendations` — undiscoverable from the UI).
+ * `MCP_TOOLS` (the hand-maintained catalog behind `GET /api/v1/mcp/info`) must
+ * exactly match the tools registered by `registerAllTools()`.
  */
 
 import { createMcpServer } from '../../server'

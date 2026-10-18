@@ -1,9 +1,3 @@
-/**
- * PeerDB alert rules (#3699) — client hook for /api/v1/health/peerdb-rules.
- * Same shape as `use-maintenance-windows.ts`: the server resolves the owner
- * and enforces the write permission; this hook only calls the endpoint.
- */
-
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
@@ -18,7 +12,6 @@ export interface PeerDBRuleInfo extends PeerDBRule {
   source?: HealthDefinitionSource
 }
 
-/** Create when `id` is absent, update otherwise. */
 export type PeerDBRuleInput = Omit<PeerDBRule, 'id'> & { id?: string }
 
 export const PEERDB_RULES_QUERY_KEY = ['/api/v1/health/peerdb-rules'] as const

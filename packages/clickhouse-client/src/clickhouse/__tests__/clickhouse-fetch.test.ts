@@ -1,7 +1,3 @@
-/**
- * Tests for lib/clickhouse/clickhouse-fetch.ts
- */
-
 import type { QueryConfigLike } from '@chm/sql-builder'
 
 import {
@@ -748,7 +744,6 @@ describe('clickhouse-fetch', () => {
       expect(executed.some((q: string) => q.includes('raw_ignored'))).toBe(
         false
       )
-      // metadata.sql should also reflect the executed (selected) query
       expect(result.metadata.sql).toContain('SELECT only_variant')
     })
 
