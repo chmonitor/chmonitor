@@ -73,6 +73,10 @@ async function handleGet(request: Request): Promise<Response> {
 
   try {
     // Run pending migrations on first request
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const userId = await resolveUserId()
+
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
@@ -88,8 +92,6 @@ async function handleGet(request: Request): Promise<Response> {
       )
     }
 
-    // Resolve authenticated user (or guest)
-    const userId = await resolveUserId()
     debug('[GET /api/v1/conversations] User resolved', { userId, requestId })
 
     // Get limit from query params (reject non-numeric/negative values)
@@ -184,6 +186,10 @@ async function handlePost(request: Request): Promise<Response> {
 
   try {
     // Run pending migrations on first request
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const userId = await resolveUserId()
+
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
@@ -199,8 +205,6 @@ async function handlePost(request: Request): Promise<Response> {
       )
     }
 
-    // Resolve authenticated user (or guest)
-    const userId = await resolveUserId()
     debug('[POST /api/v1/conversations] User resolved', { userId, requestId })
 
     let body: CreateConversationRequest

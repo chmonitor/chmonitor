@@ -33,6 +33,10 @@ async function handleGet(): Promise<Response> {
   debug('[GET /api/v1/conversations/export] Exporting', { requestId })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const userId = await resolveUserId()
+
     await autoMigrate()
 
     if (!isFeatureEnabled('conversationDb')) {
@@ -46,8 +50,6 @@ async function handleGet(): Promise<Response> {
         ROUTE_CONTEXT
       )
     }
-
-    const userId = await resolveUserId()
 
     // Same retention cutoff as the list endpoint (cloud/Clerk only).
     let sinceMs: number | undefined
