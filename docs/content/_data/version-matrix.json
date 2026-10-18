@@ -110,7 +110,7 @@
     },
     {
       "name": "query-detail",
-      "since": ["20.0", "23.8", "24.1"]
+      "since": ["23.8", "24.1"]
     },
     {
       "name": "query-metric-log",
