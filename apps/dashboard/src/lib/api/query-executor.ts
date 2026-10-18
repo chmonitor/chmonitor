@@ -45,6 +45,25 @@ import {
 import { withClickHouseQuerySpan } from '@/lib/otel/query-span'
 import { getSqlForDisplay } from '@/lib/query-config'
 
+const QUERY_PARAM_PLACEHOLDER = /\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*:[^{}]+\}/g
+
+/**
+ * Names of `{name:Type}` placeholders in `sql` that `params` gives no value
+ * (absent, `undefined`, or `null`). An empty string is a valid String value.
+ */
+export function findMissingQueryParams(
+  sql: string,
+  params: Record<string, unknown> | undefined
+): string[] {
+  const missing = new Set<string>()
+  for (const [, name] of sql.matchAll(QUERY_PARAM_PLACEHOLDER)) {
+    if (params?.[name] === undefined || params[name] === null) {
+      missing.add(name)
+    }
+  }
+  return [...missing]
+}
+
 /**
  * Default ClickHouse query-cache TTL (seconds) for a table config that does
  * not set `refreshInterval` (#2182). Mirrors the "standard" chart TTL.
@@ -171,6 +190,26 @@ export async function executeTableConfig<
     version,
     clickhouseVersion,
   } = await selectSqlForHost(queryConfig.sql, numericHostId)
+
+  // A `{name:Type}` placeholder with no value is the caller's mistake (#3918):
+  // answer validation_error (400) instead of ClickHouse's 500
+  // UNKNOWN_QUERY_PARAMETER.
+  const missingParams = findMissingQueryParams(executedSql, queryParams)
+  if (missingParams.length > 0) {
+    return {
+      result: {
+        data: null,
+        metadata: {},
+        error: {
+          type: 'validation_error',
+          message: `Missing required parameter(s): ${missingParams.join(', ')}`,
+        },
+      },
+      executedSql,
+      clickhouseVersion: version,
+      maxResultRows: 0,
+    }
+  }
 
   // Server-side row cap (#2490): stop ClickHouse from shipping unbounded
   // result sets for `SELECT *`-style table configs. `result_overflow_mode:
