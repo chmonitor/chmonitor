@@ -123,7 +123,7 @@ files that **must agree**. When editing either:
 
 - Changed a label offset/size in the glyph layer? → update the matching `*Extent` in
   `model-constants.ts`.
-- Verify with the harness (below) that no label pokes outside its cluster rect.
+- Verify by hand (see Verification below) that no label pokes outside its cluster rect.
 
 The pairing is asserted nowhere — there is no test, and no lint rule. This is the
 single most expensive mistake available in this component.
@@ -258,30 +258,15 @@ The invariants a restored suite must lock (all currently unguarded):
 - **local-duplicate merge** (the union-find above).
 - `roundedRectPath` = closed, 4 corner arcs, clamped radius; keeper region = rounded rect for any N.
 
-## Verification harness (how to eyeball changes safely) — CURRENTLY BROKEN
+## Verification (no harness)
 
-The canvas uses theme CSS vars, so you can't judge it from path strings. The intended check is
-the committed harness **`scripts/topo-harness.tsx`**, which renders the **real `<TopoCanvas>`**
-via `react-dom/server` (no glyph mirroring → no drift) for representative fixtures into a page
-carrying the true light-theme OKLCH vars.
+The canvas uses theme CSS vars, so you can't judge it from path strings. The committed harness
+`scripts/topo-harness.tsx` was deleted: it could not run (its imports pointed at the removed
+Next.js tree and its fixtures had no successor), so there is **no working automated or harness
+check** for the invariants above. See the "not currently locked" warning.
 
-> **It does not run today.** `bun run scripts/topo-harness.tsx` exits 1 with
-> `Cannot find module '../apps/dashboard/components/cluster-topology/__tests__/fixtures'`.
-> Two problems, only one of which is a path:
->
-> 1. **Repointable** — its `topo-canvas` / `model` imports point into
->    `apps/dashboard/components/cluster-topology/`, a directory that no longer exists; the
->    files live under `apps/dashboard/src/components/cluster-topology/` since #1613.
-> 2. **Not repointable** — `__tests__/fixtures.ts` (`localDuplicateClusters`,
->    `overlapClusters`) was deleted with the Next.js app in #1613 and has **no successor
->    anywhere in the tree**. Without it the harness cannot run at all.
->
-> So today there is **no working automated or harness check** for the invariants above. That is
-> a real gap, not a documentation nit: see the "not currently locked" warning. Restoring the
-> fixtures is a code change, deliberately not made here.
-
-When it is restored, the method it uses is still the right one: screenshot it, and for hard
-cases measure overflow directly in the browser — `getBoundingClientRect` of every `<text>` vs
+To check a change by hand, render the real `<TopoCanvas>` in the browser, screenshot it, and
+for hard cases measure overflow directly: `getBoundingClientRect` of every `<text>` vs
 the `<svg>`'s client box is the ground truth for "does a label clip the viewBox" (`getBBox`
 returns *local* coords and will mislead). This catches the OKLCH black-fill regression,
 label-outside-boundary, collisions, and clipping that pure tests can't.
@@ -293,7 +278,7 @@ label-outside-boundary, collisions, and clipping that pure tests can't.
   envelopes/`enforceMinDistance` accordingly.
 - **Move/restyle a label**: edit `NodeLabel` (or the LOCAL badge) in `topo-glyphs.tsx`, THEN
   update the matching `*Extent` in `model-constants.ts` so the boundary still encloses it. There
-  is no test for this pairing — the harness is broken (above), so eyeball it.
+  is no test for this pairing — there is no harness (above), so eyeball it.
 - **Change overlap look**: it's normal alpha blending (no `mix-blend-mode`) + the `hashStr`
   jitter. Keep jitter **expand-only** so content never leaves the rect.
 - **Add an overview sub-view**: extend `OverviewTabConfig.customContent` in

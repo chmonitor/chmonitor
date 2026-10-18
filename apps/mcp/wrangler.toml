@@ -7,8 +7,7 @@
 #
 # Routing: Cloudflare Workers Routes on chmonitor.dev/api/mcp* +
 # /api/v1/mcp/info match more specifically than the main worker's
-# chmonitor.dev/* catch-all, so they intercept first. The main worker stubs
-# the route handlers via scripts/stub-prerendered-handlers.ts.
+# chmonitor.dev/* catch-all, so they intercept first.
 #
 # Bindings: shares ClickHouse env vars + CHM_API_KEY_SECRET secret. No
 # KV/D1/R2 — MCP tools only query ClickHouse over HTTP.
