@@ -26,7 +26,7 @@ function HistogramMetricsPageContent() {
         <PageLayout
           queryConfig={latencyLogConfig}
           title="Latency Log (Deprecated)"
-          description="Per-operation latency log (CH 22.x–24.x). Replaced by system.histogram_metrics in CH 25.1+."
+          description="S3 and disk-S3 latency histograms from system.latency_log (CH 25.3). Replaced by system.histogram_metrics in CH 25.8."
         />
       </TabsContent>
     </Tabs>

@@ -82,7 +82,7 @@
     },
     {
       "name": "latency-log",
-      "since": ["22.1"]
+      "since": ["25.3"]
     },
     {
       "name": "memory-usage-baseline",
