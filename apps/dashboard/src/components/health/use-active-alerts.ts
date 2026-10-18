@@ -11,8 +11,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AckDurationKey, AlertAck } from '@/lib/health/alert-ack-store'
 import type { CurrentFinding } from '@/lib/health/current-findings'
 
+import { useClerkIsSignedIn as useClerkIsSignedInImpl } from '@/components/assistant-ui/use-clerk-is-signed-in'
+import { isClerkEnabled } from '@/lib/clerk/clerk-client'
+import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
+
+// Clerk's useUser() throws without a ClerkProvider, so non-Clerk builds read
+// "signed out" without calling it.
+const useClerkIsSignedIn: () => boolean = isClerkEnabled()
+  ? useClerkIsSignedInImpl
+  : () => false
 
 const REFRESH_INTERVAL_MS = 30_000
 
@@ -45,6 +54,10 @@ export interface UseActiveAlertsResult {
 }
 
 export function useActiveAlerts(): UseActiveAlertsResult {
+  // Cloud answers 401 to a signed-out ACK read, so skip it there.
+  const signedIn = useClerkIsSignedIn()
+  const acksEnabled = !(isCloudModeClient() && !signedIn)
+
   const findingsQuery = useQuery<FindingsResponse, Error>({
     queryKey: FINDINGS_QUERY_KEY,
     queryFn: async () => {
@@ -64,6 +77,7 @@ export function useActiveAlerts(): UseActiveAlertsResult {
       await throwIfNotOk(response, 'Failed to fetch active acks')
       return response.json() as Promise<AcksResponse>
     },
+    enabled: acksEnabled,
     staleTime: REFRESH_INTERVAL_MS * 0.9,
     refetchInterval,
     placeholderData: (prev) => prev,
@@ -71,15 +85,16 @@ export function useActiveAlerts(): UseActiveAlertsResult {
 
   return {
     findings: findingsQuery.data?.findings ?? [],
-    acks: acksQuery.data?.acks ?? [],
+    acks: acksEnabled ? (acksQuery.data?.acks ?? []) : [],
     isLoading:
       (findingsQuery.isPending && findingsQuery.isFetching) ||
       (acksQuery.isPending && acksQuery.isFetching),
     isFetching: findingsQuery.isFetching || acksQuery.isFetching,
-    error: findingsQuery.error ?? acksQuery.error,
+    // ACKs only annotate findings; a failed ACK read must not hide them.
+    error: findingsQuery.error,
     refetch: () => {
       void findingsQuery.refetch()
-      void acksQuery.refetch()
+      if (acksEnabled) void acksQuery.refetch()
     },
   }
 }
