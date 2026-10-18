@@ -1,7 +1,7 @@
 /**
  * Shared types for the inbound event bus (Alertmanager / Datadog / generic
  * webhook → normalize → dedup → D1 `event_log`, ~30d retention, optional
- * re-emit). See plans/36-inbound-event-bus-queues.md.
+ * re-emit).
  */
 
 export type EventSource = 'alertmanager' | 'datadog' | 'generic'

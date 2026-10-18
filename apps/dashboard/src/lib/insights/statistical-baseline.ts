@@ -10,7 +10,7 @@
  * Fail-open by design: {@link scoreAnomaly} returns `usedBaseline: false` when
  * no baseline exists yet (cold start) or the baseline is degenerate (zero
  * variance), so callers (see `collectors.ts`) must fall back to their existing
- * static threshold. See plans/48-statistical-anomaly-baselines.md.
+ * static threshold.
  */
 
 import type {

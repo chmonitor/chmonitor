@@ -4,8 +4,7 @@
  *
  * Never throws: inbound payloads are attacker/vendor-suppliable JSON, so every
  * field access goes through the `asRecord`/`asString` guards below and falls
- * back to a generic shape rather than raising. See
- * plans/36-inbound-event-bus-queues.md.
+ * back to a generic shape rather than raising.
  */
 
 import type { EventSeverity, EventSource, NormalizedEvent } from './types'

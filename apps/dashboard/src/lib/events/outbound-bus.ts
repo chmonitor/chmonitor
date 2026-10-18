@@ -1,10 +1,10 @@
 /**
- * Outbound webhook event bus (plan 44).
+ * Outbound webhook event bus.
  *
  * `emitEvent` fans a single event out to every enabled subscription a user
  * owns for that event type: HMAC-signed, retried with bounded backoff, and
  * recorded (delivered/failed/dead) in the `webhook_deliveries` audit log.
- * `emitInstanceEvent` (#2664) is the sibling for producers with no per-user
+ * `emitInstanceEvent` is the sibling for producers with no per-user
  * owner (the health-alert cron sweep's `alert.fired`/`alert.resolved`) — same
  * delivery/signing/retry machinery, but fans out to every enabled
  * `scope: 'instance'` subscription across ALL users instead of one user's own.
@@ -314,7 +314,7 @@ export async function emitEvent(
 /**
  * Emit `evt` to every enabled `scope: 'instance'` subscription (across ALL
  * users) whose `event_types` includes `evt.type` — the delivery path for
- * instance-scoped producers (`alert.fired`/`alert.resolved`, #2664) that have
+ * instance-scoped producers (`alert.fired`/`alert.resolved`) that have
  * no per-user owner to pass to {@link emitEvent}. Same fire-and-forget /
  * never-throws contract as `emitEvent` — see the module docblock.
  */

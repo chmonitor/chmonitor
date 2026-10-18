@@ -1,10 +1,10 @@
 /**
- * D1-backed store for outbound webhook subscriptions + delivery records
- * (plan 44). Mirrors `lib/connection-store/d1-store.ts`'s conventions: same
+ * D1-backed store for outbound webhook subscriptions + delivery records.
+ * Mirrors `lib/connection-store/d1-store.ts`'s conventions: same
  * `CHM_CLOUD_D1` binding, same `crypto.randomUUID()` ids, same
  * `WHERE user_id = ? AND id = ?`-guarded mutations so one user can never read,
- * edit, or delete another user's subscription (the IDOR class plan 04 fixed
- * for conversations — see `D1_UPDATE_SUBSCRIPTION_SQL` / `D1_DELETE_SUBSCRIPTION_SQL`,
+ * edit, or delete another user's subscription (the IDOR class fixed for
+ * conversations — see `D1_UPDATE_SUBSCRIPTION_SQL` / `D1_DELETE_SUBSCRIPTION_SQL`,
  * proven against real SQLite in `subscription-store.sql.test.ts`).
  */
 
@@ -17,8 +17,8 @@ const D1_BINDING_NAME = 'CHM_CLOUD_D1'
 
 /**
  * `'user'` (default): delivered only to the creating user's own events
- * (`connection.created/deleted`) — the original plan 44 behavior.
- * `'instance'` (#2664): opts in to instance-scoped events (`alert.fired`/
+ * (`connection.created/deleted`).
+ * `'instance'`: opts in to instance-scoped events (`alert.fired`/
  * `alert.resolved`) that have no per-user owner (env-configured hosts belong
  * to the operator) — delivery fans out to every enabled instance-scoped
  * subscription across ALL users, not just the creator. See `event-types.ts`'s
@@ -230,7 +230,7 @@ export async function listEnabledSubscriptionsForEvent(
 /**
  * Enabled `scope: 'instance'` subscriptions across ALL users whose
  * `event_types` include `eventType` — the read path for instance-scoped
- * producers (`alert.fired`/`alert.resolved`, #2664) that have no per-user
+ * producers (`alert.fired`/`alert.resolved`) that have no per-user
  * owner to filter by. Deliberately NOT scoped by `user_id`: env/operator
  * hosts belong to the operator, not any one Clerk user, so every user who
  * opted a subscription into `scope: 'instance'` receives these events.
@@ -313,7 +313,7 @@ export async function createSubscription(
  * Ownership-guarded UPDATE. Exported so `subscription-store.sql.test.ts` can
  * run this EXACT string against `bun:sqlite` and prove a foreign `user_id`
  * affects zero rows (mirrors `d1-store.ts`'s `D1_UPSERT_CONVERSATION_SQL`
- * pattern for plan 04's IDOR fix).
+ * IDOR guard).
  */
 export const D1_UPDATE_SUBSCRIPTION_SQL = `UPDATE webhook_subscriptions
    SET url = ?1, secret = ?2, event_types = ?3, enabled = ?4, updated_at = ?5

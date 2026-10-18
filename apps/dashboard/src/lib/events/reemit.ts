@@ -1,7 +1,6 @@
 /**
  * Optional re-emit: forward a normalized inbound event to a configured
- * outbound webhook. OFF by default (no env var configured) — see
- * plans/36-inbound-event-bus-queues.md goal #5.
+ * outbound webhook. OFF by default (no env var configured).
  *
  * SECURITY (SSRF): the configured URL is operator-supplied config (an env
  * var), not attacker-suppliable per-request input, but it is still run through

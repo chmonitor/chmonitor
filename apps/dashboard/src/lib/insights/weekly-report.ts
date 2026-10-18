@@ -3,15 +3,12 @@
  *
  * Composes a per-host cluster-health narrative from a rolling 7-day window:
  * top findings from the AI insights engine (`ai-insight` findings, which
- * already fold in the statistical baselines from plan 48 — see
- * `collectors.ts`'s baseline-backed detail strings), a count of adaptive
- * baselines fitted for this host, and the disk-capacity outlook from the
- * capacity forecaster (plan 50). Delivered best-effort via the existing
- * outbound alert webhook (`HEALTH_ALERT_WEBHOOK_URL`) when configured — email
- * (plan 25) and the native Slack app (plan 37) are not merged yet, so the
- * webhook channel already used for regular alerts is the "configured channel"
- * this reuses. The report is ALWAYS persisted regardless of delivery outcome
- * (fail-open — see plans/52-proactive-weekly-health-report.md).
+ * already fold in the statistical baselines — see `collectors.ts`'s
+ * baseline-backed detail strings), a count of adaptive baselines fitted for
+ * this host, and the disk-capacity outlook from the capacity forecaster.
+ * Delivered best-effort via the outbound alert webhook
+ * (`HEALTH_ALERT_WEBHOOK_URL`) when configured. The report is ALWAYS persisted
+ * regardless of delivery outcome (fail-open).
  */
 
 import type {
