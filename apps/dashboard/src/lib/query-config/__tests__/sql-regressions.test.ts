@@ -2,6 +2,7 @@ import { diskUsageChangeConfig } from '../anomaly/anomaly-queries'
 import { explorerProjectionsConfig } from '../explorer/projections'
 import { mergesConfig } from '../merges/merges'
 import { expensiveQueriesConfig } from '../queries/expensive-queries'
+import { latencyLogConfig } from '../system/latency-log'
 import { projectionsConfig } from '../tables/projections'
 import { tablesOverviewConfig } from '../tables/tables-overview'
 import { describe, expect, test } from 'bun:test'
@@ -33,6 +34,16 @@ describe('query-config SQL regressions', () => {
     expect(allSql(explorerProjectionsConfig)).toContain(
       'nullIf(sum(data_compressed_bytes), 0)'
     )
+  })
+
+  // system.latency_log (25.3) has no operation_name or elapsed_microseconds:
+  // it is one LatencyEvent_* Array(UInt64) histogram column per event.
+  test('latency-log unpivots the LatencyEvent_* histogram columns', () => {
+    const sql = allSql(latencyLogConfig)
+    expect(sql).not.toContain('operation_name')
+    expect(sql).not.toContain('elapsed_microseconds')
+    expect(sql).toContain("COLUMNS('^LatencyEvent_')")
+    expect(sql).toContain('FROM system.latency_buckets')
   })
 
   test('disk-usage-change anomaly query is bounded by LIMIT', () => {
