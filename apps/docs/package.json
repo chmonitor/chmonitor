@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "@takumi-rs/image-response": "^1.8.7",
-    "@tanstack/react-router": "^1.170.16",
-    "@tanstack/react-start": "^1.168.26",
+    "@tanstack/react-router": "^1.170.45",
+    "@tanstack/react-start": "^1.168.60",
     "fumadocs-core": "^16.10.5",
     "fumadocs-mdx": "^15.0.12",
     "fumadocs-twoslash": "^3.0.0",

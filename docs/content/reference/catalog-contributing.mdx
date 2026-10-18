@@ -4,7 +4,7 @@ description: How to add a declarative monitoring check to the chmonitor catalog.
 icon: GitPullRequest
 ---
 
-A **declarative query config** is a monitoring check expressed as data — a plain TypeScript object that the dashboard validates against a [Zod schema](../../../apps/dashboard/src/lib/query-config/declarative/schema.ts) and renders as a table or card view. No JSX, no functions, no component imports. This page walks through the contract, the safety rules, and the step-by-step flow for adding one.
+A **declarative query config** is a monitoring check expressed as data — a plain TypeScript object that the dashboard validates against a [Zod schema](https://github.com/chmonitor/chmonitor/blob/main/apps/dashboard/src/lib/query-config/declarative/schema.ts) and renders as a table or card view. No JSX, no functions, no component imports. This page walks through the contract, the safety rules, and the step-by-step flow for adding one.
 
 <Callout type="info" title="Current status: opt-in">
 The declarative catalog is opt-in. Set `CHM_CONFIG_SOURCE=declarative` to route runtime lookups to it. The default (`CHM_CONFIG_SOURCE=ts`) still uses the TypeScript query configs. A drop-in community catalog directory (where contributions live outside the repo) is planned but not yet built. For now, contributing a check means adding a file to the repo's catalog directory and opening a PR.
