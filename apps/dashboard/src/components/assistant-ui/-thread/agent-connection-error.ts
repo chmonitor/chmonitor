@@ -8,7 +8,6 @@
 
 export interface AgentConnectionErrorAction {
   label: string
-  /** In-app route; every current action goes to the add-connection flow. */
   to: '/setup'
 }
 
@@ -58,7 +57,6 @@ function parseBody(raw: unknown): Record<string, unknown> | null {
     : body
 }
 
-/** Returns a view for a known pre-stream connection error, else `null`. */
 export function mapAgentConnectionError(
   raw: unknown
 ): AgentConnectionErrorView | null {

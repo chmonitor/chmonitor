@@ -101,7 +101,6 @@ export function useAutocomplete(): UseAutocompleteReturn {
   }
 
   const handleTextChange = (value: string, selectionStart: number) => {
-    // Scan backward from cursor to find a trigger character
     let triggerChar: '@' | '/' | null = null
     let triggerIdx = -1
     let query = ''
@@ -131,7 +130,6 @@ export function useAutocomplete(): UseAutocompleteReturn {
         break
       }
 
-      // If we hit whitespace that isn't preceded by a trigger, stop
       if (/\s/.test(char)) {
         break
       }
@@ -232,7 +230,6 @@ export function useAutocomplete(): UseAutocompleteReturn {
       })
     } else {
       setMentions((prev) => {
-        // Avoid duplicate mentions
         if (prev.some((m) => m.value === item.value)) return prev
         const parts = item.value.split('.')
         return [

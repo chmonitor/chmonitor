@@ -40,7 +40,6 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   },
 ]
 
-// Common system tables that always appear in @mention autocomplete
 export const SYSTEM_RESOURCES: AutocompleteItem[] = [
   {
     id: 'res-query_log',

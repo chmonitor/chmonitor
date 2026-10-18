@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Per-message stats footer + details dialog (Tasks #3 / #12).
+ * Per-message stats footer + details dialog.
  *
  * `MessageStatsFooter` renders a compact inline icon row (duration · throughput
  * · tokens · tools · model · timestamp) under each assistant message, with an
@@ -60,7 +60,6 @@ function MessageStatsDialog({
 
   return (
     <div className="space-y-4 text-sm">
-      {/* Token breakdown */}
       {usage && (
         <section>
           <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
@@ -107,7 +106,6 @@ function MessageStatsDialog({
         </section>
       )}
 
-      {/* Per-step breakdown */}
       {steps && steps.length > 1 && (
         <section>
           <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
@@ -137,7 +135,6 @@ function MessageStatsDialog({
         </section>
       )}
 
-      {/* Timing + throughput */}
       {(timing?.totalStreamTime != null || timing?.tokensPerSecond != null) && (
         <section>
           <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
@@ -172,7 +169,6 @@ function MessageStatsDialog({
         </section>
       )}
 
-      {/* Model info */}
       {(displayModel ?? usage?.provider) && (
         <section>
           <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
@@ -219,7 +215,6 @@ function MessageStatsDialog({
         </section>
       )}
 
-      {/* Timestamp */}
       {createdAt instanceof Date && (
         <section>
           <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
@@ -253,7 +248,6 @@ export function MessageStatsFooter() {
     typeof extractMessageUsage
   >[0])
 
-  // Fall back to summing step-level usage when data-usage is absent
   const steps = metadata?.steps as
     | { usage?: { inputTokens?: number; outputTokens?: number } }[]
     | undefined
@@ -279,14 +273,12 @@ export function MessageStatsFooter() {
 
   if (!hasTokens && !hasDuration && !hasTimestamp) return null
 
-  // The model to show inline — prefer resolvedModel when it differs
   const displayModel = usage?.resolvedModel ?? usage?.model
   const isResolved =
     usage?.resolvedModel != null && usage.resolvedModel !== usage?.model
 
   return (
     <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
-      {/* Duration */}
       {hasDuration && timing?.totalStreamTime != null && (
         <span className="flex items-center gap-0.5">
           <ClockIcon className="size-3 shrink-0" />
@@ -296,7 +288,6 @@ export function MessageStatsFooter() {
         </span>
       )}
 
-      {/* Throughput */}
       {timing?.tokensPerSecond != null && (
         <span className="flex items-center gap-0.5">
           <GaugeIcon className="size-3 shrink-0" />
@@ -306,7 +297,6 @@ export function MessageStatsFooter() {
         </span>
       )}
 
-      {/* Token total */}
       {hasTokens && (
         <span className="flex items-center gap-0.5">
           <CpuIcon className="size-3 shrink-0" />
@@ -316,7 +306,6 @@ export function MessageStatsFooter() {
         </span>
       )}
 
-      {/* Tool call count */}
       {toolCount > 0 && (
         <span className="flex items-center gap-0.5">
           <WrenchIcon className="size-3 shrink-0" />
@@ -324,7 +313,6 @@ export function MessageStatsFooter() {
         </span>
       )}
 
-      {/* Model — show resolvedModel with badge when it differs from requested */}
       {hasModel && displayModel && (
         <span className="flex items-center gap-1 min-w-0">
           <span className="truncate max-w-[14rem]" title={displayModel}>
@@ -341,7 +329,6 @@ export function MessageStatsFooter() {
         </span>
       )}
 
-      {/* Timestamp with tooltip */}
       {hasTimestamp && (
         <Tooltip>
           <TooltipTrigger
@@ -355,7 +342,6 @@ export function MessageStatsFooter() {
         </Tooltip>
       )}
 
-      {/* Details dialog trigger */}
       {(hasTokens || hasDuration) && (
         <Dialog>
           <DialogTrigger

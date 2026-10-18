@@ -46,7 +46,6 @@ import { useToolConfig } from '@/lib/hooks/use-tool-config'
 import { cn } from '@/lib/utils'
 
 interface ComposerToolbarProps {
-  /** Context items the user has attached (docs links, queries, …). */
   contextItems?: ContextItem[]
   onAddContext?: (item: ContextItem) => void
   onRemoveContext?: (id: string) => void
@@ -83,7 +82,6 @@ export function ComposerToolbar({
     >
       <AgentModelPicker variant="toolbar" />
 
-      {/* Skills popover */}
       <Popover open={skillsOpen} onOpenChange={setSkillsOpen}>
         <PopoverTrigger
           render={
@@ -170,7 +168,6 @@ export function ComposerToolbar({
         </PopoverContent>
       </Popover>
 
-      {/* Tools popover — flat list, per-tool toggle */}
       <Popover open={toolsOpen} onOpenChange={setToolsOpen}>
         <PopoverTrigger
           render={
@@ -243,7 +240,6 @@ export function ComposerToolbar({
         </PopoverContent>
       </Popover>
 
-      {/* Add context */}
       <Button
         type="button"
         variant="ghost"
@@ -262,7 +258,6 @@ export function ComposerToolbar({
         </span>
       </Button>
 
-      {/* Daily AI usage — cloud-only, hidden on OSS / unlimited plans. */}
       <AiUsageMeter variant="chip" />
 
       <SkillDetailDialog

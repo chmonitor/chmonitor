@@ -31,7 +31,6 @@ interface ChartControlsProps {
   onRightAxisKeysChange: (val: Set<string>) => void
 }
 
-/** Labelled column-picker select used across the control rows. */
 function ColumnSelect({
   label,
   value,
@@ -69,7 +68,6 @@ function ColumnSelect({
   )
 }
 
-/** Pill-style toggle button shared by the Stacked / Log toggles. */
 function ToggleButton({
   active,
   onClick,
@@ -118,7 +116,6 @@ export function ChartControls({
 }: ChartControlsProps) {
   if (chartType === 'table') return null
 
-  // Radial and bar_list: just x/y axis pickers, no sort/stacked/log
   if (chartType === 'radial' || chartType === 'bar_list') {
     return (
       <div className="flex flex-wrap gap-2 pb-2">
@@ -204,7 +201,6 @@ export function ChartControls({
           width="w-[120px]"
         />
 
-        {/* Sort */}
         <div className="flex items-center gap-1.5 text-xs">
           <span className="text-muted-foreground whitespace-nowrap">Sort</span>
           <Select
@@ -240,7 +236,6 @@ export function ChartControls({
           </Select>
         </div>
 
-        {/* Stacked toggle (bar and area) */}
         {(chartType === 'bar' || chartType === 'area') && yKeys.length > 1 && (
           <ToggleButton
             active={stacked}
@@ -250,7 +245,6 @@ export function ChartControls({
           </ToggleButton>
         )}
 
-        {/* Log scale toggle (radial/bar_list handled by the early return above) */}
         {chartType !== 'pie' && (
           <ToggleButton
             active={logScale}
@@ -260,7 +254,6 @@ export function ChartControls({
           </ToggleButton>
         )}
       </div>
-      {/* Combo chart: axis assignment per Y key */}
       {chartType === 'combo' && numericColumns.length > 1 && (
         <div className="flex flex-wrap gap-1.5 pb-2">
           {numericColumns

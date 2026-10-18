@@ -79,7 +79,6 @@ export function ToolGroupRoot({
 }
 
 interface ToolGroupTriggerProps {
-  /** Total number of tool calls in this group. */
   count?: number
   /**
    * Pass the `status` of the group part from MessagePrimitive.GroupedParts.

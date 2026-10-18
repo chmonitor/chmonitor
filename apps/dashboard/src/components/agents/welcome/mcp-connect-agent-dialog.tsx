@@ -45,7 +45,6 @@ export function McpConnectAgentDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl overflow-hidden p-0">
-        {/* Header — mirrors mcp-tools-resources-dialog muted header */}
         <DialogHeader className="border-b bg-muted/30 px-5 py-4 text-left">
           <div className="flex items-start gap-3">
             <div className="bg-background border-border inline-flex size-10 shrink-0 items-center justify-center rounded-xl border">
@@ -65,10 +64,8 @@ export function McpConnectAgentDialog({
           </div>
         </DialogHeader>
 
-        {/* Body */}
         <ScrollArea className="max-h-[80dvh]">
           <div className="space-y-5 p-5">
-            {/* Endpoint URL */}
             <div className="space-y-1.5">
               <p className="text-muted-foreground text-[10.5px] font-semibold tracking-wider uppercase">
                 Endpoint URL
@@ -76,13 +73,10 @@ export function McpConnectAgentDialog({
               <McpEndpointUrl />
             </div>
 
-            {/* Per-client setup guides */}
             <McpSetupGuides />
 
-            {/* Copy-to-clipboard example prompts */}
             <McpExamplePrompts />
 
-            {/* Escape hatch to the full page for tool docs + live playground */}
             <a
               href={`/mcp?host=${hostId}`}
               className="text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-[11.5px] transition-colors"

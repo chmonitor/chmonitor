@@ -92,7 +92,6 @@ export function AskUserWidget({
 
   return (
     <div className="my-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-      {/* Question header */}
       <div className="flex items-start gap-2 mb-3">
         <MessageCircleQuestionIcon className="size-4 mt-0.5 text-primary shrink-0" />
         <div>
@@ -105,7 +104,6 @@ export function AskUserWidget({
         </div>
       </div>
 
-      {/* Input widget based on type */}
       {output.inputType === 'single_choice' && safeOptions.length > 0 && (
         <div className="space-y-1.5 mb-3">
           {safeOptions.map((opt) => (

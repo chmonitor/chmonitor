@@ -53,11 +53,9 @@ export function pickGuestAnyRouterModel(
   return models.find((m) => m.provider === 'anyrouter')?.id ?? null
 }
 
-/** Set of model IDs that are part of the curated static registry. */
 export const CURATED_MODEL_IDS = new Set(getAllModelOptions())
 
 interface AgentModelPickerProps {
-  /** Compact toolbar variant (welcome screen toolbar). */
   variant?: 'toolbar' | 'panel'
   className?: string
 }
@@ -215,7 +213,6 @@ export function AgentModelPicker({
     )
   }, [models, search])
 
-  /** Recently used models, pinned above the provider groups. */
   const recent = useMemo(() => {
     const byId = new Map(matches.map((m) => [m.id, m]))
     return recentModelIds

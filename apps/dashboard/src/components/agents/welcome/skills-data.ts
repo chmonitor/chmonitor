@@ -29,7 +29,6 @@ export interface Skill {
   source: SkillSource
   tools: readonly string[]
   defaultEnabled: boolean
-  /** Longer text shown in the skill detail dialog. */
   details?: string
 }
 
@@ -137,7 +136,6 @@ export const SKILLS: readonly Skill[] = [
 export const SKILL_STORAGE_KEY = 'clickhouse-monitor-agent-skills'
 
 export interface SkillState {
-  /** Skill IDs that are explicitly turned off. */
   disabled: string[]
 }
 

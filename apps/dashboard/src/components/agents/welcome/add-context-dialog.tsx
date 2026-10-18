@@ -32,9 +32,7 @@ export type ContextItemKind = 'docs' | 'query' | 'snippet'
 export interface ContextItem {
   id: string
   kind: ContextItemKind
-  /** Short display label shown on the chip. */
   label: string
-  /** The full value (URL or SQL) injected into the message. */
   value: string
 }
 

@@ -185,7 +185,6 @@ export function AgentVisualization({
       }
 
       if (chartType === 'pie') {
-        // Limit pie chart to top 10 slices for readability
         const pieValueKey = yKeys[0] ?? columns[0] ?? ''
         const pieSorted = [...sortedRows].sort(
           (a, b) =>
@@ -323,7 +322,6 @@ export function AgentVisualization({
         className
       )}
     >
-      {/* Header */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b">
         <BarChart3Icon className="size-4 text-muted-foreground shrink-0" />
         {title && (
@@ -336,7 +334,6 @@ export function AgentVisualization({
         </Badge>
 
         <div className="ml-auto flex items-center gap-1.5">
-          {/* Chart type selector */}
           <Select
             value={chartType}
             onValueChange={(v) => setChartType(v as ChartType)}
@@ -355,7 +352,6 @@ export function AgentVisualization({
             </SelectContent>
           </Select>
 
-          {/* Download button */}
           <Button
             variant="ghost"
             size="icon"
@@ -370,7 +366,6 @@ export function AgentVisualization({
         </div>
       </div>
 
-      {/* Tabs */}
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as typeof activeTab)}
@@ -390,7 +385,6 @@ export function AgentVisualization({
           )}
         </TabsList>
 
-        {/* Chart tab */}
         <TabsContent value="chart">
           <ChartControls
             columns={columns}
@@ -416,7 +410,6 @@ export function AgentVisualization({
           {renderChart()}
         </TabsContent>
 
-        {/* Data tab */}
         <TabsContent value="data">
           {hasData ? (
             <DataTable
@@ -439,7 +432,6 @@ export function AgentVisualization({
           )}
         </TabsContent>
 
-        {/* Query tab */}
         {hasSql && (
           <TabsContent value="query">
             <CodeBlock code={sql ?? ''} language="sql">

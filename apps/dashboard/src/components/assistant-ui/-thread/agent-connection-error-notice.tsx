@@ -7,7 +7,6 @@ import type { AgentConnectionErrorView } from './agent-connection-error'
 
 import { keepHostSearch } from '@/routes/-root-search'
 
-/** Actionable notice for a mapped pre-stream agent connection error. */
 export function AgentConnectionErrorNotice({
   view,
 }: {

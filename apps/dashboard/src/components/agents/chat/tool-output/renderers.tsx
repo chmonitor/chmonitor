@@ -204,8 +204,6 @@ function renderStructuredOutput(output: unknown): ReactNode {
     return <ResultTable rows={outputObj.rows as unknown[]} maxRows={100} />
   }
 
-  // No structured renderer matched → let the caller decide (raw JSON is shown
-  // via renderRawOutput, kept behind a collapsed "Response" disclosure).
   return null
 }
 

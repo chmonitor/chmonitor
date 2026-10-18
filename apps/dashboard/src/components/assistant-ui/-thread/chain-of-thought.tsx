@@ -1,8 +1,7 @@
 'use client'
 
 /**
- * Chain-of-Thought rendering pipeline for assistant messages
- * (Tasks #4 / #8 / #11).
+ * Chain-of-Thought rendering pipeline for assistant messages.
  *
  * `groupByChainOfThought` is the stable module-level groupBy passed to
  * `MessagePrimitive.GroupedParts`; `renderGroupedPart` turns each group/leaf
@@ -34,11 +33,6 @@ import {
   ToolGroupTrigger,
 } from '@/components/assistant-ui/tool-group'
 
-// ---------------------------------------------------------------------------
-// GroupedParts groupBy — module-level stable reference
-// ---------------------------------------------------------------------------
-
-// Type alias for the group key union used in GroupedParts
 type ChainOfThoughtKey = 'group-reasoning' | 'group-tool'
 
 /**

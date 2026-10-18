@@ -95,7 +95,6 @@ function McpServerRow({
 }: McpServerRowProps) {
   return (
     <div className="flex items-center gap-2 py-2 pr-3 pl-2">
-      {/* Icon */}
       <div className="bg-muted inline-flex size-7 shrink-0 items-center justify-center rounded-md">
         <WrenchIcon className="text-foreground size-3.5" />
       </div>
@@ -133,7 +132,6 @@ function McpServerRow({
         </div>
       </button>
 
-      {/* Remove — only for user-added custom servers */}
       {!server.builtin && onRemove && (
         <Button
           type="button"
@@ -147,7 +145,6 @@ function McpServerRow({
         </Button>
       )}
 
-      {/* Toggle — disabled for built-in servers (always on, cannot be disabled) */}
       <Switch
         checked={server.enabled}
         disabled={server.builtin}
@@ -162,10 +159,6 @@ function McpServerRow({
     </div>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Custom server row — probes the endpoint to get live status + tool list
-// ---------------------------------------------------------------------------
 
 interface CustomMcpServerRowProps {
   server: McpServer
@@ -186,7 +179,6 @@ function CustomMcpServerRow({
     enabled: server.enabled,
   })
 
-  // Merge live probe results into the server shape for the row + dialog.
   const liveServer: McpServer = {
     ...server,
     status: server.enabled ? probe.status : 'unconfigured',
@@ -216,16 +208,12 @@ export function AgentMcpPanel({ config }: { config: UseMcpConfigResult }) {
   const [addServerOpen, setAddServerOpen] = useState(false)
   const [selectedServer, setSelectedServer] = useState<McpServer | null>(null)
 
-  // Derive real connection status for the built-in server from the
-  // /api/v1/mcp/info fetch state.
   const builtinStatus: McpServer['status'] = isLoading
     ? 'connecting'
     : error
       ? 'error'
       : 'connected'
 
-  // Built-in server (live data, always on) first, then user-added custom
-  // servers restored from localStorage.
   const servers: McpServer[] = [
     {
       id: 'clickhouse-monitor',
@@ -259,7 +247,6 @@ export function AgentMcpPanel({ config }: { config: UseMcpConfigResult }) {
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Tools/resources detail dialog */}
       <McpToolsResourcesDialog
         server={selectedServer}
         open={selectedServer !== null}
@@ -268,7 +255,6 @@ export function AgentMcpPanel({ config }: { config: UseMcpConfigResult }) {
         }}
       />
 
-      {/* Summary row */}
       <div className="text-muted-foreground flex items-center justify-between text-[10.5px]">
         <span>
           <span className="text-foreground font-medium">{activeCount}</span>/
@@ -287,7 +273,6 @@ export function AgentMcpPanel({ config }: { config: UseMcpConfigResult }) {
         )}
       </div>
 
-      {/* Server list */}
       <div className="border-border divide-border divide-y rounded-md border">
         {servers.map((server) =>
           server.builtin ? (
@@ -309,7 +294,6 @@ export function AgentMcpPanel({ config }: { config: UseMcpConfigResult }) {
         )}
       </div>
 
-      {/* Connect new server — opens a registration dialog */}
       <Button
         type="button"
         variant="outline"

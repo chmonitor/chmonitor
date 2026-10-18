@@ -95,7 +95,6 @@ function AgentChatLayout() {
   const [railOpen, setRailOpen] = useState<boolean | null>(null)
   const effectiveRailOpen = railOpen ?? false
   const [mobileConvOpen, setMobileConvOpen] = useState(false)
-  // Settings sidebar (open by default on desktop; Drawer on mobile).
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
   useEffect(() => {
     setRightSidebarOpen(!isMobile)
@@ -117,7 +116,6 @@ function AgentChatLayout() {
 
   return (
     <div className="bg-background flex h-[calc(100dvh-6rem)] min-h-0 overflow-hidden rounded-xl border">
-      {/* Conversation rail — persistent left column (desktop). */}
       {!isMobile && (
         <ConversationRail
           open={effectiveRailOpen}
@@ -126,7 +124,6 @@ function AgentChatLayout() {
         />
       )}
 
-      {/* Conversation history — mobile Drawer. */}
       {isMobile && (
         <Drawer open={mobileConvOpen} onOpenChange={setMobileConvOpen}>
           <DrawerContent className="max-h-[85dvh]">
@@ -146,7 +143,6 @@ function AgentChatLayout() {
         </Drawer>
       )}
 
-      {/* Main column */}
       <div className="relative flex min-w-0 flex-1 flex-col">
         {(isMobile || !effectiveRailOpen) && (
           <ConversationRailOpenButton
@@ -175,7 +171,6 @@ function AgentChatLayout() {
         />
       </div>
 
-      {/* Settings sidebar */}
       <AgentSettingsSidebar
         open={rightSidebarOpen}
         onClose={() => setRightSidebarOpen(false)}

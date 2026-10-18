@@ -85,7 +85,6 @@ export function ReasoningRoot({
 }
 
 interface ReasoningTriggerProps extends PropsWithChildren {
-  /** When true, shows a shimmer indicating active streaming. */
   active?: boolean
   className?: string
 }
