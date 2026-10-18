@@ -139,13 +139,22 @@ export async function checkTablesExist(
   try {
     const client = await getClient({ hostId })
     try {
+      // Two parallel Array(String) params: the client serializes a JS array
+      // of pairs as nested arrays, which ClickHouse rejects as
+      // Array(Tuple(String, String)) (#3906).
       const result = await client.query({
         query: `
           SELECT database, name
           FROM system.tables
-          WHERE (database, name) IN {pairs:Array(Tuple(String, String))}
+          WHERE (database, name) IN arrayZip(
+            {databases:Array(String)},
+            {tables:Array(String)}
+          )
         `,
-        query_params: { pairs: misses },
+        query_params: {
+          databases: misses.map(([database]) => database),
+          tables: misses.map(([, table]) => table),
+        },
         format: 'JSONEachRow',
       })
       const rows = (await result.json()) as { database: string; name: string }[]
