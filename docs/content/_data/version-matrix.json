@@ -14,7 +14,7 @@
     },
     {
       "name": "clusters-topology",
-      "since": ["23.3", "24.10"]
+      "since": ["23.3", "23.8", "24.3", "24.10"]
     },
     {
       "name": "errors",
