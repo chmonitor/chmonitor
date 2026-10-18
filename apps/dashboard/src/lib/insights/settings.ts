@@ -27,9 +27,7 @@ import {
 export interface InsightsSettings {
   /** `provider:model` id, or null to use the deployment's server default. */
   readonly model: string | null
-  /** Enrichment tone. */
   readonly promptStyle: InsightPromptStyle
-  /** Master switch for LLM enrichment. */
   readonly enrich: boolean
   /** Read window (the panel's lookback), e.g. `6 HOUR`. */
   readonly window: string
@@ -57,7 +55,6 @@ export const DEFAULT_INSIGHTS_SETTINGS: InsightsSettings = {
   window: INSIGHT_WINDOWS[0].value,
 }
 
-/** True when `value` is a selectable read window. */
 export function isInsightWindow(value: unknown): value is string {
   return typeof value === 'string' && WINDOW_VALUES.has(value)
 }

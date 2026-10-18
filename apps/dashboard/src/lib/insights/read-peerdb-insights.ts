@@ -19,12 +19,10 @@ import { INSIGHT_SOURCES, insightKey, peerdbInsightStoreHostId } from './types'
 /** PeerDB is a single deployment (one flow-api), so the source id is always 0 in v1. */
 export const PEERDB_SOURCE_ID = 0
 
-/** Default lookback for the panel — recent enough that insights stay relevant. */
 const DEFAULT_SINCE = '6 HOUR'
 
 const VALID_SEVERITY = new Set<InsightSeverity>(['info', 'warning', 'critical'])
 
-/** Re-derive a sensible PeerDB action from the persisted metric/category. */
 function derivePeerDBAction(
   metric: string,
   category: string

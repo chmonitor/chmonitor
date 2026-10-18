@@ -80,9 +80,6 @@ export async function processEventBatch(
   let failed = 0
 
   for (const message of batch.messages) {
-    // A single queued message may carry a batch (top-level array or
-    // `{ events: [...] }`) — expand it so each event is stored independently,
-    // mirroring the ingest route's inline path.
     const items = expandEventBatch(message.body)
     let anyFailed = false
     for (const item of items) {

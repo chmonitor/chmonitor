@@ -9,13 +9,8 @@
 
 import type { ConversationStore } from './types'
 
-/** Upper bound on conversations exported in one call. */
 export const EXPORT_MAX_CONVERSATIONS = 1000
 
-/**
- * Yield one JSON line per conversation (metadata + messages), newline
- * terminated. Conversations that disappear between `list` and `get` are skipped.
- */
 export async function* exportConversationsJsonl(
   store: ConversationStore,
   userId: string,

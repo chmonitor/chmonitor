@@ -1,5 +1,5 @@
 /**
- * Per-owner scheduled report fan-out (#2786).
+ * Per-owner scheduled report fan-out.
  *
  * Runs from the weekly/monthly cron AFTER the legacy host-keyed env opt-in
  * (`CHM_WEEKLY_REPORT_HOSTS` webhook flow, which stays untouched for OSS).
@@ -7,7 +7,7 @@
  * report per subscribed env host, persists it, delivers it to the owner's
  * configured alert channels, and records a compact delivery audit.
  *
- * Plan gate (#2791): weekly cadence is a paid feature for cloud owners — a
+ * Plan gate: weekly cadence is a paid feature for cloud owners — a
  * subscription left on 'weekly' after a downgrade to Free is skipped (never
  * silently switched). OSS single-tenant ('' owner) is never plan-gated.
  * Fail-open like the rest of the insights pipeline: one owner/host failing
@@ -51,7 +51,6 @@ export interface FanoutOwnerResult {
   readonly skipped?: 'plan' | 'no-hosts'
 }
 
-/** True when `plan` may receive weekly (vs monthly-only) scheduled reports. */
 export function weeklyReportsAllowed(planId: string): boolean {
   return planId !== 'free'
 }
@@ -92,7 +91,7 @@ export async function runReportFanout(
     return pending
   }
 
-  // PDF attachment (#2794) needs a Browser Rendering binding; render only when
+  // PDF attachment needs a Browser Rendering binding; render only when
   // present (Cloud). OSS/self-hosted has no binding → HTML-only, unchanged.
   const browserAvailable = hasBrowserBinding(
     bindings as unknown as Record<string, unknown>

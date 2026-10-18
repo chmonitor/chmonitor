@@ -1,5 +1,5 @@
 /**
- * Throughput-zero samples (#3728).
+ * Throughput-zero samples.
  *
  * `rowsSynced` is a running total, so one reading cannot show throughput. The
  * cycle keeps the previous `{ rowsSynced, sinceMs }` per mirror between sweep

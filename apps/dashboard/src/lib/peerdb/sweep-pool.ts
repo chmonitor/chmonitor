@@ -1,5 +1,5 @@
 /**
- * Bounded fan-out primitives for the PeerDB sweep (issue #3677).
+ * Bounded fan-out primitives for the PeerDB sweep.
  *
  * The alert collector used to `Promise.all` one `POST /v1/mirrors/status` AND
  * one `POST /v1/mirrors/logs` for EVERY mirror at once. On a 72-mirror fleet
@@ -26,7 +26,7 @@
  * A third reader here, {@link resolvePeerDBSweepMaxMirrors}, is NOT a bound on
  * work but a coverage guard: the old hardcoded 50-mirror cap silently dropped
  * the rest of the fleet, which is why it now defaults to no guard at all and
- * reports any truncation as a partial result (#3687).
+ * reports any truncation as a partial result.
  *
  * Deliberately dependency-free — no `@chm/logger`, no `peerdb-config` — so the
  * alert collector can import it statically without pulling in the
@@ -89,7 +89,7 @@ export function resolvePeerDBSweepConcurrency(get?: PeerDBEnvLookup): number {
 
 /**
  * Optional guard on how many items one sweep reads, from
- * `PEERDB_SWEEP_MAX_MIRRORS`. `null` means NO guard — the default (#3687).
+ * `PEERDB_SWEEP_MAX_MIRRORS`. `null` means NO guard — the default.
  *
  * This is deliberately NOT a ceiling, and deliberately fails open:
  *

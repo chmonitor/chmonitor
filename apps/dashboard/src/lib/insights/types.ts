@@ -11,7 +11,6 @@ import type { ForecastResult } from '@/lib/ai/advisor/capacity-forecaster'
 
 export type InsightSeverity = 'info' | 'warning' | 'critical'
 
-/** A single highlighted finding surfaced in a weekly report's "top findings" section. */
 export interface WeeklyTopFinding {
   readonly severity: InsightSeverity
   readonly category: string
@@ -21,7 +20,6 @@ export interface WeeklyTopFinding {
   readonly generatedAt: string
 }
 
-/** A ranked query-advisor recommendation surfaced in the weekly report. */
 export interface WeeklyReportAdvisorRecommendation {
   readonly title: string
   readonly detail: string
@@ -37,10 +35,8 @@ export type WeeklyReportCapacity =
       readonly message: string
     }
 
-/** Report cadence: weekly (7-day window) or monthly (30-day window). */
 export type ReportPeriod = 'weekly' | 'monthly'
 
-/** One per-day point in a report time series (`date` = `YYYY-MM-DD`). */
 export interface ReportSeriesPoint {
   readonly date: string
   readonly value: number
@@ -61,7 +57,6 @@ export interface WeeklyReportQueryActivity {
   readonly dailyFailed: readonly ReportSeriesPoint[]
 }
 
-/** Ingestion section data: INSERT-written rows/bytes per day (system.query_log). */
 export interface WeeklyReportIngestion {
   readonly totalRows: number
   readonly totalBytes: number
@@ -69,9 +64,7 @@ export interface WeeklyReportIngestion {
   readonly dailyBytes: readonly ReportSeriesPoint[]
 }
 
-/** One of the top-N tables by on-disk size (system.parts, active). */
 export interface WeeklyReportTopTable {
-  /** Fully qualified `database.table`. */
   readonly table: string
   readonly bytes: number
   readonly rows: number
@@ -83,14 +76,12 @@ export interface WeeklyReportTopTable {
   readonly newBytes: number
 }
 
-/** Storage section data: cluster totals + top tables (system.parts, active). */
 export interface WeeklyReportStorage {
   readonly totalBytes: number
   readonly totalRows: number
   readonly topTables: readonly WeeklyReportTopTable[]
 }
 
-/** Compact, JSON-serializable summary of a host's weekly report. */
 export interface WeeklyReportSummary {
   readonly hostId: number
   readonly hostLabel: string
@@ -99,16 +90,14 @@ export interface WeeklyReportSummary {
    * persisted before monthly reports existed — absent means 'weekly'.
    */
   readonly period?: ReportPeriod
-  /** Start of the rolling 7-day window, `YYYY-MM-DD`. */
   readonly weekStart: string
-  /** End of the window (today), `YYYY-MM-DD`. */
   readonly weekEnd: string
   readonly generatedAt: string
   readonly totalFindings: number
   readonly bySeverity: Record<InsightSeverity, number>
   readonly byCategory: Record<string, number>
   readonly topFindings: readonly WeeklyTopFinding[]
-  /** Count of metrics with a fitted statistical baseline (plan 48). */
+  /** Count of metrics with a fitted statistical baseline. */
   readonly baselinesFitted: number
   readonly capacity: WeeklyReportCapacity
   /**
@@ -124,11 +113,8 @@ export interface WeeklyReportSummary {
   readonly advisorRecommendations?: readonly WeeklyReportAdvisorRecommendation[]
 }
 
-/** A recommended next step the operator can take for an insight. */
 export interface InsightAction {
-  /** Button label, e.g. "View tables". */
   readonly label: string
-  /** Internal route the action links to, e.g. "/tables". Optional. */
   readonly href?: string
   /**
    * Optional natural-language prompt to deep-link into the agent
@@ -137,7 +123,6 @@ export interface InsightAction {
   readonly prompt?: string
 }
 
-/** A candidate insight produced by a collector, before persistence. */
 export interface InsightCandidate {
   readonly severity: InsightSeverity
   /** Coarse grouping: 'anomaly' | 'storage' | 'reliability' | 'performance'. */
@@ -151,7 +136,6 @@ export interface InsightCandidate {
   readonly action?: InsightAction
 }
 
-/** A persisted/served insight card. Adds a stable key for dismissal. */
 export interface InsightCard extends InsightCandidate {
   /**
    * Stable identity across regenerations: `host:category:metric:title`.
@@ -159,7 +143,6 @@ export interface InsightCard extends InsightCandidate {
    * resurrect an insight the user already dismissed.
    */
   readonly key: string
-  /** ISO timestamp the insight was recorded, when known. */
   readonly generatedAt?: string
 }
 

@@ -1,6 +1,6 @@
 /**
  * Fleet log-pattern aggregation for `GET /api/v1/peerdb/log-patterns`
- * (issue #3678).
+ *.
  *
  * Reads `POST /v1/mirrors/logs` for EVERY mirror through the bounded sweep
  * pool (`sweep-pool.ts`), keeps entries inside the requested time window, and

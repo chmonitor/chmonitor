@@ -40,17 +40,12 @@ const MIGRATION_SQL = `
   )
 `
 
-/** A persisted weekly report row, keyed by (hostId, weekStart). */
 export interface WeeklyReportRecord {
   readonly hostId: string
-  /** Start of the rolling 7-day window this report covers, `YYYY-MM-DD`. */
   readonly weekStart: string
-  /** JSON-serialized `WeeklyReportSummary` (see `weekly-report.ts`). */
   readonly summaryJson: string
-  /** Rendered, self-contained HTML narrative (see `weekly-report-html.ts`). */
   readonly html: string
   readonly delivered: boolean
-  /** Unix epoch milliseconds this report was generated. */
   readonly generatedAt: number
 }
 

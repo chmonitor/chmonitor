@@ -1,10 +1,3 @@
-/**
- * Conversation store resolver for runtime backend detection.
- *
- * Automatically selects the appropriate conversation store implementation
- * based on environment configuration and feature flags.
- */
-
 import type { ConversationStore } from './types'
 
 import { AgentStateStore } from './agentstate-store'
@@ -47,7 +40,6 @@ const CONVERSATION_STORE_BACKEND = 'CONVERSATION_STORE_BACKEND'
  * ```
  */
 export async function resolveStore(): Promise<ConversationStore> {
-  // 1. Check if conversations DB feature is disabled
   if (!featureFlags.conversationDb()) {
     return new BrowserStore()
   }
@@ -79,12 +71,9 @@ export async function resolveStore(): Promise<ConversationStore> {
   try {
     const db = getPlatformBindings().getD1Database(D1_BINDING_NAME)
     if (db) {
-      // D1Store gets the binding internally via getPlatformBindings()
       return new D1Store()
     }
-  } catch {
-    // Not in Cloudflare environment or no binding - continue to next check
-  }
+  } catch {}
 
   // 4. Check for Postgres DATABASE_URL (traditional database, Node-only path).
   // Dynamic import keeps the `postgres` package out of the Cloudflare Workers

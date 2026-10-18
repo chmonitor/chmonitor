@@ -19,17 +19,14 @@
 import type { Recommendation } from '@/lib/ai/advisor/types'
 import type { InsightCandidate } from './types'
 
-/** A single query's advisor analysis, reduced to what the mapper needs. */
 export interface AnalyzedQuery {
   readonly database: string
   readonly table: string
   readonly recommendations: readonly Recommendation[]
 }
 
-/** Cap on how many optimization cards the page surfaces at once. */
 export const MAX_SCHEMA_OPTIMIZATIONS = 3
 
-/** Slugify a recommendation title into a stable, key-safe metric fragment. */
 export function metricSlug(input: string): string {
   return input
     .toLowerCase()

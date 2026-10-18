@@ -10,9 +10,7 @@
 
 import type { EventSeverity, EventSource, NormalizedEvent } from './types'
 
-// ---------------------------------------------------------------------------
 // Small parsing guards (untrusted JSON in, never throw)
-// ---------------------------------------------------------------------------
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -44,7 +42,6 @@ function toStringLabels(
   return labels
 }
 
-/** Datadog `tags` is either `"env:prod,service:api"` or `["env:prod", ...]`. */
 function parseDatadogTags(tags: unknown): Record<string, string> {
   const list = Array.isArray(tags)
     ? tags.filter((t): t is string => typeof t === 'string')
@@ -61,10 +58,6 @@ function parseDatadogTags(tags: unknown): Record<string, string> {
   }
   return labels
 }
-
-// ---------------------------------------------------------------------------
-// Severity mapping
-// ---------------------------------------------------------------------------
 
 const CRITICAL_ALIASES = new Set([
   'critical',
@@ -95,15 +88,6 @@ function normalizeSeverity(raw: unknown): EventSeverity {
   return 'warning'
 }
 
-// ---------------------------------------------------------------------------
-// Source detection
-// ---------------------------------------------------------------------------
-
-/**
- * Detect the source shape of an inbound payload. Alertmanager webhook
- * payloads carry `alerts: [...]` + `commonLabels`; Datadog monitor-webhook
- * payloads carry `alert_type` + `aggreg_key`. Anything else is `generic`.
- */
 export function detectSource(payload: unknown): EventSource {
   const record = asRecord(payload)
   if (!record) return 'generic'
@@ -135,8 +119,6 @@ function normalizeAlertmanager(
   const commonAnnotations = asRecord(record.commonAnnotations) ?? {}
   const firstAnnotations = asRecord(firstAlert.annotations) ?? {}
 
-  // Prefer commonLabels (shared by every alert in the group); fall back to
-  // the first alert's own labels for single-alert groups with sparse commons.
   const labels =
     Object.keys(commonLabels).length > 0 ? commonLabels : firstLabels
   const status = asString(record.status) ?? asString(firstAlert.status)
@@ -144,8 +126,6 @@ function normalizeAlertmanager(
   const title = asString(labels.alertname) ?? 'Alertmanager event'
   const resource =
     asString(labels.instance) ?? asString(labels.job) ?? 'unknown'
-  // A "resolved" notification is a recovery, not a fresh alert — normalize to
-  // `info` regardless of the label's severity so it reads as a clear.
   const severity: EventSeverity =
     status === 'resolved' ? 'info' : normalizeSeverity(labels.severity)
   const body =
@@ -245,10 +225,6 @@ function normalizeGeneric(
     receivedAt,
   }
 }
-
-// ---------------------------------------------------------------------------
-// Dedup hash
-// ---------------------------------------------------------------------------
 
 /**
  * Content hash of `(source, resource, title, severity)` — the D1 upsert key.

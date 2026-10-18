@@ -47,7 +47,6 @@ function setRepoCache(
   value: MessageFormatRepository<unknown>
 ): void {
   if (repoCache.size >= REPO_CACHE_MAX && !repoCache.has(key)) {
-    // Evict oldest entry (first inserted key).
     const oldest = repoCache.keys().next().value
     if (oldest !== undefined) repoCache.delete(oldest)
   }
@@ -119,11 +118,6 @@ async function apiDelete(id: string): Promise<void> {
   }
 }
 
-/**
- * Per-thread message history backed by the conversations API. `useChatRuntime`
- * calls `withFormat()` for a format-bound `GenericThreadHistoryAdapter`; the
- * stored `MessageFormatItem[]` is kept in the conversation's `messages` field.
- */
 function createD1HistoryAdapter(
   aui: ReturnType<typeof useAui>
 ): ThreadHistoryAdapter {
@@ -245,13 +239,9 @@ export function createD1ThreadListAdapter(): RemoteThreadListAdapter {
       await apiPut(remoteId, { title: newTitle })
     },
 
-    async archive() {
-      // The conversations API has no archive state — treated as a no-op.
-    },
+    async archive() {},
 
-    async unarchive() {
-      // No-op — see `archive`.
-    },
+    async unarchive() {},
 
     async delete(remoteId) {
       repoCache.delete(remoteId)
@@ -276,8 +266,6 @@ export function createD1ThreadListAdapter(): RemoteThreadListAdapter {
       const stored = Array.isArray(conversation?.messages)
         ? (conversation.messages as unknown[])
         : []
-      // Stored entries may be bare messages or `{ message }` wrappers
-      // (the format-adapter repository shape), so normalize before reading.
       const messages = stored.map((entry) => {
         const candidate =
           entry &&
@@ -290,7 +278,6 @@ export function createD1ThreadListAdapter(): RemoteThreadListAdapter {
       const firstUserMsg = messages.find((m) => m?.role === 'user')
       const title = deriveTitleFromUserMessage(firstUserMsg) ?? 'New Chat'
 
-      // Persist the title server-side
       await apiPut(remoteId, { title })
 
       return createAssistantStream((controller) => {

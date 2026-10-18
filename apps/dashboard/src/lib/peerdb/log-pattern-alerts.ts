@@ -1,5 +1,5 @@
 /**
- * PeerDB log-pattern alerting (#3700, split from #3675 section C).
+ * PeerDB log-pattern alerting.
  *
  * Per-mirror alerts dedup under `peerdb-mirror-health:<flow-slug>`, so one
  * root cause across 40 mirrors used to mean 40 alerts. This module groups the

@@ -231,7 +231,7 @@ export function checkMirrorErrors(
  *
  * 24 hours: PeerDB's initial load is a bulk copy that routinely takes hours for
  * multi-hundred-GB sources (partitioned QRep pulls, then consolidation), so a
- * short limit would re-create the false alarm this replaces (#3516). A snapshot
+ * short limit would re-create the false alarm this replaces. A snapshot
  * still unfinished after a full day is outside the normal range for most
  * fleets and worth a human look (stuck partitions, destination back-pressure),
  * while the insights sweep still flags it the same day. The clock starts at the

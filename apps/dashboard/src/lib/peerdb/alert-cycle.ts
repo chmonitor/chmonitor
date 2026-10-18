@@ -1,5 +1,5 @@
 /**
- * PeerDB alert cycle — the single runtime orchestrator (issue #3413).
+ * PeerDB alert cycle — the single runtime orchestrator.
  *
  * ONE exported entry point, {@link runPeerDBAlertCycle}, enforces the full
  * lifecycle in order and makes it unskippable (M3): every pipeline step below
@@ -30,7 +30,7 @@
  * revalidation, signal-presence checks, and fleet context (how many other
  * mirrors are firing, fleet slot lag). Interactive, model-driven deep dives
  * remain available to operators through the `get_peerdb_mirror_status` agent
- * tool (#3407, gated by `CHM_FEATURE_PEERDB_AGENT`) — that is the
+ * tool (gated by `CHM_FEATURE_PEERDB_AGENT`) — that is the
  * agent-facing contract; this module does not claim an LLM investigation
  * where none exists.
  *
@@ -88,7 +88,7 @@ export const PEERDB_ALERT_RULE_ID = 'peerdb-mirror-health'
 export const PEERDB_ALERT_RULE_TYPE = 'peerdb'
 
 /**
- * Fleet-level rule for the PeerDB API itself (#3675). Fires when
+ * Fleet-level rule for the PeerDB API itself. Fires when
  * `GET /v1/mirrors/list` fails (unreachable, auth failed, upstream error) and
  * recovers on the first tick the list call succeeds again. One stable dedup
  * key for the whole deployment, so an outage is one incident, not one per
@@ -106,7 +106,7 @@ export const PEERDB_API_HEALTH_HOST_NAME = 'peerdb'
 const PEERDB_FLEET_AUDIT_FLOW = '(fleet)'
 
 /**
- * Decision kind of the coverage audit row (#3687). Emitted whenever the
+ * Decision kind of the coverage audit row. Emitted whenever the
  * collection read fewer mirrors than PeerDB listed — an operator reading alert
  * history sees the exact shortfall instead of a tick that looks complete.
  */
@@ -152,7 +152,7 @@ export interface PeerDBCycleResult {
    * the sweep never reached does not.
    */
   mirrorsChecked: number
-  /** Mirrors PeerDB listed this cycle, before any bound (#3687). */
+  /** Mirrors PeerDB listed this cycle, before any bound. */
   mirrorsListed: number
   /**
    * `mirrorsListed > mirrorsChecked`: this cycle did not see the whole fleet,
@@ -173,7 +173,7 @@ export interface PeerDBCycleResult {
   /**
    * True when there was nothing to evaluate: PeerDB unconfigured, or PeerDB
    * answered with zero mirrors. A FAILED list call is never `skipped` — it is
-   * a `peerdb-api-health` finding (#3675).
+   * a `peerdb-api-health` finding.
    */
   skipped: boolean
 }
@@ -190,7 +190,7 @@ export interface PeerDBCycleOptions {
   /** Base thresholds; defaults to `DEFAULT_PEERDB_ALERT_THRESHOLDS`. */
   thresholds?: PeerDBAlertThresholds
   /**
-   * Per-mirror rules (#3699): each mirror's thresholds are `thresholds` with
+   * Per-mirror rules: each mirror's thresholds are `thresholds` with
    * its matching rules applied (`thresholdsForMirror`), and a mirror muted by
    * a rule is evaluated and audited but never dispatched. Empty/omitted =
    * every mirror uses `thresholds`.
@@ -201,13 +201,13 @@ export interface PeerDBCycleOptions {
   /** Injectable clock for tests. */
   now?: number
   /**
-   * Max in-flight per-mirror reads during collection (#3677). Defaults to
+   * Max in-flight per-mirror reads during collection. Defaults to
    * `PEERDB_SWEEP_CONCURRENCY`; the cycle only forwards it so the bound is
    * injectable in tests and reusable by other callers.
    */
   concurrency?: number
   /**
-   * Wall-clock budget for collection (#3677). Defaults to
+   * Wall-clock budget for collection. Defaults to
    * `PEERDB_SWEEP_BUDGET_MS`. Without it, a pool of N over M mirrors at the
    * `PEERDB_FETCH_TIMEOUT_MS` ceiling can still overrun the sweep tick.
    */
@@ -215,20 +215,16 @@ export interface PeerDBCycleOptions {
   /**
    * Optional mirror-read guard for collection (defaults to
    * `PEERDB_SWEEP_MAX_MIRRORS`; `null` = no guard). Only forwarded so the
-   * bound is injectable in tests and configurable in production (#3687).
+   * bound is injectable in tests and configurable in production.
    */
   maxMirrors?: number | null
   /**
    * Where the previous `rowsSynced` sample per mirror lives between ticks
-   * (#3728). Defaults to `peerdb_throughput_samples` on the shared health
+   *. Defaults to `peerdb_throughput_samples` on the shared health
    * DB; `null`, no DB, or a failed read skips the throughput-zero check.
    */
   throughputStore?: PeerDBThroughputStore | null
 }
-
-// ---------------------------------------------------------------------------
-// Deterministic investigation (H2 — module-private, runs inside the cycle)
-// ---------------------------------------------------------------------------
 
 interface DeterministicInvestigationInput {
   signal: PeerDBMirrorSignal
@@ -239,7 +235,7 @@ interface DeterministicInvestigationInput {
   hasLagSample: boolean
   hasErrorSample: boolean
   hasSlotSample: boolean
-  /** Fleet coverage for this cycle (#3687). */
+  /** Fleet coverage for this cycle. */
   coverage: PeerDBSweepCoverage
   now?: number
 }
@@ -287,13 +283,13 @@ function runDeterministicPeerDBInvestigation(
     notes.push('no CDC-lag sample — message states lag only if observed')
   }
   if (!input.hasErrorSample) {
-    // Either the read failed, or every mirror was healthy-skipped (#3677) and
+    // Either the read failed, or every mirror was healthy-skipped and
     // no ERROR-log read was issued at all. Both mean "no error-count sample":
     // the message must not imply a measured zero.
     notes.push('no error-count sample — message must not claim "0 errors"')
   }
 
-  // Fleet coverage (#3687): an isolated mirror firing is a weaker claim when
+  // Fleet coverage: an isolated mirror firing is a weaker claim when
   // the cycle could not read the whole fleet, because the mirrors it did not
   // read are equally unaccounted for.
   checks.push(
@@ -327,10 +323,6 @@ function runDeterministicPeerDBInvestigation(
     notes,
   }
 }
-
-// ---------------------------------------------------------------------------
-// PeerDB API health (#3675 — module-private, runs inside the cycle)
-// ---------------------------------------------------------------------------
 
 /**
  * One fleet-level finding for the PeerDB API, through the same
@@ -421,10 +413,6 @@ async function evaluatePeerDBApiHealth(
   })
   ctx.result.dispatched++
 }
-
-// ---------------------------------------------------------------------------
-// Log patterns (#3700 — module-private, runs inside the cycle)
-// ---------------------------------------------------------------------------
 
 /** Host name the log-pattern findings are reported under. */
 export const PEERDB_LOG_PATTERN_HOST_NAME = 'peerdb:log-pattern'
@@ -574,10 +562,6 @@ async function evaluatePeerDBLogPatterns(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Orchestrator (M3 — the only entry point that can reach delivery)
-// ---------------------------------------------------------------------------
-
 /**
  * Run one full PeerDB alert cycle. Never throws — every stage is guarded so
  * a PeerDB failure degrades to `{ errored, skipped }` counters instead of
@@ -613,7 +597,7 @@ export async function runPeerDBAlertCycle(
     }).catch(() => null)
     // Coverage is recorded from the collection itself, BEFORE the per-mirror
     // loop, so it survives the early no-op returns and reaches both the result
-    // and the audit row (#3687).
+    // and the audit row.
     if (collection) {
       result.mirrorsChecked = collection.metrics.mirrorsChecked
       result.mirrorsListed = collection.metrics.mirrorsListed
@@ -626,7 +610,7 @@ export async function runPeerDBAlertCycle(
     const dryRun = opts.dryRun !== false
     const audit: PeerDBAuditFn = opts.audit ?? auditPeerDBAlert
 
-    // PeerDB API health (#3675): fire on a failed list call, recover on a
+    // PeerDB API health: fire on a failed list call, recover on a
     // successful one. Runs before the empty-fleet no-op so a zero-mirror
     // deployment can still recover an earlier outage.
     if (collection?.configured) {
@@ -657,7 +641,7 @@ export async function runPeerDBAlertCycle(
       return result
     }
 
-    // AUDIT THE COVERAGE, not just the per-mirror decisions (#3687). A partial
+    // AUDIT THE COVERAGE, not just the per-mirror decisions. A partial
     // collection is written as its own fleet-level row, before any mirror is
     // evaluated, so "nothing fired" on a fleet this cycle never fully read is
     // never mistaken for a healthy fleet in alert history. It is a coverage
@@ -681,7 +665,7 @@ export async function runPeerDBAlertCycle(
 
     // No per-mirror cap: every signal the collection produced is evaluated.
     // Truncating here would reintroduce the same invisible-mirror bug one layer
-    // up (#3687) — a failing mirror past the cut would fire no alert and leave
+    // up — a failing mirror past the cut would fire no alert and leave
     // no row.
     const signals = collection.signals
     result.errored = collection.metrics.errored
@@ -790,7 +774,7 @@ export async function runPeerDBAlertCycle(
           }
         }
 
-        // Mute (#3699): still evaluated, reported and audited — never
+        // Mute: still evaluated, reported and audited — never
         // dispatched, recoveries included (a recovery is delivered on the
         // first tick after the mute ends).
         const muting =
@@ -901,7 +885,7 @@ export async function runPeerDBAlertCycle(
       }
     }
 
-    // Log patterns (#3700): one finding per fingerprint, isolated so a failure
+    // Log patterns: one finding per fingerprint, isolated so a failure
     // here never affects the per-mirror results above or the caller's sweep.
     try {
       await evaluatePeerDBLogPatterns(collection, {

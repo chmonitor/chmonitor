@@ -9,7 +9,7 @@
  * Log casing/envelope handling is NOT duplicated here: request bodies go
  * through `mirrorLogsRequestBody` (uppercase `level`, strict-PeerDB-safe) and
  * responses through `extractMirrorLogs`/`countMirrorLogLevels` from the shared
- * `lib/peerdb/mirror-logs` contract (#3406/#3409).
+ * `lib/peerdb/mirror-logs` contract.
  *
  * The {@link PeerDBAlertSnapshotReader} interface is intentionally a
  * structural sibling of the metrics/insights lane's `PeerDBSnapshotReader`
@@ -24,7 +24,7 @@
  * single failed upstream call yields an empty/partial result so the health
  * sweep around the alert cycle degrades gracefully.
  *
- * Coverage is reported, never assumed (#3687): every collection returns
+ * Coverage is reported, never assumed: every collection returns
  * `metrics.mirrorsListed` alongside `metrics.mirrorsChecked` plus an explicit
  * `partial` / `unchecked` pair (see `./sweep-coverage`), so a tick that could
  * not read the whole fleet says so instead of looking like a clean bill of
@@ -79,7 +79,7 @@ export interface PeerDBAlertSnapshotReader {
    * `GET /v1/mirrors/list`. The ONE method allowed to throw: a throw means the
    * list call failed (unreachable / auth failed / upstream error), which the
    * collection reports as `listFailure` — distinct from a fleet of zero
-   * mirrors, which resolves to `[]` (#3675).
+   * mirrors, which resolves to `[]`.
    */
   listMirrors(): Promise<MirrorListItem[]>
   /** Per-mirror `POST /v1/mirrors/status` payload, or null when unreadable. */
@@ -93,7 +93,7 @@ export interface PeerDBAlertSnapshotReader {
     count: number
     source: PeerDBErrorCountSource
     /**
-     * Raw ERROR-log messages from the same read (#3700), for log-pattern
+     * Raw ERROR-log messages from the same read, for log-pattern
      * alerting. Optional: a reader that omits it simply yields no patterns.
      */
     messages?: string[]
@@ -105,7 +105,7 @@ export interface PeerDBAlertSnapshotReader {
 }
 
 /**
- * Whether a mirror is worth the expensive per-mirror ERROR-log read (#3677).
+ * Whether a mirror is worth the expensive per-mirror ERROR-log read.
  *
  * `POST /v1/mirrors/logs` filtered to `level=ERROR` is by far the most
  * expensive read in this lane: PeerDB's only index on `flow_errors` is
@@ -137,7 +137,7 @@ export function isErrorLogWorthy(
 }
 
 /**
- * Clamp a caller/env-supplied mirror guard (#3687). Anything below 1 resolves
+ * Clamp a caller/env-supplied mirror guard. Anything below 1 resolves
  * to `null` — no guard — rather than to a fleet of zero: a guard that reads
  * nothing must never look like a complete tick. `resolvePeerDBSweepMaxMirrors`
  * already applies this to the env value; this repeats it for an injected
@@ -153,7 +153,7 @@ function normalizeMirrorGuard(value: number | null): number | null {
 /**
  * Work order for the status stage: mirrors the mirror-list already reports as
  * NOT running go first, so when the wall-clock budget cuts the run short the
- * mirrors most likely to fire are the ones that were read (#3677). Signal
+ * mirrors most likely to fire are the ones that were read. Signal
  * OUTPUT order is unaffected — it still follows the mirror list.
  */
 function prioritiseSuspectMirrors(mirrors: MirrorListItem[]): MirrorListItem[] {
@@ -237,7 +237,7 @@ async function defaultReader(
 
   return {
     // Deliberately NOT wrapped in `safe`: a failed list call must reach the
-    // collection as a failure, not as an empty fleet (#3675).
+    // collection as a failure, not as an empty fleet.
     listMirrors: async () => {
       const res = await fetchFn<ListMirrorsResponse>('/v1/mirrors/list')
       return Array.isArray(res?.mirrors) ? res.mirrors : []
@@ -256,7 +256,7 @@ async function defaultReader(
         async () => {
           const res = await fetchFn<unknown>(
             '/v1/mirrors/logs',
-            // Shared contract (#3409): uppercase ERROR level — strict PeerDB
+            // Shared contract: uppercase ERROR level — strict PeerDB
             // returns zero rows for lowercase — bounded page.
             fetchOptions(
               JSON.stringify(
@@ -297,7 +297,7 @@ async function defaultReader(
 }
 
 /**
- * Why `GET /v1/mirrors/list` failed this tick (#3675). `kind` reuses the
+ * Why `GET /v1/mirrors/list` failed this tick. `kind` reuses the
  * fetch-failure taxonomy from `peerdb-config`; `label` is its human text.
  */
 export interface PeerDBListFailure {
@@ -314,12 +314,12 @@ export interface PeerDBSignalCollection {
   /**
    * Non-null when the mirror list call itself failed — PeerDB unreachable,
    * auth failed, or an upstream error. Null with zero signals means PeerDB
-   * answered with an empty fleet, which is NOT a failure (#3675).
+   * answered with an empty fleet, which is NOT a failure.
    */
   listFailure: PeerDBListFailure | null
   signals: PeerDBMirrorSignal[]
   /**
-   * Raw ERROR-log messages read this tick, one entry per message (#3700).
+   * Raw ERROR-log messages read this tick, one entry per message.
    * Feeds per-pattern alerting; empty when no log read returned messages.
    */
   errorLogs: Array<{ flowName: string; message: string }>
@@ -339,13 +339,13 @@ export interface PeerDBSignalCollection {
     /**
      * Mirrors this tick actually read a status for. A read that FAILED still
      * counts (see `errored`); a mirror the budget or the guard skipped does not
-     * (#3687). Always `<= mirrorsListed`.
+     *. Always `<= mirrorsListed`.
      */
     mirrorsChecked: number
     /**
      * `mirrorsListed > mirrorsChecked`: at least one mirror produced NO signal
      * this tick. The load-bearing flag — a caller that reports a green result
-     * without it is reporting over a fleet it never looked at (#3687).
+     * without it is reporting over a fleet it never looked at.
      */
     partial: boolean
     /** `mirrorsListed - mirrorsChecked` — mirrors with no signal at all. */
@@ -353,7 +353,7 @@ export interface PeerDBSignalCollection {
     /** Mirrors missing a usable status state or error-log sample. */
     errored: number
     /**
-     * Mirrors the wall-clock budget left uncollected this tick (#3677). Not an
+     * Mirrors the wall-clock budget left uncollected this tick. Not an
      * error — an explicit "we ran out of time" signal, so an operator can tell
      * a deferred tick from a broken PeerDB.
      */
@@ -367,7 +367,7 @@ export interface PeerDBSignalCollection {
   fleetMaxSlotLagMb: number | null
 }
 
-/** Per-call bounds for the fan-out; both default from the env (#3677). */
+/** Per-call bounds for the fan-out; both default from the env. */
 export interface PeerDBSignalCollectionOptions {
   /** Max in-flight per-mirror reads (default `PEERDB_SWEEP_CONCURRENCY`). */
   concurrency?: number
@@ -378,9 +378,9 @@ export interface PeerDBSignalCollectionOptions {
    * `PEERDB_SWEEP_MAX_MIRRORS`); `null` explicitly means no guard.
    *
    * This replaced the hardcoded 50-mirror cap, which was not a performance
-   * control (#3677 removed the problem it stood in for) and silently dropped
+   * control and silently dropped
    * every mirror past 50 — a failure at position 60 produced no alert and no
-   * signal of any kind (#3687). Any truncation it does cause is reported
+   * signal of any kind. Any truncation it does cause is reported
    * through `metrics.partial` / `metrics.unchecked`.
    */
   maxMirrors?: number | null
@@ -391,7 +391,7 @@ export interface PeerDBSignalCollectionOptions {
  * yields zero signals (the cycle then no-ops, including recoveries it cannot
  * observe; the persistent alert state is left untouched).
  *
- * Fan-out shape (#3677), in three pool-bounded stages:
+ * Fan-out shape, in three pool-bounded stages:
  *
  *   1. `POST /v1/mirrors/status` per mirror (cheap; ~1.8s for 72 in parallel).
  *   2. `POST /v1/mirrors/logs` — ONLY for mirrors stage 1 flagged suspicious
@@ -407,7 +407,7 @@ export interface PeerDBSignalCollectionOptions {
  * to fire.
  *
  * Those two bounds decide how MUCH is read; nothing decides WHICH mirrors may
- * be skipped. The old 50-mirror cap is gone (#3687) — every listed mirror is
+ * be skipped. The old 50-mirror cap is gone — every listed mirror is
  * in scope unless the operator sets `PEERDB_SWEEP_MAX_MIRRORS` — and whenever
  * fewer mirrors were read than listed, `metrics.partial` says so with the exact
  * shortfall. There is no configuration of this lane that drops a mirror
@@ -493,7 +493,7 @@ export async function collectPeerDBSignals(
     const statusDeferred = new Set<string>()
     // Counted from the outcomes, not from `statusDeferred.size`: two list
     // entries can share a name, and the coverage answer must not drift when
-    // they do (#3687).
+    // they do.
     let statusRead = 0
     statusOutcomes.forEach((outcome, i) => {
       const name = statusOrder[i]!.name
@@ -556,9 +556,9 @@ export async function collectPeerDBSignals(
     // Per-mirror accounting. `errored` counts only mirrors this tick actually
     // read AND failed to read: a healthy-skip is not a failure, and neither is
     // a mirror the budget never reached — counting the latter here is what made
-    // a time-limited tick read as a fleet of broken mirrors (#3677), and it
+    // a time-limited tick read as a fleet of broken mirrors, and it
     // would contradict `mirrorsChecked` now that skipped mirrors are excluded
-    // from that count (#3687).
+    // from that count.
     let errored = 0
     let errorLogsSkipped = 0
     for (const m of scoped) {
@@ -643,7 +643,7 @@ export async function collectPeerDBSignals(
     const hasErrorSample = signals.some((s) => s.errorCountSource === 'log-api')
     const hasSlotSample = signals.some((s) => s.slotLagMb !== null)
 
-    // One coverage object, four reported facts (#3687). `checked` is what this
+    // One coverage object, four reported facts. `checked` is what this
     // tick actually read, so both the old 50-mirror truncation and a
     // budget-truncated tick surface here as `partial`.
     const coverage = summarizeSweepCoverage(mirrors.length, statusRead)

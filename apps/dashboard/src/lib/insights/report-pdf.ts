@@ -1,5 +1,5 @@
 /**
- * PDF rendering for reports — Cloudflare Browser Rendering (#2794, phase 2).
+ * PDF rendering for reports — Cloudflare Browser Rendering.
  *
  * Renders the existing self-contained report HTML (`renderWeeklyReportHtml` /
  * fleet) to a PDF via a Cloudflare **Browser Rendering** binding. Workers can
@@ -19,12 +19,10 @@
 
 import { warn } from '@chm/logger'
 
-/** Minimal shape of the Browser Rendering binding (a Fetcher-like object). */
 export interface BrowserBinding {
   fetch: (...args: unknown[]) => Promise<unknown>
 }
 
-/** True when a usable Browser Rendering binding is present. */
 export function hasBrowserBinding(
   bindings: Record<string, unknown> | undefined
 ): boolean {
@@ -84,7 +82,6 @@ export async function renderReportPdf(
   }
 }
 
-/** Content-Disposition-safe filename for a report PDF. */
 export function reportPdfFilename(
   hostLabel: string,
   period: string,

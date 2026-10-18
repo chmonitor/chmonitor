@@ -5,7 +5,7 @@ import type { MirrorLogLevel } from './mirror-logs'
  *
  * PeerDB logs are dominated by repeats that differ only in variable parts
  * (`replicated 3 partitions ... for table public.orders`). Replacing those
- * parts with stable placeholders lets the UI (and the alert lane, #3675)
+ * parts with stable placeholders lets the UI (and the alert lane)
  * group identical patterns the same way. Pure and order-sensitive: specific
  * shapes (timestamps, UUIDs, host:port, LSNs) are stripped before the generic
  * number pass so each collapses to one placeholder.

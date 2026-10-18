@@ -1,5 +1,5 @@
 /**
- * PeerDB alert rules store (#3699).
+ * PeerDB alert rules store.
  *
  * Same storage contract as the other alert-settings stores
  * (`maintenance-windows.ts`, `quiet-hours.ts`): the shared health DB

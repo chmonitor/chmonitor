@@ -1,8 +1,3 @@
-/**
- * Maps `WebhookSubscriptionStoreError` (+ auth errors) to HTTP responses.
- * Mirrors `lib/connection-store/api-errors.ts`.
- */
-
 import { WebhookSubscriptionStoreError } from './subscription-store'
 import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-handler'
 import { ApiErrorType } from '@/lib/api/types'

@@ -250,7 +250,6 @@ export async function deliver(
       }
     }
 
-    // Retries exhausted (network errors and/or 5xx/429 on every attempt).
     const outcome: DeliveryOutcome = {
       status: 'dead',
       attempts: MAX_ATTEMPTS,

@@ -50,29 +50,15 @@ export function isInstanceScopedEventType(value: EmittableEventType): boolean {
   return (INSTANCE_SCOPED_EVENT_TYPES as readonly string[]).includes(value)
 }
 
-/** Payload carried by both `alert.fired` and `alert.resolved` (#2664). */
 export interface AlertEventData {
-  /** Alert rule id (base rule or compound rule id), e.g. `'disk-usage'`. */
   ruleId: string
-  /** Human-readable rule title, e.g. 'Disk usage'. */
   title: string
-  /**
-   * Severity of the condition. For `alert.resolved`, this is the severity the
-   * condition resolved FROM (its last-firing severity), not 'ok' — a
-   * consumer wants to know how bad it was, not that it's fine now (that's
-   * what `resolved: true` already says).
-   */
   severity: 'warning' | 'critical'
   hostId: number
   hostLabel: string
-  /** Observed metric value, when the rule produced one (compound rules may not). */
   value: number | null
-  /** Human-readable formatted value/label, mirrors the sweep's own alert text. */
   label: string
-  /** `true` for `alert.resolved`, `false` for `alert.fired` — redundant with
-   * `type` but convenient for a consumer filtering on `data` alone. */
   resolved: boolean
-  /** ISO-8601 timestamp of the fire/resolve decision (matches `occurred_at`). */
   occurredAt: string
 }
 
@@ -87,12 +73,9 @@ export const PING_EVENT_TYPE = 'webhook.ping' as const
 
 export type WebhookEventType = EmittableEventType | typeof PING_EVENT_TYPE
 
-/** Envelope delivered (as JSON) to every subscriber. */
 export interface EventPayload<T = unknown> {
-  /** Stable id for this occurrence — also sent as `X-Chmonitor-Delivery`. */
   id: string
   type: WebhookEventType
-  /** ISO-8601 timestamp of when the event occurred. */
   occurred_at: string
   host_id?: number
   data: T
@@ -104,7 +87,6 @@ export function isEmittableEventType(
   return (EMITTABLE_EVENT_TYPES as readonly string[]).includes(value)
 }
 
-/** Validates a caller-supplied `event_types` array for subscription create/update. */
 export function parseEventTypes(value: unknown): EmittableEventType[] | null {
   if (!Array.isArray(value) || value.length === 0) return null
   const seen = new Set<string>()

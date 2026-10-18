@@ -40,7 +40,6 @@ export class MemoryStore implements ConversationStore {
 
     const limited = limit ? sorted.slice(0, limit) : sorted
 
-    // Return metadata only (no messages)
     return limited.map(({ messages, ...meta }) => meta)
   }
 
@@ -123,24 +122,10 @@ export class MemoryStore implements ConversationStore {
     storage.set(userId, [])
   }
 
-  /**
-   * Clear all conversations for all users.
-   *
-   * Useful for testing to reset state between tests.
-   *
-   * @internal This is not part of the ConversationStore interface
-   */
   static clearAll(): void {
     storage.clear()
   }
 
-  /**
-   * Get total number of conversations across all users.
-   *
-   * Useful for testing and debugging.
-   *
-   * @internal This is not part of the ConversationStore interface
-   */
   static getGlobalCount(): number {
     return Array.from(storage.values()).reduce(
       (sum, conversations) => sum + conversations.length,
@@ -148,24 +133,10 @@ export class MemoryStore implements ConversationStore {
     )
   }
 
-  /**
-   * Get all user IDs with conversations.
-   *
-   * Useful for testing and debugging.
-   *
-   * @internal This is not part of the ConversationStore interface
-   */
   static getUserIds(): string[] {
     return Array.from(storage.keys())
   }
 
-  /**
-   * Get all stored conversations for all users.
-   *
-   * Useful for testing and debugging.
-   *
-   * @internal This is not part of the ConversationStore interface
-   */
   static getAllConversations(): Map<string, StoredConversation[]> {
     return new Map(storage)
   }

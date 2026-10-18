@@ -16,11 +16,6 @@
 import { getModelRegistry } from '../ai/agent-model-registry'
 import { isProviderConfigured } from '../ai/providers'
 
-/**
- * Validate a requested `provider:model` id. Returns the id when it is a known,
- * configured combination, otherwise `undefined` (caller falls back to the
- * server default model).
- */
 export function resolveInsightModel(
   requested: string | null | undefined
 ): string | undefined {
