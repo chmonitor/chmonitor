@@ -119,8 +119,10 @@ FROM system.disks`,
       'Fits a linear trend to each disk’s free space over the last 6 hours and reports how much of the current free space that trend uses up in 24 hours. 100% means the disk fills within a day, 400% within 6 hours. Catches a fast-filling disk long before disk-usage crosses its percent threshold.',
     // Higher is worse, so the shared thresholds and classifier apply as-is.
     // A disk that is flat or growing reads 0, so a firing alert resolves.
-    // Fewer than 30 samples in the window (asynchronous_metric_log just
-    // enabled) reads NULL: unknown, no alert. Capped at 10000% (full in
+    // A series spanning less than 3 hours (asynchronous_metric_log just
+    // enabled, or a disk that just appeared) reads NULL: unknown, no alert.
+    // A sample count is not enough: 2 minutes of 1s samples is 120 points of
+    // noise that extrapolates to a disk filling within the hour. Capped at 10000% (full in
     // ~15 minutes) so one empty disk cannot produce Infinity.
     sql: `SELECT round(maxOrNull(fill_pct), 1) AS fill_24h_percent
 FROM (
@@ -133,7 +135,7 @@ FROM (
     AND event_date >= toDate(now() - INTERVAL 6 HOUR)
     AND event_time > now() - INTERVAL 6 HOUR
   GROUP BY metric
-  HAVING count() >= 30
+  HAVING max(event_time) - min(event_time) >= 3 * 3600
 )`,
     valueKey: 'fill_24h_percent',
     defaults: { warning: 100, critical: 400 },

@@ -176,12 +176,13 @@ describe('parseBatchedKpiRows', () => {
 })
 
 describe('isBatchableRule', () => {
-  test('excludes the two system.parts scans', () => {
+  test('excludes the system.parts scans and the disk fill forecast', () => {
     // Deliberate: folding the heaviest query into the statement the other ten
     // depend on means a slow parts scan holds up ten cheap checks.
     expect(BATCH_EXCLUDED_RULE_IDS).toEqual([
       'parts-pressure',
       'ttl-partition-health',
+      'disk-time-to-full',
     ])
     for (const id of BATCH_EXCLUDED_RULE_IDS) {
       expect(isBatchableRule(rule({ id, sql: 'SELECT 1 AS v' }))).toBe(false)

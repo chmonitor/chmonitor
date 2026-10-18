@@ -9,7 +9,7 @@
  *
  * The claim under test is the issue's: **total background queries per host per
  * sweep down at least 50%**. Both numbers are printed by the `> reports the
- * measured counts` test so a reviewer reading CI output sees 23 → 4 rather than
+ * measured counts` test so a reviewer reading CI output sees 23 → 5 rather than
  * a bare pass.
  */
 
@@ -87,6 +87,7 @@ mock.module('@/lib/insights/generate-peerdb-insights', () => ({
 }))
 
 const { BUILTIN_RULES } = await import('@/lib/alerting/builtin-rules')
+const { BATCH_EXCLUDED_RULE_IDS } = await import('@/lib/health/batch-kpi')
 const { resetHostCapabilities, setCapabilityCacheClock } = await import(
   '../capability-cache'
 )
@@ -158,9 +159,9 @@ describe('background queries per host per sweep', () => {
     // The issue's acceptance criterion, end to end through `runHostSweep`.
     const cold = await tick()
 
-    // Cold: capability probe (1) + batched KPIs (1) + the two `system.parts`
-    // scans that stay unbatched (2).
-    expect(cold.total).toBe(4)
+    // Cold: capability probe (1) + batched KPIs (1) + the three heavy scans
+    // that stay unbatched (2 `system.parts`, 1 `asynchronous_metric_log`).
+    expect(cold.total).toBe(5)
     expect(cold.total).toBeLessThanOrEqual(BEFORE_PER_TICK * 0.5)
   })
 
@@ -168,12 +169,12 @@ describe('background queries per host per sweep', () => {
     await tick() // prime the capability cache
     const warm = await tick()
 
-    // No probe: batch (1) + the two heavy scans (2).
-    expect(warm.total).toBe(3)
+    // No probe: batch (1) + the three heavy scans (3).
+    expect(warm.total).toBe(4)
     expect(warm.total).toBeLessThan(BEFORE_PER_TICK * 0.3)
   })
 
-  test('reports the measured counts so CI output shows 23 → 4', async () => {
+  test('reports the measured counts so CI output shows 23 → 5', async () => {
     const cold = await tick()
     const reduction = Math.round((1 - cold.total / BEFORE_PER_TICK) * 100)
     console.log(
@@ -183,7 +184,7 @@ describe('background queries per host per sweep', () => {
       before: BEFORE_PER_TICK,
       after: cold.total,
       reductionPct: reduction,
-    }).toEqual({ before: 23, after: 4, reductionPct: 83 })
+    }).toEqual({ before: 23, after: 5, reductionPct: 78 })
   })
 
   test('the count does not grow once the cache is warm', async () => {
@@ -198,7 +199,7 @@ describe('background queries per host per sweep', () => {
     }
     // 20 ticks × 1 minute = 20 minutes, so the 10-minute TTL lapses twice.
     // The point is that the count is flat and small, not that it is constant.
-    expect(Math.max(...counts)).toBeLessThanOrEqual(4)
+    expect(Math.max(...counts)).toBeLessThanOrEqual(5)
     expect(new Set(counts).size).toBeLessThanOrEqual(3)
   })
 
@@ -214,9 +215,9 @@ describe('background queries per host per sweep', () => {
     await tick()
     const batch = queries.find((q) => q.includes('AS rule_id'))
     expect(batch).toBeDefined()
-    // 22 rules, 2 excluded → 20 branches, 19 joins.
-    expect(batch!.match(/AS rule_id/g)).toHaveLength(20)
-    expect(batch!.match(/UNION ALL/g)).toHaveLength(19)
+    // 22 rules, 3 excluded → 19 branches, 18 joins.
+    expect(batch!.match(/AS rule_id/g)).toHaveLength(19)
+    expect(batch!.match(/UNION ALL/g)).toHaveLength(18)
     // The `system.parts` scans are separate statements.
     const partsScans = queries.filter(
       (q) => !q.includes('AS rule_id') && q.includes('system.parts')
@@ -229,11 +230,7 @@ describe('background queries per host per sweep', () => {
     // standalone statement. A regression here would silently undo the saving.
     await tick()
     for (const r of BUILTIN_RULES) {
-      if (
-        !r.sql ||
-        r.id === 'parts-pressure' ||
-        r.id === 'ttl-partition-health'
-      ) {
+      if (!r.sql || BATCH_EXCLUDED_RULE_IDS.includes(r.id)) {
         continue
       }
       const standalone = queries.filter(
@@ -267,7 +264,7 @@ describe('the batch fallback', () => {
     batchFails = false
     fakeNow += 11 * 60 * 1000 // past the capability TTL
     const recovered = await tick()
-    expect(recovered.total).toBe(4)
+    expect(recovered.total).toBe(5)
   })
 
   test('a missing optional table skips its rule instead of erroring', async () => {
@@ -290,7 +287,7 @@ describe('the batch fallback', () => {
     await tick()
     const batch = queries.find((q) => q.includes('AS rule_id'))!
     expect(batch).not.toContain('system.backup_log')
-    expect(batch.match(/AS rule_id/g)).toHaveLength(19)
+    expect(batch.match(/AS rule_id/g)).toHaveLength(18)
   })
 })
 

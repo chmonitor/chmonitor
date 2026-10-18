@@ -410,8 +410,8 @@ keeps answering `dictGet` with stale data. A dictionary that was never loaded
 last 6 hours of `system.asynchronous_metric_log` and reports how much of the
 free space that trend uses in 24 hours: `100` means full within a day
 (warning), `400` within 6 hours (critical). A disk that is not shrinking reads
-`0`. It needs `asynchronous_metric_log` enabled and at least 30 samples in the
-window; until then it reports nothing. `disk-usage` still alerts on percent
+`0`. It needs `asynchronous_metric_log` enabled and at least 3 hours of
+samples per disk; until then it reports nothing. `disk-usage` still alerts on percent
 used.
 
 <Callout type="info" title="Alert grouping & digest batching">

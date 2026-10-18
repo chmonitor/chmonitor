@@ -36,9 +36,10 @@
  *
  * ## Which rules are excluded, and why
  *
- * {@link BATCH_EXCLUDED_RULE_IDS} holds the two `system.parts` scans. Folding
- * them in would still save one round trip each but would put the heaviest
- * queries in the statement every other check depends on: a slow parts scan
+ * {@link BATCH_EXCLUDED_RULE_IDS} holds the two `system.parts` scans and the
+ * 6-hour `system.asynchronous_metric_log` regression behind disk-time-to-full.
+ * Folding them in would still save one round trip each but would put the
+ * heaviest queries in the statement every other check depends on: a slow parts scan
  * would then hold up ten cheap checks, and one branch failing would take all
  * ten down with it. They stay on their own statement. Anything whose SQL
  * cannot be nested (trailing `SETTINGS`, a semicolon, a non-`SELECT` leading
@@ -51,13 +52,13 @@ import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 import { parseAffectedNames } from '@/lib/alerting/rule-registry'
 
 /**
- * Rule ids that never ride the batch. Both scan `system.parts` — see the
- * module header for why the heaviest query is kept out of the statement the
- * other ten depend on.
+ * Rule ids that never ride the batch: the heavy scans. See the module header
+ * for why they are kept out of the statement the cheap checks depend on.
  */
 export const BATCH_EXCLUDED_RULE_IDS: readonly string[] = [
   'parts-pressure',
   'ttl-partition-health',
+  'disk-time-to-full',
 ]
 
 /** A rule that will be evaluated inside the batched statement. */
