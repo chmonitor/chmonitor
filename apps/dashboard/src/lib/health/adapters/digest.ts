@@ -33,9 +33,24 @@ function findingHeading(severity: AlertSeverity): string {
   return severity === 'recovery' ? 'RECOVERY' : severity.toUpperCase()
 }
 
-/** One finding's one-line description, mirroring the single-alert `text`. */
+/** `"still open, 3 h"` for a reminder; minutes under an hour. */
+export function stillOpenText(ms: number): string {
+  const minutes = Math.max(1, Math.round(ms / 60_000))
+  return minutes < 60
+    ? `still open, ${minutes} min`
+    : `still open, ${Math.round(minutes / 60)} h`
+}
+
+/**
+ * One finding's one-line description, mirroring the single-alert `text`. A
+ * reminder (`stillOpenMs` set) replaces the label with how long it is open.
+ */
 export function digestFindingLine(payload: AlertPayload): string {
-  return `[${findingHeading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
+  const detail =
+    payload.stillOpenMs === undefined
+      ? payload.label
+      : stillOpenText(payload.stillOpenMs)
+  return `[${findingHeading(payload.severity)}] ${payload.title} — ${detail} (host ${payload.hostLabel})`
 }
 
 export interface DigestSummary {

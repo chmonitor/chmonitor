@@ -105,6 +105,7 @@ webhookTargets:
   - id: ops-slack
     name: Ops
     format: slack
+    repeat: false
     urlEnv: OPS_SLACK_URL
 `
     )
@@ -152,6 +153,7 @@ webhookTargets:
     })
     expect(Object.keys(r.data.channels)).toEqual(['telegram'])
     expect(r.data.webhookTargets['ops-slack']?.urlEnv).toBe('OPS_SLACK_URL')
+    expect(r.data.webhookTargets['ops-slack']?.repeat).toBe(false)
     expect(r.data.quietHours.nights?.severityCap).toBe('critical')
     expect(r.data.maintenanceWindows.upgrade?.hostId).toBeNull()
     expect(r.data.digest).toEqual({ enabled: true, windowMinutes: 15 })

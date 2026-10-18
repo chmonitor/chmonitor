@@ -49,7 +49,10 @@ import {
 } from './../../alert-routing'
 import { alertStateStore, evaluateAlert } from './../../alert-state-store'
 import { dispatchDedupedAlertEvent } from './../../alert-webhook-events'
-import { groupableCustomFormat } from './../../custom-webhook-targets'
+import {
+  groupableCustomFormat,
+  skipsReminder,
+} from './../../custom-webhook-targets'
 import {
   activeQuietWindow,
   markQuietSuppression,
@@ -157,11 +160,6 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
   // and flush once per tick; see `./digest.ts`.
   const digest = await createDigestPipeline(ctx, counters)
   const customTargets = await loadSweepCustomTargets()
-  // Grouped custom targets count as groupable (per finding, in settleFinding),
-  // so only the per-finding ones count toward the immediate gate.
-  const inlineCustomTargetCount = customTargets.filter(
-    (t) => groupableCustomFormat(t) === null
-  ).length
   const identity = getServerAlertIdentity()
   // In-flight bus deliveries: not awaited inline (a slow subscriber must not
   // delay the legacy fan-out) but settled by `flushBusEvents` at the end of
@@ -565,6 +563,10 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       label,
       timestamp: webhookTimestamp,
       ...findingIdentity,
+      ...(decision.kind === 'reminder' &&
+        decision.incidentDurationMs !== undefined && {
+          stillOpenMs: decision.incidentDurationMs,
+        }),
     }
 
     // Digest partition (#2663): the digest-capable URLs (Slack / generic
@@ -597,12 +599,20 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       severity: deliverSeverity,
     })
     if (customDelivered) anyDelivered = true
+    // Grouped custom targets count as groupable (in settleFinding), and a
+    // `repeat: false` target skipping a reminder has nothing to deliver, so
+    // neither holds back the commit.
+    const inlineCustomTargetCount = customTargets.filter(
+      (t) =>
+        groupableCustomFormat(t) === null && !skipsReminder(t, decision.kind)
+    ).length
     // Hookshot / Matrix targets without templates group per sweep (#3869):
     // the digest flush sends them, one message per target.
     const groupableCustomTargets = eligibleGroupableCustomTargets({
       targets: customTargets,
       globalMinSeverity: settings.minSeverity,
       severity: deliverSeverity,
+      decisionKind: decision.kind,
     })
 
     const pagerDutyDelivered = await dispatchPagerDutyChannel(

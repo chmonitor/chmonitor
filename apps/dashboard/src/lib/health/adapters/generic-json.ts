@@ -8,7 +8,7 @@
 
 import type { AlertPayload, NotificationAdapter } from './types'
 
-import { summarizeDigest } from './digest'
+import { digestFindingLine, summarizeDigest } from './digest'
 import { instancePrefix } from './identity'
 
 /** Normalized JSON body for generic webhook receivers. */
@@ -97,10 +97,7 @@ export function buildGenericJsonDigestBody(
   const digest = summarizeDigest(payloads)
   const textLines = [
     `${digest.summaryLine} (${digest.total} alerts)`,
-    ...payloads.map(
-      (p) =>
-        `[${p.severity === 'recovery' ? 'RECOVERY' : p.severity.toUpperCase()}] ${p.title} — ${p.label} (host ${p.hostLabel})`
-    ),
+    ...payloads.map(digestFindingLine),
   ]
   return {
     digest: true,

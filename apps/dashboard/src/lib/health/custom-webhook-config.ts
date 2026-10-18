@@ -130,6 +130,7 @@ async function declarativeWebhookTargets(): Promise<
         titleTemplate: t.titleTemplate,
         bodyTemplate: t.bodyTemplate,
         headers: t.headers,
+        repeat: t.repeat,
       })
       if (target) entries.push(target)
       else {

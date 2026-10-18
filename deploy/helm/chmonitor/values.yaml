@@ -384,6 +384,8 @@ cron:
 #     - name: element-notices
 #       format: matrix
 #       minSeverity: critical
+#       # repeat: false = first alert and recovery only, no reminders.
+#       repeat: false
 #       urlFrom:
 #         name: chmonitor-alert-secrets   # must contain key: matrix-webhook-url
 #         key: matrix-webhook-url

@@ -25,6 +25,7 @@ alertWebhooks:
         key: matrix-headers
     - name: element-hookshot
       format: hookshot
+      repeat: false
       urlFrom:
         name: alert-secrets
         key: hookshot-url

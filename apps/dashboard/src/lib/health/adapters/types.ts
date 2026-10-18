@@ -77,6 +77,11 @@ export interface AlertPayload {
   dashboardUrl?: string
   /** Non-secret operator key/values (`HEALTH_ALERT_METADATA`). */
   metadata?: Readonly<Record<string, string>>
+  /**
+   * Set on a reminder for a still-firing condition: how long it has been
+   * open, in ms. Digests render such a finding as one short line.
+   */
+  stillOpenMs?: number
 }
 
 /**

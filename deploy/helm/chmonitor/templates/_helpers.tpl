@@ -141,7 +141,7 @@ Env contract rendered by this chart when `alertWebhooks.enabled` is true:
   - `HEALTH_ALERT_WEBHOOK_TARGETS` (ConfigMap, JSON array): one object per
     target with ONLY non-secret fields —
     {name, enabled, format, minSeverity, urlEnv, [titleTemplate],
-     [textTemplate], [headers], [headersEnv]}.
+     [textTemplate], [headers], [headersEnv], [repeat]}.
   - `HEALTH_ALERT_WEBHOOK_TARGET_<i>_URL` (Secret, per target): the webhook
     URL. Chart-managed key when `url` is inlined, external Secret when
     `urlFrom` is set. Referenced from the JSON via `urlEnv`.
@@ -264,6 +264,7 @@ Helm, so allowlisted alert variables survive rendering untouched.
 {{- if $t.titleTemplate }}{{ $_ := set $entry "titleTemplate" ($t.titleTemplate | toString) }}{{- end }}
 {{- if $t.textTemplate }}{{ $_ := set $entry "textTemplate" ($t.textTemplate | toString) }}{{- end }}
 {{- if $t.headers }}{{ $_ := set $entry "headers" $t.headers }}{{- end }}
+{{- if hasKey $t "repeat" }}{{ $_ := set $entry "repeat" $t.repeat }}{{- end }}
 {{- if or (and $t.headersSecret (ne ($t.headersSecret | toString) "")) (and $t.headersSecretFrom (and $t.headersSecretFrom.name $t.headersSecretFrom.key)) }}{{ $_ := set $entry "headersEnv" (printf "HEALTH_ALERT_WEBHOOK_TARGET_%d_HEADERS" $i) }}{{- end }}
 {{- $out = append $out $entry }}
 {{- end }}

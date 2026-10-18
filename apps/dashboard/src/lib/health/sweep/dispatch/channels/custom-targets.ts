@@ -17,6 +17,7 @@
 
 import type { AlertPayload } from '../../../adapters'
 import type { AlertSeverityFloor } from '../../../alert-channel-settings'
+import type { AlertDecisionKind } from '../../../alert-state-store'
 import type { EffectiveCustomWebhookTarget } from '../../../custom-webhook-config'
 import type { FindingContext } from './../finding-context'
 import type { WebhookResult } from './../webhook-post'
@@ -30,6 +31,7 @@ import {
   redactWebhookUrl,
   sanitizeCustomHeaders,
   sanitizeSecretHeaders,
+  skipsReminder,
 } from '../../../custom-webhook-targets'
 import { SWEEP_ROUTING_OWNER_ID } from '../../resolve-config'
 import { recordChannelEvent } from './../alert-event-record'
@@ -104,12 +106,14 @@ export function eligibleGroupableCustomTargets(params: {
   targets: readonly EffectiveCustomWebhookTarget[]
   globalMinSeverity: AlertSeverityFloor
   severity: AlertSeverityFloor | null
+  decisionKind: AlertDecisionKind
 }): EffectiveCustomWebhookTarget[] {
-  const { targets, globalMinSeverity, severity } = params
+  const { targets, globalMinSeverity, severity, decisionKind } = params
   if (severity === null) return []
   return targets.filter(
     (t) =>
       groupableCustomFormat(t) !== null &&
+      !skipsReminder(t, decisionKind) &&
       customTargetPasses(t, severity, globalMinSeverity)
   )
 }
@@ -117,7 +121,8 @@ export function eligibleGroupableCustomTargets(params: {
 /**
  * Dispatch one finding to every eligible NON-groupable custom target (a
  * template or a format other than hookshot / matrix). Groupable targets are
- * skipped; the digest pipeline sends them. Returns whether ANY delivered (the
+ * skipped; the digest pipeline sends them. A `repeat: false` target skips
+ * reminders. Returns whether ANY delivered (the
  * caller ORs this into the finding's `anyDelivered`). Each target is gated by
  * the shared {@link resolveChannelDelivery} resolver (disabled never fires;
  * else target floor › global floor), exactly like the built-in channels.
@@ -145,6 +150,7 @@ export async function dispatchCustomWebhookTargets(
 
   for (const target of targets) {
     if (groupableCustomFormat(target) !== null) continue
+    if (skipsReminder(target, finding.decision.kind)) continue
     if (!customTargetPasses(target, severity, globalMinSeverity)) continue
 
     const { body, adapterId } = buildCustomTargetBody(target, payload, text)
