@@ -146,3 +146,55 @@ describe('createDispatcher fan-out', () => {
     expect(calls).toEqual([HC_URL])
   })
 })
+/**
+ * Hookshot targets group per sweep (#3869): three findings in one tick must
+ * reach the room as ONE post. Drives the real dispatcher with a Helm-style env
+ * target, so dropping the wiring from `dispatchFinding` makes this fail.
+ */
+describe('createDispatcher grouped hookshot target', () => {
+  const HOOK_URL = 'https://93.184.216.34/hookshot/room'
+  const saved = {
+    targets: process.env.HEALTH_ALERT_WEBHOOK_TARGETS,
+    url: process.env.CHM_TEST_HOOKSHOT_URL,
+  }
+  const restore = (key: string, value: string | undefined) => {
+    if (value === undefined) delete process.env[key]
+    else process.env[key] = value
+  }
+
+  beforeEach(() => {
+    process.env.HEALTH_ALERT_WEBHOOK_TARGETS = JSON.stringify([
+      { name: 'room', format: 'hookshot', urlEnv: 'CHM_TEST_HOOKSHOT_URL' },
+    ])
+    process.env.CHM_TEST_HOOKSHOT_URL = HOOK_URL
+  })
+
+  afterEach(() => {
+    restore('HEALTH_ALERT_WEBHOOK_TARGETS', saved.targets)
+    restore('CHM_TEST_HOOKSHOT_URL', saved.url)
+  })
+
+  test('three findings in one sweep send one post to the target', async () => {
+    const ctx = makeCtx({
+      channels: { ...makeCtx().channels, healthchecksUrl: '', ntfy: null },
+    })
+    const dispatcher = await createDispatcher(ctx)
+    for (let i = 0; i < 3; i++) {
+      await dispatcher.dispatchFinding({
+        hostId: nextHostId++,
+        hostName: `ch-${i}`,
+        ruleId: 'fanout-test',
+        ruleType: 'threshold',
+        ruleTitle: 'Fan-out test',
+        severity: 'critical',
+        value: 99,
+        label: 'too high',
+      })
+    }
+    expect(calls).toEqual([])
+    await dispatcher.flushDigests()
+    await dispatcher.flushBusEvents()
+    expect(calls).toEqual([HOOK_URL])
+    expect(dispatcher.counters.alertsDispatched).toBe(3)
+  })
+})

@@ -19,11 +19,13 @@ import type { AlertPayload } from '../../../adapters'
 import type { AlertSeverityFloor } from '../../../alert-channel-settings'
 import type { EffectiveCustomWebhookTarget } from '../../../custom-webhook-config'
 import type { FindingContext } from './../finding-context'
+import type { WebhookResult } from './../webhook-post'
 
 import { resolveChannelDelivery } from '../../../alert-channel-settings'
 import { listEffectiveCustomWebhookConfig } from '../../../custom-webhook-config'
 import {
   buildCustomTargetBody,
+  groupableCustomFormat,
   isHttpsCustomWebhookUrl,
   redactWebhookUrl,
   sanitizeCustomHeaders,
@@ -47,12 +49,78 @@ export async function loadSweepCustomTargets(): Promise<
   return config.targets
 }
 
+/** Whether a target's own floor (or the global one) admits this finding. */
+function customTargetPasses(
+  target: EffectiveCustomWebhookTarget,
+  severity: AlertSeverityFloor,
+  globalMinSeverity: AlertSeverityFloor
+): boolean {
+  return resolveChannelDelivery({
+    severity,
+    globalMinSeverity,
+    channel: {
+      enabled: target.enabled,
+      ...(target.minSeverity ? { minSeverity: target.minSeverity } : {}),
+    },
+  })
+}
+
 /**
- * Dispatch one finding to every eligible custom target. Returns whether ANY
- * of them delivered (the caller ORs this into the finding's `anyDelivered`).
- * Each target is gated by the shared {@link resolveChannelDelivery} resolver
- * (disabled never fires; else target floor › global floor), exactly like the
- * built-in channels.
+ * POST a built body to one custom target: send-time SSRF re-validation
+ * (save-time validation lives in the API), sanitized + secret headers, and
+ * `redirect: 'error'`. A blocked destination is never fetched and returns
+ * `blocked: true`. Shared by the per-finding path below and the grouped flush
+ * in `digest.ts`.
+ */
+export async function sendCustomTarget(
+  target: EffectiveCustomWebhookTarget,
+  body: unknown
+): Promise<WebhookResult & { blocked?: true }> {
+  const ssrfError = isHttpsCustomWebhookUrl(target.url)
+    ? await validateHostUrl(target.url)
+    : 'Custom webhook target must use HTTPS'
+  if (ssrfError) {
+    debug(
+      `[health-sweep] skipping custom webhook target ${redactWebhookUrl(target.url)}: blocked destination`
+    )
+    return { ok: false, error: 'Destination URL blocked', blocked: true }
+  }
+  const safeHeaders = {
+    ...sanitizeCustomHeaders(target.headers).headers,
+    ...sanitizeSecretHeaders(target.secretHeaders),
+  }
+  return postWebhook(target.url, body, {
+    headers: safeHeaders,
+    redirect: 'error',
+  })
+}
+
+/**
+ * The groupable (hookshot / matrix, no templates) targets that admit this
+ * finding (#3869). The sweep hands these to the digest pipeline, so a sweep
+ * sends one grouped message per target instead of one per finding.
+ */
+export function eligibleGroupableCustomTargets(params: {
+  targets: readonly EffectiveCustomWebhookTarget[]
+  globalMinSeverity: AlertSeverityFloor
+  severity: AlertSeverityFloor | null
+}): EffectiveCustomWebhookTarget[] {
+  const { targets, globalMinSeverity, severity } = params
+  if (severity === null) return []
+  return targets.filter(
+    (t) =>
+      groupableCustomFormat(t) !== null &&
+      customTargetPasses(t, severity, globalMinSeverity)
+  )
+}
+
+/**
+ * Dispatch one finding to every eligible NON-groupable custom target (a
+ * template or a format other than hookshot / matrix). Groupable targets are
+ * skipped; the digest pipeline sends them. Returns whether ANY delivered (the
+ * caller ORs this into the finding's `anyDelivered`). Each target is gated by
+ * the shared {@link resolveChannelDelivery} resolver (disabled never fires;
+ * else target floor › global floor), exactly like the built-in channels.
  */
 export async function dispatchCustomWebhookTargets(
   finding: FindingContext,
@@ -76,48 +144,17 @@ export async function dispatchCustomWebhookTargets(
   let anyDelivered = false
 
   for (const target of targets) {
-    const passes = resolveChannelDelivery({
-      severity,
-      globalMinSeverity,
-      channel: {
-        enabled: target.enabled,
-        ...(target.minSeverity ? { minSeverity: target.minSeverity } : {}),
-      },
-    })
-    if (!passes) continue
+    if (groupableCustomFormat(target) !== null) continue
+    if (!customTargetPasses(target, severity, globalMinSeverity)) continue
 
-    // Send-time SSRF re-validation (save-time validation lives in the API).
-    // Skip + audit on failure — never fetch a target that fails the guard.
-    const ssrfError = isHttpsCustomWebhookUrl(target.url)
-      ? await validateHostUrl(target.url)
-      : 'Custom webhook target must use HTTPS'
-    if (ssrfError) {
-      debug(
-        `[health-sweep] skipping custom webhook target ${redactWebhookUrl(target.url)}: blocked destination`
-      )
-      await recordChannelEvent(finding, {
-        delivered: false,
-        error: 'Destination URL blocked',
-        channel: `custom:${target.format}`,
-      })
-      continue
-    }
-
-    const safeHeaders = {
-      ...sanitizeCustomHeaders(target.headers).headers,
-      ...sanitizeSecretHeaders(target.secretHeaders),
-    }
     const { body, adapterId } = buildCustomTargetBody(target, payload, text)
-    const result = await postWebhook(target.url, body, {
-      headers: safeHeaders,
-      redirect: 'error',
-    })
+    const result = await sendCustomTarget(target, body)
     if (result.ok) anyDelivered = true
 
     await recordChannelEvent(finding, {
       delivered: result.ok,
       error: result.error,
-      channel: `custom:${adapterId}`,
+      channel: `custom:${result.blocked ? target.format : adapterId}`,
     })
   }
 

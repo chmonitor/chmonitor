@@ -9,6 +9,7 @@
  */
 
 import type { BufferedDigestEntry } from '../../alert-digest-buffer-store'
+import type { EffectiveCustomWebhookTarget } from '../../custom-webhook-config'
 import type { DispatchCounters } from './types'
 
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
@@ -43,6 +44,7 @@ mock.module('@/lib/slack/config', () => ({
 }))
 
 const { createDigestPipeline } = await import('./digest')
+const { buildCustomTargetBody } = await import('../../custom-webhook-targets')
 
 const URL = 'https://hooks.example.com/alerts'
 const ctx = { digestWindowMs: 1 } as unknown as Parameters<
@@ -155,5 +157,175 @@ describe('time-window digest flush', () => {
     await pipeline.flushDigests()
     expect(posts).toEqual([{ url: URL, ok: true }])
     expect(rows).toEqual([])
+  })
+})
+/**
+ * Hookshot / Matrix custom targets group per sweep (#3869). A room that gets
+ * one message per finding during an incident is unreadable, so N findings for
+ * one target must become ONE post; a lone finding must keep the exact
+ * per-finding body; and a time-window warning must still reach the target in
+ * the same pass (custom targets carry secret headers, so they never go to D1).
+ */
+describe('grouped custom webhook targets', () => {
+  const HOOK = 'https://93.184.216.34/hookshot/abc'
+  const target = {
+    id: 'cwt_hook',
+    name: 'room',
+    url: HOOK,
+    enabled: true,
+    format: 'hookshot' as const,
+    minSeverity: null,
+    titleTemplate: '',
+    bodyTemplate: '',
+    headers: {},
+    secretHeaders: { Authorization: 'Bearer s3cret' },
+    updatedAt: 0,
+    source: 'env',
+    editable: false,
+  } as never as EffectiveCustomWebhookTarget
+
+  const bodies: { url: string; body: unknown }[] = []
+  beforeEach(() => {
+    bodies.length = 0
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit
+    ) => {
+      bodies.push({ url: String(input), body: JSON.parse(String(init?.body)) })
+      return new Response(null, { status: 204 })
+    }) as typeof fetch
+  })
+
+  function settle(
+    pipeline: Awaited<ReturnType<typeof createDigestPipeline>>,
+    opts: {
+      hostId: number
+      severity: 'warning' | 'critical'
+      onCommit: () => void
+      webhooks?: string[]
+    }
+  ) {
+    const p = {
+      ...payload,
+      severity: opts.severity,
+      hostId: opts.hostId,
+      hostLabel: `h${opts.hostId}`,
+    }
+    return pipeline.settleFinding({
+      finding: {
+        hostId: opts.hostId,
+        hostLabel: p.hostLabel,
+        ruleId: 'disk-usage',
+        effective: opts.severity,
+        isRecovery: false,
+        decision: { kind: 'fire' },
+        text: `disk ${opts.hostId}`,
+      } as never,
+      commit: opts.onCommit,
+      anyDelivered: false,
+      groupableWebhookTargets: opts.webhooks ?? [],
+      findingTelegramTargets: [],
+      groupableCustomTargets: [target],
+      immediateTargetCount: 0,
+      webhookPayload: p as never,
+    })
+  }
+
+  test('three findings send one grouped post to the target', async () => {
+    let committed = 0
+    const pipeline = await createDigestPipeline(
+      { digestWindowMs: 0 } as never,
+      newCounters()
+    )
+    for (const hostId of [0, 1, 2]) {
+      await settle(pipeline, {
+        hostId,
+        severity: 'critical',
+        onCommit: () => committed++,
+      })
+    }
+    expect(bodies).toHaveLength(0)
+    await pipeline.flushDigests()
+    expect(bodies.map((b) => b.url)).toEqual([HOOK])
+    const body = bodies[0].body as { text: string; html: string }
+    expect(body.text).toContain('3 critical on 3 hosts')
+    expect(committed).toBe(3)
+  })
+
+  test('a lone finding sends the exact per-finding body', async () => {
+    const pipeline = await createDigestPipeline(
+      { digestWindowMs: 0 } as never,
+      newCounters()
+    )
+    await settle(pipeline, {
+      hostId: 4,
+      severity: 'critical',
+      onCommit: () => {},
+    })
+    await pipeline.flushDigests()
+    const expected = buildCustomTargetBody(
+      target,
+      { ...payload, severity: 'critical', hostId: 4, hostLabel: 'h4' },
+      'disk 4'
+    ).body
+    expect(bodies).toEqual([{ url: HOOK, body: expected }])
+  })
+
+  test('a buffered warning still reaches the target this pass, once', async () => {
+    let committed = 0
+    const counters = newCounters()
+    const pipeline = await createDigestPipeline(ctx, counters)
+    for (const hostId of [0, 1]) {
+      await settle(pipeline, {
+        hostId,
+        severity: 'warning',
+        onCommit: () => committed++,
+        webhooks: [URL],
+      })
+    }
+    await pipeline.flushDigests()
+    // The plain webhook entries are parked in D1; the custom target is not.
+    expect(rows.map((r) => r.entry.kind)).toEqual(['webhook', 'webhook'])
+    expect(JSON.stringify(rows)).not.toContain('s3cret')
+    expect(counters.digestBuffered).toBe(2)
+    expect(bodies.map((b) => b.url)).toEqual([HOOK])
+    expect((bodies[0].body as { text: string }).text).toContain(
+      '2 warning on 2 hosts'
+    )
+    // Each finding committed exactly once (at buffer time).
+    expect(committed).toBe(2)
+  })
+
+  test('a warning routed only to the custom target is sent in-pass', async () => {
+    let committed = 0
+    const counters = newCounters()
+    const pipeline = await createDigestPipeline(ctx, counters)
+    await settle(pipeline, {
+      hostId: 0,
+      severity: 'warning',
+      onCommit: () => committed++,
+    })
+    await pipeline.flushDigests()
+    expect(rows).toEqual([])
+    expect(bodies.map((b) => b.url)).toEqual([HOOK])
+    expect(committed).toBe(1)
+    expect(counters.alertsDispatched).toBe(1)
+  })
+
+  test('a failed grouped send leaves the in-pass finding uncommitted', async () => {
+    globalThis.fetch = (async () =>
+      new Response(null, { status: 500 })) as unknown as typeof fetch
+    let committed = 0
+    const pipeline = await createDigestPipeline(
+      { digestWindowMs: 0 } as never,
+      newCounters()
+    )
+    await settle(pipeline, {
+      hostId: 0,
+      severity: 'critical',
+      onCommit: () => committed++,
+    })
+    await pipeline.flushDigests()
+    expect(committed).toBe(0)
   })
 })

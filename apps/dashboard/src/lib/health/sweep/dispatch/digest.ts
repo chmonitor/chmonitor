@@ -2,7 +2,9 @@
  * Digest grouping + deferred commit accounting for the sweep's dispatch
  * (#2663), extracted verbatim from `sweep/dispatch.ts` in #2938.
  *
- * Slack + generic-webhook + Telegram sends buffer here so a delivery target
+ * Slack + generic-webhook + Telegram sends, plus hookshot / matrix custom
+ * targets without templates (#3869, grouped by target id, in-pass only), buffer
+ * here so a delivery target
  * that receives >1 finding in this pass gets ONE combined message; every other
  * channel dispatches inline (unchanged). A finding that routes to any groupable
  * target has its dedup `commit()` + dispatch accounting DEFERRED to
@@ -14,6 +16,7 @@
 import type { AlertPayload } from './../../adapters'
 import type { BufferedDigestEntry } from './../../alert-digest-buffer-store'
 import type { AlertDecision } from './../../alert-state-store'
+import type { EffectiveCustomWebhookTarget } from './../../custom-webhook-config'
 import type { SweepContext } from './../resolve-config'
 import type { TelegramChannelEntry } from './channels/telegram'
 import type { FindingContext } from './finding-context'
@@ -33,9 +36,15 @@ import {
   takeDueDigestEntries,
 } from './../../alert-digest-buffer-store'
 import { recordAlertEvent } from './../../alert-history-store'
+import {
+  buildCustomTargetBody,
+  buildCustomTargetDigestBody,
+  groupableCustomFormat,
+} from './../../custom-webhook-targets'
 import { telegramSendMessageUrl } from './../../telegram-dispatch'
 import { SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
 import { buildAlertEventRecord } from './alert-event-record'
+import { sendCustomTarget } from './channels/custom-targets'
 import { postWebhook } from './webhook-post'
 import { debug } from '@chm/logger'
 import { buildAlertBlocksWithAck } from '@/lib/slack/blocks'
@@ -75,6 +84,21 @@ interface TelegramDigestEntry {
   pending: PendingDigestCommit | null
 }
 
+/**
+ * A groupable custom target (hookshot / matrix, no templates; #3869). Grouped
+ * by target id and sent in THIS pass only: these entries are never written to
+ * the D1 time-window buffer because the target carries secret headers.
+ */
+interface CustomDigestEntry {
+  target: EffectiveCustomWebhookTarget
+  format: 'hookshot' | 'matrix'
+  payload: AlertPayload
+  /** Legacy one-line summary, passed through for a lone (bucket of 1) send. */
+  text: string
+  /** `null` when the finding was committed at buffer time (time-window mode). */
+  pending: PendingDigestCommit | null
+}
+
 /** What one finding contributes to the digest, once its inline channels ran. */
 export interface SettleFindingParams {
   finding: FindingContext
@@ -86,6 +110,8 @@ export interface SettleFindingParams {
   groupableWebhookTargets: string[]
   /** Telegram chats this finding resolved to (always groupable). */
   findingTelegramTargets: TelegramChannelEntry[]
+  /** Groupable custom targets (hookshot / matrix, no templates) that admit this finding. */
+  groupableCustomTargets?: readonly EffectiveCustomWebhookTarget[]
   /** How many non-groupable targets this finding dispatched to inline. */
   immediateTargetCount: number
   /** The finding's shared webhook payload (one timestamp per finding). */
@@ -108,6 +134,7 @@ export async function createDigestPipeline(
 ): Promise<DigestPipeline> {
   const webhookDigestEntries: WebhookDigestEntry[] = []
   const telegramDigestEntries: TelegramDigestEntry[] = []
+  const customDigestEntries: CustomDigestEntry[] = []
 
   // Time-window buffered entries whose window has closed — loaded once, merged
   // into the in-pass buckets before the flush so they group with fresh
@@ -149,13 +176,25 @@ export async function createDigestPipeline(
     anyDelivered,
     groupableWebhookTargets,
     findingTelegramTargets,
+    groupableCustomTargets = [],
     immediateTargetCount,
     webhookPayload,
   }: SettleFindingParams): Promise<void> {
     const { hostId, ruleId, effective, isRecovery, decision, text } = finding
 
     const groupableTargetCount =
-      groupableWebhookTargets.length + findingTelegramTargets.length
+      groupableWebhookTargets.length +
+      findingTelegramTargets.length +
+      groupableCustomTargets.length
+    const customEntries = (
+      pending: PendingDigestCommit | null
+    ): CustomDigestEntry[] =>
+      groupableCustomTargets.flatMap((target) => {
+        const format = groupableCustomFormat(target)
+        return format
+          ? [{ target, format, payload: webhookPayload, text, pending }]
+          : []
+      })
 
     if (groupableTargetCount === 0) {
       // Unchanged inline gate: commit when there was nothing to deliver (not
@@ -207,8 +246,15 @@ export async function createDigestPipeline(
     // — a missing/failed D1 store falls back to immediate in-pass grouping
     // (fail-open). Buffering commits the finding's dedup now (the message is
     // queued) so the next sweep does not re-buffer the same condition.
+    // Custom-target entries are never buffered (they carry secret headers):
+    // they still go out in this pass's flush, grouped with this pass's other
+    // findings for the same target.
+    const bufferable = webhookEntries.length + telegramEntries.length
     const shouldBuffer =
-      ctx.digestWindowMs > 0 && effective !== 'critical' && !isRecovery
+      ctx.digestWindowMs > 0 &&
+      effective !== 'critical' &&
+      !isRecovery &&
+      bufferable > 0
     if (shouldBuffer) {
       const buffered = await bufferDigestEntries(
         SWEEP_ROUTING_OWNER_ID,
@@ -216,8 +262,10 @@ export async function createDigestPipeline(
         Date.now() + ctx.digestWindowMs
       )
       if (buffered) {
-        counters.digestBuffered +=
-          webhookEntries.length + telegramEntries.length
+        counters.digestBuffered += bufferable
+        // The finding is committed now (it is queued), so its custom entries
+        // carry no pending record: they deliver in this flush only.
+        customDigestEntries.push(...customEntries(null))
         commit()
         if (anyDelivered) {
           counters.alertsDispatched++
@@ -257,6 +305,7 @@ export async function createDigestPipeline(
         pending,
       })
     }
+    customDigestEntries.push(...customEntries(pending))
   }
 
   /**
@@ -451,6 +500,33 @@ export async function createDigestPipeline(
       await recordDigestHistory(entries, 'telegram', result)
     }
 
+    // Groupable custom targets (#3869) grouped by target id. A lone entry
+    // sends the exact per-finding body; ≥2 send one digest. Never re-buffered
+    // on failure (secret headers stay out of D1).
+    const byTarget = new Map<string, CustomDigestEntry[]>()
+    for (const entry of customDigestEntries) {
+      const list = byTarget.get(entry.target.id)
+      if (list) list.push(entry)
+      else byTarget.set(entry.target.id, [entry])
+    }
+    for (const entries of byTarget.values()) {
+      const first = entries[0]
+      const body =
+        entries.length === 1
+          ? buildCustomTargetBody(first.target, first.payload, first.text).body
+          : buildCustomTargetDigestBody(
+              first.format,
+              entries.map((e) => e.payload)
+            ).body
+      const result = await sendCustomTarget(first.target, body)
+      if (result.ok) {
+        for (const e of entries) {
+          if (e.pending) e.pending.groupableDelivered = true
+        }
+      }
+      await recordDigestHistory(entries, `custom:${first.format}`, result)
+    }
+
     if (failedBuffered.length > 0) {
       const now = Date.now()
       const rebuffered = await bufferDigestEntries(
@@ -472,6 +548,7 @@ export async function createDigestPipeline(
     for (const e of webhookDigestEntries) if (e.pending) pendings.add(e.pending)
     for (const e of telegramDigestEntries)
       if (e.pending) pendings.add(e.pending)
+    for (const e of customDigestEntries) if (e.pending) pendings.add(e.pending)
     for (const pending of pendings) {
       if (pending.committed) continue
       pending.committed = true
