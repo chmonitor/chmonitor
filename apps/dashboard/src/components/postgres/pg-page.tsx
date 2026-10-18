@@ -16,10 +16,12 @@ import type { PgQueryConfig } from '@/types/pg-query-config'
 
 import { PgExtensionEmptyState } from './pg-extension-empty-state'
 import { PgTable } from './pg-table'
+import { SignInRequired } from '@/components/auth/sign-in-required'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { getCardErrorMessage } from '@/lib/card-error-utils'
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { useActivePgConnection } from '@/lib/hooks/use-active-pg-connection'
 import { usePgQuery } from '@/lib/hooks/use-pg-query'
 
@@ -37,6 +39,18 @@ export function PgPage({ config, refetchInterval, onRowClick }: PgPageProps) {
     pgConn,
     { refetchInterval }
   )
+  const access = useCloudAccess()
+
+  if (access === 'pending') return <TableSkeleton />
+  if (access === 'guest') {
+    return (
+      <SignInRequired
+        title="Sign in to view Postgres"
+        description="Postgres insights are shown to signed-in users. Sign in to continue."
+        testId="postgres-sign-in-required"
+      />
+    )
+  }
 
   const rows = data?.data ?? []
   const hasData = rows.length > 0

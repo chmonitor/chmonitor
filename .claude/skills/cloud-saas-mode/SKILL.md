@@ -40,6 +40,12 @@ difference. The full behaviour matrix, file list, and history live in
   through `authorizeAgentApiRequest`, with a daily cap and a guest rate limit
   billed to the deploy AnyRouter key. Do not loosen it with
   `CHM_FEATURE_AGENT_ACCESS=public`.
+- **Signed-out reads that answer 401 are not fetched (#3957).** A client hook
+  over a per-owner API reads `useCloudAccess()` (`lib/cloud/use-cloud-access.ts`)
+  and fetches only when it is `'open'`; `'pending'` (Clerk loading) shows
+  neither data nor prompt. The page shows one `SignInRequired`
+  (`components/auth/sign-in-required.tsx`) in place of the panels, not one
+  error per panel. Self-hosted is always `'open'`.
 - **Human and agent auth URLs stay separate (#3092).** `/sign-in` and
   `/sign-up` are HTML for people. `/auth.md` is for agents. Never let
   `agentDiscoveryHandler` in `start.ts` serve markdown on the human paths.

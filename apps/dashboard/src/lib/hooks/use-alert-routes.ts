@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
 
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
@@ -57,6 +58,7 @@ export interface AlertRouteInfo {
 export const ALERT_ROUTES_QUERY_KEY = ['/api/v1/health/routes'] as const
 
 export function useAlertRoutes(enabled = true) {
+  const canRead = useCloudAccess() === 'open'
   const query = useQuery({
     queryKey: ALERT_ROUTES_QUERY_KEY,
     queryFn: async () => {
@@ -68,7 +70,7 @@ export function useAlertRoutes(enabled = true) {
       }
       return json.routes ?? []
     },
-    enabled,
+    enabled: enabled && canRead,
     staleTime: 30_000,
   })
 

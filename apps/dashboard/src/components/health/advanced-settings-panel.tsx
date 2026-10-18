@@ -28,6 +28,7 @@ import { QuietHoursPanel } from './quiet-hours-panel'
 import { RuleBuilderPanel } from './rule-builder'
 import { WebhookSubscriptionsPanel } from './webhook-subscriptions-panel'
 import { useEffect, useState } from 'react'
+import { SignInRequired } from '@/components/auth/sign-in-required'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { cn } from '@/lib/utils'
 
 /**
@@ -57,12 +59,15 @@ interface AdvancedSection {
   group: AdvancedGroupId
   /** Wider dialog for the panels that render tables/forms side by side. */
   wide?: boolean
+  /** Hidden from cloud signed-out visitors: its API answers them 401. */
+  requiresSignIn?: boolean
   render: () => ReactNode
 }
 
 export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   {
     id: 'routing',
+    requiresSignIn: true,
     group: 'delivery',
     title: 'Routing rules',
     description:
@@ -83,6 +88,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
   {
     id: 'quiet-hours',
+    requiresSignIn: true,
     group: 'silencing',
     title: 'Quiet hours',
     description:
@@ -92,6 +98,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
   {
     id: 'maintenance',
+    requiresSignIn: true,
     group: 'silencing',
     title: 'Maintenance windows',
     description:
@@ -130,6 +137,7 @@ export const ADVANCED_SECTIONS: readonly AdvancedSection[] = [
   },
   {
     id: 'peerdb-rules',
+    requiresSignIn: true,
     group: 'define',
     title: 'PeerDB mirror rules',
     description:
@@ -173,7 +181,10 @@ export function AlertSectionGroup({
   /** Opened on mount — how a legacy `?tab=routing` deep link still works. */
   initialSection?: AdvancedSectionId
 }) {
-  const sections = ADVANCED_SECTIONS.filter((s) => s.group === group)
+  const canRead = useCloudAccess() === 'open'
+  const sections = ADVANCED_SECTIONS.filter(
+    (s) => s.group === group && (canRead || !s.requiresSignIn)
+  )
   const own = sections.some((s) => s.id === initialSection)
     ? initialSection
     : undefined
@@ -186,6 +197,8 @@ export function AlertSectionGroup({
 
   const active = sections.find((section) => section.id === openId)
   const meta = ADVANCED_GROUPS[group]
+
+  if (sections.length === 0) return null
 
   return (
     <section className="flex flex-col gap-3" data-alert-group={group}>
@@ -262,5 +275,16 @@ export function AdvancedSettingsPanel({
 }: {
   initialSection?: AdvancedSectionId
 }) {
+  const access = useCloudAccess()
+  if (access === 'pending') return null
+  if (access === 'guest') {
+    return (
+      <SignInRequired
+        title="Sign in to manage silencing"
+        description="Quiet hours and maintenance windows are saved per account. Sign in to continue."
+        testId="health-silencing-sign-in-required"
+      />
+    )
+  }
   return <AlertSectionGroup group="silencing" initialSection={initialSection} />
 }

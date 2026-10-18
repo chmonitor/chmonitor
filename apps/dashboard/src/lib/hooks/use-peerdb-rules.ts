@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
 import type { PeerDBRule } from '@/lib/peerdb/alert-rules'
 
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
@@ -23,6 +24,7 @@ export type PeerDBRuleInput = Omit<PeerDBRule, 'id'> & { id?: string }
 export const PEERDB_RULES_QUERY_KEY = ['/api/v1/health/peerdb-rules'] as const
 
 export function usePeerDBRules(enabled = true) {
+  const canRead = useCloudAccess() === 'open'
   const query = useQuery({
     queryKey: PEERDB_RULES_QUERY_KEY,
     queryFn: async () => {
@@ -31,7 +33,7 @@ export function usePeerDBRules(enabled = true) {
       const json = (await response.json()) as { rules?: PeerDBRuleInfo[] }
       return json.rules ?? []
     },
-    enabled,
+    enabled: enabled && canRead,
     staleTime: 15_000,
   })
   return {

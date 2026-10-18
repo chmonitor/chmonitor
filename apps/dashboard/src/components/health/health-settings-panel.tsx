@@ -28,10 +28,12 @@ import { RecentAlertsCard } from './recent-alerts-card'
 import { ServerChannelConfigPanel } from './server-channel-config-panel'
 import { ThresholdsPanel } from './thresholds-panel'
 import { type ReactNode, useEffect, useState } from 'react'
+import { SignInRequired } from '@/components/auth/sign-in-required'
 import { SegmentedControl } from '@/components/settings/segmented-control'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import {
   fireBrowserNotification,
   fireHealthchecks,
@@ -94,6 +96,7 @@ export function HealthSettingsPanel({
   const [alerts, setAlerts] = useState<AlertSettings>(DEFAULT_ALERT_SETTINGS)
   const [templateOpen, setTemplateOpen] = useState(false)
   const permission = useNotificationPermission()
+  const access = useCloudAccess()
 
   useEffect(() => {
     setThresholdsState(loadThresholds())
@@ -305,11 +308,21 @@ export function HealthSettingsPanel({
 
             <Separator />
 
-            <ServerChannelConfigPanel />
+            {access === 'pending' ? null : access === 'guest' ? (
+              <SignInRequired
+                title="Sign in to manage server alerts"
+                description="Server-side channels, webhook targets and routing are saved per account. Sign in to continue."
+                testId="health-settings-sign-in-required"
+              />
+            ) : (
+              <>
+                <ServerChannelConfigPanel />
 
-            <Separator />
+                <Separator />
 
-            <CustomWebhookTargetsPanel />
+                <CustomWebhookTargetsPanel />
+              </>
+            )}
 
             <Separator />
 
