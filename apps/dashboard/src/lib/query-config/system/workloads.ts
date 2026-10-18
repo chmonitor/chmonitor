@@ -5,52 +5,34 @@ import { ColumnFormat } from '@/types/column-format'
 /**
  * system.workloads — available since ClickHouse 25.4.
  * Shows the WORKLOAD hierarchy for SQL resource scheduling:
- * weights, priorities, and concurrency caps per workload.
+ * the workload name, parent, and its CREATE WORKLOAD definition.
  */
 export const workloadsConfig: QueryConfig = {
   name: 'workloads',
   defaultView: 'auto',
   card: { primary: 'table', badges: ['name', 'parent'] },
   description:
-    'SQL resource scheduling workload hierarchy: weights, priorities, and concurrency limits (system.workloads, CH 25.4+).',
+    'SQL resource scheduling workload hierarchy: name, parent, and CREATE WORKLOAD definition (system.workloads, CH 25.4+).',
   refreshInterval: 30_000,
   optional: true,
   tableCheck: 'system.workloads',
   sql: [
     {
       since: '25.4',
-      description: 'Workload hierarchy with scheduling parameters',
+      description: 'Workload hierarchy with definitions',
       sql: `
         SELECT
           name,
           parent,
-          priority,
-          weight,
-          max_speed,
-          max_burst,
-          max_concurrent_queries,
-          max_cpus
+          create_query
         FROM system.workloads
         ORDER BY parent ASC, name ASC
       `,
     },
   ],
-  columns: [
-    'name',
-    'parent',
-    'priority',
-    'weight',
-    'max_speed',
-    'max_burst',
-    'max_concurrent_queries',
-    'max_cpus',
-  ],
+  columns: ['name', 'parent', 'create_query'],
   columnFormats: {
     name: ColumnFormat.ColoredBadge,
     parent: ColumnFormat.ColoredBadge,
-    priority: ColumnFormat.Number,
-    weight: ColumnFormat.Number,
-    max_concurrent_queries: ColumnFormat.Number,
-    max_cpus: ColumnFormat.Number,
   },
 }
