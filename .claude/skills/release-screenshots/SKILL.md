@@ -1,149 +1,46 @@
 ---
 name: release-screenshots
 description: >-
-  Capture, pick, and design the screenshots for a chmonitor release: blog
-  release posts, the landing changelog, What's new, and social posts. Covers
-  capturing the dashboard at 2x, the privacy check every image must pass,
-  choosing one idea per image, cropping, and rendering branded frames
-  (headline, before/after split, zoomed callouts) to WebP with the bundled
-  frame.html + render.mjs. Triggers: "release images", "release screenshots",
-  "blog post images", "screenshot for the changelog", "social image",
-  "cover image", "before and after", "make the screenshots look professional",
-  "crop and decorate", "redesign the screenshots".
+  Capture, privacy-check, pick, crop, and frame chmonitor release images for
+  blog release posts, the changelog, What's new, and social posts, rendered to
+  WebP with the bundled frame.html and render.mjs. Use for release
+  screenshots, cover images, before/after images, or redesigning existing ones.
 ---
 
 # Release screenshots
 
-A release image has one job: show **one change** so a reader gets it in two
-seconds. Raw full-screen captures fail that job — the change is a small part
-of a busy page. This skill turns captures into framed images: a short
-headline, the screenshot cropped to the part that matters, and at most one
-zoomed callout. Backing doc: `docs/knowledge/release-screenshots.md`.
+A release image shows one change so a reader gets it in two seconds: a short
+headline, the screenshot cropped to what matters, and at most one zoomed
+callout. The spec format, crop rules, backdrop style, and review checklist are
+in [docs/knowledge/release-screenshots.md](../../../docs/knowledge/release-screenshots.md).
 
-## 1. Capture
+## Steps
 
-- Capture the **real product**, never a mockup. Use agent-browser at
-  1920x1080 with DPR 2 (3840x2160 PNG), light theme by default, plus a dark
-  capture of Overview for the cover:
+1. **Capture** the real product with agent-browser at 1920x1080, DPR 2, light
+   theme, plus a dark Overview for the cover. Before/after pairs use the same
+   page, viewport, and theme. Close toasts and overlays unless they are the
+   feature. Keep raw captures outside the repo, next to the launch assets.
 
-  ```sh
-  agent-browser set viewport 1920 1080 2
-  agent-browser open "<dashboard>/overview?host=0"
-  agent-browser wait --load networkidle
-  agent-browser screenshot capture/raw/new-overview.png
-  ```
+   ```sh
+   agent-browser set viewport 1920 1080 2
+   agent-browser open "<dashboard>/overview?host=0"
+   agent-browser wait --load networkidle
+   agent-browser screenshot capture/raw/new-overview.png
+   ```
 
-- For before/after, capture both versions on the **same page, same viewport,
-  same theme**, so only the change differs.
-- Close toasts, popovers, and dev overlays first — unless the popover *is* the
-  feature (for example the More flyout).
-- Keep captures next to the release's other launch assets (for example
-  `launch/vX.Y.Z/capture/raw/`), outside the repo. Only finished images go in
-  the repo.
+2. **Privacy gate.** Reject any capture that shows a hostname, IP, connection
+   string, real workload database/table/user name, email, key, or person's
+   name. Re-capture against the demo host or crop it out. Never blur.
+3. **Pick** 4 to 6 images, one idea each, headline of 6 words or fewer. Use a
+   before/after split for a change to something users know, one window with a
+   callout for a new feature.
+4. **Write the spec**, one JSON array per release.
+   [`examples/v0.3.6.json`](examples/v0.3.6.json) is a complete one.
+5. **Render** with `bun` (not `node`):
 
-## 2. Privacy check (hard gate)
+   ```sh
+   bun .claude/skills/release-screenshots/render.mjs <spec.json> apps/blog/public/posts/vX.Y.Z
+   ```
 
-Open every capture at full size and reject it if it shows any of:
-
-- Hostnames, service DNS names, IPs, or connection strings (DDL with
-  `HOST '…'`, `SOURCE(POSTGRESQL(…))`, URLs in settings).
-- Real database, table, user, or customer names from a production workload.
-- Emails, API keys, tokens, or real people's names.
-
-Generic names are fine (`clickhouse-0`, `system.query_log`, `Guest`). If a
-capture fails, re-capture against the demo host or crop the region out — do
-not blur. Blurred text still reads as "we hid something". For example, the
-v0.3.6 Schema Compare and TTL captures showed real Postgres service hosts and
-workload table names, so they were left out.
-
-## 3. Pick
-
-- One idea per image. If you cannot write its headline in 6 words, it is two
-  images or none.
-- 4–6 images per post. Lead with the change a returning user notices first.
-- Prefer a before/after split when the release changes something users already
-  know. Prefer a single window with a callout for new features.
-- The cover is dark, shows the main screen, and carries the release headline.
-
-## 4. Write the spec
-
-One JSON array per release. Paths are relative to the spec file. Coordinates
-are **source pixels** (a 3840x2160 capture is 2x the CSS layout).
-
-| Field | Use |
-|---|---|
-| `name` | Output file name (`<name>.webp`) |
-| `theme` | `light` (default) or `dark` |
-| `eyebrow` | Short section label, shown uppercase in orange |
-| `title` | Headline, 6 words or fewer |
-| `sub` | One sentence, optional |
-| `ver` | Version pill next to the logo, optional (cover only) |
-| `src`, `crop` | Capture and `{x,y,w,h}` region for a single window |
-| `callouts` | Optional `[{x,y,w,h, zoom, at:{x,y}, label}]`: ring the source region and show it magnified at canvas point `at` |
-| `bg` | Photo backdrop (path relative to the spec). Use `assets/backgrounds/meadow-hill.jpg` by default; this is the house style |
-| `bgPos` | CSS `background-position` for the photo (for example `50% 70%`), so a set of images does not repeat the same crop |
-| `layout: "split"` + `panes` | Before/after: `[{label, src, crop}, …]`; `label` takes HTML, wrap the keyword in `<b>` |
-
-Crop rules:
-
-- Single window: crop aspect about **1.94:1** (for example 2400x1236) fills
-  the window width. Let the window run off the bottom edge.
-- Split pane: crop aspect about **1.21:1** (for example 1700x1400), the
-  **same crop** on both panes.
-- Callouts: one per image, on a control 2–4x smaller than the window. Place
-  `at` over quiet content (empty space, a chart body), never over the
-  headline.
-
-`examples/v0.3.6.json` is a complete spec for a real release.
-
-## Style: photo backdrop (default)
-
-Release images use a real photo behind the app window (`bg`), not a generated
-grid or glow. With `bg` set, the frame switches to the photo style: plain
-sentence-case eyebrow, a dark headline over the sky, the version as plain text
-next to the logo, the window resting on the meadow with a soft natural shadow,
-and white callouts. Avoid the generic tells: grid backdrops, orange glows, mono
-uppercase labels with rules, outlined pills, neon rings.
-
-Backgrounds in `assets/backgrounds/` (from the maintainer's own image library,
-downscaled to 2400px):
-
-- `meadow-hill.jpg` — sky over a grassy hill with flowers. Default for every image.
-- `meadow-lake.jpg` — painted meadow and lake. Busier at the edges; use sparingly.
-
-The headline sits on the sky, so it needs a light, low-detail top third. A deep
-saturated sky makes dark text unreadable — check contrast before adding a new
-background. Without `bg`, the frame falls back to the older grid style.
-
-## 5. Render
-
-```sh
-bun .claude/skills/release-screenshots/render.mjs <spec.json> apps/blog/public/posts/vX.Y.Z
-```
-
-Each run uses its own agent-browser session (`RELEASE_SHOTS_SESSION`, default
-per process), so several releases can render in parallel. Each image comes out 2000x1250 WebP, about 130–180 KB with a photo backdrop. Run it with `bun`: `node` may
-be a lazy-load shell function on dev machines, which `execFileSync` cannot
-call. Needs `agent-browser`, `cwebp`, and `sips` (macOS).
-
-## 6. Review before shipping
-
-Look at every output at full size and check:
-
-- [ ] Each image passes the privacy check, including inside callouts.
-- [ ] Each file is distinct (`md5 -q *.webp | sort -u | wc -l` equals the shot
-      count).
-- [ ] The headline and the screenshot say the same thing.
-- [ ] Callouts sit over quiet content and do not cover the thing they explain.
-- [ ] Version strings keep their case (`v0.3.6`, not `V0.3.6`).
-
-In the post, use `width="2000" height="1250"`, a descriptive `alt`, and set the
-cover as the post's `cover:` frontmatter.
-
-## Gotchas
-
-- `frame.html` must not declare a global named `top`, `name`, `status`, or
-  similar `window` properties: in a classic script `const top` throws, nothing
-  renders, and `render.mjs` waits until it times out.
-- agent-browser does not reload when only the URL hash changes. `render.mjs`
-  adds `?shot=<name>` to every open so each shot gets a fresh page.
+6. **Review** every output at full size against the checklist in the doc,
+   then reference each image with `width="2000" height="1250"` and an `alt`.

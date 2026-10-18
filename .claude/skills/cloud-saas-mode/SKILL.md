@@ -1,198 +1,71 @@
 ---
 name: cloud-saas-mode
 description: >-
-  Work on chmonitor's Cloud (SaaS) vs self-hosted (OSS) behaviour from ONE
-  codebase. Use when changing how dash.chmonitor.dev differs from Docker/K8s/OSS
-  builds: the cloud-mode flag, public read-only demo hosts, the welcome/setup
-  onboarding page, per-user (D1) ClickHouse connections, host visibility for
-  anonymous vs signed-in users, the "Test connection" error classifier and its
-  docs links, or the "Try with sample ClickHouse" onboarding preset. Triggers:
-  "cloud mode", "SaaS", "demo host", "welcome page", "setup page", "first-run",
-  "add host error", "connection error", "read-only host", "hide hosts when
-  signed in", "sample cluster", "sample ClickHouse", "try sample",
-  "guest AI", "anonymous agent", "guest credits", "guest quota",
-  "sign-in", "sign-up", "/auth.md", "chm auth", "auth/cli", "CLI login", "device login".
-metadata:
-  tags: saas, cloud, oss, self-hosted, onboarding, hosts, clerk, connection-errors, sample-cluster, guest-ai
+  Cloud (dash.chmonitor.dev) vs self-hosted behaviour in chmonitor's one
+  codebase. Use when changing the cloud-mode flag, demo hosts, what anonymous
+  vs signed-in users see, the welcome/setup page, per-user (D1) connections,
+  the "Test connection" error classifier, the sample ClickHouse preset, guest
+  AI credits, human /sign-in vs agent /auth.md, or CLI device login.
 ---
 
-# chmonitor Cloud (SaaS) mode
+# Cloud (SaaS) vs self-hosted
 
-One codebase, two products. `dash.chmonitor.dev` = Cloud; Docker/K8s/self-built
-Worker = self-hosted (OSS). The difference is runtime config behind one flag.
+One codebase, two products. `dash.chmonitor.dev` is Cloud. Docker, Kubernetes,
+and a self-built Worker are self-hosted (OSS). Runtime config is the only
+difference. The full behaviour matrix, file list, and history live in
+[docs/knowledge/cloud-saas-mode.md](../../../docs/knowledge/cloud-saas-mode.md).
 
-**Paid self-host path:** operators who already run ClickHouse buy a
-[commercial license](../../../docs/knowledge/commercial-license.md)
-(yearly/lifetime, host count, honor system). Do not push them to Polar cloud
-seats. Do not add a license key to the OSS binary.
+## Rules
 
-> This is a project skill kept under `.claude/skills/` (NOT `.agents/skills/`,
-> which the `build:skills` registry scans for end-user AI-agent skills). Keep dev
-> skills here so they never leak into the agent bundle.
+- **Fail closed to self-hosted.** An unset or junk `CHM_CLOUD_MODE` means not
+  cloud. Cloud behaviour only adds (demo hosts, welcome framing, per-user
+  storage). Never gate a core monitoring feature behind cloud mode.
+- **Cloud mode is a build-time contract (#2515).** The client bundle reads the
+  baked `VITE_CLOUD_MODE`, derived in `vite.config.ts` from `CHM_CLOUD_MODE`.
+  Set it before the build. `detectCloudModeMismatch` makes `/api/healthz`
+  warn when the server and the client build disagree.
+- **One resolver per setting.** Booleans go through `parseBool`
+  (`lib/config/parse-bool.ts`), the auth provider through `getAuthProvider`
+  (`lib/auth/provider.ts`), public read through
+  `resolveConfig(...).clerkPublicRead`. Never hand-parse an env var.
+- **Config lives in `.env*`.** Hosted non-secret config is
+  `apps/dashboard/.env.production` (+ `.env.preview`). `wrangler.toml` has no
+  `[vars]`; `apps/dashboard/scripts/patch-wrangler-env.ts` injects them at
+  deploy. Self-hosters
+  use the same names from `.env.example`. Secrets never go in a committed file.
+- **Signed-in cloud users never see demo data.** `FirstRunGate` enforces it in
+  the client and `lib/cloud/reject-demo-host.ts` on the server. User
+  connections have negative host ids; env and demo hosts are `0, 1, 2…`.
+- **Guests are capped.** Anonymous cloud chat is allowed on the demo host only,
+  through `authorizeAgentApiRequest`, with a daily cap and a guest rate limit
+  billed to the deploy AnyRouter key. Do not loosen it with
+  `CHM_FEATURE_AGENT_ACCESS=public`.
+- **Human and agent auth URLs stay separate (#3092).** `/sign-in` and
+  `/sign-up` are HTML for people. `/auth.md` is for agents. Never let
+  `agentDiscoveryHandler` in `start.ts` serve markdown on the human paths.
+- **Paid self-host is a commercial license**
+  ([commercial-license.md](../../../docs/knowledge/commercial-license.md)), not a
+  Polar seat and not a license key in the OSS binary.
 
-## Golden rule
+## Where to start
 
-**Fail-closed to self-hosted.** Unset/junk `CHM_CLOUD_MODE` / `VITE_CLOUD_MODE`
-→ NOT cloud → OSS unchanged. Cloud behaviour is ADDITIVE only. Never gate a core
-monitoring feature behind cloud mode. (Mirrors `lib/edition` fail-open design.)
+Paths are under `apps/dashboard/src/`.
 
-## The flag
+| Change | File |
+|---|---|
+| The flag | `lib/cloud/cloud-mode.ts` |
+| Host list, demo tagging, hide when signed in | `lib/swr/use-merged-hosts.ts` |
+| Welcome/setup page (3 variants) | `components/host/first-run-empty-state.tsx` |
+| "Test connection" errors | `lib/connection-errors.ts` (extend `RULES`, specific first) |
+| Sample ClickHouse preset | `components/connections/sample-preset.ts` |
+| Guest AI quota | `lib/billing/guest-ai.ts`, `routes/api/v1/-agent/billing.ts` |
+| Agent control and integration tools | `lib/ai/agent/control-tools-gate.ts`, `integration-tools-gate.ts` |
 
-- Resolver: `apps/dashboard/src/lib/cloud/cloud-mode.ts`
-  - `isCloudModeClient()` — build-time, React/hooks (reads `VITE_CLOUD_MODE`).
-  - `isCloudModeServer(env)` — runtime `CHM_CLOUD_MODE` wins over build-time.
-  - `parseCloudMode(v)` — only `'true'|'1'|'cloud'` (trim/case-insensitive) → true.
-- Build inline: `vite.config.ts` CLIENT_ENV + `src/vite-env.d.ts`. Each client
-  `VITE_*` DERIVES from the canonical `CHM_*` (set the value once).
-- Single source of truth: `apps/dashboard/.env.production` (+ `.env.preview` overlay).
-  It feeds BOTH the vite client build (`CHM_BUILD_ENV=production|preview` →
-  `build:production`/`build:preview`) AND the Worker runtime `[vars]`
-  (`apps/dashboard/scripts/patch-wrangler-env.ts` injects the non-`VITE_` keys).
-  `wrangler.toml` declares NO `[vars]` — never re-add one; edit `.env.production`.
-- Self-hosted uses the same names from `apps/dashboard/.env.example` (Docker
-  `env_file`, Helm `values.yaml`). Secrets only via `set-secrets.ts` / K8s Secret.
+## Verify
 
-**Cloud mode is a BUILD-TIME contract (#2515).** The client bundle only sees the
-baked-in `VITE_CLOUD_MODE`; it never reads runtime env. Booting a **prebuilt OSS
-image** with runtime `CHM_DEPLOYMENT_MODE=cloud` / `CHM_CLOUD_MODE=true` splits
-the product — server enforces cloud (demo guard) while the client renders OSS UI.
-Enable cloud by setting `CHM_CLOUD_MODE` **before the build** (so the VITE
-derivation runs), not only at runtime. Guard: `detectCloudModeMismatch(env)` →
-`{server, clientBuild, mismatch}`; `/api/healthz` `warn`s and reports `cloudMode`
-on mismatch. The reverse (cloud build, runtime unset) is safe — fail-closed.
+```sh
+cd apps/dashboard && bun test src/lib/cloud src/lib/connection-errors.test.ts
+```
 
-**One resolver per setting.** Never hand-parse a boolean env var or the auth
-provider. Booleans go through `parseBool` (`lib/config/parse-bool.ts`:
-true/1/yes/on, false/0/no/off). The server auth provider is
-`getAuthProvider(getEnv?)` (`lib/auth/provider.ts`: runtime `CHM_AUTH_PROVIDER`
-→ baked `VITE_AUTH_PROVIDER` → runtime mode default → baked mode default; a
-baked provider is never lowered by a runtime mode). Public read is
-`resolveConfig(...).clerkPublicRead`. `NEXT_PUBLIC_*` is not read anywhere. See
-`docs/knowledge/cloud-saas-mode.md` § One resolver per setting.
-
-## Behaviour
-
-| | Self-hosted | Cloud |
-|---|---|---|
-| Env hosts | real, full access | `source:'demo'`, read-only |
-| Anonymous | env hosts | the demo |
-| Signed-in | env hosts | demo HIDDEN → own D1 connections; zero → welcome/setup |
-| Agent (anon) | Clerk-gated if access=authenticated | reachable on demo host via `authorizeAgentApiRequest` guest wrapper (not `CHM_FEATURE_AGENT_ACCESS=public`); daily cap 3 + RL 5/min; D1 `guest:<ip-hash>`; deploy `ANYROUTER_API_KEY`; forced to `anyrouter:anyrouter/free` (auto allowed if picked), kept `anyrouter:` model after AnyRouter sign-in |
-| Agent (signed-in) | env hosts | demo host → 403 `demo_hidden`; own saved connection (negative `hostId`) → tools query it, read-only (`lib/ai/agent/host-query.ts`); foreign id → 404. The chat maps these pre-stream errors to actionable notices (`components/assistant-ui/-thread/agent-connection-error.ts`); a signed-in cloud user with zero hosts sees an add-connection prompt (→ `/setup`) on the welcome screen |
-| Agent control tools (`kill_query`, `optimize_table`, `kill_mutation`) | **on** when auth is `none` or the caller is signed in; off for an anonymous Clerk visitor | **off**; `AGENT_ENABLE_CONTROL_TOOLS=true` enables them for signed-in callers only — anonymous visitors never get them. Resolver: `lib/ai/agent/control-tools-gate.ts`; `actions` permission still applies; own connections stay read-only |
-| Agent integration tools (PeerDB, Postgres; read-only) | **on** when configured and reachable (probe pinned per conversation); `false` flag turns off | **off** for anonymous visitors whatever the flag; signed-in users need `CHM_FEATURE_PEERDB_AGENT=true` / `CHM_FEATURE_POSTGRES_SOURCE=true` (the sources are the operator's env). Resolver: `lib/ai/agent/integration-tools-gate.ts` |
-| Maintenance windows / quiet hours | saved under owner `''`; the sweep reads them and silences env-host alerts | saved under the signed-in owner; the sweep only checks env hosts with owner `''`, so they silence nothing yet. Both panels show `SilencingScopeNotice` (`components/health/silencing-scope-notice.tsx`) saying so. Per-owner sweep is the real fix (#3802) |
-| Browser connections (`browser-connections/{proxy,sessions,test}`, `AddHostDialog`) | anonymous allowed; "Browser-only storage still works without signing in" copy shown | **require sign-in** (or a valid `chm_` key): the routes 401 via `isAuthenticatedRequest` + `jsonError` (public-read does NOT relax it); `AddHostDialog` shows `SignInToConnect` to anonymous visitors instead of the form, so every entry point is covered; the browser-only copy is hidden. The 401 text classifies as `sign_in_required` |
-| CLI device login (`CHM_DEVICE_LOGIN`) | **off** by default (`auto`); set `true` for device-only tokens when `auth=none` (trusted LAN) | **on** when `CHM_API_KEY_SECRET` is set; `/device` needs Clerk session |
-
-Resolver: `lib/auth/device-login-config.ts`. Store: D1 or in-memory
-(`lib/auth/device-code-store.ts`). See `docs/knowledge/standalone-cli.md`.
-
-**CLI auth discovery:** `GET /api/v1/auth/cli` (public) returns
-`method` `none`|`device`|`api_key` for `chm auth login` — no `auth_mode` in
-CLI config. Code: `lib/auth/cli-auth-discovery.ts`.
-
-## Welcome / setup page
-
-`components/host/first-run-empty-state.tsx` renders 3 variants by
-`(cloudMode, isSignedIn)`: cloud signed-in (Connect-your-host + Add-host dialog),
-cloud anon (sign-in + value prop), self-hosted (env-var guidance + browser add).
-Gate `ClerkSignInButton` behind `isClerkEnabled()`.
-
-**Human vs agent auth URLs (#3092).** `/sign-in` and `/sign-up` are human HTML
-pages (`components/clerk/auth-page.tsx`: Clerk modal CTA, or an explicit
-"use the dashboard Sign in control" fallback when Clerk is off). `/login`
-redirects to `/sign-in`. `/auth.md` is the agent-facing markdown document.
-`agentDiscoveryHandler` in `start.ts` must never rewrite the human auth
-paths to `text/markdown` — a cached markdown HIT is what made
-`dash.chmonitor.dev/sign-in` unusable for people.
-
-**Demo down (#3592).** If the active host is `source:'demo'` and `host-status` fails, `FirstRunGate` shows `DemoUnavailableBanner` ("Demo temporarily unavailable" + Retry, `components/host/demo-unavailable-banner.tsx`). Demo-only via `isDemoUnavailable`; OSS/`env` hosts never see it. Don't add per-card demo-down handling.
-
-**Cloud signed-in welcome:** connect a host immediately. There is no Polar
-plan picker and no dashboard `/billing` page. Public paid checkout is
-self-host licenses on chmonitor.dev/pricing → hooks.chmonitor.dev/checkout/license.
-Host/seat counts are not enforced. OSS fails open.
-
-**"Try with sample ClickHouse" preset** — a DIFFERENT thing from the `demo` host
-above (server env-configured, cloud-only): a one-click preset any user (OSS or
-cloud signed-in) can add through the NORMAL add-host path, for the "must own a
-cluster to try it" barrier. Not shown to cloud anon visitors (they already get
-the automatic demo). `components/connections/sample-preset.ts` is the single
-constant (`SAMPLE_CLUSTER_PRESET` + `isSampleClusterHost`) — currently the
-public ClickHouse Playground (`play.clickhouse.com`/`explorer`, non-secret,
-DDL/INSERT rejected server-side); that shared demo also denies several
-`system.*` tables chmonitor needs (query_log, parts, merges, processes,
-replicas, mutations, disks, errors), so operational pages show their normal
-empty/error states against it — schema browsing, metrics/settings/functions,
-and SQL/AI chat work. `add-host-dialog.tsx`'s `initialPreset?: 'sample'` must be
-set explicitly (incl. `undefined`) on every open — the dialog is reused, not
-remounted per-CTA. `components/host/sample-cluster-banner.tsx` is the
-dismissible "Connect your own cluster" convert nudge shown once the sample is
-connected. Full detail: `docs/knowledge/cloud-saas-mode.md`.
-
-## Guest AI credits (Cloud only)
-
-Anonymous Cloud visitors **can chat** on the demo host. Reachability is
-**not** `CHM_FEATURE_AGENT_ACCESS=public` (agent is `operation: 'write'`;
-Clerk public-read still 401s unsigned POSTs). `authorizeAgentApiRequest`
-allows unsigned Cloud + public-read on agent POST / models / config-check /
-followups only. UI: `agent-auth-gate.tsx` `ensureAuthed()` true for Cloud
-unsigned; OSS Clerk stays gated.
-
-Guests bill the deploy `ANYROUTER_API_KEY` and default to `anyrouter:anyrouter/free` (pinned; `auto` routed guests to BYOK-only / out-of-quota models, #3578).
-Server strips BYOK `apiKey`, ignores `mcpServers` / user MCP, allowlists
-auto + free, hostId env/demo only. Conversations stay Clerk-only (local
-thread for unsigned Cloud).
-
-They get a **dedicated daily message cap** (`CHM_GUEST_AI_REQUESTS_PER_DAY`,
-default 3) and a **tighter per-identity rate limit**
-(`RATE_LIMIT_AGENT_GUEST_PER_MIN`, default 5) so they cannot burn the
-shared AnyRouter key. Usage is stored in the existing D1 `ai_usage_daily`
-table under `guest:<sha256-ip-prefix>` — never the literal owner id
-`guest`. `GET /api/v1/billing/usage` returns a slim Guest payload for
-unsigned Cloud callers so the quota chip can render. OSS skips this (IP RL
-only, no daily gate). Helpers: `lib/billing/guest-ai.ts`. Gate:
-`applyAiUsageGate` in `routes/api/v1/-agent/billing.ts`. 402 reason:
-`guest_daily_limit` (sign in for more — no Polar jargon).
-
-**Sign in with AnyRouter** (`CHM_AGENT_ANYROUTER_SIGNIN_ENABLED`, off by
-default, on in `.env.production`; exposed as `agent.anyrouterSignin` in
-`GET /api/v1/config`). Flag on: a guest who sends their own AnyRouter token
-keeps it (`hardenGuestAgentRequest(parsed, { anyrouterSigninEnabled })`),
-may use any `anyrouter:` model, and is BYOK → no daily cap metering. IP and
-guest rate limits, MCP and host restrictions stay. Signed-in users' tokens
-are stored encrypted (`lib/ai/agent/user-token-store.ts`, D1
-`user_provider_tokens`, route `/api/v1/agents/anyrouter/token`). Key order
-(`selectAgentApiKey` in `lib/ai/agent/byok.ts`): request key → stored token
-→ deployment key. AnyRouter 401 on a user token → `code:
-'anyrouter_token_expired'`. Flag off: login/callback/token 404, guest
-hardening unchanged.
-
-## Connection-error help
-
-`lib/connection-errors.ts`:
-- `classifyConnectionError(raw)` → `{kind,title,explanation,fix,docsSlug,raw}`.
-  Kinds: sign_in_required, host_not_allowed, invalid_url, auth_failed, access_denied, dns_error,
-  connection_refused, tls_error, timeout, mixed_content, unknown. Add new
-  patterns by extending `RULES` (first match wins, specific first).
-- `extractConnectionErrorMessage(body)` handles `{error:string}` (test route)
-  AND `{error:{message}}` (shared validation builder).
-- Rendered by `ConnectionErrorPanel` in `connection-form.tsx`.
-- Docs page slug: `guides/connection-errors`
-  (`docs/content/guide/guides/connection-errors.mdx`).
-
-## Build/test gotchas
-
-- `apps/dashboard` is NOT a root pnpm workspace member → `cd apps/dashboard && pnpm install`.
-- Build inside `apps/dashboard`: `pnpm run build` (vite + tsc --noEmit).
-- Tests: `bun test src/lib/cloud src/lib/connection-errors.test.ts`.
-- Full reference: `docs/knowledge/cloud-saas-mode.md`.
-
-## Keep this skill current
-
-When you change cloud-mode behaviour, demo-host visibility, the welcome/setup
-page, human `/sign-in` vs agent `/auth.md`, per-user connections, the
-connection-error classifier, or guest-agent credits/rate-limits, UPDATE this
-file and `docs/knowledge/cloud-saas-mode.md` in the same change. See the
-"Auto-improve project skills" note in the root `CLAUDE.md`.
+When you change any behaviour above, update this skill and the knowledge doc
+in the same change.
