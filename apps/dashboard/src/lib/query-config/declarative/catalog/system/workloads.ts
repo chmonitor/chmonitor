@@ -5,45 +5,27 @@ export const workloadsDeclarative: DeclarativeQueryConfig = {
   defaultView: 'auto',
   card: { primary: 'table', badges: ['name', 'parent'] },
   description:
-    'SQL resource scheduling workload hierarchy: weights, priorities, and concurrency limits (system.workloads, CH 25.4+).',
+    'SQL resource scheduling workload hierarchy: name, parent, and CREATE WORKLOAD definition (system.workloads, CH 25.4+).',
   refreshInterval: 30_000,
   optional: true,
   tableCheck: 'system.workloads',
   sql: [
     {
       since: '25.4',
-      description: 'Workload hierarchy with scheduling parameters',
+      description: 'Workload hierarchy with definitions',
       sql: `
         SELECT
           name,
           parent,
-          priority,
-          weight,
-          max_speed,
-          max_burst,
-          max_concurrent_queries,
-          max_cpus
+          create_query
         FROM system.workloads
         ORDER BY parent ASC, name ASC
       `,
     },
   ],
-  columns: [
-    'name',
-    'parent',
-    'priority',
-    'weight',
-    'max_speed',
-    'max_burst',
-    'max_concurrent_queries',
-    'max_cpus',
-  ],
+  columns: ['name', 'parent', 'create_query'],
   columnFormats: {
     name: 'colored-badge',
     parent: 'colored-badge',
-    priority: 'number',
-    weight: 'number',
-    max_concurrent_queries: 'number',
-    max_cpus: 'number',
   },
 }
