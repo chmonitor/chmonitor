@@ -6,6 +6,10 @@ import { ColumnFormat } from '@/types/column-format'
 /**
  * system.query_condition_cache — added in ClickHouse 25.3
  *
+ * key_hash (UInt128) replaced part_name/condition_hash in 26.2 (absent in
+ * 26.1.1.912, present in 26.2.1.1139); older versions synthesize the same
+ * `key_hash` column.
+ *
  * Stores cached query conditions (WHERE-clause analysis results) so that
  * repeated queries with the same filters skip redundant planning work.
  * The table is empty until the optimizer has seen enough repeated queries.
@@ -26,17 +30,36 @@ export const queryConditionCacheConfig: QueryConfig = {
     badges: ['readable_entry_size'],
     metrics: ['entry_size'],
   },
-  sql: `
-      SELECT
-          toString(key_hash) AS key_hash,
-          entry_size,
-          formatReadableSize(entry_size) AS readable_entry_size,
-          round(entry_size * 100.0 / nullIf(max(entry_size) OVER (), 0), 2) AS pct_entry_size,
-          matching_marks
-      FROM system.query_condition_cache
-      ORDER BY entry_size DESC
-      LIMIT 1000
-    `,
+  sql: [
+    {
+      since: '25.3',
+      sql: `
+          SELECT
+              concat(part_name, ' / ', hex(condition_hash)) AS key_hash,
+              entry_size,
+              formatReadableSize(entry_size) AS readable_entry_size,
+              round(entry_size * 100.0 / nullIf(max(entry_size) OVER (), 0), 2) AS pct_entry_size,
+              matching_marks
+          FROM system.query_condition_cache
+          ORDER BY entry_size DESC
+          LIMIT 1000
+      `,
+    },
+    {
+      since: '26.2',
+      sql: `
+          SELECT
+              toString(key_hash) AS key_hash,
+              entry_size,
+              formatReadableSize(entry_size) AS readable_entry_size,
+              round(entry_size * 100.0 / nullIf(max(entry_size) OVER (), 0), 2) AS pct_entry_size,
+              matching_marks
+          FROM system.query_condition_cache
+          ORDER BY entry_size DESC
+          LIMIT 1000
+      `,
+    },
+  ],
   columns: ['key_hash', 'readable_entry_size', 'matching_marks'],
   columnFormats: {
     readable_entry_size: ColumnFormat.BackgroundBar,
