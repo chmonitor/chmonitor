@@ -214,6 +214,29 @@ describe('systemCharts', () => {
   })
 })
 
+// The drill-down must list the same rows the headline counts. `status` is an
+// Enum8 with no 'FAILED' element: 24.8 rejected `status = 'FAILED'` and 25.3+
+// planned it but always returned zero rows. `event_time` is absent on 24.3;
+// `event_time_microseconds` exists on every version that has backup_log.
+describe('failed-backups headline and drill-down', () => {
+  const sqlOf = (name: string): string => {
+    const def = systemCharts[name]?.({})
+    if (!def || !('query' in def)) throw new Error(`no query for ${name}`)
+    return def.query
+  }
+  const failed = "status IN ('BACKUP_FAILED', 'RESTORE_FAILED')"
+
+  test.each([
+    'health-failed-backups',
+    'health-failed-backups-detail',
+  ])('%s filters the real failure statuses on a 24.3-safe column', (name) => {
+    const sql = sqlOf(name)
+    expect(sql).toContain(failed)
+    expect(sql).not.toContain("'FAILED'")
+    expect(sql).toContain('WHERE event_time_microseconds >')
+  })
+})
+
 /**
  * Wire-payload contract for `new-parts-created` (#2986).
  *
