@@ -105,6 +105,10 @@
       "since": ["19.1", "21.8", "26.1"]
     },
     {
+      "name": "query-condition-cache",
+      "since": ["25.3", "26.2"]
+    },
+    {
       "name": "query-detail",
       "since": ["20.0", "23.8", "24.1"]
     },
