@@ -9,7 +9,10 @@ import type { AlertPayload } from '../../../adapters'
 import type { EffectiveCustomWebhookTarget } from '../../../custom-webhook-config'
 import type { FindingContext } from '../finding-context'
 
-import { dispatchCustomWebhookTargets } from './custom-targets'
+import {
+  dispatchCustomWebhookTargets,
+  eligibleGroupableCustomTargets,
+} from './custom-targets'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
 const realFetch = globalThis.fetch
@@ -113,5 +116,54 @@ describe('dispatchCustomWebhookTargets send-time SSRF guard', () => {
   test('plain http target is refused even for a public address', async () => {
     expect(await run([target('http://93.184.216.34/hook')])).toBe(false)
     expect(fetched).toEqual([])
+  })
+})
+
+/**
+ * Hookshot / Matrix targets without templates are grouped by the digest flush
+ * (#3869), so the per-finding path must skip them or every finding would be
+ * sent twice. A templated target renders one finding and stays per-finding.
+ */
+describe('groupable custom targets', () => {
+  const hookshot = {
+    ...target('https://93.184.216.34/h'),
+    format: 'hookshot' as const,
+  }
+  const matrix = {
+    ...target('https://93.184.216.34/m'),
+    format: 'matrix' as const,
+  }
+  const templated = {
+    ...hookshot,
+    url: 'https://93.184.216.34/t',
+    titleTemplate: '{{title}}',
+  }
+
+  test('the per-finding path skips grouped targets but sends templated ones', async () => {
+    expect(await run([hookshot, matrix, templated])).toBe(true)
+    expect(fetched).toEqual(['https://93.184.216.34/t'])
+  })
+
+  test('eligible grouped targets honour the format, templates and floors', () => {
+    const critOnly = { ...matrix, id: 'crit', minSeverity: 'critical' as const }
+    const disabled = { ...hookshot, id: 'off', enabled: false }
+    const pick = (severity: 'warning' | 'critical' | null) =>
+      eligibleGroupableCustomTargets({
+        targets: [
+          hookshot,
+          templated,
+          target('https://93.184.216.34/r'),
+          critOnly,
+          disabled,
+        ],
+        globalMinSeverity: 'warning',
+        severity,
+      }).map((t) => t.url + (t.id === 'crit' ? '#crit' : ''))
+    expect(pick('critical')).toEqual([
+      'https://93.184.216.34/h',
+      'https://93.184.216.34/m#crit',
+    ])
+    expect(pick('warning')).toEqual(['https://93.184.216.34/h'])
+    expect(pick(null)).toEqual([])
   })
 })

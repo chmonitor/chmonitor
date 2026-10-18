@@ -359,6 +359,8 @@ cron:
 #   # Defaults applied to targets that omit the field.
 #   defaults:
 #     format: auto        # auto | raw | slack | matrix | hookshot
+#     # hookshot / matrix targets without title/body templates are grouped per
+#     # sweep: several alerts for one target become ONE room message.
 #     minSeverity: warning # warning | critical
 #   targets:
 #     # Non-secret endpoint: inline URL is stored in the chart-managed Secret

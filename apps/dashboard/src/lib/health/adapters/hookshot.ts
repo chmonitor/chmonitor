@@ -15,7 +15,12 @@
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
 import { identityLine, instancePrefix } from './identity'
-import { escapeMatrixHtml, identityHtml } from './matrix'
+import {
+  colorHtml,
+  escapeMatrixHtml,
+  identityHtml,
+  renderMatrixDigest,
+} from './matrix'
 
 export interface HookshotWebhookBody {
   /** Markdown/plain fallback; Hookshot requires it. */
@@ -44,7 +49,7 @@ export function buildHookshotBody(payload: AlertPayload): HookshotWebhookBody {
     (identity ? `\n${identity}` : '') +
     (payload.dashboardUrl ? `\n${payload.dashboardUrl}` : '')
   const html =
-    `<b>${escapeMatrixHtml(instancePrefix(payload))}${style.emoji} [${style.label}] ${escapeMatrixHtml(payload.title)}</b><br>` +
+    `<b>${colorHtml(payload.severity, `${escapeMatrixHtml(instancePrefix(payload))}${style.emoji} [${style.label}] ${escapeMatrixHtml(payload.title)}`)}</b><br>` +
     `${escapeMatrixHtml(payload.label)}<br>` +
     `<i>host ${escapeMatrixHtml(payload.hostLabel)} · ` +
     `${escapeMatrixHtml(payload.metric)} = ${escapeMatrixHtml(value)} · ` +
@@ -53,6 +58,18 @@ export function buildHookshotBody(payload: AlertPayload): HookshotWebhookBody {
   return payload.instanceName
     ? { text, html, username: payload.instanceName }
     : { text, html }
+}
+
+/**
+ * Hookshot body for ≥2 findings bound for one target (#3869): one grouped
+ * message instead of N. Shares the Matrix digest renderer. Pure.
+ */
+export function buildHookshotDigestBody(
+  payloads: readonly AlertPayload[]
+): HookshotWebhookBody {
+  const { text, html } = renderMatrixDigest(payloads)
+  const instanceName = payloads[0]?.instanceName
+  return instanceName ? { text, html, username: instanceName } : { text, html }
 }
 
 /** Selected explicitly via `format: 'hookshot'`; Hookshot URLs are self-hosted, so no `detect`. */

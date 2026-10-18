@@ -49,6 +49,7 @@ import {
 } from './../../alert-routing'
 import { alertStateStore, evaluateAlert } from './../../alert-state-store'
 import { dispatchDedupedAlertEvent } from './../../alert-webhook-events'
+import { groupableCustomFormat } from './../../custom-webhook-targets'
 import {
   activeQuietWindow,
   markQuietSuppression,
@@ -69,6 +70,7 @@ import {
 } from './../suppression'
 import {
   dispatchCustomWebhookTargets,
+  eligibleGroupableCustomTargets,
   loadSweepCustomTargets,
 } from './channels/custom-targets'
 import { dispatchEmailChannel } from './channels/email'
@@ -153,6 +155,11 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
   // and flush once per tick; see `./digest.ts`.
   const digest = await createDigestPipeline(ctx, counters)
   const customTargets = await loadSweepCustomTargets()
+  // Grouped custom targets count as groupable (per finding, in settleFinding),
+  // so only the per-finding ones count toward the immediate gate.
+  const inlineCustomTargetCount = customTargets.filter(
+    (t) => groupableCustomFormat(t) === null
+  ).length
   const identity = getServerAlertIdentity()
   // In-flight bus deliveries: not awaited inline (a slow subscriber must not
   // delay the legacy fan-out) but settled by `flushBusEvents` at the end of
@@ -576,6 +583,13 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       severity: deliverSeverity,
     })
     if (customDelivered) anyDelivered = true
+    // Hookshot / Matrix targets without templates group per sweep (#3869):
+    // the digest flush sends them, one message per target.
+    const groupableCustomTargets = eligibleGroupableCustomTargets({
+      targets: customTargets,
+      globalMinSeverity: settings.minSeverity,
+      severity: deliverSeverity,
+    })
 
     const pagerDutyDelivered = await dispatchPagerDutyChannel(
       finding,
@@ -624,7 +638,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     // feeds the digest layer's commit gate.
     const immediateTargetCount =
       immediateWebhookTargets.length +
-      customTargets.length +
+      inlineCustomTargetCount +
       pagerDutyTargets.length +
       ntfyTargets.length +
       pushoverTargets.length +
@@ -639,6 +653,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       anyDelivered,
       groupableWebhookTargets,
       findingTelegramTargets,
+      groupableCustomTargets,
       immediateTargetCount,
       webhookPayload,
     })

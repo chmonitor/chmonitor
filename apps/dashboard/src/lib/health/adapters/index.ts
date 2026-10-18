@@ -54,8 +54,17 @@ export {
   genericJsonAdapter,
 } from './generic-json'
 export { buildGoogleChatBody, googleChatAdapter } from './google-chat'
-export { buildHookshotBody, hookshotAdapter } from './hookshot'
-export { buildMatrixBody, escapeMatrixHtml, matrixAdapter } from './matrix'
+export {
+  buildHookshotBody,
+  buildHookshotDigestBody,
+  hookshotAdapter,
+} from './hookshot'
+export {
+  buildMatrixBody,
+  buildMatrixDigestBody,
+  escapeMatrixHtml,
+  matrixAdapter,
+} from './matrix'
 export { buildMSTeamsBody, msTeamsAdapter } from './msteams'
 export {
   buildNtfyHeaders,
@@ -229,7 +238,9 @@ export function buildWebhookDispatchBody(params: {
  * Slack gets Block-Kit blocks; every other/unknown URL falls through to the
  * generic JSON digest. Discord / MS Teams / Google Chat are intentionally
  * absent — they keep today's sequential per-finding sends (the sweep never
- * routes them through {@link buildWebhookDigestDispatchBody}).
+ * routes them through {@link buildWebhookDigestDispatchBody}). Hookshot and
+ * Matrix have no URL `detect`, so they are not listed here: they are grouped
+ * per custom webhook target instead (see `groupableCustomFormat`).
  */
 const DIGEST_WEBHOOK_ADAPTER_IDS: ReadonlySet<string> = new Set([
   'slack',

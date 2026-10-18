@@ -79,6 +79,16 @@ For more control, open **Health settings → Alerts → Custom webhook targets**
   generic webhooks expect. Use this, not **Element / Matrix**, for a Hookshot
   URL: Hookshot posts any body without a `text` key to the room as raw JSON.
 
+**Matrix Hookshot** and **Element / Matrix** targets with no title or body
+template are grouped per sweep: when one sweep finds several alerts for the
+same target, the room gets ONE message. It starts with a coloured summary line
+(`3 critical, 1 warning on 4 hosts`), lists the findings under each rule
+(host, metric = value, severity), stops after 25 lines with `…and N more`, and
+ends with one dashboard link. A single finding is sent exactly as before.
+Grouped targets are sent in the same sweep even when the time-window digest is
+on; they are never written to the digest buffer, because they can carry secret
+headers. A target with a template sends one message per finding.
+
 The form supports bounded `{{severity}}`, `{{title}}`, `{{label}}`, `{{host}}`,
 `{{value}}`, and `{{timestamp}}` templates plus safe `X-*` headers. **Preview**
 uses the same server-side formatter as delivery and masks the destination URL;
@@ -269,7 +279,7 @@ host prod-eu-1 · disk_usage = 93 · 2026-10-11T08:00:00Z
 ```json
 {
   "text": "🔴 [CRITICAL] Disk usage high — Disk usage on default is 93%\nhost prod-eu-1 · disk-usage-percent = 93 · 2026-10-11T08:00:00Z",
-  "html": "<b>🔴 [CRITICAL] Disk usage high</b><br>Disk usage on default is 93%<br><i>host prod-eu-1 · disk-usage-percent = 93 · 2026-10-11T08:00:00Z</i>"
+  "html": "<b><font data-mx-color=\"#dd3333\">🔴 [CRITICAL] Disk usage high</font></b><br>Disk usage on default is 93%<br><i>host prod-eu-1 · disk-usage-percent = 93 · 2026-10-11T08:00:00Z</i>"
 }
 ```
 

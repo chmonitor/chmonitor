@@ -37,9 +37,12 @@ import type { AlertPayload } from './adapters'
 import {
   buildGenericJsonBody,
   buildHookshotBody,
+  buildHookshotDigestBody,
   buildMatrixBody,
+  buildMatrixDigestBody,
   buildSlackBody,
   detectAdapter,
+  summarizeDigest,
 } from './adapters'
 import { escapeMatrixHtml } from './adapters/matrix'
 import { escapeSlackMrkdwn } from './adapters/slack'
@@ -511,6 +514,72 @@ export function buildCustomTargetBody(
     }
   }
   return { body, adapterId, truncated: false }
+}
+
+/**
+ * The format a custom target is grouped under per sweep (#3869), or `null` when
+ * it sends per finding. Only `hookshot` / `matrix` targets WITHOUT title/body
+ * templates group: a template renders one finding, so it cannot describe many.
+ */
+export function groupableCustomFormat(
+  target: Pick<CustomWebhookTarget, 'format' | 'titleTemplate' | 'bodyTemplate'>
+): 'hookshot' | 'matrix' | null {
+  if (target.titleTemplate.trim() || target.bodyTemplate.trim()) return null
+  return target.format === 'hookshot' || target.format === 'matrix'
+    ? target.format
+    : null
+}
+
+function exceedsBodyCap(body: unknown): boolean {
+  return (
+    new TextEncoder().encode(JSON.stringify(body)).byteLength >
+    MAX_CUSTOM_WEBHOOK_BODY_BYTES
+  )
+}
+
+/**
+ * Body for ≥2 findings bound for one groupable custom target (see
+ * {@link groupableCustomFormat}). Oversize bodies are re-rendered with bounded
+ * operator strings, then fall back to the summary line alone.
+ */
+export function buildCustomTargetDigestBody(
+  format: 'hookshot' | 'matrix',
+  payloads: readonly AlertPayload[]
+): { body: unknown; adapterId: string; truncated: boolean } {
+  const build = (list: readonly AlertPayload[]) =>
+    format === 'hookshot'
+      ? buildHookshotDigestBody(list)
+      : buildMatrixDigestBody(list)
+  const body = build(payloads)
+  if (!exceedsBodyCap(body))
+    return { body, adapterId: format, truncated: false }
+
+  const bounded = build(
+    payloads.map((p) => ({
+      ...p,
+      title: p.title.slice(0, 200),
+      label: p.label.slice(0, 500),
+      hostLabel: p.hostLabel.slice(0, 120),
+    }))
+  )
+  if (!exceedsBodyCap(bounded)) {
+    return { body: bounded, adapterId: format, truncated: true }
+  }
+  const line = `${summarizeDigest(payloads).summaryLine.slice(0, 500)} …(truncated oversize body)`
+  const html = escapeMatrixHtml(line)
+  return {
+    body:
+      format === 'hookshot'
+        ? { text: line, html }
+        : {
+            msgtype: 'm.notice',
+            body: line,
+            format: 'org.matrix.custom.html',
+            formatted_body: html,
+          },
+    adapterId: format,
+    truncated: true,
+  }
 }
 
 /** Redact a destination URL for previews/logs: keep only scheme + authority. */
