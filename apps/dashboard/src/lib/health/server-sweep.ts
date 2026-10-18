@@ -48,6 +48,8 @@ export interface SweepSummary {
   quietHoursSuppressed: number
   /** Notify-worthy alerts suppressed by an active operator ACK (plan 29). */
   ackedSuppressed: number
+  /** Notify-worthy alerts suppressed because the rule is muted (#3869). */
+  mutedSuppressed: number
   /** Recovery notifications sent for conditions that returned to ok. */
   recoveries: number
   /**
@@ -155,6 +157,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     maintenanceSuppressed: counters.maintenanceSuppressed,
     quietHoursSuppressed: counters.quietHoursSuppressed,
     ackedSuppressed: counters.ackedSuppressed,
+    mutedSuppressed: counters.mutedSuppressed,
     recoveries: counters.recoveries,
     digestBuffered: counters.digestBuffered,
     digestFlushed: counters.digestFlushed,

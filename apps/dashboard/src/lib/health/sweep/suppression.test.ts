@@ -18,6 +18,7 @@ import {
   isAckGated,
   isMaintenanceGated,
   isQuietHoursGated,
+  isRuleMuted,
   meetsMinSeverity,
   SEVERITY_ORDER,
 } from './suppression'
@@ -270,5 +271,19 @@ describe('pass-through', () => {
       })
     ).toBe(false)
     expect(isAckGated({ ...common, isRecovery: false, acks: [] })).toBe(false)
+  })
+})
+
+describe('isRuleMuted (#3869)', () => {
+  test('matches exact ids and globs, case-insensitively', () => {
+    expect(isRuleMuted(['disk-usage'], 'disk-usage')).toBe(true)
+    expect(isRuleMuted(['replication-*'], 'replication-lag')).toBe(true)
+    expect(isRuleMuted(['DISK-USAGE'], 'disk-usage')).toBe(true)
+  })
+
+  test('does not match other rules or partial ids', () => {
+    expect(isRuleMuted([], 'disk-usage')).toBe(false)
+    expect(isRuleMuted(['disk'], 'disk-usage')).toBe(false)
+    expect(isRuleMuted(['cpu'], 'disk-usage')).toBe(false)
   })
 })

@@ -30,6 +30,7 @@ export interface DispatchCounters {
   maintenanceSuppressed: number
   quietHoursSuppressed: number
   ackedSuppressed: number
+  mutedSuppressed: number
   recoveries: number
   emailsDispatched: number
   digestBuffered: number

@@ -35,8 +35,9 @@ import { getPagerDutyFallbackRoutingKey } from './../pagerduty-config'
 import { listQuietHours } from './../quiet-hours'
 import {
   getServerAlertConfig,
-  getServerAlertCooldownMs,
+  getServerAlertCooldownConfig,
   getServerHysteresisConfig,
+  getServerMutedRules,
   isAnyAlertChannelEnabled,
 } from './../server-alert-config'
 import { resolveServerChannels } from './../server-channel-resolve'
@@ -73,7 +74,10 @@ export interface SweepContext {
   channelSettings: ChannelSettingsMap
   /** Master switch for dispatch (dedup + every channel incl. the event bus). */
   alertingEnabled: boolean
-  cooldownMs: number
+  /** Re-notify cooldown: global default + per-rule override (#3869). */
+  cooldown: ReturnType<typeof getServerAlertCooldownConfig>
+  /** Rule ids / globs muted on every channel (#3869). */
+  mutedRules: string[]
   rules: AlertRuleDef[]
   thresholdOverrides: Awaited<ReturnType<typeof resolveThresholdOverrides>>
   hysteresis: ReturnType<typeof getServerHysteresisConfig>
@@ -112,7 +116,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
   // ntfy/Twilio/Pushover happen to be set up; those per-channel loops inside
   // `dispatchFinding` already no-op cleanly (empty target lists).
   const alertingEnabled = isAnyAlertChannelEnabled()
-  const cooldownMs = getServerAlertCooldownMs()
+  const mutedRules = getServerMutedRules()
 
   // Re-sync custom alert rules (plan 32) every sweep tick: unregisters stale
   // `custom:*` ids first, then loads whatever is currently enabled in D1.
@@ -128,10 +132,13 @@ export async function resolveSweepContext(): Promise<SweepContext> {
   // Hysteresis config (#2767): per-check anti-flap knobs. Resolved for every
   // base + compound rule id; dispatch looks up `byRule[id] ?? defaults`
   // (compound ids fall through to defaults). Env-configured, like thresholds.
-  const hysteresis = getServerHysteresisConfig([
+  const ruleIds = [
     ...rules.map((r) => r.id),
     ...compoundRuleRegistry.getAll().map((r) => r.id),
-  ])
+  ]
+  const hysteresis = getServerHysteresisConfig(ruleIds)
+  // Re-notify cooldown (#3869): same resolution shape as hysteresis.
+  const cooldown = getServerAlertCooldownConfig(ruleIds)
 
   // Durable state (#2767): hydrate the in-memory transition/hysteresis store
   // from D1 so streaks + incident timers survive worker restarts. Best-effort —
@@ -186,7 +193,8 @@ export async function resolveSweepContext(): Promise<SweepContext> {
     channels,
     channelSettings,
     alertingEnabled,
-    cooldownMs,
+    cooldown,
+    mutedRules,
     rules,
     thresholdOverrides,
     hysteresis,

@@ -130,6 +130,20 @@ single **reminder** at most once per `HEALTH_ALERT_COOLDOWN_MINUTES` (default 60
 `0` disables reminders). A **recovery** message always goes out when a condition
 clears, and reports how long the incident was firing.
 
+Two per-rule knobs tune this without touching the rest of your alerting:
+
+```bash
+# Reminder cooldown for one check (same id mangling as hysteresis below).
+# 0 = alert once, then stay quiet until it escalates or recovers.
+HEALTH_ALERT_COOLDOWN_DISK_USAGE_MINUTES=0
+
+# Mute checks on every channel. They still run and show on the Health page.
+HEALTH_ALERT_MUTED_RULES=replication-lag,merges-*
+```
+
+Custom rules (`custom:...`) cannot be named in an env var, so they always use
+the global cooldown; they can still be muted by their full id.
+
 To stop a metric that hovers on a threshold from flapping (fire/recover on every
 sweep), each check applies **hysteresis**:
 
