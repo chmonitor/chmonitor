@@ -384,6 +384,9 @@ the quorum signal. `rejected-inserts` reads a one-hour `query_log` window
 because the `RejectedInserts` event in `system.events` is cumulative since
 server start and would keep firing after the incident ended. A rejected insert
 or a broken part is possible data loss, so both go straight to critical.
+`memory-pressure` divides tracked memory by `max_server_memory_usage`, the
+limit at which queries fail, not by host RAM. In a container that limit
+follows the cgroup memory limit.
 
 <Callout type="info" title="Alert grouping & digest batching">
 When one sweep finds several alerts bound for the **same** delivery target (e.g. disk filling on 8 hosts, all routed to one Slack channel), they are combined into **one** message — a summary line (`3 critical, 2 warning on 4 hosts`) followed by a line per finding — instead of N separate pings. This in-pass grouping is **always on** and needs no configuration; it applies to the generic webhook, Slack, and Telegram channels, and to Matrix Hookshot and Element / Matrix custom webhook targets that have no title or body template (every other channel keeps per-finding sends). Hookshot and Matrix targets are always grouped within the sweep: the time-window digest never buffers them, because they can carry secret headers. To also batch across time, enable the optional **time-window digest** (`HEALTH_ALERT_DIGEST_MINUTES` or the Alerts tab): non-critical findings wait up to the window and flush together, while criticals still page immediately.

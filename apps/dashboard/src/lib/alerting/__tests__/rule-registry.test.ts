@@ -563,10 +563,14 @@ describe('rejected-inserts rule', () => {
 describe('memory-pressure rule', () => {
   const rule = BUILTIN_RULES.find((r) => r.id === 'memory-pressure')!
 
-  test('divides MemoryTracking by OSMemoryTotal', () => {
+  // Queries fail at max_server_memory_usage, not at host RAM. In a container
+  // OSMemoryTotal is the host's RAM, so dividing by it never reaches 90%.
+  test('divides MemoryTracking by the server memory limit', () => {
     expect(rule.sql).toContain("metric = 'MemoryTracking'")
-    expect(rule.sql).toContain("metric = 'OSMemoryTotal'")
-    expect(rule.sql).toContain('nullIf(')
+    expect(rule.sql).toMatch(
+      /nullIf\(coalesce\(\s*nullIf\(toFloat64OrZero\(\(SELECT value FROM system\.server_settings WHERE name = 'max_server_memory_usage'\)\)/
+    )
+    expect(rule.sql).toContain("name = 'max_server_memory_usage_to_ram_ratio'")
   })
 
   test('boundaries', () => {

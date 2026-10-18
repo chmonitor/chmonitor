@@ -453,7 +453,7 @@
     {
       "category": "other",
       "commonCauses": [],
-      "description": "Server memory tracked by ClickHouse (MemoryTracking) as a percentage of host RAM (OSMemoryTotal). Near 100% queries fail with MEMORY_LIMIT_EXCEEDED — find the heaviest queries and cap max_memory_usage.",
+      "description": "Server memory tracked by ClickHouse (MemoryTracking) as a percentage of the server memory limit (max_server_memory_usage). Near 100% queries fail with MEMORY_LIMIT_EXCEEDED — find the heaviest queries and cap max_memory_usage.",
       "fix": [
         {
           "description": null,
@@ -475,8 +475,8 @@
       "id": "memory-pressure",
       "link": "https://docs.chmonitor.dev/guide/guides/memory-limit-total-exceeded",
       "optional": true,
-      "sampleLabel": "80% of host memory",
-      "sql": "SELECT round(\n  (SELECT value FROM system.metrics WHERE metric = 'MemoryTracking') * 100.0\n  / nullIf((SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal'), 0),\n  1\n) AS memory_percent",
+      "sampleLabel": "80% of the server memory limit",
+      "sql": "SELECT round(\n  (SELECT value FROM system.metrics WHERE metric = 'MemoryTracking') * 100.0\n  / nullIf(coalesce(\n    nullIf(toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_server_memory_usage')), 0),\n    (SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal')\n      * toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_server_memory_usage_to_ram_ratio'))\n  ), 0),\n  1\n) AS memory_percent",
       "tableCheck": "system.asynchronous_metrics",
       "thresholds": {
         "critical": 90,
