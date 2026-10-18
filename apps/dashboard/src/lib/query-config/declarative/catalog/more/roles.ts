@@ -8,7 +8,7 @@ export const rolesDeclarative: DeclarativeQueryConfig = {
   optional: false,
   tableCheck: 'system.roles',
   sql: `
-      SELECT *,
+      SELECT *
       FROM system.roles
       ORDER BY name
     `,

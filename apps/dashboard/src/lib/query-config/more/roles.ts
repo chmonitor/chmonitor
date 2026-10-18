@@ -7,7 +7,7 @@ export const rolesConfig: QueryConfig = {
   description: 'Roles',
   tableCheck: 'system.roles',
   sql: `
-      SELECT *,
+      SELECT *
       FROM system.roles
       ORDER BY name
     `,
