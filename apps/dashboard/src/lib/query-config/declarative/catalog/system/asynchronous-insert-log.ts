@@ -23,9 +23,9 @@ export const asynchronousInsertLogDeclarative: DeclarativeQueryConfig = {
       bytes,
       formatReadableSize(bytes) AS readable_bytes,
       round(bytes * 100.0 / nullIf(max(bytes) OVER (), 0), 2) AS pct_bytes,
-      flush_time_microseconds,
-      formatReadableTimeDelta(flush_time_microseconds / 1000000) AS readable_flush_latency,
-      round(flush_time_microseconds * 100.0 / nullIf(max(flush_time_microseconds) OVER (), 0), 2) AS pct_flush_latency,
+      dateDiff('microsecond', event_time_microseconds, flush_time_microseconds) AS flush_latency_microseconds,
+      formatReadableTimeDelta(flush_latency_microseconds / 1000000, 'hours', 'milliseconds') AS readable_flush_latency,
+      round(flush_latency_microseconds * 100.0 / nullIf(max(flush_latency_microseconds) OVER (), 0), 2) AS pct_flush_latency,
       exception
     FROM system.asynchronous_insert_log
     ORDER BY event_time DESC
