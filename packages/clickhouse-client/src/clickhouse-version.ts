@@ -132,6 +132,21 @@ export function meetsMinVersion(
 }
 
 /**
+ * `session_timezone` is unknown before ClickHouse 23.8 on the versions we
+ * test (23.3 LTS fails the whole query with UNKNOWN_SETTING; 23.8 accepts
+ * it). Drop it there so the query runs in the server's timezone instead of
+ * failing. Unknown version: unchanged.
+ */
+export function dropUnsupportedSessionTimezone<
+  T extends { session_timezone?: string } | undefined,
+>(settings: T, version: ClickHouseVersion | null): T {
+  if (!settings?.session_timezone || !version) return settings
+  if (meetsMinVersion(version, 23, 8)) return settings
+  const { session_timezone: _dropped, ...rest } = settings
+  return rest as T
+}
+
+/**
  * Get cached version or fetch from ClickHouse
  *
  * Uses raw client directly to avoid circular dependency with fetchData.

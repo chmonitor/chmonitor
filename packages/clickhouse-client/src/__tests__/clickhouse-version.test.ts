@@ -35,6 +35,7 @@ const {
   getClickHouseVersion,
   setVersionCacheL2Provider,
   clearVersionCache,
+  dropUnsupportedSessionTimezone,
 } = await import(
   new URL('../clickhouse-version.ts?test=version', import.meta.url).href
 )
@@ -93,6 +94,31 @@ describe('parseVersion', () => {
     expect(v.minor).toBe(0)
     expect(v.patch).toBe(0)
     expect(v.raw).toBe('')
+  })
+})
+
+// 23.3 LTS rejects `session_timezone` (UNKNOWN_SETTING) and fails the whole
+// query, so any page or chart sent with a user timezone errored there.
+describe('dropUnsupportedSessionTimezone', () => {
+  const tz = { session_timezone: 'Asia/Ho_Chi_Minh', readonly: '1' }
+
+  it('drops session_timezone below 23.8', () => {
+    expect(
+      dropUnsupportedSessionTimezone(tz, parseVersion('23.3.22.3'))
+    ).toEqual({ readonly: '1' })
+  })
+
+  it('keeps session_timezone on 23.8 and later', () => {
+    expect(
+      dropUnsupportedSessionTimezone(tz, parseVersion('23.8.16.40'))
+    ).toEqual(tz)
+  })
+
+  it('keeps settings unchanged when the version is unknown', () => {
+    expect(dropUnsupportedSessionTimezone(tz, null)).toEqual(tz)
+    expect(
+      dropUnsupportedSessionTimezone(undefined, parseVersion('23.3'))
+    ).toBeUndefined()
   })
 })
 

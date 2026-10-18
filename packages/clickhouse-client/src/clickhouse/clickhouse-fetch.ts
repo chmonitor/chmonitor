@@ -24,6 +24,7 @@ import {
 } from './fetch-headers'
 import {
   checkOptionalTables,
+  gateSessionTimezone,
   resolveEffectiveQuery,
   resolveHostConfig,
 } from './fetch-request'
@@ -116,7 +117,10 @@ export const fetchData = async <
         query: QUERY_COMMENT + effectiveQuery,
         format,
         query_params,
-        clickhouse_settings,
+        clickhouse_settings: await gateSessionTimezone(
+          clickhouse_settings,
+          currentHostId
+        ),
       })
 
       const query_id = resultSet.query_id
