@@ -176,16 +176,19 @@ describe('systemCharts', () => {
     }
 
     if (name === 'thread-pool-utilization') {
+      // #3916: metric_log has CurrentMetric_GlobalThread{,Active}; the
+      // GlobalThreadPool*Threads names never existed and failed every run.
       test('reads global thread pool active/total gauges from metric_log', () => {
         const result = builder({})
-        if ('query' in result) {
-          expect(result.query).toContain(
-            'CurrentMetric_GlobalThreadPoolActiveThreads'
-          )
-          expect(result.query).toContain(
-            'CurrentMetric_GlobalThreadPoolThreads'
-          )
-        }
+        expect('query' in result).toBe(true)
+        if (!('query' in result)) return
+        expect(result.query).toContain(
+          'avg(CurrentMetric_GlobalThreadActive) AS active_threads'
+        )
+        expect(result.query).toContain(
+          'avg(CurrentMetric_GlobalThread) AS total_threads'
+        )
+        expect(result.query).not.toContain('GlobalThreadPool')
       })
     }
 
