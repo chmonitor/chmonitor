@@ -1,20 +1,10 @@
 /**
  * Pure geometry helpers for the topology canvas.
  *
- * The cluster overlay is an OFFSET CONVEX HULL — the Minkowski sum of the convex
- * hull of the member node centers with a disk of radius R. One algorithm covers
- * every cluster shape with no special-casing:
- *
- *   - 1 node           → hull is a point   → a CIRCLE of radius R
- *   - 2 / all-collinear → hull is a segment → a STADIUM / CAPSULE
- *   - 3+ non-collinear  → a rounded convex polygon (offset edges + corner arcs)
- *
- * Each hull EDGE is translated outward by R (parallel offset); each hull VERTEX
- * is replaced by a circular ARC of radius R sweeping the exterior angle. The
- * result is emitted as a single closed SVG path (L lines + A arc segments).
- *
- * No React, no data dependencies, fully deterministic — safe to call inside
- * useMemo so layout is computed once and never on a live tick.
+ * The cluster overlay is an offset convex hull: the Minkowski sum of the hull
+ * of the member node centers with a disk of radius R. One algorithm covers a
+ * circle (1 node), a stadium (2 / collinear) and a rounded polygon (3+).
+ * Output is a single closed SVG path (L lines + A arc segments).
  */
 
 export type Point = [number, number]
@@ -25,16 +15,10 @@ export interface Center {
 
 const EPS = 1e-9
 
-/** Andrew's monotone-chain convex hull. Returns CCW hull vertices.
- *
- * Notes:
- *  - Deduplicates identical points so coincident centers collapse to a point.
- *  - For < 3 unique points returns the unique points (a point or a segment).
- */
+/** Andrew's monotone-chain convex hull (CCW). Fewer than 3 unique points are returned as is. */
 export function convexHull(points: Point[]): Point[] {
-  // Use a precision high enough that sub-pixel differences (~0.00005 in a
-  // 770×560 viewBox) are not collapsed, while still merging true duplicates
-  // from floating-point arithmetic noise.
+  // Keep sub-pixel differences (~0.00005 in a 770×560 viewBox) while merging
+  // float-noise duplicates.
   const seen = new Set<string>()
   const pts: Point[] = []
   for (const p of points) {
@@ -80,9 +64,7 @@ export function convexHull(points: Point[]): Point[] {
   return hull
 }
 
-/** Smooth closed path through points using a Catmull-Rom → bezier conversion.
- * Retained for any caller that wants a smooth blob through points; the cluster
- * overlay now uses {@link offsetHullPath} instead. */
+/** Smooth closed path through points (Catmull-Rom → bezier). */
 export function catmullRomClosed(p: Point[]): string {
   const n = p.length
   if (n < 3) return ''
@@ -103,11 +85,7 @@ export function catmullRomClosed(p: Point[]): string {
 
 const f = (n: number) => n.toFixed(1)
 
-/**
- * Axis-aligned rounded-rectangle path (four corner arcs). Used for the cluster
- * territory overlay — a simple, predictable boundary whose overlap with another
- * rect reads as a clean lens. Pure + deterministic.
- */
+/** Axis-aligned rounded-rectangle path (four corner arcs). */
 export function roundedRectPath(
   x: number,
   y: number,
@@ -168,13 +146,8 @@ function stadiumPath(a: Point, b: Point, r: number): string {
 /**
  * Offset convex hull as a single closed SVG path: the Minkowski sum of the
  * convex hull of `centers` with a disk of radius `r`.
- *
- *   0 centers → '' (nothing to draw)
- *   1 center  → circle r
- *   2 / collinear → stadium
- *   3+        → straight offset edges joined by r corner arcs
- *
- * Pure + deterministic.
+ * 0 centers → '', 1 → circle, 2 / collinear → stadium, 3+ → offset edges
+ * joined by r corner arcs.
  */
 export function offsetHullPath(centers: Center[], r: number): string {
   if (centers.length === 0 || r <= 0) return ''
@@ -184,10 +157,7 @@ export function offsetHullPath(centers: Center[], r: number): string {
   if (hull.length === 1) return circlePath(hull[0][0], hull[0][1], r)
   if (hull.length === 2) return stadiumPath(hull[0], hull[1], r)
 
-  // hull is CCW. For each vertex i, the outward-offset endpoints of its two
-  // incident edges are joined by a convex (left-turn) arc of radius r.
   const n = hull.length
-  // Per edge i (hull[i] → hull[i+1]): outward unit normal.
   const edgeNormal: Point[] = []
   for (let i = 0; i < n; i++) {
     const a = hull[i]
@@ -199,9 +169,7 @@ export function offsetHullPath(centers: Center[], r: number): string {
     edgeNormal.push([dy / len, -dx / len])
   }
 
-  // Offset endpoints. For vertex v shared by edge (v-1 → v) and (v → v+1):
-  //   arrival point  = v + r * normal(edge ending at v)   = edge (i-1)
-  //   departure point= v + r * normal(edge starting at v) = edge (i)
+  // For vertex v: arrival = v + r*normal(edge i-1), departure = v + r*normal(edge i).
   let d = ''
   for (let i = 0; i < n; i++) {
     const v = hull[i]
@@ -220,9 +188,7 @@ export function offsetHullPath(centers: Center[], r: number): string {
   return `${d}Z`
 }
 
-/** Signed-area-based polygon area of the convex hull of `centers` PLUS the
- * offset band, used to z-order overlapping blobs (largest drawn first/behind).
- * Deterministic; approximate (good enough for ordering). */
+/** Approximate area of the offset hull, used to z-order overlapping blobs (largest first). */
 export function offsetHullArea(centers: Center[], r: number): number {
   if (centers.length === 0) return 0
   const hull = convexHull(centers.map((c) => [c.x, c.y] as Point))
@@ -245,12 +211,7 @@ export function offsetHullArea(centers: Center[], r: number): number {
   return Math.abs(area2) / 2 + perim * r + Math.PI * r * r
 }
 
-/**
- * Smooth blob hull matching the design spec: sample a ring of points around
- * each center, compute the convex hull of all samples, then smooth with
- * Catmull-Rom. Produces the organic "territory" shapes shown in the mockup.
- * Handles 1 node (circle), 2 (capsule), and 3+ (smooth blob) naturally.
- */
+/** Smooth blob hull: ring of samples around each center, convex hull, then Catmull-Rom. */
 export function hullPath(centers: Center[], pad: number): string {
   if (centers.length === 0 || pad <= 0) return ''
   // Degenerate: single center → return a circle directly (catmullRom needs ≥3).
@@ -258,7 +219,6 @@ export function hullPath(centers: Center[], pad: number): string {
     return circlePath(centers[0].x, centers[0].y, pad)
   }
 
-  // Sample a ring of points around each center, then hull + smooth.
   const RING_N = 20
   const ring: Point[] = []
   for (const c of centers) {

@@ -38,13 +38,11 @@ export function useDataTableFiltering<TData>({
     TableFilterCondition[]
   >([])
 
-  // Determine which columns should be filterable (memoized)
   const configuredColumns = useMemo(
     () => queryConfig.columns.map(normalizeColumnName),
     [queryConfig.columns]
   )
 
-  // Client-side column filtering state with optional URL sync
   const {
     columnFilters,
     setColumnFilter,
@@ -56,7 +54,6 @@ export function useDataTableFiltering<TData>({
     urlPrefix: filterUrlPrefix,
   })
 
-  // Apply client-side filters when enabled
   const filteredData = useFilteredData({
     data,
     enableColumnFilters,
@@ -65,7 +62,6 @@ export function useDataTableFiltering<TData>({
     advancedFilters,
   })
 
-  // Memoize filterableColumns to prevent filterContext recreation
   const resolvedFilterableColumns = useMemo(
     () => filterableColumns || configuredColumns,
     [filterableColumns, configuredColumns]
@@ -94,7 +90,6 @@ export function useDataTableFiltering<TData>({
     ]
   )
 
-  // Schema-driven typed column filter wiring (date-range, multi-select, etc.)
   const { getActiveFilter, setFilter, clearFilter } = useColumnFilterState(
     queryConfig.filterSchema
   )

@@ -1,29 +1,15 @@
 /**
- * Pure geometry for the topology canvas — zero React dependency.
- *
- * Split out of `topo-canvas.tsx` so these constants/helpers are unit-testable
- * in isolation (viewBox fitting, client↔SVG coordinate mapping, hull cage
- * lookup, and drag clamping). Imports types/constants directly from the
- * `model-*` siblings (never from `./model`, the barrel, and never from a
- * component file) so this module cannot reintroduce an import cycle — see
- * `model.ts`'s header comment for the cycle history.
+ * Pure geometry for the topology canvas (no React). Imports from the `model-*`
+ * siblings only, never `./model` or a component file, to avoid an import cycle.
  */
 import type { ClusterHull, TopologyModel } from './model-types'
 
 import { CH_R, KP_R, VB_W } from './model-constants'
 import { isKeeperNode } from './model-parse'
 
-// Conservative visual extents used for zoom-to-fit viewBox computation.
-// These are upper bounds: they must be >= actual label extents so nothing clips.
-// They intentionally match the contracts in model.ts (chDownExtent etc.) but as
-// maximums rather than per-node values, which is fine for viewBox sizing.
-//
-//   _CH_HALF — chHalfExtent
-//   _CH_UP   — chUpExtent
-//   _CH_DOWN — chDownExtent worst case (local + FQDN + badge)
-//   _KP_HALF — keeperHalfExtent
-//   _KP_UP   — keeperUpExtent (leader star)
-//   _KP_DOWN — keeperDownExtent worst case (FQDN host line)
+// Upper bounds of the per-node extents in model-constants.ts (chDownExtent etc.),
+// used for zoom-to-fit; they must be >= the real label extents so nothing clips.
+// _CH_DOWN is the local + FQDN + badge worst case, _KP_DOWN the FQDN host line.
 export const _CH_HALF = CH_R + 34
 export const _CH_UP = CH_R + 8
 export const _CH_DOWN = CH_R + 57
@@ -31,25 +17,21 @@ export const _KP_HALF = KP_R + 16
 export const _KP_UP = KP_R + 22
 export const _KP_DOWN = KP_R + 42
 
-// Extra room added around the node envelope bounding box to accommodate the
-// outermost cluster hull rects (which outset ENVELOPE_MARGIN + rank*NEST_STEP
-// past the node content) and cluster label pills below.
+// Room around the node envelope box for the outermost hull rects
+// (ENVELOPE_MARGIN + rank*NEST_STEP past the content) and label pills below.
 const HULL_EXTRA = 120
 
 // Padding (in viewBox units) between the content box and the SVG viewport edge.
 const FIT_PAD = 36
 
-// Maximum zoom scale for sparse / single-node topologies. Prevents one node
-// filling an entire large canvas (would look unbalanced and hard to read).
+// Max zoom for sparse topologies, so one node doesn't fill the whole canvas.
 const MAX_SCALE = 1.5
 
-// Minimum viewBox size in each dimension (viewBox units). Keeps single-node
-// topologies from being blown up beyond MAX_SCALE even if the container is huge.
+// Minimum viewBox size per dimension, so a huge container can't exceed MAX_SCALE.
 const MIN_VB_W = VB_W / MAX_SCALE
 const MIN_VB_H = 320
 
-// Inset from hull edges when clamping dragged nodes so the glyph + labels stay
-// visually inside the box (matches half-extent / up / down envelopes).
+// Inset from hull edges when clamping dragged nodes so glyph + labels stay inside.
 const CLAMP_PAD_X = _CH_HALF
 const CLAMP_PAD_Y_TOP = _CH_UP
 const CLAMP_PAD_Y_BOT = CH_R + 36
@@ -76,11 +58,8 @@ export interface DragState {
 export const CLICK_SLOP = 4 // px in SVG space before a press counts as a drag
 
 /**
- * Compute a tight content-aware viewBox string from the model.
- * Starts from the bounding box of all node visual extents (glyph + labels),
- * expands by HULL_EXTRA to cover cluster boundary rects and label pills, adds
- * FIT_PAD breathing room, enforces minimum dimensions (to cap zoom), and clamps
- * to the full model extent so the viewBox never excludes any content.
+ * Content-aware viewBox string: node extents + HULL_EXTRA + FIT_PAD, at least
+ * the minimum size (caps zoom), clamped to the model extent.
  */
 export function contentViewBox(
   model: TopologyModel,
@@ -226,7 +205,6 @@ export function groupSafeDelta(
     if (!cage) continue
     const want = { x: s.x + dx, y: s.y + dy }
     const got = clampToHull(want.x, want.y, cage)
-    // Pull delta back if any member hit a wall.
     dx += got.x - want.x
     dy += got.y - want.y
   }

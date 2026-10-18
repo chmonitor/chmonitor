@@ -1,25 +1,3 @@
-/**
- * ErrorAlert Component
- *
- * Displays error messages with optional query details, stack traces, and retry functionality.
- * Automatically switches between compact and full variants based on props.
- *
- * @example
- * ```tsx
- * // Compact variant
- * <ErrorAlert title="Error" message="Something went wrong" compact />
- *
- * // Full variant with all features
- * <ErrorAlert
- *   title="Query Failed"
- *   message="Database connection error"
- *   query="SELECT * FROM table"
- *   errorType="query_error"
- *   reset={() => refetch()}
- * />
- * ```
- */
-
 import type { ErrorAlertProps } from './types'
 
 import { useErrorCountdown } from './use-error-countdown'

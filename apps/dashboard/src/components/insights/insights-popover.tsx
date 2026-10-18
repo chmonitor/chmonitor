@@ -35,9 +35,8 @@ export function InsightsPopover() {
   const [isOpen, setIsOpen] = useState(false)
   /**
    * The insight whose detail dialog is open. Kept HERE, outside the popover
-   * subtree: the dialog used to be rendered inside `PopoverContent`, so opening
-   * it closed the popover, which unmounted the dialog with it and the detail
-   * never appeared. The dialog is now a sibling of `<Popover>` and survives.
+   * subtree: inside `PopoverContent`, opening the dialog closed the popover and
+   * unmounted the dialog with it, so the detail never appeared.
    */
   const [selected, setSelected] = useState<InsightCard | null>(null)
   const hostId = useHostId()

@@ -1,19 +1,4 @@
-/**
- * Chart Registry - Main Exports
- *
- * Centralized chart registry system for lazy-loading chart components.
- * Provides type-safe access to all registered charts with proper skeleton hints.
- *
- * @example
- * ```tsx
- * import { getChartComponent, hasChart } from '@/components/charts/registry'
- *
- * if (hasChart('query-count')) {
- *   const Chart = getChartComponent('query-count')
- *   return <Chart hostId={0} />
- * }
- * ```
- */
+/** Lazy-loaded chart registry with skeleton type hints. */
 
 export type { ChartCategory } from './chart-categories'
 export type {

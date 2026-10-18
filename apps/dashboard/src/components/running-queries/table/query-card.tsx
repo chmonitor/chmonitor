@@ -23,9 +23,7 @@ interface QueryCardProps {
   d: DerivedQuery
   expanded: boolean
   onToggle: () => void
-  /** Query has finished and its card is retained in a "Done" state. */
   done?: boolean
-  /** Drop this retained Done card from the list. */
   onDismiss?: () => void
 }
 

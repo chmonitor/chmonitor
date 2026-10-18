@@ -15,7 +15,6 @@ export function TransportBadge({ transport }: { transport: McpTransport }) {
   )
 }
 
-/** Live connected/error/unreachable status, re-probed with the stored auth. */
 export function LiveStatusBadge({
   id,
   enabled,

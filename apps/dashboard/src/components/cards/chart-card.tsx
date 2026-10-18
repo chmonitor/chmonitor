@@ -28,10 +28,6 @@ import { useHostId } from '@/lib/swr'
 import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
-/**
- * Log scale toggle button - visible icon next to date range
- * Matches hover behavior of other header icons
- */
 function ScaleToggle() {
   const scaleContext = useChartScale()
 
@@ -74,26 +70,18 @@ interface ChartCardProps
   data?: ChartDataPoint[]
   metadata?: CardToolbarMetadata
   children: string | React.ReactNode
-  /** Date range configuration (opt-in feature) */
   dateRangeConfig?: DateRangeConfig
   currentRange?: string
-  /** Callback when date range changes */
   onRangeChange?: (range: DateRangeValue) => void
   /** Error from failed revalidation (data is stale) */
   staleError?: StaleError
   /** Callback to retry fetch (used with staleError) */
   onRetry?: () => void
-  /** Enable log scale toggle (default: true for numeric charts) */
   enableScaleToggle?: boolean
-  /** Optional zoom button to render in header */
   zoomButton?: React.ReactNode
-  /** Optional extra controls (e.g. a segmented toggle) rendered in the header */
   headerControls?: React.ReactNode
-  /** Optional icon rendered before the title */
   icon?: React.ReactNode
-  /** Optional className override for the header */
   headerClassName?: string
-  /** Navigation target URL when clicked */
   href?: string
 }
 

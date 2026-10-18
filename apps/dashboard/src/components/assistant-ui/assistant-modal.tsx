@@ -1,21 +1,14 @@
 'use client'
 
 /**
- * Floating chat bubble — assistant-ui `AssistantModal`. Mounted app-wide so the
- * ClickHouse agent is reachable from any dashboard page (see
- * `global-assistant-modal.tsx`).
- *
  * Two layouts, remembered per browser (`useAgentWidgetMode`):
  *  - `floating` — the small bottom-right popover (Radix Popover positioning).
  *  - `docked`   — a full-height right sidebar. Because Radix Popper wraps the
  *    popover content in a transformed positioner (which would trap a `fixed`
  *    child), the docked layout is rendered as its own fixed panel OUTSIDE the
  *    Popper. That means we control the Root's `open` state ourselves so the
- *    docked panel can mount/unmount with it (and the Thread stops polling when
- *    closed, same as the popover). Open/close is driven by the bubble trigger
- *    and the header close button — the floating widget's runtime is only ever
- *    run from inside the (already-open) widget, so there's no external
- *    open-on-run-start path to preserve.
+ *    docked panel mounts/unmounts with it (and the Thread stops polling when
+ *    closed).
  */
 
 import { BotIcon, Minimize2Icon, PanelRightIcon, XIcon } from 'lucide-react'

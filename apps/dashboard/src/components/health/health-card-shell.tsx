@@ -40,10 +40,7 @@ const STATUS_DOT: Record<HealthStatus, string> = {
   loading: 'animate-pulse bg-muted-foreground/40',
 }
 
-/**
- * Status affordance for the expanded card: a labeled pill so severity reads at
- * a glance. Cards are only rendered for issues, so this always has a label.
- */
+/** Labeled severity pill for the expanded card, which only renders issues. */
 function IssuePill({ status }: { status: HealthStatus }) {
   if (status !== 'critical' && status !== 'warning') return null
   return (
@@ -78,32 +75,19 @@ export interface HealthCardShellProps {
   hostId: number
   onExpand?: () => void
   /**
-   * `card` (default) — the full expanded treatment for checks that need
-   * attention. `row` — a dense, quiet single line for healthy / unavailable
-   * checks, so they recede instead of competing with real problems.
+   * `card` (default) is the full treatment for checks that need attention;
+   * `row` is a dense line for healthy / unavailable checks.
    */
   variant?: HealthCardVariant
-  /**
-   * Optional marker rendered next to the severity pill (card) or the title
-   * (row) — used for the "already alerting" badge. Omit it and the
-   * layout is unchanged, so a check with no alert looks exactly as before.
-   */
+  /** Marker next to the severity pill (card) or title (row), e.g. "already alerting". */
   badge?: ReactNode
 }
 
 /**
- * Shared presentation for a health check. Two layouts, one contract:
- *
- * - `variant="card"` — the expanded treatment (icon glyph, headline value,
- *   trend sparkline, related-page chips). Reserved for issues, which the grid
- *   surfaces first so they dominate the page.
- * - `variant="row"` — a dense line (`dot · icon · title · value · chevron`) for
- *   healthy or unavailable checks, so a green cluster reads as one calm list
- *   rather than a wall of identical cards.
- *
- * The whole element is the click target when `onExpand` is provided — related
- * links stop propagation so they still navigate. Purely presentational: all
- * status / value computation happens upstream.
+ * Shared presentation for a health check in two layouts: `card` for issues and
+ * `row` for healthy / unavailable checks. The whole element is the click target
+ * when `onExpand` is provided; related links stop propagation so they still
+ * navigate. Status / value computation happens upstream.
  */
 export function HealthCardShell(props: HealthCardShellProps) {
   return props.variant === 'row' ? (
@@ -127,10 +111,8 @@ function interactiveProps(title: string, onExpand: (() => void) | undefined) {
 }
 
 /**
- * Dense single-line layout for healthy / unavailable checks. Carries a small
- * trend sparkline — even a flat healthy line answers "was this always 0, or
- * did it just drop?" at a glance, without the row growing into a full card.
- * Links stay reachable via the detail dialog, keeping the row uncluttered.
+ * Dense single-line layout. The small sparkline answers "was this always 0, or
+ * did it just drop?" without growing into a card.
  */
 function HealthCheckRow({
   icon: Icon,

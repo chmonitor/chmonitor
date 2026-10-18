@@ -1,11 +1,3 @@
-/**
- * Download rows as a CSV file.
- *
- * @param headers - Column header strings
- * @param rows - Array of row data
- * @param toFields - Maps a row to an array of field values (one per header)
- * @param filenamePrefix - Prefix for the downloaded filename
- */
 export function exportCsv<T>(
   headers: readonly string[],
   rows: T[],

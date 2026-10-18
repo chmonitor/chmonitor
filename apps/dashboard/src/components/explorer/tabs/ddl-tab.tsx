@@ -40,9 +40,6 @@ export function DdlTab() {
   const hostId = useHostId()
   const { database, table } = useExplorerState()
   const [copied, setCopied] = useState(false)
-  // Pretty-format on by default — DDL is small, so formatting is cheap and the
-  // formatted form is what most people want to read. In-memory only (no shared
-  // preference) so it stays independent of the Request Info "Beautify" toggle.
   const [isBeautified, setIsBeautified] = useState(true)
 
   const url =

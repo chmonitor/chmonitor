@@ -32,15 +32,8 @@ interface TreeNodeProps {
   hasChildren?: boolean
   expandOnSelect?: boolean // If true, clicking label expands node (default: true for backwards compat)
   level: number
-  /** 1-indexed position among visible siblings, for `aria-posinset`. */
   posInSet?: number
-  /** Total count of visible siblings, for `aria-setsize`. */
   setSize?: number
-  /**
-   * Marks this node as the roving-tabindex fallback entry point (used when
-   * nothing in the tree is selected, so the tree still has exactly one
-   * tabbable node). Actual selection (`isSelected`) always wins over this.
-   */
   isDefaultTabbable?: boolean
   badge?: React.ReactNode
   onToggle?: () => void

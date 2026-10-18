@@ -33,54 +33,31 @@ export interface DataTableContentProps<
   TData extends RowData,
   TValue extends React.ReactNode,
 > {
-  /** Table title for accessibility and empty state */
   title: string
-  /** Table description for accessibility */
   description: string | React.ReactNode
-  /** Query configuration defining columns, formats, sorting */
   queryConfig: QueryConfig
-  /** TanStack Table instance */
   table: import('@tanstack/react-table').Table<TData>
-  /** Column definitions for rendering */
   columnDefs: ColumnDef<TData, TValue>[]
-  /** Ref for the table container (used for virtualization) */
   tableContainerRef: React.RefObject<HTMLDivElement | null>
-  /** Whether virtualization is enabled */
   isVirtualized: boolean
-  /** Virtual row instance from useVirtualRows hook */
   virtualizer: ReturnType<
     typeof import('@/components/data-table/hooks').useVirtualRows
   >['virtualizer']
-  /** Number of active column filters */
   activeFilterCount: number
-  /** Callback when double-clicking column resizer to auto-fit */
   onAutoFit?: (columnId: string) => void
-  /** Enable column reordering with drag-and-drop */
   enableColumnReordering?: boolean
-  /** Callback when column order changes */
   onColumnOrderChange?: (activeId: string, overId: string) => void
-  /** Callback to reset column order to default */
   onResetColumnOrder?: () => void
-  /** Compact mode: removes borders, background, and margin */
   compact?: boolean
-  /** Parent already draws the card; skip the inner listing border. */
   embedded?: boolean
-  /** When set, rows render an expand chevron and clicking a row toggles a detail panel below it. */
   expandable?: true | ExpandableConfig
   /**
    * When set (and `expandable` is not), clicking a row (outside interactive
    * elements) calls this with the row's data — e.g. to open a detail Sheet.
    */
   onRowClick?: (row: TData) => void
-  /**
-   * Active view. `'cards'`/`'table'` force that layout at every breakpoint;
-   * `'auto'` (the default) is CSS-responsive — cards on mobile, table on
-   * desktop.
-   */
   view?: 'table' | 'cards' | 'auto'
-  /** Show the table/cards toggle control above the content. */
   offerViewToggle?: boolean
-  /** Callback when the user switches view. */
   onViewChange?: (view: 'table' | 'cards') => void
   /**
    * Render signature of the row-affecting table state, computed by the parent
@@ -92,22 +69,6 @@ export interface DataTableContentProps<
   bodyRenderKey?: string
 }
 
-/**
- * DataTableContent - Content wrapper with virtualization logic
- *
- * Handles:
- * - Virtual scrolling for datasets larger than the standard pagination range
- * - Standard scrolling for smaller datasets
- * - Table header and body rendering
- * - Empty state handling with contextual messaging
- * - Accessibility with proper ARIA labels
- * - Auto-fit column sizing callback propagation
- *
- * Performance considerations:
- * - Virtualization reduces DOM nodes from thousands to ~100
- * - Memoized to prevent unnecessary re-renders
- * - Auto-enables virtualization beyond the standard pagination range
- */
 export const DataTableContent = memo(function DataTableContent<
   TData extends RowData,
   TValue extends React.ReactNode,
@@ -135,8 +96,6 @@ export const DataTableContent = memo(function DataTableContent<
   bodyRenderKey,
 }: DataTableContentProps<TData, TValue>) {
   const cardsOnly = view === 'cards'
-  // Visibility per layout. Both 'auto' and 'cards' show the card grid;
-  // only an explicit 'table' choice shows the table.
   const cardsVisibility =
     view === 'table' ? 'hidden' : view === 'cards' ? 'block' : 'sm:hidden block'
 
@@ -164,8 +123,6 @@ export const DataTableContent = memo(function DataTableContent<
     [columnOrderKey]
   )
 
-  // Configure drag-and-drop sensors.
-  //
   // The grip spreads dnd-kit's `attributes`, which set role="button",
   // aria-roledescription="sortable" and aria-describedby pointing at dnd-kit's
   // own hidden "press the space bar to pick up" text. With only the
@@ -173,8 +130,6 @@ export const DataTableContent = memo(function DataTableContent<
   // told to press Space and nothing happened (WCAG 2.1.1). The KeyboardSensor
   // makes the already-announced control real — Space/Enter picks up, arrows
   // move, Space/Enter drops, Escape cancels.
-  //
-  // Order matters for nothing here (each sensor binds its own activator), but
   // the PointerSensor must keep its 8px distance constraint: it is what stops a
   // click on the grip from being read as the start of a drag, for both mouse
   // and touch. Adding the keyboard sensor changes no pointer behaviour.
@@ -191,8 +146,6 @@ export const DataTableContent = memo(function DataTableContent<
     })
   )
 
-  // Screen-reader announcements for a keyboard reorder.
-  //
   // dnd-kit ships a live region and announces by default, but its default text
   // is generic library wording — "Picked up draggable item a." and "Draggable
   // item a was moved over droppable area b." That names an opaque column id and
@@ -227,7 +180,6 @@ export const DataTableContent = memo(function DataTableContent<
     [columnIds]
   )
 
-  // Handle drag end event for column reordering
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event
@@ -265,7 +217,6 @@ export const DataTableContent = memo(function DataTableContent<
       // descendant lets keyboard users scroll the region (WCAG 2.1.1).
       tabIndex={0}
       style={{ width: table.getTotalSize(), minWidth: '100%' }}
-      // Force re-render when column order changes
       key={table.getState().columnOrder.join(',')}
     >
       <caption id="table-description" className="sr-only">

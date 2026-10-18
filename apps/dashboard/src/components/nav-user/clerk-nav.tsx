@@ -35,13 +35,6 @@ import { SETTINGS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissio
 import { isFeatureAllowed } from '@/lib/feature-permissions/shared'
 import { clearUserConnectionsCache } from '@/lib/hooks/use-user-connections'
 
-/**
- * Clerk-integrated navigation user menu.
- *
- * Displays:
- * - Sign In / Sign Up buttons when not authenticated
- * - User button with avatar and menu when authenticated
- */
 export function ClerkNavWrapper() {
   const { user, isLoaded, isSignedIn } = useUser()
   const { openUserProfile, signOut } = useClerk()
@@ -265,9 +258,6 @@ function UserSkeletonButton() {
   )
 }
 
-/**
- * Get user initials from full name.
- */
 function getUserInitials(fullName: string | undefined | null): string {
   if (!fullName) return 'U'
   const parts = fullName.trim().split(' ')

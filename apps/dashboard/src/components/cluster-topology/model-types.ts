@@ -1,14 +1,9 @@
 /**
  * Cluster topology data model — shared TYPES only.
  *
- * Split out of `model.ts` so the implementation siblings (`model-parse`,
- * `model-assemble`, `model-layout`, `model-hulls`, `model-constants`) can import
- * the shapes they need WITHOUT importing the `model.ts` barrel — the barrel
- * re-exports those siblings, so importing it from inside made every sibling
- * part of an import cycle (dependency-cruiser `no-circular`).
- *
- * `model.ts` re-exports this file, so `import type { ... } from './model'`
- * keeps working unchanged for consumers outside this folder.
+ * Siblings import shapes from here, never from the `model.ts` barrel, which
+ * re-exports them and would create an import cycle (dependency-cruiser
+ * `no-circular`).
  */
 
 export interface NodeLiveMetrics {
@@ -88,11 +83,7 @@ export interface ClusterInfo {
   replicated: boolean
 }
 
-/**
- * Precomputed cluster overlay: an offset-convex-hull path plus the metadata the
- * canvas needs to draw it (color, border style, area for z-ordering, label
- * anchor). Pure function of structure + layout → stable across live ticks.
- */
+/** Precomputed cluster overlay: path plus the metadata the canvas needs to draw it. */
 export interface ClusterHull {
   id: string
   name: string
@@ -103,9 +94,7 @@ export interface ClusterHull {
   d: string
   /** Minkowski-sum area, used to z-order: largest drawn first (behind). */
   area: number
-  /** Axis-aligned box of the territory (same as path bounds). Used to clamp
-   * drag so nodes stay inside their cluster box, and to decide which nested
-   * ring gets the single outer stroke (no overlapping borders). */
+  /** Axis-aligned box of the territory; clamps drag and picks the nested ring that gets the stroke. */
   minX: number
   minY: number
   maxX: number
@@ -173,24 +162,13 @@ export interface TopologyModel extends TopologyData {
   /** mirror of keeper.quorumHealthy for existing consumers */
   quorumHealthy: boolean
   counts: TopologyMeta['counts']
-  /** viewBox height the canvas should use — DATA-DRIVEN: grows to fit the keeper
-   * region, the CH band, and the deepest cluster-ring nesting + bottom pills for
-   * THIS model, never below `VB_H`. A simple graph stays compact (big glyphs); a
-   * deeply-nested one grows taller and letterboxes. Width is always `VB_W`. */
+  /** viewBox height for THIS model: grows with keeper region, CH band, ring nesting and pills, never below `VB_H`. Width is always `VB_W`. */
   vbHeight: number
 }
 
-/**
- * For very large clusters the rendered CH-node set is capped (the local node is
- * always kept) so the fixed viewBox stays readable; meta.truncated /
- * meta.hiddenChNodes report what was hidden. Edges referencing hidden nodes are
- * dropped by the canvas (it skips edges whose endpoints are missing).
- */
 export interface LayoutOptions {
-  /** Whether physical/implicit (outline) clusters are drawn. Default true. When
-   * false they are dropped from the hulls AND the height reserve — they are the
-   * OUTERMOST concentric rings, so hiding them lets the viewBox shrink. CH node
-   * positions are driven only by LOGICAL clusters, so toggling never moves a
-   * node — only the outer rings appear/disappear and the height adjusts. */
+  /** Whether physical/implicit (outline) clusters are drawn. Default true. When false they
+   * are dropped from hulls and the height reserve (they are the outermost rings); node
+   * positions never move. */
   showPhysical?: boolean
 }

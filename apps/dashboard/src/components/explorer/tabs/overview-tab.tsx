@@ -266,7 +266,6 @@ export function OverviewTab() {
   const isDictionary = kind === 'dictionary'
   const isViewLike = kind === 'view' || kind === 'materialized-view'
 
-  // Engine-aware follow-up queries: only fetch what this object type has.
   const dictionaryUrl =
     params && isDictionary
       ? `/api/v1/tables/explorer-dictionary-overview?${params}`

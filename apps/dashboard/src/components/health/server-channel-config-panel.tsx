@@ -1,18 +1,12 @@
 /**
- * Server-persisted alert channel config panel.
+ * Server-persisted alert channel config, backed by `/api/v1/health/alert-config`
+ * (per-owner D1). Each channel is one form: enable switch, non-secret target
+ * fields, a write-only secret input (masked placeholder when one is stored;
+ * leave blank to keep it) and a per-channel severity floor. Saving writes the
+ * config the sweep reads (`resolveServerChannels`: D1 row, then env fallback).
  *
- * Makes the channels the cron sweep delivers to — previously env-only and shown
- * as read-only "Set HEALTH_ALERT_X on the server" status cards — editable from
- * the UI, backed by `/api/v1/health/alert-config` (per-owner D1). Each channel
- * is one form: enable switch + non-secret target fields + a write-only secret
- * input (masked placeholder when a secret is already stored — leave blank to
- * keep it) + a per-channel severity floor. Saving writes the D1 config the sweep
- * reads (`resolveServerChannels`: D1 row › env fallback).
- *
- * With no alert backend (D1 or Postgres) Save/Reset are disabled — as they are
- * while the capability is `unknown` — and an env-configured channel
- * still works via its `HEALTH_ALERT_*` env vars: the form shows an "env" badge
- * so the operator knows a channel is already live.
+ * With no alert backend (or while the capability is `unknown`) Save/Reset are
+ * disabled; an env-configured channel still works and shows an "env" badge.
  */
 
 import {

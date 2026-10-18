@@ -41,7 +41,6 @@ interface QueryRowProps {
   hiddenColumns: Set<OptionalColumn>
 }
 
-/** One fingerprint rendered as a table row (collapsed) + detail row. */
 export const QueryRow = memo(function QueryRow({
   d,
   maxDuration,
@@ -82,7 +81,6 @@ export const QueryRow = memo(function QueryRow({
           </div>
         </td>
 
-        {/* Query text + meta line (carries hidden-column values on small screens) */}
         <td className="min-w-0 px-2 py-2.5">
           <span
             className="block min-w-0 truncate font-mono text-[11.5px] text-foreground sm:text-[12px]"
@@ -95,8 +93,6 @@ export const QueryRow = memo(function QueryRow({
               <Repeat className="size-3" />
               {formatCompactNumber(d.cnt)} runs
             </span>
-            {/* Each metric surfaces inline when its column is collapsed by the
-                viewport (responsive `*:hidden`) or hidden in the column menu. */}
             <span
               className={cn(
                 'inline-flex items-center gap-1',
@@ -137,14 +133,12 @@ export const QueryRow = memo(function QueryRow({
           </td>
         )}
 
-        {/* CPU time — lg+ (same number + bar % as Total time) */}
         {showCpu && (
           <td className="hidden px-3 py-2.5 lg:table-cell">
             <CpuCell d={d} max={maxCpu} align="right" />
           </td>
         )}
 
-        {/* Memory — md+ (same number + bar % as Total time) */}
         {showMemory && (
           <td className="hidden px-3 py-2.5 md:table-cell">
             <MemoryCell d={d} max={maxMemory} align="right" />

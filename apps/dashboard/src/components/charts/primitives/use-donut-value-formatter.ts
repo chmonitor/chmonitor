@@ -1,9 +1,3 @@
-/**
- * Custom hook for donut chart value formatting
- *
- * Extracted from donut.tsx for better separation of concerns.
- */
-
 import { useMemo } from 'react'
 import {
   formatReadableQuantity,
@@ -22,13 +16,8 @@ export interface UseDonutValueFormatterOptions {
 }
 
 /**
- * Custom hook for creating a value formatter for donut charts
- *
- * Supports multiple formatting strategies:
- * 1. Custom formatter function
- * 2. Readable format with a dedicated column
- * 3. Readable format applied to the value itself
- * 4. Default number formatting
+ * Builds a value formatter: custom function first, then `readable` applied
+ * via a dedicated column or the value itself, else default number formatting.
  */
 export function useDonutValueFormatter({
   valueFormatter,
@@ -64,14 +53,10 @@ export function useDonutValueFormatter({
 }
 
 /**
- * Dispatch a value to the shared readable formatter for its format type.
- *
- * `bytes`/`number`/`quantity` delegate to the shared `lib/format-readable.ts`
- * module (see #2894). `duration` stays on `formatDuration` from `@/lib/utils`
- * because donut/agent-visualization duration values are milliseconds (same
- * convention as the area-chart `readable: 'duration'` usage), while
- * `formatReadableSecondDuration` in `format-readable.ts` expects seconds —
- * swapping it in would silently misformat every duration value.
+ * `bytes`/`number`/`quantity` use `lib/format-readable.ts`. `duration` stays on
+ * `formatDuration` from `@/lib/utils` because donut/agent-visualization
+ * durations are milliseconds, while `formatReadableSecondDuration` expects
+ * seconds and would silently misformat them.
  */
 function dispatchReadableFormat(value: number, format: ReadableFormat): string {
   switch (format) {

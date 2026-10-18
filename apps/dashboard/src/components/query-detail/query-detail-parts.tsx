@@ -12,7 +12,6 @@ import { formatSql } from '@/lib/sql-format'
 import { cn } from '@/lib/utils'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
-/** Compact labeled value in the header card info grid. */
 export function MetaField({
   label,
   value,
@@ -42,7 +41,6 @@ export function MetaField({
   )
 }
 
-/** Expandable card for ProfileEvents or Settings map data. */
 export const CollapsibleSection = function CollapsibleSection({
   title,
   entries,
@@ -97,14 +95,6 @@ export const CollapsibleSection = function CollapsibleSection({
   )
 }
 
-/**
- * Inline SQL panel: syntax-highlighted (highlight.js) with a lazy-loaded
- * Beautify toggle (off by default — `sql-formatter` is ~484K and only fetched
- * on first toggle) and copy-to-clipboard. Mirrors the DialogSQL /
- * CodeDialogFormat pattern and shares the `'sql-beautify'` localStorage key so
- * a user's beautify preference carries across SQL surfaces (see
- * `useSqlBeautifyPref`).
- */
 export function SqlBlock({ query }: { query: string }) {
   const [beautify, setBeautify] = useSqlBeautifyPref()
   const [content, setContent] = useState(query)
@@ -112,8 +102,6 @@ export function SqlBlock({ query }: { query: string }) {
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const beautifyId = useId()
 
-  // Show the raw query immediately; when Beautify is on, swap in the formatted
-  // version once the lazy sql-formatter chunk resolves (falls back to raw).
   useEffect(() => {
     if (!beautify) {
       setContent(query)

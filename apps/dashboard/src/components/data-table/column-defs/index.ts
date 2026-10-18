@@ -1,7 +1,3 @@
-/**
- * Column definition module exports
- */
-
 export type {
   ColumnFilterContext,
   ColumnFormatInfo,

@@ -1,9 +1,3 @@
-/**
- * Merge chart imports
- *
- * Lazy-loaded merge operation charts.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

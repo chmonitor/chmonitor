@@ -76,7 +76,6 @@ function getDatabaseIcon(engine: string): {
         color: 'text-yellow-600 dark:text-yellow-400',
         bg: 'bg-yellow-500/10 group-hover:bg-yellow-500/20',
       }
-    // Atomic is the default ClickHouse database engine
     default:
       return {
         icon: DatabaseIcon,

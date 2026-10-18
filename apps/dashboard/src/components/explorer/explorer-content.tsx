@@ -27,7 +27,6 @@ function useTabVisitTracker(tableKey: string | null, currentTab: ExplorerTab) {
   )
   const prevTableKey = useRef<string | null>(null)
 
-  // Reset visited tabs when table changes, keeping the active tab
   // biome-ignore lint/correctness/useExhaustiveDependencies: currentTab is only used to seed the set on table reset
   useEffect(() => {
     if (tableKey !== prevTableKey.current) {
@@ -116,7 +115,6 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
           </Link>
         </TabsList>
 
-        {/* Overview tab: force-mounted to keep summary cached */}
         <TabsContent
           value="overview"
           className={cn('mt-4', tab !== 'overview' && 'hidden flex-none')}
@@ -137,12 +135,10 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
           {visitedTabs.has('data') && <DataTab />}
         </TabsContent>
 
-        {/* Structure tab: don't force-mount due to complex filter state */}
         <TabsContent value="structure" className="mt-4 flex-none">
           <StructureTab />
         </TabsContent>
 
-        {/* DDL tab: force-mount to keep content cached */}
         <TabsContent
           value="ddl"
           className={cn('mt-4', tab !== 'ddl' && 'hidden flex-none')}
@@ -151,7 +147,6 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
           {visitedTabs.has('ddl') && <DdlTab />}
         </TabsContent>
 
-        {/* Indexes tab: force-mount to keep content cached */}
         <TabsContent
           value="indexes"
           className={cn('mt-4', tab !== 'indexes' && 'hidden flex-none')}
@@ -160,7 +155,6 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
           {visitedTabs.has('indexes') && <IndexesTab />}
         </TabsContent>
 
-        {/* Dependencies tab: force-mount to keep content cached */}
         <TabsContent
           value="dependencies"
           className={cn('mt-4', tab !== 'dependencies' && 'hidden flex-none')}

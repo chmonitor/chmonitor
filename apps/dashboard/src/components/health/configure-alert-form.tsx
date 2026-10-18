@@ -2,22 +2,14 @@
 
 /**
  * "Configure alert" for one health check, opened from the detail dialog.
+ * Pre-filled with the check id, the shown value, and the *effective* thresholds
+ * (`overrides[check.id] ?? defaults`). Two different things can be saved:
  *
- * The point of this form is that the operator never has to re-derive anything:
- * it arrives pre-filled with the check id, the value the dialog is already
- * showing, and the *effective* thresholds (`overrides[check.id] ?? defaults`, which
- * the dialog already receives as `thresholds`). Two things can then be saved, and
- * they are genuinely different things — conflating them is the confusion #3438
- * is fixing:
- *
- * - **Thresholds** (browser) → `health-thresholds` in localStorage, keyed by
- *   `check.id`. Always writable: no database, no account, no network. The
- *   browser dispatcher evaluates them and fires through the local channels.
- * - **A named alert** (server) → a `custom_alert_rules` row, so the cron sweep
- *   evaluates it and the server channels can deliver it. Needs the D1-backed
- *   store, so it is gated on {@link AlertRuleStoreAvailability} and never
- *   silently fails: on a deployment without the store the control is disabled
- *   with the reason shown, exactly as `RuleBuilderPanel` already does.
+ * - **Thresholds** (browser) -> `health-thresholds` in localStorage, keyed by
+ *   `check.id`. Always writable; the browser dispatcher fires local channels.
+ * - **A named alert** (server) -> a `custom_alert_rules` row, so the cron sweep
+ *   evaluates it. Needs the D1-backed store, so it is gated on
+ *   {@link AlertRuleStoreAvailability} and disabled with the reason shown.
  */
 
 import { toast } from 'sonner'
@@ -41,9 +33,7 @@ import {
 import { useCustomAlertRulesMutations } from '@/lib/hooks/use-custom-alert-rules'
 import { describeError } from '@/lib/swr/fetch-error'
 
-/** Shown wherever a D1-backed alert store is absent — same wording as
- *  `rule-builder.tsx`, so the two surfaces do not describe the same limit two
- *  different ways. */
+/** Same wording as `rule-builder.tsx`. */
 export const ALERT_STORE_UNAVAILABLE_HINT =
   'Named alerts need a database backend (cloud, or self-hosted with a D1 database or a Postgres DATABASE_URL). Not available on this deployment — thresholds below still work.'
 

@@ -39,10 +39,6 @@ const LAG_STATUS_TONE: Record<ReplicationLagData['lag_status'], StatusTone> = {
   'severe lag': 'error',
 }
 
-/**
- * Replication Lag Chart
- * Shows replica synchronization status and lag across tables
- */
 export const ChartReplicationLag = function ChartReplicationLag({
   title = 'Replication Lag',
   className,

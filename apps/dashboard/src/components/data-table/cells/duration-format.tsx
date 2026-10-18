@@ -7,7 +7,6 @@ interface DurationFormatProps {
 export const DurationFormat = function DurationFormat({
   value,
 }: DurationFormatProps): React.ReactNode {
-  // Memoize dayjs computation
   const humanized = (() => {
     const seconds = parseFloat(value as string)
 

@@ -1,26 +1,9 @@
 /**
- * Query-pattern detail flyout (#2262). Clicking a row on the Slow Query
- * Patterns table (#2261) opens this Sheet, scoped to that row's
- * `normalized_query_hash`:
- *
- * - Overview: aggregate stat cards straight from the clicked row — the
- *   slow-query-patterns query already computed calls / duration percentiles /
- *   resource usage / errors for this exact pattern under the page's active
- *   filters and time range, so no extra query is needed here.
- * - Recent / Notable runs: `GET /api/v1/insights/query-patterns/:hash`
- *   (#2266) — reused rather than duplicating a second "executions for one
- *   pattern" query. "Recent" reads the endpoint's reverse-chronological
- *   `executions` (capped at 200 rows). "Notable" (slowest / largest result /
- *   errored) reads the endpoint's separately server-ranked `notable` list —
- *   NOT derived by sorting `executions` client-side, since that list is
- *   capped and would silently rank within "the last 200 runs" rather than
- *   the full time window for any pattern hot enough to exceed the cap.
- * - Advisor: reuses `/api/v1/advisor` + `AdvisorRecommendationsPanel`, the
- *   same engine and renderer as the `/advisor` page.
- *
- * Respects the host page's active `event_time` filter by translating a
- * `withinHours:N` value into the endpoint's `range` (hours) param — the only
- * time-window shape it accepts (see {@link resolveRangeHours}).
+ * Query-pattern detail flyout, scoped to one `normalized_query_hash`. Overview reads
+ * the clicked row directly. "Notable" runs use the endpoint's server-ranked `notable`
+ * list, not a client sort of `executions`, which is capped at 200 rows and would
+ * misrank hot patterns. A `withinHours:N` page filter maps to the endpoint's `range`;
+ * anything else falls back to its 24h default (see {@link resolveRangeHours}).
  */
 import { ExternalLinkIcon, LightbulbIcon, WandSparklesIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -58,9 +41,6 @@ import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 import { formatDuration } from '@/lib/utils'
 
-/** Duration fields on a slow-query-patterns row that need seconds→"1.2s"
- * formatting — unlike the size/row-count fields, these have no
- * `readable_<key>` companion column from the SQL. */
 const DURATION_KEYS = [
   'p50_duration',
   'p95_duration',
@@ -152,7 +132,6 @@ async function fetchAdvisor(url: string): Promise<AdvisorApiResponse> {
   return body
 }
 
-/** Only mounted while the Sheet is open — gates the drilldown/advisor fetches. */
 function PatternDetailSheetContent({
   pattern,
 }: {
@@ -420,16 +399,11 @@ function PatternDetailSheetContent({
 }
 
 export interface PatternDetailSheetProps {
-  /** The clicked slow-query-patterns row, or `null` when nothing is selected. */
   pattern: Record<string, unknown> | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-/**
- * Flyout shell. Kept separate from {@link PatternDetailSheetContent} so the
- * drilldown/advisor queries only mount (and fetch) while the Sheet is open.
- */
 export function PatternDetailSheet({
   pattern,
   open,

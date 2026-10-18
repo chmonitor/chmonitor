@@ -1,9 +1,3 @@
-/**
- * Thread chart imports
- *
- * Lazy-loaded thread performance and utilization charts.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

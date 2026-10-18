@@ -1,14 +1,8 @@
 /**
- * Webhook subscriptions panel.
- *
- * Lets a signed-in user subscribe a URL to one or more event types and see
- * delivery history / dead-letters. Lives as a tab on the health settings page
- * alongside Thresholds/Alerts, but — unlike those two (batched, saved via the
- * dialog's footer "Save" button, localStorage-backed) — every action here is
- * an immediate server call (create/toggle/delete), same as the existing
- * "Send test" buttons in the Alerts tab. Server-backed (D1 + Clerk), so it is
- * a no-op panel with an explanatory note on self-hosted/signed-out — the
- * dialog's other tabs keep working unaffected either way.
+ * Webhook subscriptions panel: subscribe a URL to event types and see delivery
+ * history / dead-letters. Unlike the batched, localStorage-backed Thresholds and
+ * Alerts tabs, every action is an immediate server call. Server-backed (D1 +
+ * Clerk), so it is a no-op panel with a note on self-hosted / signed-out.
  */
 
 import { toast } from 'sonner'

@@ -46,9 +46,7 @@ interface QueryRowProps {
   expanded: boolean
   onToggle: () => void
   hiddenColumns: Set<OptionalColumn>
-  /** Query has finished and its row is retained in a "Done" state. */
   done?: boolean
-  /** Drop this retained Done row from the table. */
   onDismiss?: () => void
 }
 

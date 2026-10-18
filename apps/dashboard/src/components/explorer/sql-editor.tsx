@@ -115,7 +115,6 @@ interface SqlEditorProps {
   onChange: (value: string) => void
   onRun?: () => void
   placeholder?: string
-  /** Database/table schema for SQL autocomplete: { "db.table": ["col1", "col2"] } */
   schema?: Record<string, string[]>
 }
 

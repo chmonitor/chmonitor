@@ -43,8 +43,7 @@ const DEFAULT_CHARTS: string[] = [
 ]
 
 function defaultLayout(): DashboardLayout {
-  // normalizeLayout's legacy string[] path auto-places these 2-per-row,
-  // matching the pre-plan-57 look.
+  // normalizeLayout's legacy string[] path auto-places these 2-per-row.
   return normalizeLayout(DEFAULT_CHARTS)
 }
 
@@ -127,10 +126,8 @@ function DashboardContent() {
   const [layout, setLayout] = useState<DashboardLayout>(readInitialLayout)
   const [mode, setMode] = useState<'view' | 'arrange'>('view')
 
-  // Persist the current, unsaved layout to sessionStorage so it survives
-  // navigation within the same tab but resets on new tab (same UX as
-  // pre-plan-57 — saved dashboards use D1/localStorage for durable,
-  // cross-tab persistence).
+  // Unsaved layout lives in sessionStorage: survives in-tab navigation,
+  // resets on a new tab. Saved dashboards use D1/localStorage.
   useEffect(() => {
     sessionStorage.setItem(DASHBOARD_SESSION_KEY, JSON.stringify(layout))
   }, [layout])
@@ -139,8 +136,7 @@ function DashboardContent() {
     setLayout(loaded)
   }, [])
 
-  // Drop chart widgets referencing a chart no longer in the registry —
-  // mirrors the pre-plan-57 `validCharts = selectedCharts.filter(hasChart)`.
+  // Drop chart widgets referencing a chart no longer in the registry.
   const visibleWidgets = layout.widgets.filter(
     (w) => w.type !== 'chart' || (w.chartName && hasChart(w.chartName))
   )

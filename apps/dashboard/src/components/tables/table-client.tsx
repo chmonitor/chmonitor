@@ -39,11 +39,8 @@ interface TableClientProps {
   className?: string
   defaultPageSize?: number
   topRightToolbarExtras?: React.ReactNode
-  /** Enable client-side column text filtering */
   enableColumnFilters?: boolean
-  /** Columns to enable filtering for (default: all text columns) */
   filterableColumns?: string[]
-  /** Enable row selection with checkboxes */
   enableRowSelection?: boolean
   /**
    * Render the schema-driven filter bar above the table when the
@@ -68,7 +65,7 @@ const tableRowFormatter = new Intl.NumberFormat('en-US')
  * 200 with empty data and `metadata.unavailable` (routes/api/v1/tables/$name).
  * Turn that into a `table_not_found` card error so the page renders the same
  * "Table not available" state (with enable guidance) as a missing-table
- * error, instead of the generic "No Data" card (#3737).
+ * error, instead of the generic "No Data" card.
  *
  * Accepts both shapes: the table route's `unavailable: true` +
  * `unavailableReason` + `missingTables`, and the chart route's
@@ -195,23 +192,6 @@ function TableResultFootnote({ metadata }: { metadata: ApiResponseMetadata }) {
   )
 }
 
-/**
- * Client-side table wrapper that handles data fetching
- * Provides loading, error, and empty states with automatic refresh capability
- *
- * @example
- * ```tsx
- * export default function QueryLogsPage() {
- *   return (
- *     <TableClient
- *       title="Query Logs"
- *       description="All queries executed on the cluster"
- *       queryConfig={queryLogsConfig}
- *     />
- *   )
- * }
- * ```
- */
 export const TableClient = function TableClient({
   title,
   description,
@@ -286,7 +266,6 @@ export const TableClient = function TableClient({
         ? isVersionOlder(serverVersion, minSince)
         : false
 
-    // 1. Version Mismatch Check (Pre-emptive)
     if (isVersionMismatch) {
       return (
         <Card
@@ -477,8 +456,8 @@ export const TableClient = function TableClient({
     }
 
     // Fall back to generic error handling for other error types.
-    // Do not pass the table title as the error heading — that hid
-    // "Request timed out" / "Failed to load" behind the page name (#3121).
+    // Do not pass the table title as the error heading: it hid
+    // "Request timed out" / "Failed to load" behind the page name.
     const errorTitle = getCardErrorTitle(variant)
     const errorClassName = getCardErrorClassName(variant)
     const errorDescription = getCardErrorDescription(

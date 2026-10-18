@@ -57,12 +57,6 @@ const LazyGuidanceMarkdown = lazy(async () => {
   return { default: GuidanceMarkdown }
 })
 
-/**
- * OptionalTableInfo Component
- *
- * Displays helpful information when an optional ClickHouse system table is missing.
- * Shows configuration instructions and links to official documentation.
- */
 export function OptionalTableInfo({
   tableName,
   guidance,

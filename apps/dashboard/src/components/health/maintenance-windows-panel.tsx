@@ -1,13 +1,8 @@
 /**
- * Maintenance windows panel.
- *
- * Lets an operator declare a maintenance window (one host or all hosts) so
- * the health sweep suppresses outbound alerts while `now` falls inside it —
- * the finding is still recorded, this only gates the notification. Lives as
- * a tab in the health settings page alongside Webhooks/History; every action
- * here is an immediate server call (create/delete), same pattern as
- * `WebhookSubscriptionsPanel`. Free/OSS feature: no Clerk sign-in required,
- * the server falls back to a single-tenant owner when Clerk isn't configured.
+ * Maintenance windows panel (one host or all hosts). While `now` falls inside a
+ * window the health sweep suppresses outbound alerts; findings are still
+ * recorded. Every action is an immediate server call. No Clerk sign-in required:
+ * the server falls back to a single-tenant owner.
  */
 
 import { toast } from 'sonner'

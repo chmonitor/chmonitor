@@ -1,11 +1,8 @@
 'use client'
 
 /**
- * Slow Query Regression Panel (#1921)
- *
- * Fetches the regression-detection chart and surfaces any fingerprints
- * whose P95 duration has degraded significantly vs the baseline window.
- * Feeds the alert engine via dispatchAlert() when regressions are found.
+ * Slow query regression panel: surfaces fingerprints whose P95 duration has
+ * degraded vs the baseline window, and feeds the alert engine via dispatchAlert().
  */
 
 import { AlertTriangle, TrendingUp } from 'lucide-react'
@@ -24,11 +21,6 @@ interface RegressionPanelProps {
   className?: string
 }
 
-/**
- * RegressionPanel — renders a card listing slow-query fingerprints that
- * have regressed (current P95 ≥ 2× baseline P95). Dispatches an in-app
- * alert whenever at least one regression is detected.
- */
 export function RegressionPanel({ hostId, className }: RegressionPanelProps) {
   const { data, isLoading, error } = useChartData<SlowQueryRegression>({
     chartName: 'slow-query-regressions',

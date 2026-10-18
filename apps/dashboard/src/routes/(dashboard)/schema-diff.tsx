@@ -1,8 +1,5 @@
 /**
- * Schema Compare
- * Route: /(dashboard)/schema-diff
- *
- * Read-only table-schema compare + recommend-only change plan.
+ * Schema Compare. Read-only table-schema compare + recommend-only change plan.
  * Copy statements only — never apply DDL.
  */
 

@@ -29,36 +29,21 @@ import { cn } from '@/lib/utils'
  *   }),
  * }
  * ```
- *
- * Sections cover the four shapes a detail panel needs: scannable key/value
- * **grids/lists**, big-number **stat tiles**, mini-bar **charts**, and full
- * **code blocks**.
  */
 
-/** A field in a `fields` section: a column name, or a name + explicit label. */
 export type ExpandedField = string | { key: string; label?: string }
 
-/** A big-number tile in a `stats` section. */
 export interface ExpandedStat {
-  /** Column holding the raw value (and, by convention, `readable_<key>`). */
   key: string
-  /** Display label. Defaults to a humanized `key`. */
   label?: string
-  /** Override which column holds the human-readable value. */
   readableKey?: string
-  /** Optional leading icon. */
   icon?: Icon
 }
 
-/** A labelled mini progress bar in a `bars` section. */
 export interface ExpandedBar {
-  /** Column holding the raw value (and, by convention, `readable_<key>`). */
   key: string
-  /** Display label. Defaults to a humanized `key`. */
   label?: string
-  /** Override which column holds the human-readable value. */
   readableKey?: string
-  /** Column holding a 0–100 percentage for the bar width (default `pct_<key>`). */
   pctKey?: string
 }
 
@@ -67,7 +52,6 @@ export type ExpandedSection =
       type: 'fields'
       title?: string
       columns: ReadonlyArray<ExpandedField>
-      /** Max columns in the responsive grid (default 4). */
       cols?: 2 | 3 | 4 | 5
     }
   | { type: 'stats'; title?: string; columns: ReadonlyArray<ExpandedStat> }
@@ -82,7 +66,6 @@ function hasValue(value: unknown): boolean {
   return value !== undefined && value !== null && String(value).trim() !== ''
 }
 
-/** snake_case / camelCase → "Title Case". */
 function humanizeKey(key: string): string {
   return key
     .replace(/_/g, ' ')
@@ -105,7 +88,6 @@ function formatValue(value: unknown): string {
   return String(value)
 }
 
-/** Prefer the human-readable companion column (`readable_<key>`) when present. */
 function displayValue(
   row: Record<string, unknown>,
   key: string,
@@ -394,11 +376,6 @@ export function ExpandedPanel({ sections, row }: ExpandedPanelProps) {
   )
 }
 
-/**
- * Factory returning an {@link ExpandedRenderer} bound to a section layout.
- * Lives in this `.tsx` module so plain `.ts` query-config files can opt into
- * rich row expansion without importing JSX themselves.
- */
 export function createExpandedPanel(
   options: CreateExpandedPanelOptions
 ): ExpandedRenderer {

@@ -13,10 +13,6 @@ function toSortValue(value: unknown): number {
   return Number.isNaN(num) ? Number.POSITIVE_INFINITY : num
 }
 
-/**
- * Get sorting functions for the table.
- * Reference: https://tanstack.com/table/v8/docs/guide/sorting#custom-sorting-functions
- */
 export const getCustomSortingFns = <TData extends RowData>() => {
   return {
     sort_column_using_actual_value: (

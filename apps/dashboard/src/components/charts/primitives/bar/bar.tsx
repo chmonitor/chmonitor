@@ -1,14 +1,3 @@
-/**
- * Bar chart component built on Recharts
- *
- * Features:
- * - Stacked and grouped bars
- * - Horizontal and vertical layouts
- * - Custom labels and tooltips
- * - Click-to-navigate support
- * - Configurable axes and legends
- */
-
 import {
   Bar,
   CartesianGrid,
@@ -90,8 +79,7 @@ export const BarChart = function BarChart({
 
   const chartConfig = generateChartConfig(categories, colors, colorLabel)
 
-  // Memoize tooltip to prevent recreation on every render
-  // Must use render function (not component) for Recharts to detect it
+  // Must be a render function (not a component) for Recharts to detect it
   const tooltip = renderBarTooltip({
     tooltipTotal,
     categories: sortedCategories,

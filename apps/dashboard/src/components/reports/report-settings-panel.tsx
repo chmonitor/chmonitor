@@ -1,5 +1,5 @@
 /**
- * ReportSettingsPanel — /report-settings body (#2790).
+ * ReportSettingsPanel — /report-settings body.
  *
  * One card, three concerns, zero ceremony:
  *  - Schedule: cadence (off / monthly / weekly) + which hosts the report

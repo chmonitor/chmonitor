@@ -1,8 +1,6 @@
 /**
- * Graceful empty state shown when a required Postgres extension (e.g.
- * `pg_stat_statements`) is not installed on the target database (issue #2450).
- * The Postgres analog of the ClickHouse `table-missing` state: it explains how
- * to enable the extension and never surfaces a raw Postgres error.
+ * Empty state for a missing Postgres extension (e.g. `pg_stat_statements`): explains
+ * how to enable it and never surfaces a raw Postgres error.
  */
 
 import { PuzzleIcon } from 'lucide-react'

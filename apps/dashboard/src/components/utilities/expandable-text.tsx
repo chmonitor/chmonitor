@@ -60,9 +60,6 @@ function useClickOutside(
   }, [enabled, refs, onClose])
 }
 
-/**
- * Popover variant - shows full text in a floating tooltip on click
- */
 const PopoverVariant = function PopoverVariant({
   maxLines,
   showIndicator,
@@ -140,9 +137,6 @@ const PopoverVariant = function PopoverVariant({
   )
 }
 
-/**
- * Inline variant - expands in place on click
- */
 const InlineVariant = function InlineVariant({
   maxLines,
   showIndicator,
@@ -194,28 +188,6 @@ const InlineVariant = function InlineVariant({
   )
 }
 
-/**
- * ExpandableText - A reusable text component with overflow detection and expansion
- *
- * @param children - The text content to display
- * @param variant - "popover" shows floating tooltip, "inline" expands in place
- * @param maxLines - Maximum lines before truncation (default: 1)
- * @param showIndicator - Show chevron icon when truncated (default: true)
- * @param className - Additional CSS classes
- *
- * @example
- * ```tsx
- * // Popover variant for titles
- * <ExpandableText variant="popover" maxLines={1}>
- *   {title}
- * </ExpandableText>
- *
- * // Inline variant for descriptions
- * <ExpandableText variant="inline" maxLines={2}>
- *   {description}
- * </ExpandableText>
- * ```
- */
 export const ExpandableText = function ExpandableText({
   children,
   variant = 'popover',
@@ -227,7 +199,6 @@ export const ExpandableText = function ExpandableText({
   const [isOverflowing, setIsOverflowing] = useState(false)
   const [isMeasured, setIsMeasured] = useState(false)
 
-  // Measure overflow on mount and resize
   // biome-ignore lint/correctness/useExhaustiveDependencies: Re-measuring on children/content change is intentional
   useEffect(() => {
     const element = contentRef.current
@@ -246,7 +217,6 @@ export const ExpandableText = function ExpandableText({
     return () => resizeObserver.disconnect()
   }, [children, maxLines])
 
-  // Don't show interactivity until we've measured
   if (!isMeasured) {
     return (
       <span

@@ -4,8 +4,7 @@
  * AgentWelcomeScreen — chat-first welcome screen for the AI Agent page.
  *
  * Centred layout: sparkle icon + dynamic greeting, composer (assistant-ui
- * suggestion-friendly), and a skills capability grid. Replaces the old
- * `ThreadWelcome` empty-state inside `thread.tsx`.
+ * suggestion-friendly), and a skills capability grid.
  *
  * The composer itself is still rendered by `thread.tsx` (so we don't
  * duplicate runtime wiring); this component is the surrounding shell.
@@ -64,7 +63,6 @@ export function AgentWelcomeScreen({
         </p>
       </div>
 
-      {/* Composer (parent-owned) */}
       <div className="mb-8">
         {needsConnection ? (
           <AgentConnectionErrorNotice view={ADD_CONNECTION_VIEW} />

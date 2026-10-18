@@ -9,7 +9,6 @@ import { userProcessesConfig } from '@/lib/query-config/tables/user-processes'
 import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
-/** Presets that drive the dynamic `last_hours` window, from the query config. */
 const PRESETS = userProcessesConfig.filterParamPresets ?? []
 
 /**

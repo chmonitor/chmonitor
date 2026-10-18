@@ -8,11 +8,8 @@ import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/format-number'
 
 export interface DataTableFooterProps<TData extends RowData> {
-  /** TanStack Table instance */
   table: Table<TData>
-  /** Custom footnote content */
   footnote?: FootnoteProps['footnote']
-  /** Compact mode: minimal row count + prev/next only */
   compact?: boolean
 }
 

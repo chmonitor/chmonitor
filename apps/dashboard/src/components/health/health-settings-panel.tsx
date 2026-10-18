@@ -63,9 +63,8 @@ export {
 } from '@/lib/health/health-settings-tabs'
 
 /**
- * Tab strip definition — one place so every tab gets the same icon size and
- * spacing (`TabsTrigger` already supplies `items-center gap-1.5`; an extra
- * margin utility reads as misalignment).
+ * Tab strip definition. `TabsTrigger` already supplies `items-center gap-1.5`;
+ * an extra margin utility reads as misalignment.
  */
 const TAB_DEFS: {
   value: HealthSettingsTab
@@ -78,10 +77,7 @@ const TAB_DEFS: {
   { value: 'advanced', label: 'Advanced', icon: Cog },
 ]
 
-/**
- * Shared body of the health/alert settings surface — tabs, form state and
- * save logic. Rendered by the `/health-settings` and `/alert-settings` pages.
- */
+/** Shared body of the `/health-settings` and `/alert-settings` pages. */
 export function HealthSettingsPanel({
   defaultTab,
   footer,
@@ -217,8 +213,8 @@ export function HealthSettingsPanel({
   }
 
   const handleTestBrowser = () => {
-    // Gated on the live permission, not the stored preference — the two used to
-    // disagree, so "Send test" could look available and deliver nothing.
+    // Gated on the live permission, not the stored preference, so "Send test"
+    // never looks available when it cannot deliver.
     if (permission.state === 'unsupported') {
       toast.error('Browser notifications are not supported in this browser')
       return

@@ -41,7 +41,7 @@ type ChainOfThoughtKey = 'group-reasoning' | 'group-tool'
  * A text part between two runs breaks the run, so counts stay local. Text
  * parts are left ungrouped (rendered as leaves).
  *
- * Plain module-level stable reference — required for GroupedParts performance.
+ * Module-level so the reference is stable (required for GroupedParts performance).
  * Intentionally NOT `groupPartByType`: the Cloudflare build replaces
  * `@assistant-ui/react` with a client-only SSR stub whose fixed export list
  * does not include `groupPartByType`, so importing it breaks the CF build.
@@ -54,7 +54,6 @@ export const groupByChainOfThought = (
   return null
 }
 
-/** Shape of each group/leaf node delivered by MessagePrimitive.GroupedParts */
 type GroupedRenderInfo = {
   readonly part:
     | {
@@ -66,10 +65,6 @@ type GroupedRenderInfo = {
   readonly children: ReactNode
 }
 
-/**
- * Renders an enriched leaf part (text, reasoning, tool-call, etc.) inside
- * GroupedParts. For tool-calls we use the full ToolFallback renderer.
- */
 function renderLeafPart(part: EnrichedPartState) {
   switch (part.type) {
     case 'text': {
@@ -106,12 +101,6 @@ function renderLeafPart(part: EnrichedPartState) {
  * any tool's content.
  */
 
-/**
- * Renderer function for MessagePrimitive.GroupedParts.
- * Reasoning and tool runs render as separate sibling collapsibles whose open
- * state follows the run's `running` status; leaf parts delegate to
- * renderLeafPart().
- */
 export function renderGroupedPart({ part, children }: GroupedRenderInfo) {
   switch (part.type) {
     case 'group-reasoning': {
@@ -124,10 +113,7 @@ export function renderGroupedPart({ part, children }: GroupedRenderInfo) {
       )
     }
     case 'group-tool': {
-      // Collapse a run of adjacent tool calls into ONE "N tool calls"
-      // disclosure (issue #2803). While the run streams it auto-expands; once
-      // finished it collapses into tidy history. A single tool call needs no
-      // outer group — render it as a bare sibling row.
+      // A single tool call needs no outer group — render it as a bare sibling row.
       const count = 'indices' in part ? part.indices.length : 0
       const isRunning = part.status?.type === 'running'
       if (count <= 1) return <>{children}</>

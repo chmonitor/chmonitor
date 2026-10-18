@@ -31,7 +31,6 @@ import { OPERATORS } from '@/lib/filters/operators'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
-/** A draft filter being edited (operator + raw values, before serialization). */
 export interface FilterDraft {
   operator: FilterOperator
   values: string[]
@@ -46,7 +45,6 @@ interface FilterEditorProps {
   onCancel: () => void
 }
 
-/** Validate that a draft has enough values for its operator. */
 function isDraftValid(operator: FilterOperator, values: string[]): boolean {
   const { arity } = OPERATORS[operator]
   if (arity === 'multi') return values.some((v) => v.trim().length > 0)
@@ -54,7 +52,6 @@ function isDraftValid(operator: FilterOperator, values: string[]): boolean {
   return Boolean(values[0]?.trim())
 }
 
-/** Coerce a draft's values to the exact shape its operator expects. */
 function normalizeValues(operator: FilterOperator, values: string[]): string[] {
   const { arity } = OPERATORS[operator]
   if (arity === 'multi') return values.filter((v) => v.trim().length > 0)
@@ -148,7 +145,6 @@ interface FilterValueInputProps {
   configName: string
 }
 
-/** Renders the value editor appropriate for the field type + operator. */
 function FilterValueInput({
   field,
   operator,
@@ -229,7 +225,6 @@ interface SingleValueInputProps {
   onSubmit: () => void
 }
 
-/** A single value editor: relative-time select, datetime, number, or text. */
 function SingleValueInput({
   field,
   operator,

@@ -1,9 +1,3 @@
-/**
- * Error alert icon configurations
- *
- * Maps error types to their corresponding icons for consistent visual representation.
- */
-
 import {
   AlertTriangleIcon,
   DatabaseIcon,

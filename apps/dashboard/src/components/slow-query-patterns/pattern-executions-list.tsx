@@ -1,15 +1,6 @@
 /**
- * Compact execution list shared by the pattern detail flyout's "Recent" and
- * "Notable runs" tabs (`pattern-detail-sheet.tsx`). Rows come from
- * `GET /api/v1/insights/query-patterns/:hash` (#2266,
- * `lib/api/insights/query-patterns.ts`'s `buildPatternExecutionsConfig`) —
- * reused as-is rather than duplicating a second "executions for one pattern"
- * query.
- *
- * Deliberately a plain shadcn `Table`, not the full `DataTable` machinery —
- * this list lives inside a `Sheet` alongside stat cards and tabs; the
- * pagination/column-visibility/filter-bar chrome `DataTable` brings would be
- * noise here, not a feature.
+ * Compact execution list for the pattern flyout's "Recent" and "Notable runs" tabs.
+ * A plain `Table` on purpose: `DataTable` chrome is noise inside a `Sheet`.
  */
 import { AlertTriangleIcon, ExternalLinkIcon } from 'lucide-react'
 
@@ -28,9 +19,6 @@ import {
 import { formatReadableQuantity } from '@/lib/format-readable'
 import { formatDuration } from '@/lib/utils'
 
-/** Shape of one row in `/api/v1/insights/query-patterns/:hash`'s
- * `data.executions[]` — see `buildPatternExecutionsConfig` in
- * `lib/api/insights/query-patterns.ts`. */
 export interface PatternExecutionRow {
   query_id: string
   event_time: string

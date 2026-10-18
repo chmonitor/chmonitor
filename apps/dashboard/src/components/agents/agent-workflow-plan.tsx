@@ -40,10 +40,6 @@ function StepIcon({ status }: { status: WorkflowPlanStepStatus }) {
 
 /**
  * Renders the agent's live workflow plan (the output of the `update_plan` tool).
- *
- * Shows each step with a status icon, strikes through completed steps, and
- * highlights the step currently in progress — giving the user a transparent view
- * of where the agent is in its multi-step investigation harness.
  */
 export function AgentWorkflowPlan({
   steps,

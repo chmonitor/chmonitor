@@ -2,8 +2,8 @@
 
 /**
  * AiUsageMeter — the single shared rendering of the daily AI-message allowance,
- * used both as a compact composer chip and as a sidebar progress panel
- * (issue #2809). One source of truth for the quota colours + copy.
+ * used both as a compact composer chip and as a sidebar progress panel.
+ * One source of truth for the quota colours + copy.
  *
  * Cloud-only: {@link useAiQuota} resolves `show: false` on OSS, for unlimited
  * plans, and on any endpoint error/absence, so every variant renders nothing in

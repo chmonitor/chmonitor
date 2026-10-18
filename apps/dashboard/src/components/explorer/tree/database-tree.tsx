@@ -37,13 +37,9 @@ const fetcher = async (url: string): Promise<ApiResponse<Database[]>> => {
 }
 
 export interface DatabaseTreeProps {
-  /** Extra controls rendered between search and the tree (Advisor schema). */
   toolbar?: ReactNode
-  /** `db.table` keys that need attention. */
   careKeys?: ReadonlySet<string>
-  /** Optional table list transform (filter / sort / hide). Search is passed in. */
   transformTables?: (tables: TreeTable[], searchFilter: string) => TreeTable[]
-  /** Optional database reorder (e.g. care databases first). */
   sortDatabases?: <T extends { name: string }>(rows: T[]) => T[]
 }
 

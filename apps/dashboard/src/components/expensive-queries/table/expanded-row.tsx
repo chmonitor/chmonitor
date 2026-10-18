@@ -76,7 +76,6 @@ export function ExpandedRow({ d }: { d: DerivedQuery }) {
 
   return (
     <div className="space-y-3 border-t border-border bg-muted/40 px-3 py-3.5 sm:px-5">
-      {/* Secondary metrics — a compact key/value grid */}
       <div className="overflow-hidden rounded-md border border-border bg-card">
         <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Aggregated metrics (last 24h)
@@ -93,7 +92,6 @@ export function ExpandedRow({ d }: { d: DerivedQuery }) {
         </dl>
       </div>
 
-      {/* Full query — a plain, scrollable code block. */}
       <div>
         <div className="mb-1.5 flex items-center justify-between gap-2">
           <span className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">

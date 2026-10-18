@@ -1,7 +1,3 @@
-/**
- * Users tab — Create / Alter / Drop user forms for the RBAC management page.
- */
-
 import type { AuditEntry } from './types'
 
 import { ConfirmDialog } from './confirm-dialog'

@@ -64,7 +64,6 @@ export function PartLogTable({
 
   const nowSeconds = useMemo(() => Math.floor(Date.now() / 1000), [])
 
-  // Static filters + one chip per database seen in the loaded rows.
   const quickFilters = useMemo<QuickFilter[]>(() => {
     const dbs = [...new Set(rows.map((r) => r.database).filter(Boolean))].sort()
     return [

@@ -423,7 +423,6 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
               </tr>
             </thead>
             <tbody>
-              {/* Retained Done rows, pinned above the live rows. */}
               {derivedDone.map((d) => (
                 <QueryRow
                   key={d.key}

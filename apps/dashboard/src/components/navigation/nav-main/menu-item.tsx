@@ -41,7 +41,7 @@ function unavailableTooltip(
 
 /**
  * Badges hide on hover/focus so they never stack on the pin in the same
- * right-hand corner (#2769 follow-up). Pin is hover-only, so badges stay
+ * right-hand corner. Pin is hover-only, so badges stay
  * visible at rest even when the item is favorited. Below `lg` the pin is
  * replaced by the "…" `RowActionsMenu`, which steps left of the badge.
  */
@@ -129,7 +129,7 @@ const SingleMenuItem = function SingleMenuItem({
     Boolean(item.href) &&
     hiddenSiblingLeaves(catalog, item.href, hiddenHrefs).length > 0
 
-  // Hide or dim per the one availability policy (#3463). A `tableCheck` page
+  // Hide or dim per the one availability policy. A `tableCheck` page
   // whose backing table is missing can never work here, so under the default
   // Hide setting it leaves the rail entirely; a config-gated page is only dimmed
   // unless the item opts in. It stays routable by URL and explains itself there.
@@ -226,7 +226,7 @@ const SubMenuItem = function SubMenuItem({
     Boolean(subItem.href) &&
     hiddenSiblingLeaves(catalog, subItem.href, hiddenHrefs).length > 0
 
-  // Same policy as the leaf path above and the collapsed flyout (#3463).
+  // Same policy as the leaf path above and the collapsed flyout.
   if (resolution.visibility === 'hidden') {
     return null
   }
@@ -300,7 +300,7 @@ const SubMenuItem = function SubMenuItem({
 }
 
 /**
- * One subgroup heading inside an expanded group (#3676): a real <button> that
+ * One subgroup heading inside an expanded group: a real <button> that
  * shows or hides its pages. The subgroup holding the active page opens (and
  * re-opens when navigation lands on one of its pages); other subgroups start
  * from the saved state, else collapsed. Pages keep every leaf affordance.

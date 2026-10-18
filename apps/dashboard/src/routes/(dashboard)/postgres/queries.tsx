@@ -8,8 +8,8 @@ import { pageOgHead } from '@/lib/og'
 import { pgSlowPatternsConfig } from '@/lib/pg-query-config'
 
 /**
- * Postgres Query Insights — slow query patterns from `pg_stat_statements`
- * (issue #2450). Holds the selected-pattern state and renders the detail
+ * Postgres Query Insights — slow query patterns from `pg_stat_statements`.
+ * Holds the selected-pattern state and renders the detail
  * flyout alongside the table, mirroring the ClickHouse Slow Query Patterns page.
  */
 function PostgresQueriesPage() {

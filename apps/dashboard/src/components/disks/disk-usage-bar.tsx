@@ -1,12 +1,6 @@
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
-/**
- * Threshold-based accent for disk fill level.
- * - < 75%  green (healthy)
- * - 75-90% amber (warning)
- * - >= 90%  red (critical)
- */
 export function usageLevel(percentUsed: number): 'ok' | 'warn' | 'critical' {
   if (percentUsed >= 90) return 'critical'
   if (percentUsed >= 75) return 'warn'
@@ -30,10 +24,6 @@ interface DiskUsageBarProps {
   className?: string
 }
 
-/**
- * Color-accented usage bar. Composes the shadcn Progress primitive and
- * overrides the indicator/track colors via className (never edits ui/*).
- */
 export function DiskUsageBar({ percentUsed, className }: DiskUsageBarProps) {
   const level = usageLevel(percentUsed)
   const clamped = Math.max(0, Math.min(100, percentUsed))

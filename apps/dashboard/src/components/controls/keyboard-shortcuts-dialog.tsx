@@ -1,9 +1,3 @@
-/**
- * Keyboard shortcuts help dialog component
- *
- * Displays available keyboard shortcuts in a modal dialog.
- */
-
 import { SHORTCUTS } from './config/shortcuts-config'
 import {
   Dialog,
@@ -17,9 +11,6 @@ interface KeyboardShortcutsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-/**
- * Modal dialog showing all available keyboard shortcuts
- */
 export function KeyboardShortcutsDialog({
   open,
   onOpenChange,
@@ -62,9 +53,6 @@ interface ShortcutItemProps {
   description: string
 }
 
-/**
- * Individual shortcut row in the help dialog
- */
 function ShortcutItem({ keyCombination, description }: ShortcutItemProps) {
   return (
     <div

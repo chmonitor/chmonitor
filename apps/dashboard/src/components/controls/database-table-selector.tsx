@@ -40,10 +40,6 @@ interface DatabaseTableSelectorProps {
   showLabels?: boolean
 }
 
-/**
- * Database and table selector component.
- * Fetches databases and tables from the API and updates URL query parameters.
- */
 export function DatabaseTableSelector({
   className,
   showLabels = true,

@@ -30,10 +30,8 @@ export function getFilterToggleHref(
 
   if (newParams.get(key) === value) {
     if (defaultParams?.[key] !== '') {
-      // Has default value - set to empty instead of deleting
       newParams.set(key, '')
     } else {
-      // No default value - delete completely
       newParams.delete(key)
     }
   } else {

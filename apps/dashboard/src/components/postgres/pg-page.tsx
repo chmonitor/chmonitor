@@ -1,13 +1,7 @@
 /**
- * Page shell for a Postgres `PgQueryConfig` (issue #2450). The Postgres analog
- * of `QueryPageLayout`: it resolves the active Postgres source (`?pg=`), fetches
- * the config's rows via `usePgQuery`, and renders the appropriate state —
- * skeleton, graceful error (keeps prior rows on a background-refresh failure,
- * matching the ClickHouse stale-indicator pattern), the extension-missing
- * EmptyState, an empty-data state, or the `PgTable`.
- *
- * Never surfaces a raw Postgres error: extension-missing is a first-class
- * empty state, and genuine failures render a friendly, classified message.
+ * Page shell for a Postgres `PgQueryConfig`: resolves the active `?pg=` source and
+ * renders skeleton, error (keeps prior rows on a refresh failure), extension-missing,
+ * empty, or table state. Never surfaces a raw Postgres error.
  */
 
 import { AlertTriangleIcon, DatabaseIcon, RefreshCwIcon } from 'lucide-react'
@@ -27,7 +21,6 @@ import { usePgQuery } from '@/lib/hooks/use-pg-query'
 
 export interface PgPageProps {
   config: PgQueryConfig
-  /** Auto-refresh interval in ms (e.g. running queries). */
   refetchInterval?: number
   onRowClick?: (row: Record<string, unknown>) => void
 }

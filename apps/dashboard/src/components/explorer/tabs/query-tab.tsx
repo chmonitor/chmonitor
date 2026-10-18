@@ -4,13 +4,10 @@ import { SqlConsole } from '@/components/sql-console'
 import { useHostId } from '@/lib/swr/use-host'
 
 /**
- * Explorer "Query" tab — a thin adapter around the shared <SqlConsole/>.
- *
- * The previous bespoke implementation force-mounted CodeMirror and hid it with
- * display:none on tab switch, which froze the page (CM ResizeObserver loops on a
- * 0×0 box). SqlConsole keeps the editor always-mounted and visible, with only
- * the result area tabbed — so the freeze cannot recur. The committed query syncs
- * to the explorer URL (?q=) via setCustomQuery, preserving shareable links.
+ * Explorer "Query" tab, a thin adapter around the shared <SqlConsole/>.
+ * SqlConsole keeps the editor always mounted: hiding CodeMirror with display:none
+ * froze the page (ResizeObserver loop on a 0x0 box). The committed query syncs to
+ * the explorer URL (?q=) so links stay shareable.
  */
 export function QueryTab() {
   const hostId = useHostId()

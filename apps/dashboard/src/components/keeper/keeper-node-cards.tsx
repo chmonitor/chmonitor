@@ -248,7 +248,6 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
           </div>
         </div>
 
-        {/* Znodes / watches / ephemerals / data */}
         <div className="mb-1">
           <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/70">
             Storage

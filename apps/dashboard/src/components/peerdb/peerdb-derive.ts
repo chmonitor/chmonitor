@@ -59,9 +59,7 @@ export const EAGER_METRICS_LIMIT = 24
  * Whether the mirror at `visibleIndex` should fetch its metrics eagerly, i.e.
  * without waiting for the user to expand the row. The first EAGER_METRICS_LIMIT
  * rows always load so the header KPIs / sparklines / lag triage are non-zero on
- * mount — regardless of fleet size. Previously this was gated on the WHOLE
- * fleet being <= the limit, which left every row (and thus every page-level
- * total) at zero until a row was expanded on large fleets.
+ * mount — regardless of fleet size.
  */
 export function shouldEagerLoadMetrics(
   visibleIndex: number,
@@ -73,8 +71,7 @@ export function shouldEagerLoadMetrics(
 export type SlotHealth = 'ok' | 'warn' | 'critical'
 
 // Lag thresholds live in `lib/peerdb/slot-lag-thresholds` (the single source
-// shared with the insights classifiers); re-exported here so existing
-// `./peerdb-derive` consumers keep working unchanged.
+// shared with the insights classifiers); re-exported here.
 export {
   SLOT_LAG_CRITICAL_MB,
   SLOT_LAG_WARN_MB,

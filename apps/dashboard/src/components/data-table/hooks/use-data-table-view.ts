@@ -82,7 +82,6 @@ export function useDataTableView<TData extends RowData>({
 
       const allColumnIds = table.getAllLeafColumns().map((col) => col.id)
 
-      // Use currentOrder if it has values, otherwise use all columns in natural order
       const effectiveOrder =
         currentOrder.length > 0 ? currentOrder : allColumnIds
 

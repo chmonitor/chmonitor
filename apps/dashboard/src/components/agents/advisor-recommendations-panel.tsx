@@ -26,8 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { cn } from '@/lib/utils'
 
-// Same rose/amber/sky severity triad used elsewhere for graded status
-// (see components/agents/agent-diagnostics.tsx's SEVERITY_CLASS).
+// Same severity triad as SEVERITY_CLASS in agent-diagnostics.tsx.
 const RISK_CLASS: Record<Recommendation['risk'], string> = {
   high: 'border-destructive/30 bg-destructive/10 text-destructive',
   medium:

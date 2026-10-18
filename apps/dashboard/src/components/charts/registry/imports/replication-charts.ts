@@ -1,9 +1,3 @@
-/**
- * Replication chart imports
- *
- * Lazy-loaded replication-related charts.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

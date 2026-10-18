@@ -1,9 +1,3 @@
-/**
- * Miscellaneous chart imports
- *
- * Lazy-loaded charts that don't fit into specific categories.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

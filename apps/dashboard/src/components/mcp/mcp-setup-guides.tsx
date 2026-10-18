@@ -24,17 +24,9 @@ interface SetupGuide {
   id: string
   name: string
   description: string
-  /** Lucide glyph standing in for the client — no new icon dependency. */
   icon: React.ComponentType<{ className?: string }>
-  /** Where the config lives, e.g. "macOS · Windows" or "CLI". */
   platform: string
-  /** How the client connects, e.g. "Streamable HTTP". */
   transport: string
-  /**
-   * The single snippet a user most likely wants (config JSON or the add
-   * command). Surfaced as a copy button on the collapsed row so the common
-   * case needs no expand.
-   */
   quickCopy: string
   steps: Array<
     | { type: 'text'; content: string }
@@ -88,7 +80,6 @@ function GuideSection({ guide }: { guide: SetupGuide }) {
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           )}
         </button>
-        {/* Visible at rest: the whole point of the row is this snippet. */}
         <CopyButton
           text={guide.quickCopy}
           label="Copy config"
@@ -124,8 +115,6 @@ export function McpSetupGuides() {
     setEndpointUrl(`${window.location.origin}/api/mcp`)
   }, [])
 
-  // The snippets each row copies at rest — defined once and reused as both the
-  // collapsed-row quick copy and the expanded code block.
   const desktopConfig = JSON.stringify(
     { mcpServers: { 'clickhouse-monitor': { url: endpointUrl } } },
     null,

@@ -1,7 +1,3 @@
-/**
- * Tabs skeleton component for loading states
- */
-
 import { Skeleton } from './base'
 import { cn } from '@/lib/utils'
 

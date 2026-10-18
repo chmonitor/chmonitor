@@ -1,7 +1,3 @@
-/**
- * Column cell component with formatted content
- */
-
 import type { Row, RowData, Table } from '@tanstack/react-table'
 
 import type { ColumnFormat, ColumnFormatOptions } from '@/types/column-format'
@@ -23,9 +19,6 @@ interface ColumnCellProps<
   formatOptions?: ColumnFormatOptions
 }
 
-/**
- * Wrapper component for formatted cell content
- */
 function ColumnCellInner<
   TData extends RowData,
   TValue extends React.ReactNode,

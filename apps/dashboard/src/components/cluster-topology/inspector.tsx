@@ -29,7 +29,7 @@ function InsRow({
   )
 }
 
-/** Thin colored meter — design uses an inline bar, not the Radix Progress. */
+/** Thin colored meter (inline bar, not the Radix Progress). */
 function Meter({ pct, color }: { pct: number; color: string }) {
   return (
     <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
@@ -240,9 +240,8 @@ export function ChInspector({
         : 'hsl(217 91% 60%)'
   const mems = membershipsOf(model, node.id)
   const isLocal = node.isLocal
-  // Show live resources whenever we actually have metrics for this node — real
-  // per-node numbers now come from the server-side clusterAllReplicas fan-out,
-  // so remote (non-local) reachable nodes show live data too.
+  // Per-node metrics come from the server-side clusterAllReplicas fan-out, so
+  // remote reachable nodes have live data too.
   const hasLive =
     live.cpuPct !== null ||
     live.memUsed !== null ||

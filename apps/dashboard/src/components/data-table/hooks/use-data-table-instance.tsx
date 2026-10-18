@@ -167,7 +167,6 @@ export function useDataTableInstance<
   })()
   const [expanded, setExpanded] = useState<ExpandedState>(initialExpanded)
 
-  // Generate unique row ID from data (use query_id if available, otherwise index)
   // Memoized: the body captures nothing, so a stable reference avoids feeding
   // useReactTable a new getRowId every render (which would bust its row models).
   const getRowId = useCallback((row: TData, index: number) => {
@@ -187,7 +186,6 @@ export function useDataTableInstance<
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
-    // Ref: https://tanstack.com/table/v8/docs/guide/sorting#custom-sorting-functions
     sortingFns: customSortingFns,
     getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange,

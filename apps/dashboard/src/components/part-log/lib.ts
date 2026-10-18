@@ -13,7 +13,6 @@ import {
   formatReadableSize,
 } from '@/lib/format-readable'
 
-/** A single `system.part_log` row, as projected by `partLogConfig`. */
 export interface PartLogRow {
   event_time: string
   event_unixtime: number | string
@@ -40,7 +39,6 @@ export interface PartLogRow {
   [key: string]: unknown
 }
 
-/** Visual tone tokens shared across badges, dots and bars. */
 export type Tone = 'green' | 'violet' | 'blue' | 'amber' | 'rose' | 'neutral'
 
 /** Resolved CSS colors per tone (raw hex so SVG fills stay theme-stable). */
@@ -77,10 +75,8 @@ export const EVENT_TONE: Record<string, Tone> = {
   RemovePart: 'rose',
 }
 
-/** The four lifecycle classes used for charts + quick filters. */
 export type LifecycleClass = 'new' | 'merge' | 'mutate' | 'remove' | 'move'
 
-/** Map an `event_type` to one of the lifecycle classes. */
 export function lifecycleClass(eventType: string): LifecycleClass {
   if (eventType === 'NewPart') return 'new'
   if (eventType.startsWith('Merge')) return 'merge'
@@ -96,7 +92,6 @@ export const REASON_TONE: Record<string, Tone> = {
   TTLRecompressMerge: 'violet',
 }
 
-/** Stable accent tone for a `database.table` string. */
 const TABLE_TONES: Tone[] = [
   'amber',
   'violet',
@@ -116,7 +111,6 @@ export const num = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0
 }
 
-/** Format epoch-seconds into a "Ns / Nm / Nh ago" relative label. */
 export function relativeAgo(unixSeconds: number, nowSeconds: number): string {
   const d = Math.max(0, nowSeconds - unixSeconds)
   if (d < 60) return `${d}s ago`
@@ -125,7 +119,6 @@ export function relativeAgo(unixSeconds: number, nowSeconds: number): string {
   return `${Math.floor(d / 86400)}d ago`
 }
 
-/** Time-of-day part of a "YYYY-MM-DD HH:MM:SS" string (best-effort). */
 export function timeOfDay(eventTime: string): string {
   const m = eventTime.match(/(\d{2}:\d{2}:\d{2})/)
   return m ? m[1] : eventTime
@@ -137,7 +130,6 @@ export interface SizeBin {
   max: number
 }
 
-/** Log-scale size buckets matching the mockup histogram. */
 export const SIZE_BINS: SizeBin[] = [
   { label: '<8K', max: 8 * 1024 },
   { label: '<64K', max: 64 * 1024 },

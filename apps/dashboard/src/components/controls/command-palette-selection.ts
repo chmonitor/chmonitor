@@ -1,7 +1,7 @@
 /**
  * Keyboard selection for ⌘K: group headings and Hidden badges are not
  * navigable rows. cmdk's own filter reorders DOM nodes and can leave Enter
- * bound to the item *below* the highlighted row (#3346). Filter/rank here,
+ * bound to the item *below* the highlighted row. Filter/rank here,
  * then activate `navigable[selectedIndex]` so Enter matches the highlight.
  */
 
@@ -35,7 +35,6 @@ export interface PaletteItemGroup {
   items: PaletteItemRow[]
 }
 
-/** Unique cmdk `value` so identity is not the long search haystack. */
 export function paletteItemId(groupTitle: string, href: string): string {
   return `page:${groupTitle}:${href}`
 }
@@ -85,7 +84,7 @@ export function buildSectionedPaletteRows(
 ): PaletteRow[] {
   const rows: PaletteRow[] = []
   for (const group of sectionedItems) {
-    // Same sections as the sidebar (#3676): a subgroup with 2+ pages gets a
+    // Same sections as the sidebar: a subgroup with 2+ pages gets a
     // "Group › Subgroup" heading. Collapse state never filters the palette.
     groupChildrenBySubgroup(group.items ?? []).forEach((section, index) => {
       const title = section.subgroup

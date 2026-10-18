@@ -28,11 +28,10 @@ import { AGENT_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { resolveFeatureState } from '@/lib/feature-permissions/shared'
 
 /**
- * Clerk's `SignInButton` requires a mounted `<ClerkProvider />`. Gate it behind
- * the build-time `isClerkEnabled()` constant so it is only rendered when Clerk is
- * active; when Clerk is off the value is null and the dialog renders without a
- * sign-in action. The import is inert (the Clerk hook only runs on render), and a
- * static ESM import replaces `require()`, undefined in the Vite/ESM runtime.
+ * Clerk's `SignInButton` requires a mounted `<ClerkProvider />`, so it is gated
+ * behind the build-time `isClerkEnabled()`; when off the value is null and the
+ * dialog renders without a sign-in action. A static ESM import is used because
+ * `require()` is undefined in Vite/ESM.
  */
 const ClerkSignInButton:
   | ((props: { children: ReactNode }) => ReactNode)
@@ -50,21 +49,12 @@ const useClerkIsSignedIn: () => boolean = isClerkEnabled()
   : () => true
 
 interface AgentAuthGateValue {
-  /**
-   * Call before an auth-requiring interaction (e.g. sending a message).
-   * Returns true if the user may proceed; otherwise opens the sign-in dialog
-   * and returns false so the caller can abort.
-   */
+  /** Returns true if the user may proceed; otherwise opens the sign-in dialog and returns false. */
   ensureAuthed: () => boolean
 }
 
 const AgentAuthGateContext = createContext<AgentAuthGateValue | null>(null)
 
-/**
- * Renders the agent chat UI for everyone (the route is interaction-gated, see
- * `feature-route-gate.tsx`) and prompts for sign-in only when an
- * auth-requiring action is attempted.
- */
 export function AgentAuthGate({ children }: { children: ReactNode }) {
   const { config, isLoading } = useFeaturePermissions()
   const signedIn = useClerkIsSignedIn()
@@ -128,10 +118,7 @@ export function AgentAuthGate({ children }: { children: ReactNode }) {
   )
 }
 
-/**
- * Access the agent auth gate. Falls back to an always-allow gate when used
- * outside an `AgentAuthGate` (e.g. in isolated tests), so callers never crash.
- */
+/** Falls back to an always-allow gate outside an `AgentAuthGate` (e.g. isolated tests). */
 export function useAgentAuthGate(): AgentAuthGateValue {
   return use(AgentAuthGateContext) ?? { ensureAuthed: () => true }
 }

@@ -15,7 +15,6 @@ const CSV_HEADERS = [
   'Query',
 ] as const
 
-/** Download the currently-filtered rows as a CSV file. */
 export function downloadExpensiveCsv(rows: DerivedQuery[]) {
   exportCsv(
     CSV_HEADERS,

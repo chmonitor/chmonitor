@@ -1,9 +1,3 @@
-/**
- * Chart Registry Types
- *
- * Core type definitions for the chart registry system.
- */
-
 import type { LazyExoticComponent } from 'react'
 import type { ChartProps } from '@/components/charts/chart-props'
 

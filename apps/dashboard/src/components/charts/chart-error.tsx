@@ -54,8 +54,6 @@ export const ChartError = function ChartError({
   const errorClassName = getCardErrorClassName(variant)
   const showRetry = onRetry && shouldShowRetryButton(error)
 
-  // Generate markdown for AI prompts — passed to the lazy dialog content so it
-  // can be computed here without pulling in react-markdown.
   const errorMarkdown = `# ${customTitle || 'ClickHouse Error'}
 
 **Error:** ${error?.message || 'Unknown'}

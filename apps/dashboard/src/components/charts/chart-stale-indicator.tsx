@@ -25,12 +25,7 @@ interface ChartStaleIndicatorProps {
   alwaysVisible?: boolean
 }
 
-/**
- * ChartStaleIndicator - Shows a subtle warning icon when chart data may be stale
- *
- * Displayed when SWR revalidation fails but previous data exists.
- * Follows the same hover pattern as CardToolbar and DateRangeSelector.
- */
+/** Hover-revealed warning for when revalidation failed but previous data is still shown. */
 export const ChartStaleIndicator = function ChartStaleIndicator({
   error,
   onRetry,

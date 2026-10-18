@@ -1,12 +1,6 @@
 import { Skeleton } from '@/components/skeletons'
 
-/** Skeleton placeholder shown during the initial load of query tables. */
-export function QueryPageSkeleton({
-  rows = 5,
-}: {
-  /** Number of skeleton rows. Defaults to 5. */
-  rows?: number
-}) {
+export function QueryPageSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
@@ -56,7 +50,6 @@ export function RunningQueriesPageSkeleton() {
         </div>
       </div>
 
-      {/* Chart strip (4 cards, open by default) */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
           <Skeleton

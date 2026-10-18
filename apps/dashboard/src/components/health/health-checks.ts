@@ -48,17 +48,15 @@ export interface HealthCheckDef {
   relatedLinks?: readonly RelatedLink[]
   docsLinks?: readonly DocsLink[]
   /**
-   * The SQL query that computes this check's value. Shown in the detail dialog
-   * and embedded in the audit prompt. Kept verbatim in sync with the backing
-   * chart query in `lib/api/charts/system-charts.ts` (display-only — importing
-   * the chart registry here would cross a layering boundary depcruise enforces).
+   * SQL that computes this check's value, shown in the detail dialog and audit
+   * prompt. Display-only copy of the chart query in `lib/api/charts/system-charts.ts`:
+   * importing the registry here would cross a depcruise layering boundary.
    */
   sql?: string
   /**
-   * Chart name (in the registry) whose query returns the *affected rows* behind
-   * this check — the drill-down breakdown shown in the detail dialog (e.g. the
-   * individual lagging replicas, not just the max lag). Fetched on demand when
-   * the dialog opens. Omit for checks with no meaningful per-row breakdown.
+   * Chart whose query returns the *affected rows* behind this check (e.g. the
+   * lagging replicas), fetched when the dialog opens. Omit when there is no
+   * per-row breakdown.
    */
   detailChartName?: string
   /**

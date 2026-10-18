@@ -1,9 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
-/**
- * Single line skeleton for inline loading states
- */
 export const SingleLineSkeleton = function SingleLineSkeleton({
   className = 'w-[500px]',
 }: {
@@ -26,9 +23,6 @@ export const SingleLineSkeleton = function SingleLineSkeleton({
   )
 }
 
-/**
- * Multi-line skeleton for larger content areas
- */
 export const MultiLineSkeleton = function MultiLineSkeleton({
   className = 'w-[500px]',
 }: {
@@ -55,9 +49,6 @@ export const MultiLineSkeleton = function MultiLineSkeleton({
   )
 }
 
-/**
- * List skeleton for loading list items
- */
 export const ListSkeleton = function ListSkeleton({
   nrows = 4,
   className = 'w-[500px]',

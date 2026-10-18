@@ -1,7 +1,3 @@
-/**
- * Privileges tab — Grant / Revoke privilege forms for the RBAC management page.
- */
-
 import type { AuditEntry } from './types'
 
 import { ConfirmDialog } from './confirm-dialog'

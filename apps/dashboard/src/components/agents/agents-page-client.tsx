@@ -17,8 +17,7 @@ const AgentThreadPage = lazy(() =>
 )
 
 export function AgentsPageClient(): JSX.Element {
-  // The skeleton reserves the same footprint as AgentThreadPage (composer +
-  // 320px sidebar) so nothing shifts when the lazy chunk mounts (CLS fix).
+  // Same footprint as AgentThreadPage (composer + 320px sidebar) so nothing shifts when the chunk mounts.
   return (
     <Suspense fallback={<AgentsPageSkeleton />}>
       <AgentThreadPage />

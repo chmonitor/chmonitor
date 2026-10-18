@@ -2,8 +2,7 @@ import { bucketSeries, downsample } from './peerdb-utils'
 import { useId } from 'react'
 
 /**
- * SVG charts ported verbatim from the CHM Redesign prototype (shared.jsx).
- * Hand-rolled (not recharts) so the smooth catmull-rom curve, gradient fill,
+ * SVG charts. Hand-rolled (not recharts) so the smooth catmull-rom curve, gradient fill,
  * and dashed gridlines match the design pixel-for-pixel.
  */
 

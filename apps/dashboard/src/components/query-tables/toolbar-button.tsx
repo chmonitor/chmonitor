@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
 
-/** Outlined toolbar button with compact sizing. */
 export function ToolbarButton({
   children,
   active,

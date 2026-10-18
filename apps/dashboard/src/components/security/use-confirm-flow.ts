@@ -55,7 +55,6 @@ export function useConfirmFlow(
         setStatusMessage(result.message)
         setStatusIsError(false)
         onSuccess({ operation, ddl: previewDdl, success: true, hostId })
-        // Auto-close after short delay so user sees success message
         setTimeout(() => setDialogOpen(false), 1200)
       } else {
         setStatusMessage(result.error)

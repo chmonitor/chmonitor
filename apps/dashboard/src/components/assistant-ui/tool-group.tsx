@@ -1,12 +1,5 @@
 'use client'
 
-/**
- * ToolGroup components: collapsible container for adjacent tool calls.
- *
- * When any contained tool is still running, the trigger shows an active
- * spinner to communicate "tools in progress".
- */
-
 import { ChevronRightIcon, WrenchIcon } from 'lucide-react'
 
 import type {
@@ -38,13 +31,6 @@ interface ToolGroupRootProps extends PropsWithChildren {
   isRunning?: boolean
 }
 
-/**
- * Collapsible root container for a set of adjacent tool calls.
- *
- * Controlled when `isRunning` is provided: the active (streaming) run stays
- * expanded while finished runs collapse into tidy history. A manual toggle
- * wins permanently.
- */
 export function ToolGroupRoot({
   children,
   className,
@@ -80,17 +66,11 @@ export function ToolGroupRoot({
 
 interface ToolGroupTriggerProps {
   count?: number
-  /**
-   * Pass the `status` of the group part from MessagePrimitive.GroupedParts.
-   * When `status.type === "running"`, shows an animated spinner.
-   */
+  /** `status` of the group part from MessagePrimitive.GroupedParts. */
   status?: MessagePartStatus | ToolCallMessagePartStatus
   className?: string
 }
 
-/**
- * Toggle button for the tool group. Shows count + spinner when running.
- */
 export function ToolGroupTrigger({
   count,
   status,
@@ -131,9 +111,6 @@ interface ToolGroupContentProps extends PropsWithChildren {
   className?: string
 }
 
-/**
- * Animated collapsible body containing the individual tool call renderers.
- */
 export function ToolGroupContent({
   children,
   className,
@@ -146,8 +123,6 @@ export function ToolGroupContent({
         'data-open:animate-collapsible-down'
       )}
     >
-      {/* Indented under the trigger's icon + label — each contained tool row
-          keeps its own accent bar / disclosures, this just groups them. */}
       <div className={cn('flex flex-col gap-0.5 pl-3.5', className)}>
         {children}
       </div>

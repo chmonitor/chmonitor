@@ -21,7 +21,6 @@ export const TableSkeleton = function TableSkeleton({
       aria-label="Loading table"
       aria-busy="true"
     >
-      {/* Table header area - matches DataTable */}
       <div className="flex shrink-0 flex-row items-start justify-between pb-4">
         <div>
           <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -35,7 +34,6 @@ export const TableSkeleton = function TableSkeleton({
         </div>
       </div>
 
-      {/* Table body - matches DataTable border container */}
       <div className="mb-5 flex-1 overflow-hidden rounded-md border">
         <div className="flex items-center gap-4 border-b bg-muted/30 px-4 py-3">
           {Array.from({ length: cols }).map((_, j) => (

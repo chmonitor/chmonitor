@@ -104,7 +104,6 @@ export function InlineActions<TData extends RowData>({
             )
           }
 
-          // Link-based actions
           let href = ''
           if (action === 'open-in-explorer') {
             href = buildExplorerQueryUrl(getQuery(), hostId)

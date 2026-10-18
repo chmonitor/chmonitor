@@ -4,9 +4,8 @@
  * AddMcpServerDialog
  *
  * Hosts the "Connect new server" registration form in a shadcn Dialog.
- * Previously this form rendered inline beneath the MCP server list in
- * AgentMcpPanel; it now opens as a dialog so the panel stays compact and the
- * flow matches the other "Connect" entries.
+ * Opens as a dialog so the panel stays compact and the flow matches the
+ * other "Connect" entries.
  *
  * The registered server is persisted to localStorage by useMcpConfig (via the
  * caller's onAdd). As noted in AgentMcpPanel, custom servers are a stored user
@@ -55,7 +54,6 @@ export function AddMcpServerDialog({
     'placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring'
   )
 
-  // Reset the fields whenever the dialog closes so a re-open starts clean.
   const handleOpenChange = (next: boolean) => {
     if (!next) {
       setName('')

@@ -211,8 +211,7 @@ function renderStructuredOutput(output: unknown): ReactNode {
  * Legacy `{ chartData, chartType, ... }` tool payloads (area/bar/donut) routed
  * through the unified {@link AgentVisualization} card — the same chrome, tabs,
  * and chart primitives every other visualization uses. No SQL travels with these
- * payloads, so the Query tab hides itself. Replaces the retired
- * `AgentChartRenderer` duplicate path (issue #2805).
+ * payloads, so the Query tab hides itself.
  */
 function renderLegacyChart(outputObj: Record<string, unknown>): ReactNode {
   const rows = outputObj.chartData as Record<string, unknown>[]

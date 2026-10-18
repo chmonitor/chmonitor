@@ -55,10 +55,8 @@ function resolveTheme({ critical, warning, ok }: HealthCounts): BannerTheme {
 }
 
 /**
- * Aggregate health banner: a restrained, severity-toned summary line (action
- * required / minor issues / all healthy). A subtle tint plus the colored icon +
- * title carry the severity — no accent rail, no saturated fill, no count pills
- * (the filter tabs below already carry the critical / warning / healthy tallies).
+ * Aggregate health banner. A subtle tint plus the colored icon and title carry
+ * the severity; the filter tabs below already carry the tallies.
  */
 export function HealthSummaryBanner({ counts }: { counts: HealthCounts }) {
   const theme = resolveTheme(counts)

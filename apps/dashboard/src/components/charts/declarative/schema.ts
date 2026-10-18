@@ -1,49 +1,16 @@
 /**
- * Declarative chart schema — the catalog contract.
+ * Declarative chart schema: the serializable subset of a chart's factory
+ * config that can live in JSON/YAML and be authored without TypeScript.
  *
- * Mirrors `lib/query-config/declarative/schema.ts`: this module defines the
- * SERIALIZABLE subset of a chart's factory config that can live in a JSON /
- * YAML / TOML file and be authored by the community (or an AI agent) without
- * writing TypeScript.
+ * A definition maps 1:1 onto the config `createAreaChart` / `createBarChart`
+ * accept; `loader.ts` compiles it, so it renders through the same factory
+ * path as a hand-authored chart.
  *
- * A declarative chart definition maps 1:1 onto the config object the two
- * "pure" chart factories already accept — `createAreaChart` and
- * `createBarChart` (see `../factory/create-area-chart.tsx` /
- * `../factory/create-bar-chart.tsx` / `../factory/types.ts`). The companion
- * `loader.ts` compiles a validated definition into that exact config object
- * (or, via `createChartFromDeclarative`, straight into a rendered chart
- * component) — so a declarative chart renders through the SAME factory code
- * path as a hand-authored one. No parallel rendering pipeline.
- *
- * `createCustomChart` (bespoke `render(data) => ReactNode` charts — progress
- * bars, proportion lists, metric tiles, …) is intentionally NOT covered here:
- * `render` is a function reference, not serializable. Charts that need that
- * level of bespoke layout stay TS-only; this schema only expresses the
- * data-describable area/bar chart shape. This mirrors the query-config
- * declarative schema's philosophy of excluding runtime-only fields (functions,
- * live component refs) rather than smuggling them in as opaque blobs.
- *
- * Serializable fields carried here:
- *   identity:    chartName (chart-registry query key), description, icon
- *   presentation: type ('area' | 'bar'), index, categories, defaultTitle
- *   time:        defaultInterval, defaultLastHours, dateRangeConfig
- *   behavior:    refreshInterval, enableScaleToggle, dataTestId
- *   area-only:   showDeployments, areaChartProps (colors/stack/readable/…)
- *   bar-only:    xAxisDateFormat, barChartProps (colors/stack/layout/…)
- *
- * Intentionally excluded (not serializable — require runtime code):
- *   render               — CustomChartFactoryConfig's function (use a TS chart)
- *   categories as fn     — BarChartFactoryConfig also allows
- *                          `(data) => string[]`; the declarative form only
- *                          supports a static string[]
- *   tickFormatter / valueFormatter / customTooltip / onValueChange / chartConfig
- *                        — function/JSX values on AreaChartProps/BarChartProps.
- *                          `yAxisTickFormatterKey` covers the common case by
- *                          referencing a named formatter from
- *                          `lib/utils.ts#chartTickFormatters`.
- *   dateRangeConfig as a literal DateRangeConfig object — only the named
- *                          presets (`DateRangePresetName`) are supported
- *                          declaratively; a bespoke options array stays TS-only.
+ * Not serializable, so TS-only: `createCustomChart` (`render` is a function),
+ * `categories` as a function, formatter/tooltip/JSX props (use
+ * `yAxisTickFormatterKey` for named formatters from
+ * `lib/utils.ts#chartTickFormatters`), and literal DateRangeConfig objects
+ * (only named `DateRangePresetName` presets are supported).
  */
 
 import { z } from 'zod'

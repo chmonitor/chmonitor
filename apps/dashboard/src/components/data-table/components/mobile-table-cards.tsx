@@ -194,9 +194,7 @@ interface MobileTableCardProps<TData extends RowData> {
   row: Row<TData>
   rowClassName?: RowClassNameFn
   expandable?: true | ExpandableConfig
-  /** Declarative card layout (hero / badges / metrics / hidden). */
   card?: CardConfig
-  /** Leading icons for metric chips, keyed by column name. */
   columnIcons?: Record<string, Icon>
   /** In a multi-column card grid, an expanded card spans the full row. */
   gridLayout?: boolean
@@ -214,24 +212,18 @@ const MobileTableCard = function MobileTableCard<TData extends RowData>({
   const selectCell = cells.find((cell) => cell.column.id === 'select')
   const actionCell = cells.find((cell) => cell.column.id === 'action')
 
-  // Hero column: declared `card.primary` wins, else the historical heuristic.
   const primaryCell = card?.primary
     ? matchCell(cells, card.primary)
     : pickPrimaryCell(cells)
 
-  // Header badges: declared `card.badges`, else fall back to the single
-  // `query_kind` badge the renderer has always surfaced.
   const badgeCells = (
     card?.badges
       ? card.badges.map((name) => matchCell(cells, name))
       : [cells.find((cell) => cell.column.id === 'query_kind')]
   )
     .filter((cell): cell is Cell<TData, unknown> => Boolean(cell))
-    // A column lives in exactly one zone — the hero never repeats as a badge.
     .filter((cell) => cell.id !== primaryCell?.id)
 
-  // Cells already shown as the hero or a header badge must not also appear in
-  // the metric chip row.
   const placedIds = new Set(
     [primaryCell?.id, ...badgeCells.map((cell) => cell.id)].filter(
       (id): id is string => Boolean(id)
@@ -251,8 +243,6 @@ const MobileTableCard = function MobileTableCard<TData extends RowData>({
       .filter((id): id is string => Boolean(id))
   )
 
-  // Cells already placed elsewhere (hero, header badges, metric row) must not
-  // repeat as label/value detail rows.
   const usedIds = new Set(
     [
       primaryCell?.id,
@@ -305,7 +295,6 @@ const MobileTableCard = function MobileTableCard<TData extends RowData>({
       data-expanded={isExpanded || undefined}
       className={cn(
         `rounded-lg border border-border/60 bg-card/40 ${densitySpacing.outer}`,
-        // An expanded card needs the full row so its detail panel has room.
         isExpanded && gridLayout && 'col-span-full',
         customClass
       )}
@@ -457,11 +446,8 @@ export interface MobileTableCardsProps<TData extends RowData> {
   isVirtualized?: boolean
   virtualizer?: UseVirtualRowsResult['virtualizer']
   expandable?: true | ExpandableConfig
-  /** Declarative card layout (hero / badges / metrics / hidden). */
   card?: CardConfig
-  /** Leading icons for metric chips, keyed by column name. */
   columnIcons?: Record<string, Icon>
-  /** Active result view; an explicit 'cards' view enables the card grid. */
   view?: 'table' | 'cards' | 'auto'
 }
 

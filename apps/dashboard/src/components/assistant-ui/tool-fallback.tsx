@@ -9,12 +9,8 @@ import {
 } from '@/components/agents/chat/tool-output'
 
 /**
- * Maps an assistant-ui tool-call message part onto the project's rich
- * `ToolCallPart` renderer (collapsible chrome, query-insights / visualization
- * / diagnostics cards, CSV download, expand-table dialog, ask-user widget).
- *
- * Registered as the `tools.Fallback` component on `MessagePrimitive.Parts`,
- * so every tool call — regardless of name — gets the full custom treatment.
+ * Registered as `tools.Fallback` on `MessagePrimitive.Parts`, so every tool
+ * call, whatever its name, renders through `ToolCallPart`.
  */
 export const ToolFallback: ToolCallMessagePartComponent = ({
   toolCallId,

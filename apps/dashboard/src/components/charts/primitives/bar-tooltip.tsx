@@ -41,8 +41,7 @@ export function renderBarTooltip({
   categories,
 }: RenderBarTooltipOptions) {
   if (tooltipTotal) {
-    // Tooltip with total for stacked bars
-    // Disable cursor fill for bar charts - the bar colors should remain visible on hover
+    // Disable cursor fill so bar colors stay visible on hover
     return (
       <ChartTooltip
         cursor={false}
@@ -83,8 +82,7 @@ export function renderBarTooltip({
     )
   }
 
-  // Standard tooltip without total
-  // Disable cursor fill for bar charts - the bar colors should remain visible on hover
+  // Disable cursor fill so bar colors stay visible on hover
   return (
     <ChartTooltip
       cursor={false}

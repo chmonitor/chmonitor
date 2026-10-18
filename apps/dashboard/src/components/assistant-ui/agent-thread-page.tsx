@@ -5,8 +5,7 @@
  *
  * Layout (left → right):
  *   1. Conversation rail — persistent, collapsible history list (desktop inline
- *      column; mobile Drawer). One click switches threads. Replaces the old
- *      centered "Conversations" dialog (issue #2802).
+ *      column; mobile Drawer). One click switches threads.
  *   2. Main column — welcome screen when empty, threaded messages otherwise.
  *   3. Agent-settings sidebar (host · model · MCP server · skills · prompts) —
  *      collapsible, open by default. Surfaces a "Show settings" affordance when
@@ -43,13 +42,10 @@ import { useHostId } from '@/lib/swr/use-host'
 import { useHosts } from '@/lib/swr/use-hosts'
 
 /**
- * Clerk's `useUser()` throws unless a `<ClerkProvider />` is mounted, and that
- * provider is only rendered when `isClerkEnabled()` is true (see
- * `components/clerk/clerk-auth-provider.tsx`). Gate the hook behind the same
- * build-time constant so the agents page never *calls* `useUser()` when Clerk is
- * disabled. `isClerkEnabled()` is a build-time constant, so the selected hook is
- * stable across renders (no conditional-hook violation). The import is inert; a
- * static ESM import replaces `require()`, undefined in the Vite/ESM runtime.
+ * Clerk's `useUser()` throws unless a `<ClerkProvider />` is mounted, which only
+ * happens when `isClerkEnabled()` is true. That is a build-time constant, so the
+ * selected hook is stable across renders (no conditional-hook violation). A
+ * static ESM import is used because `require()` is undefined in Vite/ESM.
  */
 const useClerkFirstName: () => string | null = isClerkEnabled()
   ? useClerkFirstNameImpl

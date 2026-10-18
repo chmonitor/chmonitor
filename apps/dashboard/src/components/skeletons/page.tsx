@@ -3,9 +3,6 @@ import { TableSkeleton } from '@/components/skeletons/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
-/**
- * Page Skeleton - Charts grid and table
- */
 export const PageSkeleton = function PageSkeleton({
   chartCount = 4,
   tableRows = 5,
@@ -33,9 +30,6 @@ export const PageSkeleton = function PageSkeleton({
   )
 }
 
-/**
- * Charts Only Page Skeleton
- */
 export const ChartsOnlyPageSkeleton = function ChartsOnlyPageSkeleton({
   chartCount = 6,
   className,
@@ -57,9 +51,6 @@ export const ChartsOnlyPageSkeleton = function ChartsOnlyPageSkeleton({
   )
 }
 
-/**
- * Table Only Page Skeleton
- */
 export const TableOnlyPageSkeleton = function TableOnlyPageSkeleton({
   rows = 10,
   className,
@@ -109,13 +100,11 @@ export const AgentsPageSkeleton = function AgentsPageSkeleton({
           <Skeleton className="h-6 w-64" />
           <Skeleton className="h-4 w-80" />
         </div>
-        {/* Bottom composer strip — the late-mounting element that shifts */}
         <div className="border-t p-4">
           <Skeleton className="h-12 w-full rounded-xl" />
         </div>
       </div>
 
-      {/* Settings sidebar — 320px, open by default on desktop */}
       <div className="hidden w-[320px] shrink-0 border-l p-4 md:block">
         <Skeleton className="mb-4 h-5 w-32" />
         <div className="flex flex-col gap-3">

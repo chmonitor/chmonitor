@@ -37,11 +37,7 @@ import { useToolConfig } from '@/lib/hooks/use-tool-config'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 
-/**
- * Wraps apiFetch to fire the `agent_message` funnel event whenever the chat
- * transport sends a request to the agent route — i.e. whenever a message is
- * sent to the AI agent.
- */
+/** Fires the `agent_message` funnel event whenever the chat transport sends a request. */
 function trackedAgentFetch(
   input: RequestInfo | URL,
   init?: RequestInit
@@ -54,10 +50,6 @@ const useClerkIsSignedIn: () => boolean = isClerkEnabled()
   ? useClerkIsSignedInImpl
   : () => true
 
-/**
- * Per-thread chat runtime. assistant-ui invokes this hook once per active
- * thread; it talks to the `/api/v1/agent` route.
- */
 function useAgentChatRuntime() {
   const hostId = useHostId()
   const signedIn = useClerkIsSignedIn()
@@ -116,7 +108,7 @@ function useAgentChatRuntime() {
           // The floating chip can drop page context for the current page; the
           // ref is read live so a toggle never rebuilds the transport. Absent a
           // provider (the /agents page) it defaults to enabled — behaviour is
-          // identical to before.
+          // unchanged.
           const pageContextEnabled = pageEnabledRef?.current ?? true
           const shouldSendPageContext =
             pageContextEnabled &&
@@ -191,11 +183,7 @@ function useAgentChatRuntime() {
   })
 }
 
-/**
- * Provides the agent runtime (chat + persistent thread list) to assistant-ui
- * components. Mounted once per surface — the full-page Thread and the global
- * floating modal each get an independent instance.
- */
+/** Mounted once per surface; the full-page Thread and the floating modal each get an independent instance. */
 export function AgentRuntimeProvider({ children }: { children: ReactNode }) {
   const signedIn = useClerkIsSignedIn()
   const persistRemote = !(isCloudModeClient() && !signedIn)

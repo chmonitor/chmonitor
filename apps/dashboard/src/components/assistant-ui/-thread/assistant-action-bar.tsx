@@ -10,10 +10,9 @@ import { copyToClipboard } from '@/lib/utils/clipboard'
 const COPIED_DURATION_MS = 3000
 
 /**
- * Copy button with an insecure-context fallback. ActionBarPrimitive.Copy calls
- * navigator.clipboard.writeText via its own helper, which is unavailable
- * outside secure contexts (self-hosted HTTP) — the copy silently no-ops.
- * This routes through copyToClipboard, which falls back to execCommand.
+ * ActionBarPrimitive.Copy relies on navigator.clipboard, unavailable outside
+ * secure contexts (self-hosted HTTP), so the copy silently no-ops. This routes
+ * through copyToClipboard, which falls back to execCommand.
  */
 function CopyMessageButton() {
   const aui = useAui()

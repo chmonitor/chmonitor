@@ -3,10 +3,6 @@ import type { ReactNode } from 'react'
 import { matchRanges } from '../command-palette-utils'
 import { cn } from '@/lib/utils'
 
-/**
- * Wrap query-token hits in `text` with a token-colored mark so ⌘K matches
- * are visible in titles and descriptions.
- */
 export function HighlightText({
   text,
   query,

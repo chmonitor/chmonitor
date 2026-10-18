@@ -1,21 +1,9 @@
-/**
- * Column definition utilities
- */
-
 import { ColumnFormat } from '@/types/column-format'
 
-/**
- * Normalizes column name for consistent lookup
- * Converts to lowercase and removes 'readable_' prefix
- */
 export function normalizeColumnName(column: string): string {
   return column.toLocaleLowerCase().replace('readable_', '').trim()
 }
 
-/**
- * Parses column format from config
- * Handles both simple format strings and format-with-options tuples
- */
 export function parseColumnFormat(
   column: string,
   config: Record<string, unknown>
@@ -33,9 +21,6 @@ export function parseColumnFormat(
   return { format: format as ColumnFormat }
 }
 
-/**
- * Checks if a column should be filterable based on context
- */
 export function isColumnFilterable(
   columnName: string,
   enableColumnFilters: boolean,

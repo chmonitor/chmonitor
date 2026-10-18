@@ -1,9 +1,3 @@
-/**
- * widget-text — renders `props.markdown` as markdown, reusing the same
- * `react-markdown` + `remark-gfm` combination already used elsewhere in the
- * app (e.g. `TableClient`'s guidance banner, the assistant-ui chat thread).
- */
-
 import type { DashboardWidget } from '@/types/dashboard-layout'
 
 import { lazy, Suspense } from 'react'

@@ -1,21 +1,16 @@
 /**
- * One subscription for "which health metrics already alert?".
- *
- * The three sources behind `resolveMetricAlertSignals` are collected here once
- * for the whole `/health` page rather than per card: every card would otherwise
- * open its own `health-thresholds` listener and its own copy of the same two
- * React Query keys (deduped, but still 17 hook instances churning).
- *
- * ## Availability: declared capability, with the probe as a veto
+ * One subscription for "which health metrics already alert?", shared by the
+ * whole `/health` page instead of per card (every card would otherwise open its
+ * own `health-thresholds` listener and query hooks).
  *
  * `availability` comes from `useHealthStoreAvailability()`: the
- * `capabilities.health` answer in `GET /api/v1/config`, which the server
- * resolves with the same `resolveHealthBackend()` call the stores use — not
+ * `capabilities.health` answer in `GET /api/v1/config`, resolved server-side
+ * with the same `resolveHealthBackend()` the stores use (not
  * `metadataDb.available`, which also counts a ClickHouse state backend the
- * alert stores cannot use. The custom-rule list is still passed as the
- * probe: a `501 NOT_CONFIGURED` from it forces `unavailable`, so the two can
- * never disagree in the direction that would enable a write. Until the config
- * answers, the state is `unknown`, which renders disabled.
+ * alert stores cannot use). The custom-rule list is passed as a probe: a
+ * `501 NOT_CONFIGURED` forces `unavailable`, so the two never disagree in the
+ * direction that would enable a write. Until config answers it is `unknown`,
+ * which renders disabled.
  */
 
 import type { MetricAlertSignals } from '@/lib/health/alert-capability'
@@ -55,10 +50,8 @@ export interface UseAlertSignalsResult {
 export function useAlertSignals(
   checkIds: readonly string[],
   /**
-   * The grid's live `health-thresholds` snapshot. `null` means "not read yet",
-   * which keeps the badge out of the UI for the single frame before
-   * localStorage resolves. The grid already owns that subscription, so this
-   * hook reuses it rather than opening a second one.
+   * The grid's live `health-thresholds` snapshot; `null` means "not read yet".
+   * Reuses the grid's subscription rather than opening a second one.
    */
   thresholds: ThresholdsMap | null
 ): UseAlertSignalsResult {

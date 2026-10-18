@@ -12,10 +12,6 @@ const RANK_BADGE: Record<Severity, string> = {
   normal: 'bg-muted text-muted-foreground',
 }
 
-/**
- * Rank chip — "#1, #2 …" with a heat ring keyed to severity. The top three
- * offenders also get a flame so the worst queries are obvious at a glance.
- */
 export function RankBadge({
   rank,
   severity,
@@ -38,11 +34,6 @@ export function RankBadge({
   )
 }
 
-/**
- * Shared metric cell — a small number (optionally with a unit) above a
- * percentage bar. Used for Total time, CPU time and Memory so the three cost
- * columns share one consistent "number + bar %" presentation.
- */
 export function MetricBar({
   value,
   unit,
@@ -100,7 +91,6 @@ function severityColor(d: DerivedQuery): string {
       : NEUTRAL_BAR
 }
 
-/** Total-time cell — the headline metric, with a heat-toned bar. */
 export function TotalTimeCell({
   d,
   max,
@@ -124,7 +114,6 @@ export function TotalTimeCell({
   )
 }
 
-/** CPU-time cell — same "number + bar %" presentation as Total time. */
 export function CpuCell({
   d,
   max,
@@ -147,7 +136,6 @@ export function CpuCell({
   )
 }
 
-/** Memory cell — same "number + bar %" presentation as Total time. */
 export function MemoryCell({
   d,
   max,

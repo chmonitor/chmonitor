@@ -5,11 +5,8 @@ export type ValidateChartResult =
   | { ok: false; errors: string[] }
 
 /**
- * Validate an unknown input against the declarative chart schema.
- *
- * Returns `{ ok: true, chart }` on success, or `{ ok: false, errors }` with a
- * flat list of human-readable error strings that include the field path.
- * Mirrors `lib/query-config/declarative/validate.ts`.
+ * Validate an unknown input against the declarative chart schema. Errors are
+ * human-readable strings that include the field path.
  */
 export function validateDeclarativeChart(input: unknown): ValidateChartResult {
   const result = declarativeChartSchema.safeParse(input)

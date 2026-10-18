@@ -3,8 +3,7 @@
 /**
  * Provider & Models tab — `/agents/settings`.
  *
- * Merges the old separate "Provider" (read-only env-var status) and "Models"
- * (picker) tabs into one provider → model hierarchy: each provider is a
+ * One provider → model hierarchy: each provider is a
  * group header (lettermark, configured/not-configured status, required env
  * var) with its models listed underneath (context size, max output tokens,
  * per-token pricing, free/default/custom badges), and clicking a model makes

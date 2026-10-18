@@ -5,16 +5,12 @@ import {
 import { cn } from '@/lib/utils'
 
 /**
- * GlobalTimeRangePicker - Compact preset button group shown in the app header.
- *
- * Sets the global default lastHours used by all charts that do not have an
- * individual per-chart date range selector configured.
+ * Sets the global default lastHours for charts without their own range selector.
  *
  * Phone (below `sm`): the group takes its own full-width second header row
  * (`order-last basis-full`) with `flex-1`, 36px-tall chips, so the title row
  * keeps the 44×44 utilities (refresh, search, theme) right-aligned.
- * From `sm` the group shrinks to intrinsic width (same compact chips as
- * before) because the header is a single nowrap row with more room.
+ * From `sm` the group shrinks to intrinsic width: the header is a single nowrap row.
  */
 export const GlobalTimeRangePicker = function GlobalTimeRangePicker() {
   const { timeRange, setTimeRange } = useTimeRange()

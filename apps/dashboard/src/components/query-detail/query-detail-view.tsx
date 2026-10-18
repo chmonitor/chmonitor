@@ -29,19 +29,8 @@ interface QueryDetailViewProps {
 }
 
 /**
- * QueryDetailView — redesigned query detail page using the CHM design system.
- *
- * Sections (see `query-detail-sections.tsx` for the presentational pieces):
- *  1. Header card — query_id, status/type badge, user, times, host
- *  2. Metrics strip — KpiCards for duration, read rows, read bytes, memory
- *  3. SQL block — inline, no modal; beautify off by default
- *  4. Insights — client-side red flags
- *  5. ProfileEvents + Settings — collapsible sections
- *  6. Child queries — distributed/parallel leaves
- *
- * Works for both running queries (from system.processes via the action link)
- * and finished queries (from system.query_log). If no row is found, shows
- * a "Query not found" empty state.
+ * QueryDetailView — detail page for running (system.processes) and finished
+ * (system.query_log) queries; shows a "Query not found" empty state otherwise.
  */
 export const QueryDetailView = function QueryDetailView({
   queryId,
@@ -133,7 +122,6 @@ export const QueryDetailView = function QueryDetailView({
 
       <QueryDetailMetrics row={row} />
 
-      {/* SQL block — inline, no modal; beautify off by default */}
       {queryText && <SqlBlock query={queryText} />}
 
       {/* Query stages — per-processor duration breakdown. Renders nothing

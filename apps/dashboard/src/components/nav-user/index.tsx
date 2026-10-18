@@ -28,16 +28,10 @@ import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { SETTINGS_FEATURE_PERMISSION } from '@/lib/feature-permissions/permissions'
 import { isFeatureAllowed } from '@/lib/feature-permissions/shared'
 
-// Gate the Clerk navigation behind the build-time `isClerkEnabled()` constant.
-// Importing the module is inert (Clerk hooks only run when the component is
-// rendered, which stays gated below); using a static ESM import instead of
-// `require()` keeps this valid in the Vite/TanStack Start (ESM) runtime, where
-// `require` is undefined and previously crashed every page that mounts the shell.
+// Static ESM import, not `require()`: `require` is undefined in the Vite/TanStack
+// Start runtime. Importing is inert; Clerk hooks only run when rendered.
 const ClerkNavWrapper = isClerkEnabled() ? ClerkNavWrapperImpl : null
 
-// Human-readable provenance for a reverse-proxy-forwarded identity, keyed by the
-// runtime auth provider. Only `trusted`/`proxy` forward a profile; `none`/`clerk`
-// have no entry (no badge is shown for them).
 const AUTH_SOURCE_LABELS: Record<string, string | undefined> = {
   trusted: 'via trusted proxy',
   proxy: 'via auth proxy',
@@ -54,14 +48,9 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const openSettingsDialog = useOpenSettings()
-  // Under reverse-proxy auth (`trusted`/`proxy`), show the forwarded identity
-  // instead of the static guest user. No-op for other providers.
   const proxyIdentity = useAuthIdentity()
   const displayUser = proxyIdentity ?? user
   const { config } = useFeaturePermissions()
-  // Surface WHERE this identity came from: under reverse-proxy auth the profile
-  // is forwarded by the proxy (oauth2-proxy / Traefik forward-auth), not a
-  // first-party login. Only shown when a forwarded identity is actually present.
   const authSourceLabel = proxyIdentity
     ? AUTH_SOURCE_LABELS[config.authProvider]
     : undefined
@@ -70,13 +59,10 @@ export function NavUser({
     if (canUseSettings) openSettingsDialog()
   }
 
-  // If Clerk is enabled, use Clerk navigation
   if (isClerkEnabled() && ClerkNavWrapper) {
     return <ClerkNavWrapper />
   }
 
-  // Otherwise, show guest user dropdown (original behavior)
-  // Static fallback button shown during SSR (no dropdown interaction)
   const userButton = (
     <SidebarMenuButton
       size="lg"

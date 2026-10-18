@@ -1,29 +1,9 @@
 import { cn } from '@/lib/utils'
 
-/**
- * Shared chart card styling constants
- *
- * Centralized class names for all chart card states (loading, empty, error, data)
- * to ensure consistent padding, spacing, and appearance across the application.
- *
- * @example
- * ```tsx
- * import { chartCard } from '@/components/charts/chart-card-styles'
- *
- * <Card className={cn(chartCard.base, chartCard.variants.default)}>
- *   <CardHeader className={chartCard.header}>
- *   <CardContent className={chartCard.content}>
- * ```
- */
+/** Class names shared by every chart card state (loading, empty, error, data). */
 export const chartCard = {
-  /**
-   * Base card container styles - applies to all chart card types
-   */
   base: cn('flex flex-col h-full gap-2', 'border-border/50'),
 
-  /**
-   * Card-specific styles per state type
-   */
   variants: {
     /** Loading and empty states - simpler appearance */
     default: cn('rounded-lg', 'bg-card/50', 'py-2', 'overflow-hidden'),

@@ -12,15 +12,10 @@ import { cn } from '@/lib/utils'
 
 interface SuggestionChipProps {
   suggestion: Suggestion
-  /** Called when the user clicks "Ask AI" — receives suggestion + originating SQL. */
   onAskAgent?: (suggestion: Suggestion, sql: string) => void
   sql: string
 }
 
-/**
- * Inline heuristic chip: coloured badge with title. Click to expand the
- * rationale and reveal an optional "Ask AI" shortcut.
- */
 export function SuggestionChip({
   suggestion,
   onAskAgent,

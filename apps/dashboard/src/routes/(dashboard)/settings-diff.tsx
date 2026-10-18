@@ -1,7 +1,4 @@
 /**
- * Settings Diff Page
- * Route: /(dashboard)/settings-diff
- *
  * Cross-host or cluster-node comparison of system.settings and
  * system.merge_tree_settings. Read-only.
  */

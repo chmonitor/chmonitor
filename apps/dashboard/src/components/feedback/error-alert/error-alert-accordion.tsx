@@ -1,9 +1,3 @@
-/**
- * Error alert accordion components
- *
- * Reusable accordion components for displaying expandable error details.
- */
-
 import { BugIcon, DatabaseIcon, NotebookPenIcon } from 'lucide-react'
 
 import type React from 'react'
@@ -21,9 +15,6 @@ interface ErrorAlertAccordionProps {
   content: string | React.ReactNode
 }
 
-/**
- * Renders an expandable accordion for error details (stack trace, query, etc.)
- */
 export function ErrorAlertAccordion({
   title,
   content,
@@ -59,9 +50,6 @@ interface ErrorAlertDocsProps {
   docs: string | React.ReactNode
 }
 
-/**
- * Renders documentation section with notebook icon
- */
 export function ErrorAlertDocs({ docs }: ErrorAlertDocsProps) {
   return (
     <div className="mt-3 border-t pt-3">
@@ -77,9 +65,6 @@ interface ErrorAlertDigestProps {
   digest: string
 }
 
-/**
- * Renders error digest (error ID) for support tracking
- */
 export function ErrorAlertDigest({ digest }: ErrorAlertDigestProps) {
   return (
     <div className="mt-3 border-t pt-3">

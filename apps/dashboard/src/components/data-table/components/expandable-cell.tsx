@@ -8,21 +8,11 @@ import {
 import { cn } from '@/lib/utils'
 
 interface ExpandableCellProps {
-  /** The text content to display */
   value: string
-  /** Max character length before truncation (default: 120) */
   maxLength?: number
-  /** Additional CSS classes for the trigger element */
   className?: string
 }
 
-/**
- * ExpandableCell - Shows truncated text with a click-to-expand popover
- *
- * When content exceeds maxLength characters it is truncated with ellipsis.
- * Clicking opens a popover showing the full content.
- * Used for SQL queries, error messages, and other long-text columns.
- */
 export function ExpandableCell({
   value,
   maxLength = 120,

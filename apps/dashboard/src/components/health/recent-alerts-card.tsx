@@ -44,11 +44,9 @@ const SEVERITY_BADGE_CLASS: Record<AlertEventRecord['severity'], string> = {
 }
 
 /**
- * "Recent alerts" card for the Health Settings dialog — lists dispatched
- * sweep alerts from `GET /api/v1/health/history`, with an optional host/day
- * filter. Persistence is best-effort (see `alert-history-store.ts`): on a
- * deployment without D1 configured (self-hosted/OSS default) this simply
- * shows the "no alerts recorded" empty state rather than an error.
+ * "Recent alerts" card: dispatched sweep alerts from `GET /api/v1/health/history`
+ * with an optional host/day filter. Persistence is best-effort, so without D1
+ * this shows the empty state rather than an error.
  */
 export function RecentAlertsCard() {
   const currentHostId = useHostId()

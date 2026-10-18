@@ -18,7 +18,6 @@ export function useTableFilters(options: UseTableFiltersOptions = {}) {
     const filters: Record<string, string> = {}
     for (const [key, value] of searchParams.entries()) {
       if (key.startsWith(`${urlPrefix}.`) && value) {
-        // Remove prefix to get column name (e.g., "filter.database" -> "database")
         const columnName = key.slice(urlPrefix.length + 1)
         filters[columnName] = value
       }

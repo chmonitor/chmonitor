@@ -1,9 +1,8 @@
 /**
  * Lazy chart component imports for the Overview page.
  *
- * Split out of -charts-config.ts (#2896) so the chart-section configuration
- * in that file isn't buried under ~60 boilerplate lazy-import declarations.
- * Grouped by domain in the same order they appeared in -charts-config.ts.
+ * Kept apart from -charts-config.ts so its chart-section configuration isn't
+ * buried under boilerplate lazy imports.
  */
 
 import { lazy } from 'react'

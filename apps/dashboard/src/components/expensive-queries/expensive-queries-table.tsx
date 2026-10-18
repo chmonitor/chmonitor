@@ -42,17 +42,6 @@ interface ExpensiveQueriesTableProps {
   rows: ExpensiveQueryRow[]
 }
 
-/**
- * ExpensiveQueriesTable — a dense, sortable, responsive view of the most
- * expensive ClickHouse query fingerprints over the last 24h.
- *
- * Highlights the worst offenders with rank badges (#1, #2 …) and a severity
- * heat accent. The toolbar carries search, a severity (heat) segment, a
- * "more filters" popover (minimum runs / total time), a column-visibility
- * menu and CSV export. Columns collapse progressively as the viewport
- * narrows; hidden values reappear inline under the query text. Rows expand to
- * a full secondary-metric panel + full-query dialog.
- */
 export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
   rows,
 }: ExpensiveQueriesTableProps) {
@@ -247,7 +236,6 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
       </div>
 
       {view === 'cards' ? (
-        /* Card list — SQL-first, the default on phones. */
         <div
           className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3"
           data-testid="expensive-queries-cards"

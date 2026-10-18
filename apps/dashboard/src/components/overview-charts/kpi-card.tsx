@@ -72,9 +72,6 @@ const VALUE_CLASS =
 /**
  * KpiCard — one overview KPI with a consistent layout across the strip:
  * `icon + label` → `value + unit` → optional `progress` → optional `sub`.
- *
- * Replaces the previous mix of split / progress / info cards so all four
- * overview metrics read with equal visual weight.
  */
 export const KpiCard = function KpiCard({
   icon: Icon,

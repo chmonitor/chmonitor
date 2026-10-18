@@ -33,7 +33,6 @@ function ClustersPage() {
         <TopologyView hostId={hostId} />
       </Suspense>
 
-      {/* Section 2: Raw clusters table from system.clusters */}
       <Suspense fallback={<TableSkeleton />}>
         <TableClient
           title={queryConfig.name}

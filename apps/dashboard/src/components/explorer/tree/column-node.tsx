@@ -9,9 +9,7 @@ interface ColumnNodeProps {
   isInPrimaryKey?: boolean
   isInSortingKey?: boolean
   level: number
-  /** 1-indexed position among sibling columns, for `aria-posinset`. */
   posInSet?: number
-  /** Total count of sibling columns, for `aria-setsize`. */
   setSize?: number
 }
 

@@ -13,10 +13,6 @@ function FleetSkeleton() {
   )
 }
 
-/**
- * Renders a responsive grid of FleetHostCard — one card per host from
- * the merged host list (env + browser + database connections).
- */
 export function FleetOverview() {
   const { hosts, isLoading } = useMergedHosts()
 

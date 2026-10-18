@@ -1,20 +1,10 @@
 /**
- * Pure keyboard-navigation logic for the database explorer tree, implementing
- * the WAI-ARIA Tree View pattern:
- * https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
- *
- * These functions are intentionally framework/DOM-free (no React, no
- * `document`) so they can be unit tested directly and reused by the DOM-glue
- * hook (`hooks/use-tree-keyboard-nav.ts`), which queries the live
- * `[role="treeitem"]` elements and hands their positions/levels in here.
+ * Pure, DOM-free keyboard-navigation logic for the explorer tree (WAI-ARIA Tree
+ * View pattern), so it can be unit tested directly.
  */
 
 export type TreeArrowVerticalKey = 'ArrowDown' | 'ArrowUp' | 'Home' | 'End'
 
-/**
- * Up/Down move focus to the previous/next visible item (clamped at the
- * ends); Home/End jump to the first/last visible item.
- */
 export function getNextFocusIndex(
   currentIndex: number,
   itemCount: number,
@@ -37,7 +27,6 @@ export function getNextFocusIndex(
 }
 
 export interface TreeNavItem {
-  /** 0-indexed nesting depth (database = 0, table = 1, column = 2). */
   level: number
 }
 
@@ -47,10 +36,6 @@ export type TreeHorizontalAction =
   | { type: 'focus'; index: number }
   | { type: 'none' }
 
-/**
- * Right Arrow: expands a closed node (focus stays put); on an already-open
- * node, moves focus to its first child; does nothing on a leaf node.
- */
 export function getArrowRightAction(
   items: readonly TreeNavItem[],
   currentIndex: number,
@@ -68,11 +53,6 @@ export function getArrowRightAction(
   return { type: 'none' }
 }
 
-/**
- * Left Arrow: collapses an open node (focus stays put); on a closed node or
- * leaf, moves focus to the parent node; does nothing on a top-level
- * (level 0) closed/leaf node.
- */
 export function getArrowLeftAction(
   items: readonly TreeNavItem[],
   currentIndex: number,

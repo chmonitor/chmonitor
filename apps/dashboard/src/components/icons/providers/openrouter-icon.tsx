@@ -20,7 +20,6 @@ export function OpenRouterIcon({ className, size = 16 }: OpenRouterIconProps) {
       className={className}
     >
       <circle cx="6" cy="8" r="4.5" stroke="currentColor" strokeWidth="1.5" />
-      {/* Right circle, shifted — overlapping "OR" lens */}
       <circle cx="10" cy="8" r="4.5" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   )

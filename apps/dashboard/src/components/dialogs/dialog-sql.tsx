@@ -60,7 +60,6 @@ function getInitialBeautifyState(fallback = false): boolean {
   }
 }
 
-/** Save beautify state to localStorage */
 function saveBeautifyState(value: boolean) {
   if (typeof window === 'undefined') return
   try {
@@ -144,7 +143,6 @@ export function RequestInfoContent({
     }
   }
 
-  // Build full API URL for debugging
   const fullApiUrl = (() => {
     if (!metadata?.api) return null
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
@@ -319,7 +317,6 @@ export function RequestInfoContent({
             </div>
           </div>
 
-          {/* Data status (e.g. partial / empty results) */}
           {metadata?.statusMessage && (
             <p className="mt-3 pt-3 border-t border-border/40 text-xs text-muted-foreground">
               {metadata.statusMessage}

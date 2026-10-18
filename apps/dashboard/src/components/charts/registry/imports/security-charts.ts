@@ -1,9 +1,3 @@
-/**
- * Security chart imports
- *
- * Lazy-loaded authentication and session monitoring charts.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

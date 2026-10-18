@@ -3,8 +3,6 @@
 import { useUser } from '@clerk/tanstack-react-start'
 
 /**
- * Returns whether a Clerk user is currently signed in.
- *
  * IMPORTANT: this calls Clerk's `useUser()`, which throws unless a
  * `<ClerkProvider />` is mounted. It MUST only be imported/invoked when
  * `isClerkEnabled()` is true — the consumer gates it behind the build-time

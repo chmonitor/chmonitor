@@ -1,7 +1,3 @@
-/**
- * Breakdown section component for tooltips
- */
-
 import { TooltipColorIndicator } from './tooltip-color-indicator'
 
 /** Value of a breakdown entry as produced by `parseBreakdownData`. */
@@ -28,20 +24,12 @@ export function breakdownColorVar(index: number): string {
   return `var(--chart-${index + 1})`
 }
 
-/**
- * Format a breakdown value for display without throwing on non-numbers.
- */
 export function formatBreakdownValue(value: BreakdownValue): string {
   return typeof value === 'number'
     ? value.toLocaleString()
     : String(value ?? '')
 }
 
-/**
- * Breakdown section with detailed items
- *
- * Displays a list of breakdown items with color indicators and values.
- */
 export function BreakdownSection({
   breakdownData,
   heading,
@@ -78,9 +66,6 @@ interface BreakdownRowProps {
   breakdownLabel?: string
 }
 
-/**
- * Individual breakdown row
- */
 function BreakdownRow({
   name,
   value,

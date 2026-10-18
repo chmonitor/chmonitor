@@ -4,15 +4,12 @@ import { useState } from 'react'
 
 interface UseDateRangeOptions {
   config: DateRangeConfig
-  /** Override initial value (instead of config.defaultValue) */
   initialValue?: string
   onRangeChange?: (range: DateRangeValue) => void
 }
 
 interface UseDateRangeReturn {
-  /** Current selected value (e.g., "24h") */
   value: string
-  /** Current lastHours number (undefined for "all" range) */
   lastHours?: number
   interval: string
   range: DateRangeValue
@@ -21,25 +18,8 @@ interface UseDateRangeReturn {
 }
 
 /**
- * Hook for managing date range state
- *
- * Provides local state management that works with query caching.
- * Different lastHours values create different cache keys, enabling
- * instant switching back to previously-fetched ranges.
- *
- * @example
- * ```tsx
- * const { lastHours, interval, setRange } = useDateRange({
- *   config: DATE_RANGE_PRESETS.standard,
- * })
- *
- * const swr = useChartData({
- *   chartName: 'query-count',
- *   hostId,
- *   lastHours,
- *   interval,
- * })
- * ```
+ * Local date range state. Each lastHours value is its own query cache key, so
+ * switching back to a fetched range is instant.
  */
 export function useDateRange({
   config,

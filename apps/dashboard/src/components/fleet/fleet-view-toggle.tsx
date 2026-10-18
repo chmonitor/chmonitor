@@ -4,7 +4,6 @@ import type { FleetView } from './fleet-helpers'
 
 import { Button } from '@/components/ui/button'
 
-/** Segmented grid/table toggle for the Fleet Overview page. */
 export function FleetViewToggle({
   value,
   onChange,

@@ -33,7 +33,6 @@ export const HeaderActions = function HeaderActions({
   // global time-range selector and refresh countdown are noise there.
   const showTimeControls = !pathname?.startsWith('/agents')
 
-  // Handle hydration - set mounted state after client-side render
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -61,7 +60,6 @@ export const HeaderActions = function HeaderActions({
         onOpenSettings={canUseSettings ? () => openSettings() : undefined}
       />
 
-      {/* Theme toggle - visible on all viewports */}
       {mounted ? (
         <IconButton
           tooltip={
@@ -85,7 +83,6 @@ export const HeaderActions = function HeaderActions({
         </Button>
       )}
 
-      {/* AI Insights + Notifications - hidden on mobile */}
       <InsightsPopover />
       <NotificationsPopover />
       {menuComponent}

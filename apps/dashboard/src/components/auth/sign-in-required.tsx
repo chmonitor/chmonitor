@@ -12,7 +12,6 @@ const ClerkSignInButton:
   | ((props: { children: ReactNode }) => ReactNode)
   | null = isClerkEnabled() ? ClerkSignInButtonImpl : null
 
-/** Empty state for data only signed-in users can see. */
 export function SignInRequired({
   title,
   description,

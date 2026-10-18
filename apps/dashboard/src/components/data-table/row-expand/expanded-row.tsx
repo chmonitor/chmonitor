@@ -12,9 +12,6 @@ interface ExpandedRowProps<TData extends RowData> {
   config: true | ExpandableConfig
 }
 
-/**
- * Full-width row rendered immediately after an expanded data row.
- */
 export function ExpandedRow<TData extends RowData>({
   row,
   colSpan,
@@ -44,7 +41,6 @@ export function ExpandedRow<TData extends RowData>({
       <TableCell
         colSpan={colSpan}
         className="px-4 py-3 align-top"
-        // Prevent expanded-row click from re-triggering row toggle
         onClick={(e) => e.stopPropagation()}
       >
         <div className="animate-in fade-in slide-in-from-top-1 duration-150">

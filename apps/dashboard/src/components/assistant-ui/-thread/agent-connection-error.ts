@@ -12,7 +12,7 @@ export interface AgentConnectionErrorAction {
 }
 
 export interface AgentConnectionErrorView {
-  /** Stable key, useful for tests and `data-` attributes. */
+  /** Stable key for tests and `data-` attributes. */
   kind:
     | 'demo_hidden'
     | 'browser_connection'

@@ -1,17 +1,14 @@
 /**
  * Batched data hook for the /health page.
  *
- *
  *  - Standard env hosts hit the batched `/api/v1/health/checks` endpoint, so
  *    all checks resolve in one HTTP round-trip.
  *  - Custom / browser / database-backed hosts (negative or non-env hostIds)
- *    can't be reached server-side, so they fall back to per-chart client fetches
- *    run in parallel — still surfaced through the same single query, so cards
- *    share one cache entry and one loading state.
+ *    can't be reached server-side, so they fall back to parallel per-chart
+ *    client fetches inside the same query: one cache entry, one loading state.
  *
- * Because it is one query, returning to /health renders last-known cached values
- * instantly (TanStack Query gcTime + persisted cache) instead of a loading flash,
- * while a background refetch updates them.
+ * Being one query, returning to /health renders cached values instantly while a
+ * background refetch updates them.
  */
 import { useQuery } from '@tanstack/react-query'
 
@@ -53,10 +50,6 @@ export interface UseHealthChecksResult {
 
 const EMPTY_STATE: HealthCheckState = { data: [] }
 
-/**
- * Fetch every requested health check in a single query.
- *
- */
 export function useHealthChecks(
   chartNames: readonly string[],
   hostId: number,
@@ -64,8 +57,7 @@ export function useHealthChecks(
 ): UseHealthChecksResult {
   const { hosts, getConnectionByHostId } = useMergedHosts()
 
-  // Stable, order-independent key for the requested checks. Sorting ~12 names
-  // each render is negligible and keeps the query key deterministic.
+  // Sorted so the query key is order-independent.
   const sortedNames = [...chartNames].sort()
 
   const browserConnection = isCustomHost(hostId)
@@ -99,8 +91,6 @@ export function useHealthChecks(
         return response.json() as Promise<BatchResponse>
       }
 
-      // Custom / db / browser hosts: fan out client-side, one fetch per check,
-      // collapsing per-check failures into the same response shape.
       const entries = await Promise.all(
         sortedNames.map(async (name): Promise<[string, HealthCheckState]> => {
           try {

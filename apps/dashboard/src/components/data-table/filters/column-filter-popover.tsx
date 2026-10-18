@@ -108,7 +108,6 @@ export function ColumnFilterPopover({
   )
 }
 
-/** Move the column-filter's preferred operator to the front of the list. */
 function prioritizeOperator(
   field: FilterField,
   def: ColumnFilterDef

@@ -19,7 +19,6 @@ export function NvidiaIcon({ className, size = 16 }: NvidiaIconProps) {
       aria-hidden="true"
       className={className}
     >
-      {/* Angular N — two vertical strokes + diagonal */}
       <path
         d="M3 13V3L8 10V3M13 3V13"
         stroke="currentColor"

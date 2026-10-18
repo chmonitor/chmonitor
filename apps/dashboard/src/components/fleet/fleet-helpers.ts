@@ -7,13 +7,10 @@
 /** Fleet Overview layout: `grid` (host cards) or `table` (comparison matrix). */
 export type FleetView = 'grid' | 'table'
 
-/** localStorage key persisting the user's Fleet view choice. */
 export const FLEET_VIEW_STORAGE_KEY = 'fleet-view'
 
-/** Default view when nothing is persisted. */
 export const DEFAULT_FLEET_VIEW: FleetView = 'grid'
 
-/** Coerce an arbitrary stored value into a valid FleetView (fail-safe default). */
 export function parseFleetView(value: string | null | undefined): FleetView {
   return value === 'table' || value === 'grid' ? value : DEFAULT_FLEET_VIEW
 }

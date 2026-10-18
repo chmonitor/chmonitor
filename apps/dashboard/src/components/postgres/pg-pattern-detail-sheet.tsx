@@ -1,9 +1,6 @@
 /**
- * Detail flyout for a Postgres query pattern (issue #2450). Mirrors the
- * ClickHouse slow-query-patterns `PatternDetailSheet`: clicking a row opens a
- * Sheet scoped to that pattern with the full (normalized) query text and a
- * per-metric breakdown. The clicked row already carries every aggregate the
- * table computed, so no extra query is needed here.
+ * Detail flyout for a Postgres query pattern. The clicked row already carries every
+ * aggregate, so no extra query is needed.
  */
 
 import type { PgQueryConfig } from '@/types/pg-query-config'
@@ -21,7 +18,6 @@ import {
 
 export interface PgPatternDetailSheetProps {
   config: PgQueryConfig
-  /** Which row key holds the full query text. Defaults to `query`. */
   queryKey?: string
   row: Record<string, unknown> | null
   open: boolean

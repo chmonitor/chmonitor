@@ -6,13 +6,10 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 /**
- * A numeric threshold control: a labelled value with −/+ steppers on either
- * side, tinted by severity.
- *
- * Replaces the raw `<input type="number">` pairs the Thresholds tab used to
- * render. The step is derived from the value's magnitude, so nudging a "150
- * parts" threshold moves in tens while a "3 replicas" one moves by one — the
- * native spinner's fixed step of 1 made large thresholds unusable.
+ * A numeric threshold control: a labelled value with -/+ steppers, tinted by
+ * severity. The step follows the value's magnitude (a "150 parts" threshold
+ * moves in tens, "3 replicas" by one); the native spinner's fixed step of 1
+ * made large thresholds unusable.
  *
  * A wrapper, not an edit to `components/ui/input.tsx`.
  */
@@ -117,13 +114,7 @@ function StepperButton({
   )
 }
 
-/**
- * Step proportional to magnitude: 0.1 / 1 / 5 / 10 / 50 / 100.
- *
- * Exported for its unit test — the native spinner's fixed step of 1 is what
- * made a threshold of 300 unusable, so the magnitude mapping is the behaviour
- * worth pinning.
- */
+/** Step proportional to magnitude: 0.1 / 1 / 5 / 10 / 50 / 100. Exported for its unit test. */
 export function stepFor(value: number): number {
   const v = Math.abs(value)
   if (v < 1) return 0.1

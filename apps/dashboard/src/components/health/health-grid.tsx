@@ -113,9 +113,8 @@ export function HealthGrid() {
     []
   )
 
-  // "Already alerting" state for every check, resolved once for the whole page
-  // rather than per card. `itemIds` is the same stable-id list the
-  // history keys and alert checkIds use.
+  // "Already alerting" state for every check, resolved once for the page rather
+  // than per card.
   const itemIds = useMemo(
     () => [
       ...HEALTH_CHECKS.map((c) => c.id),
@@ -245,9 +244,8 @@ export function HealthGrid() {
       ),
     })
 
-    // PeerDB group — omitted entirely when PeerDB is not configured.
-    // One grid item per card, so each sorts, counts, and filters on its own:
-    // a climbing slot lag promotes its own card even while the fleet is green.
+    // PeerDB group: omitted when not configured. One item per card so each
+    // sorts, counts, and filters on its own.
     if (peerDBShown) {
       for (const def of PEERDB_HEALTH_DEFS) {
         const peerDBCheck = computePeerDBCheck(
@@ -441,16 +439,9 @@ export function HealthGrid() {
 }
 
 /**
- * Renders the checks with a two-tier hierarchy so problems dominate and healthy
- * checks recede:
- *
- * - **Issues** (critical / warning) → full cards in a responsive grid, at the
- *   top, so an OOM incident is not buried under a wall of green.
- * - **Everything else** (ok / unavailable) → one dense, quiet list of rows.
- *
- * Because `items` is already severity-sorted and filter-narrowed upstream, this
- * partition also drives the filter tabs for free: the "Needs attention" tab
- * yields only cards, the "Healthy" tab only rows.
+ * Two tiers so problems dominate: issues (critical / warning) as full cards on
+ * top, everything else (ok / unavailable) as one dense list of rows. `items` is
+ * already sorted and filtered upstream, so this also drives the filter tabs.
  */
 function HealthResults({
   items,

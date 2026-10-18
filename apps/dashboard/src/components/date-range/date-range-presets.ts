@@ -80,11 +80,7 @@ export const RANGE_OPTIONS: Record<string, DateRangeOption> = {
   },
 } as const
 
-/**
- * Preset configurations for common chart types
- */
 export const DATE_RANGE_PRESETS = {
-  /** Standard monitoring: 24h, 7d, 14d, 30d */
   standard: {
     options: [
       RANGE_OPTIONS['24h'],
@@ -94,7 +90,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '24h',
   },
-  /** Real-time monitoring: 1h, 6h, 24h, 7d */
   realtime: {
     options: [
       RANGE_OPTIONS['1h'],
@@ -104,7 +99,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '1h',
   },
-  /** Historical analysis: 7d, 14d, 30d, 90d */
   historical: {
     options: [
       RANGE_OPTIONS['7d'],
@@ -114,7 +108,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '30d',
   },
-  /** Disk usage: 14d, 30d, 6m, 12m, all */
   'disk-usage': {
     options: [
       RANGE_OPTIONS['14d'],
@@ -125,7 +118,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '30d',
   },
-  /** Query activity: 24h, 7d, 30d, 12m */
   'query-activity': {
     options: [
       RANGE_OPTIONS['24h'],
@@ -135,7 +127,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '24h',
   },
-  /** Query duration: 24h, 7d, 30d, 6m, 12m */
   'query-duration': {
     options: [
       RANGE_OPTIONS['24h'],
@@ -146,7 +137,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '7d',
   },
-  /** System metrics: 1h, 6h, 24h, 7d, 14d, 30d */
   'system-metrics': {
     options: [
       RANGE_OPTIONS['1h'],
@@ -158,7 +148,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '24h',
   },
-  /** Operations: 24h, 7d, 14d, 30d */
   operations: {
     options: [
       RANGE_OPTIONS['24h'],
@@ -168,7 +157,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '24h',
   },
-  /** Health: 24h, 7d, 14d, 30d */
   health: {
     options: [
       RANGE_OPTIONS['24h'],
@@ -178,7 +166,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '7d',
   },
-  /** Page views analytics: 14d, 30d, 6m, 12m */
   'page-views': {
     options: [
       RANGE_OPTIONS['14d'],
@@ -188,7 +175,6 @@ export const DATE_RANGE_PRESETS = {
     ],
     defaultValue: '30d',
   },
-  /** Insights: All, 12M, 6M, 90d, 30d, 7d, 24h */
   insights: {
     options: [
       RANGE_OPTIONS.all,
@@ -203,14 +189,8 @@ export const DATE_RANGE_PRESETS = {
   },
 } as const satisfies Record<string, DateRangeConfig>
 
-/**
- * Type for preset names
- */
 export type DateRangePresetName = keyof typeof DATE_RANGE_PRESETS
 
-/**
- * Helper to get a preset by name or return the config directly
- */
 export function resolveDateRangeConfig(
   configOrPreset: DateRangeConfig | DateRangePresetName
 ): DateRangeConfig {

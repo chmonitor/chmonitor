@@ -31,10 +31,6 @@ import {
 } from '@/lib/health/threshold-presets'
 import { cn } from '@/lib/utils'
 
-/**
- * Thresholds tab — presets first, forms only where they are needed.
- *
- */
 export function ThresholdsPanel({
   thresholds,
   setThresholds,

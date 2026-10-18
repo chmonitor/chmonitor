@@ -8,10 +8,6 @@ import {
   parseAgentError,
 } from '@/lib/ai/agent/errors'
 
-/**
- * Render a classified agent error (message + actionable suggestion). Shared by
- * runtime HTTP errors (`MessagePrimitive.Error`) and streamed `data-error` parts.
- */
 export function AgentErrorAlert({ agentError }: { agentError: AgentError }) {
   return (
     <div

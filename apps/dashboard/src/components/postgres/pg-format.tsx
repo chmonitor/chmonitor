@@ -1,22 +1,16 @@
-/**
- * Value formatting for Postgres table cells, driven by `PgColumn.format`
- * (issue #2450). Mirrors the ClickHouse column formatters but on the small,
- * self-contained `PgColumnFormat` set.
- */
+/** Value formatting for Postgres table cells, driven by `PgColumn.format`. */
 
 import type { PgColumnFormat } from '@/types/pg-query-config'
 
 import { formatReadableSize } from '@/lib/format-readable'
 import { formatDuration } from '@/lib/utils'
 
-/** Coerce an unknown row value to a finite number, or `null`. */
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null
   const n = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(n) ? n : null
 }
 
-/** Format a raw cell value to its display string for a given column format. */
 export function formatPgValue(
   value: unknown,
   format: PgColumnFormat = 'text'

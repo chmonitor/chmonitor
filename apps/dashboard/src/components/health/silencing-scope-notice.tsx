@@ -1,12 +1,7 @@
 /**
- * Cloud-mode scope notice for the silencing panels.
- *
- * In cloud mode a maintenance window or quiet hours is saved under the
- * signed-in user, but the scheduled sweep only checks the env hosts and never
- * the user's own connections — so nothing it could silence exists yet. This
- * says so plainly instead of letting the panel look armed. Self-hosted builds
- * render nothing: there the sweep reads the same single-tenant rows the UI
- * writes. The per-owner sweep that removes this notice is tracked on #3802.
+ * Cloud-mode scope notice for the silencing panels. A window or quiet hours is
+ * saved under the signed-in user, but the scheduled sweep only checks env hosts,
+ * so nothing it could silence exists yet. Self-hosted builds render nothing.
  */
 
 import { Info } from 'lucide-react'

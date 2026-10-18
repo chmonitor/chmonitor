@@ -42,8 +42,6 @@ export function useColumnOrderState({
   const [columnOrder, setColumnOrder] =
     useState<ColumnOrderState>(initialColumnOrder)
 
-  // Persist column order to localStorage when it changes. Handles both direct
-  // values and updater functions from TanStack Table.
   const handleColumnOrderChange = useCallback(
     (
       updaterOrValue:

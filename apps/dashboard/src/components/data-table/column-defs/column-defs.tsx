@@ -133,8 +133,7 @@ export function getColumnDefs<
   // Content-aware widths are expensive to estimate (samples up to 30 rows per
   // column). Callers in the render path precompute them once from the
   // *unfiltered* dataset and pass them in; standalone callers fall back to
-  // computing from whatever `data` they provide (identical to the old inline
-  // behavior).
+  // computing from whatever `data` they provide.
   const columnSizes = estimatedSizes ?? estimateColumnSizes(config, data)
 
   const {
@@ -164,7 +163,6 @@ export function getColumnDefs<
       filterableColumns
     )
 
-    // Schema-driven typed filter (date-range, multi-select, etc.)
     const columnFilterDef = config.columnFilters?.[
       column as keyof typeof config.columnFilters
     ] as

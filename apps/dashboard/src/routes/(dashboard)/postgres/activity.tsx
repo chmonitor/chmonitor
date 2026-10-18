@@ -5,8 +5,8 @@ import { pageOgHead } from '@/lib/og'
 import { pgRunningQueriesConfig } from '@/lib/pg-query-config'
 
 /**
- * Postgres Running Queries — live client backends from `pg_stat_activity`
- * (issue #2450). Polls on a short interval, mirroring the ClickHouse Running
+ * Postgres Running Queries — live client backends from `pg_stat_activity`.
+ * Polls on a short interval, mirroring the ClickHouse Running
  * Queries view.
  */
 function PostgresActivityPage() {

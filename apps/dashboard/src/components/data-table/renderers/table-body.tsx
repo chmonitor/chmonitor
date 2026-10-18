@@ -58,12 +58,7 @@ export interface VirtualizedTableRowProps<TData extends RowData> {
   row: Row<TData>
   virtualRow: VirtualItem
   rowClassName?: RowClassNameFn
-  /** When set, row clicks (outside interactive elements) toggle expansion. */
   expandable?: true | ExpandableConfig
-  /**
-   * When set (and `expandable` is not), row clicks (outside interactive
-   * elements) call this with the row's data instead of toggling expansion.
-   */
   onRowClick?: (row: TData) => void
 }
 
@@ -135,12 +130,7 @@ export interface StandardTableRowProps<TData extends RowData> {
   row: Row<TData>
   index: number
   rowClassName?: RowClassNameFn
-  /** When set, row clicks (outside interactive elements) toggle expansion. */
   expandable?: true | ExpandableConfig
-  /**
-   * When set (and `expandable` is not), row clicks (outside interactive
-   * elements) call this with the row's data instead of toggling expansion.
-   */
   onRowClick?: (row: TData) => void
 }
 
@@ -215,7 +205,6 @@ export interface TableBodyRowsProps<TData extends RowData> {
   virtualizer: Virtualizer | null
   rowClassName?: RowClassNameFn
   expandable?: true | ExpandableConfig
-  /** See {@link StandardTableRowProps.onRowClick}. */
   onRowClick?: (row: TData) => void
   /**
    * Signature of the table state that affects row output (sorting, pagination,
@@ -383,9 +372,7 @@ export interface TableBodyProps<
   activeFilterCount: number
   rowClassName?: RowClassNameFn
   expandable?: true | ExpandableConfig
-  /** See {@link StandardTableRowProps.onRowClick}. */
   onRowClick?: (row: TData) => void
-  /** See {@link TableBodyRowsProps.renderKey}. Forwarded to the row renderer. */
   renderKey?: string
 }
 

@@ -56,8 +56,7 @@ export const TopoCanvas = memo(function TopoCanvas({
   } = model
 
   const svgRef = useRef<SVGSVGElement | null>(null)
-  // Manual position overrides (drag). Cleared when the structural model identity
-  // changes enough that layout re-ran (keeper/ch node set changes).
+  // Manual position overrides (drag); cleared when the keeper/CH node set changes.
   const [offsets, setOffsets] = useState<PosMap>({})
   const dragRef = useRef<DragState | null>(null)
   const liveDeltaRef = useRef<Pos>({ x: 0, y: 0 })
@@ -90,8 +89,6 @@ export const TopoCanvas = memo(function TopoCanvas({
     for (const n of chNodes) map[n.id] = basePos(n.id)
     const d = dragRef.current
     if (d?.moved) {
-      // positions already include committed offsets; drag uses start+delta via
-      // a separate live map during paint — handled below via dragLive.
     }
     return map
   }, [keepers, chNodes, basePos])
@@ -365,7 +362,6 @@ export const TopoCanvas = memo(function TopoCanvas({
         const active = activeCluster === h.id
         const faded = activeCluster && !active
         const isOuter = h.nestRank === 0
-        // Glass fills: a bit richer than the old flat overlay.
         const fillOp = h.outline ? (active ? 0.08 : 0.045) : active ? 0.16 : 0.1
         const strokeOp = h.outline ? (active ? 0.7 : 0.4) : active ? 0.85 : 0.55
         // Only the outermost ring of a coincident nest draws a border.

@@ -14,24 +14,12 @@ import {
 import { cn } from '@/lib/utils'
 
 export interface DonutChartProps {
-  /**
-   * Array of data objects
-   */
   data: Record<string, unknown>[]
 
-  /**
-   * Key for the category/label field
-   */
   index: string
 
-  /**
-   * Array of keys for the value fields (typically only one for donut charts)
-   */
   categories?: string[]
 
-  /**
-   * Single category key (alternative to categories array)
-   */
   category?: string
 
   /**
@@ -43,34 +31,16 @@ export interface DonutChartProps {
    */
   readable?: 'bytes' | 'duration' | 'number' | 'quantity'
 
-  /**
-   * Column name whose values should be formatted according to 'readable'
-   */
   readableColumn?: string
 
-  /**
-   * Show legend below the chart
-   */
   showLegend?: boolean
 
-  /**
-   * Show label in the center of the donut
-   */
   showLabel?: boolean
 
-  /**
-   * Center label text
-   */
   centerLabel?: string
 
-  /**
-   * Custom colors (CSS variable names)
-   */
   colors?: string[]
 
-  /**
-   * Custom CSS class name
-   */
   className?: string
 
   /**
@@ -85,14 +55,8 @@ export interface DonutChartProps {
    */
   outerRadius?: number
 
-  /**
-   * Custom value formatter function
-   */
   valueFormatter?: (value: number) => string
 
-  /**
-   * Click handler for pie segments
-   */
   onClick?: (data: unknown) => void
 }
 

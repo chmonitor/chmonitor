@@ -14,7 +14,6 @@ export interface PartLogKpis {
   removedParts: number
 }
 
-/** Aggregate KPI + chart datasets straight from the loaded part_log rows. */
 export function derivePartLogData(rows: PartLogRow[]) {
   const tables = new Set<string>()
   let newParts = 0

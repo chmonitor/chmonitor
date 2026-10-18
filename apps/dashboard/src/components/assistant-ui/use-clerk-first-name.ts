@@ -3,9 +3,6 @@
 import { useUser } from '@clerk/tanstack-react-start'
 
 /**
- * Returns the signed-in user's first name (or null) for the agent welcome
- * greeting.
- *
  * IMPORTANT: This calls Clerk's `useUser()`, which throws when no
  * `<ClerkProvider />` is mounted. It MUST only be imported/invoked when
  * `isClerkEnabled()` is true. The consumer gates this behind a build-time

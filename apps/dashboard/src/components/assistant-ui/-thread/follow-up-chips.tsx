@@ -17,9 +17,7 @@
 import { cn } from '@/lib/utils'
 
 interface FollowUpChipsProps {
-  /** Suggestion strings to render, in order. Renders nothing when empty. */
   prompts: readonly string[]
-  /** Called with the chip's text when clicked. */
   onSelect: (text: string) => void
   /**
    * Adds a top divider + padding so the strip reads as its own anchored row

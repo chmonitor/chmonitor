@@ -203,27 +203,22 @@ function OverviewPageContent() {
   })
 
   const handleTabChange = (value: string) => {
-    // Update URL with new tab value, preserving other params
     const params = new URLSearchParams(searchParams.toString())
     if (value === DEFAULT_TAB) {
-      // Remove tab param if it's the default value (cleaner URL)
       params.delete('tab')
     } else {
       params.set('tab', value)
     }
 
-    // Update the URL via the native History API rather than router.replace().
-    // A router navigation refetches the route's RSC payload, which re-suspends
-    // the searchParams boundary and flashes `OverviewPageFallback` (the 4 KPI
-    // skeletons) on EVERY tab click — even though the cards' query data is cached.
-    // History.replaceState updates `useUrlSearchParams()` reactively with no
-    // navigation, so only the (cached) tab content swaps in. Matches the pattern
-    // in use-table-filters.ts / time-range-context.tsx.
+    // Native History API, not router.replace(): a router navigation
+    // re-suspends the searchParams boundary and flashes `OverviewPageFallback`
+    // on every tab click even though the data is cached. replaceState updates
+    // `useUrlSearchParams()` reactively without navigating. Same pattern as
+    // use-table-filters.ts / time-range-context.tsx.
     const qs = params.toString()
     const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ''}`
     window.history.replaceState(window.history.state, '', newUrl)
 
-    // Local state drives the active tab instantly (no navigation round-trip).
     setActiveTab(value)
   }
 

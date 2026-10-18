@@ -40,10 +40,6 @@ function appendAuditEntry(entry: AuditEntry): void {
   writeAuditLog([entry, ...entries])
 }
 
-/**
- * Page-level hook: records new audit entries and bumps a revision counter so
- * the audit-log panel re-renders after each operation.
- */
 export function useAuditLog() {
   const [revision, setRevision] = useState(0)
 
@@ -59,10 +55,6 @@ export function useAuditLog() {
   return { revision, record }
 }
 
-/**
- * Panel-level hook: reads the stored entries once on mount and supports
- * clearing the log.
- */
 export function useAuditLogEntries() {
   const [entries, setEntries] = useState<AuditEntry[]>(() => readAuditLog())
 

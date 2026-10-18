@@ -1,5 +1,3 @@
-/**
- */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { AckDurationKey, AlertAck } from '@/lib/health/alert-ack-store'

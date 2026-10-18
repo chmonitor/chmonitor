@@ -1,14 +1,6 @@
 import { Skeleton } from './base'
 import { cn } from '@/lib/utils'
 
-/**
- * Structured skeleton for the database explorer.
- *
- * Mirrors the explorer layout (tree sidebar + content area) so the loading
- * state matches the real UI and avoids a featureless grey slab / CLS.
- *
- * @see components/explorer/explorer-layout.tsx
- */
 export function ExplorerSkeleton({ className }: { className?: string }) {
   return (
     <div
@@ -17,7 +9,6 @@ export function ExplorerSkeleton({ className }: { className?: string }) {
       aria-label="Loading explorer"
       aria-busy="true"
     >
-      {/* Tree sidebar - matches ExplorerSidebar width */}
       <div className="w-64 shrink-0 space-y-1 overflow-hidden border-r p-3 md:w-72 lg:w-80">
         <Skeleton className="mb-3 h-9 w-full" />
         {Array.from({ length: 10 }).map((_, i) => (
@@ -37,7 +28,6 @@ export function ExplorerSkeleton({ className }: { className?: string }) {
         ))}
       </div>
 
-      {/* Content area - matches ExplorerContent (breadcrumb + tabs + table) */}
       <div className="flex-1 space-y-4 overflow-hidden p-4">
         <div className="flex items-center gap-2">
           <Skeleton className="h-4 w-24" />

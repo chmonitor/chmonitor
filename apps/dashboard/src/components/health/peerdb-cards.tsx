@@ -3,41 +3,25 @@
 /**
  * PeerDB items on the Health Summary page.
  *
- * ## Why this is a bespoke item, not a `HEALTH_CHECKS` entry
+ * Bespoke items, not `HEALTH_CHECKS` entries: the standard checks resolve
+ * through the ClickHouse chart registry and `/api/v1/health/checks`, but PeerDB
+ * is a REST source with no SQL, so a `health-*` chart entry would have to fake a
+ * query (breaking the depcruise layering boundary and the dialog's "SQL query"
+ * panel). Like `mutations-cards.tsx`, each card uses a local
+ * `HealthCheckDef`-shaped def plus `computePeerDBCheck` in
+ * `lib/health/health-status.ts`, fed by `usePeerDBMetrics`.
  *
- * Every standard check resolves through the ClickHouse chart registry: the grid
- * collects `HEALTH_CHECKS[].chartName` into one batch and
- * `/api/v1/health/checks` executes `queryDef.sql` against a ClickHouse host. PeerDB
- * is a gRPC-gateway REST source with no SQL at all, so a `health-*` chart entry
- * would have to fake a query to reach it — breaking the layering boundary
- * depcruise enforces, and lying in the dialog's "SQL query" panel.
+ * Each card has its own status and links the worst mirror(s) to
+ * `/peerdb/mirror?name=...`. Paused age, snapshot stalled, zero throughput and
+ * last-sync age have no card: the metrics payload lacks the per-mirror
+ * timestamps they need.
  *
- * Instead this follows the pattern `mutations-cards.tsx` already established: a
- * local `HealthCheckDef`-shaped def (so the card reuses the shared shell, the
- * detail dialog, and the configure-alert affordance for free) plus
- * `computePeerDBCheck` in `lib/health/health-status.ts`. Data comes from
- * `usePeerDBMetrics` — the same hook the `/peerdb` page uses, already cached
- * for 30s server-side.
+ * The items are absent, not empty, when `PEERDB_API_URL` is unset (a green
+ * "0 failed" card for a product the deployment does not run would be a lie).
+ * A request that errors is shown, so an unreachable PeerDB turns the API card red.
  *
- * ## One status per card
- *
- * Each card has its own status, and names the worst mirror(s) as links to
- * `/peerdb/mirror?name=…`, so "Needs attention" says which mirror to open.
- * Paused age, snapshot stalled, zero throughput and last-sync age have no card:
- * the metrics payload does not carry the per-mirror timestamps they need.
- *
- * ## Gating
- *
- * The items are **absent**, not empty, when `PEERDB_API_URL` is unset:
- * `usePeerDBMetrics` resolves a `configured: false` payload rather than an
- * error, and `HealthGrid` drops the whole group in that case. A green "0 failed"
- * card for a product the deployment does not run would be a lie. A request that
- * errors is shown (the not-configured branch never errors), so an unreachable
- * PeerDB turns the API card red instead of hiding the group.
- *
- * `chartName` is deliberately empty: it is never resolved through the chart
- * registry (see above) and exists only so the shared shell and detail dialog get
- * the `HealthCheckDef` shape they expect.
+ * `chartName` is empty on purpose: it is never resolved through the registry and
+ * only gives the shared shell and dialog the `HealthCheckDef` shape.
  */
 
 import { Database, PauseCircle, PlugZap, Timer, XCircle } from 'lucide-react'
@@ -137,13 +121,8 @@ export const PEERDB_HEALTH_IDS: readonly string[] = PEERDB_HEALTH_DEFS.map(
 )
 
 /**
- * The one number this item is about — the card's headline, and the value the
- * grid appends to the shared sparkline history.
- *
- * Each card shows the number an operator would act on first, and
- * `computePeerDBCheck` gives each card its own status — so the failures card
- * can be green while the lag card is red. `null` while loading/unavailable,
- * which leaves the history untouched.
+ * The card's headline number, also appended to the shared sparkline history.
+ * `null` while loading/unavailable, which leaves the history untouched.
  */
 export function peerDBHeadlineValue(
   defId: string,
@@ -167,11 +146,7 @@ export function peerDBHeadlineValue(
   }
 }
 
-/**
- * Links for a card: the worst mirrors it names first (straight to their
- * `/peerdb/mirror` page), then the card's static links, capped at the three the
- * shell renders.
- */
+/** Worst mirrors first (linked to `/peerdb/mirror`), then static links, capped at the three the shell renders. */
 export function peerDBCardLinks(
   def: HealthCheckDef,
   mirrors: readonly string[]

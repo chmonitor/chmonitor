@@ -5,12 +5,10 @@
  * questions, used everywhere they appear (welcome screen + settings sidebar).
  *
  * Two visual `variant`s over the SAME data + category config:
- *  - `grid` — category-tinted icon tiles (welcome / empty state, issue #2800)
+ *  - `grid` — category-tinted icon tiles (welcome / empty state)
  *  - `list` — compact category-tag rows (320px settings sidebar)
  *
- * Consolidates the three former renderings (`RecommendationsList`,
- * `PromptTilesGrid`, and the sidebar's inline list) into one component so the
- * category colours/icons and prompt pool never drift (issue #2809).
+ * One component so the category colours/icons and prompt pool never drift.
  */
 
 import {

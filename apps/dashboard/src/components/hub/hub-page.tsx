@@ -21,7 +21,6 @@ import { getAllowedMenuItems } from '@/lib/menu/visible-items'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
-/** One key chart on a hub. `href` is the detail page its title links to. */
 export interface HubChartConfig {
   id: string
   component: ComponentType<ChartProps>
@@ -115,7 +114,6 @@ function HubLinkCard({
 function HubSections({ group, hostId }: { group: MenuItem; hostId: number }) {
   const resolve = useUnavailableResolver(hostId)
   const { hiddenHrefs } = useMenuWorkspaceCatalog()
-  // Local only: a peek at what the user hid, never written to settings.
   const [showHidden, setShowHidden] = useState(false)
   const input = {
     hiddenHrefs,

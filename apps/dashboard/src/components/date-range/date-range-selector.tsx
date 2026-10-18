@@ -12,7 +12,6 @@ import {
 import { cn } from '@/lib/utils'
 
 interface DateRangeSelectorProps {
-  /** Date range configuration with available options */
   config: DateRangeConfig
   value: string
   onChange: (range: DateRangeValue) => void
@@ -22,23 +21,6 @@ interface DateRangeSelectorProps {
   alwaysVisible?: boolean
 }
 
-/**
- * DateRangeSelector - Compact dropdown with chip buttons for date range selection
- *
- * UI Flow:
- * 1. Shows trigger button with current selection (e.g., "24h")
- * 2. Clicking opens dropdown with row of chip buttons
- * 3. Selecting a chip updates the range and closes dropdown
- *
- * @example
- * ```tsx
- * <DateRangeSelector
- *   config={DATE_RANGE_PRESETS.standard}
- *   value="24h"
- *   onChange={(range) => console.log(range.lastHours)}
- * />
- * ```
- */
 export const DateRangeSelector = function DateRangeSelector({
   config,
   value,

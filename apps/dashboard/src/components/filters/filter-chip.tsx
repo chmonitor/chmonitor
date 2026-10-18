@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/popover'
 import { OPERATORS } from '@/lib/filters/operators'
 
-/** Human-readable summary of an active filter for its chip. */
 export function formatFilterSummary(
   field: FilterField,
   filter: ActiveFilter
@@ -58,7 +57,6 @@ interface FilterChipProps {
   onRemove: () => void
 }
 
-/** A single active filter, rendered as an editable, removable chip. */
 export function FilterChip({
   field,
   filter,

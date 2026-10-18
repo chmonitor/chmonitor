@@ -8,7 +8,7 @@
  *
  * Recommend-only: each finding shows a "copy" button for its ready-to-review
  * DDL/statement and (when present) a verification query. There is no "apply"
- * action anywhere in this component. See issue #2764.
+ * action anywhere in this component.
  */
 
 import {
@@ -37,7 +37,7 @@ import { Badge } from '@/components/ui/badge'
 import { trackEvent } from '@/lib/analytics/analytics'
 import { cn } from '@/lib/utils'
 
-// Same rose/amber/sky severity triad used by the query advisor panel.
+// Same severity triad as the query advisor panel.
 const SEVERITY_CLASS: Record<TuningFinding['severity'], string> = {
   high: 'border-destructive/30 bg-destructive/10 text-destructive',
   medium:
