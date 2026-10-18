@@ -29,6 +29,7 @@ interface RawEnvTarget {
   headers?: unknown
   urlEnv?: unknown
   headersEnv?: unknown
+  repeat?: unknown
 }
 
 function asRecord(raw: unknown): Record<string, string> {
@@ -76,6 +77,8 @@ export interface DeclaredWebhookTarget {
   titleTemplate?: unknown
   bodyTemplate?: unknown
   headers?: unknown
+  /** `false` = no reminders for this target (once until resolved). */
+  repeat?: boolean
 }
 
 /**
@@ -121,6 +124,7 @@ export function buildDeclaredWebhookTarget(
     secretHeaders: parseSecretHeaders(
       entry.headersEnv ? env[entry.headersEnv] : undefined
     ),
+    repeat: entry.repeat !== false,
     updatedAt: 0,
   }
 }
@@ -161,6 +165,7 @@ export function loadEnvCustomWebhookTargets(
         titleTemplate: entry.titleTemplate,
         bodyTemplate: entry.bodyTemplate ?? entry.textTemplate,
         headers: entry.headers,
+        repeat: entry.repeat !== false,
       },
       env
     )

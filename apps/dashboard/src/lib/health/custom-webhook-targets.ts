@@ -110,7 +110,21 @@ export interface CustomWebhookTarget {
   headers: Record<string, string>
   /** Optional server-only secret headers from a Helm Secret. Never public. */
   secretHeaders?: Record<string, string>
+  /**
+   * `false` = once until resolved: the target gets the first alert, any
+   * escalation and the recovery, but no reminders. Unset = reminders on.
+   * Declarative (env / `channels.yaml`) targets only.
+   */
+  repeat?: boolean
   updatedAt: number
+}
+
+/** Whether a target opted out of reminders for this decision. */
+export function skipsReminder(
+  target: Pick<CustomWebhookTarget, 'repeat'>,
+  decisionKind: string
+): boolean {
+  return target.repeat === false && decisionKind === 'reminder'
 }
 
 /** Draft shape accepted from the UI/API (id/updatedAt assigned server-side). */

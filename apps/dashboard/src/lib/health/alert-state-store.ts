@@ -101,9 +101,10 @@ export interface AlertDecision {
   /** Severity previously on record (defaults to 'ok' when unseen). */
   previousSeverity: AlertRuleSeverity
   /**
-   * For a RECOVERY, how long the incident was firing, in ms — `now` minus the
-   * incident's `firstFiredAt`. Absent when the fire time is unknown (e.g. a
-   * condition already firing before this store had a record for it).
+   * For a RECOVERY or a REMINDER, how long the incident has been firing, in
+   * ms — `now` minus the incident's `firstFiredAt`. Absent when the fire time
+   * is unknown (e.g. a condition already firing before this store had a
+   * record for it).
    */
   incidentDurationMs?: number
 }
@@ -252,6 +253,9 @@ export function decideNotification(
           kind: 'reminder',
           severity: current,
           previousSeverity: confirmed,
+          ...(firstFiredAt !== undefined && {
+            incidentDurationMs: Math.max(0, now - firstFiredAt),
+          }),
         },
         next: withFired({
           severity: current,

@@ -15,6 +15,7 @@ grep -Eq 'HEALTH_ALERT_WEBHOOK_TARGETS' "$configmap"
 grep -Eq 'HEALTH_ALERT_WEBHOOK_TARGET_0_URL' "$rendered"
 grep -Eq 'HEALTH_ALERT_WEBHOOK_TARGET_1_HEADERS' "$rendered"
 grep -Eq 'secretKeyRef:' "$rendered"
+grep -Fq 'repeat\":false' "$configmap"
 
 if grep -Eq 'matrix\.example\.com|hooks\.slack\.com/services|Authorization:' "$configmap"; then
   echo 'secret-bearing webhook data leaked into ConfigMap' >&2

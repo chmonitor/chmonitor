@@ -95,6 +95,10 @@
               },
               "headersSecretFrom": {
                 "$ref": "#/definitions/secretRef"
+              },
+              "repeat": {
+                "type": "boolean",
+                "description": "false = first alert, escalation and recovery only, no reminders. Default true."
               }
             }
           }

@@ -158,6 +158,7 @@ describe('groupable custom targets', () => {
         ],
         globalMinSeverity: 'warning',
         severity,
+        decisionKind: 'new',
       }).map((t) => t.url + (t.id === 'crit' ? '#crit' : ''))
     expect(pick('critical')).toEqual([
       'https://93.184.216.34/h',
