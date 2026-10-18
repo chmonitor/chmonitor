@@ -9,7 +9,7 @@
  *
  * The claim under test is the issue's: **total background queries per host per
  * sweep down at least 50%**. Both numbers are printed by the `> reports the
- * measured counts` test so a reviewer reading CI output sees 21 → 4 rather than
+ * measured counts` test so a reviewer reading CI output sees 22 → 4 rather than
  * a bare pass.
  */
 
@@ -129,6 +129,7 @@ beforeEach(() => {
     'system.detached_parts',
     'system.distribution_queue',
     'system.server_settings',
+    'system.dictionaries',
   ])
   fakeNow = 1_000_000
   setCapabilityCacheClock(clock)
@@ -171,7 +172,7 @@ describe('background queries per host per sweep', () => {
     expect(warm.total).toBeLessThan(BEFORE_PER_TICK * 0.3)
   })
 
-  test('reports the measured counts so CI output shows 21 → 4', async () => {
+  test('reports the measured counts so CI output shows 22 → 4', async () => {
     const cold = await tick()
     const reduction = Math.round((1 - cold.total / BEFORE_PER_TICK) * 100)
     console.log(
@@ -181,7 +182,7 @@ describe('background queries per host per sweep', () => {
       before: BEFORE_PER_TICK,
       after: cold.total,
       reductionPct: reduction,
-    }).toEqual({ before: 21, after: 4, reductionPct: 81 })
+    }).toEqual({ before: 22, after: 4, reductionPct: 82 })
   })
 
   test('the count does not grow once the cache is warm', async () => {
@@ -212,9 +213,9 @@ describe('background queries per host per sweep', () => {
     await tick()
     const batch = queries.find((q) => q.includes('AS rule_id'))
     expect(batch).toBeDefined()
-    // 20 rules, 2 excluded → 18 branches, 17 joins.
-    expect(batch!.match(/AS rule_id/g)).toHaveLength(18)
-    expect(batch!.match(/UNION ALL/g)).toHaveLength(17)
+    // 21 rules, 2 excluded → 19 branches, 18 joins.
+    expect(batch!.match(/AS rule_id/g)).toHaveLength(19)
+    expect(batch!.match(/UNION ALL/g)).toHaveLength(18)
     // The `system.parts` scans are separate statements.
     const partsScans = queries.filter(
       (q) => !q.includes('AS rule_id') && q.includes('system.parts')
@@ -288,7 +289,7 @@ describe('the batch fallback', () => {
     await tick()
     const batch = queries.find((q) => q.includes('AS rule_id'))!
     expect(batch).not.toContain('system.backup_log')
-    expect(batch.match(/AS rule_id/g)).toHaveLength(17)
+    expect(batch.match(/AS rule_id/g)).toHaveLength(18)
   })
 })
 

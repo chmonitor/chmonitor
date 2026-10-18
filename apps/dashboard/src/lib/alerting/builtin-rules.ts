@@ -298,6 +298,39 @@ FROM system.view_refreshes`,
   },
 
   {
+    id: 'dictionary-failures',
+    type: 'dictionary-failures',
+    title: 'Dictionary Load Failures',
+    description:
+      'Dictionaries whose last load or reload failed. A dictionary that never loaded breaks every dictGet on it; one whose reload failed keeps serving stale data. Fix the source named in last_exception, then SYSTEM RELOAD DICTIONARY.',
+    // `last_exception` covers FAILED, FAILED_AND_RELOADING and a failed
+    // reload of a dictionary still LOADED with its old data (status alone
+    // misses that one). A successful reload clears it, and a lazily loaded
+    // NOT_LOADED dictionary has none, so neither counts.
+    sql: `SELECT countIf(last_exception != '') AS failed_count
+FROM system.dictionaries`,
+    valueKey: 'failed_count',
+    defaults: { warning: 1, critical: 5 },
+    formatLabel: fmtCount('failing dictionary', 'failing dictionaries'),
+    optional: true,
+    tableCheck: 'system.dictionaries',
+    remediationActions: [
+      {
+        id: 'dictionary-failures-detail',
+        label: 'Get failing dictionaries',
+        kind: 'diagnostic',
+        description:
+          'Dictionaries with a load error, their status and last successful update.',
+        sql: `SELECT database, name, status, last_successful_update_time, substring(last_exception, 1, 300) AS last_exception
+FROM system.dictionaries
+WHERE last_exception != ''
+ORDER BY database, name
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
     id: 'parts-pressure',
     type: 'parts-pressure',
     title: 'Parts Pressure',

@@ -284,6 +284,32 @@
       "title": "MV Refresh Failures"
     },
     {
+      "category": "dictionaries",
+      "commonCauses": [],
+      "description": "Dictionaries whose last load or reload failed. A dictionary that never loaded breaks every dictGet on it; one whose reload failed keeps serving stale data. Fix the source named in last_exception, then SYSTEM RELOAD DICTIONARY.",
+      "fix": [
+        {
+          "description": "Dictionaries with a load error, their status and last successful update.",
+          "id": "dictionary-failures-detail",
+          "kind": "diagnostic",
+          "label": "Get failing dictionaries",
+          "sql": "SELECT database, name, status, last_successful_update_time, substring(last_exception, 1, 300) AS last_exception\nFROM system.dictionaries\nWHERE last_exception != ''\nORDER BY database, name\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "dictionary-failures",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 failing dictionary",
+      "sql": "SELECT countIf(last_exception != '') AS failed_count\nFROM system.dictionaries",
+      "tableCheck": "system.dictionaries",
+      "thresholds": {
+        "critical": 5,
+        "warning": 1
+      },
+      "title": "Dictionary Load Failures"
+    },
+    {
       "category": "parts & merges",
       "commonCauses": [
         "Frequent small inserts producing parts faster than merges consume them",
