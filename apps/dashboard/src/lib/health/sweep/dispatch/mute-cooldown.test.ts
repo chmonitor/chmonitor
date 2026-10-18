@@ -197,6 +197,25 @@ describe('per-rule mute', () => {
     ])
     expect(postsTo(WEBHOOK_URL, 'flip-rule')).toHaveLength(1)
   })
+
+  test('a recovery while muted is dropped: unmuting later sends no stale recovery', async () => {
+    const hostId = nextHostId++
+    const ruleId = 'recover-muted-rule'
+
+    await sweep(makeCtx(), [{ hostId, ruleId, severity: 'critical' }])
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+
+    // Condition clears while the rule is muted: nothing is sent.
+    await sweep(makeCtx({ mutedRules: [ruleId] }), [
+      { hostId, ruleId, severity: 'ok' },
+    ])
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+
+    // Unmuted, still clear: the recovery was committed, so no late send.
+    await sweep(makeCtx(), [{ hostId, ruleId, severity: 'ok' }])
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+    expect(postsTo(CUSTOM_URL, ruleId)).toHaveLength(1)
+  })
 })
 
 describe('per-rule cooldown', () => {

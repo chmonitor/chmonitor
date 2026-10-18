@@ -203,9 +203,11 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
 
     if (decision.notify && isRuleMuted(ctx.mutedRules, ruleId)) {
       // Muted rule (#3869): skip every channel, including the bus and custom
-      // targets. No commit() and no history row: the state stays uncommitted,
-      // so this would repeat every tick, and unmuting delivers the condition
-      // fresh. A recovery while muted is silent too.
+      // targets, and write no history row. Firing/escalation is NOT committed,
+      // so unmuting delivers a still-firing condition fresh. A recovery IS
+      // committed and dropped silently, otherwise it would stay pending and
+      // send a stale recovery when the rule is unmuted days later.
+      if (isRecovery) commit()
       counters.alertsSuppressed++
       counters.mutedSuppressed++
       return
