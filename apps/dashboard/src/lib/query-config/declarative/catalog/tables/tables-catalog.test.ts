@@ -157,6 +157,18 @@ assertDeclarativeMatchesLegacy(
   'distributed-ddl-queue'
 )
 
+// #3919: without Keeper, system.distributed_ddl_queue exists but reading it
+// fails with NO_ELEMENTS_IN_CONFIG. Gating on system.zookeeper (attached only
+// with Keeper) makes the route answer "unavailable" instead of a 500.
+test('distributed-ddl-queue requires system.zookeeper', () => {
+  for (const tableCheck of [
+    distributedDdlQueueConfig.tableCheck,
+    distributedDdlQueueDeclarative.tableCheck,
+  ]) {
+    expect(tableCheck).toContain('system.zookeeper')
+  }
+})
+
 // ---------------------------------------------------------------------------
 // dropped-tables
 // ---------------------------------------------------------------------------

@@ -23,7 +23,9 @@ Requires: Cluster + Keeper/ZooKeeper
 
 Learn more:
 https://clickhouse.com/docs/en/operations/system-tables/distributed_ddl_queue`,
-  tableCheck: 'system.distributed_ddl_queue',
+  // Without Keeper the table exists but reading it fails with
+  // NO_ELEMENTS_IN_CONFIG (#3919); system.zookeeper exists only with Keeper.
+  tableCheck: ['system.distributed_ddl_queue', 'system.zookeeper'],
   sql: `
       SELECT
         entry,
