@@ -289,7 +289,7 @@ export async function runHostSweep(
     }
   }
 
-  // Unbatched rules (the two `system.parts` scans) plus every batched rule the
+  // Unbatched rules (see BATCH_EXCLUDED_RULE_IDS) plus every batched rule the
   // batch could not read.
   const unbatched: AlertRuleDef[] = batch.failed
     ? [...individual, ...batchedRules]
