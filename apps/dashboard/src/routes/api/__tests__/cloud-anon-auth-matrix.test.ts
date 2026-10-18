@@ -181,7 +181,6 @@ const PUBLIC: Record<string, string> = {
 
 /** "METHOD /path" -> issue tracking the missing rejection. */
 const KNOWN_GAPS: Record<string, string> = {
-  'GET /api/v1/health/ack': '#3897',
   'GET /api/v1/health/alert-config': '#3898',
   'GET /api/v1/health/webhook-targets': '#3898',
   'GET /api/v1/health/routes': '#3898',
