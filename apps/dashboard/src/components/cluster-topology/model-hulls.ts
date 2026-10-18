@@ -35,7 +35,6 @@ const CLUSTER_RECT_RADIUS = 54
 // it) so the two never drift.
 export const PILL_ROW_H = 21
 
-/** Stable string hash → non-negative int. Deterministic (layout is tested). */
 function hashStr(s: string): number {
   let h = 0
   for (let i = 0; i < s.length; i++)

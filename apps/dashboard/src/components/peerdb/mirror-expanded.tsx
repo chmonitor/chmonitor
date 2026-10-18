@@ -98,7 +98,6 @@ export function MirrorExpanded({
         </div>
       )}
 
-      {/* phase timeline + topology pill */}
       <div className="rounded-md border border-border bg-card p-3.5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -149,7 +148,6 @@ export function MirrorExpanded({
         </div>
       </div>
 
-      {/* charts grid */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-3.5">
           <div className="mb-1 flex items-center justify-between">
@@ -230,7 +228,6 @@ export function MirrorExpanded({
         </div>
       </div>
 
-      {/* config grid */}
       <div className="overflow-hidden rounded-md border border-border bg-card">
         <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Configuration

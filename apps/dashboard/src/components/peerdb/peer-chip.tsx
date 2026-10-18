@@ -12,10 +12,6 @@ interface PeerChipProps {
   className?: string
 }
 
-/**
- * Compact peer identity chip: a brand-hued 2-letter monogram + the peer name.
- * Ported from the CHM Redesign PeerChip (peerdb-data.jsx).
- */
 export function PeerChip({
   name,
   type,

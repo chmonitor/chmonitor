@@ -7,7 +7,6 @@ import {
 } from './peerdb-utils'
 import { cn } from '@/lib/utils'
 
-/** Human-readable phase summary for the row sub-label. */
 export function phaseLabel(status?: string): string {
   switch (status) {
     case 'STATUS_RUNNING':

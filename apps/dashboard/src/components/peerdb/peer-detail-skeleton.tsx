@@ -3,13 +3,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 export function PeerDetailSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      {/* Title / Header Area */}
       <div className="flex flex-wrap items-center gap-3">
         <Skeleton className="h-4 w-16" />
         <Skeleton className="h-8 w-48 rounded" />
       </div>
 
-      {/* Slots Section */}
       <section className="flex flex-col gap-3">
         <Skeleton className="h-5 w-32" />
         <div className="rounded-lg border border-border bg-card">
@@ -36,7 +34,6 @@ export function PeerDetailSkeleton() {
         </div>
       </section>
 
-      {/* Queries Section */}
       <section className="flex flex-col gap-3">
         <Skeleton className="h-5 w-20" />
         <div className="rounded-lg border border-border bg-card">

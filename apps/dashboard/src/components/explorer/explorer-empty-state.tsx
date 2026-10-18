@@ -135,7 +135,6 @@ export function ExplorerEmptyState() {
 
   return (
     <div className="flex h-full flex-col gap-6 p-8">
-      {/* Welcome Header */}
       <div className="flex flex-col items-center justify-center gap-4 text-center">
         <DatabaseIcon className="size-16 text-muted-foreground" />
         <div className="space-y-2">
@@ -156,7 +155,6 @@ export function ExplorerEmptyState() {
         </Button>
       </div>
 
-      {/* Database List */}
       <div className="flex flex-col gap-4">
         <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <TableIcon className="size-4" />

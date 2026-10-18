@@ -49,7 +49,6 @@ export function dbTypeLabel(type?: DBType): string {
   return DB_TYPE_LABELS[key] ?? (key === 'UNKNOWN' ? 'Unknown' : key)
 }
 
-/** Human-friendly mirror status label (drops the STATUS_ prefix, title-cases). */
 export function statusLabel(status?: FlowStatus): string {
   if (!status) return 'Unknown'
   const bare = status.replace(/^STATUS_/, '')
@@ -58,7 +57,6 @@ export function statusLabel(status?: FlowStatus): string {
 
 export type StatusTone = 'running' | 'paused' | 'failed' | 'progress' | 'idle'
 
-/** Coarse tone for a mirror status, used to pick badge/edge colors. */
 export function statusTone(status?: FlowStatus): StatusTone {
   switch (status) {
     case 'STATUS_RUNNING':
@@ -78,16 +76,14 @@ export function statusTone(status?: FlowStatus): StatusTone {
   }
 }
 
-/** Hex color per tone — used for React Flow edges (inline SVG styles). */
 export const TONE_COLOR: Record<StatusTone, string> = {
-  running: '#22c55e', // green-500
-  paused: '#f59e0b', // amber-500
-  failed: '#ef4444', // red-500
-  progress: '#3b82f6', // blue-500
-  idle: '#94a3b8', // slate-400
+  running: '#22c55e',
+  paused: '#f59e0b',
+  failed: '#ef4444',
+  progress: '#3b82f6',
+  idle: '#94a3b8',
 }
 
-/** Milliseconds between two ISO timestamps, or null when not computable. */
 export function durationMs(start?: string, end?: string): number | null {
   if (!start || !end) return null
   const s = Date.parse(start)
@@ -179,7 +175,6 @@ export function bucketSeries(
   return out
 }
 
-/** Format an ISO-8601 timestamp for display; falls back to the raw string. */
 export function formatDateTime(
   iso?: string | number,
   options?: Intl.DateTimeFormatOptions
@@ -207,8 +202,6 @@ export function isPeerDBSignInRequired(error: unknown): boolean {
   return (error as { status?: number } | undefined)?.status === 401
 }
 
-// ─────────────────────── design-spec formatting (CHM Redesign) ───────────────────────
-
 /**
  * Compact count: 1.2K / 3.4M / 1.23B / 2.10T.
  *
@@ -225,14 +218,12 @@ export function pdbFmtNum(n?: number | null): string {
   return Math.round(n).toLocaleString()
 }
 
-/** WAL/slot size from MiB → "18.4 MiB" / "4.08 GiB". */
 export function pdbFmtBytes(mib?: number | null): string {
   if (mib == null) return '—'
   if (mib >= 1024) return `${(mib / 1024).toFixed(2)} GiB`
   return `${mib.toFixed(1)} MiB`
 }
 
-/** Replication lag seconds → "820 ms" / "3.2 s" / "2m 1s" / "23h 22m". */
 export function pdbFmtLag(s?: number | null): string {
   if (s == null) return '—'
   if (s < 1) return `${(s * 1000).toFixed(0)} ms`
@@ -243,7 +234,6 @@ export function pdbFmtLag(s?: number | null): string {
   return `${Math.floor(s / 86400)}d ${Math.round((s % 86400) / 3600)}h`
 }
 
-/** Partition duration seconds → "42.3s" / "1m 4s". */
 export function pdbFmtDuration(s?: number | null): string {
   if (s == null) return '—'
   if (s < 60) return `${s.toFixed(1)}s`
@@ -273,7 +263,6 @@ export function parseTs(value?: string | number | null): number | null {
   return Number.isNaN(t) ? null : t
 }
 
-/** ISO/epoch → "HH:MM:SSZ" clock (UTC), used in the partitions table + logs. */
 export function pdbFmtClock(iso?: string | number): string {
   const t = parseTs(iso)
   if (t == null) return '—'
@@ -298,10 +287,8 @@ export function pdbFmtAgo(value?: string | number): string {
   return `${m}m`
 }
 
-/** The design's 4-state status model. */
 export type DesignStatus = 'running' | 'snapshotting' | 'paused' | 'failed'
 
-/** Map a PeerDB FlowStatus to the design's status key. */
 export function toDesignStatus(status?: FlowStatus): DesignStatus {
   switch (status) {
     case 'STATUS_RUNNING':
@@ -421,12 +408,9 @@ export const PEER_KINDS: Record<string, PeerKind> = {
   },
 }
 
-/** Resolve a peer kind from a PeerDB DBType (string name or numeric ordinal). */
 export function peerKind(type?: DBType): PeerKind {
   return PEER_KINDS[normalizeDbType(type)] ?? PEER_KINDS.UNKNOWN
 }
-
-// ─────────────────────── pipeline phase flow ───────────────────────
 
 export interface PhaseNode {
   id: string
@@ -497,8 +481,6 @@ export function resolveMirrorPhase(
   return { nodes, currentIdx, mode }
 }
 
-// ─────────────────────── mirror logs ───────────────────────
-
 export interface LogLevelMeta {
   label: string
   dot: string
@@ -525,7 +507,6 @@ export function normalizePdbLogLevel(
   return normalizeLogLevel(errorType)
 }
 
-/** Relative "Ns ago / Nm ago / Nh ago" from an ISO timestamp. */
 export function pdbFmtRelative(iso?: string | number): string {
   const t = parseTs(iso)
   if (t == null) return '—'

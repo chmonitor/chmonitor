@@ -39,7 +39,6 @@ import {
   truthy,
 } from './model-parse'
 
-/** Keeper-info raw row shape (subset of keeper-info columns we use). */
 export interface KeeperInfoRow {
   zookeeper_cluster_name?: string
   host: string
@@ -63,7 +62,6 @@ export interface KeeperPresenceRow {
   enabled_feature_flags?: string[] | null
 }
 
-/** Live fan-out raw row shape (cluster-live-metrics-all / cluster-live-metrics). */
 export interface ClusterLiveRow {
   hostname?: string
   cpu_pct?: number | string
@@ -117,13 +115,11 @@ export function assembleTopology(
   liveRows: ClusterLiveRow[] = [],
   liveSource: TopologyMeta['liveSource'] = 'none'
 ): TopologyData {
-  // ── 1. collect unique CH hosts across all clusters ──
   // A host key combines name+port so the same machine listed in multiple clusters
   // maps to ONE node (the overlapping-territory story).
   const hostKey = (r: { host_name: string; port: number }) =>
     `${r.host_name}:${r.port}`
 
-  // ── machine-identity merge ──────────────────────────────────────────────
   // system.clusters is evaluated on the ONE server we queried, so EVERY row with
   // is_local=1 is that SAME physical machine — even when listed under different
   // host_names across clusters (the implicit `default` cluster lists `localhost`
@@ -214,7 +210,6 @@ export function assembleTopology(
     }
   }
 
-  // ── live metrics, keyed by hostname so we can left-join structure ← live ──
   const liveByHost = new Map<string, NodeLiveMetrics>()
   for (const lr of liveRows) {
     const host = lr.hostname
@@ -282,7 +277,6 @@ export function assembleTopology(
     }
   })
 
-  // ── 2. build clusters with per-node shard/replica role ──
   const clusterNames: string[] = []
   const clusterMembers = new Map<
     string,
@@ -416,7 +410,6 @@ export function assembleTopology(
     (voters.some((k) => k.isLeader) ||
       (voters.length === 1 && voters[0].role === 'standalone'))
 
-  // ── 4. edges ──
   // Raft: full mesh among VOTING keepers (small N); observers link to the leader only.
   const raftEdges: [string, string][] = []
   for (let i = 0; i < voters.length; i++) {

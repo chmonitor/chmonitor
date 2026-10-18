@@ -8,7 +8,6 @@ import {
   unmuteFingerprint,
 } from '@/lib/peerdb/log-mute'
 
-/** Per-browser muted log patterns (localStorage, expiring). */
 export function useLogMutes() {
   const [mutes, setMutes] = useState<MuteMap>(() => loadMutes())
 

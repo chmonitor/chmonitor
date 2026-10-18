@@ -57,7 +57,6 @@ interface MirrorGroupHeaderProps {
   counting: boolean
 }
 
-/** Collapsible prefix-group row: wildcard name + aggregated job analytics. */
 export function MirrorGroupHeader({
   group,
   expanded,

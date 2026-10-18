@@ -30,9 +30,6 @@ const fetcher = async <T,>(url: string): Promise<ApiResponse<T>> => {
   return res.json()
 }
 
-/**
- * Get a human-readable label for dependency type
- */
 function getDependencyTypeLabel(type?: DependencyType): string {
   switch (type) {
     case 'dependency':
@@ -56,7 +53,6 @@ export function DependenciesTab() {
   const hostId = useHostId()
   const { database, table } = useExplorerState()
 
-  // Use unified API for both table and database level
   const apiUrl = (() => {
     if (!database) return null
     if (table) {

@@ -55,7 +55,6 @@ export function usePeerDBStatus(
   return useQuery<PeerDBStatusPayload>({
     queryKey: [STATUS_URL, activeConnection ?? ''],
     queryFn: () => fetchStatus(url),
-    // Pause while the tab is hidden, like every other polling hook.
     refetchInterval: visibilityAwareInterval(refreshInterval),
     retry: false,
   })

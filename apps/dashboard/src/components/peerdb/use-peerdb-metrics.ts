@@ -69,7 +69,6 @@ export function usePeerDBMetrics(
   return useQuery<PeerDBMetricsPayload>({
     queryKey: [METRICS_URL, activeConnection ?? ''],
     queryFn: () => fetchMetrics(url),
-    // Pause while the tab is hidden, like every other polling hook.
     refetchInterval: visibilityAwareInterval(refreshInterval),
     retry: false,
   })

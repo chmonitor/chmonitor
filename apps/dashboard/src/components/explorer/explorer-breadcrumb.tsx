@@ -12,7 +12,6 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 
-/** Small, quiet copy affordance revealed on hover of its breadcrumb crumb. */
 const CRUMB_COPY_CLASS =
   'size-6 p-0 text-muted-foreground opacity-0 transition-opacity group-hover/crumb:opacity-100 focus-visible:opacity-100'
 

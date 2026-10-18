@@ -68,7 +68,6 @@ function formatRowCount(rows: number): string {
   for (const { value, suffix } of thresholds) {
     if (rows >= value) {
       const formatted = rows / value
-      // Round to 1 decimal place if needed, otherwise whole number
       const rounded =
         formatted % 1 === 0
           ? Math.round(formatted)

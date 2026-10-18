@@ -15,7 +15,6 @@ function clampPct(v: number): number {
   return Math.max(0, Math.min(1, v || 0))
 }
 
-/** Truncate an id so it fits inside the glyph; the full host shows below it. */
 function fit(s: string, max: number): string {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s
 }
@@ -58,7 +57,6 @@ function ChLogo({ w, muted }: { w: number; muted?: boolean }) {
   )
 }
 
-/** Pointy-top regular hexagon path of "radius" r centered at the origin. */
 export function hexPath(r: number): string {
   const pts: string[] = []
   for (let i = 0; i < 6; i++) {
@@ -86,7 +84,6 @@ export function curvePath(
   return `M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`
 }
 
-/** A small keeper/coordination shield mark. */
 const ShieldMark = ({ color }: { color: string }) => (
   <path
     transform="translate(0 -1)"
@@ -190,7 +187,6 @@ export function ChGlyph({
           ? 'local node'
           : 'remote node'
 
-  // CPU meter geometry (a thin bar inside the card's lower edge).
   const meterW = side - 24
   const meterPct = cpu !== null ? clampPct(cpu / 100) : 0
   const idText = fit(node.id, 13)
@@ -261,7 +257,6 @@ export function ChGlyph({
           strokeOpacity="0.55"
         />
       )}
-      {/* Soft status wash under the glass card */}
       <rect
         x={-r}
         y={-r}
@@ -286,11 +281,9 @@ export function ChGlyph({
         strokeWidth="2.1"
         strokeDasharray={unreachable ? '4 4' : undefined}
       />
-      {/* ClickHouse brand mark — instantly identifies a ClickHouse server */}
       <g transform={`translate(0 ${-r * 0.36})`}>
         <ChLogo w={r * 0.7} muted={unreachable} />
       </g>
-      {/* short node id, inside the card */}
       <text
         textAnchor="middle"
         y={r * 0.42}
@@ -301,7 +294,6 @@ export function ChGlyph({
       >
         {idText}
       </text>
-      {/* live CPU meter along the card's lower edge */}
       <g transform={`translate(0 ${r - 11})`}>
         <rect
           x={-meterW / 2}
@@ -324,7 +316,6 @@ export function ChGlyph({
           />
         )}
       </g>
-      {/* status dot at the top-right corner */}
       <circle
         cx={r - 4}
         cy={-r + 4}
@@ -429,9 +420,7 @@ export function KeeperGlyph({
           strokeOpacity="0.55"
         />
       )}
-      {/* Soft glass wash */}
       <path d={d} fill={accent} fillOpacity="0.14" />
-      {/* Glass hex body */}
       <path
         className="topo-glass-card"
         d={d}
@@ -442,11 +431,9 @@ export function KeeperGlyph({
         strokeOpacity="0.9"
         strokeLinejoin="round"
       />
-      {/* coordination shield in the upper band */}
       <g transform={`translate(0 ${-r * 0.44})`}>
         <ShieldMark color={accent} />
       </g>
-      {/* node id, inside the wide middle band of the hexagon */}
       <text
         textAnchor="middle"
         y={r * 0.24}
@@ -457,7 +444,6 @@ export function KeeperGlyph({
       >
         {idText}
       </text>
-      {/* connection status dot at the upper-right vertex */}
       <circle
         cx={r * 0.72}
         cy={-r * 0.5}
@@ -499,7 +485,6 @@ export function HullLabel({
   const w = text.length * 7 + 20
   return (
     <g style={{ pointerEvents: 'none' }}>
-      {/* rect + text both centered on (x, y) so the label sits dead-center */}
       <rect
         className="topo-glass-card"
         x={x - w / 2}

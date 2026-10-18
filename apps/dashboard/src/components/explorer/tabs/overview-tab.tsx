@@ -144,7 +144,6 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-/** Compact stat tile: label, value, one optional context line. */
 function StatTile({
   label,
   value,
@@ -198,7 +197,6 @@ function Section({
   )
 }
 
-/** Key/value definition row for long metadata (keys, sources, SQL). */
 function MetaRow({
   label,
   value,
@@ -329,7 +327,6 @@ export function OverviewTab() {
 
   return (
     <div className="space-y-5">
-      {/* Identity strip — what this object actually is */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border bg-card px-3 py-2.5">
         <Database
           className="size-4 shrink-0 text-muted-foreground"

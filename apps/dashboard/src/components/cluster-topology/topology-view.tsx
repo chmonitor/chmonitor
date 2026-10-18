@@ -38,7 +38,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useTableData } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
-// Refresh cadence for the connected node's fast live tick.
 const LIVE_INTERVAL = 8_000 // 8s
 const HIST_LEN = 28
 
@@ -71,7 +70,6 @@ const EMPTY_TOPOLOGY: TopologyData = {
   },
 }
 
-/** Build a LiveSnapshot for the inspector from a node's server-side live metrics. */
 function snapshotFromNode(
   live: NodeLiveMetrics | null,
   latHist: number[]
@@ -127,7 +125,6 @@ export function TopologyView({
    * full cluster page for more detail. Omitted on the /clusters page itself. */
   detailHref?: string
 }) {
-  // ── structural model assembled server-side (cached hard) ──
   // Real per-node live metrics for EVERY node are included in this document
   // (server-side clusterAllReplicas fan-out), refreshed every 60s.
   const {
@@ -137,7 +134,6 @@ export function TopologyView({
     refresh: refreshTopology,
   } = useTopology(hostId)
 
-  // ── live metrics for the connected node (fast interval, separate key) ──
   // Overlays sub-8s freshness onto the LOCAL node only; remote nodes use the
   // 60s server-side snapshot above.
   const { data: liveRows, refresh: refreshLive } =
@@ -163,7 +159,6 @@ export function TopologyView({
 
   const liveRow = liveRows?.[0]
 
-  // ── live history ring buffer (only the live bit re-renders) ──
   const [cpuHist, setCpuHist] = useState<number[]>([])
   const lastCpuRef = useRef<number | null>(null)
   useEffect(() => {
@@ -241,7 +236,6 @@ export function TopologyView({
     return map
   }, [model.chNodes, fastLocalLive])
 
-  // full live snapshot for the inspector (local node, fast tick + cpu history)
   const localSnapshot: LiveSnapshot = useMemo(() => {
     if (!fastLocalLive) return { ...EMPTY_LIVE, latHist }
     return {
@@ -296,12 +290,10 @@ export function TopologyView({
     model.clusters[0]?.name ??
     '—'
   const leaderLabel = model.leaderId ? `leader ${model.leaderId}` : '—'
-  // Count of physical/implicit clusters — drives the legend show/hide toggle.
   const physicalCount = model.clusters.filter((c) => c.outline).length
 
   return (
     <div className="max-w-[1640px]">
-      {/* status strip */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="relative inline-flex h-2 w-2">
@@ -359,7 +351,6 @@ export function TopologyView({
         </div>
       </div>
 
-      {/* summary pills */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Pill icon={BoxesIcon} label="Nodes" value={model.counts.nodes} />
         <Pill
@@ -388,9 +379,7 @@ export function TopologyView({
       </div>
 
       <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_360px]">
-        {/* canvas */}
         <Card className="overflow-hidden">
-          {/* legend toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="mr-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -537,7 +526,6 @@ export function TopologyView({
           </p>
         </Card>
 
-        {/* inspector */}
         <Card className="overflow-hidden xl:sticky xl:top-4">
           <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
             <div className="min-w-0">

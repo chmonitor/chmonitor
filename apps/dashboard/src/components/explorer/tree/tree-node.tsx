@@ -132,7 +132,6 @@ export const TreeNode = function TreeNode({
             tabIndex={-1}
             data-tree-label="true"
             onClick={() => {
-              // If expandOnSelect is true and has children and not expanded, expand first
               if (expandOnSelect && hasChildren && !isExpanded) {
                 onToggle?.()
               }

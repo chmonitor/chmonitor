@@ -36,7 +36,6 @@ interface PdbSparklineProps {
   fill?: number
 }
 
-/** Tiny inline area sparkline (table cells, KPI cards). */
 export function PdbSparkline({
   data,
   color = '#10b981',
@@ -165,7 +164,6 @@ interface PdbAreaChartProps {
   fill?: number
 }
 
-/** Full-width responsive area chart with dashed gridlines (detail panels). */
 export function PdbAreaChart({
   data,
   color = '#10b981',

@@ -24,7 +24,6 @@ function formatTick(time?: string): string {
   })
 }
 
-/** Full rows-synced area chart (with axes) for the mirror detail page. */
 export function RowsSyncedChart({ data }: RowsSyncedChartProps) {
   const gradientId = useId()
   const config = {

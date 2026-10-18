@@ -61,7 +61,7 @@ export const TopoCanvas = memo(function TopoCanvas({
   const [offsets, setOffsets] = useState<PosMap>({})
   const dragRef = useRef<DragState | null>(null)
   const liveDeltaRef = useRef<Pos>({ x: 0, y: 0 })
-  const [dragTick, setDragTick] = useState(0) // force paint while dragging
+  const [dragTick, setDragTick] = useState(0)
   const structureKey = useMemo(
     () =>
       `${keepers.map((k) => k.id).join(',')}|${chNodes.map((n) => n.id).join(',')}|${clusterHulls.map((h) => h.id).join(',')}`,
@@ -88,7 +88,6 @@ export const TopoCanvas = memo(function TopoCanvas({
     const map: PosMap = {}
     for (const k of keepers) map[k.id] = basePos(k.id)
     for (const n of chNodes) map[n.id] = basePos(n.id)
-    // Live drag preview — apply provisional delta without committing offsets yet.
     const d = dragRef.current
     if (d?.moved) {
       // positions already include committed offsets; drag uses start+delta via
@@ -97,7 +96,6 @@ export const TopoCanvas = memo(function TopoCanvas({
     return map
   }, [keepers, chNodes, basePos])
 
-  // Absolute positions for render (with live drag overlay via liveDeltaRef).
   const renderPos = useCallback(
     (id: string): Pos => {
       const d = dragRef.current
@@ -331,7 +329,6 @@ export const TopoCanvas = memo(function TopoCanvas({
       </defs>
       <rect x="0" y="0" width={VB_W} height={vbHeight} fill="url(#topo-dots)" />
 
-      {/* keeper quorum region — soft glass container */}
       {keeperHull && (
         <g
           opacity={activeCluster ? 0.4 : 1}
@@ -438,7 +435,6 @@ export const TopoCanvas = memo(function TopoCanvas({
         )
       })}
 
-      {/* edges — follow live node positions */}
       <g
         opacity={activeCluster ? 0.35 : 1}
         style={{ transition: 'opacity .25s', pointerEvents: 'none' }}
@@ -490,7 +486,6 @@ export const TopoCanvas = memo(function TopoCanvas({
         )
       })}
 
-      {/* nodes */}
       {keepersLive.map((n) => (
         <KeeperGlyph
           key={n.id}

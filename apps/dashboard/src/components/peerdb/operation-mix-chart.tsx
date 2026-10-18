@@ -41,7 +41,6 @@ export function OperationMixChart({ tables }: { tables: CDCTableRowCounts[] }) {
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3.5">
-      {/* legend */}
       <div className="flex flex-wrap items-center gap-3 text-[10.5px] text-muted-foreground">
         {OPS.map((op) => (
           <span key={op.key} className="inline-flex items-center gap-1.5">
