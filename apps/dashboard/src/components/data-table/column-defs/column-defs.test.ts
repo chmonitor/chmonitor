@@ -107,14 +107,12 @@ describe('estimateColumnSizes', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // UTILITY_COLUMN_IDS
 //
 // WHY: this is the single source of truth for synthetic (non-data) column
 // ids, previously re-listed inline in several places (one of which omitted
 // 'action', letting the row-action column participate in drag-to-reorder).
 // Pinning the exact membership here prevents that drift from recurring.
-// ---------------------------------------------------------------------------
 
 describe('UTILITY_COLUMN_IDS', () => {
   test('contains exactly the three synthetic column ids', () => {

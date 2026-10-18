@@ -2,7 +2,7 @@ import type { DeclarativeChart } from '../../schema'
 
 /**
  * Declarative twin of `components/charts/query/query-count.tsx`
- * (`ChartQueryCount`) — ported as a template for plans/58. The hand-authored
+ * (`ChartQueryCount`) — ported as a template. The hand-authored
  * TS chart is untouched; this definition renders through the exact same
  * `createAreaChart` factory call via `loadDeclarativeChart`/
  * `createChartFromDeclarative`.

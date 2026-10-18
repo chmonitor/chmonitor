@@ -1,5 +1,5 @@
 /**
- * Declarative chart schema — the catalog contract (plans/58-declarative-chart-schema.md).
+ * Declarative chart schema — the catalog contract.
  *
  * Mirrors `lib/query-config/declarative/schema.ts`: this module defines the
  * SERIALIZABLE subset of a chart's factory config that can live in a JSON /

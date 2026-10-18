@@ -63,7 +63,6 @@ export function renderBarTooltip({
                     ? formatCompactNumber(value)
                     : value}
                 </span>
-                {/* Show total after last item */}
                 {index === categories.length - 1 && (
                   <div className="mt-1.5 flex basis-full items-center border-t pt-1.5 text-xs font-medium text-foreground">
                     Total

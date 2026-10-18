@@ -121,7 +121,6 @@ export const ChartEmpty = function ChartEmpty({
             : 'No data available'
       }
     >
-      {/* Header with title and toolbar */}
       {(title || hasToolbar) && (
         <CardHeader className={cn(chartCard.header, headerClassName)}>
           <header className="flex flex-row items-center justify-between gap-2">
@@ -154,7 +153,6 @@ export const ChartEmpty = function ChartEmpty({
         </CardHeader>
       )}
 
-      {/* Empty state content */}
       <CardContent
         className={cn(
           compact ? chartCard.contentCompact : chartCard.content,
@@ -162,7 +160,6 @@ export const ChartEmpty = function ChartEmpty({
           compact ? 'py-1 px-2 min-h-[44px]' : 'py-6 sm:py-8'
         )}
       >
-        {/* Grid pattern overlay */}
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(128,128,128,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.03)_1px,transparent_1px)] bg-[size:14px_14px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none opacity-60" />
 
         <div
@@ -189,7 +186,6 @@ export const ChartEmpty = function ChartEmpty({
             compact ? 'text-[11px]' : 'text-sm'
           )}
         >
-          {/* Compact cards already show the title in the header — keep body short. */}
           {compact
             ? 'No data'
             : title

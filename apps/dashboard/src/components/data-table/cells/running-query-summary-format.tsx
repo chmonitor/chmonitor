@@ -148,10 +148,6 @@ function DetailItem({ icon: Icon, label, value, title }: DetailItemProps) {
  *
  * Expects `row.original` to contain running-query fields, tolerates missing
  * optional columns, and returns a React node for the data-table formatter.
- *
- * @param props.row TanStack row whose `original` value is the process record.
- * @param props.value Fallback query text when `row.original.query` is absent.
- * @param props.context Formatter context kept for RowContextFormatter shape.
  */
 export const RunningQuerySummaryFormat = function RunningQuerySummaryFormat<
   TData extends RowData,

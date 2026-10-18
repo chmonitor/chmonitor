@@ -2,7 +2,7 @@ import type { DeclarativeChart } from '../../schema'
 
 /**
  * Declarative twin of `components/charts/logs/error-rate-over-time.tsx`
- * (`ChartErrorRateOverTime`) — ported as a template for plans/58, and the
+ * (`ChartErrorRateOverTime`) — ported as a template, and the
  * catalog's multi-category + legend example.
  */
 export const errorRateOverTimeDeclarative: DeclarativeChart = {

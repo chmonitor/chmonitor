@@ -1,6 +1,6 @@
 /**
  * Catalog-wide sanity checks for DECLARATIVE_CHART_CATALOG
- * (plans/58-declarative-chart-schema.md). Per-domain parity tests
+ *. Per-domain parity tests
  * (query/query-catalog.test.ts, system/system-catalog.test.ts, …) prove each
  * entry round-trips to its hand-authored factory config — but that comparison
  * is against a *transcription* of the original factory call (the hand-authored

@@ -29,23 +29,6 @@ import { Table, TableBody, TableHeader } from '@/components/ui/table'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
-/**
- * Props for the DataTableContent component
- *
- * @template TData - The row data type (extends RowData from TanStack Table)
- * @template TValue - The cell value type
- *
- * @param title - Table title for accessibility and empty state
- * @param description - Table description for accessibility
- * @param queryConfig - Query configuration defining columns, formats, sorting
- * @param table - TanStack Table instance
- * @param columnDefs - Column definitions for rendering
- * @param tableContainerRef - Ref for the table container (used for virtualization)
- * @param isVirtualized - Whether virtualization is enabled
- * @param virtualizer - Virtual row instance from useVirtualRows hook
- * @param activeFilterCount - Number of active column filters
- * @param onAutoFit - Callback when double-clicking column resizer to auto-fit
- */
 export interface DataTableContentProps<
   TData extends RowData,
   TValue extends React.ReactNode,
@@ -331,7 +314,6 @@ export const DataTableContent = memo(function DataTableContent<
           aria-label={`${title || 'Data'} table`}
           style={isVirtualized ? { height: '60vh' } : undefined}
         >
-          {/* Card layout: on mobile by default, and at all widths when view==='cards'. */}
           {!compact && (
             <div className={cn('p-3', cardsVisibility)}>
               {!offerViewToggle && (

@@ -44,7 +44,6 @@ export const ChartTopQueryFingerprints = function ChartTopQueryFingerprints({
             onRetry={mutate}
           >
             <div className="flex flex-col gap-1">
-              {/* Header */}
               <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 border-b pb-1 text-xs font-medium text-muted-foreground">
                 <span>Query</span>
                 <span className="w-16 text-right">Count</span>
@@ -53,7 +52,6 @@ export const ChartTopQueryFingerprints = function ChartTopQueryFingerprints({
                 <span className="w-20 text-right">Memory</span>
               </div>
 
-              {/* Rows */}
               {rows.map((row) => (
                 <div
                   key={row.normalized_query_hash}

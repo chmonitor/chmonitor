@@ -2,7 +2,7 @@ import type { DeclarativeChart } from '../../schema'
 
 /**
  * Declarative twin of `components/charts/system/memory-usage.tsx`
- * (`ChartMemoryUsage`) — ported as a template for plans/58.
+ * (`ChartMemoryUsage`) — ported as a template.
  */
 export const memoryUsageDeclarative: DeclarativeChart = {
   type: 'area',

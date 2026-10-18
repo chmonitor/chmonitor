@@ -62,7 +62,7 @@ function QueryDetailDialog({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } else {
-      // Silent failure here left the user clicking Copy with no feedback (#2729).
+      // Tell the user the copy failed rather than staying silent.
       toast.error('Failed to copy query')
     }
   }
@@ -77,7 +77,6 @@ function QueryDetailDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Metrics strip */}
         <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
           <div className="flex flex-col gap-0.5 px-4 py-3">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -105,7 +104,6 @@ function QueryDetailDialog({
           </div>
         </div>
 
-        {/* SQL block */}
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -128,7 +126,6 @@ function QueryDetailDialog({
           </pre>
         </div>
 
-        {/* Action footer */}
         <div className="flex flex-wrap items-center gap-2 border-t border-border px-5 py-3">
           <Button
             variant="outline"
@@ -186,7 +183,6 @@ function MemoryQueryRow({
       onClick={() => onClick(row)}
       aria-label={`View details for query: ${row.query_preview}`}
     >
-      {/* Bar track (sits behind everything) */}
       <div
         className="pointer-events-none absolute inset-y-0 left-0 rounded opacity-40 transition-opacity group-hover:opacity-30"
         aria-hidden="true"
@@ -196,7 +192,6 @@ function MemoryQueryRow({
         }}
       />
 
-      {/* Content row */}
       <div className="relative flex h-8 items-center justify-between gap-2 px-2.5">
         <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-foreground">
           {row.query_preview}

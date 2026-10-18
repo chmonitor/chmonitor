@@ -2,7 +2,7 @@ import type { DeclarativeChart } from '../../schema'
 
 /**
  * Declarative twin of `components/charts/query/query-duration.tsx`
- * (`ChartQueryDuration`) — ported as a template for plans/58.
+ * (`ChartQueryDuration`) — ported as a template.
  */
 export const queryDurationDeclarative: DeclarativeChart = {
   type: 'area',

@@ -248,8 +248,7 @@ export const ChartZoomDialog = function ChartZoomDialog({
       setQueryCopied(true)
       setTimeout(() => setQueryCopied(false), 2000)
     } else {
-      // Previously an unhandled rejection — the user clicked Copy and nothing
-      // happened, with no feedback at all (#2729).
+      // Tell the user the copy failed rather than staying silent.
       toast.error('Failed to copy SQL')
     }
   }
@@ -522,7 +521,6 @@ export const ChartZoomDialog = function ChartZoomDialog({
             </TabsContent>
           )}
         </Tabs>
-        {/* Resize handle */}
         <div
           onMouseDown={handleResizeStart}
           className="absolute bottom-0 left-0 right-0 h-5 cursor-s-resize flex items-center justify-center opacity-0 hover:opacity-60 transition-opacity group"

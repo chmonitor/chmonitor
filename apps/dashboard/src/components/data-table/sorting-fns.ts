@@ -16,9 +16,6 @@ function toSortValue(value: unknown): number {
 /**
  * Get sorting functions for the table.
  * Reference: https://tanstack.com/table/v8/docs/guide/sorting#custom-sorting-functions
- *
- * @param <TData> - The type of the data in the table.
- * @returns - The sorting functions for the table.
  */
 export const getCustomSortingFns = <TData extends RowData>() => {
   return {

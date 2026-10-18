@@ -90,7 +90,6 @@ export const ChartStoragePolicies = function ChartStoragePolicies({
           >
             <div className="w-full overflow-auto">
               <div className="min-w-[400px]">
-                {/* Column headers */}
                 <div className="grid grid-cols-[1.1fr_1fr_1.2fr_auto] gap-x-3 border-b pb-2">
                   <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
                     Policy
@@ -106,7 +105,6 @@ export const ChartStoragePolicies = function ChartStoragePolicies({
                   </span>
                 </div>
 
-                {/* Policy rows */}
                 {policies.map((policy) => (
                   <div
                     key={policy.policy_name}

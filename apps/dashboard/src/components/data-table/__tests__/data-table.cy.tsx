@@ -32,10 +32,6 @@ import {
 import { DataTablePagination } from '../pagination'
 import React, { useState } from 'react'
 
-// ---------------------------------------------------------------------------
-// Test wrappers (no router context required for these sub-components)
-// ---------------------------------------------------------------------------
-
 /**
  * Renders DataTablePagination driven by a real TanStack Table built from
  * inline mock data. State is managed internally so pagination interactions
@@ -70,13 +66,11 @@ function PaginationHarness({
   return <DataTablePagination table={table} />
 }
 
-// ---------------------------------------------------------------------------
 // DataTablePagination tests
 //
 // WHY: pagination is the first thing a user notices when a table has many
 // rows. These tests ensure: controls are visible when needed, disabled when
 // at boundaries, and page-size changes reflect immediately.
-// ---------------------------------------------------------------------------
 
 describe('DataTablePagination', () => {
   describe('visibility', () => {

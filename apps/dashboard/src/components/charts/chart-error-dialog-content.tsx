@@ -68,7 +68,6 @@ export default function ChartErrorDialogContent({
 
       <ScrollArea className="flex-1 min-h-0 pr-2">
         <div className="space-y-5 pb-4">
-          {/* Failed ClickHouse SQL Query */}
           {sql && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -98,7 +97,6 @@ export default function ChartErrorDialogContent({
             </div>
           )}
 
-          {/* Error message / Traceback */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Diagnostics & Traceback
@@ -142,7 +140,6 @@ export default function ChartErrorDialogContent({
             </pre>
           </div>
 
-          {/* Table guidance */}
           {hasTableGuidance && (
             <div className="p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-lg space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -210,7 +207,6 @@ export default function ChartErrorDialogContent({
         </div>
       </ScrollArea>
 
-      {/* AI Diagnostics actions footer */}
       {enableAI && (
         <div className="shrink-0 flex flex-wrap gap-2 pt-4 border-t border-border/60 justify-end">
           <Button

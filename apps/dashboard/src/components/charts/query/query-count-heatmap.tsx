@@ -305,7 +305,6 @@ function CalendarBody({
       data-calendar-root
       className="relative flex h-full w-full flex-col justify-center gap-3"
     >
-      {/* Range caption + metric switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-muted-foreground font-mono text-xs">
           {rangeLabel}
@@ -331,7 +330,6 @@ function CalendarBody({
         </div>
       </div>
 
-      {/* KPI strip */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {statCards.map((card, index) => (
           <StatCardView
@@ -396,7 +394,6 @@ function CalendarBody({
         </div>
       </div>
 
-      {/* Footer: helper text + Less→More legend */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
           Click any day for details · hover for daily totals

@@ -2,7 +2,7 @@ import type { DeclarativeChart } from '../../schema'
 
 /**
  * Declarative twin of `components/charts/system/cpu-usage.tsx`
- * (`ChartCPUUsage`) — ported as a template for plans/58.
+ * (`ChartCPUUsage`) — ported as a template.
  */
 export const cpuUsageDeclarative: DeclarativeChart = {
   type: 'area',

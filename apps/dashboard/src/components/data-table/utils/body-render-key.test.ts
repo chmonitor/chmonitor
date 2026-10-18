@@ -17,9 +17,6 @@
 import { computeTableBodyRenderKey } from './body-render-key'
 import { describe, expect, test } from 'bun:test'
 
-// ---------------------------------------------------------------------------
-// Base input covering all 9 dimensions with non-empty values
-// ---------------------------------------------------------------------------
 const base = {
   sorting: [{ id: 'name', desc: false }],
   pagination: { pageIndex: 0, pageSize: 25 },
