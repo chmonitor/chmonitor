@@ -37,13 +37,8 @@ interface RowActionsMenuProps {
 }
 
 /**
- * Touch path to a sidebar page row's actions. Below `lg` there is no
- * hover, so the hover pin / hide / drag grip are replaced by one trailing "…"
- * button (36px target) opening a menu: Pin / Unpin, Hide from sidebar, and —
- * in the Favorites group — Move up / Move down. `lg`+ keeps the hover
- * buttons; this trigger is `lg:hidden`. A sibling of the row link, so it
- * never navigates. Keyboard: Enter / Space / ArrowDown open it, arrows move,
- * Escape closes (Base UI Menu).
+ * Touch replacement for the hover pin / hide / drag grip: below `lg` there is
+ * no hover. A sibling of the row link, so it never navigates.
  */
 export function RowActionsMenu({ href, title, hasBadge }: RowActionsMenuProps) {
   const isPinned = useIsFavorite(href)

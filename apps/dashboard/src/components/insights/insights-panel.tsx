@@ -75,13 +75,6 @@ const SEVERITY_RANK: Record<InsightSeverity, number> = {
 const FILTER_ALL = 'all'
 const FILTER_ATTENTION = 'attention'
 
-/**
- * Classified AI insights board for the full `/insights` page. Insights are
- * grouped by category with section headers, filterable via a tab row, and the
- * critical/warning ones are surfaced through a dedicated "Needs attention" tab
- * plus the severity-toned accent on each card. Generated + cached server-side
- * (findings store); regenerate on demand and dismiss per-user (localStorage).
- */
 export function InsightsPanel({ hostId, className }: InsightsPanelProps) {
   const {
     insights,
@@ -428,11 +421,7 @@ function InsightsGrid({
   )
 }
 
-/**
- * Footer showing where insights are persisted and a direct link to the settings
- * page. The backend is fixed at deploy time, so the storage label is read-only;
- * the "Configure" link gives users a path to tune generation preferences.
- */
+/** The storage backend is fixed at deploy time, so its label is read-only. */
 function InsightsStorageFooter({ hostId }: { hostId: number }) {
   const { backend, isLoading } = useInsightsBackend()
   if (isLoading) return null

@@ -1,13 +1,3 @@
-/**
- * AI Insights header popover.
- *
- * A global, cross-page surface for AI insights (mirrors NotificationsPopover):
- * a Sparkles icon with a severity-count badge, and a popover listing the top
- * insights with deep links plus footer links to the full overview panel and the
- * settings page. Reuses the same `useInsights` hook + per-user dismissal as the
- * overview panel, so counts and dismissals stay in sync everywhere.
- */
-
 import { ArrowRight, RefreshCw, Settings2, Sparkles, X } from 'lucide-react'
 
 import type { InsightCard } from '@/lib/insights/types'

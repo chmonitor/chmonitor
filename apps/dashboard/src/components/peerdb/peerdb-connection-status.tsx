@@ -62,11 +62,7 @@ const META: Record<
   },
 }
 
-/**
- * Compact PeerDB API health pill. Hits the server-side /peerdb-status probe so
- * the tooltip can show the configured host and the exact failure reason without
- * the browser ever seeing credentials.
- */
+/** Probes server-side so the tooltip shows host and failure reason without exposing credentials. */
 export function PeerDBConnectionStatus() {
   const { data, isLoading } = usePeerDBStatus()
 

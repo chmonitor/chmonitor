@@ -1,15 +1,5 @@
 'use client'
 
-/**
- * Data + derived state for the AI Insights settings form.
- *
- * Combines the persisted per-user preferences (`useInsightsSettings`), the
- * configured model list (`useAgentModel`), and the server insights status query
- * into a single hook, then computes the small derived flags the section
- * sub-forms need. Extracted from `insights-settings-form.tsx` so the view is
- * purely presentational.
- */
-
 import { useQuery } from '@tanstack/react-query'
 
 import type { ModelDisplayInfo } from '@/lib/hooks/use-agent-model'

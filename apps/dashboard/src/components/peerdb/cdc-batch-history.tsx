@@ -17,12 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-/**
- * Recent CDC batch history — one row per batch (id, LSN range, rows, duration)
- * plus a rows-per-batch bar chart. Presentational: the batches array is fetched
- * once by the parent (`POST /v1/mirrors/cdc/batches`) and shared, never fetched
- * twice.
- */
+/** Presentational: the parent fetches batches once and shares them. */
 export function CdcBatchHistory({ batches }: { batches: CDCBatch[] }) {
   if (batches.length === 0) {
     return (

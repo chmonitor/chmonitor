@@ -1,14 +1,3 @@
-/**
- * Group quick links: pinned + recently visited pages of one sidebar group.
- *
- * - Desktop (hover-capable pointer): {@link GroupHoverFlyout} wraps the group
- *   row and opens a hover card after 150ms; keyboard focus opens it too.
- * - Touch: no hover exists, so {@link GroupTouchQuickLinks} lists the same
- *   pinned/recent rows at the top of the expanded group instead.
- * - Collapsed rail: `collapsed-submenu.tsx` renders {@link GroupQuickSections}
- *   above its full page list.
- */
-
 import { ChevronRight, Clock, Pin } from 'lucide-react'
 
 import type { ReactNode } from 'react'

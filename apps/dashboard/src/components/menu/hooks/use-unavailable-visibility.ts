@@ -15,17 +15,11 @@ import { metadataDbSatisfied } from '@/lib/menu/metadata-db'
 import { resolveUnavailable } from '@/lib/menu/unavailable-visibility'
 
 /**
- * Hook bindings for the one availability policy in
- * `lib/menu/unavailable-visibility.ts`. Every nav render site goes through
- * these hooks, so the expanded rail, the collapsed flyout, and ⌘K cannot
- * disagree about whether a page is available.
+ * Every nav render site goes through these hooks, so the rail, flyout, and ⌘K
+ * cannot disagree about whether a page is available.
  */
 
-/**
- * The primitive: a resolver for ANY item on this host. The availability read is
- * ONE shared query, so resolving a whole catalog costs the same single request
- * as resolving a single row.
- */
+/** One shared query, so resolving a whole catalog costs a single request. */
 export function useUnavailableResolver(
   hostId: number
 ): (item: MenuItemType) => UnavailableResolution {

@@ -1,16 +1,7 @@
 /**
- * PeerDB AI Insights panel.
- *
- * A compact, self-contained strip surfaced at the top of `/peerdb`. It reads
- * AI insights for the env-wide PeerDB deployment via `usePeerDBInsights` and
- * reuses the shared `InsightCard`, so styling matches the ClickHouse insights
- * board and the Postgres panel.
- *
- * Renders nothing until there is at least one insight (or a generation is in
- * flight) and nothing at all when PeerDB is unconfigured — an empty box is not
- * a place to put "there is nothing to see", the page's own not-configured state
- * already says that. Kept intentionally minimal (no filter tabs / settings):
- * the full grouped board lives on `/insights` for ClickHouse.
+ * Renders nothing until there is an insight or a generation in flight, and
+ * nothing when PeerDB is unconfigured: the page's not-configured state already
+ * says so.
  */
 
 import { RefreshCw, Sparkles, X } from 'lucide-react'

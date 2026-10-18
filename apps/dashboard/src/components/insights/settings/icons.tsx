@@ -1,14 +1,5 @@
 'use client'
 
-/**
- * Inline SVG glyphs + icon maps for the insights settings form.
- *
- * Extracted from `insights-settings-form.tsx`:
- * - `STYLE_ICONS`   — lucide icon per prompt style.
- * - `EnhanceGlyph`  — the sparkle used in the "Enhance with AI" row.
- * - `TEMPLATE_SVG`  — inline SVGs for template cards (no lucide dep).
- */
-
 import { FileText, GraduationCap, type LucideIcon, Zap } from 'lucide-react'
 
 import type { InsightPromptStyle } from '@/lib/insights/prompts'

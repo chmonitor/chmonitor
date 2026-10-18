@@ -186,10 +186,7 @@ function getDependencyLabel(type?: DependencyType): string | undefined {
   }
 }
 
-/**
- * Apply dagre layout to connected nodes, and grid layout to isolated nodes
- * Dagre uses center-center anchor, React Flow uses top-left
- */
+/** Dagre anchors nodes at their center; React Flow at the top-left. */
 function getLayoutedElements(
   nodes: Node[],
   edges: Edge[],

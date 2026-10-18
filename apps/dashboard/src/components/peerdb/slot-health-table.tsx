@@ -64,13 +64,7 @@ function SlotSource({
   return null
 }
 
-/**
- * Fleet-wide replication-slot health across all Postgres peers. Aggregates
- * `GET /v1/peers/slots/{peer}`, classifies each slot (ok / warn / critical) via
- * `slotHealth`, and surfaces lag, active state, and WAL status with warning
- * tones. Sorted worst-first so risky slots (inactive, unreserved WAL, high lag)
- * rise to the top.
- */
+/** Sorted worst-first so risky slots (inactive, unreserved WAL, high lag) rise to the top. */
 export function SlotHealthTable({ peers }: { peers: PeerListItem[] }) {
   const [byPeer, setByPeer] = useState<Record<string, SlotInfo[]>>({})
 

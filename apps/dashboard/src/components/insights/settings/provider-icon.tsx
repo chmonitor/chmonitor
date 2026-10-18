@@ -1,12 +1,5 @@
 'use client'
 
-/**
- * Provider icon map + resolver for the insights settings model picker.
- *
- * Maps a provider id (normalised) to its brand glyph, falling back to a
- * monogram for unknown providers. Extracted from `insights-settings-form.tsx`.
- */
-
 import {
   AlibabaIcon,
   AmazonBedrockIcon,

@@ -8,11 +8,7 @@ const OPS = [
   { key: 'deletesCount', label: 'Deletes', color: '#f43f5e' },
 ] as const
 
-/**
- * Per-table insert/update/delete operation mix as stacked horizontal bars,
- * hand-rolled in the Pdb* CSS-bar style (no recharts). Data comes from
- * `GET /v1/mirrors/cdc/table_total_counts/{flow}`, already fetched by the page.
- */
+/** Hand-rolled CSS bars (no recharts) to match the other Pdb* charts. */
 export function OperationMixChart({ tables }: { tables: CDCTableRowCounts[] }) {
   const rows = tables
     .map((t) => {

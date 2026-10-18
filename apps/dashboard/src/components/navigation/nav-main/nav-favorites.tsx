@@ -112,16 +112,9 @@ function SortableFavoriteItem({
 }
 
 /**
- * "Favorites" group — pinned menu items in pin order, rendered above the
- * regular Main/Others sections. Hidden entirely when there are no favorites.
- * Favorites are derived from the live menu tree by href, so a
- * pinned route that got renamed or removed is dropped silently instead of
- * rendering a broken link.
- *
- * Pins and the reorder grip are hover-only on the docked rail (`lg`+). Drag
- * the grip to reorder; the title stays a link. Collapsed icon-only mode is
- * click-only. Below `lg` there is no drag: the row's "…" menu has Move up /
- * Move down, fed by the rendered order through `FavoritesOrderProvider`.
+ * Derived from the live menu tree by href, so a renamed or removed pinned
+ * route is dropped instead of rendering a broken link. Below `lg` there is no
+ * drag: the row's "…" menu reorders via `FavoritesOrderProvider`.
  */
 export function NavFavorites({ items, pathname }: NavFavoritesProps) {
   const favoriteHrefs = useFavoriteHrefs()

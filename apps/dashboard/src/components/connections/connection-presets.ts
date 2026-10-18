@@ -1,7 +1,6 @@
 /**
- * Pure connection-type preset logic, kept free of React so it can be unit-tested.
- * The connection model stores one `host` URL string (no separate secure/port
- * field), so the ClickHouse Cloud preset is realized by normalizing that URL.
+ * The connection model stores one `host` URL (no secure/port field), so the
+ * ClickHouse Cloud preset is realized by normalizing that URL.
  */
 
 import type { SourceEngine } from '@chm/types'
@@ -52,17 +51,9 @@ export const SELF_HOSTED_HOST_PLACEHOLDER =
 const SCHEME_RE = /^[a-z][a-z0-9+.-]*:\/\//i
 
 /**
- * Normalize a host value entered while the ClickHouse Cloud preset is active
- * so a Cloud service connects on the first try.
- *
- * - Empty input is returned as-is (never fabricate a host).
- * - A bare hostname (no scheme — e.g. pasted straight from the ClickHouse
- *   Cloud console) is wrapped into a full HTTPS URL on the Cloud port, since
- *   no protocol was ever explicitly chosen.
- * - A full URL only gets a missing HTTPS port filled in (8443). An explicit
- *   protocol choice (e.g. a deliberate `http://`) is never silently
- *   overridden — Cloud requires TLS, but that's surfaced via the
- *   Cloud-specific connection-error hint instead of a magic rewrite.
+ * A bare hostname gets `https://` and port 8443; a full URL only gets a missing
+ * port. An explicit `http://` is never rewritten: the Cloud TLS error hint
+ * covers that instead.
  */
 export function applyCloudHostDefaults(host: string): string {
   const trimmed = host.trim()

@@ -109,7 +109,7 @@ export function layoutTopology(
   const renderedIds = new Set(renderCh.map((n) => n.id))
 
   // Ceiling keeping CH cluster boxes below the keeper region. Uses the FINAL
-  // (post-centerContent) keeper positions; null when there are no keepers.
+  // (post-fitContent) keeper positions; null when there are no keepers.
   const clusterTopCeiling = keepers.length
     ? Math.max(...keepers.map((k) => k.y + keeperDownExtent(k))) +
       KEEPER_CLUSTER_GAP
@@ -184,7 +184,7 @@ function layoutKeepers(keepers: KeeperNode[]) {
   keepers[leaderIdx].x = cx
   keepers[leaderIdx].y = 100
   // Wide enough that adjacent FQDN labels (~166px at ~24 chars) don't overlap,
-  // capped to the usable width: centerContent clamps only one side, so an
+  // capped to the usable width: fitContent clamps only one side, so an
   // over-wide row would push the end keeper off-canvas.
   const desired = Math.min(280, 188 + followers.length * 16)
   const spread =
@@ -340,13 +340,8 @@ function clampToBand(nodes: ChNode[]) {
 }
 
 /**
- * Translate the whole composition so the bounding box of its content envelopes
- * is centered in the draw area; the offset is clamped so content stays in the
- * viewBox when it fits.
- */
-/**
  * Vertical room the cluster rects + bottom pills occupy BEYOND the node
- * envelopes, so `centerContent` can keep the whole composition in view.
+ * envelopes, so `fitContent` can keep the whole composition in view.
  */
 function boundaryReserve(
   clusters: ClusterInfo[],

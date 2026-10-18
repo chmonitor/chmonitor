@@ -31,11 +31,7 @@ export interface MenuItem {
   countVariant?: BadgeVariant
   items?: MenuItem[]
   icon?: Icon
-  /**
-   * Section grouping for sidebar display. `main` / `others` render as labelled
-   * groups in the sidebar body (NavMain); `footer` items render as compact rows
-   * in the sidebar footer (AppSidebar), above the Docs link and user button.
-   */
+  /** `footer` items render in AppSidebar, not NavMain. */
   section?: MenuSection
   /**
    * Extra Cmd+K aliases. The live palette matches `title`, `href`,
@@ -51,45 +47,22 @@ export interface MenuItem {
   /** ClickHouse system table name(s) to check for availability/muting */
   tableCheck?: string | string[]
   /**
-   * Page needs the deployment's state backend (D1, ClickHouse state, or
-   * Postgres) to persist its state (e.g. report subscriptions). When none is
-   * configured the item is
-   * dimmed — same treatment as a missing `tableCheck` table — so the operator
-   * can still FIND the feature they are about to enable. Resolved via
-   * `config.metadataDb.available` from `/api/v1/config` (see
-   * lib/menu/metadata-db.ts).
+   * Needs a state backend (D1, ClickHouse state, or Postgres). Without one the
+   * item is dimmed, not hidden, so the operator can still find the feature
+   * they are about to enable.
    */
   requiresMetadataDb?: boolean
   /**
-   * Per-item opt-in for the Hide half of Settings → Navigation → *Unavailable
-   * pages*. Two classes of unavailability:
-   *
-   * - `tableCheck` present — the page can NEVER work on this host, so the
-   *   default is to hide the row. No flag needed.
-   * - only `requiresMetadataDb` (or another config gate) — not configured yet,
-   *   but the operator can turn it on, so the default is to dim and keep the
-   *   discovery path. Set `hideWhenUnavailable: true` to hide it anyway.
-   *
-   * Overrides both directions: `false` keeps a `tableCheck` page dimmed instead
-   * of hidden. Resolution lives in `lib/menu/unavailable-visibility.ts`; every
-   * nav surface goes through it.
+   * A missing `tableCheck` table can never work on this host, so it hides by
+   * default; a config gate can be turned on, so it dims by default. This
+   * overrides either default (see `lib/menu/unavailable-visibility.ts`).
    */
   hideWhenUnavailable?: boolean
-  /**
-   * Cloud (SaaS)-only surface — hidden in self-host / OSS. Set on items that
-   * make sense only in the cloud product (e.g. Billing, Organization). Filtered
-   * centrally by `getVisibleMenuItems` (lib/menu/visible-items.ts) against
-   * `isCloudModeClient()`, so every nav surface (sidebar, command palette, …)
-   * honors it without each one re-implementing the gate.
-   */
+  /** Hidden in self-host. Filtered centrally by `getVisibleMenuItems`. */
   cloudOnly?: boolean
   /**
-   * Source engines this item applies to (engine-aware menu swap). ABSENT means the ClickHouse family (`clickhouse` +
-   * `clickhouse-cloud`) — i.e. every existing item is unchanged. Postgres-only
-   * items declare `engines: ['postgres']`. Filtered centrally by
-   * `getVisibleMenuItems` against the ACTIVE host's engine, so switching to a
-   * Postgres source swaps the nav menu to Postgres pages while ClickHouse hosts
-   * keep today's exact menu (zero-diff invariant).
+   * Absent means the ClickHouse family (`clickhouse` + `clickhouse-cloud`).
+   * Filtered by `getVisibleMenuItems` against the active host's engine.
    */
   engines?: SourceEngine[]
 }

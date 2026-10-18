@@ -7,12 +7,7 @@ interface MenuIconProps {
   isActive?: boolean
 }
 
-/**
- * Icon component with active state styling
- *
- * Accepts both Radix and Lucide icons.
- * Lucide icons support strokeWidth prop while Radix icons ignore it.
- */
+/** Radix icons ignore the strokeWidth that Lucide icons use. */
 export function MenuIcon({ icon: Icon, isActive }: MenuIconProps) {
   if (!Icon) return null
 

@@ -44,9 +44,7 @@ async function fetchMetrics(url: string): Promise<PeerDBMetricsPayload> {
 }
 
 /**
- * Shared hook for the aggregated PeerDB fleet-metrics endpoint. One fetch
- * replaces the per-mirror status/slots fan-out for header KPIs and triage
- * strips; the server caches for 30s so mount + auto-refresh collapse.
+ * One fetch replaces the per-mirror fan-out; the server caches for 30s.
  *
  * `connection` targets a per-user connection's PeerDB link (`?connection=<id>`);
  * omitted, it defaults to the active `?connection=` URL search param, and

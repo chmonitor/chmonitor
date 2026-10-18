@@ -1,11 +1,5 @@
 'use client'
 
-/**
- * Prompt style — segmented icon control (concise / detailed / beginner).
- *
- * Extracted from `insights-settings-form.tsx`.
- */
-
 import { FileText } from 'lucide-react'
 
 import type { InsightsSettings } from '@/lib/insights/settings'

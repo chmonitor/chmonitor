@@ -1,18 +1,5 @@
 'use client'
 
-/**
- * AI Insights settings form — template-first, searchable model picker.
- *
- * Per-user insight preferences persisted by `useInsightsSettings`: enrichment,
- * model, prompt tone, and lookback window. Operators can one-click a template
- * (Quick scan / Deep dive / Learning / Raw) or fine-tune the individual
- * controls. The available model list comes from the same source as the agent
- * model picker (configured providers only). Changes apply immediately.
- *
- * This component is a thin composition of section sub-forms in `./settings/*`;
- * all data + derived state lives in `useInsightsSettingsForm`.
- */
-
 import { RotateCcw } from 'lucide-react'
 
 import { EnhanceSection } from './settings/enhance-section'

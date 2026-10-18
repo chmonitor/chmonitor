@@ -92,14 +92,8 @@ function SnapshotRow({ summary }: { summary: CloneTableSummary }) {
 }
 
 /**
- * Snapshot / initial-load progress — per-table clone summaries from
- * `GET /v1/mirrors/cdc/initial_load/{flow}` (proto `InitialLoadSummary`).
- *
- * Snapshotting mirrors show almost nothing else today; this fills the gap with
- * per-table partition progress, rows synced, avg time/partition, and
- * fetch/consolidate phase badges. Rendered when the mirror is snapshotting OR
- * whenever the initial-load endpoint still returns rows (a just-finished
- * backfill remains visible until PeerDB clears it).
+ * Also rendered after snapshotting while the initial-load endpoint still
+ * returns rows, so a just-finished backfill stays visible until PeerDB clears it.
  */
 export function SnapshotProgress({
   flowJobName,

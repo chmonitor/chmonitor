@@ -40,12 +40,7 @@ export function DemoUnavailableAlert({
   )
 }
 
-/**
- * Banner shown above the routed page when the active host is the public cloud
- * demo and its host-status probe fails. Renders nothing otherwise, so
- * self-hosted behaviour is unchanged. Shares the host-status query key with the
- * host switcher, so this adds no extra request.
- */
+/** Shares the host-status query key with the host switcher, so it adds no request. */
 export function DemoUnavailableBanner() {
   const hostId = useHostId()
   const { hosts } = useMergedHosts()

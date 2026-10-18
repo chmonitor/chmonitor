@@ -1,16 +1,3 @@
-/**
- * Insight detail dialog.
- *
- * Opened by clicking a finding — either a row in the header `InsightsPopover` or
- * an `InsightCard` on the overview strip / insights board. Shows the full,
- * untruncated finding (title + severity + description + timestamp + category /
- * metric), the finding's existing deep-link action, an optional dismiss action
- * (reusing the same per-user dismissal mutation as the card/popover), and — when
- * the finding maps to one — the explanatory chart(s) that visualize it
- * (`lib/insights/insight-charts`, rendered via the chart registry). Findings
- * with no mapped chart simply omit the charts section.
- */
-
 import { ArrowRight, X } from 'lucide-react'
 
 import type { InsightCard as InsightCardData } from '@/lib/insights/types'
@@ -39,22 +26,13 @@ import { formatRelativeTime } from '@/lib/utils/format-relative-time'
 
 interface InsightDetailDialogProps {
   insight: InsightCardData
-  /**
-   * ClickHouse host the deep-link carries as `?host=`. Omit it for a finding
-   * with no ClickHouse host (PeerDB findings belong to the env-wide PeerDB
-   * deployment) — the link then carries no `?host=` rather than a fabricated
-   * one. Mirrors `InsightCard`.
-   */
+  /** Omit for PeerDB findings, which have no ClickHouse host. */
   hostId?: number
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Reuse the caller's per-user dismissal. When omitted, no dismiss button. */
   onDismiss?: (insight: InsightCardData) => void
-  /**
-   * Search params for the action deep-link, overriding the default
-   * `{ host: hostId }` (Postgres insights pass their `?pg=` source). Mirrors
-   * `InsightCard`'s `linkSearch`.
-   */
+  /** Overrides `{ host: hostId }`; Postgres insights pass their `?pg=` source. */
   linkSearch?: Record<string, string | number>
 }
 

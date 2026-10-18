@@ -17,12 +17,7 @@ interface LagEntry {
   destination?: string
 }
 
-/**
- * Worst-lag triage strip for the mirrors index. Ranks mirrors by the per-row
- * lag already derived (shared via `onMetrics`), surfaces the top offenders with
- * deep links to the mirror detail page. Renders nothing when no mirror is
- * meaningfully behind — a healthy fleet stays quiet.
- */
+/** Renders nothing when no mirror is meaningfully behind, so a healthy fleet stays quiet. */
 export function FleetLagTriage({
   mirrors,
   metrics,

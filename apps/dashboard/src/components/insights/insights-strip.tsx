@@ -27,16 +27,6 @@ interface InsightsStripProps {
   className?: string
 }
 
-/**
- * Compact one-row insights strip for the overview page.
- *
- * Renders every active insight in a single horizontally-scrollable row with the
- * scrollbar hidden (`scrollbar-hide`). When the row overflows, a chevron button
- * plus an edge fade appear on each scrollable side and page the row by ~one
- * viewport (`scrollBy`). A "View all insights" header link deep-links to the
- * full `/insights` board. Shares `useInsights` (and thus counts + dismissals)
- * with the board and header popover.
- */
 export function InsightsStrip({ hostId, className }: InsightsStripProps) {
   const {
     insights,
@@ -159,10 +149,8 @@ export function InsightsStrip({ hostId, className }: InsightsStripProps) {
 }
 
 /**
- * A single-row horizontal scroller with a hidden scrollbar and, only when the
- * content overflows, a chevron button + edge fade on each scrollable side.
- * `key`-ing the recompute on the children count means adding/removing cards
- * re-evaluates overflow (a ResizeObserver alone misses content-width changes).
+ * Overflow recompute is keyed on the children count: a ResizeObserver alone
+ * misses content-width changes when cards are added or removed.
  */
 function InsightsScroller({
   children,
