@@ -24,6 +24,7 @@ export type AlertRuleType =
   | 'stuck-merges'
   | 'disk-usage'
   | 'query-timeout'
+  | 'concurrent-queries'
   | 'failed-backups'
   | 'keeper-unavailable'
   | 'mv-refresh-failures'
