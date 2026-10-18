@@ -111,24 +111,55 @@ export const storagePoliciesConfig: QueryConfig = {
   name: 'storage-policies',
   description:
     'Storage policies and volume configurations from system.storage_policies',
-  sql: `
-    SELECT
-      policy_name,
-      volume_name,
-      volume_priority,
-      arrayStringConcat(disks, ', ') AS disk_list,
-      max_data_part_size,
-      if(
-        max_data_part_size > 0,
-        formatReadableSize(max_data_part_size),
-        '∞'
-      ) AS readable_max_part_size,
-      move_factor,
-      prefer_not_to_merge,
-      perform_ttl_move_on_insert
-    FROM system.storage_policies
-    ORDER BY policy_name, volume_priority
-  `,
+  // storage_policies.perform_ttl_move_on_insert arrives in 23.8; 23.3 does
+  // not expose it, so the 23.3 variant reports the default (1).
+  sql: [
+    {
+      since: '23.3',
+      description:
+        'perform_ttl_move_on_insert stubbed as the default (no such column on 23.3)',
+      sql: `
+        SELECT
+          policy_name,
+          volume_name,
+          volume_priority,
+          arrayStringConcat(disks, ', ') AS disk_list,
+          max_data_part_size,
+          if(
+            max_data_part_size > 0,
+            formatReadableSize(max_data_part_size),
+            '∞'
+          ) AS readable_max_part_size,
+          move_factor,
+          prefer_not_to_merge,
+          toUInt8(1) AS perform_ttl_move_on_insert
+        FROM system.storage_policies
+        ORDER BY policy_name, volume_priority
+      `,
+    },
+    {
+      since: '23.8',
+      description: 'Includes perform_ttl_move_on_insert',
+      sql: `
+        SELECT
+          policy_name,
+          volume_name,
+          volume_priority,
+          arrayStringConcat(disks, ', ') AS disk_list,
+          max_data_part_size,
+          if(
+            max_data_part_size > 0,
+            formatReadableSize(max_data_part_size),
+            '∞'
+          ) AS readable_max_part_size,
+          move_factor,
+          prefer_not_to_merge,
+          perform_ttl_move_on_insert
+        FROM system.storage_policies
+        ORDER BY policy_name, volume_priority
+      `,
+    },
+  ],
   columns: [
     'policy_name',
     'volume_name',
