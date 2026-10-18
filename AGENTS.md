@@ -354,7 +354,7 @@ formatReadableQuantity(rows) AS readable_rows,                           -- disp
 round(rows * 100.0 / nullIf(max(rows) OVER (), 0), 2) AS pct_rows       -- percentage
 ```
 
-See `.claude/skills/clickhouse-query-config.md` for full patterns.
+Full patterns: [docs/knowledge/query-config-format.md](docs/knowledge/query-config-format.md). Rules: `.claude/skills/clickhouse-query-config/SKILL.md`.
 
 ## Project skills (Claude Code) & auto-improvement
 
@@ -911,7 +911,7 @@ export const myConfig: QueryConfig = {
 bun run scripts/build-ch-schema-docs.ts
 ```
 
-See also: `.claude/skills/clickhouse-query-config.md` for Claude skill guidance.
+See also: `.claude/skills/clickhouse-query-config/SKILL.md` for Claude skill guidance.
 
 #### Table Validation System
 

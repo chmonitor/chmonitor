@@ -3,7 +3,7 @@ id: query-config-format
 title: QueryConfig Format
 type: spec
 status: active
-updated: 2026-09-27
+updated: 2026-10-18
 tags:
   - query-config
   - clickhouse
@@ -18,7 +18,8 @@ related:
 
 ## Specification
 
-Each data view uses a `QueryConfig` type (`types/query-config.ts`) that defines:
+Each data view uses a `QueryConfig` type
+(`apps/dashboard/src/types/query-config.ts`) that defines:
 
 - SQL query with parameters
 - Column formatting specifications
@@ -41,6 +42,14 @@ export const myConfig: QueryConfig = {
 }
 ```
 
+The runtime picks the highest `since` that is not above the server version
+(24.5 picks `24.1`) and falls back to the oldest entry for older servers.
+Every entry must output every name in `columns[]`, so the `23.8` entry above
+should select `0 AS new_col`. Use `''` or `NULL` for string or nullable
+placeholders. A short `description` per entry says what changed. Take
+column names from `docs/clickhouse-schemas/tables/<table>.md`, not memory:
+`system.parts` has `marks`, not `marks_count`.
+
 ### BackgroundBar Columns
 
 When asked to "format background bar for: X, Y, Z", each column needs 3 SQL columns:
@@ -51,6 +60,13 @@ rows,                                                                    -- base
 formatReadableQuantity(rows) AS readable_rows,                           -- display
 round(rows * 100.0 / nullIf(max(rows) OVER (), 0), 2) AS pct_rows       -- percentage
 ```
+
+Put `readable_rows` in `columns[]` with `ColumnFormat.BackgroundBar`.
+`background-bar-format.tsx` strips a leading `readable_` from the column key
+and reads `pct_<rest>` for the bar width and `<rest>` for the tooltip. A
+computed value (a ratio) needs no `readable_` column: compute it in a CTE, then
+add `pct_ratio` in the outer `SELECT`. `background-bar-companions.test.ts`
+fails any registered config whose BackgroundBar column has no `pct_` companion.
 
 ### Optional Tables
 
@@ -67,15 +83,16 @@ export const backupsConfig: QueryConfig = {
 
 ## Key Files
 
-- `types/query-config.ts` — type definitions
-- `lib/query-config/` — centralized query configurations
-- `lib/api/chart-registry.ts` — chart query registry
-- `lib/api/table-registry.ts` — table query registry
-- `docs/clickhouse-schemas/` — column availability per version
+- `apps/dashboard/src/types/query-config.ts` — type definitions
+- `apps/dashboard/src/lib/query-config/` — query configs, registered in `index.ts`
+- `apps/dashboard/src/lib/api/chart-registry.ts` — chart query registry
+- `apps/dashboard/src/lib/api/table-registry.ts` — table query registry
+- `packages/clickhouse-client/src/clickhouse-version.ts` — server version parsing
+- `docs/clickhouse-schemas/tables/<table>.md` — column availability per version
 
 ## See Also
 
-- `.claude/skills/clickhouse-query-config.md` — Claude skill guidance
+- `.claude/skills/clickhouse-query-config/SKILL.md` — the agent-facing rules
 - `packages/clickhouse-client/src/table-validator.ts` — validates table
   existence before queries
 - `packages/clickhouse-client/src/table-existence-cache.ts` — caches validation
