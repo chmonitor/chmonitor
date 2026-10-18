@@ -234,14 +234,20 @@ jobs:
           CHM_API_KEY_SECRET: ci-e2e-secret
           CHM_AUTH_PROVIDER: none
 
-  # Query config tests - latest ClickHouse only
+  # Query config tests - the 25.8 LTS pin and the newest LTS (26.8)
   test-queries-config:
+    name: test-queries-config (${{ matrix.clickhouse-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
+    strategy:
+      fail-fast: false
+      matrix:
+        clickhouse-version: ['25.8', '26.8']
+
     services:
       clickhouse:
-        image: clickhouse/clickhouse-server:26.7
+        image: clickhouse/clickhouse-server:${{ matrix.clickhouse-version }}
         ports:
           - 8123:8123
         options: >-
@@ -254,7 +260,7 @@ jobs:
           CLICKHOUSE_SKIP_USER_SETUP: 1
 
       keeper:
-        image: clickhouse/clickhouse-keeper:26.7
+        image: clickhouse/clickhouse-keeper:${{ matrix.clickhouse-version }}
         options: >-
           --health-cmd "clickhouse-keeper client -h 127.0.0.1 -p 9181 -q 'ruok' 2>/dev/null | grep -q imok || exit 1"
           --health-interval 5s
