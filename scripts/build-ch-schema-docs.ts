@@ -55,6 +55,12 @@ async function main() {
     console.log('\nParsing changelog...')
     let entries = parseChangelog(changelog)
 
+    if (entries.length === 0) {
+      throw new Error(
+        'Parsed 0 entries from the changelog; the heading format may have changed (see scripts/ch-schema/changelog-parser.ts)'
+      )
+    }
+
     if (options.version) {
       entries = entries.filter((e) => e.version === options.version)
       console.log(
