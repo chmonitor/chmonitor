@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react'
 
-/** Header for a static (non-collapsible) block — the Connection block. */
 export function StaticSectionHeader({
   label,
   right,

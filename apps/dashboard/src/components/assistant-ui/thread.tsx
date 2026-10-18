@@ -21,15 +21,6 @@
  *  - `chain-of-thought.tsx`– GroupedParts reasoning/tool render pipeline
  *  - `message-stats.tsx`   – per-message stats footer + details dialog
  *  - `format.ts`           – shared duration/date helpers
- *
- * Tasks shipped across this file + its modules:
- *  #1  – Loading indicator right after user submit
- *  #3  – Per-message stats footer (tokens / duration / model / timestamp)
- *  #4  – Chain-of-Thought via MessagePrimitive.GroupedParts
- *  #5  – ErrorPrimitive rendering
- *  #8  – Reasoning ghost/muted styling (via reasoning.tsx)
- *  #11 – ToolGroup component (collapsible adjacent tool calls)
- *  #12 – Message timing (relative timestamp w/ tooltip)
  */
 
 import type { ComponentProps, FC } from 'react'
@@ -68,13 +59,9 @@ import {
 } from '@/components/ui/message-scroller'
 
 interface ThreadProps {
-  /** Display name to weave into the welcome heading. */
   firstName?: string | null
-  /** Cluster the agent is wired into (shown in the greeting + footer). */
   clusterName?: string | null
-  /** When true, the greeting switches to its alert variant. */
   hasClusterIssue?: boolean
-  /** Send a suggested question. Parent may collapse chrome first. */
   onPickPrompt?: (prompt: string) => void
 }
 
@@ -132,7 +119,6 @@ export function Thread({
               </MessageScrollerViewport>
             </MessageScroller>
 
-            {/* Composer pinned below the scroll area. */}
             <div className="mx-auto flex w-full flex-col items-start gap-2 bg-background px-4 pb-3">
               <FollowUpSuggestions />
               <ThreadComposer />
@@ -208,10 +194,8 @@ const AssistantMessage: FC = () => {
       <MessagePrimitive.Root className="mx-auto w-full max-w-[var(--assistant-max-width)] py-3">
         <Message align="start">
           <MessageContent className="w-full max-w-full gap-1 text-foreground">
-            {/* Task #1: loading dots while no parts exist yet */}
             <LoadingIndicator />
 
-            {/* Tasks #4, #8, #11: chain-of-thought with reasoning + tool groups */}
             <MessagePrimitive.GroupedParts groupBy={groupByChainOfThought}>
               {
                 // The local GroupedRenderInfo is a structural approximation of
@@ -226,7 +210,6 @@ const AssistantMessage: FC = () => {
 
             <JsonRenderMessage />
 
-            {/* Task #5: error display */}
             <MessageError />
 
             {/* Surface errors the route streamed as a `data-error` part (a
@@ -239,10 +222,8 @@ const AssistantMessage: FC = () => {
               <AssistantActionBar />
             </div>
 
-            {/* Tasks #3 + #12: per-message stats + timestamp */}
             <MessageStatsFooter />
 
-            {/* Deterministic, rule-based follow-up chips (issue #2324) */}
             <AssistantFollowUpChips />
           </MessageContent>
         </Message>

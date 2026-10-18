@@ -119,7 +119,6 @@ export function AiUsageMeter({
   )
 }
 
-/** The count badge shown in a sidebar section header (`N left`). */
 export function AiUsageMeterBadge({ className }: { className?: string }) {
   const state = useQuotaState()
   if (!state) return null

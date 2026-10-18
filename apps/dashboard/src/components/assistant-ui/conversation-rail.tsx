@@ -39,7 +39,6 @@ export interface ConversationItem {
   isActive: boolean
 }
 
-/** Sorted (newest first) list of saved conversations from the runtime. */
 export function useConversationItems(): ConversationItem[] {
   const threadIds = useAuiState((s) => s.threads.threadIds)
   const threadItems = useAuiState((s) => s.threads.threadItems)
@@ -68,7 +67,6 @@ export function useConversationItems(): ConversationItem[] {
 
 const DAY = 86_400_000
 
-/** Groups items into Today / Yesterday / Previous 7 days / Older buckets. */
 function groupByDate(
   items: ConversationItem[]
 ): { label: string; items: ConversationItem[] }[] {
@@ -108,7 +106,6 @@ interface ThreadRowProps {
   onSelect?: () => void
 }
 
-/** One conversation row in the conversation rail. */
 export function ThreadRow({ item, onSelect }: ThreadRowProps) {
   const aui = useAui()
 
@@ -176,7 +173,6 @@ interface ConversationRailBodyProps {
   showCollapse?: boolean
 }
 
-/** Header + search + grouped list — the reusable inner body of the rail. */
 export function ConversationRailBody({
   onNavigate,
   onCollapse,
@@ -311,7 +307,6 @@ export function ConversationRail({
   )
 }
 
-/** Small trigger button shown in the chat column when the rail is collapsed. */
 export function ConversationRailOpenButton({
   onClick,
   className,

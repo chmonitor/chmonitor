@@ -104,13 +104,10 @@ export function AgentSettingsSidebar({
 
   const sections = (
     <>
-      {/* CONNECTION — primary block, always visible */}
       <ConnectionSummary hostName={hostName} />
 
-      {/* DAILY AI USAGE (cloud-only; renders nothing on OSS / unlimited) */}
       <AiUsagePanel />
 
-      {/* MCP SERVERS */}
       <CollapsibleSidebarSection
         label="MCP servers"
         icon={PlugZapIcon}
@@ -145,7 +142,6 @@ export function AgentSettingsSidebar({
         </button>
       </CollapsibleSidebarSection>
 
-      {/* SKILLS */}
       <CollapsibleSidebarSection
         label="Skills"
         icon={SparklesIcon}
@@ -211,7 +207,6 @@ export function AgentSettingsSidebar({
         </Button>
       </CollapsibleSidebarSection>
 
-      {/* SUGGESTED PROMPTS */}
       <CollapsibleSidebarSection
         label="Suggested prompts"
         icon={LightbulbIcon}

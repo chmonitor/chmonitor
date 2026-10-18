@@ -186,8 +186,6 @@ export function ToolCallPart({
   const hasOutput = part.state === 'output-available'
   const hasError = part.state === 'output-error'
   const shouldAutoExpand = isStreaming || hasError || isStarting
-  // A tool is "active" while its input is streaming in or it is executing —
-  // the whole window that shows the single animated "Running…" indicator.
   const isActive = isStarting || isStreaming
   const [isExpanded, setIsExpanded] = useState(shouldAutoExpand)
 
@@ -206,9 +204,6 @@ export function ToolCallPart({
     }
   }, [isMessageStreaming, hasOutput, hasError, isExpanded])
 
-  // Short, single-line summary for the header — long values (e.g. a `sql`
-  // param) are truncated instead of dumping every key=value pair inline; the
-  // full input is always available in the "Parameters" disclosure below.
   const inputSummary = summarizeToolInput(part.input)
   const outputSummary = hasOutput ? summarizeToolOutput(part.output) : null
   const toolSummary = outputSummary ?? inputSummary
@@ -241,7 +236,6 @@ export function ToolCallPart({
 
   return (
     <div className="my-1">
-      {/* Tool row — no outer box; left accent bar when expanded */}
       <div
         className={cn(
           'flex w-full items-center transition-colors',
@@ -345,7 +339,6 @@ export function ToolCallPart({
             )
           ) : null}
 
-          {/* Parameters — collapsed by default so the row reads clean */}
           {hasInputParams ? (
             <RowDisclosure label="Parameters" count={inputParamCount}>
               <div className="space-y-1">
@@ -354,9 +347,6 @@ export function ToolCallPart({
                     const paramDef = toolParams.find((p) => p.name === key)
                     const isOptional = paramDef?.required === false
 
-                    // A long / multi-line value (e.g. a `sql` param) gets its
-                    // own syntax-highlighted, horizontally-scrollable block
-                    // instead of a truncated inline `key: value` row.
                     if (isLongToolInputValue(value)) {
                       return (
                         <div key={key} className="space-y-1">

@@ -49,7 +49,6 @@ export function McpToolsResourcesDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg overflow-hidden p-0">
-        {/* Header — mirrors skill-detail-dialog muted header */}
         <DialogHeader className="border-b bg-muted/30 px-5 py-4 text-left">
           <div className="flex items-start gap-3">
             <div className="bg-background border-border inline-flex size-10 shrink-0 items-center justify-center rounded-xl border">
@@ -77,10 +76,8 @@ export function McpToolsResourcesDialog({
           </div>
         </DialogHeader>
 
-        {/* Body */}
         <ScrollArea className="max-h-[70dvh]">
           <div className="space-y-5 p-5">
-            {/* Custom server: render probeTools list directly */}
             {server.probeTools !== undefined ? (
               <div>
                 <div className="text-muted-foreground mb-2 text-[10.5px] font-semibold tracking-wider uppercase">
@@ -106,7 +103,6 @@ export function McpToolsResourcesDialog({
                 )}
               </div>
             ) : (
-              /* Built-in server: use live info from /api/v1/mcp/info */
               <>
                 {isLoading && (
                   <p className="text-muted-foreground text-[12.5px]">
@@ -131,7 +127,6 @@ export function McpToolsResourcesDialog({
 
                 {data && (
                   <>
-                    {/* Tools section */}
                     <div>
                       <div className="text-muted-foreground mb-2 text-[10.5px] font-semibold tracking-wider uppercase">
                         Tools ({data.tools.length})
@@ -169,7 +164,6 @@ export function McpToolsResourcesDialog({
                       )}
                     </div>
 
-                    {/* Resources section */}
                     <div>
                       <div className="text-muted-foreground mb-2 text-[10.5px] font-semibold tracking-wider uppercase">
                         Resources ({data.resources.length})

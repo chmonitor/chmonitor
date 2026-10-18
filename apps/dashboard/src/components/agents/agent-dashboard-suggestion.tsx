@@ -1,6 +1,6 @@
 /**
  * Renders the `suggest_dashboard` tool's output — a proposed dashboard layout
- * built from registry charts (plan 59). Recommend-only: this component never
+ * built from registry charts. Recommend-only: this component never
  * saves anything by itself. "Apply to dashboard" loads the layout into the
  * dashboard route's unsaved working grid (the same sessionStorage bridge the
  * arrange-mode grid already uses — see `DASHBOARD_SESSION_KEY`) and navigates

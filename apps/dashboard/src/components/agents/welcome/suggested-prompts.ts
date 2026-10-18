@@ -102,7 +102,6 @@ export const SUGGESTED_PROMPTS: readonly SuggestedPrompt[] = [
   },
 ] as const
 
-/** Fisher–Yates shuffle, returning a new array (input is left untouched). */
 export function shufflePrompts(
   prompts: readonly SuggestedPrompt[]
 ): SuggestedPrompt[] {

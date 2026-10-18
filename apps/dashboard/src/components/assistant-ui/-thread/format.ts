@@ -1,4 +1,3 @@
-/** Format a Date as absolute readable string. */
 export function formatAbsolute(date: Date): string {
   return date.toLocaleString(undefined, {
     month: 'short',
@@ -9,7 +8,6 @@ export function formatAbsolute(date: Date): string {
   })
 }
 
-/** Format a Date as relative (e.g. "2m ago"). */
 export function formatRelative(date: Date): string {
   const diffMs = Date.now() - date.getTime()
   const diffSecs = Math.floor(diffMs / 1000)

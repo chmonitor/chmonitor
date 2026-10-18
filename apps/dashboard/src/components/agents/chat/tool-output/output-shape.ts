@@ -34,7 +34,6 @@ const SUMMARY_MAX_LENGTH = 60
  * query) — summarized alone in the header instead of the full key=value dump. */
 const PRIMARY_PARAM_NAMES = /^(sql|query|prompt|question|text)$/i
 
-/** Collapses whitespace/newlines to a single line and caps the length. */
 function truncateOneLine(
   value: string,
   maxLength = SUMMARY_MAX_LENGTH
@@ -95,7 +94,6 @@ export function isLongToolInputValue(value: unknown): value is string {
   )
 }
 
-/** Language hint for a long tool-input value shown in a code block. */
 export function toolInputCodeLanguage(key: string): string {
   return /sql|query/i.test(key) ? 'sql' : 'text'
 }
@@ -180,7 +178,6 @@ const TOOL_FAMILY_MATCHERS: readonly {
   { family: 'query', pattern: /query|sql|explain/i },
 ]
 
-/** Maps a tool name onto a presentational family for the chat row icon. */
 export function getToolFamily(toolName: string): ToolFamily {
   for (const { family, pattern } of TOOL_FAMILY_MATCHERS) {
     if (pattern.test(toolName)) return family

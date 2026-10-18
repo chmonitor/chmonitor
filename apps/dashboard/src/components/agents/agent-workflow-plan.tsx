@@ -19,7 +19,6 @@ export interface WorkflowPlanStep {
 export interface AgentWorkflowPlanProps {
   steps: WorkflowPlanStep[]
   note?: string
-  /** Workflow title shown when the plan was started from a template. */
   workflow?: string
   total?: number
   completed?: number

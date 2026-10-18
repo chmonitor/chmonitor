@@ -30,11 +30,9 @@ interface PromptInputTextareaWithMentionsProps {
   placeholder?: string
   disabled?: boolean
   className?: string
-  /** Called when the resolved message (with mention context) is ready */
   onResolvedSubmit?: (fullText: string) => void
   isLoading?: boolean
   onStop?: () => void
-  /** Sync text value for external state management */
   value?: string
   onChange?: (value: string) => void
 }
@@ -145,7 +143,6 @@ export function PromptInputTextareaWithMentions({
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     const handled = autocomplete.handleKeyDown(e)
     if (handled) {
-      // If Enter/Tab was handled and there are filtered items, perform selection
       if (
         (e.key === 'Enter' || e.key === 'Tab') &&
         autocomplete.filteredItems.length > 0
@@ -256,7 +253,6 @@ export function PromptInputTextareaWithMentions({
         </InputGroupAddon>
       </InputGroup>
 
-      {/* Autocomplete popover */}
       <AutocompletePopover
         open={autocomplete.state.isOpen}
         trigger={autocomplete.state.trigger}

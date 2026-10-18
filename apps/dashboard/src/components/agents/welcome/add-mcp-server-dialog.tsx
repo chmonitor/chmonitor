@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
-/** A custom server the user is about to register. */
 export interface AddServerInput {
   name: string
   endpoint: string

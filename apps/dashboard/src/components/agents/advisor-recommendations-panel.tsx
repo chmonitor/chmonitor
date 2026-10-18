@@ -8,7 +8,7 @@
  *
  * Recommend-only: shows a "copy" button for the DDL/rewrite text
  * (`CodeBlockCopyButton`) — there is no "apply" action anywhere in this
- * component. See plans/46-query-advisor-engine.md.
+ * component.
  */
 
 import {

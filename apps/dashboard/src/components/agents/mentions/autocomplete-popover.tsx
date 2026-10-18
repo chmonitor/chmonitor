@@ -42,7 +42,6 @@ function ItemIcon({ type }: { type: AutocompleteItem['type'] }) {
   }
 }
 
-// Group items by their group field while preserving insertion order of groups
 function groupItems(
   items: AutocompleteItem[]
 ): Map<string, AutocompleteItem[]> {
@@ -71,7 +70,6 @@ export function AutocompletePopover({
   const visible = items.slice(0, 50)
   const grouped = groupItems(visible)
 
-  // Build a flat index map to match selectedIndex across groups
   let flatIndex = 0
   const indexedItems: { item: AutocompleteItem; flatIdx: number }[] = []
   for (const groupItems of grouped.values()) {

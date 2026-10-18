@@ -48,7 +48,6 @@ function useSeriesConfig(yKeys: string[]): ChartConfig {
   )
 }
 
-/** Shared categorical X axis with truncated tick labels. */
 function CategoryXAxis({ xKey }: { xKey: string }) {
   return (
     <XAxis
