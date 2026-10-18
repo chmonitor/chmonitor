@@ -200,7 +200,7 @@ export async function handler(request: Request): Promise<Response> {
 
     // 1. Query system.tables to check which optional tables exist
     const tablesCheckResult = await fetchData({
-      query: `SELECT database, name FROM system.tables WHERE (database = 'system' AND name IN ('distributed_ddl_queue', 'clusters', 'backup_log', 'dictionaries', 'view_refreshes')) OR (name = 'monitoring_events')`,
+      query: `SELECT database, name FROM system.tables WHERE (database = 'system' AND name IN ('distributed_ddl_queue', 'zookeeper', 'clusters', 'backup_log', 'dictionaries', 'view_refreshes')) OR (name = 'monitoring_events')`,
       format: 'JSONEachRow',
       hostId,
     })
@@ -234,7 +234,10 @@ export async function handler(request: Request): Promise<Response> {
       if (!menuCount) continue
 
       if (menuCount.optional && menuCount.tableCheck) {
-        if (!existingTables.has(menuCount.tableCheck)) {
+        const required = Array.isArray(menuCount.tableCheck)
+          ? menuCount.tableCheck
+          : [menuCount.tableCheck]
+        if (!required.every((table) => existingTables.has(table))) {
           // Table doesn't exist: return null without querying it
           counts[key] = null
           continue

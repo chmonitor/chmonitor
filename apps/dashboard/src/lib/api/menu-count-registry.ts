@@ -14,7 +14,7 @@ import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 export interface MenuCountQuery {
   query: string
   optional?: boolean
-  tableCheck?: string
+  tableCheck?: string | string[]
   /**
    * Opt out of the ClickHouse query-cache settings (#2182) the menu-counts
    * routes apply by default to every count query.
@@ -37,7 +37,8 @@ export const menuCountRegistry: Record<string, MenuCountQuery> = {
   'distributed-ddl-queue': {
     query: `SELECT COUNT() as count FROM system.distributed_ddl_queue WHERE status != 'Finished'`,
     optional: true,
-    tableCheck: 'system.distributed_ddl_queue',
+    // Without Keeper the count fails with NO_ELEMENTS_IN_CONFIG (#3919).
+    tableCheck: ['system.distributed_ddl_queue', 'system.zookeeper'],
   },
   'table-replicas': {
     query: `SELECT COUNT() as count FROM system.replicas`,

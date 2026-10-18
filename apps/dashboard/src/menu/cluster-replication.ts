@@ -105,7 +105,7 @@ export const clusterReplicationItems: MenuItem[] = [
         description: 'Cluster-wide DDL task queue status and execution history',
         icon: ShuffleIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/distributed_ddl_queue',
-        tableCheck: 'system.distributed_ddl_queue',
+        tableCheck: ['system.distributed_ddl_queue', 'system.zookeeper'],
         permission: { feature: 'tables' },
       },
       // Keeper

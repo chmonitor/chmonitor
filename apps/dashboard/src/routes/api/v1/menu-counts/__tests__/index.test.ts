@@ -130,6 +130,35 @@ describe('menu-counts API GET handler', () => {
     ).toBe('save')
   })
 
+  // #3919: without Keeper, system.distributed_ddl_queue exists but reading it
+  // throws NO_ELEMENTS_IN_CONFIG, which would fail the whole combined query.
+  test('skips distributed-ddl-queue when system.zookeeper is absent', async () => {
+    const { handler } = await import('../index')
+
+    mockFetchData.mockImplementation(async ({ query }) => {
+      if (query.includes('database, name')) {
+        return {
+          data: [{ database: 'system', name: 'distributed_ddl_queue' }],
+          error: null,
+        }
+      }
+      return { data: [{ 'tables-overview': 1 }], error: null }
+    })
+
+    const response = await handler(
+      new Request('http://localhost/api/v1/menu-counts?hostId=0')
+    )
+    const body = (await response.json()) as {
+      data: { counts: Record<string, number | null> }
+    }
+
+    expect(mockFetchData.mock.calls[0]?.[0]?.query).toContain("'zookeeper'")
+    expect(body.data.counts['distributed-ddl-queue']).toBeNull()
+    const combined = mockFetchData.mock.calls[1]?.[0]?.query ?? ''
+    expect(combined).toContain('AS `tables-overview`')
+    expect(combined).not.toContain('distributed_ddl_queue')
+  })
+
   test('falls back to sequential loop when combined query fails', async () => {
     const { handler } = await import('../index')
 
