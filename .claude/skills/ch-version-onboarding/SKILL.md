@@ -31,7 +31,9 @@ background, traps, and the first dry run are in
    `clickhouse-common-static` tarballs. Diff `system.columns` for the tables
    that `apps/dashboard/src/lib/query-config/**` references (excluding tests),
    then `EXPLAIN PLAN` each config's applicable `since:` SQL on the baseline
-   and the new binary. Run `clickhouse local` with `< /dev/null`.
+   and the new binary with
+   `bun scripts/audit-query-configs.ts --bin <old> --bin <new>`. It boots a
+   throwaway server per binary so the `*_log` tables are covered too.
 5. **Matrix.** Run `bun run scripts/build-support-matrix.ts` and read its diff.
 6. **File, do not fix.** File one issue per broken config, following the
    issue → research → PR rules in `AGENTS.md`. Give the file and line, the
