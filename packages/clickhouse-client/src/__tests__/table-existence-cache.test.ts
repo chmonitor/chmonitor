@@ -468,8 +468,8 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
       ]
       expect(query).not.toContain('Tuple')
       expect(query_params).toEqual({
-        databases: ['system', 'default'],
-        tables: ['processes', 'events'],
+        databases: ['system', 'default', 'system'],
+        tables: ['processes', 'events', 'one'],
       })
     })
 
