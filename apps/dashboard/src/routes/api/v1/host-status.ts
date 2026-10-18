@@ -176,12 +176,16 @@ export const Route = createFileRoute('/api/v1/host-status')({
           const fleetPromise: Promise<Counts[]> = wantCounts
             ? Promise.all([
                 // Additive comparison counts for the Fleet table.
+                // clusterNodes counts only clusters this node is a member of:
+                // a server can define test or foreign clusters (#3893). When
+                // no row is is_local (hostname mismatch in a container) it
+                // counts every cluster, like cluster-fanout's selectCluster.
                 guarded('counts', async () => {
                   const [row] = await queryRows<Record<string, unknown>>(
                     `SELECT
   (SELECT count() FROM system.databases) AS databases,
   (SELECT count() FROM system.tables) AS tables,
-  (SELECT uniqExact(host_name) FROM system.clusters) AS clusterNodes`
+  (SELECT uniqExact(host_name) FROM system.clusters WHERE cluster IN (SELECT cluster FROM system.clusters WHERE is_local = 1) OR (SELECT max(is_local) FROM system.clusters) = 0) AS clusterNodes`
                   )
                   return {
                     databases: toNum(row?.databases),

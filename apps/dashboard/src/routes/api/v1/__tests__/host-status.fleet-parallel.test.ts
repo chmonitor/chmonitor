@@ -5,7 +5,9 @@
  * round-trips made each row wait 5x the ClickHouse latency. This also pins
  * the per-block guard: one failing block must not drop the others.
  */
+
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { spawnSync } from 'node:child_process'
 
 mock.module('cloudflare:workers', () => ({
   env: {
@@ -19,6 +21,7 @@ mock.module('cloudflare:workers', () => ({
 let inFlight = 0
 let maxInFlight = 0
 let failingTable: string | null = null
+const queries: string[] = []
 
 function rowsFor(query: string): Record<string, unknown>[] {
   if (query.includes('hostName()'))
@@ -35,6 +38,7 @@ function rowsFor(query: string): Record<string, unknown>[] {
 mock.module('@chm/clickhouse-client', () => ({
   getClient: async () => ({
     query: async ({ query }: { query: string }) => {
+      queries.push(query)
       inFlight++
       maxInFlight = Math.max(maxInFlight, inFlight)
       await new Promise((r) => setTimeout(r, 20))
@@ -68,6 +72,68 @@ beforeEach(() => {
   inFlight = 0
   maxInFlight = 0
   failingTable = null
+  queries.length = 0
+})
+
+// Runs the route's real counts SQL in `clickhouse local`, with
+// `system.clusters` swapped for a fixture table when rows are given.
+const CH =
+  spawnSync('which', ['clickhouse'], { encoding: 'utf8' }).stdout.trim() || null
+function runCountsLocally(
+  query: string,
+  clusters: [string, string, number][] | null
+): Record<string, unknown> {
+  let sql = query
+  if (clusters) {
+    const values = clusters
+      .map(([c, h, l]) => `('${c}', '${h}', ${l})`)
+      .join(', ')
+    sql = `CREATE TABLE fx (cluster String, host_name String, is_local UInt8) ENGINE = Memory;
+INSERT INTO fx VALUES ${values};
+${query.replaceAll('system.clusters', 'fx')} FORMAT JSONEachRow`
+  } else sql = `${query} FORMAT JSONEachRow`
+  const out = spawnSync(CH as string, ['local', '--multiquery', '-q', sql], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  if (out.status !== 0) throw new Error(out.stderr)
+  return JSON.parse(out.stdout.trim())
+}
+
+async function clusterNodesFor(clusters: [string, string, number][] | null) {
+  await getFleet()
+  const counts = queries.find((q) => q.includes('AS clusterNodes'))
+  return Number(runCountsLocally(counts as string, clusters).clusterNodes)
+}
+
+describe.skipIf(!CH)('clusterNodes (#3893), run in clickhouse local', () => {
+  test('counts hosts only from clusters this node belongs to', async () => {
+    // A node in `main` that also defines a foreign `a_test_other`: the
+    // unscoped count was 3, the right answer is 2.
+    expect(
+      await clusterNodesFor([
+        ['main', 'self', 1],
+        ['main', 'peer', 0],
+        ['a_test_other', 'stranger', 0],
+      ])
+    ).toBe(2)
+  })
+
+  test('falls back to every cluster when no row is is_local', async () => {
+    // Hostname mismatch in a container: is_local is 0 everywhere. Counting
+    // local clusters only would report 0 nodes.
+    expect(
+      await clusterNodesFor([
+        ['main', 'self', 0],
+        ['main', 'peer', 0],
+        ['other', 'stranger', 0],
+      ])
+    ).toBe(3)
+  })
+
+  test('no clusters at all stays 0, as before', async () => {
+    expect(await clusterNodesFor(null)).toBe(0)
+  })
 })
 
 describe('GET /api/v1/host-status?fleet=1 — concurrent Fleet blocks', () => {
