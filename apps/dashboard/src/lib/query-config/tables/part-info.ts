@@ -140,7 +140,7 @@ export const partInfoConfig: QueryConfig = {
           max_date,
           disk_name,
           path,
-          length(files) AS files_count,
+          files AS files_count,
           formatReadableQuantity(files_count) AS readable_files_count,
           round(files_count * 100.0 / nullIf(max(files_count) OVER (), 0), 2) AS pct_files_count
         FROM parts_data
