@@ -33,7 +33,6 @@ export const ChartCancelledQueries = memo(function ChartCancelledQueries({
     null
   )
 
-  // Use override values when date range is selected, otherwise use props/defaults
   // Must use ternary (not ??) so explicit `undefined` override (e.g. "all time") is preserved
   const effectiveLastHours = rangeOverride ? rangeOverride.lastHours : lastHours
   const effectiveInterval = rangeOverride ? rangeOverride.interval : interval

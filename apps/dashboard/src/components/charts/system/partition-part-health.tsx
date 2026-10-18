@@ -48,7 +48,6 @@ export const ChartPartitionPartHealth = function ChartPartitionPartHealth({
             metadata={metadata}
             data-testid="partition-part-health-chart"
           >
-            {/* Stat triad */}
             <div className="flex gap-3.5 mb-4">
               <div className="flex-1">
                 <div className="text-[28px] font-semibold tracking-tight font-mono leading-none">
@@ -76,7 +75,6 @@ export const ChartPartitionPartHealth = function ChartPartitionPartHealth({
               </div>
             </div>
 
-            {/* Segmented health bar */}
             <div className="h-[9px] rounded-full bg-muted overflow-hidden flex">
               <div
                 className="h-full bg-emerald-500 dark:bg-emerald-400"
@@ -90,7 +88,6 @@ export const ChartPartitionPartHealth = function ChartPartitionPartHealth({
               )}
             </div>
 
-            {/* Legend */}
             <div className="flex justify-between mt-[9px] text-[11.5px] text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-[7px] h-[7px] rounded-full bg-emerald-500 dark:bg-emerald-400" />
@@ -102,7 +99,6 @@ export const ChartPartitionPartHealth = function ChartPartitionPartHealth({
               </span>
             </div>
 
-            {/* Caption */}
             <div className="mt-auto pt-4 text-[12px] text-muted-foreground leading-relaxed">
               Avg{' '}
               <span className="font-mono font-semibold text-foreground">

@@ -96,7 +96,6 @@ export const ReadonlyTableDetails = function ReadonlyTableDetails({
       className="border-t border-border/60 bg-muted/20 p-4"
     >
       <div className="flex flex-col gap-3">
-        {/* Exception fields — most important, rendered full-width */}
         {hasValue(zkException) && (
           <DetailField
             icon={AlertTriangleIcon}
@@ -118,7 +117,6 @@ export const ReadonlyTableDetails = function ReadonlyTableDetails({
           />
         )}
 
-        {/* Replica context grid */}
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <DetailField
             icon={TimerIcon}

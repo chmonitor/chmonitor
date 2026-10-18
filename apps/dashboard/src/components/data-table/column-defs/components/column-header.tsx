@@ -132,7 +132,6 @@ export function ColumnHeader<TData extends RowData>({
           )}
         </button>
 
-        {/* Info Icon with Tooltip */}
         {resolvedDescription && (
           <TooltipProvider delay={300}>
             <Tooltip>

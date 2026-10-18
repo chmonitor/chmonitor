@@ -1,5 +1,5 @@
 /**
- * DECLARATIVE_CHART_CATALOG — plans/58-declarative-chart-schema.md.
+ * DECLARATIVE_CHART_CATALOG.
  *
  * Central registry of declarative chart definitions ported as templates,
  * keyed by their `.chartName`. Mirrors

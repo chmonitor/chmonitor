@@ -353,7 +353,6 @@ export const AreaChart = function AreaChart({
           />
         ))}
 
-        {/* Statistics-Insights anomaly overlay (opt-in, driven by settings). */}
         {bandEnabled && (
           <Area
             key="__ma-band"

@@ -116,10 +116,6 @@ afterEach(() => {
   document.body.replaceChildren()
 })
 
-// ---------------------------------------------------------------------------
-// Harness
-// ---------------------------------------------------------------------------
-
 interface Row {
   alpha: string
   bravo: string
@@ -247,10 +243,6 @@ async function pressPointer(
   })
 }
 
-// ---------------------------------------------------------------------------
-// Read the shipped DOM
-// ---------------------------------------------------------------------------
-
 /** Grip labels in rendered (visual) order — what the user actually sees. */
 function renderedOrder(container: HTMLElement): string[] {
   return Array.from(
@@ -283,8 +275,6 @@ async function mount() {
   )
   return { act, container, reorders }
 }
-
-// ---------------------------------------------------------------------------
 
 describe('data-table column reorder by keyboard', () => {
   test('Space picks the column up, an arrow moves it, Space drops it in the new position', async () => {

@@ -1,6 +1,6 @@
 /**
  * Parity tests for the system/ domain declarative chart catalog
- * (plans/58-declarative-chart-schema.md). See query-catalog.test.ts for the
+ *. See query-catalog.test.ts for the
  * parity-testing philosophy this mirrors.
  */
 

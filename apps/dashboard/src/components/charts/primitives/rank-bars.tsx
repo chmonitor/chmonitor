@@ -28,7 +28,6 @@ export function RankBars({ items, className }: RankBarsProps) {
         const color = item.color ?? DEFAULT_COLOR
         return (
           <div key={i} className="flex flex-col gap-1.5">
-            {/* Label row */}
             <div className="flex items-center justify-between text-[12.5px]">
               <span className="flex min-w-0 items-center gap-2">
                 <span
@@ -41,7 +40,6 @@ export function RankBars({ items, className }: RankBarsProps) {
                 {item.value}
               </span>
             </div>
-            {/* Track */}
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full"

@@ -23,7 +23,6 @@ export const ChartFailedQueryCountByUser = memo(
       null
     )
 
-    // Use override values when date range is selected, otherwise use props/defaults
     const effectiveLastHours = rangeOverride?.lastHours ?? lastHours
     const effectiveInterval = rangeOverride?.interval ?? interval
 

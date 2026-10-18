@@ -1,6 +1,6 @@
 /**
  * Parity tests for the query/ domain declarative chart catalog
- * (plans/58-declarative-chart-schema.md).
+ *.
  *
  * For each ported chart, assert that `loadDeclarativeChart(declarativeDef).config`
  * deep-equals the exact config object literal the hand-authored TS chart

@@ -109,7 +109,6 @@ ${error.stack}
           }
         />
 
-        {/* Simple error line with details button */}
         {!compact && (
           <div className="mt-3 flex items-center justify-between gap-2 pt-3 border-t border-muted/50">
             <span className="text-xs text-muted-foreground truncate flex-1 font-mono max-w-[80%]">

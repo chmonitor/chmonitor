@@ -182,7 +182,6 @@ function DraggableTableHeader({
       colSpan={header.colSpan}
     >
       <div className="group relative flex min-w-0 items-center pr-1.5">
-        {/* Drag handle for column reordering - hidden by default, shown on hover */}
         <Button
           {...attributes}
           {...listeners}
@@ -227,7 +226,6 @@ function DraggableTableHeader({
                   )}
             </span>
             <div className="flex items-center gap-1 shrink-0">
-              {/* Dropdown menu for sort/copy actions - shown on hover */}
               {canSort && <ColumnHeaderDropdown header={header} />}
             </div>
           </div>
@@ -338,7 +336,6 @@ export const TableHeaderRow = function TableHeaderRow({
                         )}
                   </span>
                   <div className="flex items-center gap-1 shrink-0">
-                    {/* Dropdown menu for sort/copy actions - shown on hover */}
                     {canSort && <ColumnHeaderDropdown header={header} />}
                   </div>
                 </div>
@@ -367,16 +364,6 @@ export interface TableHeaderProps<TData = unknown> {
   compact?: boolean
 }
 
-/**
- * TableHeader - Renders the complete table header section
- *
- * @param headerGroups - Array of header groups from TanStack Table
- * @param onAutoFit - Callback for auto-fitting column width
- * @param enableColumnReordering - Enable drag-and-drop column reordering
- *
- * Renders all header groups (typically one) with TableHeaderRow components.
- * Performance: Memoized to prevent unnecessary re-renders
- */
 export const TableHeader = function TableHeader<TData = unknown>({
   headerGroups,
   onAutoFit,

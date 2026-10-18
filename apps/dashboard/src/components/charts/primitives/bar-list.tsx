@@ -65,7 +65,6 @@ export const BarList = function BarList({
             className="relative h-7 overflow-hidden rounded"
             data-testid="bar-list-item"
           >
-            {/* Colored bar background */}
             <div
               className="absolute inset-y-0 left-0 rounded"
               data-testid="bar-list-fill"

@@ -97,11 +97,9 @@ function tokens(className: string): string[] {
   return className.split(/\s+/).filter(Boolean)
 }
 
-// ---------------------------------------------------------------------------
 // Minimal TanStack Table stand-ins. Only the accessors the two components call
 // are implemented, so the assertion reads the shipped component rather than a
 // reimplementation of it.
-// ---------------------------------------------------------------------------
 
 let sorted: false | 'asc' | 'desc' = false
 

@@ -1,6 +1,6 @@
 /**
  * Parity test for the zookeeper/ domain declarative chart catalog
- * (plans/58-declarative-chart-schema.md). See
+ *. See
  * ../query/query-catalog.test.ts for the parity-testing philosophy this
  * mirrors. This is the catalog's `type: 'bar'` (createBarChart) coverage.
  */

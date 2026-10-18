@@ -19,9 +19,6 @@
 
 import { EXPAND_COLUMN_ID } from '../column-defs'
 import { isColumnFilterable, normalizeColumnName } from '../column-defs/utils'
-// ---------------------------------------------------------------------------
-// Production imports — no local copies, no reimplementation
-// ---------------------------------------------------------------------------
 import {
   applyAdvancedFilters,
   applyColumnFilters,
@@ -31,9 +28,6 @@ import { getCustomSortingFns } from '../sorting-fns'
 import { resolveTableBehavior } from '../utils/resolve-table-behavior'
 import { describe, expect, test } from 'bun:test'
 
-// ---------------------------------------------------------------------------
-// Minimal QueryConfig builder (typing subset used by resolveTableBehavior)
-// ---------------------------------------------------------------------------
 function config(
   tableBehavior?: Record<string, unknown>
 ): Parameters<typeof resolveTableBehavior>[0]['queryConfig'] {
@@ -45,9 +39,6 @@ function config(
   } as Parameters<typeof resolveTableBehavior>[0]['queryConfig']
 }
 
-// ---------------------------------------------------------------------------
-// Shared fixture rows used across filter tests
-// ---------------------------------------------------------------------------
 const ROWS = [
   { query: 'SELECT * FROM orders', user: 'alice', duration: 500 },
   { query: 'INSERT INTO orders VALUES (?)', user: 'bob', duration: 50 },
@@ -55,13 +46,11 @@ const ROWS = [
   { query: 'DROP TABLE temp', user: 'admin', duration: 10 },
 ] as const
 
-// ---------------------------------------------------------------------------
 // applyColumnFilters (real production function)
 //
 // WHY: column filters are the primary narrowing mechanism when a user types
 // into a column header search box. The AND-combination and readable_-prefix
 // fallback are non-obvious; regressions here would silently drop matching rows.
-// ---------------------------------------------------------------------------
 
 describe('applyColumnFilters (production function)', () => {
   test('narrows rows to those matching the filter string', () => {
@@ -117,13 +106,11 @@ describe('applyColumnFilters (production function)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // applyGlobalSearch (real production function)
 //
 // WHY: global search scans ALL columns. The invariant that object/function
 // values are skipped (avoiding [object Object] matches) and that null/undefined
 // don't throw must be pinned — both have caused bugs in similar codebases.
-// ---------------------------------------------------------------------------
 
 describe('applyGlobalSearch (production function)', () => {
   test('matches any column value containing the search term', () => {
@@ -167,14 +154,12 @@ describe('applyGlobalSearch (production function)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // applyAdvancedFilters (real production function)
 //
 // WHY: advanced filters are AND-combined typed conditions (contains, equals,
 // startsWith, endsWith, notContains). Each operator must behave exactly as
 // advertised because the UI shows the operator label to the user — a mismatch
 // between label and behaviour would be a silent correctness bug.
-// ---------------------------------------------------------------------------
 
 describe('applyAdvancedFilters (production function)', () => {
   test('contains: row included when cell value contains the filter', () => {
@@ -239,14 +224,12 @@ describe('applyAdvancedFilters (production function)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // Custom sorting function tests
 //
 // WHY: sort_column_using_actual_value must sort by the raw numeric column, NOT
 // by the human-readable string (e.g. "10 MiB" would sort differently from 10).
 // This behaviour matters for BackgroundBar columns where readable_* columns are
 // display-only and the numeric base column drives ordering.
-// ---------------------------------------------------------------------------
 
 describe('getCustomSortingFns → sort_column_using_actual_value', () => {
   const sortFns = getCustomSortingFns()
@@ -282,13 +265,11 @@ describe('getCustomSortingFns → sort_column_using_actual_value', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // resolveTableBehavior — config/prop precedence
 //
 // WHY: the precedence stack (props > queryConfig.tableBehavior > defaults) must
 // be stable so individual QueryConfigs can opt out of resizing/sorting without
 // a global setting change, and a prop passed at the call site always wins.
-// ---------------------------------------------------------------------------
 
 describe('resolveTableBehavior', () => {
   test('returns sane defaults when nothing is configured', () => {
@@ -334,14 +315,12 @@ describe('resolveTableBehavior', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // Synthetic utility column constants and ordering invariants
 //
 // WHY: __expand and select are non-data columns that must always be pinned
 // first. If EXPAND_COLUMN_ID changes, every localStorage-persisted column order
 // silently breaks. The pinning algorithm is a pure extraction of the logic
 // from data-table.tsx — tested here without mounting the full component.
-// ---------------------------------------------------------------------------
 
 describe('synthetic utility column contracts', () => {
   test('EXPAND_COLUMN_ID is the literal string "__expand"', () => {
@@ -396,13 +375,11 @@ describe('synthetic utility column contracts', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // normalizeColumnName
 //
 // WHY: the filter and sort fallback logic uses normalizeColumnName to map
 // readable_* display names back to the underlying data field. Getting this
 // wrong causes silent filter misses.
-// ---------------------------------------------------------------------------
 
 describe('normalizeColumnName', () => {
   test('strips readable_ prefix', () => {
@@ -425,12 +402,10 @@ describe('normalizeColumnName', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // isColumnFilterable
 //
 // WHY: must only return true when the global enableColumnFilters flag is set,
 // preventing accidental filtering of columns that weren't opted in.
-// ---------------------------------------------------------------------------
 
 describe('isColumnFilterable', () => {
   test('returns false when column filters globally disabled', () => {

@@ -70,7 +70,6 @@ export const ChartDiskSize = createCustomChart({
 
     return (
       <div className="flex flex-col gap-0">
-        {/* Headline row: big number + badge */}
         <div className="flex items-baseline justify-between gap-2">
           <div className="flex items-baseline gap-1.5">
             <span className="font-mono text-3xl font-semibold tracking-tight">
@@ -83,14 +82,12 @@ export const ChartDiskSize = createCustomChart({
           <UsageBadge pct={primaryPct} />
         </div>
 
-        {/* Subline */}
         <p className="mt-0.5 text-xs text-muted-foreground">
           of {primary.readable_total_space} total &middot;{' '}
           <span className="font-mono">default</span> policy &middot;{' '}
           {primary.readable_free_space} free
         </p>
 
-        {/* Overall progress bar */}
         <div className="mt-3.5 mb-4">
           <Progress
             value={primaryPct}
@@ -103,7 +100,6 @@ export const ChartDiskSize = createCustomChart({
           />
         </div>
 
-        {/* Per-disk rows */}
         <div className="flex flex-col">
           {rows.map((row) => {
             const pct = usedPct(row)
@@ -136,7 +132,6 @@ export const ChartDiskSize = createCustomChart({
                     &middot; {Math.round(pct)}%
                   </span>
                 </div>
-                {/* Thin per-disk track */}
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
                     className={cn('h-full rounded-full', colorClass)}

@@ -1,5 +1,5 @@
 /**
- * Declarative chart loader (plans/58-declarative-chart-schema.md).
+ * Declarative chart loader.
  *
  * Converts a validated DeclarativeChart into the exact config object the
  * existing chart factories (`createAreaChart` / `createBarChart`) accept, and
