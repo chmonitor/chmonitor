@@ -23,9 +23,9 @@ export const asynchronousInsertsConfig: QueryConfig = {
       total_bytes,
       formatReadableSize(total_bytes) AS readable_total_bytes,
       round(total_bytes * 100.0 / nullIf(max(total_bytes) OVER (), 0), 2) AS pct_total_bytes,
-      total_rows,
-      formatReadableQuantity(total_rows) AS readable_total_rows,
-      round(total_rows * 100.0 / nullIf(max(total_rows) OVER (), 0), 2) AS pct_total_rows
+      length(entries.query_id) AS pending_entries,
+      formatReadableQuantity(pending_entries) AS readable_pending_entries,
+      round(pending_entries * 100.0 / nullIf(max(pending_entries) OVER (), 0), 2) AS pct_pending_entries
     FROM system.asynchronous_inserts
     ORDER BY total_bytes DESC
   `,
@@ -36,13 +36,13 @@ export const asynchronousInsertsConfig: QueryConfig = {
     'first_update',
     'readable_age',
     'readable_total_bytes',
-    'readable_total_rows',
+    'readable_pending_entries',
   ],
   columnFormats: {
     database: ColumnFormat.ColoredBadge,
     table: ColumnFormat.ColoredBadge,
     readable_age: ColumnFormat.BackgroundBar,
     readable_total_bytes: ColumnFormat.BackgroundBar,
-    readable_total_rows: ColumnFormat.BackgroundBar,
+    readable_pending_entries: ColumnFormat.BackgroundBar,
   },
 }
