@@ -529,24 +529,55 @@ export function getServerHysteresisConfig(ruleIds: readonly string[]): {
 /** Default cron re-notify cooldown, in minutes, when the env var is unset. */
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 60
 
+function parseCooldownMinutesEnv(value: string | undefined): number | null {
+  const raw = value?.trim()
+  if (raw === undefined || raw === '') return null
+  const minutes = Number(raw)
+  if (!Number.isFinite(minutes) || minutes < 0) return null
+  return minutes
+}
+
 /**
- * Re-notify cooldown for a persistent condition, in milliseconds.
+ * Re-notify cooldown for a persistent condition, in milliseconds, resolved
+ * for the given rule ids.
  *
  * `HEALTH_ALERT_COOLDOWN_MINUTES` (default 60) controls how long the sweep waits
  * before re-sending a webhook for a condition that stays at the same severity.
  * `0` disables reminders entirely (a persistent condition alerts once until it
  * escalates or recovers). Invalid / negative values fall back to the default.
+ *
+ * Per-rule override (#3869): `HEALTH_ALERT_COOLDOWN_<RULE_ID>_MINUTES`, with
+ * the same id mangling as hysteresis (uppercased, dashes → underscores). `0`
+ * is allowed; invalid / negative values fall back to the global value.
  */
-export function getServerAlertCooldownMs(): number {
-  const raw = process.env.HEALTH_ALERT_COOLDOWN_MINUTES?.trim()
-  if (raw === undefined || raw === '') {
-    return DEFAULT_ALERT_COOLDOWN_MINUTES * 60 * 1000
+export function getServerAlertCooldownConfig(ruleIds: readonly string[]): {
+  defaultMs: number
+  byRule: Record<string, number>
+} {
+  const defaultMinutes =
+    parseCooldownMinutesEnv(process.env.HEALTH_ALERT_COOLDOWN_MINUTES) ??
+    DEFAULT_ALERT_COOLDOWN_MINUTES
+  const defaultMs = defaultMinutes * 60 * 1000
+
+  const byRule: Record<string, number> = {}
+  for (const id of ruleIds) {
+    const key = `HEALTH_ALERT_COOLDOWN_${id.toUpperCase().replace(/-/g, '_')}_MINUTES`
+    const minutes = parseCooldownMinutesEnv(process.env[key])
+    byRule[id] = minutes === null ? defaultMs : minutes * 60 * 1000
   }
-  const minutes = Number(raw)
-  if (!Number.isFinite(minutes) || minutes < 0) {
-    return DEFAULT_ALERT_COOLDOWN_MINUTES * 60 * 1000
-  }
-  return minutes * 60 * 1000
+  return { defaultMs, byRule }
+}
+
+/**
+ * Rule ids (or `*`/`?` globs) whose notifications are muted on every channel
+ * (#3869): `HEALTH_ALERT_MUTED_RULES`, comma-separated. The rules still run
+ * and their findings are still collected; only delivery is skipped.
+ */
+export function getServerMutedRules(): string[] {
+  return (process.env.HEALTH_ALERT_MUTED_RULES ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
 }
 
 /**

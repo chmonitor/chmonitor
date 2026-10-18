@@ -20,6 +20,7 @@ import type { MaintenanceWindow } from './../maintenance-windows'
 import type { QuietHours } from './../quiet-hours'
 
 import { isAcked } from './../alert-ack-store'
+import { globToRegExp } from './../glob'
 import { isSuppressed } from './../maintenance-windows'
 import { isQuietSuppressed } from './../quiet-hours'
 
@@ -109,4 +110,15 @@ export function isAckGated(params: {
     !params.isRecovery &&
     isAcked(params.acks, params.hostId, params.ruleId, params.now)
   )
+}
+
+/**
+ * Whether `ruleId` is muted (#3869): it matches any entry of
+ * `HEALTH_ALERT_MUTED_RULES` exactly or as a `*`/`?` glob (case-insensitive).
+ */
+export function isRuleMuted(
+  mutedRules: readonly string[],
+  ruleId: string
+): boolean {
+  return mutedRules.some((pattern) => globToRegExp(pattern).test(ruleId))
 }

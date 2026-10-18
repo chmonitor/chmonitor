@@ -1,8 +1,10 @@
 import {
   getServerAlertConfig,
+  getServerAlertCooldownConfig,
   getServerChannelSettings,
   getServerEmailConfig,
   getServerHysteresisConfig,
+  getServerMutedRules,
   getServerNtfyConfig,
   getServerOpsgenieConfig,
   getServerPushoverConfig,
@@ -892,5 +894,85 @@ describe('parseAlertMetadata', () => {
     expect(parseAlertMetadata('{not json')).toBeUndefined()
     expect(parseAlertMetadata('[1,2]')).toBeUndefined()
     expect(parseAlertMetadata('')).toBeUndefined()
+  })
+})
+
+describe('getServerAlertCooldownConfig (#3869)', () => {
+  const KEYS = [
+    'HEALTH_ALERT_COOLDOWN_MINUTES',
+    'HEALTH_ALERT_COOLDOWN_DISK_USAGE_MINUTES',
+  ] as const
+  let saved: Record<string, string | undefined> = {}
+  const MIN = 60_000
+
+  beforeEach(() => {
+    for (const key of KEYS) {
+      saved[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+  afterEach(() => {
+    for (const key of KEYS) {
+      if (saved[key] === undefined) delete process.env[key]
+      else process.env[key] = saved[key]
+    }
+    saved = {}
+  })
+
+  it('defaults to 60 minutes globally and per rule', () => {
+    const { defaultMs, byRule } = getServerAlertCooldownConfig(['disk-usage'])
+    expect(defaultMs).toBe(60 * MIN)
+    expect(byRule['disk-usage']).toBe(60 * MIN)
+  })
+
+  it('a per-rule override wins over the global value, with id mangling', () => {
+    process.env.HEALTH_ALERT_COOLDOWN_MINUTES = '30'
+    process.env.HEALTH_ALERT_COOLDOWN_DISK_USAGE_MINUTES = '240'
+    const { defaultMs, byRule } = getServerAlertCooldownConfig([
+      'disk-usage',
+      'cpu',
+    ])
+    expect(defaultMs).toBe(30 * MIN)
+    expect(byRule['disk-usage']).toBe(240 * MIN)
+    expect(byRule.cpu).toBe(30 * MIN)
+  })
+
+  it('a per-rule 0 is honoured (alert once until resolved or escalated)', () => {
+    process.env.HEALTH_ALERT_COOLDOWN_DISK_USAGE_MINUTES = '0'
+    const { byRule } = getServerAlertCooldownConfig(['disk-usage'])
+    expect(byRule['disk-usage']).toBe(0)
+  })
+
+  it.each([
+    '-5',
+    'abc',
+    '',
+    '  ',
+  ])('an invalid per-rule value %p falls back to the global value', (value) => {
+    process.env.HEALTH_ALERT_COOLDOWN_MINUTES = '15'
+    process.env.HEALTH_ALERT_COOLDOWN_DISK_USAGE_MINUTES = value
+    const { byRule } = getServerAlertCooldownConfig(['disk-usage'])
+    expect(byRule['disk-usage']).toBe(15 * MIN)
+  })
+})
+
+describe('getServerMutedRules (#3869)', () => {
+  let saved: string | undefined
+  beforeEach(() => {
+    saved = process.env.HEALTH_ALERT_MUTED_RULES
+    delete process.env.HEALTH_ALERT_MUTED_RULES
+  })
+  afterEach(() => {
+    if (saved === undefined) delete process.env.HEALTH_ALERT_MUTED_RULES
+    else process.env.HEALTH_ALERT_MUTED_RULES = saved
+  })
+
+  it('is empty when unset', () => {
+    expect(getServerMutedRules()).toEqual([])
+  })
+
+  it('splits on commas, trims, and drops empty entries', () => {
+    process.env.HEALTH_ALERT_MUTED_RULES = ' disk-usage, ,replication-* ,'
+    expect(getServerMutedRules()).toEqual(['disk-usage', 'replication-*'])
   })
 })

@@ -57,6 +57,7 @@ const newCounters = (): DispatchCounters => ({
   maintenanceSuppressed: 0,
   quietHoursSuppressed: 0,
   ackedSuppressed: 0,
+  mutedSuppressed: 0,
   recoveries: 0,
   emailsDispatched: 0,
   digestBuffered: 0,

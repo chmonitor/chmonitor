@@ -66,6 +66,7 @@ import {
   isAckGated,
   isMaintenanceGated,
   isQuietHoursGated,
+  isRuleMuted,
   meetsMinSeverity,
 } from './../suppression'
 import {
@@ -145,6 +146,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     maintenanceSuppressed: 0,
     quietHoursSuppressed: 0,
     ackedSuppressed: 0,
+    mutedSuppressed: 0,
     recoveries: 0,
     emailsDispatched: 0,
     digestBuffered: 0,
@@ -193,11 +195,23 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       hostId,
       ruleId,
       severity: effective,
-      cooldownMs: ctx.cooldownMs,
+      cooldownMs: ctx.cooldown.byRule[ruleId] ?? ctx.cooldown.defaultMs,
       minConsecutiveBreaches: ruleHysteresis.minConsecutiveBreaches,
       minConsecutiveClears: ruleHysteresis.minConsecutiveClears,
     })
     const isRecovery = decision.kind === 'recovery'
+
+    if (decision.notify && isRuleMuted(ctx.mutedRules, ruleId)) {
+      // Muted rule (#3869): skip every channel, including the bus and custom
+      // targets, and write no history row. Firing/escalation is NOT committed,
+      // so unmuting delivers a still-firing condition fresh. A recovery IS
+      // committed and dropped silently, otherwise it would stay pending and
+      // send a stale recovery when the rule is unmuted days later.
+      if (isRecovery) commit()
+      counters.alertsSuppressed++
+      counters.mutedSuppressed++
+      return
+    }
 
     if (
       isMaintenanceGated({
