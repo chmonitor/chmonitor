@@ -68,7 +68,7 @@ export const topMemoryQueriesLiveConfig: QueryConfig = {
         user,
         'running' AS status,
         elapsed,
-        memory_usage
+        toInt64(memory_usage) AS memory_usage
       FROM system.processes
       WHERE is_cancelled = 0 AND is_initial_query
 
@@ -80,7 +80,7 @@ export const topMemoryQueriesLiveConfig: QueryConfig = {
         user,
         'finished' AS status,
         query_duration_ms / 1000 AS elapsed,
-        memory_usage
+        toInt64(memory_usage) AS memory_usage
       FROM system.query_log
       WHERE type = 'QueryFinish'
         AND is_initial_query
