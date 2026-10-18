@@ -42,10 +42,12 @@ export const BUILTIN_RULES: readonly AlertRuleDef[] = [
     type: 'readonly-replicas',
     title: 'Readonly Replicas',
     description: 'Replicas in read-only mode cannot accept writes.',
-    sql: `SELECT count() AS readonly_count
+    sql: `SELECT count() AS readonly_count,
+  groupArray(5)(concat(database, '.', table)) AS affected
 FROM system.replicas
 WHERE is_readonly = 1`,
     valueKey: 'readonly_count',
+    affectedKey: 'affected',
     defaults: { warning: 1, critical: 3 },
     formatLabel: fmtCount('readonly replica'),
     optional: true,
@@ -136,9 +138,11 @@ WHERE error = 'KEEPER_EXCEPTION'
     title: 'Failed Mutations',
     description:
       'Mutations that are not complete and have recorded a failure. Failed mutations block subsequent mutations on the same table.',
-    sql: `SELECT countIf(is_done = 0 AND latest_fail_reason != '') AS failed_count
+    sql: `SELECT countIf(is_done = 0 AND latest_fail_reason != '') AS failed_count,
+  groupArrayIf(5)(concat(database, '.', table, ' ', mutation_id), is_done = 0 AND latest_fail_reason != '') AS affected
 FROM system.mutations`,
     valueKey: 'failed_count',
+    affectedKey: 'affected',
     defaults: { warning: 1, critical: 5 },
     formatLabel: fmtCount('failed mutation'),
     optional: true,
@@ -170,10 +174,12 @@ LIMIT 20`,
     title: 'Stuck Merges',
     description:
       'Merges running for more than 10 minutes. Stuck merges block table inserts and consume resources.',
-    sql: `SELECT count() AS stuck_count
+    sql: `SELECT count() AS stuck_count,
+  groupArray(5)(concat(database, '.', table, ' ', result_part_name)) AS affected
 FROM system.merges
 WHERE elapsed > 600`,
     valueKey: 'stuck_count',
+    affectedKey: 'affected',
     defaults: { warning: 1, critical: 3 },
     formatLabel: fmtCount('stuck merge'),
     optional: true,
@@ -205,12 +211,14 @@ LIMIT 20`,
     title: 'Query Timeout Breaches (1h)',
     description:
       'Queries killed due to timeout (TIMEOUT_EXCEEDED) in the last hour.',
-    sql: `SELECT count() AS timeout_count
+    sql: `SELECT count() AS timeout_count,
+  groupArray(5)(query_id) AS affected
 FROM system.query_log
 WHERE event_time > now() - INTERVAL 1 HOUR
   AND type IN ('ExceptionWhileProcessing', 'ExceptionBeforeStart')
   AND (exception_code = 159 OR exception LIKE '%TIMEOUT_EXCEEDED%')`,
     valueKey: 'timeout_count',
+    affectedKey: 'affected',
     defaults: { warning: 1, critical: 10 },
     formatLabel: (v) =>
       `${(v ?? 0).toLocaleString()} timeout kills in last hour`,
@@ -224,6 +232,8 @@ WHERE event_time > now() - INTERVAL 1 HOUR
     title: 'Failed Backups (24h)',
     description:
       'Backup operations that ended in FAILED status in the last 24 hours.',
+    // No affected names: `backup_log.name` is the destination, and for S3 it
+    // carries the bucket URL and access key id (only the secret is masked).
     sql: `SELECT count() AS failed_count
 FROM system.backup_log
 WHERE event_time > now() - INTERVAL 24 HOUR
@@ -241,9 +251,11 @@ WHERE event_time > now() - INTERVAL 24 HOUR
     title: 'MV Refresh Failures',
     description:
       'Materialized views with REFRESH schedule that have failed or errored their last refresh cycle.',
-    sql: `SELECT countIf(exception != '' OR retry > 0) AS failed_count
+    sql: `SELECT countIf(exception != '' OR retry > 0) AS failed_count,
+  groupArrayIf(5)(concat(database, '.', view), exception != '' OR retry > 0) AS affected
 FROM system.view_refreshes`,
     valueKey: 'failed_count',
+    affectedKey: 'affected',
     defaults: { warning: 1, critical: 3 },
     formatLabel: fmtCount('failed MV refresh'),
     optional: true,
@@ -333,10 +345,12 @@ LIMIT 20`,
     title: 'Stuck Replication Queue',
     description:
       'Replication queue entries retried more than 100 times or queued for over an hour. A stuck entry stops the replica from catching up and grows replication lag.',
-    sql: `SELECT count() AS stuck_count
+    sql: `SELECT count() AS stuck_count,
+  groupArray(5)(concat(database, '.', table, ' ', node_name)) AS affected
 FROM system.replication_queue
 WHERE num_tries > 100 OR create_time < now() - INTERVAL 1 HOUR`,
     valueKey: 'stuck_count',
+    affectedKey: 'affected',
     defaults: { warning: 1, critical: 10 },
     formatLabel: fmtCount('stuck queue entry', 'stuck queue entries'),
     optional: true,
@@ -363,9 +377,11 @@ LIMIT 20`,
     title: 'Replica Keeper Session Expired',
     description:
       'Replicated tables whose ZooKeeper/Keeper session has expired. These tables are read-only until the session is re-established — check Keeper health and network to the Keeper ensemble.',
-    sql: `SELECT countIf(is_session_expired) AS expired_count
+    sql: `SELECT countIf(is_session_expired) AS expired_count,
+  groupArrayIf(5)(concat(database, '.', table), is_session_expired) AS affected
 FROM system.replicas`,
     valueKey: 'expired_count',
+    affectedKey: 'affected',
     defaults: { warning: 1, critical: 3 },
     formatLabel: fmtCount('expired replica session'),
     optional: true,
@@ -431,12 +447,14 @@ LIMIT 20`,
     // `system.events.RejectedInserts` is a cumulative counter since server
     // start, so its current value would keep firing long after the incident.
     // The 1h query_log window gives a delta-like signal instead.
-    sql: `SELECT count() AS rejected_count
+    sql: `SELECT count() AS rejected_count,
+  groupArray(5)(query_id) AS affected
 FROM system.query_log
 WHERE event_time > now() - INTERVAL 1 HOUR
   AND type IN ('ExceptionBeforeStart', 'ExceptionWhileProcessing')
   AND exception_code = 252`,
     valueKey: 'rejected_count',
+    affectedKey: 'affected',
     // Any rejected insert is data loss on the client side — critical at 1.
     defaults: { warning: 1, critical: 1 },
     formatLabel: (v) =>
@@ -495,10 +513,12 @@ LIMIT 20`,
     title: 'Broken Detached Parts',
     description:
       'Parts ClickHouse detached because they were broken (checksum mismatch, corruption, unexpected files). On a replica the data is usually refetched; on a non-replicated table it may be lost — inspect before dropping.',
-    sql: `SELECT count() AS broken_count
+    sql: `SELECT count() AS broken_count,
+  groupArray(5)(concat(database, '.', table, ' ', name)) AS affected
 FROM system.detached_parts
 WHERE reason LIKE 'broken%'`,
     valueKey: 'broken_count',
+    affectedKey: 'affected',
     // Any broken part is possible data loss — critical at 1.
     defaults: { warning: 1, critical: 1 },
     formatLabel: fmtCount('broken detached part'),

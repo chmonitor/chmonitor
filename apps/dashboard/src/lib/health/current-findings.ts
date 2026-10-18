@@ -20,7 +20,12 @@ import { resolveThresholdOverrides } from './declarative/thresholds'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
-import { classifyValue, ruleRegistry } from '@/lib/alerting/rule-registry'
+import {
+  classifyValue,
+  parseAffectedNames,
+  ruleLabel,
+  ruleRegistry,
+} from '@/lib/alerting/rule-registry'
 
 registerBuiltinRules()
 
@@ -42,8 +47,9 @@ async function runRuleQuery(
   sql: string,
   valueKey: string,
   hostId: number,
-  settings?: AlertRuleDef['clickhouseSettings']
-): Promise<number | null> {
+  settings?: AlertRuleDef['clickhouseSettings'],
+  affectedKey?: string
+): Promise<{ value: number | null; affected: string[] }> {
   const result = await fetchData<Array<Record<string, unknown>>>({
     query: sql,
     hostId,
@@ -52,11 +58,14 @@ async function runRuleQuery(
   })
   if (result.error) throw new Error(result.error.message)
   const rows = result.data
-  if (!Array.isArray(rows) || rows.length === 0) return 0
+  if (!Array.isArray(rows) || rows.length === 0)
+    return { value: 0, affected: [] }
+  const affected = affectedKey ? parseAffectedNames(rows[0]?.[affectedKey]) : []
   const raw = rows[0]?.[valueKey]
-  if (raw === null || raw === undefined || raw === '') return null
+  if (raw === null || raw === undefined || raw === '')
+    return { value: null, affected }
   const num = Number(raw)
-  return Number.isFinite(num) ? num : null
+  return { value: Number.isFinite(num) ? num : null, affected }
 }
 
 /**
@@ -97,11 +106,12 @@ export async function getCurrentFindings(): Promise<CurrentFinding[]> {
       }
 
       try {
-        const value = await runRuleQuery(
+        const { value, affected } = await runRuleQuery(
           rule.sql,
           rule.valueKey,
           config.id,
-          rule.clickhouseSettings
+          rule.clickhouseSettings,
+          rule.affectedKey
         )
         // Unknown (NULL / non-numeric) is not a finding.
         if (value === null) continue
@@ -119,7 +129,7 @@ export async function getCurrentFindings(): Promise<CurrentFinding[]> {
           title: rule.title,
           severity,
           value,
-          label: rule.formatLabel ? rule.formatLabel(value) : String(value),
+          label: ruleLabel(rule, value, affected),
         })
       } catch {
         // Skip — a failing check shouldn't hide the rest of the snapshot.

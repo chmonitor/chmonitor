@@ -128,7 +128,7 @@ export function buildMSTeamsBody(payload: AlertPayload): MSTeamsWebhookBody {
     },
     {
       type: 'TextBlock',
-      text: payload.label,
+      text: escapeCardMarkdown(payload.label),
       wrap: true,
     },
     { type: 'FactSet', facts },
