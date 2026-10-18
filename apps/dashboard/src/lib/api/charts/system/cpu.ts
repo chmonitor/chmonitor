@@ -104,8 +104,8 @@ export const cpuCharts: Record<string, ChartQueryBuilder> = {
       query: `
     SELECT
       ${applyInterval(interval, 'event_time')},
-      avg(CurrentMetric_GlobalThreadPoolActiveThreads) AS active_threads,
-      avg(CurrentMetric_GlobalThreadPoolThreads) AS total_threads
+      avg(CurrentMetric_GlobalThreadActive) AS active_threads,
+      avg(CurrentMetric_GlobalThread) AS total_threads
     FROM merge('system', '^metric_log')
     ${timeFilter ? `WHERE ${timeFilter}` : ''}
     GROUP BY 1
