@@ -5,7 +5,9 @@
  * round-trips made each row wait 5x the ClickHouse latency. This also pins
  * the per-block guard: one failing block must not drop the others.
  */
+
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { spawnSync } from 'node:child_process'
 
 mock.module('cloudflare:workers', () => ({
   env: {
@@ -75,7 +77,8 @@ beforeEach(() => {
 
 // Runs the route's real counts SQL in `clickhouse local`, with
 // `system.clusters` swapped for a fixture table when rows are given.
-const CH = Bun.which('clickhouse')
+const CH =
+  spawnSync('which', ['clickhouse'], { encoding: 'utf8' }).stdout.trim() || null
 function runCountsLocally(
   query: string,
   clusters: [string, string, number][] | null
@@ -89,9 +92,12 @@ function runCountsLocally(
 INSERT INTO fx VALUES ${values};
 ${query.replaceAll('system.clusters', 'fx')} FORMAT JSONEachRow`
   } else sql = `${query} FORMAT JSONEachRow`
-  const out = Bun.spawnSync([CH as string, 'local', '--multiquery', '-q', sql])
-  if (out.exitCode !== 0) throw new Error(out.stderr.toString())
-  return JSON.parse(out.stdout.toString().trim())
+  const out = spawnSync(CH as string, ['local', '--multiquery', '-q', sql], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  if (out.status !== 0) throw new Error(out.stderr)
+  return JSON.parse(out.stdout.trim())
 }
 
 async function clusterNodesFor(clusters: [string, string, number][] | null) {
