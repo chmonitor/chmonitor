@@ -9,7 +9,11 @@
 import type { QueryConfigLike } from '@chm/sql-builder'
 import type { ClickHouseConfig, FetchDataResult } from './types'
 
-import { getClickHouseVersion, selectVersionedSql } from '../clickhouse-version'
+import {
+  dropUnsupportedSessionTimezone,
+  getClickHouseVersion,
+  selectVersionedSql,
+} from '../clickhouse-version'
 import { validateTableExistence } from '../table-validator'
 import { getClickHouseConfigs } from './clickhouse-config'
 import { debug, error, warn } from '@chm/logger'
@@ -215,4 +219,19 @@ export async function resolveEffectiveQuery({
   }
 
   return { effectiveQuery, clickhouseVersion }
+}
+
+/**
+ * Remove `session_timezone` when the host's ClickHouse version rejects it
+ * (see `dropUnsupportedSessionTimezone`). Looks the version up only when the
+ * setting is present; the lookup is cached per host.
+ */
+export async function gateSessionTimezone<
+  T extends { session_timezone?: string } | undefined,
+>(settings: T, currentHostId: number): Promise<T> {
+  if (!settings?.session_timezone) return settings
+  return dropUnsupportedSessionTimezone(
+    settings,
+    await getClickHouseVersion(currentHostId)
+  )
 }

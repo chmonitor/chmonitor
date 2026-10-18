@@ -20,7 +20,11 @@ import {
   countJsonEachRowRows,
   parseReadBytesFromHeaders,
 } from './fetch-headers'
-import { checkOptionalTables, resolveHostConfig } from './fetch-request'
+import {
+  checkOptionalTables,
+  gateSessionTimezone,
+  resolveHostConfig,
+} from './fetch-request'
 import { redactHostCredentials } from './redact-host'
 import { debug } from '@chm/logger'
 
@@ -88,7 +92,10 @@ export const fetchJsonEachRowAsNormalizedJson = async ({
         query: QUERY_COMMENT + effectiveQuery,
         format: 'JSONEachRow',
         query_params,
-        clickhouse_settings,
+        clickhouse_settings: await gateSessionTimezone(
+          clickhouse_settings,
+          currentHostId
+        ),
       })
 
       const queryId = resultSet.query_id
