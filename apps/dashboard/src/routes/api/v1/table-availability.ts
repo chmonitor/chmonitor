@@ -147,15 +147,15 @@ export const Route = createFileRoute('/api/v1/table-availability')({
 
           const tables = extractTableChecks(menuItemsConfig)
           // One system.tables query on a cold cache (seeds L1/L2), not one
-          // per table. 'unknown' (probe failed) is omitted from the map so the
-          // client keeps failing open.
+          // per table. 'unknown' (probe failed) and 'hidden' (not granted,
+          // #3895) are omitted from the map so the client keeps failing open.
           const checked = await checkTablesExist(hostId, tables.map(splitTable))
 
           const available: Record<string, boolean> = {}
           for (const table of tables) {
             const [db, tbl] = splitTable(table)
             const status = checked.get(`${db}.${tbl}`)
-            if (status !== undefined && status !== 'unknown') {
+            if (typeof status === 'boolean') {
               available[table] = status
             }
           }

@@ -157,6 +157,9 @@ export async function validateTableExistence(
     }
   }
 
+  // `'hidden'` (#3895): the user's grants filter `system.tables`, so the
+  // table may exist but be ungranted. Proceed, so ClickHouse's own "grant
+  // SELECT ON ..." error reaches the user instead of "requires configuration".
   const missingTables = results
     .filter((r) => r.exists === false)
     .map((r) => r.fullName)

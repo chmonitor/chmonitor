@@ -55,8 +55,17 @@ export function setTableExistenceL2Provider(
  * - `'unknown'`: the probe itself failed (network blip, timeout, auth, …) —
  *   existence could not be determined. Callers must not treat this the same
  *   as `false` ("table missing"); see issue #2505.
+ * - `'hidden'`: the table is not listed, and neither is `system.one`, which
+ *   every server has. The user's view of `system` is filtered by grants, so
+ *   "not listed" may mean "not granted" (#3895). Only reported for `system.*`.
  */
-export type TableExistsResult = boolean | 'unknown'
+export type TableExistsResult = boolean | 'unknown' | 'hidden'
+
+/**
+ * Present on every server. Missing from this user's `system.tables` means
+ * the listing is filtered by grants rather than complete.
+ */
+const SYSTEM_SENTINEL = 'one'
 
 /**
  * Probes already running, keyed the same way as the L1 cache. A fresh Worker
@@ -100,13 +109,16 @@ export async function checkTableExists(
   const key = `${hostId}:${database}.${table}`
   return checkExists(key, hostId, {
     query: `
-          SELECT COUNT() AS count
+          SELECT
+            countIf(database = {database:String} AND name = {table:String}) AS count,
+            countIf(database = 'system' AND name = '${SYSTEM_SENTINEL}') AS sentinel
           FROM system.tables
-          WHERE database = {database:String}
-            AND name     = {table:String}
+          WHERE (database = {database:String} AND name = {table:String})
+             OR (database = 'system' AND name = '${SYSTEM_SENTINEL}')
         `,
     query_params: { database, table },
     label: `table ${database}.${table}`,
+    hiddenIfFiltered: database === 'system',
   })
 }
 
@@ -152,17 +164,22 @@ export async function checkTablesExist(
           )
         `,
         query_params: {
-          databases: misses.map(([database]) => database),
-          tables: misses.map(([, table]) => table),
+          databases: [...misses.map(([database]) => database), 'system'],
+          tables: [...misses.map(([, table]) => table), SYSTEM_SENTINEL],
         },
         format: 'JSONEachRow',
       })
       const rows = (await result.json()) as { database: string; name: string }[]
       const found = new Set(rows.map((r) => `${r.database}.${r.name}`))
+      const filtered = !found.has(`system.${SYSTEM_SENTINEL}`)
       const l2 = l2CacheProvider?.()
       for (const [database, table] of misses) {
         const name = `${database}.${table}`
         const exists = found.has(name)
+        if (!exists && filtered && database === 'system') {
+          results.set(name, 'hidden')
+          continue
+        }
         results.set(name, exists)
         if (generation !== invalidationGeneration) continue
         cache.set(`${hostId}:${name}`, exists)
@@ -183,14 +200,18 @@ export async function checkTablesExist(
   return results
 }
 
+interface ProbeSpec {
+  query: string
+  query_params: Record<string, string>
+  label: string
+  /** The query also returns `sentinel`; a miss with no sentinel is `'hidden'`. */
+  hiddenIfFiltered?: boolean
+}
+
 async function checkExists(
   key: string,
   hostId: number,
-  spec: {
-    query: string
-    query_params: Record<string, string>
-    label: string
-  }
+  spec: ProbeSpec
 ): Promise<TableExistsResult> {
   const cached = cache.get(key)
   if (cached !== undefined) {
@@ -217,11 +238,7 @@ async function checkExists(
 async function probeExists(
   key: string,
   hostId: number,
-  spec: {
-    query: string
-    query_params: Record<string, string>
-    label: string
-  }
+  spec: ProbeSpec
 ): Promise<TableExistsResult> {
   const generation = invalidationGeneration
   // L2: KV cache (survives Worker isolate churn). No-op when no provider is
@@ -249,8 +266,18 @@ async function probeExists(
         query_params: spec.query_params,
         format: 'JSONEachRow',
       })
-      const data = (await result.json()) as { count: string }[]
+      const data = (await result.json()) as {
+        count: string
+        sentinel?: string
+      }[]
       const exists = parseInt(data?.[0]?.count || '0', 10) > 0
+      if (
+        !exists &&
+        spec.hiddenIfFiltered &&
+        parseInt(data?.[0]?.sentinel || '0', 10) === 0
+      ) {
+        return 'hidden'
+      }
 
       if (generation !== invalidationGeneration) return exists
       cache.set(key, exists)
