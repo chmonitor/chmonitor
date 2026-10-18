@@ -30,6 +30,8 @@ export const mergesCharts: Record<string, ChartQueryBuilder> = {
         event_time ASC,
         table DESC
   `,
+      optional: true,
+      tableCheck: 'system.part_log',
     }
   },
 
