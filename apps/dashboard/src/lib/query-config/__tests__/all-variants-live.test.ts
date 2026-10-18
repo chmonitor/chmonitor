@@ -24,6 +24,27 @@ import {
   parseVersion,
 } from '@chm/clickhouse-client/clickhouse-version'
 
+/**
+ * Old variants that are expected to fail on newer servers because ClickHouse
+ * removed a column they read. The newer variant serves those servers, so the
+ * old one only has to work below `removedIn`. Each entry is skipped only on
+ * servers at or above `removedIn`, and the test fails if it plans there after
+ * all, so an entry that is no longer needed gets removed.
+ */
+const REMOVED_COLUMN_VARIANTS: ReadonlyArray<{
+  config: string
+  since: string
+  reason: string
+  removedIn: string
+}> = [
+  {
+    config: 'query-condition-cache',
+    since: '25.3',
+    reason: 'system.query_condition_cache dropped part_name',
+    removedIn: '26.2',
+  },
+]
+
 describe('every admitted versioned SQL variant against a live ClickHouse (optional)', () => {
   let liveVersion: ClickHouseVersion | null = null
 
@@ -46,17 +67,33 @@ describe('every admitted versioned SQL variant against a live ClickHouse (option
     const rejected: string[] = []
     const skipped: string[] = []
     const newer: string[] = []
+    const expectedFailures: string[] = []
+    const unexpectedlyPlanned: string[] = []
+    const matchedAllowlist = new Set<string>()
     let planned = 0
 
     for (const config of Object.values(queries) as QueryConfig[]) {
       if (typeof config.sql === 'string') continue
       for (const variant of config.sql) {
         const label = `${config.name}@${variant.since}`
+        const allowed = REMOVED_COLUMN_VARIANTS.find(
+          (entry) =>
+            entry.config === config.name && entry.since === variant.since
+        )
+        if (allowed) matchedAllowlist.add(label)
         if (compareVersions(parseVersion(variant.since), server) > 0) {
           newer.push(label)
           continue
         }
+        const removed =
+          allowed !== undefined &&
+          compareVersions(parseVersion(allowed.removedIn), server) <= 0
         const run = await postToLiveServer(`EXPLAIN ${variant.sql}`, config, {})
+        if (removed) {
+          if (run.ok) unexpectedlyPlanned.push(label)
+          else expectedFailures.push(`${label} (${allowed.reason})`)
+          continue
+        }
         if (run.ok) {
           planned++
           continue
@@ -72,8 +109,18 @@ describe('every admitted versioned SQL variant against a live ClickHouse (option
       `${planned} variants planned, ${skipped.length} skipped, ${rejected.length} rejected, ${newer.length} newer than the server`
     )
     for (const reason of skipped) console.log(`  skipped ${reason}`)
+    for (const reason of expectedFailures)
+      console.log(`  expected failure ${reason}`)
 
     expect(rejected).toEqual([])
+    // An allowlisted variant that plans on a server past `removedIn` is stale.
+    expect(unexpectedlyPlanned).toEqual([])
+    // Every entry must still name a real variant.
+    expect(
+      REMOVED_COLUMN_VARIANTS.map((e) => `${e.config}@${e.since}`).filter(
+        (label) => !matchedAllowlist.has(label)
+      )
+    ).toEqual([])
     // Guard against a vacuous pass: the registry has versioned configs.
     expect(planned).toBeGreaterThan(0)
   }, 60_000)
