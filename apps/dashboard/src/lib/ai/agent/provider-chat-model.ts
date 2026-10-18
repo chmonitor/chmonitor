@@ -1,10 +1,3 @@
-/**
- * OpenAI-compatible chat model resolution for agent routes.
- *
- * Keeps provider setup shared between the streaming agent and small
- * one-off generations such as follow-up suggestions.
- */
-
 import type { LanguageModel } from 'ai'
 
 import {

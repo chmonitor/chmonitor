@@ -1,16 +1,7 @@
 /**
- * Advisor auto fine-tune engine — settings tuning rules.
- *
- * Pure functions over the gathered `SettingRow[]` (from `system.settings` and
- * `system.merge_tree_settings`). Each entry in `SETTINGS_RULES` inspects a
- * single setting's current value and, when it looks risky or suboptimal vs its
- * default, emits a recommend-only `TuningFinding` with rationale and a
- * ready-to-review `SET` / `ALTER TABLE ... MODIFY SETTING` statement (never
- * executed).
- *
- * These are deliberately conservative, evidence-backed rules — each fires only
- * on a concrete value pattern, never "this differs from default, therefore
- * wrong". Settings findings have no bytes figure; they rank by severity.
+ * Advisor tuning engine: settings rules over `SettingRow[]`. Each rule fires
+ * only on a concrete risky value pattern (never "differs from default, so
+ * wrong") and emits a recommend-only finding; settings rank by severity.
  */
 
 import type { SettingRow, TuningFinding } from './types'
@@ -23,7 +14,6 @@ function toNumber(value: string): number | null {
 interface SettingRule {
   name: string
   source: SettingRow['source']
-  /** Returns a finding when the rule fires, else null. */
   check: (
     row: SettingRow
   ) => Omit<
@@ -32,12 +22,10 @@ interface SettingRule {
   > | null
 }
 
-/** Build the recommend-only statement for a server (profile) setting. */
 function serverSettingDdl(name: string, value: string): string {
   return `-- Session scope (review, then run in your session or set on the profile):\nSET ${name} = ${value};\n-- Persist on a profile instead of per-session where appropriate.`
 }
 
-/** Build the recommend-only statement for a merge-tree table setting. */
 function mergeTreeSettingDdl(name: string, value: string): string {
   return `-- Per-table (review before running; applies to <db>.<table>):\nALTER TABLE <db>.<table> MODIFY SETTING ${name} = ${value};`
 }
@@ -154,7 +142,6 @@ const SETTINGS_RULES: SettingRule[] = [
   },
 ]
 
-/** Run every settings rule over the gathered rows. */
 export function runSettingsRules(rows: SettingRow[]): TuningFinding[] {
   const byKey = new Map<string, SettingRow>()
   for (const row of rows) byKey.set(`${row.source}:${row.name}`, row)

@@ -36,7 +36,6 @@ import {
 import { createConnectionClient } from '@/lib/connection-query/connection-client'
 import { DB_CONNECTION_HOST_ID_START } from '@/lib/connection-store/types'
 
-/** A user's own saved ClickHouse connection, resolved for one agent request. */
 export interface AgentConnectionBinding {
   /** The negative host id the client sent (`<= -1000`). */
   readonly hostId: number
@@ -116,12 +115,10 @@ export async function resolveAgentConnection(
 
 const bindingStorage = new AsyncLocalStorage<AgentConnectionBinding>()
 
-/** The connection bound to the current tool call, if any. */
 export function currentAgentConnection(): AgentConnectionBinding | undefined {
   return bindingStorage.getStore()
 }
 
-/** Run `fn` with `binding` as the current agent connection. */
 export function runWithAgentConnection<T>(
   binding: AgentConnectionBinding,
   fn: () => T
@@ -129,7 +126,6 @@ export function runWithAgentConnection<T>(
   return bindingStorage.run(binding, fn)
 }
 
-/** Thrown when a tool call targets a host the binding does not allow. */
 export class AgentHostError extends Error {
   constructor(message: string) {
     super(message)
@@ -153,7 +149,6 @@ export function assertBoundHost(
   }
 }
 
-/** Error for a tool that cannot run against a user's own connection. */
 export function unsupportedOnConnectionError(toolName: string): AgentHostError {
   return new AgentHostError(
     `The ${toolName} tool is not available on your own connections yet. Use the query tools instead.`

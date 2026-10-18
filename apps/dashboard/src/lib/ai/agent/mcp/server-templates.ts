@@ -1,8 +1,3 @@
-/**
- * One-click presets for the MCP server manager form.
- * Test connection is the source of truth for the live endpoint.
- */
-
 import type { McpAuthKind, McpTransport } from '@/lib/swr/use-mcp-registry'
 
 import { FIRECRAWL_MCP_URL } from './mcp-urls'

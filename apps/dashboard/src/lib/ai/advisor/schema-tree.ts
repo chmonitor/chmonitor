@@ -1,8 +1,4 @@
-/**
- * Pure helpers for the Advisor Schema tab: care flags from tuning findings,
- * sidebar filter / sort / group / hide-suggested, and the selected-table
- * detail payload. No I/O — unit-tested with fixtures.
- */
+/** Pure helpers for the Advisor Schema tab (care flags, sidebar filter/sort/group, selected-table detail). */
 
 import type { TuningFinding } from '@/lib/ai/advisor/tuning/types'
 
@@ -84,7 +80,6 @@ export function tableKey(database: string, table: string): string {
   return `${database}.${table}`
 }
 
-/** Schema findings are `db.table` or `db.table.column`. Settings have no table. */
 export function findingTableKey(finding: {
   category: string
   target: string

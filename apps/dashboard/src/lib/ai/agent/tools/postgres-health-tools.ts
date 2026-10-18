@@ -1,22 +1,8 @@
-/**
- * Postgres health tool for the agent (cross-source, env-gated).
- *
- * `get_postgres_metrics` is the Postgres analog of ClickHouse `get_metrics`:
- * version/uptime, connection counts by state, buffer-cache hit ratio,
- * transaction commit/rollback + deadlocks, database size, and replication
- * status (lag on a replica, connected standbys on a primary).
- *
- * All reads go through the shared Phase-2 read-only path. The scalar summary is
- * one round-trip (subselects), connections and standbys are one each — three
- * queries total, all plain SELECTs.
- */
-
 import { z } from 'zod'
 
 import { pgHostIdSchema, runPostgresReadOnly } from './postgres-helpers'
 import { dynamicTool } from 'ai'
 
-/** One-shot scalar summary: version, uptime, cache, xacts, size, recovery. */
 const SUMMARY_SQL = `SELECT
   version() AS version,
   extract(epoch FROM (now() - pg_postmaster_start_time()))::bigint AS uptime_seconds,
@@ -35,13 +21,11 @@ const SUMMARY_SQL = `SELECT
   END AS replica_lag_seconds,
   (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') AS max_connections`
 
-/** Connection counts grouped by backend state. */
 const CONNECTIONS_SQL = `SELECT coalesce(state, 'unknown') AS state, count(*)::int AS count
 FROM pg_stat_activity
 GROUP BY state
 ORDER BY count DESC`
 
-/** Connected standbys (primary side); empty on a replica or standalone. */
 const STANDBYS_SQL = `SELECT
   application_name,
   client_addr::text AS client_addr,

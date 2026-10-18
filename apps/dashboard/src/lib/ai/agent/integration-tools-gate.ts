@@ -3,7 +3,7 @@
 // route resolves it once per conversation and passes the booleans to
 // createAllTools() as `integrations`. Modeled on control-tools-gate.ts.
 //
-// Checks run top to bottom (issue #3674 decision table):
+// Checks run top to bottom (decision table):
 //   1. flag false (parseBool grammar) or the integration's kill switch → off
 //   2. anonymous cloud visitor                                         → off
 //   3. not configured                                                  → off
@@ -60,11 +60,8 @@ export interface IntegrationGateInput {
   killSwitch?: boolean
   /** The integration is configured for this caller (see the route). */
   configured: boolean
-  /** Cloud (SaaS) mode, from isCloudModeServer(). */
   cloud: boolean
-  /** The caller has a signed-in identity (not `guest`). */
   signedIn: boolean
-  /** The request is bound to the caller's own saved connection. */
   ownConnection?: boolean
   /** Probe result; `undefined` = not probed. Only consulted at step 6/7. */
   reachability?: Reachability
@@ -106,7 +103,6 @@ export function resolveIntegrationToolsEnabled(
   return { enabled: false, reason: 'unreachable', kind: r.kind }
 }
 
-/** `unreachable:<kind>` for logs, otherwise the bare reason. */
 export function formatIntegrationReason(d: IntegrationDecision): string {
   return d.reason === 'unreachable' && d.kind
     ? `unreachable:${d.kind}`
@@ -132,7 +128,6 @@ export function peerdbGateInput(
   }
 }
 
-/** Gate input for the Postgres cross-source tools from env. */
 export function postgresGateInput(
   ctx: Omit<IntegrationGateInput, 'flag' | 'killSwitch'>
 ): IntegrationGateInput {

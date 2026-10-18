@@ -17,9 +17,7 @@
  */
 
 export interface PageDataEntry {
-  /** Page title as the sidebar shows it. */
   title: string
-  /** Sidebar section, for the page listing. */
   section: string
   /** Table QueryConfig names (`QueryConfig.name`). */
   configs: readonly string[]
@@ -44,7 +42,6 @@ const TOOLS = 'Tools & AI'
 const SETTINGS = 'Settings'
 
 export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
-  // ── Overview (one entry per tab) ──
   '/overview': p(
     'Overview',
     OVERVIEW,
@@ -150,7 +147,6 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     ]
   ),
 
-  // ── Queries ──
   '/running-queries': p(
     'Running Queries',
     QUERIES,
@@ -258,7 +254,6 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
   ),
   '/common-errors': p('Common Errors', QUERIES, ['common-errors']),
 
-  // ── Data & Storage ──
   '/tables-overview': p('Tables Overview', DATA, ['tables-overview']),
   '/dictionaries': p(
     'Dictionaries',
@@ -329,7 +324,6 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
   '/top-usage-tables': p('Top Usage Tables', DATA, ['top-usage-tables']),
   '/top-usage-columns': p('Top Usage Columns', DATA, ['top-usage-columns']),
 
-  // ── Cluster & Replication ──
   '/clusters': p('Clusters', CLUSTER, ['clusters']),
   '/clusters/replicas-status': p('Replicas Status', CLUSTER, [
     'replicas-status',
@@ -390,7 +384,6 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     'keeper-changelogs',
   ]),
 
-  // ── Server ──
   '/metrics': p('Metrics', SERVER, ['metrics']),
   '/asynchronous-metrics': p('Async Metrics', SERVER, ['asynchronous-metrics']),
   '/histogram-metrics': p('Histogram Metrics', SERVER, [
@@ -446,7 +439,6 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     ['login-success-rate', 'active-sessions-count']
   ),
 
-  // ── Alerts & Insights ──
   '/insights': p(
     'Insights',
     ALERTS,
@@ -523,7 +515,6 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     ]
   ),
 
-  // ── Tools & AI ──
   '/dashboard': p(
     'Chart Builder (saved dashboard widgets)',
     TOOLS,
@@ -531,7 +522,6 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     ['dashboard-charts']
   ),
 
-  // ── Settings ──
   '/settings': p('Settings', SETTINGS, ['settings']),
   '/mergetree-settings': p('MergeTree Settings', SETTINGS, [
     'mergetree-settings',
@@ -586,7 +576,6 @@ export const NON_DATA_PAGES: Readonly<Record<string, string>> = {
   '/zookeeper': 'redirect to /keeper',
 }
 
-/** Normalize a route-ish input: strip host query, group, trailing slash. */
 export function normalizePageKey(input: string): string {
   let raw = input.trim().toLowerCase()
   raw = raw.replace(/^https?:\/\/[^/]+/, '')

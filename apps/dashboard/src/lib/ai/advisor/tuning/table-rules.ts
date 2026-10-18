@@ -1,14 +1,7 @@
 /**
- * Advisor auto fine-tune engine — table-level schema rules.
- *
- * Pure functions over `TableProfile[]` + optional `ClusterContext`. Companion
- * to column lint in `schema-rules.ts`. Every finding is recommend-only: `ddl`
- * is inert text (ALTER, CREATE Distributed, or a rebuild comment). Never
- * executes, applies, or rewrites a table in place.
- *
- * Covers the DBA gaps column lint does not: TTL, PARTITION BY bloat, MergeTree
- * vs Replicated on a multi-replica cluster, missing Distributed wrappers, and
- * UUID-leading ORDER BY.
+ * Advisor tuning engine: table-level schema rules (TTL, PARTITION BY bloat,
+ * MergeTree vs Replicated on multi-replica clusters, missing Distributed
+ * wrappers, UUID-leading ORDER BY). Pure and recommend-only: `ddl` is inert text.
  */
 
 import type { ClusterContext, TableProfile, TuningFinding } from './types'
@@ -32,7 +25,6 @@ function tableTarget(t: TableProfile): string {
   return `${t.database}.${t.table}`
 }
 
-/** Strip one wrapping type modifier, e.g. `Nullable(UUID)` → `UUID`. */
 function unwrapType(type: string, wrapper: string): string | null {
   const m = new RegExp(`^${wrapper}\\((.+)\\)$`, 'i').exec(type.trim())
   return m ? m[1].trim() : null
@@ -46,7 +38,6 @@ export function isMergeTreeFamily(engine: string): boolean {
   return /MergeTree$/i.test(engine.trim())
 }
 
-/** Replicated* or Shared* (managed cloud) — already replica-aware. */
 export function isReplicatedOrShared(engine: string): boolean {
   const e = engine.trim()
   return /^(Replicated|Shared)/i.test(e)
@@ -69,10 +60,7 @@ export function ttlFromEngineFull(engineFull: string): string {
   return rest
 }
 
-/**
- * Best-effort date/time column from a time-based PARTITION BY expression.
- * `toYYYYMMDD(event_time)` → `event_time`. Returns null for expressions.
- */
+/** Date/time column from a time-based PARTITION BY, e.g. `toYYYYMMDD(event_time)` → `event_time`; null for other expressions. */
 export function dateColumnFromPartitionKey(
   partitionKey: string
 ): string | null {
@@ -87,7 +75,6 @@ export function dateColumnFromPartitionKey(
   return col
 }
 
-/** First ORDER BY ident when it is a bare column, not an expression. */
 export function firstSortingIdent(sortingKey: string): string | null {
   const first = sortingKey.split(',')[0]?.trim() ?? ''
   if (!first || first.includes('(')) return null
@@ -308,7 +295,6 @@ export function ruleUuidLeadingSortKey(
   return findings
 }
 
-/** Run every table-level schema rule. */
 export function runTableRules(
   tables: TableProfile[],
   cluster: ClusterContext = null

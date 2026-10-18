@@ -13,7 +13,6 @@ import {
 } from './agent-model-registry'
 import { formatCompactNumber } from '@/lib/format-number'
 
-// Re-export from registry
 export type { ModelEntry }
 
 /**

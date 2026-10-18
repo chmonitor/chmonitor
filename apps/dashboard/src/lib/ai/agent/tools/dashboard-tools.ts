@@ -1,8 +1,6 @@
 /**
- * AI-generated dashboards (plan 59).
- *
  * `suggest_dashboard` maps a natural-language request ("show me everything
- * about replication health") to a `DashboardLayout` (plan 57's grid contract)
+ * about replication health") to a `DashboardLayout`
  * built ONLY from charts that exist in BOTH chart registries:
  *   - `components/charts/registry` (the client-side lazy React component a
  *     `type: 'chart'` widget actually renders — see `widget-chart.tsx`).
@@ -21,11 +19,6 @@
  * This is the "AI proposes, user confirms" shape used elsewhere in the agent
  * (`update_plan` emits a plan the UI renders; nothing here calls
  * `saveDashboard()` from inside a tool `execute()`).
- *
- * AI usage is metered the same way every other tool call is: `incrementAiUsage`
- * runs once per agent turn in the agent route's plan-enforcement gate,
- * independent of which tools that turn used — see
- * lib/billing/ai-usage-store.ts. No additional metering is needed here.
  *
  * The ranking heuristic is a small, deterministic keyword/synonym match over
  * chart names + curated categories (`CHARTS_BY_CATEGORY`) — no LLM call and
@@ -55,7 +48,6 @@ const MAX_WIDGETS = 10
 const DEFAULT_WIDGET_COUNT = 6
 const MAX_REQUEST_LEN = 280
 
-/** A fallback set of broadly-useful charts, used to top up a vague request so a suggestion is never empty. */
 const FALLBACK_CHARTS = [
   'query-count',
   'query-duration',
@@ -65,7 +57,6 @@ const FALLBACK_CHARTS = [
   'merge-count',
 ] as const
 
-/** Domain-vocabulary bridge between NL requests and chart-name tokens. */
 const KEYWORD_SYNONYMS: Record<string, string[]> = {
   replication: ['replica', 'replicas', 'replicated'],
   replica: ['replication'],
@@ -90,12 +81,10 @@ const KEYWORD_SYNONYMS: Record<string, string[]> = {
   query: ['queries'],
 }
 
-/** True if `chartName` is safe to reference in a widget — present in BOTH registries. */
 export function isKnownChart(chartName: string): boolean {
   return hasChartComponent(chartName) && hasChartQuery(chartName)
 }
 
-/** Reverse `CHARTS_BY_CATEGORY` into chart name → category, for scoring. */
 function buildCategoryLookup(): Map<string, string> {
   const lookup = new Map<string, string>()
   for (const [category, names] of Object.entries(CHARTS_BY_CATEGORY)) {
@@ -119,7 +108,6 @@ function expandWithSynonyms(words: string[]): Set<string> {
   return expanded
 }
 
-/** All chart names present in BOTH registries — the only valid candidates. */
 function candidateChartNames(): string[] {
   return getRegisteredChartNames().filter((name) => hasChartQuery(name))
 }
@@ -158,10 +146,6 @@ export interface DashboardSuggestion {
   chartCount: number
 }
 
-/**
- * Pure suggestion builder — no I/O, deterministic given the same registries.
- * Exported for golden-style unit tests.
- */
 export function buildDashboardSuggestion(
   request: string,
   options: { maxWidgets?: number; name?: string } = {}

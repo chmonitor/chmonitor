@@ -1,14 +1,7 @@
 /**
- * Advisor auto fine-tune engine — schema lint rules.
- *
- * Pure functions over `ColumnProfile[]` (already gathered read-only by
- * `tuning-engine.ts`). Each rule returns `TuningFinding[]` — no I/O, fully
- * unit-testable with fixtures. Every finding is recommend-only: `ddl` is inert
- * text, and rules whose trigger is a metadata heuristic (rather than a measured
- * fact) attach a `verifyQuery` so the user can confirm before applying.
- *
- * Ranking currency is `estimatedBytesSaved` — an upper-bound projection from
- * column widths, always surfaced as an estimate.
+ * Advisor tuning engine: column lint rules over `ColumnProfile[]`. Pure and
+ * recommend-only; rules triggered by a metadata heuristic attach a
+ * `verifyQuery`. Ranked by `estimatedBytesSaved`, an upper-bound estimate.
  */
 
 import type { ColumnProfile, TuningFinding } from './types'
@@ -19,7 +12,6 @@ import {
 } from '@/lib/ai/agent/tools/sql-analysis'
 import { formatBytes } from '@/lib/utils'
 
-/** Strip one wrapping type modifier, e.g. `Nullable(String)` → `String`. */
 function unwrapType(type: string, wrapper: string): string | null {
   const m = new RegExp(`^${wrapper}\\((.+)\\)$`, 'i').exec(type.trim())
   return m ? m[1].trim() : null
@@ -29,7 +21,6 @@ function fullTable(c: ColumnProfile): string {
   return formatQualifiedTable(c.database, c.table)
 }
 
-/** uncompressed / compressed, or 0 when compressed is 0. */
 export function compressionRatio(c: ColumnProfile): number {
   if (c.compressedBytes <= 0) return 0
   return c.uncompressedBytes / c.compressedBytes
@@ -85,7 +76,6 @@ export function ruleNullableColumns(columns: ColumnProfile[]): TuningFinding[] {
   return findings
 }
 
-/** Ordered widest→narrowest so we can propose the next step down. */
 const INT_WIDTHS: Record<string, number> = {
   Int8: 1,
   UInt8: 1,
@@ -101,7 +91,6 @@ const INT_WIDTHS: Record<string, number> = {
   UInt256: 32,
 }
 
-/** The one-step-narrower type of the same signedness, or null if already smallest. */
 export function narrowerInt(type: string): string | null {
   const order = [
     ['Int64', 'Int32'],
@@ -167,7 +156,6 @@ export function ruleOversizedIntegers(
 const TIMESERIES_TYPE = /^(Date|DateTime|DateTime64)/i
 const FLOAT_TYPE = /^(Float32|Float64)$/i
 
-/** True when the column has no explicit codec (uses the table/server default). */
 function usesDefaultCodec(c: ColumnProfile): boolean {
   return c.compressionCodec.trim() === ''
 }
@@ -270,7 +258,6 @@ export function ruleLowCardinality(
   return findings
 }
 
-/** Run every schema lint rule over the columns. */
 export function runSchemaRules(columns: ColumnProfile[]): TuningFinding[] {
   return [
     ...ruleNullableColumns(columns),

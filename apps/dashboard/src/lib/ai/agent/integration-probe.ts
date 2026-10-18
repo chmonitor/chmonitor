@@ -1,5 +1,5 @@
 /**
- * Reachability probes for the agent's read-only integration tools (#3674).
+ * Reachability probes for the agent's read-only integration tools.
  *
  * - Per-isolate cache: a success is reused for CHM_AGENT_INTEGRATION_PROBE_TTL_MS
  *   (default 60s), a failure for min(15s, TTL).
@@ -61,14 +61,11 @@ export interface ProbeCacheOptions {
   now?: () => number
   timeoutMs?: () => number
   ttlMs?: () => number
-  /** Timer seam for tests; returns a cancel function. */
   setTimer?: (fn: () => void, ms: number) => () => void
 }
 
 export interface ProbeCache {
-  /** Cached result, or a probe bounded by the budget. Never rejects. */
   check(name: IntegrationName): Promise<Reachability>
-  /** Test helper. */
   clear(): void
 }
 
@@ -165,7 +162,6 @@ async function probePostgres(): Promise<void> {
   await queryPostgres(getAndValidatePostgresConfig(0), 'SELECT 1')
 }
 
-/** The isolate-wide cache the agent route uses. */
 export const integrationProbeCache = createIntegrationProbeCache({
   probes: { peerdb: probePeerDB, postgres: probePostgres },
 })

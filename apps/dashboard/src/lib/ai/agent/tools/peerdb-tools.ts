@@ -1,20 +1,4 @@
 /**
- * PeerDB tools for the agent (env-gated, read-only).
- *
- * Two bounded primitives, both over the same fixed allowlisted paths:
- * - `get_peerdb_mirror_status` — mirror state/lag/rows-synced, in two modes:
- *   - Fleet mode (no `mirrorName`): every configured mirror with per-mirror
- *     state/lag/rows-synced, sorted worst-first, so "which mirrors are lagging
- *     or failing?" is one call.
- *   - Detail mode (`mirrorName`): state, authoritative rows-synced total,
- *     per-table counts, recent CDC batches, and recent error logs for one
- *     mirror, each explicitly capped.
- * - `get_peerdb_metrics` — the *metrics* surface the `/peerdb` UI already
- *   reads but the agent could not reach: replication-slot lag and its history,
- *   CDC rows-synced throughput, snapshot/initial-load progress, per-peer active
- *   queries, and fleet aggregates. One `metric` discriminator plus optional
- *   `peerName` / `mirrorName` / `slotName` / `window`.
- *
  * All reads go through `peerdbRequest` (fixed allowlisted paths, credential
  * attached server-side). The model supplies at most mirror/peer/slot names —
  * never a URL, path, or SQL — and every one is validated + URL-encoded.
@@ -74,20 +58,15 @@ import {
 } from '@/lib/peerdb/slot-lag-thresholds'
 import { resolvePeerDBSweepConcurrency } from '@/lib/peerdb/sweep-pool'
 
-/** Caps — every list the tool returns is bounded before serialization. */
 export const PEERDB_FLEET_LIMIT = 50
 export const PEERDB_STATUS_FANOUT_LIMIT = 25
 export const PEERDB_TABLES_LIMIT = 50
 export const PEERDB_BATCHES_LIMIT = 10
 export const PEERDB_LOGS_LIMIT = 10
-/** `get_peerdb_metrics` caps — one per new result set. */
 export const PEERDB_PEER_FANOUT_LIMIT = 25
 export const PEERDB_PEER_QUERIES_LIMIT = 20
-/** Time-series points (CDC graph buckets, slot-lag samples) returned. */
 export const PEERDB_SERIES_LIMIT = 240
-/** Log patterns returned per call; the rest are counted, not listed. */
 export const PEERDB_PATTERNS_LIMIT = 15
-/** Mirrors named per pattern. */
 export const PEERDB_PATTERN_MIRRORS_LIMIT = 5
 const LOG_PATTERNS_BUDGET_MS = 20_000
 const ERROR_PREVIEW_CHARS = 300
@@ -214,7 +193,6 @@ async function getFleetMirrors() {
   }
 }
 
-/** Compact pattern row for the model: fingerprint, level, count, lastSeen, mirrors. */
 function toPatternRow(p: LogPatternSummary) {
   return {
     fingerprint: errorPreview(p.fingerprint),
@@ -359,7 +337,6 @@ async function getMirrorDetail(mirrorName: string) {
     PEERDB_LOGS_LIMIT
   )
 
-  // Same grouping the /peerdb feed uses; pairs with the raw preview above.
   const recentErrorPatterns = groupLogsByPattern(
     logEntries.map((l) =>
       toLogFeedEntry(l, mirrorName, parseTs(l.errorTimestamp))
@@ -393,9 +370,7 @@ async function getMirrorDetail(mirrorName: string) {
   }
 }
 
-/** Windows PeerDB's lag-history endpoint accepts, most-recent-first. */
 const LAG_WINDOWS = ['1hour', '6hours', '1day', '3days', '7days'] as const
-/** CDC graph bucket sizes, matching the `/peerdb` mirror page default. */
 const GRAPH_AGGREGATES = ['1min', '5min', '1hour', '1day'] as const
 /**
  * The `metric` values, declared once so the zod enum and the execute() switch
@@ -464,7 +439,6 @@ function sortSlotRows(rows: SlotRow[]): SlotRow[] {
   })
 }
 
-/** Unique peer names from a `/v1/peers/list` response, in response order. */
 function peerNamesOf(list: ListPeersResponse | null): string[] {
   const all: PeerListItem[] = [
     ...(list?.sourceItems ?? []),
@@ -479,13 +453,11 @@ function peerNamesOf(list: ListPeersResponse | null): string[] {
     )
 }
 
-/** One peer's slots: the raw upstream slots plus the model-facing rows. */
 interface PeerSlots {
   raw: SlotInfo[]
   rows: SlotRow[]
 }
 
-/** Best-effort per-peer slot fetch — a missing endpoint degrades, never fails. */
 async function fetchPeerSlots(peer: string): Promise<PeerSlots> {
   assertValidPeerName(peer)
   const res = await peerdbRequest<PeerSlotResponse>(
@@ -600,7 +572,6 @@ async function getFleetMetrics() {
   }
 }
 
-/** Replication-slot health across peers (or one peer), worst-first. */
 async function getSlotHealth(peerName?: string) {
   if (peerName !== undefined) assertValidPeerName(peerName)
   const peersRes = peerName
@@ -762,7 +733,6 @@ async function getRowsSyncedSeries(
   }
 }
 
-/** Snapshot / initial-load (clone) progress for one mirror, per table. */
 async function getSnapshotProgress(mirrorName: string) {
   assertValidMirrorName(mirrorName)
   const encoded = encodeURIComponent(mirrorName)

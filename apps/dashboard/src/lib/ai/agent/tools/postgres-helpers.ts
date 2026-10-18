@@ -1,6 +1,4 @@
 /**
- * Shared helpers for the agent's Postgres tools.
- *
  * These tools resolve a `pgHostId` against the env-based `POSTGRES_*` lists
  * (see `@chm/postgres-client`'s `getPostgresConfigs`) and execute through the
  * ONE read-only Postgres query path Phase 2 built (`queryPostgres`): a
@@ -25,13 +23,6 @@ import {
   queryPostgres,
 } from '@chm/postgres-client'
 
-/**
- * Required per-call `pgHostId` — a flat positional index into the `POSTGRES_*`
- * env lists. Unlike the ClickHouse `hostId` (which defaults to 0), the Postgres
- * tools have no ambient default host, so this is required. Null / empty-string
- * are normalized to `undefined` so they fail validation loudly instead of
- * silently coercing to source 0.
- */
 export const pgHostIdSchema = z
   .preprocess((val) => {
     if (val === null || val === undefined) return undefined
@@ -40,15 +31,6 @@ export const pgHostIdSchema = z
   }, z.coerce.number().int().nonnegative())
   .describe('Postgres source id (index into the POSTGRES_* env lists)')
 
-/**
- * Resolve `pgHostId` → env config and run ONE read-only statement through the
- * shared Phase-2 query path. Returns the rows and field metadata `pg` reports.
- *
- * Throws for an unconfigured / out-of-range `pgHostId` or a rejected (non
- * read-only / multi-) statement; connection/driver errors are normalized with
- * their SQLSTATE via {@link formatPostgresError} so the model gets an
- * actionable message.
- */
 export async function runPostgresReadOnly<
   T extends Record<string, unknown> = Record<string, unknown>,
 >(

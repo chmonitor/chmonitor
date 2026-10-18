@@ -1,17 +1,9 @@
 /**
  * Query advisor — query-context layer (the I/O half of the engine).
  *
- * Everything the pure scorers in `@chm/query-advisor-core` need, gathered
- * read-only from ClickHouse: the query text behind a `query_id`, the table's
- * schema/parts statistics, and `EXPLAIN PLAN indexes=1` output. The packing of
- * those findings into a `QueryContext` is pure and lives in the package
- * (`buildQueryContext`).
- *
  * ABSOLUTE INVARIANT: read-only. Every statement issued here goes through
  * `readOnlyQuery` (which forces `clickhouse_settings.readonly = '1'`) and is a
- * `SELECT` or an `EXPLAIN` — nothing in this file executes, applies, or
- * mutates anything. See `__tests__/analyze-query.test.ts` for the enforcing
- * test.
+ * `SELECT` or an `EXPLAIN`. See `__tests__/analyze-query.test.ts`.
  */
 
 import type {
@@ -27,7 +19,6 @@ import {
   topologyFromDistributedTable,
 } from '@/lib/ddl/on-cluster'
 
-/** Same call shape as `readOnlyQuery`. Tests pass a stand-in; production uses the guard. */
 export type SchemaQuerier = (options: {
   query: string
   hostId: number
@@ -35,8 +26,7 @@ export type SchemaQuerier = (options: {
 }) => Promise<unknown>
 
 /**
- * One round trip for `system.tables` + `system.columns` (ordered by position)
- * + `system.data_skipping_indices`. Identifiers stay in `query_params`.
+ * One round trip for `system.tables` + `system.columns` + `system.data_skipping_indices`.
  * Tuple fields are positional so JSONEachRow arrays and named-tuple objects
  * both decode.
  */
@@ -82,7 +72,6 @@ function asTupleList(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
-/** Resolve the SQL to analyze: the caller's raw `sql`, or the query text behind a `query_id`. */
 export async function resolveSql(
   hostId: number,
   sql: string | undefined,

@@ -1,13 +1,4 @@
-/**
- * Server-only dynamic skill loader.
- *
- * Extends the builtin registry with:
- * - User skills loaded from `.agents/skills/` at runtime (source: 'user')
- * - Runtime-registered skills added via registerSkill() (source: 'remote')
- *
- * Import this module only from server-side code (API routes, agent tools).
- * Client components should use registry.ts directly.
- */
+// Server-only: extends the builtin registry with user skills (.agents/skills) and runtime-registered ones. Client code uses registry.ts.
 
 import type { Skill } from './types'
 
@@ -15,13 +6,8 @@ import { SKILLS } from './registry'
 import fs from 'node:fs'
 import path from 'node:path'
 
-/** In-memory store for skills registered at runtime (e.g. via POST /api/v1/agent/skills) */
 const runtimeSkills: Map<string, Skill> = new Map()
 
-/**
- * Parse name, description, and body from a SKILL.md file.
- * Matches the pattern used in scripts/build-skills-registry.ts.
- */
 export function parseFrontmatter(raw: string): {
   name: string
   description: string
@@ -45,11 +31,6 @@ export function parseFrontmatter(raw: string): {
   }
 }
 
-/**
- * Load skills from `.agents/skills/` at runtime.
- * Each skill lives in its own directory containing a `SKILL.md` file.
- * Returns skills tagged with source: 'user'.
- */
 export function loadDynamicSkills(): Skill[] {
   const skillsDir = path.join(process.cwd(), '.agents', 'skills')
   const skills: Skill[] = []
@@ -77,26 +58,18 @@ export function loadDynamicSkills(): Skill[] {
         content: parsed.body,
         source: 'user',
       })
-    } catch {
-      // Skip unreadable or malformed skill files
-    }
+    } catch {}
   }
 
   return skills
 }
 
-/**
- * Register a skill at runtime (e.g. via POST /api/v1/agent/skills).
- * Registered skills override builtin and user skills with the same name.
- */
+// Registered skills override builtin and user skills with the same name.
 export function registerSkill(skill: Skill): void {
   runtimeSkills.set(skill.name, { ...skill, source: skill.source ?? 'remote' })
 }
 
-/**
- * Return all available skills: builtin + user (filesystem) + runtime-registered.
- * Priority (highest wins): runtime > user > builtin.
- */
+// Priority (highest wins): runtime > user > builtin.
 export function getAllSkills(): Skill[] {
   const merged = new Map<string, Skill>(
     SKILLS.map((s: Skill) => [s.name, { ...s, source: 'builtin' as const }])

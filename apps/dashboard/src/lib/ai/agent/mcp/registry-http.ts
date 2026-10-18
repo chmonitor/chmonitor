@@ -1,8 +1,3 @@
-/**
- * Shared auth + error mapping for the MCP registry HTTP routes
- * (`/api/v1/mcp/servers` and the `/api/v1/mcp/probe` test-connection probe).
- */
-
 import type { McpAuth, McpAuthKind, McpTransport } from './registration-store'
 
 import { McpRegistryError } from './registration-store'
@@ -30,7 +25,6 @@ export async function resolveRegistryUserId(request: Request): Promise<string> {
   return resolveUserId(request)
 }
 
-/** Map registry / auth errors to the shared API error response shape. */
 export function mapRegistryError(
   error: unknown,
   context: RouteContext
@@ -84,7 +78,6 @@ export function parseAuthKind(value: unknown): McpAuthKind {
   return value === 'bearer' || value === 'header' ? value : 'none'
 }
 
-/** Build structured auth from raw request fields (no secret ⇒ no auth). */
 export function buildRegistryAuth(
   kind: McpAuthKind,
   secret: string | undefined,

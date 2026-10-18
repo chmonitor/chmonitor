@@ -10,9 +10,7 @@ import { isProviderConfigured, PROVIDERS } from './providers'
 export interface ModelEntry {
   /** Provider-agnostic model ID (e.g., 'qwen/qwen3.5-397b-a17b') */
   id: string
-  /** Human-readable description */
   description: string
-  /** Context window in tokens */
   contextLength: number
   /** Per-million-token pricing (omit for free/own-key models) */
   pricing?: { inputPerMillion: number; outputPerMillion: number }
@@ -86,7 +84,6 @@ export function resolveDefaultAgentModel(): string {
  * catalog (or from the dynamic loader) and is not duplicated here.
  */
 export const MODEL_REGISTRY: readonly ModelEntry[] = [
-  // ── Presets (auto-routing via AnyRouter) ──
   {
     id: '@preset/chmonitor',
     description: 'Preset: chmonitor agent routing',
@@ -94,7 +91,6 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
     providers: ['anyrouter'],
   },
 
-  // ── Auto-routers ──
   // Cost is variable (the router picks the upstream model per request), so no
   // price is recorded for these — OpenRouter reports an explicit -1 sentinel
   // and AnyRouter quotes its router rate.
@@ -117,7 +113,6 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
     providers: ['openrouter'],
   },
 
-  // ── Free tier (verified tool-capable on OpenRouter, 2026-09-26) ──
   {
     id: 'google/gemma-4-31b-it:free',
     description: 'Gemma 4 31B IT',
@@ -143,7 +138,6 @@ export const MODEL_REGISTRY: readonly ModelEntry[] = [
     providers: ['openrouter'],
   },
 
-  // ── Paid: OpenRouter + AnyRouter ──
   {
     id: 'google/gemma-4-26b-a4b-it',
     description: 'Gemma 4 26B IT',
@@ -257,7 +251,6 @@ export function parseExtraModels(): ModelEntry[] {
     const providerAndModel = parts[0]?.trim()
     if (!providerAndModel) continue
 
-    // provider = substring before FIRST colon; modelId = rest
     const colonIdx = providerAndModel.indexOf(':')
     if (colonIdx <= 0) continue // no colon, or colon is first char
 

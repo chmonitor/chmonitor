@@ -1,6 +1,4 @@
 /**
- * Shared helpers for the agent's PeerDB tool.
- *
  * The agent never talks to PeerDB directly from the browser and never takes
  * an arbitrary URL from the model. All reads go through this ONE server-side
  * path: a fixed allowlist of read-only PeerDB REST paths (the same subset the
@@ -45,7 +43,6 @@ export function isPeerDBAgentEnabled(
   ).enabled
 }
 
-/** Resolve the env-wide PeerDB config, or null when not configured. */
 export function getPeerDBAgentConfig(): ResolvedPeerDBConfig | null {
   return envPeerDBConfig(process.env as Record<string, string | undefined>)
 }
@@ -68,13 +65,6 @@ export function assertValidMirrorName(name: string): void {
   }
 }
 
-/**
- * Validate a model-supplied *peer* name for safe interpolation into a single
- * upstream path segment. Same contract as {@link assertValidMirrorName} —
- * peer names are operator-chosen identifiers, so anything that could escape the
- * segment (slashes, query/fragment delimiters, control chars) is rejected
- * rather than encoded-and-hoped-for.
- */
 export function assertValidPeerName(name: string): void {
   if (typeof name !== 'string' || name.length === 0 || name.length > 256) {
     throw new Error('peerName must be a non-empty string up to 256 chars')

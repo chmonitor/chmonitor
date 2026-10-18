@@ -1,10 +1,4 @@
-/**
- * DDL text + risk-note building for the MV/projection designer. Pure string
- * building — the result is returned as data, never passed to a
- * query-execution call.
- *
- * See `./index.ts` for the module overview.
- */
+/** DDL text + risk notes for the MV/projection designer. Pure string building, returned as data and never executed. */
 
 import type { Design, DesignKind } from './design-selection'
 import type { AggregateCall } from './sql-parsing'
@@ -27,7 +21,6 @@ function aggAlias(call: AggregateCall): string {
   return argPart ? `${call.func}_${argPart}` : call.func
 }
 
-/** Looks like a bare numeric literal (a parametric-function level, e.g. `quantile`'s `0.95`) rather than a column/expression. */
 function looksLikeBareNumber(arg: string): boolean {
   return /^-?\d+(\.\d+)?$/.test(arg.trim())
 }
@@ -49,10 +42,6 @@ function ddlObjectName(table: string, groupByKeys: string[], suffix: string) {
   return normalizeForAlias(`${table}_by_${keys}_${suffix}`)
 }
 
-/**
- * Build the DDL text for a design decision. Pure string building — the
- * result is returned as data, never passed to a query-execution call.
- */
 export function buildDdl(input: {
   design: Design
   database: string
@@ -87,11 +76,7 @@ export function buildDdl(input: {
   return `CREATE MATERIALIZED VIEW ${target}\nENGINE = ${engine}()\nORDER BY (${groupByList})\nAS SELECT\n    ${selectCols.join(',\n    ')}\nFROM ${fullTable}\nGROUP BY ${groupByList}`
 }
 
-/**
- * Risk note — always states the write-path/storage trade-off (never hidden),
- * plus the engine-specific caveat (`-State`/`-Merge` for Aggregating,
- * rebuild-on-ALTER for projections).
- */
+/** Always states the write-path/storage trade-off, plus the engine-specific caveat (`-State`/`-Merge`, rebuild-on-ALTER). */
 export function buildRiskNote(kind: DesignKind): string {
   const common =
     "Adding this pre-aggregation adds write-path cost (every insert into the source table also updates this structure) and additional storage — it does not shrink the source table, and it does not change any existing query's plan."

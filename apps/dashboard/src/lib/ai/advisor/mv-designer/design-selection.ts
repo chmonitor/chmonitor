@@ -1,9 +1,4 @@
-/**
- * Projection vs. Summing/Aggregating MV design choice for the MV/projection
- * designer. Pure, no I/O.
- *
- * See `./index.ts` for the module overview.
- */
+/** Projection vs. Summing/Aggregating MV choice for the designer. Pure, no I/O. */
 
 import type { AggregateCall } from './sql-parsing'
 
@@ -28,12 +23,7 @@ function normalizeKey(key: string): string {
   return key.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
-/**
- * True when `groupByKeys` (order-insensitive, as a set) equals the first
- * `groupByKeys.length` columns of `sortingKeyCols` — i.e. the aggregation can
- * ride the table's existing part ordering, the precondition for preferring a
- * projection over a second MV table.
- */
+/** True when `groupByKeys` (as a set) equals the first N columns of `sortingKeyCols`: the precondition for preferring a projection. */
 export function groupByMatchesSortingPrefix(
   groupByKeys: string[],
   sortingKeyCols: string[]
@@ -47,22 +37,12 @@ export function groupByMatchesSortingPrefix(
 }
 
 /**
- * Choose projection vs. Summing/Aggregating MV for one mined shape.
- *
- * Tie-breaker (resolves the plan's "MV vs projection default" open
- * question, per the plan's own approach section): a single-table shape whose
- * GROUP BY keys match a prefix of the table's existing ORDER BY prefers a
- * PROJECTION — no second table, and ClickHouse re-aggregates it on merge
- * without needing `-State`/`-Merge`. This check runs *before* the
- * Summing/Aggregating choice, so it can win even for a sum/count-only shape
- * (a projection handles those fine too). Only when a projection isn't
- * eligible (multi-table, or GROUP BY doesn't match the sort prefix) do we
- * fall back to choosing between SummingMergeTree (sum/count only) and
- * AggregatingMergeTree (anything else) for a standalone MV.
- *
- * "Read-mostly" isn't independently verified (that would need a
- * `system.part_log` write-rate query on top of the ones this already does) —
- * the rationale states it as a labeled assumption instead of hiding it.
+ * A single-table shape whose GROUP BY keys match a prefix of the existing
+ * ORDER BY prefers a PROJECTION (no second table; re-aggregated on merge
+ * without `-State`/`-Merge`). This runs before the Summing/Aggregating
+ * choice, so it can win even for a sum/count-only shape. "Read-mostly" is not
+ * verified (it would need a `system.part_log` write-rate query); the
+ * rationale states it as a labeled assumption.
  */
 export function chooseDesign(input: DesignInput): Design {
   const { tableCount, groupByKeys, sortingKeyCols, aggregateCalls } = input

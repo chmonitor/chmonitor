@@ -1,37 +1,4 @@
 /**
- * Declarative catalog for the agent's tool surface.
- *
- * ## Why a side table
- *
- * The agent ships 40 tools in one flat namespace, and the system prompt's
- * `TOOL_LIST` is a flat prose list of names. That gives the model no routing
- * help beyond the names, and it left the tool list documented in four
- * hand-maintained places (this file, the module docblock in `index.ts`,
- * `docs/content/guide/ai-agent/capabilities.mdx`, and the prompt) — which had
- * already drifted: the `index.ts` docblock was missing
- * `forecast_disk_capacity`, `suggest_ttl_adjustment`, and
- * `get_tuning_suggestions`.
- *
- * This module is the **side table** for everything that cannot be derived from
- * the tool definitions: the routing `category`, a one-line `summary`, search
- * `keywords`, and the `core` marker. The human-readable `description` is NOT
- * duplicated here — `search_tools` reads it off the live tool definition at
- * call time, so there is one source per fact.
- *
- * `__tests__/tool-catalog.test.ts` is the anti-drift guard: a tool with no
- * catalog entry, or a catalog entry with no tool, fails the suite. That is what
- * makes the four lists above safe to derive instead of hand-maintained.
- *
- * ## The core set
- *
- * `core: true` marks the tools that answer the most common questions and that
- * bootstrap everything else: the `query` primitive, schema exploration, the
- * two health primitives, the knowledge loaders, the loop control tools, and
- * `search_tools` itself (useless if it is itself discoverable). `CORE_TOOL_NAMES`
- * is the ordered list; `longTailToolNames()` is the complement, for a caller
- * that wants a core-only tool map via the existing `filterTools` seam in
- * `clickhouse-agent.ts`.
- *
  * Note the deliberate limit: the default request still sends the **whole** tool
  * set, because the AI SDK's `ToolLoopAgent` takes a static `tools` map and
  * offers no supported way to inject a tool mid-loop. Subsetting to core would
@@ -61,20 +28,14 @@ export type ToolCategory =
   | 'peerdb'
   | 'discovery'
 
-/** One catalog row. `description` is read from the tool, not stored here. */
 export interface ToolCatalogEntry {
-  /** The tool name, exactly as registered in `createAllTools()`. */
   name: string
   category: ToolCategory
-  /** One line, written for the model's routing decision. */
   summary: string
-  /** Extra search terms a user would not put in the tool name. */
   keywords: readonly string[]
-  /** Always-in-context, bootstrap-capable tools. */
   core: boolean
 }
 
-/** Max results `search_tools` returns (the house cap). */
 export const TOOL_SEARCH_RESULT_LIMIT = 15
 
 const e = (
@@ -90,7 +51,6 @@ const e = (
  * with no query, so the core tools lead.
  */
 export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
-  // ── Discovery ──
   search_tools: e(
     'search_tools',
     'discovery',
@@ -108,7 +68,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     true
   ),
 
-  // ── Schema & exploration ──
   query: e(
     'query',
     'schema',
@@ -145,7 +104,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     true
   ),
 
-  // ── Query analysis ──
   get_running_queries: e(
     'get_running_queries',
     'query',
@@ -210,7 +168,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ]
   ),
 
-  // ── Health ──
   get_metrics: e(
     'get_metrics',
     'health',
@@ -234,7 +191,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     true
   ),
 
-  // ── Storage ──
   get_table_parts: e(
     'get_table_parts',
     'storage',
@@ -248,7 +204,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ['mutation', 'alter update', 'alter delete', 'impact', 'rewrite', 'dry run']
   ),
 
-  // ── Replication & merges ──
   get_replication_status: e(
     'get_replication_status',
     'replication',
@@ -263,7 +218,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ['merge', 'merges', 'background merge', 'compaction']
   ),
 
-  // ── Capacity planning (recommend-only) ──
   forecast_disk_capacity: e(
     'forecast_disk_capacity',
     'capacity',
@@ -283,7 +237,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ['ttl', 'retention', 'expire', 'keep longer', 'delete old data']
   ),
 
-  // ── Advisors (recommend-only) ──
   get_optimization_recommendations: e(
     'get_optimization_recommendations',
     'advisor',
@@ -318,7 +271,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ['materialized view', 'mv', 'pre-aggregate', 'rollup', 'projection ddl']
   ),
 
-  // ── Planning & interaction ──
   update_plan: e(
     'update_plan',
     'planning',
@@ -334,7 +286,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     true
   ),
 
-  // ── Knowledge ──
   load_skill: e(
     'load_skill',
     'knowledge',
@@ -399,7 +350,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ]
   ),
 
-  // ── Visualization ──
   query_and_visualize: e(
     'query_and_visualize',
     'visualization',
@@ -407,7 +357,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ['chart', 'graph', 'plot', 'visualize', 'trend chart', 'line chart']
   ),
 
-  // ── Insights & reports ──
   explain_anomaly_score: e(
     'explain_anomaly_score',
     'insights',
@@ -421,7 +370,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ['report', 'weekly', 'monthly', 'summary', 'health report', 'digest']
   ),
 
-  // ── Dashboards ──
   suggest_dashboard: e(
     'suggest_dashboard',
     'dashboards',
@@ -429,7 +377,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ['dashboard', 'layout', 'chart layout', 'build a dashboard', 'tiles']
   ),
 
-  // ── Control actions (destructive, env-gated) ──
   kill_query: e(
     'kill_query',
     'control',
@@ -449,7 +396,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ['optimize', 'force merge', 'compact table', 'finalize parts']
   ),
 
-  // ── Cross-source Postgres (env-gated) ──
   run_postgres_select_query: e(
     'run_postgres_select_query',
     'postgres',
@@ -481,7 +427,6 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
     ]
   ),
 
-  // ── PeerDB (env-gated) ──
   get_peerdb_mirror_status: e(
     'get_peerdb_mirror_status',
     'peerdb',
@@ -521,22 +466,18 @@ export function getToolCatalogEntry(
   return TOOL_CATALOG[name]
 }
 
-/** Every cataloged tool name, in catalog order. */
 export function catalogToolNames(): string[] {
   return Object.keys(TOOL_CATALOG)
 }
 
-/** The core set, in catalog order. */
 export function coreToolNames(): string[] {
   return catalogToolNames().filter((n) => TOOL_CATALOG[n]?.core)
 }
 
-/** The non-core (discoverable) set, in catalog order. */
 export function longTailToolNames(): string[] {
   return catalogToolNames().filter((n) => !TOOL_CATALOG[n]?.core)
 }
 
-/** Every distinct category present in the catalog, sorted for stable output. */
 export function toolCategories(): ToolCategory[] {
   return [
     ...new Set(catalogToolNames().map((n) => TOOL_CATALOG[n].category)),

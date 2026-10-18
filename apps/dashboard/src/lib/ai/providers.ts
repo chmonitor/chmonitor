@@ -11,15 +11,11 @@
 export interface ProviderConfig {
   /** Unique provider identifier (e.g., 'openrouter', 'nvidia', 'anyrouter') */
   id: string
-  /** Human-readable display name */
   name: string
-  /** Primary env var name for the API key */
   apiKeyEnvVar: string
-  /** Default base URL for the provider's API */
   baseURL: string
   /** Optional env var name to override the default base URL */
   baseURLEnvVar?: string
-  /** Which SDK to use for this provider */
   sdk: 'openrouter' | 'openai'
 }
 

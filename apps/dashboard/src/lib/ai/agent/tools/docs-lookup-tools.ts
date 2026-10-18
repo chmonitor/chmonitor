@@ -124,7 +124,6 @@ function truncate(value: string, max: number): string {
     : value
 }
 
-/** Drop empty fields and cap long text so one lookup stays a few KB. */
 function compact(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(row)) {

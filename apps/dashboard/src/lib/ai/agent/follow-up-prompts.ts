@@ -34,7 +34,6 @@ interface FollowUpCandidate {
  */
 const TOOL_FOLLOW_UPS: Readonly<Record<string, readonly FollowUpCandidate[]>> =
   {
-    // Query / performance
     get_running_queries: [
       { text: "Explain the top query's plan", relatedTool: 'explain_query' },
       {
@@ -96,7 +95,6 @@ const TOOL_FOLLOW_UPS: Readonly<Record<string, readonly FollowUpCandidate[]>> =
       { text: 'Turn this into a dashboard', relatedTool: 'suggest_dashboard' },
     ],
 
-    // Storage
     get_table_parts: [
       {
         text: 'Suggest a TTL for this table',
@@ -133,7 +131,6 @@ const TOOL_FOLLOW_UPS: Readonly<Record<string, readonly FollowUpCandidate[]>> =
       { text: 'Review disk headroom', relatedTool: 'get_disk_usage' },
     ],
 
-    // Replication / merges
     get_replication_status: [
       {
         text: 'Check for a merge backlog on that table',
@@ -157,7 +154,6 @@ const TOOL_FOLLOW_UPS: Readonly<Record<string, readonly FollowUpCandidate[]>> =
       },
     ],
 
-    // Health
     get_metrics: [
       { text: 'Check disk usage', relatedTool: 'get_disk_usage' },
       {
@@ -184,7 +180,6 @@ const TOOL_FOLLOW_UPS: Readonly<Record<string, readonly FollowUpCandidate[]>> =
       },
     ],
 
-    // Schema
     list_tables: [
       { text: 'Show the largest tables', relatedTool: 'get_table_parts' },
       { text: 'Explore a table schema', relatedTool: 'explore_table_schema' },
@@ -212,7 +207,6 @@ const TOOL_FOLLOW_UPS: Readonly<Record<string, readonly FollowUpCandidate[]>> =
       },
     ],
 
-    // Advisor
     get_optimization_recommendations: [
       {
         text: 'Get more detailed tuning suggestions',
@@ -231,7 +225,6 @@ const TOOL_FOLLOW_UPS: Readonly<Record<string, readonly FollowUpCandidate[]>> =
       },
     ],
 
-    // MV designer / insight / report / dashboard
     recommend_materialized_view: [
       {
         text: 'Estimate the mutation impact',
@@ -260,7 +253,6 @@ const TOOL_FOLLOW_UPS: Readonly<Record<string, readonly FollowUpCandidate[]>> =
       },
     ],
 
-    // Postgres (only reachable when CHM_FEATURE_POSTGRES_SOURCE is enabled)
     run_postgres_select_query: [
       {
         text: 'Check Postgres table stats',
@@ -380,19 +372,14 @@ function matchBestRule(haystack: string): FollowUpRule | undefined {
   return best?.rule
 }
 
-/** Case/whitespace-insensitive dedupe key for a suggestion's text. */
 function dedupeKey(text: string): string {
   return text.trim().toLowerCase()
 }
 
 export interface FollowUpPromptsInput {
-  /** Text of the user's last message in the exchange. */
   readonly lastUserText?: string
-  /** Text of the assistant's last reply in the exchange. */
   readonly lastAssistantText?: string
-  /** Names of tools invoked while producing the last reply, if any. */
   readonly toolsUsed?: readonly string[]
-  /** Max number of suggestions to return. */
   readonly limit?: number
 }
 

@@ -1,12 +1,3 @@
-/**
- * Tool assembler — imports the kept category modules and composes the tool set.
- *
- * The agent intentionally exposes a small set of powerful primitives. Anything
- * not covered by a primitive is done with the `query` tool plus a `load_skill`
- * recipe (see .agents/skills/). Each category file exports a factory that
- * returns its tools for a given host.
- */
-
 import {
   type AgentConnectionBinding,
   bindToolsToConnection,
@@ -67,33 +58,6 @@ export const CONNECTION_UNSUPPORTED_TOOLS: ReadonlySet<string> = new Set([
  * run. An earlier version of this comment was hand-maintained and had already
  * drifted, so the grouping below is kept deliberately coarse. To answer "which
  * tools exist", read the catalog or call `search_tools` — not this list.
- *
- * Lean primitive set:
- *  - Schema & exploration: query, list_databases, list_tables,
- *    get_table_schema, explore_table_schema
- *  - Query analysis: get_running_queries, get_slow_queries,
- *    get_failed_queries, explain_query, estimate_query_cost,
- *    list_slow_query_patterns
- *  - Health: get_metrics, get_disk_usage
- *  - Storage: get_table_parts, estimate_mutation_impact,
- *    forecast_disk_capacity, suggest_ttl_adjustment
- *  - Replication: get_replication_status
- *  - Merges: get_merge_status
- *  - Planning: update_plan
- *  - Knowledge: load_skill, find_reference_query, explain_clickhouse_symbol
- *  - Interaction: ask_user
- *  - Visualization: query_and_visualize
- *  - Insights: explain_anomaly_score
- *  - Reports: generate_cluster_report
- *  - Advisor: get_optimization_recommendations, get_tuning_suggestions
- *  - Advisor: recommend_materialized_view
- *  - Dashboards: suggest_dashboard
- *  - Control (destructive, gated by the caller): kill_query, optimize_table, kill_mutation
- *  - Postgres (cross-source, gated by the caller): run_postgres_select_query,
- *    get_postgres_metrics, list_postgres_slow_query_patterns,
- *    get_postgres_table_stats
- *  - PeerDB (gated by the caller): get_peerdb_mirror_status, get_peerdb_metrics
- *  - Discovery (always): search_tools
  */
 export function createAllTools(
   hostId: number,
@@ -127,57 +91,39 @@ export function createAllTools(
     parseBool(process.env.CHM_FEATURE_PEERDB_ENABLED) !== false
 
   const tools = {
-    // Schema & exploration
     ...createSchemaTools(hostId),
 
-    // Query analysis
     ...createQueryTools(hostId),
 
-    // System health
     ...createHealthTools(hostId),
 
-    // Storage & parts
     ...createStorageTools(hostId),
 
-    // Replication
     ...createReplicationTools(hostId),
 
-    // Merges
     ...createMergeTools(hostId),
 
-    // Plan & verify
     ...createPlanTools(),
 
-    // Skills / knowledge
     ...createSkillTools(),
 
-    // Reference-query retrieval (built-in QueryConfig catalog, read-only)
     ...createReferenceQueryTools(),
 
-    // Built-in ClickHouse docs read from the host's own system tables
     ...createDocsLookupTools(hostId),
 
-    // Page data (replays a dashboard page's own table + chart queries, read-only)
     ...createPageDataTools(hostId),
 
-    // User interaction
     ...createAskUserTools(),
 
-    // Visualization
     ...createVisualizationTools(hostId),
 
-    // Insights (statistical anomaly baselines)
     ...createInsightTools(hostId),
 
-    // Reports (deterministic health report for agent narration, read-only)
     ...createReportTools(hostId),
 
-    // Advisor (ranked DDL/rewrite recommendations — recommend-only)
     ...createAdvisorTools(hostId),
-    // Advisor (MV/projection designer, recommend-only)
     ...createMvDesignerTools(hostId),
 
-    // Dashboards (AI-generated layout suggestions, recommend-only)
     ...createDashboardTools(),
 
     // Control actions (destructive). The caller decides via

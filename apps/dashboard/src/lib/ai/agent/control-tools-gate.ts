@@ -19,12 +19,9 @@ import type { AuthProvider } from '@/lib/auth/provider'
 import { parseBool } from '@/lib/config/parse-bool'
 
 export interface ControlToolsGateInput {
-  /** Raw AGENT_ENABLE_CONTROL_TOOLS value. */
   flag: string | null | undefined
-  /** Cloud (SaaS) mode, from isCloudModeServer(). */
   cloud: boolean
   authProvider: AuthProvider
-  /** The caller has a signed-in identity (not `guest`). */
   signedIn: boolean
 }
 
