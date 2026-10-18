@@ -81,14 +81,14 @@ export const healthDetailBCharts: Record<string, ChartQueryBuilder> = {
   'health-failed-backups-detail': () => ({
     query: `
     SELECT
-      event_time,
+      toDateTime(event_time_microseconds) AS event_time,
       name,
       status,
       substring(error, 1, 300) AS error
     FROM system.backup_log
-    WHERE event_time > now() - INTERVAL 24 HOUR
-      AND status = 'FAILED'
-    ORDER BY event_time DESC
+    WHERE event_time_microseconds > now() - INTERVAL 24 HOUR
+      AND status IN ('BACKUP_FAILED', 'RESTORE_FAILED')
+    ORDER BY event_time_microseconds DESC
     LIMIT 50
   `,
     optional: true,

@@ -179,7 +179,7 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
     query: `
     SELECT count() AS failed_count
     FROM system.backup_log
-    WHERE event_time > now() - INTERVAL 24 HOUR
+    WHERE event_time_microseconds > now() - INTERVAL 24 HOUR
       AND status IN ('BACKUP_FAILED', 'RESTORE_FAILED')
   `,
     optional: true,
