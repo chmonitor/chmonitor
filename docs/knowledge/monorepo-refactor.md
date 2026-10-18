@@ -139,9 +139,8 @@ about no longer exists. The rest still hold.
   `@cloudflare/vite-plugin`, and the Docker/Node target lands at
   `.output/server/index.mjs` — which is what `Dockerfile:92` runs
   (`CMD ["node", "server/index.mjs"]`). The old
-  `scripts/stub-prerendered-handlers.ts` walked up for the first lockfile to
-  detect the Next.js package sub-path; it is still in `scripts/` but has no
-  Next.js output to stub.
+  `scripts/stub-prerendered-handlers.ts` (Next.js output stubbing) was
+  deleted along with the other opennext scripts.
 - **pnpm, not Bun, owns `node_modules` — and the dashboard is its own
   project.** The root workspace (`pnpm-workspace.yaml`) covers `apps/mcp` +
   `packages/*` only. `apps/dashboard` has its **own** `pnpm-lock.yaml` and its
