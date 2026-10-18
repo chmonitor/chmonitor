@@ -9,17 +9,15 @@
  * scoped under the OSS single-tenant `ownerId = ''` convention shared with
  * `dashboards` / `user_connections`.
  *
- * So resolution here NEVER throws: {@link resolveAlertRoutingOwnerId} always
- * returns a string, falling back to `''` when Clerk isn't configured or the
- * caller isn't signed in. Writes then apply their own policy via
- * {@link requireOwnerForWrite}: in cloud mode (Clerk configured) an
- * anonymous `''` owner is rejected for POST/DELETE — you must sign in to
- * create/delete a route — while self-hosted (no Clerk at all) keeps working
- * anonymously, matching the existing GET behavior.
+ * So in self-hosted, {@link resolveConfigOwner} falls back to `''` when Clerk
+ * isn't configured or the caller isn't signed in. In cloud it never returns
+ * `''`: no provable owner is a 401. Writes add {@link requiresSignInForWrite},
+ * which also rejects `''` on a self-hosted deployment that uses Clerk.
  */
 
-import { isAuthenticatedRequest, jsonError } from '@/lib/auth/api-guard'
+import { jsonError, verifiedChmApiKeySub } from '@/lib/auth/api-guard'
 import { isClerkAuthProvider } from '@/lib/auth/provider'
+import { resolveBillingOwnerId } from '@/lib/billing/billing-owner'
 import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { resolveUserId } from '@/lib/conversation-store/auth'
 
@@ -27,16 +25,39 @@ import { resolveUserId } from '@/lib/conversation-store/auth'
 export const SINGLE_TENANT_OWNER_ID = ''
 
 /**
- * Resolve the caller's owner id for alert-routing reads/writes. Never
- * throws — any resolution failure (no Clerk configured, no session, Clerk
- * API error) falls back to {@link SINGLE_TENANT_OWNER_ID}.
+ * Which owner a config row is keyed by: the Clerk user (alert routes,
+ * webhooks, digest, reports) or the billing owner, the active org or else the
+ * user (quiet hours, maintenance windows, PeerDB rules).
  */
-export async function resolveAlertRoutingOwnerId(): Promise<string> {
+export type ConfigOwnerScope = 'user' | 'billing'
+
+/**
+ * Resolve the owner a per-owner config request reads or writes, or a 401.
+ *
+ * Self-hosted: the session owner when there is one, else
+ * {@link SINGLE_TENANT_OWNER_ID}. Never rejects.
+ *
+ * Cloud: `''` is not a tenant, so it is never returned. The owner is the
+ * session owner, or for a `user`-scope read (GET) the subject a `chm_` key
+ * was issued to. Writes need a session: not every write route checks key
+ * scopes. A key cannot stand in for a billing owner because it carries no org.
+ */
+export async function resolveConfigOwner(
+  request: Request,
+  scope: ConfigOwnerScope
+): Promise<string | Response> {
   try {
-    return await resolveUserId()
+    return scope === 'user'
+      ? await resolveUserId()
+      : await resolveBillingOwnerId()
   } catch {
-    return SINGLE_TENANT_OWNER_ID
+    if (!isCloudModeServer()) return SINGLE_TENANT_OWNER_ID
   }
+  if (scope === 'user' && request.method === 'GET') {
+    const keySub = await verifiedChmApiKeySub(request)
+    if (keySub) return keySub
+  }
+  return jsonError('Authentication required', 401)
 }
 
 /**
@@ -47,18 +68,4 @@ export async function resolveAlertRoutingOwnerId(): Promise<string> {
  */
 export function requiresSignInForWrite(ownerId: string): boolean {
   return isClerkAuthProvider() && ownerId === SINGLE_TENANT_OWNER_ID
-}
-
-/**
- * Read-path policy for the operator alert config GETs: in cloud mode an
- * anonymous caller gets a 401 instead of the config. Self-hosted is never
- * gated. Returns null to proceed.
- */
-export async function requireCloudSignInForRead(
-  request: Request
-): Promise<Response | null> {
-  if (!isCloudModeServer() || (await isAuthenticatedRequest(request))) {
-    return null
-  }
-  return jsonError('Authentication required', 401)
 }

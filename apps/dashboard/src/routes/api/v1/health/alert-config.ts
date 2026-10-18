@@ -8,7 +8,7 @@
  * Makes the env-only server channels (opsgenie/email/twilio/…) editable from
  * the Health Settings UI and — via the cron sweep's `resolveServerChannels` —
  * visible to autonomous alerting. Owner-scoped via
- * {@link resolveAlertRoutingOwnerId} (shared with `routes.ts`): self-hosted
+ * {@link resolveConfigOwner} (shared with `routes.ts`): self-hosted
  * manages configs with zero auth under the OSS single-tenant owner `''`, cloud
  * requires sign-in for writes. The store (`alert-channel-config-store.ts`) is
  * best-effort D1 — GET always returns 200 with a (possibly empty) list.
@@ -36,9 +36,8 @@ import {
   upsertChannelConfig,
 } from '@/lib/health/alert-channel-config-store'
 import {
-  requireCloudSignInForRead,
   requiresSignInForWrite,
-  resolveAlertRoutingOwnerId,
+  resolveConfigOwner,
 } from '@/lib/health/alert-routing-auth'
 import {
   getServerEmailConfig,
@@ -125,10 +124,8 @@ function deliveryStatus(): { alertingEnabled: boolean; sweepEnabled: boolean } {
 }
 
 async function handleGet(request: Request): Promise<Response> {
-  const signIn = await requireCloudSignInForRead(request)
-  if (signIn) return signIn
-
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   const configs = await listChannelConfigs(ownerId)
   return Response.json(
     {
@@ -167,7 +164,8 @@ async function handlePut(request: Request): Promise<Response> {
   )
   if (permissionResponse) return permissionResponse
 
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   if (requiresSignInForWrite(ownerId)) {
     return jsonError('Sign in to edit alert channels.', 401)
   }
@@ -235,7 +233,8 @@ async function handleDelete(request: Request): Promise<Response> {
   )
   if (permissionResponse) return permissionResponse
 
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   if (requiresSignInForWrite(ownerId)) {
     return jsonError('Sign in to edit alert channels.', 401)
   }

@@ -30,7 +30,7 @@ const API_GUARD_FILE = fileURLToPath(
  * Identity resolvers are included only because they throw/401 when there is
  * no signed-in user (fail closed); check that before adding a new one.
  * Resolvers that fall back to an anonymous id ('', 'oss', 'guest') are not
- * guards: resolveAlertRoutingOwnerId, resolveCustomRuleOwnerId,
+ * guards: resolveConfigOwner, resolveCustomRuleOwnerId,
  * resolveRegistryUserId, resolveAgentUserId, resolveOwnerId. Neither is
  * authenticateRequest, which the `none` provider always passes.
  */

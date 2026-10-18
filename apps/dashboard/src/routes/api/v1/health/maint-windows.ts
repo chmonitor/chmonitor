@@ -4,40 +4,27 @@
  * POST   /api/v1/health/maint-windows        — create a window
  * DELETE /api/v1/health/maint-windows?id=... — delete a window
  *
- * Auth: GET rides the global /api/v1 middleware and, in cloud mode, needs a
- * signed-in caller (`requireCloudSignInForRead`). POST/DELETE
+ * Auth: GET rides the global /api/v1 middleware. POST/DELETE
  * self-enforce a write gate (`authorizeFeatureRequest`, feature 'settings')
  * because that global middleware is a public passthrough under
  * provider='none' / CHM_CLERK_PUBLIC_READ — mirrors webhook.ts's write gate.
  *
- * Owner resolution: `resolveBillingOwnerId()` reads the current Clerk session
- * (org if active, else user). It throws when Clerk isn't configured — this
- * route treats that as the OSS single-tenant owner (`''`) rather than
- * failing the request, per the plan's fail-open invariant (self-hosted with
- * no Clerk still gets a working, single-tenant maintenance-windows feature).
+ * Owner resolution: `resolveConfigOwner(request, 'billing')` — the Clerk
+ * session's org if active, else its user. Self-hosted without a session gets
+ * the OSS single-tenant owner (`''`); cloud without a session gets a 401.
  */
 
 import { z } from 'zod'
 import { createFileRoute } from '@tanstack/react-router'
 
-import { resolveBillingOwnerId } from '@/lib/billing/billing-owner'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
-import { requireCloudSignInForRead } from '@/lib/health/alert-routing-auth'
+import { resolveConfigOwner } from '@/lib/health/alert-routing-auth'
 import {
   createWindow,
   deleteWindow,
   listWindows,
   MaintenanceStoreUnavailableError,
 } from '@/lib/health/maintenance-windows'
-
-/** OSS single-tenant fallback when Clerk is not configured / no session. */
-async function resolveOwnerId(): Promise<string> {
-  try {
-    return await resolveBillingOwnerId()
-  } catch {
-    return ''
-  }
-}
 
 function jsonError(message: string, status: number): Response {
   return Response.json(
@@ -54,10 +41,8 @@ const CreateWindowSchema = z.object({
 })
 
 async function handleGet(request: Request): Promise<Response> {
-  const signIn = await requireCloudSignInForRead(request)
-  if (signIn) return signIn
-
-  const ownerId = await resolveOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'billing')
+  if (ownerId instanceof Response) return ownerId
   const windows = await listWindows(ownerId)
   return Response.json(
     { success: true, windows },
@@ -97,7 +82,8 @@ async function handlePost(request: Request): Promise<Response> {
     return jsonError('"endsAt" must be after "startsAt"', 400)
   }
 
-  const ownerId = await resolveOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'billing')
+  if (ownerId instanceof Response) return ownerId
   try {
     const window = await createWindow({
       ownerId,
@@ -132,7 +118,8 @@ async function handleDelete(request: Request): Promise<Response> {
     return jsonError('Missing "id" query parameter', 400)
   }
 
-  const ownerId = await resolveOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'billing')
+  if (ownerId instanceof Response) return ownerId
   let deleted: number
   try {
     deleted = await deleteWindow(ownerId, id)
@@ -155,6 +142,7 @@ async function handleDelete(request: Request): Promise<Response> {
 
 export const __handleDeleteForTests = handleDelete
 export const __handleGetForTests = handleGet
+export const __handlePostForTests = handlePost
 
 export const Route = createFileRoute('/api/v1/health/maint-windows')({
   server: {

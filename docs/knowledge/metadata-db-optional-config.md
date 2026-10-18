@@ -2,7 +2,7 @@
 id: metadata-db-optional-config
 type: spec
 status: active
-updated: 2026-10-11
+updated: 2026-10-19
 related:
   - cloud-saas-mode
   - deployment
@@ -251,9 +251,10 @@ Alert-relevant: `0010_alert_events`, `0014_alert_acks`,
 `0024`, `0025`, `0026_alert_channel_config`, `0027_alert_digest`,
 `0028_alert_state`, `0031_alert_webhook_targets`.
 
-Owner scoping: `lib/health/alert-routing-auth.ts` — `SINGLE_TENANT_OWNER_ID = ''`
-(`:25`), `resolveAlertRoutingOwnerId()` (`:32-38`, never throws),
-`requiresSignInForWrite()` (`:46-48`, rejects anonymous only under Clerk).
+Owner scoping: `lib/health/alert-routing-auth.ts` — `SINGLE_TENANT_OWNER_ID = ''`,
+`resolveConfigOwner(request, 'user' | 'billing')` (self-hosted falls back to
+`''`; cloud never does: session owner, a `chm_` key's subject for user scope,
+else 401), and `requiresSignInForWrite()` (rejects anonymous only under Clerk).
 
 ### HTTP degradation modes
 

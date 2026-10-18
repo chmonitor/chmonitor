@@ -12,9 +12,8 @@ import type { AlertPayload } from '@/lib/health/adapters'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import {
-  requireCloudSignInForRead,
   requiresSignInForWrite,
-  resolveAlertRoutingOwnerId,
+  resolveConfigOwner,
 } from '@/lib/health/alert-routing-auth'
 import {
   listEffectiveCustomWebhookConfig,
@@ -82,7 +81,8 @@ async function requireWriteAccess(
     { allowAgentBearerToken: true }
   )
   if (permissionResponse) return permissionResponse
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   if (requiresSignInForWrite(ownerId)) {
     return jsonError(`Sign in to ${action} custom webhook targets.`, 401)
   }
@@ -90,10 +90,8 @@ async function requireWriteAccess(
 }
 
 async function handleGet(request: Request): Promise<Response> {
-  const signIn = await requireCloudSignInForRead(request)
-  if (signIn) return signIn
-
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   const effective = await listEffectiveCustomWebhookConfig(ownerId)
   return Response.json(
     {
@@ -108,7 +106,8 @@ async function handleGet(request: Request): Promise<Response> {
 async function handlePut(request: Request): Promise<Response> {
   const denied = await requireWriteAccess(request, 'edit')
   if (denied) return denied
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
 
   let body: Record<string, unknown>
   try {
@@ -190,7 +189,8 @@ async function handlePut(request: Request): Promise<Response> {
 async function handleDelete(request: Request): Promise<Response> {
   const denied = await requireWriteAccess(request, 'delete')
   if (denied) return denied
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   const id = new URL(request.url).searchParams.get('id')
   if (!isValidTargetId(id))
     return jsonError('Missing or invalid "id" query param', 400)
@@ -203,7 +203,8 @@ async function handleDelete(request: Request): Promise<Response> {
 async function handlePreview(request: Request): Promise<Response> {
   const denied = await requireWriteAccess(request, 'preview')
   if (denied) return denied
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   let body: Record<string, unknown>
   try {
     body = parseDraftBody(await request.json())

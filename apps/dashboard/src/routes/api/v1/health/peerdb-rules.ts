@@ -14,23 +14,14 @@
 import { z } from 'zod'
 import { createFileRoute } from '@tanstack/react-router'
 
-import { resolveBillingOwnerId } from '@/lib/billing/billing-owner'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
-import { requireCloudSignInForRead } from '@/lib/health/alert-routing-auth'
+import { resolveConfigOwner } from '@/lib/health/alert-routing-auth'
 import { peerDBRuleFieldsSchema } from '@/lib/peerdb/alert-rules'
 import {
   deletePeerDBRule,
   listPeerDBRules,
   savePeerDBRule,
 } from '@/lib/peerdb/alert-rules-store'
-
-async function resolveOwnerId(): Promise<string> {
-  try {
-    return await resolveBillingOwnerId()
-  } catch {
-    return ''
-  }
-}
 
 function jsonError(message: string, status: number): Response {
   return Response.json(
@@ -61,10 +52,9 @@ async function isDeclarative(ownerId: string, id: string): Promise<boolean> {
 }
 
 async function handleGet(request: Request): Promise<Response> {
-  const signIn = await requireCloudSignInForRead(request)
-  if (signIn) return signIn
-
-  const rules = await listPeerDBRules(await resolveOwnerId())
+  const ownerId = await resolveConfigOwner(request, 'billing')
+  if (ownerId instanceof Response) return ownerId
+  const rules = await listPeerDBRules(ownerId)
   return Response.json({ success: true, rules })
 }
 
@@ -86,7 +76,8 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  const ownerId = await resolveOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'billing')
+  if (ownerId instanceof Response) return ownerId
   const { id, ...fields } = parsed.data
   if (id && (await isDeclarative(ownerId, id))) {
     return jsonError('This rule is defined in alerts.yaml; edit the file', 409)
@@ -112,7 +103,8 @@ async function handleDelete(request: Request): Promise<Response> {
   const id = new URL(request.url).searchParams.get('id')
   if (!id) return jsonError('Missing "id" query parameter', 400)
 
-  const ownerId = await resolveOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'billing')
+  if (ownerId instanceof Response) return ownerId
   if (await isDeclarative(ownerId, id)) {
     return jsonError('This rule is defined in alerts.yaml; edit the file', 409)
   }
