@@ -476,15 +476,25 @@ WHERE event_time > now() - INTERVAL 1 HOUR
     type: 'memory-pressure',
     title: 'Memory Pressure',
     description:
-      'Server memory tracked by ClickHouse (MemoryTracking) as a percentage of host RAM (OSMemoryTotal). Near 100% queries fail with MEMORY_LIMIT_EXCEEDED — find the heaviest queries and cap max_memory_usage.',
+      'Server memory tracked by ClickHouse (MemoryTracking) as a percentage of the server memory limit (max_server_memory_usage). Near 100% queries fail with MEMORY_LIMIT_EXCEEDED — find the heaviest queries and cap max_memory_usage.',
+    // The denominator is the limit ClickHouse enforces, not host RAM.
+    // `system.server_settings` reports the effective value: an explicit
+    // config, or max_server_memory_usage_to_ram_ratio x RAM, where RAM is the
+    // cgroup limit in a container (a 3G cgroup on a 16G host reads 2.9G while
+    // OSMemoryTotal reads 16G). The RAM x ratio fallback covers a server that
+    // reports 0.
     sql: `SELECT round(
   (SELECT value FROM system.metrics WHERE metric = 'MemoryTracking') * 100.0
-  / nullIf((SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal'), 0),
+  / nullIf(coalesce(
+    nullIf(toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_server_memory_usage')), 0),
+    (SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal')
+      * toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_server_memory_usage_to_ram_ratio'))
+  ), 0),
   1
 ) AS memory_percent`,
     valueKey: 'memory_percent',
     defaults: { warning: 80, critical: 90 },
-    formatLabel: (v) => `${v ?? 0}% of host memory`,
+    formatLabel: (v) => `${v ?? 0}% of the server memory limit`,
     optional: true,
     tableCheck: 'system.asynchronous_metrics',
     remediationActions: [
