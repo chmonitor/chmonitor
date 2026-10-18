@@ -133,7 +133,6 @@ export function InboundEventsSetupDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-5 text-sm">
-          {/* Endpoint + auth */}
           <section className="flex flex-col gap-2">
             <h3 className="font-medium">Endpoint</h3>
             <CopyBlock code={`POST ${endpoint}`} label="Endpoint URL" />
@@ -147,7 +146,6 @@ export function InboundEventsSetupDialog({
             </p>
           </section>
 
-          {/* Formats */}
           <section className="flex flex-col gap-2">
             <h3 className="font-medium">Supported payloads</h3>
             <ul className="flex flex-col gap-1.5 text-xs text-muted-foreground">
@@ -192,7 +190,6 @@ export function InboundEventsSetupDialog({
             </ul>
           </section>
 
-          {/* Examples */}
           <section className="flex flex-col gap-2">
             <h3 className="font-medium">Examples</h3>
             <Tabs defaultValue="curl">
@@ -220,7 +217,6 @@ export function InboundEventsSetupDialog({
             </Tabs>
           </section>
 
-          {/* Storage contract */}
           <Alert>
             <AlertTitle>Where do events go?</AlertTitle>
             <AlertDescription className="text-xs">

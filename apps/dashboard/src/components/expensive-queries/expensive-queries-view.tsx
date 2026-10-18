@@ -194,7 +194,6 @@ export const ExpensiveQueriesView = function ExpensiveQueriesView() {
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-4">
-        {/* Header */}
         <PageHeader
           title={
             <div className="flex items-center gap-2">
@@ -250,7 +249,6 @@ export const ExpensiveQueriesView = function ExpensiveQueriesView() {
           ))}
         </div>
 
-        {/* Body */}
         {showSkeleton ? (
           <QueryPageSkeleton />
         ) : error && rows.length === 0 ? (

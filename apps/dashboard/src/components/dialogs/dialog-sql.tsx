@@ -192,7 +192,6 @@ export function RequestInfoContent({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Metadata Section */}
       {hasMetadata && (
         <div className="rounded-xl border border-border/60 bg-gradient-to-b from-muted/40 to-muted/20 p-4">
           <div className="flex items-center justify-between mb-4">
@@ -329,7 +328,6 @@ export function RequestInfoContent({
         </div>
       )}
 
-      {/* SQL code display */}
       {sql && (
         <>
           <div className="flex items-center justify-between">
@@ -409,7 +407,6 @@ export function RequestInfoContent({
             </div>
           </div>
 
-          {/* Info footer */}
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span>ClickHouse SQL Dialect</span>
             <span>{displaySQL.split('\n').length} lines</span>

@@ -152,7 +152,6 @@ export const KpiCard = function KpiCard({
         ) : null}
       </div>
 
-      {/* Row 2 — value + unit */}
       <div className="flex min-w-0 flex-wrap items-baseline gap-1.5">
         {isCountable(value) ? (
           <AnimatedNumber value={value} className={VALUE_CLASS} />
@@ -166,7 +165,6 @@ export const KpiCard = function KpiCard({
         )}
       </div>
 
-      {/* Row 3 — optional progress bar */}
       {clampedProgress != null && (
         <div className={progressTrackStyles}>
           <div
@@ -176,7 +174,6 @@ export const KpiCard = function KpiCard({
         </div>
       )}
 
-      {/* Row 4 — optional sub line */}
       {sub && (
         <div className="min-w-0 text-[11.5px] leading-snug text-muted-foreground max-sm:truncate sm:whitespace-normal">
           {sub}

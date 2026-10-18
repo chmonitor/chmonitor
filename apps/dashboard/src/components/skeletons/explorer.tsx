@@ -19,9 +19,7 @@ export function ExplorerSkeleton({ className }: { className?: string }) {
     >
       {/* Tree sidebar - matches ExplorerSidebar width */}
       <div className="w-64 shrink-0 space-y-1 overflow-hidden border-r p-3 md:w-72 lg:w-80">
-        {/* Search / filter input */}
         <Skeleton className="mb-3 h-9 w-full" />
-        {/* Database / table tree nodes */}
         {Array.from({ length: 10 }).map((_, i) => (
           <div
             key={`tree-node-${i}`}
@@ -41,29 +39,24 @@ export function ExplorerSkeleton({ className }: { className?: string }) {
 
       {/* Content area - matches ExplorerContent (breadcrumb + tabs + table) */}
       <div className="flex-1 space-y-4 overflow-hidden p-4">
-        {/* Breadcrumb */}
         <div className="flex items-center gap-2">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="size-3" />
           <Skeleton className="h-4 w-32" />
         </div>
 
-        {/* Tab bar */}
         <div className="flex items-center gap-2 border-b pb-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={`tab-${i}`} className="h-8 w-20" />
           ))}
         </div>
 
-        {/* Content table */}
         <div className="overflow-hidden rounded-md border">
-          {/* Table header */}
           <div className="flex items-center gap-4 border-b bg-muted/30 px-4 py-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={`content-header-${i}`} className="h-4 flex-1" />
             ))}
           </div>
-          {/* Table rows */}
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={`content-row-${i}`}

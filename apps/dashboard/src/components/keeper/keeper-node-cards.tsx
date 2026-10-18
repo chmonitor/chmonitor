@@ -189,14 +189,11 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
 
   return (
     <Card className="flex flex-col min-w-0 overflow-hidden">
-      {/* Header */}
       <CardHeader className="flex flex-row flex-wrap items-start gap-2 p-3 pb-2.5 border-b border-border/60">
         <div className="flex flex-1 min-w-0 flex-col gap-1">
-          {/* host:port */}
           <span className="font-mono text-[12.5px] font-semibold text-foreground/90 truncate leading-tight">
             {row.host}:{row.port}
           </span>
-          {/* cluster name */}
           {row.zookeeper_cluster_name && (
             <span className="text-[10.5px] text-muted-foreground truncate leading-snug">
               {row.zookeeper_cluster_name}
@@ -204,11 +201,9 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
           )}
         </div>
 
-        {/* Badges + connection dot */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <RoleBadge role={role} />
           <KeeperTypeBadge version={row.version} />
-          {/* Connection status dot */}
           <Tooltip>
             <TooltipTrigger
               render={
@@ -241,9 +236,7 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
         </div>
       </CardHeader>
 
-      {/* Metrics grid */}
       <CardContent className="p-3 pt-2.5 flex flex-col gap-1">
-        {/* Latency */}
         <div className="mb-1">
           <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/70">
             Latency
@@ -274,7 +267,6 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
           </div>
         </div>
 
-        {/* Network */}
         <div className="mb-1">
           <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/70">
             Network

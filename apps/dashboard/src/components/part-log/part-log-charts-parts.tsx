@@ -3,8 +3,6 @@ import type { Sparkles } from 'lucide-react'
 import { formatReadableQuantity, num, SIZE_BINS, TONE_COLOR } from './lib'
 import { cn } from '@/lib/utils'
 
-// ───────────────────────── shared card primitives ─────────────────────────
-
 export const cardClass =
   'flex flex-col rounded-xl border border-border bg-card p-3.5'
 export const labelClass =
@@ -92,8 +90,6 @@ export function Kpi({
   )
 }
 
-// ───────────────────────── lifecycle stacked bars (24h) ─────────────────────────
-
 export interface LifecyclePoint {
   event_time: string
   new_parts: number
@@ -176,8 +172,6 @@ export function LifecycleChart({
   )
 }
 
-// ───────────────────────── donut ─────────────────────────
-
 export interface DonutSegment {
   label: string
   value: number
@@ -250,8 +244,6 @@ export function Donut({
   )
 }
 
-// ───────────────────────── churn bars ─────────────────────────
-
 export function ChurnBars({
   rows,
 }: {
@@ -288,8 +280,6 @@ export function ChurnBars({
     </div>
   )
 }
-
-// ───────────────────────── size histogram ─────────────────────────
 
 export function SizeHistogram({
   bins,

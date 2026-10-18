@@ -20,7 +20,6 @@ export function WelcomeIllustration({ className }: { className?: string }) {
       role="img"
       aria-label="ClickHouse cluster streaming metrics into a monitoring dashboard"
     >
-      {/* Cluster nodes (left) */}
       <g className="text-muted-foreground">
         {[26, 48, 70].map((cy) => (
           <g key={cy}>
@@ -45,7 +44,6 @@ export function WelcomeIllustration({ className }: { className?: string }) {
         ))}
       </g>
 
-      {/* Streaming connector cluster → panel */}
       <g className="text-border">
         <line
           x1="40"
@@ -72,7 +70,6 @@ export function WelcomeIllustration({ className }: { className?: string }) {
         />
       </g>
 
-      {/* Monitoring panel (right) */}
       <rect
         x="62"
         y="20"
@@ -82,7 +79,6 @@ export function WelcomeIllustration({ className }: { className?: string }) {
         className="fill-card stroke-border"
         strokeWidth={1.5}
       />
-      {/* Panel header + live dot */}
       <line
         x1="62"
         y1="32"
@@ -106,7 +102,6 @@ export function WelcomeIllustration({ className }: { className?: string }) {
         className="fill-muted"
       />
 
-      {/* Metric sparkline */}
       <path
         d="M68 62 L76 54 L82 58 L90 44 L98 50 L106 40"
         fill="none"
@@ -117,7 +112,6 @@ export function WelcomeIllustration({ className }: { className?: string }) {
       />
       <circle cx="106" cy="40" r="2.2" className="fill-orange-500" />
 
-      {/* Mini bars */}
       <rect
         x="68"
         y="68"

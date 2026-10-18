@@ -19,9 +19,7 @@ export function AnyRouterIcon({ className, size = 16 }: AnyRouterIconProps) {
       aria-hidden="true"
       className={className}
     >
-      {/* Hub */}
       <rect x="6" y="6" width="4" height="4" rx="1" fill="currentColor" />
-      {/* Spokes */}
       <line
         x1="2"
         y1="2"
@@ -49,7 +47,6 @@ export function AnyRouterIcon({ className, size = 16 }: AnyRouterIconProps) {
         strokeWidth="1.25"
         strokeLinecap="round"
       />
-      {/* Endpoint dots */}
       <circle cx="2" cy="2" r="1.5" fill="currentColor" />
       <circle cx="14" cy="2" r="1.5" fill="currentColor" />
       <circle cx="8" cy="14" r="1.5" fill="currentColor" />

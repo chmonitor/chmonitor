@@ -111,7 +111,6 @@ export function FilterBar({ queryConfig }: FilterBarProps) {
 
   return (
     <>
-      {/* Search input */}
       <div className="relative flex h-8 min-w-[160px] flex-1 items-center gap-1.5 rounded-lg border border-border/50 bg-muted/20 px-2.5 sm:w-64 sm:flex-none md:w-72 shadow-none">
         <SearchIcon
           className="size-3.5 shrink-0 text-muted-foreground"
@@ -141,7 +140,6 @@ export function FilterBar({ queryConfig }: FilterBarProps) {
         )}
       </div>
 
-      {/* Quick filters: always-visible inline controls */}
       {hasQuickFilters && (
         <QuickFilters
           configs={schema.quickFilters ?? []}

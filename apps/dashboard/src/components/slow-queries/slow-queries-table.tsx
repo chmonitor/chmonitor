@@ -47,8 +47,6 @@ export interface SlowQueryRow {
   [key: string]: unknown
 }
 
-// ───────────────────────── helpers ─────────────────────────
-
 type Severity = 'critical' | 'warning' | 'normal'
 
 /** Classify a query by how long it took (seconds). */
@@ -71,8 +69,6 @@ const CACHE_BADGE: Record<string, string> = {
 function cacheBadgeClass(value: string): string {
   return CACHE_BADGE[value] ?? 'bg-muted text-muted-foreground'
 }
-
-// ───────────────────────── derived row ─────────────────────────
 
 /**
  * A `SlowQueryRow` with every metric the view sorts or renders pre-computed
@@ -130,8 +126,6 @@ function derive(row: SlowQueryRow): DerivedQuery {
   }
 }
 
-// ───────────────────────── sorting ─────────────────────────
-
 type SortKey = 'duration' | 'readRows' | 'readBytes' | 'memory'
 type SortDir = 'asc' | 'desc'
 
@@ -141,8 +135,6 @@ const SORT_ACCESSOR: Record<SortKey, (d: DerivedQuery) => number> = {
   readBytes: (d) => d.readBytes,
   memory: (d) => d.memory,
 }
-
-// ───────────────────────── cells ─────────────────────────
 
 const SEVERITY_DURATION: Record<Severity, string> = {
   critical: 'text-rose-600 dark:text-rose-400',
@@ -197,8 +189,6 @@ function MetricBar({ label, pct }: { label: string; pct: number }) {
 
 // SortableHeader is imported from @/components/query-tables/sortable-header
 // DetailField is imported from @/components/query-tables/detail-field
-
-// ───────────────────────── expanded row ─────────────────────────
 
 /**
  * Expanded row — secondary-metric grid, the full query with syntax
@@ -262,7 +252,6 @@ function ExpandedDetail({ d }: { d: DerivedQuery }) {
         />
       </div>
 
-      {/* Actions */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
@@ -299,8 +288,6 @@ function ExpandedDetail({ d }: { d: DerivedQuery }) {
   )
 }
 
-// ───────────────────────── row ─────────────────────────
-
 interface QueryRowProps {
   d: DerivedQuery
   rank: number
@@ -323,7 +310,6 @@ const QueryRow = memo(function QueryRow({
         className="group cursor-pointer border-b border-border/60 align-middle transition-colors hover:bg-muted/50"
         onClick={onToggle}
       >
-        {/* Rank + expand chevron */}
         <td className="px-2 py-2.5 sm:px-3">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <ChevronRight
@@ -336,7 +322,6 @@ const QueryRow = memo(function QueryRow({
           </div>
         </td>
 
-        {/* Query text */}
         <td className="max-w-0 px-2 py-2.5 sm:px-3">
           <div className="truncate font-mono text-sm text-muted-foreground group-hover:text-foreground">
             {d.query}
@@ -362,7 +347,6 @@ const QueryRow = memo(function QueryRow({
           </div>
         </td>
 
-        {/* Duration — the headline metric */}
         <td className="px-2 py-2.5 text-right sm:px-3">
           <span
             className={cn(
@@ -382,26 +366,22 @@ const QueryRow = memo(function QueryRow({
           <span className="truncate text-sm">{d.user || 'anon'}</span>
         </td>
 
-        {/* Cache usage */}
         <td className="hidden px-2 py-2.5 sm:px-3 xl:table-cell">
           <CacheBadge value={d.cacheUsage} />
         </td>
 
-        {/* Rows read */}
         <td className="hidden px-2 py-2.5 sm:px-3 md:table-cell">
           <div className="flex justify-end">
             <MetricBar label={d.readableReadRows} pct={d.pctReadRows} />
           </div>
         </td>
 
-        {/* Data read */}
         <td className="hidden px-2 py-2.5 sm:px-3 md:table-cell">
           <div className="flex justify-end">
             <MetricBar label={d.readableReadBytes} pct={d.pctReadBytes} />
           </div>
         </td>
 
-        {/* Memory */}
         <td className="hidden px-2 py-2.5 sm:px-3 md:table-cell">
           <div className="flex justify-end">
             <MetricBar label={d.readableMemory} pct={d.pctMemory} />
@@ -410,19 +390,15 @@ const QueryRow = memo(function QueryRow({
       </tr>
       {expanded && (
         <tr className="border-b border-border">
-          {/* xs (below md) */}
           <td colSpan={3} className="p-0 md:hidden">
             <ExpandedDetail d={d} />
           </td>
-          {/* md (md to lg) */}
           <td colSpan={6} className="hidden p-0 md:table-cell lg:hidden">
             <ExpandedDetail d={d} />
           </td>
-          {/* lg (lg to xl) */}
           <td colSpan={7} className="hidden p-0 lg:table-cell xl:hidden">
             <ExpandedDetail d={d} />
           </td>
-          {/* xl (xl+) */}
           <td colSpan={8} className="hidden p-0 xl:table-cell">
             <ExpandedDetail d={d} />
           </td>
@@ -431,8 +407,6 @@ const QueryRow = memo(function QueryRow({
     </>
   )
 })
-
-// ───────────────────────── table ─────────────────────────
 
 export interface SlowQueriesTableProps {
   rows: SlowQueryRow[]

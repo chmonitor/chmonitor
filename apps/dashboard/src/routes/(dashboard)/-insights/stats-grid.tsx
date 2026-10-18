@@ -55,12 +55,10 @@ export function StatsGrid({
       params={{ percentile }}
     >
       <div className="flex flex-col gap-4">
-        {/* Global percentile toggle */}
         <div className="flex items-center justify-end">
           <PercentileSelector value={percentile} onChange={setPercentile} />
         </div>
 
-        {/* Record Breakers */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <SectionLabel title="Record Breakers" />
           <LargestScanStat percentile={percentile} />
@@ -69,7 +67,6 @@ export function StatsGrid({
           <TotalStorageStat />
         </div>
 
-        {/* Query Insights */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <SectionLabel title="Query Insights" />
           <TotalQueriesStat percentile={percentile} />
@@ -78,7 +75,6 @@ export function StatsGrid({
           <PeakMemoryStat percentile={percentile} />
         </div>
 
-        {/* Cluster Activity */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <SectionLabel title="Cluster Activity" />
           <ActiveQueriesStat />
@@ -87,7 +83,6 @@ export function StatsGrid({
           <ActiveMergesStat />
         </div>
 
-        {/* Storage & Operations */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <SectionLabel title="Storage &amp; Operations" />
           <ActivePartsStat />
@@ -95,7 +90,6 @@ export function StatsGrid({
           <ActiveMutationsStat />
         </div>
 
-        {/* Traffic Patterns */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <SectionLabel title="Traffic Patterns" />
           <BusiestDayQueriesStat />
@@ -104,7 +98,6 @@ export function StatsGrid({
           <AvgDurationStat percentile={percentile} />
         </div>
 
-        {/* Error Rate */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <ErrorRateStat />
         </div>

@@ -153,7 +153,6 @@ export const CardToolbar = function CardToolbar({
         </DialogContent>
       </Dialog>
 
-      {/* Data Dialog */}
       <Dialog open={showData} onOpenChange={setShowData}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader className="flex-row items-center justify-between gap-4 space-y-0">

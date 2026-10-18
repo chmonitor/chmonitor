@@ -71,7 +71,6 @@ function ToolCard({ tool }: { tool: (typeof MCP_TOOLS)[number] }) {
 
       {expanded && (
         <div className="border-t p-4 space-y-4 bg-muted/20">
-          {/* Parameters */}
           <div className="space-y-2">
             <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Parameters
@@ -103,7 +102,6 @@ function ToolCard({ tool }: { tool: (typeof MCP_TOOLS)[number] }) {
             </div>
           </div>
 
-          {/* Example Response */}
           <div className="space-y-2">
             <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Example Response

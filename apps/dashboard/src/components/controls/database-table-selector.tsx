@@ -113,7 +113,6 @@ export function DatabaseTableSelector({
 
   return (
     <div className={cn('flex items-center gap-3', className)}>
-      {/* Database Selector */}
       <div className="flex items-center gap-2">
         {showLabels && (
           <label className="text-muted-foreground flex items-center gap-1.5 text-sm">
@@ -147,7 +146,6 @@ export function DatabaseTableSelector({
         )}
       </div>
 
-      {/* Table Selector */}
       <div className="flex items-center gap-2">
         {showLabels && (
           <label className="text-muted-foreground flex items-center gap-1.5 text-sm">

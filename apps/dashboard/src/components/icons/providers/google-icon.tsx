@@ -19,7 +19,6 @@ export function GoogleIcon({ className, size = 16 }: GoogleIconProps) {
       aria-hidden="true"
       className={className}
     >
-      {/* "G" arc — main round */}
       <path
         d="M13.5 8.1C13.5 7.5 13.45 7 13.37 6.5H8V9.2H11.14C10.98 10.05 10.5 10.76 9.77 11.24V13H11.74C12.84 12 13.5 10.17 13.5 8.1Z"
         fill="currentColor"

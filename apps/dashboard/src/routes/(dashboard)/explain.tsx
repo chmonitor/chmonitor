@@ -551,7 +551,6 @@ function ExplainContent() {
         </div>
       </div>
 
-      {/* Results */}
       {statements.length > 1 ? (
         <Tabs value={activeQuery} onValueChange={setActiveQuery}>
           <div className="overflow-x-auto overflow-y-hidden py-0.5">

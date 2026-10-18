@@ -4,10 +4,6 @@ import { KpiCard } from './kpi-card'
 import { REFRESH_INTERVAL, useHostId } from '@/lib/swr'
 import { useHostStatus } from '@/lib/swr/use-host-status'
 
-// ============================================================================
-// ClickHouseInfoCard Component
-// ============================================================================
-
 /**
  * ClickHouseInfoCard - "Uptime" overview KPI.
  * Headline is a compact uptime (e.g. "12d 1h"); the version sits below.

@@ -19,7 +19,6 @@ function ReplicasStatusContent() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Table Content */}
       {cluster ? (
         <>
           {/* Readonly tables warning indicator */}

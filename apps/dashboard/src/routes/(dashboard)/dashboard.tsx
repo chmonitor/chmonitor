@@ -200,7 +200,6 @@ function DashboardContent() {
   return (
     <DashboardTimeRangeProvider>
       <div className="flex flex-col gap-4">
-        {/* Toolbar */}
         <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="flex flex-wrap items-center gap-2">
             <SavedDashboardsToolbar layout={layout} onLoad={handleLoad} />
@@ -216,7 +215,6 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Empty state */}
         {visibleWidgets.length === 0 && (
           <EmptyState
             variant="no-data"
@@ -225,7 +223,6 @@ function DashboardContent() {
           />
         )}
 
-        {/* Widget grid */}
         <Grid
           widgets={visibleWidgets}
           mode={mode}

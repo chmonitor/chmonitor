@@ -77,7 +77,6 @@ export const QueryCard = memo(function QueryCard({
           </pre>
         </div>
 
-        {/* Key cost metrics */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Clock className="size-3" />

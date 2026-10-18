@@ -34,7 +34,6 @@ export const KeyboardShortcuts = () => {
   const { goToOverview, goToQueries, goToTables, triggerRevalidate } =
     useShortcutHandlers()
 
-  // Register keyboard shortcuts
   useKeyboardShortcut({
     key: 'g',
     metaKey: true,

@@ -194,7 +194,6 @@ function AboutPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="grid gap-4 sm:grid-cols-2">
-                {/* Git Commit */}
                 <div className="space-y-1">
                   <p className="text-muted-foreground text-sm font-medium">
                     Git Commit
@@ -217,7 +216,6 @@ function AboutPage() {
                   </div>
                 </div>
 
-                {/* Branch/Tag */}
                 <div className="space-y-1">
                   <p className="text-muted-foreground text-sm font-medium">
                     Branch / Tag
@@ -229,7 +227,6 @@ function AboutPage() {
                   </div>
                 </div>
 
-                {/* Build Timestamp */}
                 <div className="space-y-1 sm:col-span-2">
                   <p className="text-muted-foreground text-sm font-medium">
                     Build Time

@@ -41,7 +41,6 @@ export function RunningQueriesPageSkeleton() {
       aria-busy="true"
       aria-label="Loading running queries"
     >
-      {/* Header — mirrors PageHeader layout */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 sm:flex-1">
           <div className="flex items-center gap-2">
@@ -67,10 +66,8 @@ export function RunningQueriesPageSkeleton() {
         ))}
       </div>
 
-      {/* Running queries table */}
       <QueryPageSkeleton rows={5} />
 
-      {/* Completed queries table */}
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
           <Skeleton className="h-6 w-48" />

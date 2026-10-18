@@ -28,11 +28,9 @@ const DottedLineProgress = function DottedLineProgress({
       className={cn('relative flex-1 h-3 min-w-8', className)}
       data-testid="metric-progress"
     >
-      {/* Background dotted line */}
       <div className="absolute inset-0 flex items-center">
         <div className="w-full border-t border-dotted border-muted-foreground/20" />
       </div>
-      {/* Foreground filled dotted line */}
       <div
         className="absolute inset-0 flex items-center overflow-hidden"
         style={{ width: `${clampedPercent}%` }}
