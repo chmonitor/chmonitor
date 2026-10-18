@@ -96,6 +96,12 @@ async function runShipped(
   try {
     const response = await fetch(url, {
       method: 'POST',
+      // A fresh connection per request. ClickHouse 25.8 answers an exception
+      // with `Connection: Close`, but Bun still reuses the pooled socket, so
+      // the NEXT config fails with "socket connection was closed" and drops
+      // out of `verified` (that is how `merges` failed on 25.8 after
+      // `query-metric-log` was rejected).
+      headers: { Connection: 'close' },
       body: `${sql} FORMAT JSON`,
     })
     const text = await response.text()
