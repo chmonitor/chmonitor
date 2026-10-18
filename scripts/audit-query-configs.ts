@@ -456,10 +456,17 @@ async function main(): Promise<void> {
   const items = collectItems().filter((i) => !only || i.id.includes(only))
   console.log(`${items.length} queries x ${bins.length} binaries`)
 
+  const basePort = Number(process.env.CHM_AUDIT_PORT ?? 19100)
+  if (!Number.isInteger(basePort) || basePort < 1024 || basePort > 65000) {
+    throw new Error(
+      `CHM_AUDIT_PORT must be an integer in 1024-65000, got ${process.env.CHM_AUDIT_PORT}`
+    )
+  }
+
   const runs: VersionRun[] = []
   // One server at a time: they are heavy and must not fight over ports.
   for (const [index, bin] of bins.entries()) {
-    const run = await auditBinary(bin, 19100 + index * 10, items)
+    const run = await auditBinary(bin, basePort + index * 10, items)
     console.log(`${run.version}: done`)
     runs.push(run)
   }

@@ -3,7 +3,7 @@ id: ch-version-onboarding
 title: ClickHouse version onboarding audit
 type: workflow
 status: active
-updated: 2026-10-18
+updated: 2026-10-19
 tags:
   - clickhouse
   - versions
@@ -57,7 +57,7 @@ bun scripts/audit-query-configs.ts \
 ```
 
 For each binary it starts a throwaway `clickhouse server` (one at a time,
-ports from 19100) with every system log and an embedded Keeper enabled. It
+ports from 19100, or from `CHM_AUDIT_PORT` so parallel runs do not collide) with every system log and an embedded Keeper enabled. It
 runs `SYSTEM FLUSH LOGS` so the `*_log` tables exist, and stops the server when
 done. It does not use `clickhouse local`, because local never creates log
 tables. Each query gets the variant that `selectVersionedSql` picks for the
