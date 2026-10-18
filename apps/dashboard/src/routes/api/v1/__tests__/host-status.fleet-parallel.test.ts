@@ -19,6 +19,7 @@ mock.module('cloudflare:workers', () => ({
 let inFlight = 0
 let maxInFlight = 0
 let failingTable: string | null = null
+const queries: string[] = []
 
 function rowsFor(query: string): Record<string, unknown>[] {
   if (query.includes('hostName()'))
@@ -35,6 +36,7 @@ function rowsFor(query: string): Record<string, unknown>[] {
 mock.module('@chm/clickhouse-client', () => ({
   getClient: async () => ({
     query: async ({ query }: { query: string }) => {
+      queries.push(query)
       inFlight++
       maxInFlight = Math.max(maxInFlight, inFlight)
       await new Promise((r) => setTimeout(r, 20))
@@ -68,6 +70,19 @@ beforeEach(() => {
   inFlight = 0
   maxInFlight = 0
   failingTable = null
+  queries.length = 0
+})
+
+describe('clusterNodes (#3893)', () => {
+  test('counts hosts only from clusters this node belongs to', async () => {
+    // Live on a node in `main` + `b_dead` (one dead extra host) that also
+    // defines a foreign `a_test_other`: the unscoped count was 3, this is 2.
+    await getFleet()
+    const counts = queries.find((q) => q.includes('AS clusterNodes'))
+    expect(counts).toContain(
+      'FROM system.clusters WHERE cluster IN (SELECT cluster FROM system.clusters WHERE is_local = 1)'
+    )
+  })
 })
 
 describe('GET /api/v1/host-status?fleet=1 — concurrent Fleet blocks', () => {
