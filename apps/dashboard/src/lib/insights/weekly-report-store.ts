@@ -12,8 +12,7 @@
  * Best-effort like every other insights backend: a missing binding or any D1
  * error is caught, logged, and resolved to `false` / `null` / `[]` rather than
  * thrown — so a deployment with no D1 configured (the OSS/self-hosted default)
- * simply never persists a weekly report rather than crashing the cron. See
- * plans/52-proactive-weekly-health-report.md.
+ * simply never persists a weekly report rather than crashing the cron.
  */
 
 import { ErrorLogger } from '@chm/logger'

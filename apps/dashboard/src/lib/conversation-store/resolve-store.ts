@@ -44,9 +44,7 @@ export async function resolveStore(): Promise<ConversationStore> {
     return new BrowserStore()
   }
 
-  // 2. AgentState backend. Used when explicitly forced, or when an API key is
-  // present and no other concrete backend is forced. This sits ahead of D1 so
-  // that an explicit AgentState configuration wins even inside Cloudflare.
+  // Ahead of D1 so an explicit AgentState configuration wins even inside Cloudflare.
   const backend = process.env[CONVERSATION_STORE_BACKEND]
   const agentStateApiKey = process.env[AGENTSTATE_API_KEY]
   const otherBackendForced =
@@ -67,7 +65,6 @@ export async function resolveStore(): Promise<ConversationStore> {
     })
   }
 
-  // 3. Check for Cloudflare D1 binding (highest priority for serverless)
   try {
     const db = getPlatformBindings().getD1Database(D1_BINDING_NAME)
     if (db) {
@@ -75,7 +72,6 @@ export async function resolveStore(): Promise<ConversationStore> {
     }
   } catch {}
 
-  // 4. Check for Postgres DATABASE_URL (traditional database, Node-only path).
   // Dynamic import keeps the `postgres` package out of the Cloudflare Workers
   // bundle — workerd never reaches this branch (D1 is resolved above).
   const postgresUrl = getStatePostgresUrl()
@@ -84,7 +80,6 @@ export async function resolveStore(): Promise<ConversationStore> {
     return new PostgresStore(postgresUrl)
   }
 
-  // 5. Fallback to MemoryStore with warning
   if (process.env.NODE_ENV === 'development' || process.env.CI) {
     console.warn(
       '[ConversationStore] No database configured (D1 binding or DATABASE_URL). ' +

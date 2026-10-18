@@ -1,5 +1,5 @@
 /**
- * Event taxonomy for the outbound webhook bus (plan 44).
+ * Event taxonomy for the outbound webhook bus.
  *
  * `EMITTABLE_EVENT_TYPES` is the single source of truth for which event types
  * a subscription can filter on — both the CRUD route (validates `event_types`
@@ -11,7 +11,7 @@
  * Clerk user id from `resolveConnectionUserId()`), so only the creating
  * user's own subscriptions ever receive them.
  *
- * `alert.fired` / `alert.resolved` (#2664) are different: they come from the
+ * `alert.fired` / `alert.resolved` are different: they come from the
  * health-alert cron sweep (`lib/health/server-sweep.ts`), which runs over
  * env-configured hosts (`getClickHouseConfigs()`) — the OPERATOR's hosts, not
  * any signed-in user's. There is no per-request Clerk user id to attribute

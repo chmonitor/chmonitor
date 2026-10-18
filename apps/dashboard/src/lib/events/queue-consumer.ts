@@ -3,7 +3,7 @@
  * One shared pipeline used by BOTH the ingest route's self-host inline path
  * (no Queue binding) and the Cloudflare Queue consumer once
  * `[[queues.consumers]]` is wired in wrangler.toml (see the external-setup
- * note there and plans/36-inbound-event-bus-queues.md). Never throws — a
+ * note there). Never throws — a
  * malformed message degrades to a `failed` count rather than crashing the
  * batch/request.
  */
@@ -21,8 +21,7 @@ export interface ProcessPayloadResult {
    * Whether {@link upsertEvent} actually wrote the row to D1. `false` on
    * self-host (no CHM_CLOUD_D1 binding) or a transient D1 error — the event
    * was still normalized (and re-emit, if configured, still ran), so this is
-   * reported honestly rather than assumed true. See "Honest claims" in
-   * plans/36-inbound-event-bus-queues.md.
+   * reported honestly rather than assumed true.
    */
   persisted: boolean
 }

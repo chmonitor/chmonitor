@@ -147,10 +147,9 @@ export async function listEvents(
 
 /**
  * Hard-delete events last seen before `cutoffMs`. Returns the number of rows
- * deleted, or 0 when D1 is unavailable / the delete failed. Not currently
- * wired to a cron trigger — see plans/36-inbound-event-bus-queues.md and the
- * PR notes for the follow-up (retention today is enforced at read time by
- * {@link listEvents}'s default window; this is the storage-reclamation half).
+ * deleted, or 0 when D1 is unavailable / the delete failed. Not wired to a
+ * cron trigger: retention is enforced at read time by {@link listEvents}'s
+ * default window; this is the storage-reclamation half.
  */
 export async function pruneEventsOlderThan(cutoffMs: number): Promise<number> {
   const db = getDb()

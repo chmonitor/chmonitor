@@ -44,8 +44,7 @@ function isClerkAuth(): boolean {
 }
 
 // Unlike `connection-store` (D1 + Postgres via `resolve-store.ts`),
-// `subscription-store.ts` is D1-only (plan 44: "NO new backend beyond the
-// existing D1 store pattern") — so availability is strictly "is the D1
+// `subscription-store.ts` is D1-only, so availability is strictly "is the D1
 // binding present", with no Postgres/DATABASE_URL fallback that would enable
 // this flag while the store itself has nothing to write to.
 function hasDatabaseBackend(): boolean {
