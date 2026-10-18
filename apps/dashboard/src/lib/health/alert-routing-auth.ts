@@ -18,7 +18,9 @@
  * anonymously, matching the existing GET behavior.
  */
 
+import { isAuthenticatedRequest, jsonError } from '@/lib/auth/api-guard'
 import { isClerkAuthProvider } from '@/lib/auth/provider'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { resolveUserId } from '@/lib/conversation-store/auth'
 
 /** OSS single-tenant fallback owner id, shared with `dashboards.owner_id`. */
@@ -45,4 +47,18 @@ export async function resolveAlertRoutingOwnerId(): Promise<string> {
  */
 export function requiresSignInForWrite(ownerId: string): boolean {
   return isClerkAuthProvider() && ownerId === SINGLE_TENANT_OWNER_ID
+}
+
+/**
+ * Read-path policy for the operator alert config GETs: in cloud mode an
+ * anonymous caller gets a 401 instead of the config. Self-hosted is never
+ * gated. Returns null to proceed.
+ */
+export async function requireCloudSignInForRead(
+  request: Request
+): Promise<Response | null> {
+  if (!isCloudModeServer() || (await isAuthenticatedRequest(request))) {
+    return null
+  }
+  return jsonError('Authentication required', 401)
 }

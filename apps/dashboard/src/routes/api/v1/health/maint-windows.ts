@@ -4,8 +4,8 @@
  * POST   /api/v1/health/maint-windows        — create a window
  * DELETE /api/v1/health/maint-windows?id=... — delete a window
  *
- * Auth: GET is covered by the global /api/v1 middleware auth gate (same as
- * the sibling checks.ts/snapshot.ts/history.ts routes). POST/DELETE
+ * Auth: GET rides the global /api/v1 middleware and, in cloud mode, needs a
+ * signed-in caller (`requireCloudSignInForRead`). POST/DELETE
  * self-enforce a write gate (`authorizeFeatureRequest`, feature 'settings')
  * because that global middleware is a public passthrough under
  * provider='none' / CHM_CLERK_PUBLIC_READ — mirrors webhook.ts's write gate.
@@ -22,6 +22,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { resolveBillingOwnerId } from '@/lib/billing/billing-owner'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
+import { requireCloudSignInForRead } from '@/lib/health/alert-routing-auth'
 import {
   createWindow,
   deleteWindow,
@@ -52,7 +53,10 @@ const CreateWindowSchema = z.object({
   endsAt: z.number().int().nonnegative(),
 })
 
-async function handleGet(): Promise<Response> {
+async function handleGet(request: Request): Promise<Response> {
+  const signIn = await requireCloudSignInForRead(request)
+  if (signIn) return signIn
+
   const ownerId = await resolveOwnerId()
   const windows = await listWindows(ownerId)
   return Response.json(
@@ -150,11 +154,12 @@ async function handleDelete(request: Request): Promise<Response> {
 }
 
 export const __handleDeleteForTests = handleDelete
+export const __handleGetForTests = handleGet
 
 export const Route = createFileRoute('/api/v1/health/maint-windows')({
   server: {
     handlers: {
-      GET: async () => handleGet(),
+      GET: async ({ request }) => handleGet(request),
       POST: async ({ request }) => handlePost(request),
       DELETE: async ({ request }) => handleDelete(request),
     },

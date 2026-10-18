@@ -36,6 +36,7 @@ import {
   upsertChannelConfig,
 } from '@/lib/health/alert-channel-config-store'
 import {
+  requireCloudSignInForRead,
   requiresSignInForWrite,
   resolveAlertRoutingOwnerId,
 } from '@/lib/health/alert-routing-auth'
@@ -123,7 +124,10 @@ function deliveryStatus(): { alertingEnabled: boolean; sweepEnabled: boolean } {
   }
 }
 
-async function handleGet(): Promise<Response> {
+async function handleGet(request: Request): Promise<Response> {
+  const signIn = await requireCloudSignInForRead(request)
+  if (signIn) return signIn
+
   const ownerId = await resolveAlertRoutingOwnerId()
   const configs = await listChannelConfigs(ownerId)
   return Response.json(
@@ -252,7 +256,7 @@ async function handleDelete(request: Request): Promise<Response> {
 export const Route = createFileRoute('/api/v1/health/alert-config')({
   server: {
     handlers: {
-      GET: async () => handleGet(),
+      GET: async ({ request }) => handleGet(request),
       PUT: async ({ request }) => handlePut(request),
       DELETE: async ({ request }) => handleDelete(request),
     },

@@ -5,7 +5,7 @@
  * DELETE /api/v1/health/peerdb-rules?id=... — delete a rule
  *
  * Auth and owner resolution mirror `maint-windows.ts`: GET rides the global
- * /api/v1 gate, writes self-enforce the `settings` write permission, and a
+ * /api/v1 gate (signed-in only in cloud mode), writes self-enforce the `settings` write permission, and a
  * deployment without Clerk is the OSS single-tenant owner (`''`) — the same
  * owner the health sweep reads. Declarative (`alerts.yaml`/env) rules are
  * read-only here: edit the file instead.
@@ -16,6 +16,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { resolveBillingOwnerId } from '@/lib/billing/billing-owner'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
+import { requireCloudSignInForRead } from '@/lib/health/alert-routing-auth'
 import { peerDBRuleFieldsSchema } from '@/lib/peerdb/alert-rules'
 import {
   deletePeerDBRule,
@@ -59,7 +60,10 @@ async function isDeclarative(ownerId: string, id: string): Promise<boolean> {
   return rules.some((r) => r.id === id && r.source !== 'd1')
 }
 
-async function handleGet(): Promise<Response> {
+async function handleGet(request: Request): Promise<Response> {
+  const signIn = await requireCloudSignInForRead(request)
+  if (signIn) return signIn
+
   const rules = await listPeerDBRules(await resolveOwnerId())
   return Response.json({ success: true, rules })
 }
@@ -126,9 +130,12 @@ async function handleDelete(request: Request): Promise<Response> {
 export const Route = createFileRoute('/api/v1/health/peerdb-rules')({
   server: {
     handlers: {
-      GET: async () => handleGet(),
+      GET: async ({ request }) => handleGet(request),
       POST: async ({ request }) => handlePost(request),
       DELETE: async ({ request }) => handleDelete(request),
     },
   },
 })
+
+// Exported for unit tests only.
+export { handleGet as __handleGetForTests }
