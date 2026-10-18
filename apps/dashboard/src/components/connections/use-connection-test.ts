@@ -11,13 +11,6 @@ import {
   track,
 } from '@/lib/telemetry'
 
-/**
- * Owns the "Test connection" request lifecycle for `ConnectionForm` — pending
- * / result / error state and the call into `lib/connection-errors.ts`
- * (`extractConnectionErrorMessage`). Kept separate from `ConnectionForm` so
- * the classifier integration is testable and reviewable on its own; behavior
- * is unchanged from the inline version it replaced.
- */
 export function useConnectionTest(
   form: ConnectionFormData,
   isPostgres: boolean

@@ -1,10 +1,3 @@
-/**
- * DynamicChart Component
- *
- * Renders a chart by name from the registry with automatic lazy loading.
- * Displays an error state if the chart is not found in the registry.
- */
-
 import { getChartComponent } from '@/components/charts/chart-registry'
 import { useHostId } from '@/lib/swr'
 

@@ -71,17 +71,11 @@ export interface HealthCardShellProps {
   icon?: LucideIcon
   title: string
   status: HealthStatus
-  /** Formatted headline value, e.g. "106" or "84.9%". */
   displayValue: string
-  /** Secondary line under the value. */
   sublabel: string
-  /** Observed values, oldest first, for the trend sparkline. */
   spark?: number[]
-  /** Related internal pages, rendered as tappable chips. */
   links?: readonly RelatedLink[]
-  /** Active host, used to append `?host=` to related links. */
   hostId: number
-  /** When provided, the WHOLE card opens details (keyboard + pointer). */
   onExpand?: () => void
   /**
    * `card` (default) — the full expanded treatment for checks that need
@@ -91,7 +85,7 @@ export interface HealthCardShellProps {
   variant?: HealthCardVariant
   /**
    * Optional marker rendered next to the severity pill (card) or the title
-   * (row) — used for the "already alerting" badge (#3437). Omit it and the
+   * (row) — used for the "already alerting" badge. Omit it and the
    * layout is unchanged, so a check with no alert looks exactly as before.
    */
   badge?: ReactNode
@@ -240,7 +234,6 @@ function HealthCheckCard({
             : 'hover:border-foreground/20'
       )}
     >
-      {/* Header: plain icon glyph + title · severity pill */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {Icon && (
@@ -263,7 +256,6 @@ function HealthCheckCard({
         </div>
       </div>
 
-      {/* Body: headline value + sub-label */}
       <div className="mt-4">
         <div
           className={cn(
@@ -278,7 +270,6 @@ function HealthCheckCard({
         </div>
       </div>
 
-      {/* Trend sparkline (real observed values, fills in over time) */}
       <div className="mt-3 h-[30px]">
         {series && (
           <MiniAreaChart
@@ -289,7 +280,6 @@ function HealthCheckCard({
         )}
       </div>
 
-      {/* Footer: related-page chips + a hover hint that the card opens details */}
       <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3.5">
         {links?.slice(0, 3).map((l) => (
           <AppLink

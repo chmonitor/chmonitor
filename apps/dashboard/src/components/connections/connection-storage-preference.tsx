@@ -4,11 +4,6 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { docsSiteUrl } from '@/lib/docs-site'
 
-/**
- * "Save to server (synced)" switch + explanatory copy, shown only when the
- * parent passes `onStorageModeChange`. Extracted verbatim from
- * `ConnectionForm`; behavior is unchanged.
- */
 export function ConnectionStoragePreference({
   storageMode,
   onStorageModeChange,

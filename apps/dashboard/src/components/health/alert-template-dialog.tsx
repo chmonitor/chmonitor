@@ -28,14 +28,6 @@ const TEMPLATE_ICONS: Record<AlertTemplate['icon'], LucideIcon> = {
   moon: MoonStar,
 }
 
-/**
- * Quick-start template picker.
- *
- * Picking a template writes a severity floor, the browser-notification toggle
- * and a set of thresholds into the page's in-memory state — the operator still
- * presses Save, and can retune anything afterwards. Channel targets are never
- * overwritten (see `applyTemplate`).
- */
 export function AlertTemplateDialog({
   open,
   onOpenChange,

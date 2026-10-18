@@ -30,7 +30,6 @@ export function ThresholdField({
   value: number
   onChange: (next: number) => void
   tone: 'warning' | 'critical'
-  /** Unit or short helper text shown under the control. */
   hint?: string
   disabled?: boolean
 }) {

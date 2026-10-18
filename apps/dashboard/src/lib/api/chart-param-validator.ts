@@ -24,19 +24,11 @@ export interface ChartParamError {
 
 export interface ChartParamOk {
   type: 'ok'
-  /** Sanitized params — values coerced to primitives. */
   params: Record<string, string | number | boolean>
 }
 
 export type ChartParamResult = ChartParamOk | ChartParamError
 
-/**
- * Validate and sanitize chart query_params.
- *
- * @param raw          - Parsed JSON object from the `params` query param.
- * @param allowedParams - Optional whitelist of param keys from the chart definition.
- *                        When provided, unknown keys cause a 400.
- */
 export function validateChartParams(
   raw: Record<string, unknown>,
   allowedParams?: ReadonlySet<string> | readonly string[]
@@ -60,7 +52,6 @@ export function validateChartParams(
   const sanitized: Record<string, string | number | boolean> = {}
 
   for (const key of keys) {
-    // Key bounds
     if (key.length > MAX_KEY_LENGTH) {
       return {
         type: 'validation',
@@ -69,7 +60,6 @@ export function validateChartParams(
       }
     }
 
-    // Allowlist check
     if (allowed && !allowed.has(key)) {
       return {
         type: 'validation',
@@ -89,7 +79,6 @@ export function validateChartParams(
       }
     }
 
-    // Reject null / undefined
     if (value === null || value === undefined) {
       continue // skip nulls (treat as absent)
     }

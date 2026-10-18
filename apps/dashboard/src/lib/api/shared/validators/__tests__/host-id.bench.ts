@@ -9,7 +9,6 @@
  * Run: `bun run src/lib/api/shared/validators/__tests__/host-id.bench.ts`
  */
 
-/** Mirrors the inline route boundary guard (non-negative integer). */
 function parseAndValidateHostId(raw: string): number | null {
   const n = Number(raw)
   return Number.isInteger(n) && n >= 0 ? n : null

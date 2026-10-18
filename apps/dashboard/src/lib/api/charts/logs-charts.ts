@@ -1,8 +1,3 @@
-/**
- * Server Debugging Charts
- * Charts for tracking server logs, crashes, and error rates
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, buildTimeFilter, fillStep, nowOrToday } from './types'

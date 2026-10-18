@@ -1,9 +1,3 @@
-/**
- * Active state indicator for menu items
- *
- * Provides visual feedback for active menu items.
- */
-
 import { cn } from '@/lib/utils'
 
 interface ActiveIndicatorProps {

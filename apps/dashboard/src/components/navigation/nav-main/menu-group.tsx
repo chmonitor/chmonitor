@@ -7,17 +7,11 @@ import {
   SidebarMenu,
 } from '@/components/ui/sidebar'
 
-/**
- * Section label mapping
- */
 const SECTION_LABELS: Record<NavRenderSection, string> = {
   main: 'Main',
   others: 'Others',
 }
 
-/**
- * MenuGroup component - renders a section of menu items with a label
- */
 export const MenuGroup = function MenuGroup({
   section,
   items,
@@ -25,7 +19,6 @@ export const MenuGroup = function MenuGroup({
 }: MenuGroupProps) {
   const sectionItems = items.filter((item) => item.section === section)
 
-  // Don't render empty sections
   if (sectionItems.length === 0) {
     return null
   }

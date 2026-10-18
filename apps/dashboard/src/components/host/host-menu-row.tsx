@@ -10,14 +10,9 @@ interface HostMenuRowProps {
   hostId: number | null
   hostName: string
   isActive: boolean
-  /** Skip live status polling (browser/database hosts). */
   skipStatus?: boolean
 }
 
-/**
- * Parse a full version string into a short v{major}.{minor} label.
- * e.g. "24.3.1.1" → "v24.3", "24.12.1.1234" → "v24.12"
- */
 function formatShortVersion(version: string): string {
   const parts = version.split('.')
   if (parts.length >= 2) {
@@ -90,7 +85,6 @@ export const HostMenuRow = function HostMenuRow({
               {formatShortVersion(data.version)}
             </span>
 
-            {/* Show full version in dropdown (more space available) */}
             <span className="hidden @[240px]:inline text-muted-foreground/60">
               {data.version}
             </span>

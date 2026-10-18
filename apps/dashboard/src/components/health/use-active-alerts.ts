@@ -1,10 +1,4 @@
 /**
- * Data hook for the Active Alerts panel (plan 29).
- *
- * Combines two GET endpoints — `/api/v1/health/findings` (currently-firing
- * conditions, computed read-only) and `/api/v1/health/ack` (active ACKs) —
- * plus the ACK/un-ACK mutations, mirroring the fetch/error conventions of
- * `use-alert-history.ts`.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 

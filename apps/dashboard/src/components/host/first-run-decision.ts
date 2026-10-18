@@ -52,19 +52,13 @@ export type FirstRunAction =
   | { type: 'repoint'; hostId: number }
 
 export interface FirstRunInput {
-  /** Merged host list is still loading (env + browser + database). */
   isLoading: boolean
   /** The env-host fetch returned 401/403 (an auth failure, not a real empty). */
   isUnauthorized: boolean
-  /** Current path is exempt (/setup, /billing, /about). */
   onExemptPath: boolean
-  /** Number of VISIBLE merged hosts. */
   hostCount: number
-  /** Cloud (SaaS) mode is active for this deployment. */
   cloudMode: boolean
-  /** Visitor is signed in (always false outside Clerk builds). */
   isSignedIn: boolean
-  /** Whether the active `?host` id resolves to a currently-VISIBLE host. */
   hasVisibleResolvedHost: boolean
   /** First visible host id, if any (used to re-point a stale selection). */
   firstVisibleHostId: number | null

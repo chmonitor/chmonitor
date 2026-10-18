@@ -1,9 +1,3 @@
-/**
- * QueryPageLayout Components
- *
- * Barrel export for all query page layout components.
- */
-
 export type {
   CreateQueryPageOptions as CreatePageOptions,
   QueryPageLayoutProps as PageLayoutProps,

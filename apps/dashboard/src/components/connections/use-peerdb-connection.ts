@@ -8,15 +8,7 @@ import { isValidUrl } from './connection-form-schema'
 import { useState } from 'react'
 import { apiFetch } from '@/lib/swr/api-fetch'
 
-/**
- * Owns the optional "Advanced → PeerDB monitoring" state and request
- * lifecycle for `ConnectionForm`: the collapsible's open state, the API URL /
- * auth fields, the "Test PeerDB" call, and the derived validity + envelope
- * fields `ConnectionForm.handleSave` folds into the saved connection. `none`
- * auth means "no stored secret" (open flow-api); the secret is only kept for
- * `basic`/`bearer`. Extracted verbatim from `ConnectionForm`; behavior is
- * unchanged.
- */
+/** `none` auth means no stored secret (open flow-api); the secret is only kept for `basic`/`bearer`. */
 export function usePeerdbConnection(
   initialValues: Partial<ConnectionFormData> | undefined,
   allowPeerdb: boolean

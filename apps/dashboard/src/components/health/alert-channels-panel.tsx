@@ -29,7 +29,6 @@ interface LocalChannelMeta {
   id: LocalChannelId
   label: string
   icon: ReactNode
-  /** One-line pitch for the compact "Add a channel" tile. */
   description: string
   example?: string
 }
@@ -63,13 +62,7 @@ function severityLabel(value: 'warning' | 'critical' | undefined): string {
   return 'Inherits default'
 }
 
-/**
- * Status line for the browser channel — the stored preference AND the live
- * browser permission, because either one alone can silently stop delivery.
- *
- * Exported for its unit test: "enabled but ungranted" reading as working is the
- * exact bug this line exists to make visible.
- */
+/** Reflects both the stored preference and the live permission: either one alone can silently stop delivery. */
 export function browserStatus(
   enabled: boolean,
   permission: NotificationPermissionInfo
@@ -92,24 +85,10 @@ export interface AlertChannelsPanelProps {
   onTestBrowser: () => void
   onTestHealthchecks: () => void
   onTestWebhook: () => void
-  /** Live browser notification permission (owned by the parent so it can gate its handlers too). */
   permission: NotificationPermissionInfo
 }
 
-/**
- * Browser-local delivery channels as a responsive card grid.
- *
- * Only channels that are ALREADY configured render as cards; the rest live
- * behind an "Add channel" dialog, so a fresh install sees a short menu instead
- * of a wall of blank forms. These settings live in this browser's localStorage
- * and persist with the page's Save button — unlike the server channels, which
- * save per card.
- *
- * The browser card additionally reflects the live `Notification.permission`
- * (see `useNotificationPermission`): the toggle used to show "on" while the
- * permission was still ungranted, which read as working when nothing was being
- * delivered.
- */
+/** Settings live in this browser's localStorage and persist with the page's Save button, unlike server channels. */
 export function AlertChannelsPanel({
   alerts,
   setAlerts,
@@ -120,8 +99,6 @@ export function AlertChannelsPanel({
   onTestWebhook,
   permission,
 }: AlertChannelsPanelProps) {
-  // Ids the operator opened from the picker this session; they render as full
-  // (open) cards even before they hold a value.
   const [opened, setOpened] = useState<LocalChannelId[]>([])
   const [pickerOpen, setPickerOpen] = useState(false)
 

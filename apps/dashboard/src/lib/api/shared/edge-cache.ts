@@ -49,13 +49,6 @@ function getDefaultCache(): Cache | undefined {
   return (caches as unknown as WorkersCacheStorage).default
 }
 
-/**
- * Whether this request may read from / write to the shared edge cache.
- *
- * See the module doc comment — this is the ONE safety gate for
- * `matchEdgeCache` / `putEdgeCache`. Never call `putEdgeCache` (or serve a
- * `matchEdgeCache` hit) for a request where this returns `false`.
- */
 export function isEdgeCacheEligible(request: Request): Promise<boolean> {
   return isAnonymousPublicReadRequest(request)
 }
@@ -83,14 +76,6 @@ export function buildEdgeCacheKey(
   return new Request(url.toString())
 }
 
-/**
- * Look up `cacheKey` in the shared edge cache. Returns `undefined` on a miss
- * or when `caches.default` isn't available (e.g. tests).
- *
- * Callers MUST have already confirmed `isEdgeCacheEligible(request)` before
- * calling this — this function does not re-check it, so it must never be
- * called for an authenticated/per-user request.
- */
 export async function matchEdgeCache(
   cacheKey: Request
 ): Promise<Response | undefined> {

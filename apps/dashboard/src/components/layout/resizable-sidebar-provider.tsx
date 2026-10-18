@@ -5,10 +5,10 @@ import { SidebarProvider, useSidebar } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 
 const STORAGE_KEY = 'sidebar-width'
-const DEFAULT_WIDTH = 256 // 16rem
+const DEFAULT_WIDTH = 256
 const MIN_WIDTH = 80
 const MAX_WIDTH = 400
-const COLLAPSE_THRESHOLD = 120 // Drag below this to collapse
+const COLLAPSE_THRESHOLD = 120
 
 interface ResizableSidebarProviderProps {
   children: React.ReactNode
@@ -89,9 +89,8 @@ function ResizeHandle() {
     shouldCollapseRef.current = false
     startXRef.current = e.clientX
 
-    // If collapsed, we're expanding - start from icon width
     if (state === 'collapsed') {
-      startWidthRef.current = 48 // icon width (3rem)
+      startWidthRef.current = 48
     } else {
       const currentWidth =
         getComputedStyle(wrapper).getPropertyValue('--sidebar-width')
@@ -116,9 +115,8 @@ function ResizeHandle() {
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - startXRef.current
       const rawWidth = startWidthRef.current + delta
-      const hasDraggedEnough = Math.abs(delta) > 10 // Minimum 10px drag
+      const hasDraggedEnough = Math.abs(delta) > 10
 
-      // Check if should collapse - only if dragged enough to the left
       if (hasDraggedEnough && rawWidth < COLLAPSE_THRESHOLD) {
         shouldCollapseRef.current = true
         wrapper.style.setProperty('--sidebar-width', `${COLLAPSE_THRESHOLD}px`)
@@ -166,7 +164,6 @@ function ResizeHandle() {
     }
   }, [isResizing, setOpen, state])
 
-  // Position based on state - center on sidebar edge
   // Collapsed width from sidebar.tsx: calc(var(--sidebar-width-icon)+(--spacing(4))+2px)
   const leftPosition =
     state === 'collapsed'

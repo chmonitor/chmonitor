@@ -1,8 +1,3 @@
-/**
- * Overview Charts
- * Charts for the overview page displaying system status metrics
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'

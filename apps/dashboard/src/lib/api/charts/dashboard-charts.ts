@@ -1,8 +1,3 @@
-/**
- * Dashboard Charts
- * Charts for Chart Builder configuration and settings
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import {

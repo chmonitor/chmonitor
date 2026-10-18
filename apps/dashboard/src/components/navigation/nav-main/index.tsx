@@ -6,22 +6,6 @@ import { MenuGroup } from './menu-group'
 import { MorePagesButton } from './more-pages-button'
 import { NavFavorites } from './nav-favorites'
 
-/**
- * NavMain component - main navigation sidebar with grouped menu items
- *
- * Renders menu sections (Main, Others) with their respective items.
- * Each section is only rendered if it contains items.
- *
- * @example
- * ```tsx
- * import { NavMain } from '@/components/navigation/nav-main'
- * import { menuItemsConfig } from '@/menu'
- *
- * export function AppSidebar() {
- *   return <NavMain items={menuItemsConfig} />
- * }
- * ```
- */
 export function NavMain({ items }: NavMainProps) {
   const pathname = useLocation({ select: (l) => l.pathname })
   const sections: NavRenderSection[] = ['main', 'others']

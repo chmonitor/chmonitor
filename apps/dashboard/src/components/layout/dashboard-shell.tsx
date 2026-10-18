@@ -14,16 +14,9 @@ import { Toaster } from '@/components/ui/sonner'
 import { WhatsNewProvider } from '@/components/whats-new/whats-new-provider'
 
 /**
- * App chrome shared by the `(dashboard)` and `(peerdb)` route groups, ported
- * 1:1 from the Next app's `app/(dashboard)/layout.tsx` /
- * `app/(peerdb)/layout.tsx` bodies (which were identical). Renders the
- * resizable sidebar, the header (trigger + breadcrumb + actions), the floating
- * agent, and the toaster around the route `children`.
- *
- * The root document + providers live in `__root.tsx`; this component is only
- * the visual frame, so route groups can opt into it without re-declaring
- * providers. Callers supply their own inner wrapper (e.g. `(dashboard)` wraps
- * children in `FirstRunGate`, `(peerdb)` does not) — matching the Next layouts.
+ * App chrome shared by the `(dashboard)` and `(peerdb)` route groups. Root
+ * document + providers live in `__root.tsx`; callers supply their own inner
+ * wrapper (`(dashboard)` wraps children in `FirstRunGate`, `(peerdb)` does not).
  */
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (

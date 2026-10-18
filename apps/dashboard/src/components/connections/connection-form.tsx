@@ -42,9 +42,6 @@ export function ConnectionForm({
   const [form, setForm] = useState<ConnectionFormData>({
     name: initialValues?.name ?? '',
     host: initialValues?.host ?? '',
-    // Seed the Postgres field defaults up front when the dialog opens straight
-    // on the Postgres tab (setup page "Connect Postgres" CTA), mirroring what
-    // `handlePresetChange('postgres')` would apply on a manual tab switch.
     user:
       initialValues?.user ?? (initialPreset === 'postgres' ? 'postgres' : ''),
     password: initialValues?.password ?? '',
@@ -96,8 +93,6 @@ export function ConnectionForm({
 
   return (
     <div className="space-y-4">
-      {/* Connection type — presets only change defaults/hints below; the
-          self-hosted preset (default) leaves every field untouched. */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium">Connection type</Label>
         <Tabs
@@ -139,7 +134,6 @@ export function ConnectionForm({
         </div>
       )}
 
-      {/* Name */}
       <div className="space-y-1.5">
         <Label htmlFor="conn-name" className="text-sm font-medium">
           Name
@@ -153,7 +147,6 @@ export function ConnectionForm({
         />
       </div>
 
-      {/* Host — a full URL for ClickHouse, a bare hostname + port for Postgres. */}
       {isPostgres ? (
         <ConnectionFieldsPostgres
           form={form}
@@ -170,7 +163,6 @@ export function ConnectionForm({
         />
       )}
 
-      {/* Username */}
       <div className="space-y-1.5">
         <Label htmlFor="conn-user" className="text-sm font-medium">
           Username
@@ -184,7 +176,6 @@ export function ConnectionForm({
         />
       </div>
 
-      {/* Password */}
       <div className="space-y-1.5">
         <Label htmlFor="conn-password" className="text-sm font-medium">
           Password
@@ -215,7 +206,6 @@ export function ConnectionForm({
         </div>
       </div>
 
-      {/* Storage preference */}
       {onStorageModeChange && (
         <ConnectionStoragePreference
           storageMode={storageMode}
@@ -232,8 +222,6 @@ export function ConnectionForm({
         </p>
       )}
 
-      {/* Advanced → PeerDB monitoring (optional). Collapsed by default; shown
-          for every connection type when the caller opts in. */}
       {allowPeerdb && (
         <ConnectionPeerdbFields
           advancedOpen={peerdb.advancedOpen}
@@ -257,7 +245,6 @@ export function ConnectionForm({
         cloudPreset={preset === 'clickhouse-cloud'}
       />
 
-      {/* Actions */}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel

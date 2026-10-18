@@ -63,19 +63,16 @@ const EMPTY_THRESHOLDS: ThresholdsMap = {}
 type Filter = 'all' | 'issues' | 'healthy'
 
 interface GridItem {
-  /** Stable id: history key, react key, and alert checkId. */
   id: string
   status: HealthStatus
   /** Numeric value tracked in the sparkline history (null when unavailable). */
   sparkValue: number | null
-  /** Original definition order, used as a stable tiebreak when sorting. */
   order: number
   /** Alert payload, dispatched on escalation regardless of the active filter. */
   alert: { title: string; value: number | null; label: string }
   render: (spark: number[] | undefined, variant: HealthCardVariant) => ReactNode
 }
 
-/** Short "Ns ago" relative label for the auto-refresh indicator. */
 function formatAgo(deltaMs: number): string {
   const s = Math.max(0, Math.floor(deltaMs / 1000))
   if (s < 60) return `${s}s ago`
@@ -87,7 +84,7 @@ function formatAgo(deltaMs: number): string {
 export function HealthGrid() {
   const hostId = useHostId()
   // `null` = localStorage not read yet, which is what lets the alert-signal
-  // hook tell "no thresholds tuned" from "we have not looked yet" (#3437).
+  // hook tell "no thresholds tuned" from "we have not looked yet".
   const [overrides, setOverrides] = useState<ThresholdsMap | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [history, setHistory] = useState<HistoryMap>(() => loadHistory())
@@ -107,7 +104,6 @@ export function HealthGrid() {
     track('health_viewed')
   }, [])
 
-  // Every card's chart name, fetched together in one request.
   const chartNames = useMemo(
     () => [
       ...HEALTH_CHECKS.map((c) => c.chartName),
@@ -118,7 +114,7 @@ export function HealthGrid() {
   )
 
   // "Already alerting" state for every check, resolved once for the whole page
-  // rather than per card (#3437). `itemIds` is the same stable-id list the
+  // rather than per card. `itemIds` is the same stable-id list the
   // history keys and alert checkIds use.
   const itemIds = useMemo(
     () => [
@@ -132,7 +128,7 @@ export function HealthGrid() {
   const { signalsByCheck, availability: alertStoreAvailability } =
     useAlertSignals(itemIds, overrides)
 
-  // PeerDB is a bespoke health group (#3439): it arrives over PeerDB REST, not
+  // PeerDB is a bespoke health group: it arrives over PeerDB REST, not
   // through the ClickHouse chart registry, so it has its own hook and its own
   // `computeX`. `configured: false` means `PEERDB_API_URL` is unset — the whole
   // group is then ABSENT rather than a row of green zeros for a product this
@@ -155,8 +151,6 @@ export function HealthGrid() {
     hostId
   )
 
-  // Resolve every card's status up-front so the grid can sort, count, and
-  // filter — the cards themselves only render the result.
   const items = useMemo<GridItem[]>(() => {
     const list: GridItem[] = []
     let order = 0
@@ -251,7 +245,7 @@ export function HealthGrid() {
       ),
     })
 
-    // PeerDB group — omitted entirely when PeerDB is not configured (#3439).
+    // PeerDB group — omitted entirely when PeerDB is not configured.
     // One grid item per card, so each sorts, counts, and filters on its own:
     // a climbing slot lag promotes its own card even while the fleet is green.
     if (peerDBShown) {
@@ -303,7 +297,6 @@ export function HealthGrid() {
   const itemsRef = useRef(items)
   itemsRef.current = items
 
-  // Append a real observed value to each sparkline buffer once per refresh.
   useEffect(() => {
     if (isLoading || dataUpdatedAt === 0) return
     setHistory((prev) => {
@@ -395,7 +388,6 @@ export function HealthGrid() {
       )
   }, [items, filter])
 
-  // Live "checked Ns ago" label, refreshed on a light cadence.
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 5000)

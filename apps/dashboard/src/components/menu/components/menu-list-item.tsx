@@ -1,9 +1,3 @@
-/**
- * Dropdown menu list item component
- *
- * Displays individual items in the dropdown menu.
- */
-
 import type { MenuItem } from '../types'
 
 import { useMenuActiveState } from '../hooks/use-menu-active-state'

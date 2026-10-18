@@ -1,5 +1,5 @@
 /**
- * One subscription for "which health metrics already alert?" (#3437).
+ * One subscription for "which health metrics already alert?".
  *
  * The three sources behind `resolveMetricAlertSignals` are collected here once
  * for the whole `/health` page rather than per card: every card would otherwise
@@ -8,11 +8,11 @@
  *
  * ## Availability: declared capability, with the probe as a veto
  *
- * `availability` comes from `useHealthStoreAvailability()` (#3495): the
+ * `availability` comes from `useHealthStoreAvailability()`: the
  * `capabilities.health` answer in `GET /api/v1/config`, which the server
  * resolves with the same `resolveHealthBackend()` call the stores use — not
  * `metadataDb.available`, which also counts a ClickHouse state backend the
- * alert stores cannot use (#3493). The custom-rule list is still passed as the
+ * alert stores cannot use. The custom-rule list is still passed as the
  * probe: a `501 NOT_CONFIGURED` from it forces `unavailable`, so the two can
  * never disagree in the direction that would enable a write. Until the config
  * answers, the state is `unknown`, which renders disabled.

@@ -21,14 +21,6 @@ interface TableAvailabilityResponse {
   error?: { message: string }
 }
 
-/**
- * Fetches the full map of table availability for a host in a single request.
- *
- * All callers share the same TanStack Query key (`['/api/v1/table-availability', hostId]`), so
- * the query dedupes all invocations into ONE network request per host.
- *
- * @param hostId - The current host ID
- */
 export function useTableAvailability(hostId: number): {
   available: Record<string, boolean>
   isLoading: boolean
@@ -44,10 +36,10 @@ export function useTableAvailability(hostId: number): {
       return res.json()
     },
     refetchInterval: visibilityAwareInterval(REFRESH_INTERVAL.SLOW_2M),
-    staleTime: 60_000, // 1 minute deduping
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    retry: false, // Don't retry on error (non-critical)
+    retry: false,
   })
 
   return {
@@ -81,15 +73,6 @@ export function tableCheckAvailable(
   return tables.every((table) => available[table] !== false)
 }
 
-/**
- * Selects a single table's availability status by key from the batched map.
- *
- * Backed by {@link useTableAvailability}, so every component reuses the one shared
- * request instead of fetching independently.
- *
- * @param tableCheck - The table name or array of table names to check
- * @param hostId - The current host ID
- */
 export function useIsTableAvailable(
   tableCheck: string | string[] | undefined,
   hostId: number

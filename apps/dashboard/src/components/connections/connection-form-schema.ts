@@ -15,10 +15,8 @@ export type ConnectionFormData = Pick<
   | 'peerdbAuthSecret'
 >
 
-/** UI value for the PeerDB auth selector; `none` maps to no stored secret. */
 export type PeerdbAuthUi = 'none' | 'basic' | 'bearer'
 
-/** libpq sslmodes surfaced in the Postgres preset's SSL dropdown. */
 export const POSTGRES_SSLMODES = ['require', 'disable', 'verify-full'] as const
 
 export interface TestStatus {

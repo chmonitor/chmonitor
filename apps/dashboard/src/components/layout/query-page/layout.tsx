@@ -1,25 +1,3 @@
-/**
- * QueryPageLayout Component
- *
- * Generic page layout for query-based data pages.
- *
- * Provides:
- * - Optional header/footer content slots
- * - Collapsible related charts grid with localStorage persistence
- * - Data table integration
- * - Responsive chart grid (1→2→3→4 columns based on count)
- *
- * Usage:
- * ```tsx
- * import { QueryPageLayout } from '@/components/layout/query-page'
- * import { myQueryConfig } from '@/lib/query-config'
- *
- * export default function MyPage() {
- *   return <QueryPageLayout queryConfig={myQueryConfig} title="My Data" />
- * }
- * ```
- */
-
 import type { QueryConfig } from '@/types/query-config'
 
 import { ChartsToggle } from './charts-toggle'
@@ -34,33 +12,17 @@ import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { resolveFeatureState } from '@/lib/feature-permissions/shared'
 
 export interface QueryPageLayoutProps {
-  /** Query config for the page table */
   queryConfig: QueryConfig
-  /** Title for the table (defaults to queryConfig.name) */
   title?: string
-  /** Description for the table (defaults to queryConfig.description) */
   description?: string
-  /** Additional content to render after table */
   footerContent?: ReactNode
-  /** Custom grid class for charts */
   chartsGridClass?: string
-  /** Whether to hide the table */
   hideTable?: boolean
-  /** Custom renderer used in place of the default data table (e.g. a card list) */
   tableSlot?: ReactNode
-  /** Additional search params to pass to table */
   searchParams?: Record<string, string | number | boolean>
-  /** Enable row selection with checkboxes */
   enableRowSelection?: boolean
-  /** Default page size for the table */
   defaultPageSize?: number
-  /** Maximum height for the table card */
   maxTableHeight?: string
-  /**
-   * When set, clicking a table row (outside interactive elements) calls this
-   * with the row's data instead of the default behavior — e.g. to open a
-   * detail Sheet. Desktop table rows only; ignored when `tableSlot` is used.
-   */
   onRowClick?: (row: Record<string, unknown>) => void
 }
 
@@ -99,7 +61,6 @@ export const QueryPageLayout = function QueryPageLayout({
 
   return (
     <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 sm:gap-4">
-      {/* Charts Section with Collapse Toggle */}
       {hasCharts && (
         <div className="flex flex-col gap-2">
           <ChartsToggle isCollapsed={isCollapsed} onToggle={toggleCollapsed} />
@@ -117,7 +78,6 @@ export const QueryPageLayout = function QueryPageLayout({
         </div>
       )}
 
-      {/* Data Table — the schema-driven filter bar renders inline in its header */}
       {!hideTable && (
         <Suspense fallback={<TableSkeleton />}>
           <FadeIn
@@ -141,15 +101,11 @@ export const QueryPageLayout = function QueryPageLayout({
         </Suspense>
       )}
 
-      {/* Optional Footer Content */}
       {footerContent}
     </div>
   )
 }
 
-/**
- * Options for creating a standardized page from a QueryConfig
- */
 export interface CreateQueryPageOptions {
   queryConfig: QueryConfig
   title?: string
@@ -164,20 +120,6 @@ export interface CreateQueryPageOptions {
   maxTableHeight?: string
 }
 
-/**
- * HOC for creating a page from a QueryConfig.
- *
- * Usage:
- * ```tsx
- * import { createQueryPage } from '@/components/layout/query-page'
- * import { myQueryConfig } from '@/lib/query-config'
- *
- * export default createQueryPage({
- *   queryConfig: myQueryConfig,
- *   title: 'My Data',
- * })
- * ```
- */
 export function createQueryPage(options: CreateQueryPageOptions) {
   return function Page() {
     return <QueryPageLayout {...options} />

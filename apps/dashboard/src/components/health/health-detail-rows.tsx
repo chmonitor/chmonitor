@@ -6,14 +6,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useChartData } from '@/lib/query/use-chart-data'
 
 interface HealthDetailRowsProps {
-  /** Registry chart name whose query returns the affected rows. */
   chartName: string
   hostId: number
-  /** Section heading, e.g. "Affected rows" or "Likely cause: …". */
   title: string
-  /** Optional caption clarifying what the rows represent. */
   description?: string
-  /** Message shown when the query returns no rows. */
   emptyMessage?: string
 }
 

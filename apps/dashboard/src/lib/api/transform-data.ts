@@ -6,10 +6,6 @@
  * for chart rendering and other use cases.
  */
 
-/**
- * Check if a string value represents a numeric value
- * Handles integers, floats, negative numbers, and scientific notation
- */
 function isNumericString(value: string): boolean {
   if (value === '' || value === null || value === undefined) return false
   // Match integers, floats, negative numbers, and scientific notation
@@ -17,10 +13,6 @@ function isNumericString(value: string): boolean {
   return /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(value)
 }
 
-/**
- * Safely convert a numeric string to a number
- * Returns the original string if conversion would lose precision
- */
 function safeParseNumber(value: string): number | string {
   const num = Number(value)
   // Check for precision loss with large integers
@@ -31,9 +23,6 @@ function safeParseNumber(value: string): number | string {
   return num
 }
 
-/**
- * Transform a single value, converting numeric strings to numbers
- */
 function transformValue(value: unknown): unknown {
   if (value === null || value === undefined) {
     return value
@@ -54,9 +43,6 @@ function transformValue(value: unknown): unknown {
   return value
 }
 
-/**
- * Transform a record, converting numeric string values to numbers
- */
 function transformRecord(
   record: Record<string, unknown>
 ): Record<string, unknown> {
@@ -69,31 +55,7 @@ function transformRecord(
   return result
 }
 
-/**
- * Transform ClickHouse JSON data to convert numeric strings to numbers
- *
- * This is necessary because ClickHouse returns numbers as strings in JSON
- * format to preserve precision for large integers (UInt64/Int64).
- *
- * @param data - Array of records from ClickHouse
- * @returns Transformed array with numeric strings converted to numbers
- *
- * @example
- * ```typescript
- * // Input from ClickHouse
- * const data = [
- *   { event_time: "2025-01-01", query_count: "12345" },
- *   { event_time: "2025-01-02", query_count: "67890" }
- * ]
- *
- * // Output after transformation
- * const transformed = transformClickHouseData(data)
- * // [
- * //   { event_time: "2025-01-01", query_count: 12345 },
- * //   { event_time: "2025-01-02", query_count: 67890 }
- * // ]
- * ```
- */
+/** ClickHouse returns UInt64/Int64 as strings in JSON to preserve precision; convert them back. */
 export function transformClickHouseData<T extends Record<string, unknown>>(
   data: T[]
 ): T[] {

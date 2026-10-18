@@ -1,6 +1,6 @@
 /**
  * Read-only marker for an alert definition that comes from a declarative
- * source (#3497): `file` = the mounted `CHM_HEALTH_CONFIG_DIRECTORY`
+ * source: `file` = the mounted `CHM_HEALTH_CONFIG_DIRECTORY`
  * (ConfigMap), `env` = a `HEALTH_*` env var. Such rows cannot be deleted from
  * the UI — the operator removes them from their source — so rows render this
  * badge in place of the Delete control.

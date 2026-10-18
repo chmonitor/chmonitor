@@ -1,10 +1,3 @@
-/**
- * Error Response Builder
- *
- * Builds standardized HTTP error responses with proper logging,
- * status codes, and JSON formatting.
- */
-
 import type { ApiResponse } from '@/lib/api/types'
 import type { ErrorDetails, RouteContext, StatusCodeMap } from './types'
 
@@ -12,9 +5,6 @@ import { ErrorLogger, error } from '@chm/logger'
 import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { ApiErrorType } from '@/lib/api/types'
 
-/**
- * Maps API error types to HTTP status codes
- */
 const STATUS_CODE_MAP: StatusCodeMap = {
   [ApiErrorType.ValidationError]: 400,
   [ApiErrorType.PermissionError]: 403,
@@ -26,43 +16,15 @@ const STATUS_CODE_MAP: StatusCodeMap = {
   [ApiErrorType.TimeoutError]: 504,
 } as const
 
-/**
- * Gets the HTTP status code for a given error type
- *
- * @param errorType - The API error type
- * @returns Appropriate HTTP status code (defaults to 500)
- */
 export function getStatusCodeForErrorType(errorType: ApiErrorType): number {
   return STATUS_CODE_MAP[errorType] || 500
 }
 
-/**
- * Creates a standardized error response with logging
- *
- * @param errorDetails - Error information including type, message, and details
- * @param status - HTTP status code
- * @param context - Route context for logging
- * @returns JSON Response with error information
- *
- * @example
- * ```ts
- * const response = createErrorResponse(
- *   {
- *     type: ApiErrorType.ValidationError,
- *     message: 'Missing required parameter',
- *     details: { parameter: 'hostId' }
- *   },
- *   400,
- *   { route: '/api/v1/data', method: 'GET' }
- * )
- * ```
- */
 export function createErrorResponse(
   errorDetails: ErrorDetails,
   status: number,
   context?: RouteContext
 ): Response {
-  // Log the error with context using structured logger
   const parsedHostId = parseHostIdParam(context?.hostId)
   ErrorLogger.logError(new Error(errorDetails.message), {
     component: `API:${context?.route || 'unknown'}`,
@@ -71,7 +33,6 @@ export function createErrorResponse(
     errorType: errorDetails.type,
   })
 
-  // Also log to console for immediate visibility during development
   error(
     `[API ${context?.method || ''} ${context?.route || ''}] ${errorDetails.message}`,
     new Error(errorDetails.message),
@@ -101,21 +62,6 @@ export function createErrorResponse(
   })
 }
 
-/**
- * Creates a validation error response (400 status)
- *
- * @param message - Validation error message
- * @param context - Route context for logging
- * @returns 400 Bad Request response
- *
- * @example
- * ```ts
- * return createValidationError(
- *   'Missing required parameter: hostId',
- *   { route: '/api/v1/data', method: 'GET' }
- * )
- * ```
- */
 export function createValidationError(
   message: string,
   context?: RouteContext
@@ -131,25 +77,8 @@ export function createValidationError(
 }
 
 /**
- * Creates a sanitized 500 response for an internal/backend error.
- *
- * Unlike `createErrorResponse`, this NEVER echoes the raw `err.message` in the
- * client-facing body — D1/ClickHouse/driver internals must not leak to
- * clients (see issue #2501). The original error is still logged in full
- * server-side (via `ErrorLogger` + console `error`) with an optional
- * `requestId` so it can be correlated with client-side reports.
- *
- * @param err - The caught error (any type)
- * @param context - Route context for logging
- * @param requestId - Optional request id to surface to the client for correlation
- * @returns 500 Internal Server Error response with a generic message
- *
- * @example
- * ```ts
- * } catch (err) {
- *   return createInternalErrorResponse(err, ROUTE_CONTEXT, requestId)
- * }
- * ```
+ * Sanitized 500 for internal errors: NEVER echoes the raw `err.message` (D1/ClickHouse/driver
+ * internals must not leak). The original error is logged in full server-side with `requestId`.
  */
 export function createInternalErrorResponse(
   err: unknown,
@@ -203,21 +132,6 @@ export function createInternalErrorResponse(
   })
 }
 
-/**
- * Creates a not found error response (404 status)
- *
- * @param message - Not found error message
- * @param context - Route context for logging
- * @returns 404 Not Found response
- *
- * @example
- * ```ts
- * return createNotFoundError(
- *   'Chart not found: unknown-chart',
- *   { route: '/api/v1/charts/[name]', method: 'GET' }
- * )
- * ```
- */
 export function createNotFoundError(
   message: string,
   context?: RouteContext

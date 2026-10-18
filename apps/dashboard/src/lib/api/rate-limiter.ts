@@ -17,9 +17,7 @@
 
 export interface RateLimitResult {
   allowed: boolean
-  /** Seconds until the bucket refills enough for one more token. */
   retryAfterSec: number
-  /** Remaining tokens in the bucket (informational). */
   remaining: number
 }
 
@@ -28,7 +26,6 @@ interface Bucket {
   lastRefillMs: number
 }
 
-/** Shared in-memory store. Lives for the lifetime of the isolate. */
 const buckets = new Map<string, Bucket>()
 
 /**
@@ -37,9 +34,7 @@ const buckets = new Map<string, Bucket>()
  * grow `buckets` without bound for the isolate's lifetime.
  */
 const MAX_BUCKETS = 5_000
-/** Sweep every N calls rather than on every call — cheap amortized cost. */
 const SWEEP_INTERVAL = 500
-/** Buckets idle longer than this (10x the refill window) are stale. */
 const STALE_MS = 600_000
 let callsSinceSweep = 0
 
@@ -73,12 +68,6 @@ function readIntEnv(key: string, defaultValue: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultValue
 }
 
-/**
- * Check (and consume) one token from a token-bucket keyed by `bucketKey`.
- *
- * @param bucketKey  - Unique identifier (e.g. `agent:user:clerk_abc123`)
- * @param limitPerMin - Maximum requests allowed per 60-second window
- */
 export function checkRateLimit(
   bucketKey: string,
   limitPerMin: number
@@ -102,7 +91,6 @@ export function checkRateLimit(
   }
   buckets.set(bucketKey, bucket)
 
-  // Refill tokens proportional to elapsed time
   const elapsedMs = nowMs - bucket.lastRefillMs
   if (elapsedMs > 0) {
     const refill = (elapsedMs / windowMs) * limitPerMin
@@ -121,7 +109,6 @@ export function checkRateLimit(
     }
   }
 
-  // Compute how long until bucket has 1 token
   const msNeeded = ((1 - bucket.tokens) / limitPerMin) * windowMs
   const retryAfterSec = Math.ceil(msNeeded / 1000)
 
@@ -172,29 +159,12 @@ export function getRateLimitBinding(
   return undefined
 }
 
-/** Binding names declared in wrangler.toml (`[[unsafe.bindings]]`). */
 export const RATE_LIMIT_BINDING_API = 'CHM_RATE_LIMIT_API'
 export const RATE_LIMIT_BINDING_AGENT = 'CHM_RATE_LIMIT_AGENT'
 export const RATE_LIMIT_BINDING_MCP = 'CHM_RATE_LIMIT_MCP'
 export const RATE_LIMIT_BINDING_BROWSER_CONN = 'CHM_RATE_LIMIT_BROWSER_CONN'
 
-/**
- * Fleet-wide rate limit check with graceful fallback.
- *
- * When a Cloudflare rate-limit binding named `bindingName` is present (Cloud /
- * Workers), the durable edge counter is authoritative — enforced across ALL
- * isolates (fixing the per-isolate blind spot of the in-memory Map). When the
- * binding is absent (self-hosted single-process Node/Docker/K8s) or errors,
- * this falls back to the in-memory `checkRateLimit` token bucket, so behaviour
- * is byte-identical to before on OSS deployments (fail-open to current).
- *
- * The `{ allowed, retryAfterSec, remaining }` contract is preserved; callers
- * only swap the sync call for an awaited one.
- *
- * @param bucketKey    - Unique identifier (e.g. `charts:ip:1.2.3.4`)
- * @param limitPerMin  - Fallback per-60s limit for the in-memory path
- * @param bindingName  - Worker binding to use when present (e.g. `CHM_RATE_LIMIT_API`)
- */
+// Falls back to the in-memory limiter when the binding is absent (self-hosted) or errors.
 export async function checkRateLimitDurable(
   bucketKey: string,
   limitPerMin: number,
@@ -214,9 +184,6 @@ export async function checkRateLimitDurable(
   return checkRateLimit(bucketKey, limitPerMin)
 }
 
-/**
- * Build the 429 response with Retry-After header.
- */
 export function rateLimitResponse(retryAfterSec: number): Response {
   return new Response(
     JSON.stringify({
@@ -313,19 +280,6 @@ function isCloudflareWorkersRuntime(): boolean {
   )
 }
 
-/**
- * Extract a stable client identity key from a request.
- *
- * `CF-Connecting-IP` (set by the Cloudflare Workers platform) is always
- * trusted. `X-Real-IP` / `X-Forwarded-For` are only consulted when
- * `trustProxyHeaders()` is true — otherwise a client can rotate them per request
- * to bypass IP-keyed limiters and (for Cloud guests) reset the daily quota
- * identity. See `trustProxyHeaders` for the default policy.
- *
- * @param request  The incoming request.
- * @param runtimeEnv Optional env override (the Cloudflare `env` binding) for
- * runtime detection / `CHM_TRUST_PROXY_HEADERS`. Pass only in tests.
- */
 export function clientIpKey(
   request: Request,
   runtimeEnv?: Record<string, string | undefined>
@@ -398,18 +352,13 @@ export function getDeviceCodeRateLimitPerMin(): number {
 
 export const RATE_LIMIT_BINDING_DEVICE_CODE = 'CHM_RATE_LIMIT_DEVICE_CODE'
 
-/**
- * Flush all buckets (for testing only).
- */
 export function _resetBucketsForTest(): void {
   buckets.clear()
   callsSinceSweep = 0
 }
 
-/** Current number of distinct bucket keys held in memory (for testing only). */
 export function _bucketCountForTest(): number {
   return buckets.size
 }
 
-/** The hard cap on distinct bucket keys (for testing only). */
 export const _MAX_BUCKETS_FOR_TEST = MAX_BUCKETS

@@ -16,28 +16,18 @@ import { ChmonitorLogo } from '@/components/icons/chmonitor-logo'
 import { docsSiteUrl } from '@/lib/docs-site'
 import { cn } from '@/lib/utils'
 
-/** Whether the panel should render its Postgres variant. */
 function isPostgresEngine(engine: SourceEngine): boolean {
   return engine === 'postgres'
 }
 
-/**
- * Per-engine styling + copy for the help panel. Kept as full class strings (no
- * dynamic interpolation) so Tailwind's scanner keeps them, and driven by design
- * tokens / Tailwind palette utilities — never hardcoded hex. `transition-colors`
- * on the tinted elements animates the swap when the user switches the tab.
- */
+/** Full class strings (no dynamic interpolation) so Tailwind's scanner keeps them. */
 const ENGINE_UI: Record<
   'clickhouse' | 'postgres',
   {
     label: string
     Icon: ComponentType<{ className?: string; strokeWidth?: number }>
-    /** Flow-stream dot fill (engine accent). */
     dotFill: string
-    /** Emphasized (chmonitor) node tile — tint + ring accent. Full class
-     *  strings so Tailwind's scanner keeps them; no dynamic interpolation. */
     nodeAccent: string
-    /** Icon tint for the emphasized node. */
     accentText: string
     flowNote: string
   }
@@ -64,22 +54,11 @@ const ENGINE_UI: Record<
   },
 }
 
-/**
- * Guidance sidebar for the Add-host dialog. Explains what chmonitor needs to
- * connect, how credentials are protected, and links to the same docs the form
- * references — so the operator has the requirements in view while filling in
- * the form. Engine-aware: the flow diagram, requirements list and accent tint
- * switch between ClickHouse and Postgres.
- *
- * Purely presentational (no state / no behaviour); the flow diagram and lists
- * are built from design-token divs + `lucide-react` icons.
- */
 export function ConnectionHelpPanel({
   className,
   engine = 'clickhouse',
 }: {
   className?: string
-  /** Active source engine — defaults to ClickHouse (fail-closed). */
   engine?: SourceEngine
 }) {
   const postgres = isPostgresEngine(engine)
@@ -238,7 +217,6 @@ function FirewallGuideLink() {
   )
 }
 
-/** A titled block: small icon + label heading, then arbitrary content. */
 function Section({
   icon,
   title,
@@ -274,14 +252,6 @@ function RequirementItem({
   )
 }
 
-/**
- * A compact "your browser → chmonitor → source" flow, so operators can see at a
- * glance where the connection sits. Built from token-driven surfaces; the
- * connectors are inline SVGs whose dots stream one-way (browser → source) to
- * read as directional data flow, flipping gracefully in dark mode. The middle
- * (chmonitor) node is emphasized and the endpoint node + accent follow the
- * active engine.
- */
 function ConnectionFlowDiagram({
   ui,
 }: {
@@ -336,7 +306,6 @@ function FlowNode({
   label: string
   icon: React.ReactNode
   emphasized?: boolean
-  /** Accent classes for the emphasized (chmonitor) node — engine-tinted. */
   accent?: string
 }) {
   return (
@@ -360,13 +329,7 @@ function FlowNode({
   )
 }
 
-/**
- * A dashed connector with dots streaming one-way (left → right) via the CSS
- * `flow-stream` keyframe under `motion-safe:` — so the motion is off under
- * `prefers-reduced-motion` (SMIL would ignore that preference). Two dots are
- * staggered for a continuous stream; the fill is engine-tinted and animates on
- * engine switch via `transition-colors`. Fixed width so the dot stays circular.
- */
+/** Uses `motion-safe:` CSS keyframes rather than SMIL, which would ignore `prefers-reduced-motion`. */
 function FlowConnector({ dotFill }: { dotFill: string }) {
   return (
     <svg

@@ -18,15 +18,6 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
-/**
- * Shared presentation for one alert delivery channel on the alert-settings
- * grid: a compact summary row (icon, name, status badge, optional enable
- * switch, chevron) that expands into the channel's configuration form.
- *
- * Deliberately dumb — it owns no channel state. The browser-local channels
- * (localStorage, saved by the page footer) and the server channels (per-card
- * save to D1) both render through it while keeping their own save semantics.
- */
 export function ChannelCard({
   icon,
   title,
@@ -40,11 +31,8 @@ export function ChannelCard({
 }: {
   icon: ReactNode
   title: string
-  /** Extra badges rendered next to the status pill (e.g. "env", "secret set"). */
   badges?: ReactNode
-  /** Short state line, e.g. "Enabled · Critical only". */
   status: string
-  /** Omit to render a card with no enable switch. */
   enabled?: boolean
   onEnabledChange?: (checked: boolean) => void
   switchDisabled?: boolean
@@ -91,12 +79,6 @@ export function ChannelCard({
   )
 }
 
-/**
- * Compact offer tile for a channel that is not configured yet. Clicking it
- * opens the channel's full card (the caller moves the id into its "opened"
- * set), so an unconfigured deployment shows a short menu instead of a wall of
- * blank forms.
- */
 export function AddChannelTile({
   icon,
   title,
@@ -107,7 +89,6 @@ export function AddChannelTile({
   icon: ReactNode
   title: string
   description: string
-  /** Example target value, e.g. a sample Slack webhook URL. */
   example?: string
   onClick: () => void
 }) {
@@ -140,14 +121,6 @@ export function AddChannelTile({
   )
 }
 
-/**
- * Dialog listing every channel that is not configured yet.
- *
- * The add-tiles used to sit inline under the configured grid, which put a
- * permanent menu of things-you-are-not-using on a settings page whose job is to
- * show what IS set up. Behind a dialog the page stays short, and the picker gets
- * room to describe each channel properly.
- */
 export function ChannelPickerDialog({
   open,
   onOpenChange,
@@ -196,7 +169,6 @@ export function ChannelPickerDialog({
   )
 }
 
-/** Section header shared by the channel groups (matches the paired-section idiom). */
 export function ChannelSectionHeader({
   icon,
   title,

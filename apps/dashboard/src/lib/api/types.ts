@@ -1,10 +1,4 @@
-/**
- * API types for the ClickHouse monitoring API layer (ported from the Next app,
- * apps/dashboard/lib/api/types.ts — pure types, framework-agnostic).
- *
- * Internal tool: API responses include sensitive info (raw SQL, host/version).
- * Do not expose publicly without auth/authorization.
- */
+/** Internal tool: responses include sensitive info (raw SQL, host/version); do not expose publicly without auth. */
 
 export enum ApiErrorType {
   TableNotFound = 'table_not_found',

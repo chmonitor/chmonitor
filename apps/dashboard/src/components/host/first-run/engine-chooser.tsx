@@ -6,11 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-/** Options for opening the Add-host dialog from a first-run CTA. */
 export type OpenAddHostOptions = {
-  /** Prefill the read-only sample ClickHouse preset. */
   preset?: 'sample'
-  /** Connection-type tab to open on (e.g. `'postgres'`). */
   engine?: ConnectionPreset
 }
 

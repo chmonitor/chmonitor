@@ -5,10 +5,6 @@ import type { TestStatus } from './connection-form-schema'
 import { ConnectionErrorPanel } from './connection-error-panel'
 import { Button } from '@/components/ui/button'
 
-/**
- * "Test Connection" button + success message + the classified error panel.
- * Extracted verbatim from `ConnectionForm`; behavior is unchanged.
- */
 export function ConnectionTestSection({
   testStatus,
   onTest,
@@ -44,8 +40,6 @@ export function ConnectionTestSection({
         )}
       </div>
 
-      {/* Rich, actionable error panel — classifies the raw ClickHouse / network
-          error into a cause + fix + docs link for the specific failure kind. */}
       {testStatus.state === 'error' && (
         <ConnectionErrorPanel
           message={testStatus.message}

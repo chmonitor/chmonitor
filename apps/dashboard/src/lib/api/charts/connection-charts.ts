@@ -1,8 +1,3 @@
-/**
- * Connection Charts
- * Charts for tracking HTTP and inter-server connections
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, buildTimeFilter } from './types'

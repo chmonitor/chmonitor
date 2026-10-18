@@ -52,7 +52,6 @@ interface QueryRowProps {
   onDismiss?: () => void
 }
 
-/** One running query rendered as a table row (collapsed) + detail row. */
 export const QueryRow = memo(function QueryRow({
   d,
   expanded,
@@ -89,7 +88,6 @@ export const QueryRow = memo(function QueryRow({
         )}
         onClick={onToggle}
       >
-        {/* Type + expand chevron */}
         <td className="px-2 py-2.5 sm:px-3">
           <div className="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
             <ChevronRight
@@ -103,7 +101,6 @@ export const QueryRow = memo(function QueryRow({
           </div>
         </td>
 
-        {/* Query text + meta line (carries hidden-column values on small screens) */}
         <td className="min-w-0 px-2 py-2.5">
           <div className="flex min-w-0 items-start gap-2">
             <span
@@ -181,26 +178,22 @@ export const QueryRow = memo(function QueryRow({
           </div>
         </td>
 
-        {/* Progress — always visible */}
         <td className="px-2 py-2.5 sm:px-3">
           <ProgressCell d={d} done={done} />
         </td>
 
-        {/* Memory — md+ */}
         {showMemory && (
           <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[12px] tabular-nums md:table-cell">
             {d.readableMemory}
           </td>
         )}
 
-        {/* Data read — xl+ */}
         {showData && (
           <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[12px] tabular-nums xl:table-cell">
             {formatReadableSize(d.readBytes)}
           </td>
         )}
 
-        {/* CPU — lg+ */}
         {showCpu && (
           <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[12px] tabular-nums lg:table-cell">
             {d.cpuPct > 0 ? (
@@ -211,14 +204,12 @@ export const QueryRow = memo(function QueryRow({
           </td>
         )}
 
-        {/* Threads — 2xl+ */}
         {showThreads && (
           <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[12px] tabular-nums text-muted-foreground 2xl:table-cell">
             {d.threads || 0}
           </td>
         )}
 
-        {/* Duration — sm+ (lives in the meta line on xs) */}
         {showDuration && (
           <td className="hidden whitespace-nowrap px-2 py-2.5 text-right text-[12px] tabular-nums sm:table-cell sm:px-3">
             <span className={cn(!done && SEVERITY_DURATION[d.severity])}>
@@ -230,7 +221,6 @@ export const QueryRow = memo(function QueryRow({
           </td>
         )}
 
-        {/* Actions */}
         <td className="px-1.5 py-2.5 sm:px-3">
           <div
             className="flex items-center justify-end gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"

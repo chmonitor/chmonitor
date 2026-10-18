@@ -1,10 +1,3 @@
-/**
- * Merge/mutation progress and summary charts.
- *
- * Split out of system-charts.ts (#2898). Behaviour-preserving move — no SQL,
- * key names, or gating changed.
- */
-
 import {
   applyInterval,
   buildTimeFilter,
@@ -19,13 +12,8 @@ export const mergesCharts: Record<string, ChartQueryBuilder> = {
     lastHours = 24,
   }) => {
     const timeFilter = buildTimeFilterInterval(lastHours)
-    // Only the three columns the stacked bar chart actually plots are selected.
-    // The chart previously also received total_rows / total_bytes_on_disk and
-    // their formatReadable* twins, none of which any consumer reads — see
-    // components/charts/merge/new-parts-created.tsx, which destructures exactly
-    // { event_time, table, new_parts }. On the cloud demo those four dead
-    // columns were about two thirds of an 88 KB response, and this chart is the
-    // largest single endpoint on /overview.
+    // Only the columns the stacked bar chart plots: the unused ones were about
+    // two thirds of the response on the largest /overview endpoint.
     return {
       query: `
     SELECT

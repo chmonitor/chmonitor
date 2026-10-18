@@ -1,12 +1,3 @@
-/**
- * Query Insights Overview Charts
- *
- * Backs the `/queries/insights` overview grid (parity with ClickHouse
- * Cloud's Query Insights): QPS, latency percentiles, operations breakdown,
- * rows read/returned, cache hit ratio, and errors over time — all derived
- * from `system.query_log`.
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import {
@@ -55,7 +46,6 @@ const INTERVAL_SECONDS: Record<string, number> = {
 }
 
 export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
-  // Tile 1: Queries / sec — query volume as a rate over the range.
   'query-insights-qps': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const bucketSeconds = INTERVAL_SECONDS[interval] ?? 3600
@@ -76,7 +66,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 2: Query latency — mean + p50/p95/p99 on one chart.
   'query-insights-latency': ({
     interval = 'toStartOfHour',
     lastHours = 24,
@@ -102,7 +91,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 3: Operations breakdown — donut by query_kind (Select/Insert/…).
   'query-insights-operations': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = `
@@ -123,7 +111,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 4: Rows read / returned.
   'query-insights-rows': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = `
@@ -164,7 +151,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 6: Errors over time — exception_code != 0.
   'query-insights-errors': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = `
@@ -184,7 +170,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 7: Memory usage — avg + p95/p99 of per-query peak memory_usage.
   'query-insights-memory': ({ interval = 'toStartOfHour', lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = `
@@ -206,7 +191,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 8: Read throughput — bytes read from storage vs bytes returned.
   'query-insights-read-throughput': ({
     interval = 'toStartOfHour',
     lastHours = 24,
@@ -230,7 +214,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 9: Top users — query volume broken down by the user who ran them.
   'query-insights-top-users': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = `
@@ -252,7 +235,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 10: Duration distribution — p10..p99 curve of query_duration_ms.
   'query-insights-duration-distribution': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = percentileDistributionQuery(
@@ -267,7 +249,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 11: Memory distribution — p10..p99 curve of peak memory_usage.
   'query-insights-memory-distribution': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = percentileDistributionQuery('memory_usage', 0, timeFilter)
@@ -278,7 +259,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 12: Read rows distribution — p10..p99 curve of read_rows per query.
   'query-insights-read-rows-distribution': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = percentileDistributionQuery('read_rows', 0, timeFilter)
@@ -289,7 +269,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 13: Read bytes distribution — p10..p99 curve of read_bytes per query.
   'query-insights-read-bytes-distribution': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = percentileDistributionQuery('read_bytes', 0, timeFilter)
@@ -300,7 +279,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 14: Errors by exception code — count + a sample message per code.
   'query-insights-errors-by-code': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = `
@@ -323,7 +301,6 @@ export const queryInsightsCharts: Record<string, ChartQueryBuilder> = {
     }
   },
 
-  // Tile 15: Hot tables — query volume + avg latency per referenced table.
   'query-insights-hot-tables': ({ lastHours = 24 }) => {
     const timeFilter = buildTimeFilter(lastHours)
     const query = `

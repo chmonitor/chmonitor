@@ -1,8 +1,3 @@
-/**
- * Page View Charts
- * Charts for tracking application page views from monitoring_events
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, fillStep, nowOrToday } from './types'

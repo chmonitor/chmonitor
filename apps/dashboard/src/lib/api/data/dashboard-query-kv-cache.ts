@@ -30,7 +30,6 @@ function getKeyName(hostId: number): string {
   return `dashboard-queries:${hostId}`
 }
 
-/** Resolve the `CHM_DASHBOARD_QUERY_KV` binding if the runtime provides one. */
 function getKV(): KVNamespace | undefined {
   const kv = target().kv('CHM_DASHBOARD_QUERY_KV')
   return kv ?? undefined

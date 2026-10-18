@@ -1,14 +1,3 @@
-/**
- * Active Alerts panel (plan 29).
- *
- * Lists currently-firing conditions (from `GET /api/v1/health/findings`, a
- * read-only re-derivation of the sweep's rule evaluation) alongside their ACK
- * state (from `GET /api/v1/health/ack`). Each un-acked finding gets a
- * duration picker + "Acknowledge" button that snoozes the health sweep's
- * webhook dispatch for that `(hostId, ruleId)` condition; an active ACK shows
- * who acked it and when it expires, with a "Clear" button to un-ACK early.
- * ACK/snooze is a free, OSS-included capability — no plan gating.
- */
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -65,7 +54,6 @@ function findAck(
   )
 }
 
-/** Short forward-relative label ("in 12m", "in 1h") for an ACK's expiry. */
 function formatExpiresIn(expiresAt: number): string {
   const ms = expiresAt - Date.now()
   if (ms <= 0) return 'expired'

@@ -79,19 +79,12 @@ const MIN_NONDETERMINISTIC_ENUM_VERSION = { major: 24, minor: 2 } as const
 const MIN_SYSTEM_TABLE_HANDLING_VERSION = { major: 24, minor: 4 } as const
 
 export interface QueryCacheSettingsOptions {
-  /** Detected ClickHouse version for the target host, or null if unknown. */
   version: ClickHouseVersion | null
   /** TTL in seconds bounding cache staleness — mirror the poll/refresh cadence. */
   ttlSeconds: number
-  /** Per-query-config opt-out. */
   disabled?: boolean
 }
 
-/**
- * Build `clickhouse_settings` that turn on the ClickHouse query cache for a
- * read-only query, or `{}` when disabled, the TTL is non-positive, or the
- * host's ClickHouse version can't be confirmed to support it.
- */
 export function buildQueryCacheSettings({
   version,
   ttlSeconds,

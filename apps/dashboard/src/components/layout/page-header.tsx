@@ -10,14 +10,8 @@ interface PageHeaderProps {
 }
 
 /**
- * PageHeader — shared page-level heading block.
- *
- * On phones the title block and the actions stack vertically so the
- * description gets the full width (instead of being squeezed into a narrow
- * column that wraps one word per line) and the action buttons never overflow
- * off-screen. From `sm:` up they sit on one row with actions right-aligned.
- * - `title` at `text-xl font-semibold tracking-tight sm:text-2xl`
- * - optional `description` as `text-sm text-muted-foreground` below the title
+ * Stacks on phones so the description gets the full width and the actions
+ * never overflow off-screen; one row from `sm:` up.
  */
 export function PageHeader({
   title,

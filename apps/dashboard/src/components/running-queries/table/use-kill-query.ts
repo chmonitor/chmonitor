@@ -3,10 +3,6 @@ import { toast } from 'sonner'
 import { useCallback, useState } from 'react'
 import { useActions } from '@/lib/swr'
 
-/**
- * Kill-query action + in-flight state, shared by the table row and the card.
- * `useActions` binds the active hostId internally — killQuery(queryId).
- */
 export function useKillQuery(id: string) {
   const { killQuery } = useActions()
   const [isKilling, setIsKilling] = useState(false)

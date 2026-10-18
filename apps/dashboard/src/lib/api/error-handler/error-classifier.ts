@@ -1,10 +1,3 @@
-/**
- * Error Classifier
- *
- * Analyzes error objects and messages to determine appropriate error types
- * for consistent error handling across the API layer.
- */
-
 import type { ErrorClassification } from './types'
 
 import { ApiErrorType } from '@/lib/api/types'
@@ -106,19 +99,6 @@ const TABLE_MISSING_PHRASES: ReadonlyArray<string> = [
   'unknown table',
 ]
 
-/**
- * Classifies an error based on its message content
- *
- * @param error - The error to classify (Error object or unknown)
- * @returns Classification result with error type and message
- *
- * @example
- * ```ts
- * const error = new Error('Table not found: system.unknown_table')
- * const classification = classifyError(error)
- * // { type: ApiErrorType.TableNotFound, message: 'Table not found: system.unknown_table' }
- * ```
- */
 export function classifyError(error: unknown): ErrorClassification {
   const message = extractErrorMessage(error)
   const normalizedMessage = message.toLowerCase()
@@ -153,11 +133,6 @@ export function classifyError(error: unknown): ErrorClassification {
   }
 }
 
-/**
- * Resolves an API error type from a ClickHouse error code or name, read from
- * the error's `code` / `type` fields or the `Code: <n>` / `(<NAME>)` parts of
- * the message.
- */
 function classifyByClickHouseCode(
   error: unknown,
   message: string
@@ -193,12 +168,6 @@ function classifyByClickHouseCode(
   return undefined
 }
 
-/**
- * Extracts error message from Error objects or unknown values
- *
- * @param error - Error object or unknown value
- * @returns Extracted error message
- */
 function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message
@@ -211,13 +180,6 @@ function extractErrorMessage(error: unknown): string {
   return 'Unknown error occurred'
 }
 
-/**
- * Checks if message contains any of the provided keywords
- *
- * @param message - Normalized message to search
- * @param keywords - Keywords to search for
- * @returns True if any keyword is found
- */
 function matchesAnyKeyword(
   message: string,
   keywords: ReadonlyArray<string>

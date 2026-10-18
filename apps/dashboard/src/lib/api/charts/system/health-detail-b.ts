@@ -1,10 +1,3 @@
-/**
- * Cluster health check charts (detail variants, part 2: disk/merges/timeouts/backups).
- *
- * Split out of system-charts.ts (#2898). Behaviour-preserving move — no SQL,
- * key names, or gating changed.
- */
-
 import type { ChartQueryBuilder } from '../types'
 
 export const healthDetailBCharts: Record<string, ChartQueryBuilder> = {

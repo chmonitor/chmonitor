@@ -60,11 +60,6 @@ const COMPLETED_FILTER_PARAMS = {
   event_time: 'withinHours:1',
 } as const
 
-/**
- * Build a synthetic completed-query row from the last running snapshot of a
- * query that just left the live list. Used to show the query in the completed
- * table immediately, before its authoritative `system.query_log` row arrives.
- */
 function runningToCompleted(row: RunningQueryRow): CompletedQueryRow {
   const now = new Date()
   return {
@@ -73,7 +68,6 @@ function runningToCompleted(row: RunningQueryRow): CompletedQueryRow {
     query_kind: row.query_kind,
     type: 'QueryFinish',
     user: row.user,
-    // Local clock — only the HH:MM:SS portion is rendered in the table.
     event_time: now.toTimeString().slice(0, 8),
     query_duration: Number(row.elapsed ?? 0),
     read_rows: Number(row.read_rows ?? 0),
@@ -85,17 +79,6 @@ function runningToCompleted(row: RunningQueryRow): CompletedQueryRow {
   }
 }
 
-// LoadingState is replaced by QueryPageSkeleton from @/components/query-tables/query-page-skeleton
-// HeaderButton is imported from @/components/query-tables/header-button
-
-/**
- * RunningQueriesView — the Running Queries page.
- *
- * A self-contained layout: header (title, live count, charts toggle, refresh,
- * live toggle) → collapsible four-card chart strip → the sortable
- * {@link RunningQueriesTable}. Data comes from `system.processes`; auto-refresh
- * runs on {@link REFRESH_INTERVAL} while "Live" is on and pauses when off.
- */
 export const RunningQueriesView = function RunningQueriesView() {
   const hostId = useHostId()
   // Finished and Done rows are per-host state; remount so host A's queries
@@ -121,7 +104,6 @@ function HostRunningQueriesView({ hostId }: { hostId: number }) {
     const serialized = serializeActiveFilters(
       parseFiltersFromParams(schema, searchParams)
     )
-    // Map the `q` text-search param to a server-side `contains` on the query column.
     const q = searchParams.get('q')
     if (q?.trim()) {
       serialized.query = `contains:${q.trim()}`
@@ -268,7 +250,6 @@ function HostRunningQueriesView({ hostId }: { hostId: number }) {
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-4">
-        {/* Header */}
         <PageHeader
           title={
             <div className="flex items-center gap-2">
@@ -318,7 +299,6 @@ function HostRunningQueriesView({ hostId }: { hostId: number }) {
           }
         />
 
-        {/* Body */}
         {isLoading && !data ? (
           <QueryPageSkeleton />
         ) : error && !data ? (

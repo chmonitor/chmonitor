@@ -7,7 +7,6 @@
 
 const STORAGE_KEY = 'chm-sample-cluster-banner-dismissed'
 
-/** Whether the visitor already dismissed the sample-cluster convert banner. */
 export function isSampleClusterBannerDismissed(): boolean {
   if (typeof window === 'undefined') return false
 
@@ -18,7 +17,6 @@ export function isSampleClusterBannerDismissed(): boolean {
   }
 }
 
-/** Dismiss the sample-cluster convert banner for this browser. */
 export function dismissSampleClusterBanner(): void {
   if (typeof window === 'undefined') return
 

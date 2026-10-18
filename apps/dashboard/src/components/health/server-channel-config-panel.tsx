@@ -1,5 +1,5 @@
 /**
- * Server-persisted alert channel config panel (feat #2665).
+ * Server-persisted alert channel config panel.
  *
  * Makes the channels the cron sweep delivers to — previously env-only and shown
  * as read-only "Set HEALTH_ALERT_X on the server" status cards — editable from
@@ -10,7 +10,7 @@
  * reads (`resolveServerChannels`: D1 row › env fallback).
  *
  * With no alert backend (D1 or Postgres) Save/Reset are disabled — as they are
- * while the capability is `unknown` (#3495) — and an env-configured channel
+ * while the capability is `unknown` — and an env-configured channel
  * still works via its `HEALTH_ALERT_*` env vars: the form shows an "env" badge
  * so the operator knows a channel is already live.
  */
@@ -70,11 +70,8 @@ interface ChannelSpec {
   label: string
   description: string
   icon: ReactNode
-  /** Example target value shown on the compact "add a channel" tile. */
   example?: string
-  /** Non-secret target fields, in display order. */
   fields: ChannelField[]
-  /** The channel's single secret, or `undefined` when it has none. */
   secret?: { label: string; placeholder: string; required: boolean }
 }
 
@@ -234,7 +231,6 @@ interface DraftState {
   enabled: boolean
   minSeverity: 'warning' | 'critical' | undefined
   target: Record<string, string>
-  /** New secret typed by the operator; empty = keep the stored one. */
   secret: string
   hasSecret: boolean
 }
@@ -370,7 +366,7 @@ export function ServerChannelConfigPanel() {
   const renderCard = (spec: ChannelSpec) => {
     const draft = drafts[spec.channel] ?? emptyDraft()
     const config = configs.find((c) => c.channel === spec.channel)
-    // A `file` config (#3497) is read-only: no Reset, and a save shadows it.
+    // A `file` config is read-only: no Reset, and a save shadows it.
     const hasRow = config !== undefined && !isDeclarativeSource(config.source)
     const envConfigured = Boolean(env[spec.channel])
     return (

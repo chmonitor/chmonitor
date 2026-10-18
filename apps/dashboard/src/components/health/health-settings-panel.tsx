@@ -88,7 +88,6 @@ export function HealthSettingsPanel({
 }: {
   /** Current or legacy `?tab=` value; resolved via {@link resolveHealthSettingsTab}. */
   defaultTab?: string
-  /** Renders the action row; receives the validated save handler. */
   footer: (save: () => boolean) => ReactNode
 }) {
   const resolved = resolveHealthSettingsTab(defaultTab)
@@ -108,7 +107,6 @@ export function HealthSettingsPanel({
     return current.warning > current.critical
   })
 
-  /** Validate + persist. Returns true when everything saved. */
   const handleSave = (): boolean => {
     if (invalidCheck) {
       toast.error(`${invalidCheck.title}: warning must be ≤ critical`)
@@ -126,7 +124,7 @@ export function HealthSettingsPanel({
     return false
   }
 
-  // Per-channel min-severity override (#2661). Setting `undefined` (Inherit)
+  // Per-channel min-severity override. Setting `undefined` (Inherit)
   // clears the field, and an override with nothing left drops the channel key
   // entirely, so a fresh install keeps the exact default shape.
   const setChannelMinSeverity = (

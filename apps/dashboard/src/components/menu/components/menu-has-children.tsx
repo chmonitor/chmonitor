@@ -1,9 +1,3 @@
-/**
- * Menu item with children (dropdown)
- *
- * Displays a navigation trigger with dropdown content.
- */
-
 import type { MenuItem } from '../types'
 
 import { useMenuActiveState } from '../hooks/use-menu-active-state'

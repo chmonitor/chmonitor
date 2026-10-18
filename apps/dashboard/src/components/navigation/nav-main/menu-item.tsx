@@ -92,9 +92,6 @@ function useCloseMobileSidebar() {
   }
 }
 
-/**
- * Determines the active state for a menu item
- */
 function getMenuItemActiveState(
   item: MenuItemType,
   pathname: string
@@ -112,9 +109,6 @@ function getMenuItemActiveState(
   return { isActive, hasActiveChild }
 }
 
-/**
- * Renders a single menu item without children
- */
 const SingleMenuItem = function SingleMenuItem({
   item,
   isActive,
@@ -212,9 +206,6 @@ const SingleMenuItem = function SingleMenuItem({
   )
 }
 
-/**
- * Renders a single sub-item under a collapsible menu
- */
 const SubMenuItem = function SubMenuItem({
   subItem,
   pathname,
@@ -382,10 +373,6 @@ const SubgroupSection = function SubgroupSection({
   )
 }
 
-/**
- * Renders a menu item with children (collapsible)
- * Uses standard shadcn/ui pattern - entire button triggers toggle
- */
 const CollapsibleMenuItem = function CollapsibleMenuItem({
   item,
   pathname,
@@ -419,8 +406,6 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
     return null
   }
 
-  // When collapsed, use Popover submenu
-  // Note: Badges stay inline with button content for collapsed state
   if (isCollapsed) {
     const triggerButton = (
       <SidebarMenuButton
@@ -460,7 +445,6 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   const hubHref = getGroupHubHref(item.title)
   const isHubActive = Boolean(hubHref && isMenuItemActive(hubHref, pathname))
 
-  // Standard shadcn/ui pattern: Collapsible wraps SidebarMenuItem.
   // A group with a hub splits the row: the label navigates to the hub, the
   // chevron (a sibling button — a <button> cannot nest inside the <a>) still
   // expands. Groups without a hub keep the whole row as the toggle.
@@ -575,9 +559,6 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   )
 }
 
-/**
- * MenuItem component - renders a single menu item or collapsible menu with children
- */
 export const MenuItem = function MenuItem({
   item,
   pathname,

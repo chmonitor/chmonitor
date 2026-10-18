@@ -1,8 +1,3 @@
-/**
- * Query Performance Charts
- * Charts for insert throughput, batch size analysis, and top inserters
- */
-
 import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, buildTimeFilter, CHART_QUERY_SETTINGS } from './types'

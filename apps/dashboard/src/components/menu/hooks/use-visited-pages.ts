@@ -1,19 +1,10 @@
-/**
- * Hook for tracking visited pages using cookies
- *
- * Used to hide "New" badges after a user visits a page
- */
-
 import { useLocation } from '@tanstack/react-router'
 
 import { useEffect, useState } from 'react'
 
 const COOKIE_NAME = 'visited_pages'
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
-/**
- * Get visited pages from cookie
- */
 function getVisitedPages(): Set<string> {
   if (typeof document === 'undefined') return new Set()
 
@@ -31,9 +22,6 @@ function getVisitedPages(): Set<string> {
   }
 }
 
-/**
- * Save visited pages to cookie
- */
 function saveVisitedPages(pages: Set<string>): void {
   if (typeof document === 'undefined') return
 
@@ -41,9 +29,6 @@ function saveVisitedPages(pages: Set<string>): void {
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(value)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`
 }
 
-/**
- * Hook to check if a page has been visited and mark pages as visited
- */
 export function useVisitedPages() {
   const pathname = useLocation({ select: (l) => l.pathname })
   const [visitedPages, setVisitedPages] = useState<Set<string>>(() => new Set())
@@ -87,10 +72,6 @@ export function useVisitedPages() {
   return { isVisited, markAsVisited, visitedPages }
 }
 
-/**
- * Check if a page should show the "New" badge
- * Returns true if the page is marked as new AND hasn't been visited
- */
 export function useShowNewBadge(href: string, isNew?: boolean): boolean {
   const { isVisited } = useVisitedPages()
 

@@ -1,9 +1,3 @@
-/**
- * Menu icon component
- *
- * Handles icon rendering with active state styling.
- */
-
 import type { Icon } from '@chm/types/icon'
 
 import { cn } from '@/lib/utils'
@@ -29,7 +23,6 @@ export function MenuIcon({ icon: Icon, isActive }: MenuIconProps) {
         !isActive && 'opacity-60',
         isActive && 'opacity-100 text-primary'
       )}
-      // Lucide icons accept strokeWidth, Radix icons ignore unknown props
       {...({ strokeWidth: 1.5 } as Record<string, unknown>)}
       aria-hidden="true"
     />

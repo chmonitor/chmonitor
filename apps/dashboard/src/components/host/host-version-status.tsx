@@ -1,10 +1,3 @@
-/**
- * Host version with status indicator for expanded sidebar state
- *
- * Shows ClickHouse version (vXX.yy format) with online/offline status indicator
- * and progressive disclosure: version → uptime based on available space.
- */
-
 import { ClockIcon, TagIcon } from 'lucide-react'
 
 import { formatCompactUptime } from './format-uptime'
@@ -15,10 +8,6 @@ interface HostVersionWithStatusProps {
   variant?: 'header' | 'dropdown'
 }
 
-/**
- * Parse a full version string into a short v{major}.{minor} label.
- * e.g. "24.3.1.1" → "v24.3", "24.12.1.1234" → "v24.12"
- */
 function formatShortVersion(version: string): string {
   const parts = version.split('.')
   if (parts.length >= 2) {

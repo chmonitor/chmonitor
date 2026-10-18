@@ -22,7 +22,6 @@ import { useHostId } from '@/lib/swr/use-host'
 import { cn, formatDuration } from '@/lib/utils'
 import { formatRelativeTime } from '@/lib/utils/format-relative-time'
 
-/** Badge tint per confirmed state — 'ok' reuses the brand's health emerald. */
 export const STATE_BADGE_CLASS: Record<AlertRuleSeverity, string> = {
   ok: 'border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
   warning:
@@ -58,7 +57,6 @@ function StateRow({
         </Badge>
         {row.pendingSeverity && row.pendingSeverity !== row.severity && (
           <span className="ml-2 text-xs text-muted-foreground">
-            {/* An in-flight hysteresis streak awaiting confirmation. */}
             {row.pendingSeverity === 'ok' ? 'clearing' : 'rising'} (
             {row.pendingCount ?? 1})
           </span>
@@ -76,13 +74,7 @@ function StateRow({
   )
 }
 
-/**
- * "Current alert state" card (#2767) — the health sweep's persisted last-known
- * state per check for the currently-selected host: confirmed severity, when it
- * last transitioned, any in-flight hysteresis streak, and (for a firing
- * condition) how long the incident has been open. Best-effort: on a deployment
- * without D1 configured (self-hosted/OSS default) this shows the empty state.
- */
+/** Best-effort: without D1 (self-hosted default) this shows the empty state. */
 export function AlertStateCard() {
   const hostId = useHostId()
   const { states, isLoading, isFetching, error, refetch } =

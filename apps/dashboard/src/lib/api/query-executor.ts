@@ -1,23 +1,3 @@
-/**
- * Server-side query executor for dashboard.
- *
- * Distills what apps/dashboard's route handlers (charts/[name]/route.ts and
- * tables/[name]/route.ts) do into two reusable functions that TanStack Start
- * `server.handlers` call. It:
- *  - bridges the Worker env onto process.env (see server-env.ts),
- *  - resolves the CH version per host,
- *  - selects the right SQL via @chm/sql-builder's VersionedSql `since` rule,
- *  - runs the query with the WEB client (getClient is invoked internally by
- *    fetchData/fetchJsonEachRowAsNormalizedJson; this app only ships
- *    @clickhouse/client-web and runs on Workers, so the auto-detected client
- *    is the web client — getClient({ web: true }) is the explicit form used
- *    where a raw client is needed),
- *  - passes `optional`/`tableCheck` through for graceful missing-table handling.
- *
- * Auth / feature-permission gating and the schema-driven filter injection from
- * the dashboard are DEFERRED (those modules are not ported yet).
- */
-
 import type { FetchDataResult } from '@chm/clickhouse-client'
 import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import type { VersionedSql } from '@chm/sql-builder'
@@ -47,10 +27,6 @@ import { getSqlForDisplay } from '@/lib/query-config'
 
 const QUERY_PARAM_PLACEHOLDER = /\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*:[^{}]+\}/g
 
-/**
- * Names of `{name:Type}` placeholders in `sql` that `params` gives no value
- * (absent, `undefined`, or `null`). An empty string is a valid String value.
- */
 export function findMissingQueryParams(
   sql: string,
   params: Record<string, unknown> | undefined
@@ -64,10 +40,6 @@ export function findMissingQueryParams(
   return [...missing]
 }
 
-/**
- * Default ClickHouse query-cache TTL (seconds) for a table config that does
- * not set `refreshInterval` (#2182). Mirrors the "standard" chart TTL.
- */
 const DEFAULT_TABLE_CACHE_TTL_SECONDS = 30
 const MIN_CACHE_TTL_SECONDS = 5
 const MAX_CACHE_TTL_SECONDS = 300
@@ -111,7 +83,6 @@ export function isValidInterval(value: string): value is ClickHouseInterval {
   return (VALID_INTERVALS as readonly string[]).includes(value)
 }
 
-/** Coerce a hostId (string|number) to a finite number or throw. */
 function toNumericHostId(hostId: number | string): number {
   const n = parseHostIdParam(hostId)
   if (!Number.isFinite(n)) {
@@ -149,31 +120,20 @@ async function selectSqlForHost(
   }
 }
 
-/** Options shared by table/chart execution. */
 export interface ExecuteOptions {
-  /** Worker env binding — bridged onto process.env before querying. */
   bindings?: ClickHouseBindings
-  /** IANA timezone for the ClickHouse session. */
   timezone?: string
 }
 
-/** Result of executing a table QueryConfig. */
 export interface ExecuteTableResult<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   result: FetchDataResult<T[]>
-  /** SQL actually executed (version-selected). */
   executedSql: string
-  /** Resolved CH version, if a versioned SQL forced a lookup. */
   clickhouseVersion?: string
-  /** Row cap applied to the query (`0` when disabled), see #2490. */
   maxResultRows: number
 }
 
-/**
- * Execute a table QueryConfig and return rows as objects. Resolves the right
- * SQL for the host's CH version, then runs via `fetchData` (JSONEachRow).
- */
 export async function executeTableConfig<
   T extends Record<string, unknown> = Record<string, unknown>,
 >(
@@ -259,7 +219,6 @@ export async function executeTableConfig<
             ...cache,
             ...tableSettings,
           },
-          // Pass the config so fetchData can existence-check optional tables.
           queryConfig: queryConfig.optional
             ? {
                 name: queryConfig.name,
@@ -279,9 +238,7 @@ export async function executeTableConfig<
   return { result, executedSql, clickhouseVersion: version, maxResultRows }
 }
 
-/** Result of executing a chart query — raw JSON string (no per-row parse). */
 export interface ExecuteChartResult {
-  /** ClickHouse rows serialized as a JSON array string (or 'null'). */
   dataJson: string | null
   metadata: Record<string, string | number>
   error?: FetchDataResult<never>['error']
@@ -289,11 +246,6 @@ export interface ExecuteChartResult {
   clickhouseVersion?: string
 }
 
-/**
- * Execute a single-query chart. Uses `fetchJsonEachRowAsNormalizedJson` so the
- * handler can stream the JSON string straight into the response body without a
- * parse/reserialize round-trip (matches the dashboard chart route).
- */
 export async function executeChartQuery(
   chartName: string,
   sql: string | VersionedSql[],
@@ -303,11 +255,8 @@ export async function executeChartQuery(
     optional?: boolean
     tableCheck?: string | string[]
     columnCheck?: string | string[]
-    /** ClickHouse query-cache TTL (seconds); omit/0 to skip caching. */
     ttlSeconds?: number
-    /** Per-chart opt-out of the query cache; see ChartQueryResult. */
     disableQueryCache?: boolean
-    /** Per-chart ClickHouse settings; see ChartQueryResult.clickhouseSettings. */
     clickhouseSettings?: ChartQuerySettings
   } = {}
 ): Promise<ExecuteChartResult> {
@@ -320,8 +269,6 @@ export async function executeChartQuery(
     clickhouseVersion,
   } = await selectSqlForHost(sql, numericHostId)
 
-  // Read-only GET path (routes/api/v1/charts/$name.ts, health/checks.ts):
-  // safe to opt into the ClickHouse query cache (#2182).
   const result = await withClickHouseQuerySpan(() =>
     runWithQueryCache(
       {
@@ -366,18 +313,11 @@ export async function executeChartQuery(
   }
 }
 
-/**
- * Execute a multi-query chart: run every keyed query in parallel and return a
- * `{ key: dataJson }` map plus the first error. Mirrors the dashboard's
- * handleMultiQueryChart, minus the response shaping (left to the handler).
- */
 export async function executeMultiChartQuery(
   queries: Array<{ key: string; query: string; optional?: boolean }>,
   hostId: number | string,
   opts: ExecuteOptions & {
-    /** ClickHouse query-cache TTL (seconds); omit/0 to skip caching. */
     ttlSeconds?: number
-    /** Opt-out of the query cache; see MultiChartQueryResult. */
     disableQueryCache?: boolean
   } = {}
 ): Promise<{
@@ -431,12 +371,6 @@ export async function executeMultiChartQuery(
   return { results }
 }
 
-/**
- * Get a raw web ClickHouse client for the given host. Thin wrapper over
- * `getClient({ web: true, hostId })` for callers that need direct client
- * access (e.g. one-off introspection) outside the fetchData helpers. Bridges
- * the Worker env first when provided.
- */
 export async function getWebClient(
   hostId: number,
   bindings?: ClickHouseBindings

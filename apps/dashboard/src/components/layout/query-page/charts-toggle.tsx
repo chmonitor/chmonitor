@@ -1,10 +1,3 @@
-/**
- * ChartsToggle Component
- *
- * Button to collapse/expand the charts section.
- * Displays appropriate icon and label based on collapsed state.
- */
-
 import { LayoutDashboardIcon, MinimizeIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'

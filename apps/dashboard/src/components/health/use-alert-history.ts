@@ -1,9 +1,4 @@
 /**
- * Data hook for the "Recent alerts" card (health-settings-panel.tsx).
- *
- * Thin TanStack Query wrapper around GET /api/v1/health/history — mirrors the
- * fetch/error conventions of `use-health-checks.ts` (apiFetch + throwIfNotOk)
- * but for a single, simple query instead of a batch.
  */
 import { useQuery } from '@tanstack/react-query'
 
@@ -20,7 +15,6 @@ interface HistoryResponse {
 }
 
 export interface UseAlertHistoryParams {
-  /** Omit to show alerts across every host. */
   hostId?: number
   /** `YYYY-MM-DD`. Omit to show the most recent alerts regardless of date. */
   day?: string

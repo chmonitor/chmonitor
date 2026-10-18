@@ -1,10 +1,3 @@
-/**
- * Cluster health check charts (summary variants).
- *
- * Split out of system-charts.ts (#2898). Behaviour-preserving move — no SQL,
- * key names, or gating changed.
- */
-
 import type { ChartQueryBuilder } from '../types'
 
 import { buildPartsPressurePercentSql } from '@/lib/health/parts-pressure'
@@ -56,8 +49,6 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
     tableCheck: 'system.parts',
   }),
 
-  // TTL / PARTITION BY inventory: count of MergeTree tables with a
-  // recommend-only next step (bloat, missing TTL, merge backlog).
   'health-ttl-partition-health': () => ({
     query: buildTtlPartitionFlaggedCountSql(),
     clickhouseSettings: TTL_PARTITION_HEALTH_SETTINGS,
@@ -141,8 +132,6 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
     optional: true,
     tableCheck: 'system.disks',
   }),
-
-  // New charts for #1911 alert rule types
 
   'health-failed-mutations': () => ({
     query: `

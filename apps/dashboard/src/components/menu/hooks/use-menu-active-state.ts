@@ -1,9 +1,3 @@
-/**
- * Hook for detecting active menu item state
- *
- * Provides logic to determine if a menu item or its children are active.
- */
-
 import { useLocation } from '@tanstack/react-router'
 
 import type { MenuItem } from '../types'

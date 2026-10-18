@@ -18,12 +18,6 @@ import { useHostId } from '@/lib/swr/use-host'
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
-/**
- * Shape of a single `system.query_log` row as returned by the
- * `history-queries` table API (see {@link historyQueriesConfig}). Only the
- * fields this table reads are typed; the index signature keeps it tolerant of
- * the extra columns the config selects.
- */
 export interface CompletedQueryRow {
   query_id: string
   query: string
@@ -43,8 +37,6 @@ export interface CompletedQueryRow {
   [key: string]: unknown
 }
 
-// KIND_BADGE, kindBadgeClass, and KindBadge are imported from @/components/query-tables/kind-badge
-
 /**
  * Baseline cap for the completed list: only the newest finished queries are
  * rendered so the first paint stays a tight "just finished" window rather than
@@ -54,11 +46,6 @@ export interface CompletedQueryRow {
  */
 const COMPLETED_LIMIT = 10
 
-/**
- * Status pill stamped on every completed row — makes it obvious these are
- * FINISHED queries (green "Done"), distinct from the live running table. Failed
- * finishes are flagged in rose so the outcome reads at a glance.
- */
 function StatusBadge({ failed }: { failed: boolean }) {
   return (
     <span
@@ -75,13 +62,9 @@ function StatusBadge({ failed }: { failed: boolean }) {
   )
 }
 
-// KindBadge is imported from @/components/query-tables/kind-badge
-
-/** Format the `event_time` string as a short clock label. */
 function formatTime(value: unknown): string {
   if (!value) return '—'
   const text = String(value)
-  // `event_time` arrives as `YYYY-MM-DD HH:MM:SS` — show just the clock part.
   const match = text.match(/\d{2}:\d{2}:\d{2}/)
   return match ? match[0] : text
 }
@@ -158,7 +141,6 @@ const CompletedRow = memo(function CompletedRow({
         </div>
       </td>
 
-      {/* Query + meta */}
       <td className="min-w-0 px-2 py-2.5">
         <span
           className="block min-w-0 truncate font-mono text-[11.5px] text-foreground sm:text-[12px]"
@@ -197,7 +179,6 @@ const CompletedRow = memo(function CompletedRow({
         </div>
       </td>
 
-      {/* Time — always visible */}
       <td className="whitespace-nowrap px-2 py-2.5 text-right text-[12px] tabular-nums text-muted-foreground sm:px-3">
         <span className="inline-flex items-center gap-1">
           <Clock className="size-3" />
@@ -205,17 +186,14 @@ const CompletedRow = memo(function CompletedRow({
         </span>
       </td>
 
-      {/* Duration — sm+ */}
       <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[12px] tabular-nums sm:table-cell">
         {d.duration}
       </td>
 
-      {/* Rows read — md+ */}
       <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[12px] tabular-nums md:table-cell">
         {d.readRows}
       </td>
 
-      {/* Memory — lg+ */}
       <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[12px] tabular-nums lg:table-cell">
         {d.memory}
       </td>
@@ -231,16 +209,6 @@ interface CompletedQueriesTableProps {
   refreshLabel?: string
 }
 
-/**
- * CompletedQueriesTable — a compact, read-only list of recently-finished
- * queries pulled from `system.query_log` (QueryFinish, recent window).
- *
- * Queries that just left the live `system.processes` list (their query_id was
- * present on the previous poll but absent now) are highlighted as
- * "just finished" so the running → completed handoff reads as live, even
- * before the query_log row materializes. A "view all in history" link points
- * to the full {@link historyQueriesConfig} page.
- */
 export const CompletedQueriesTable = memo(function CompletedQueriesTable({
   rows,
   justFinishedIds,
@@ -257,7 +225,6 @@ export const CompletedQueriesTable = memo(function CompletedQueriesTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
         <span className="text-[13px] font-medium">Recently completed</span>
         <span className="text-[12px] text-muted-foreground">

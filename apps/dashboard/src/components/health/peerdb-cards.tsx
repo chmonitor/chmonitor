@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * PeerDB items on the Health Summary page (#3439, #3701).
+ * PeerDB items on the Health Summary page.
  *
  * ## Why this is a bespoke item, not a `HEALTH_CHECKS` entry
  *
@@ -124,7 +124,6 @@ const PEERDB_SLOT_LAG_DEF: HealthCheckDef = {
 
 const mb = (n: number) => `${Math.round(n).toLocaleString()} MiB`
 
-/** The PeerDB items, in display order. */
 export const PEERDB_HEALTH_DEFS: readonly HealthCheckDef[] = [
   PEERDB_FLEET_DEF,
   PEERDB_API_DEF,
@@ -246,7 +245,6 @@ export function PeerDBHealthCard({
   )
 }
 
-/** Every PeerDB item, in display order. */
 export function PeerDBHealthCards({
   hostId,
   source,
@@ -257,7 +255,6 @@ export function PeerDBHealthCards({
 }: {
   hostId: number
   source: PeerDBHealthSource
-  /** Sparkline history per item id, from the shared health history map. */
   sparkFor?: (id: string) => number[] | undefined
   variant?: HealthCardVariant
   signalsFor?: (id: string) => MetricAlertSignals

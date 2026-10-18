@@ -1,5 +1,5 @@
 /**
- * Custom alert rule builder (plan 32).
+ * Custom alert rule builder.
  *
  * No-code builder: pick a whitelisted metric + operator + warning/critical
  * thresholds. There is NO free-form SQL field here — the metric dropdown is
@@ -313,12 +313,12 @@ export function RuleBuilderPanel({ className }: { className?: string }) {
 
   // Declared capability with the list read as a veto: a 501 forces
   // `unavailable`, and `unknown` (config not answered yet) keeps every write
-  // control disabled (#3495).
+  // control disabled.
   const availability = useHealthStoreAvailability({ probeError: error })
   const canWrite = canWriteHealthStore(availability)
 
   // Without a DB, rules declared in the health config directory still run
-  // (#3497) — list them read-only instead of hiding them behind the notice.
+  // — list them read-only instead of hiding them behind the notice.
   if (availability === 'unavailable' && rules.length === 0) {
     return (
       <HealthStoreNotice

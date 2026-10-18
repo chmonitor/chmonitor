@@ -9,7 +9,6 @@ export interface ConnectionFormProps {
   storageMode?: HostStorageMode
   onStorageModeChange?: (mode: HostStorageMode) => void
   dbStorageEnabled?: boolean
-  /** Server storage is configured but the user must sign in first. */
   dbStorageRequiresSignIn?: boolean
   /**
    * Show a "Try sample ClickHouse (read-only)" quick-fill affordance that
@@ -32,16 +31,6 @@ export interface ConnectionFormProps {
    * PeerDB link is set at create time (see PR notes / follow-up).
    */
   allowPeerdb?: boolean
-  /**
-   * Connection-type tab to start on (e.g. the setup page's "Connect Postgres"
-   * CTA opens the dialog straight on the Postgres tab). Users can still switch
-   * tabs afterwards. Defaults to `'self-hosted'`.
-   */
   initialPreset?: ConnectionPreset
-  /**
-   * Notified whenever the active connection-type preset changes (and once on
-   * mount) so the parent dialog can react — engine-aware title, description and
-   * help panel.
-   */
   onEngineChange?: (preset: ConnectionPreset) => void
 }

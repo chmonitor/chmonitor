@@ -24,7 +24,6 @@ import { buildTtlPartitionFlaggedCountSql } from '@/lib/health/ttl-partition-sql
 
 export interface RelatedLink {
   label: string
-  /** Internal route. `?host=` is appended automatically. */
   href: string
 }
 
@@ -36,24 +35,16 @@ export interface DocsLink {
 export interface HealthCheckDef {
   id: string
   title: string
-  /** Lucide icon rendered in the card header. */
   icon?: LucideIcon
   chartName: string
-  /** Field on first data row to read the numeric value from. */
   valueKey: string
   defaults: Thresholds
-  /** Human-readable label for the value (lowercase). */
   unit?: string
   formatLabel?: (value: number | null) => string
-  /** Format the displayed value (defaults to toLocaleString). */
   formatValue?: (value: number | null) => string
-  /** Short description shown in the detail dialog. */
   description?: string
-  /** System tables this check probes — surfaced in the audit prompt. */
   systemTables?: readonly string[]
-  /** Likely causes — surfaced in the detail dialog and audit prompt. */
   commonCauses?: readonly string[]
-  /** Internal pages relevant to the check. */
   relatedLinks?: readonly RelatedLink[]
   docsLinks?: readonly DocsLink[]
   /**
@@ -76,9 +67,7 @@ export interface HealthCheckDef {
    * true per-row source (so the rows are a diagnostic, not the flagged instances).
    */
   detailTitle?: string
-  /** One-line caption clarifying what the breakdown rows represent. */
   detailDescription?: string
-  /** Message shown when the breakdown query returns no rows. */
   detailEmptyMessage?: string
 }
 

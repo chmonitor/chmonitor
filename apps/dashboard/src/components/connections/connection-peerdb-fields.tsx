@@ -19,11 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-/**
- * The "Advanced → PeerDB monitoring" collapsible: API URL, auth scheme +
- * secret, and the "Test PeerDB" action. Extracted verbatim from
- * `ConnectionForm`; state and handlers come from `usePeerdbConnection`.
- */
 export function ConnectionPeerdbFields({
   advancedOpen,
   setAdvancedOpen,
@@ -74,7 +69,6 @@ export function ConnectionPeerdbFields({
             </div>
           </div>
 
-          {/* API URL */}
           <div className="space-y-1.5">
             <Label htmlFor="peerdb-url" className="text-sm font-medium">
               API URL
@@ -99,7 +93,6 @@ export function ConnectionPeerdbFields({
               )}
           </div>
 
-          {/* Auth scheme + secret */}
           <div className="grid grid-cols-[minmax(0,9rem)_1fr] gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="peerdb-auth" className="text-sm font-medium">
@@ -144,7 +137,6 @@ export function ConnectionPeerdbFields({
             )}
           </div>
 
-          {/* Test PeerDB */}
           <div className="flex items-center gap-3">
             <Button
               type="button"

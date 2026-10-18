@@ -1,11 +1,3 @@
-/**
- * useChartsCollapsed Hook
- *
- * Manages the collapsed state of the charts section with localStorage persistence.
- * Supports both master collapse (all charts) and row-level collapse (per-row toggling).
- * The state is shared across all pages using QueryPageLayout.
- */
-
 import { useState } from 'react'
 
 const OLD_CHARTS_COLLAPSED_KEY = 'clickhouse-monitor-charts-collapsed'
@@ -28,10 +20,6 @@ const DEFAULT_STATE: ChartsRowsState = {
   collapsedRows: [],
 }
 
-/**
- * Load state from localStorage with migration support
- * Only call this on client after hydration
- */
 function loadFromStorage(): ChartsRowsState {
   const stored = localStorage.getItem(CHARTS_ROWS_KEY)
   if (stored) {
@@ -54,9 +42,6 @@ function loadFromStorage(): ChartsRowsState {
   return DEFAULT_STATE
 }
 
-/**
- * Persist state to localStorage
- */
 function persistState(state: ChartsRowsState): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem(CHARTS_ROWS_KEY, JSON.stringify(state))

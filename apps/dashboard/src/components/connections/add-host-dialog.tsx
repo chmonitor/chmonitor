@@ -31,26 +31,9 @@ import { buildUrl, splitHref } from '@/lib/url/url-builder'
 interface AddHostDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /**
-   * Pre-fill the form with the read-only sample ClickHouse preset — e.g. from
-   * the first-run "Try with sample ClickHouse" CTA. The parent must pass this
-   * explicitly on every open (including `undefined` for a plain "Add host")
-   * since this dialog instance is reused/toggled, not remounted per-CTA.
-   * Still goes through the normal test/save validation — prefill only.
-   */
+  /** Pass explicitly on every open (even `undefined`): the dialog instance is reused, not remounted. */
   initialPreset?: 'sample'
-  /**
-   * Connection-type tab to open on (e.g. the setup page's "Connect Postgres"
-   * CTA). Threaded into the form's preset selector; users can still switch
-   * tabs. Defaults to `'self-hosted'`.
-   */
   initialEngine?: ConnectionPreset
-  /**
-   * Show the in-form "Use sample" quick-fill chip. Defaults on for the
-   * regular "Add host" entry points; the sample-cluster convert banner opens
-   * this dialog specifically to connect a REAL cluster, so it turns this off
-   * to avoid re-offering the sample there.
-   */
   showSamplePreset?: boolean
 }
 
@@ -74,9 +57,6 @@ export function AddHostDialog({
     connections: dbConnections,
   } = useUserConnections()
   const [storageMode, setStorageMode] = useState<HostStorageMode>('browser')
-  // Active connection-type preset — drives the engine-aware title, description
-  // and help panel. Seeded from `initialEngine` and updated as the user
-  // switches tabs inside the form (via `onEngineChange`).
   const [engine, setEngine] = useState<ConnectionPreset>(initialEngine)
 
   // The dialog instance is reused (only `open` toggles), so re-sync the engine
@@ -170,8 +150,6 @@ export function AddHostDialog({
               <DialogDescription>{chrome.description}</DialogDescription>
             </DialogHeader>
 
-            {/* Two columns on md+ (form left, guidance right); stacks with the form
-              on top on narrow screens. */}
             <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
               <div className="space-y-4">
                 {dbStorageRequiresSignIn && (

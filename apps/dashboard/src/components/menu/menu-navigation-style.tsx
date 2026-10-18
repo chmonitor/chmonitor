@@ -1,9 +1,3 @@
-/**
- * Menu Navigation Style Component
- *
- * Main navigation menu with dropdown support and active state detection.
- */
-
 import { menuItemsConfig } from '@/menu'
 
 import type { MenuItem } from './types'
@@ -20,11 +14,6 @@ export interface MenuProps {
   className?: string
 }
 
-/**
- * Main navigation menu component
- *
- * Renders menu items as either single links or dropdowns with children.
- */
 export const MenuNavigationStyle = function MenuNavigationStyle({
   items = menuItemsConfig,
   className,
@@ -40,11 +29,6 @@ export const MenuNavigationStyle = function MenuNavigationStyle({
   )
 }
 
-/**
- * Menu item component router
- *
- * Delegates to appropriate component based on whether item has children.
- */
 const MenuItemComponent = function MenuItemComponent({
   item,
 }: {
