@@ -7,6 +7,7 @@ import type {
   CustomWebhookTargetPublic,
 } from '@/lib/health/custom-webhook-targets'
 
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
@@ -55,6 +56,7 @@ async function jsonOrThrow<T>(response: Response, message: string): Promise<T> {
 }
 
 export function useCustomWebhookTargets() {
+  const canRead = useCloudAccess() === 'open'
   const query = useQuery({
     queryKey: CUSTOM_WEBHOOK_TARGETS_QUERY_KEY,
     queryFn: () =>
@@ -64,6 +66,7 @@ export function useCustomWebhookTargets() {
           'Failed to load custom webhook targets'
         )
       ),
+    enabled: canRead,
     staleTime: 15_000,
   })
 

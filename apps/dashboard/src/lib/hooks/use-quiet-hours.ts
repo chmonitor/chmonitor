@@ -10,6 +10,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
 
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
@@ -30,6 +31,7 @@ export interface QuietHoursInfo {
 export const QUIET_HOURS_QUERY_KEY = ['/api/v1/health/quiet-hours'] as const
 
 export function useQuietHours(enabled = true) {
+  const canRead = useCloudAccess() === 'open'
   const query = useQuery({
     queryKey: QUIET_HOURS_QUERY_KEY,
     queryFn: async () => {
@@ -41,7 +43,7 @@ export function useQuietHours(enabled = true) {
       }
       return json.windows ?? []
     },
-    enabled,
+    enabled: enabled && canRead,
     staleTime: 15_000,
   })
 

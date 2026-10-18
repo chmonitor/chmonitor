@@ -104,3 +104,46 @@ describe('AlertSectionGroup', () => {
     await view.unmount()
   })
 })
+
+describe('cloud signed-out visitor (#3957)', () => {
+  const withCloud = async (run: () => Promise<void>) => {
+    process.env.VITE_CLOUD_MODE = 'true'
+    try {
+      await run()
+    } finally {
+      delete process.env.VITE_CLOUD_MODE
+    }
+  }
+  const has = (titles: string[], title: string) =>
+    titles.some((t) => t.startsWith(title))
+
+  test('sections whose API needs sign-in are hidden, the rest stay', async () => {
+    await withCloud(async () => {
+      const { AlertSectionGroup } = await import('./advanced-settings-panel')
+      const define = await mount(<AlertSectionGroup group="define" />)
+      expect(define.buttons()).toHaveLength(2)
+      expect(has(define.buttons(), 'PeerDB mirror rules')).toBe(false)
+      await define.unmount()
+      const delivery = await mount(<AlertSectionGroup group="delivery" />)
+      expect(delivery.buttons()).toHaveLength(2)
+      expect(has(delivery.buttons(), 'Routing rules')).toBe(false)
+      await delivery.unmount()
+    })
+  })
+
+  test('the Advanced tab shows one sign-in prompt instead of silencing', async () => {
+    await withCloud(async () => {
+      const { AdvancedSettingsPanel } = await import(
+        './advanced-settings-panel'
+      )
+      const view = await mount(<AdvancedSettingsPanel />)
+      expect(
+        document.querySelectorAll(
+          '[data-testid="health-silencing-sign-in-required"]'
+        )
+      ).toHaveLength(1)
+      expect(has(view.buttons(), 'Quiet hours')).toBe(false)
+      await view.unmount()
+    })
+  })
+})

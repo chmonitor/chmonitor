@@ -3,7 +3,8 @@
  * `/api/v1/health/alert-config`. Like `use-alert-routes.ts`, this is NOT
  * Clerk-gated: the API resolves an OSS single-tenant owner when no Clerk
  * session exists, so self-hosted deployments manage channel config with zero
- * auth. Secrets are never returned in full — only `hasSecret` + a `secretMasked`
+ * auth. In cloud a signed-out visitor skips the read (the API answers 401).
+ * Secrets are never returned in full — only `hasSecret` + a `secretMasked`
  * preview, and an empty secret on save keeps the stored one.
  */
 
@@ -11,6 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { HealthDefinitionSource } from '@/lib/health/declarative/merge'
 
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
 
@@ -62,6 +64,7 @@ export interface AlertDeliveryStatus {
 }
 
 export function useAlertChannelConfig(enabled = true) {
+  const canRead = useCloudAccess() === 'open'
   const query = useQuery({
     queryKey: ALERT_CHANNEL_CONFIG_QUERY_KEY,
     queryFn: async () => {
@@ -74,7 +77,7 @@ export function useAlertChannelConfig(enabled = true) {
         delivery: json.delivery ?? null,
       }
     },
-    enabled,
+    enabled: enabled && canRead,
     staleTime: 30_000,
   })
 

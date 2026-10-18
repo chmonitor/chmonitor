@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import type { PgConnectionInfo } from '@/lib/hooks/use-pg-connections'
 
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { visibilityAwareInterval } from '@/lib/swr/config'
 
@@ -76,10 +77,11 @@ export function usePgQuery(
   pgConn: PgConnectionInfo | null,
   options?: { refetchInterval?: number }
 ) {
+  const canRead = useCloudAccess() === 'open'
   return useQuery<PgQueryResult>({
     queryKey: ['pg-query', configName, pgConn?.connectionId],
     queryFn: () => fetchPgQuery(configName, pgConn as PgConnectionInfo),
-    enabled: Boolean(pgConn),
+    enabled: Boolean(pgConn) && canRead,
     // Gate at the hook rather than each call site: /postgres/activity polls
     // every 5s, which is the fastest interval in the app and the least
     // affordable to leave running in a background tab.
