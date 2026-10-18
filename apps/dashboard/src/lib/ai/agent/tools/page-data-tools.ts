@@ -25,15 +25,10 @@ import {
 import { hostIdSchema, resolveHostId } from './helpers'
 import { dynamicTool } from 'ai'
 
-/** Default rows kept per source. */
 export const PAGE_DATA_DEFAULT_LIMIT = 20
-/** Hard cap on rows per source (input schema bound, re-applied in execute). */
 export const PAGE_DATA_MAX_LIMIT = 200
-/** Total serialized-output budget for one call. */
 export const PAGE_DATA_MAX_BYTES = 16_000
-/** At most this many sources run per call; the rest are named as skipped. */
 export const PAGE_DATA_MAX_SOURCES = 24
-/** Concurrent ClickHouse reads per call. */
 const CONCURRENCY = 6
 
 type SourceKind = 'table' | 'chart'
@@ -60,7 +55,6 @@ interface Registries {
   hasChart: (name: string) => boolean
 }
 
-/** Resolve `page` to a map entry, or to a single config/chart by name. */
 function resolvePage(
   input: string,
   reg: Registries
@@ -83,7 +77,6 @@ function resolvePage(
   return null
 }
 
-/** Compact page listing, grouped by sidebar section. */
 export function listPages(): Record<string, string[]> {
   const out: Record<string, string[]> = {}
   for (const [route, e] of Object.entries(PAGE_DATA_MAP)) {
@@ -348,7 +341,6 @@ async function runChartSource(
   }
 }
 
-/** Run tasks with a small concurrency cap, preserving order. */
 async function mapLimit<T, R>(
   items: readonly T[],
   n: number,

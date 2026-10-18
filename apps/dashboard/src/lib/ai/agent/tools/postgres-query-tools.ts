@@ -17,7 +17,6 @@ import { capResultRows, truncationNote } from './helpers'
 import { pgHostIdSchema, runPostgresReadOnly } from './postgres-helpers'
 import { dynamicTool } from 'ai'
 
-/** Top-N `pg_stat_statements` patterns ranked by total execution time. */
 const SLOW_PATTERNS_SQL = `SELECT
   queryid::text AS queryid,
   query,

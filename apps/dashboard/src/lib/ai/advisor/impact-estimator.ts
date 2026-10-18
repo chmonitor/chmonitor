@@ -1,18 +1,8 @@
 /**
- * Query advisor — impact estimation (app side).
- *
- * The estimate math itself (`estimateBytesSaved`, `summarizeImpact`, and the
- * PREWHERE before/after verdict) lives in `@chm/query-advisor-core`, shared
- * with the MCP advisor tool so both surfaces phrase the same estimate the same
- * way (issue #2936). What stays here is the one piece that needs a ClickHouse
- * connection: running the before/after `EXPLAIN ESTIMATE` for the PREWHERE
- * candidate.
- *
- * Every number is explicitly an ESTIMATE — see `summarizeImpact`'s `summary`
- * text, which always says so. Nothing in this file executes DDL or writes
- * anything; `measurePrewhereImpact` only issues read-only `EXPLAIN` calls via
- * `readOnlyQuery` (see plans/46-query-advisor-engine.md — the recommend-only
- * invariant).
+ * Query advisor — impact estimation (app side). The estimate math lives in
+ * `@chm/query-advisor-core`; only the ClickHouse-bound before/after
+ * `EXPLAIN ESTIMATE` for the PREWHERE candidate stays here. Read-only: see the
+ * recommend-only invariant in `recommendation-engine.ts`.
  */
 
 import type { EstimatedImpact } from './types'
@@ -42,11 +32,9 @@ export interface MeasurePrewhereImpactInput {
 }
 
 /**
- * Best-effort "validate no plan breakage" check for the PREWHERE rewrite:
- * runs `EXPLAIN ESTIMATE` (falls back gracefully on any failure — permission
- * denied, syntax quirk, etc.) on both the original and rewritten query and
- * compares selected rows/marks. Read-only: two `EXPLAIN` statements via
- * `readOnlyQuery`, nothing else. Never executes either query for real.
+ * Best-effort PREWHERE plan-breakage check: runs `EXPLAIN ESTIMATE` on the
+ * original and rewritten query and compares selected rows/marks. Falls back
+ * gracefully on any failure (permission denied, syntax quirk). Read-only.
  */
 export async function measurePrewhereImpact(
   input: MeasurePrewhereImpactInput

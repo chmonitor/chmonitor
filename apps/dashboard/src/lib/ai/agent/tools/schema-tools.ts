@@ -132,7 +132,6 @@ export function createSchemaTools(hostId: number) {
         }
         const effectiveHostId = resolveHostId(paramHostId, hostId)
 
-        // Mode 1: No parameters - list all databases
         if (!database) {
           const result = await readOnlyQuery({
             query:
@@ -145,7 +144,6 @@ export function createSchemaTools(hostId: number) {
           }
         }
 
-        // Mode 2: Database only - list tables in database
         if (!table) {
           const limit = 500
           const result = (await readOnlyQuery({
@@ -165,7 +163,6 @@ export function createSchemaTools(hostId: number) {
           }
         }
 
-        // Mode 3: Database and table - full schema exploration
         const [columns, indexes, partitions, constraints] = await Promise.all([
           readOnlyQuery({
             query:

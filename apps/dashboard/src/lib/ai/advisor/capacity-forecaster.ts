@@ -1,53 +1,37 @@
 /**
- * Capacity forecast & TTL advisor.
+ * Capacity forecast & TTL advisor: disk-full dates from `system.part_log`
+ * NewPart write volume, plus TTL suggestions. Recommend-only: `suggestTtl`
+ * returns a suggestion string and risk note, never executes DDL, and never
+ * suggests a TTL below the caller's retention floor.
  *
- * Forecasts disk-full dates from `system.part_log` NewPart write volume and
- * recommends TTL/retention changes to keep disk utilization bounded.
- * Recommend-only: `suggestTtl` never executes DDL, it only returns a
- * suggestion string (`ALTER TABLE ... MODIFY TTL ...`) plus a risk note, and
- * never suggests a TTL below the caller's stated retention floor.
- *
- * `system.part_log` is an optional table (opt-in in ClickHouse config). All
- * public entry points gate on its existence via the shared table-existence
- * cache and return a `PartLogUnavailable` result instead of fabricating a
- * forecast when it's missing. See plans/50-capacity-forecast-ttl-advisor.md.
+ * `system.part_log` is optional (opt-in in ClickHouse config); entry points
+ * return `PartLogUnavailable` instead of fabricating a forecast when missing.
  */
 
 import { checkTableExists } from '@chm/clickhouse-client/table-existence-cache'
 import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
 import { formatBytes } from '@/lib/utils'
 
-/** ClickHouse `system.part_log` `event_type` enum value for part creation (ingestion/insert). */
 const NEW_PART_EVENT_TYPE = 1
-/** History window used to estimate the current write-growth rate. */
 const FORECAST_WINDOW_DAYS = 30
-/** Default disk-full projection horizon when the caller doesn't specify one. */
 const DEFAULT_HORIZON_DAYS = 90
-/** Target ceiling for projected disk utilization when solving for a TTL. */
 const DISK_UTILIZATION_TARGET = 0.8
-/** Retention floor assumed when the caller doesn't pass one — see `suggestTtl`. */
 const DEFAULT_RETENTION_FLOOR_DAYS = 30
-/** Below this many days of history, confidence is capped at 'low' regardless of dispersion. */
 const MIN_SAMPLE_DAYS_FOR_CONFIDENCE = 7
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 /**
- * A day-count projection beyond this (100 years) is treated as "effectively
- * never" rather than a real number — both because it's meaningless for
- * capacity planning (nobody needs an `ALTER ... INTERVAL 999999999 DAY`
- * suggestion) and because a tiny-but-positive growth rate against a large
- * free space can otherwise produce a `daysToFull` so large that
- * `Date.now() + daysToFull * MS_PER_DAY` overflows JS's representable date
- * range, which throws a `RangeError` out of `toISOString()`.
+ * Projections beyond this (100 years) mean "effectively never": meaningless for
+ * planning, and a tiny positive growth rate against large free space can make
+ * `Date.now() + daysToFull * MS_PER_DAY` overflow JS's date range, throwing a
+ * `RangeError` from `toISOString()`.
  */
 const MAX_MEANINGFUL_FORECAST_DAYS = 36_500
 
 const PART_LOG_UNAVAILABLE_MESSAGE =
   'system.part_log is not enabled on this ClickHouse server (or is inaccessible to this user). Capacity forecasting and TTL suggestions need part_log to estimate the write-growth rate — enable it in the ClickHouse server config (<part_log> section), let it accumulate history, then retry. Refusing to fabricate a forecast without it.'
 
-/** Confidence in a fitted growth rate, driven by day-to-day dispersion and sample size. */
 export type GrowthConfidence = 'low' | 'medium' | 'high'
 
-/** Returned by every entry point below when `system.part_log` is unavailable. */
 export interface PartLogUnavailable {
   available: false
   reason: 'part_log_disabled'
@@ -110,15 +94,10 @@ export interface TtlSuggestion {
 export type TtlResult = PartLogUnavailable | TtlSuggestion
 
 /**
- * Build a dense, chronologically-ordered daily byte series over `windowDays`,
- * filling any day with no NewPart events as `0`. Index `0` is the oldest day
- * (`windowDays - 1` days ago); the last index is "today" (`referenceDate`).
- *
- * Note: `day` keys from ClickHouse (`toDate(event_time)`) bucket in the
- * server's configured timezone, while this function keys in UTC. On a
- * non-UTC server the oldest/newest bucket can be off by one and fall back to
- * `0` — a minor undercount of growth, not a correctness hazard (30 days of
- * history absorbs a one-day edge easily).
+ * Dense daily byte series over `windowDays`, zero-filled; index 0 is oldest.
+ * ClickHouse `toDate(event_time)` buckets in server timezone while this keys
+ * in UTC, so on a non-UTC server an edge bucket can be off by one: a minor
+ * undercount, not a correctness hazard.
  */
 export function buildDailySeries(
   rows: Array<{ day: string; bytes: number }>,
@@ -137,11 +116,8 @@ export function buildDailySeries(
 }
 
 /**
- * Fit `cumulativeBytes(day) = slope * day + intercept` via ordinary least
- * squares over the cumulative sum of `dailyBytes`. Fitting the cumulative
- * series (rather than the noisy day-to-day deltas) makes `slope` a stable
- * estimate of bytes/day growth even when ingestion is bursty (e.g. batch
- * loads on some days and none on others).
+ * Ordinary least squares over the cumulative sum of `dailyBytes`; fitting the
+ * cumulative series keeps `slope` stable when ingestion is bursty.
  */
 export function fitLinearGrowth(dailyBytes: number[]): {
   slope: number
@@ -174,12 +150,11 @@ export function fitLinearGrowth(dailyBytes: number[]): {
 }
 
 /**
- * Confidence in the growth-rate estimate, from the *daily* series' dispersion
- * (coefficient of variation = stddev / mean) rather than the cumulative fit's
- * R² — a cumulative sum of non-negative values is near-linear (R² ~ 1) even
- * when the underlying daily ingestion is wildly bursty, which would silently
- * over-report confidence exactly when a single future batch could blow the
- * estimate. Also capped at 'low' when there isn't enough history yet.
+ * Confidence from the *daily* series' dispersion (stddev / mean), not the
+ * cumulative fit's R²: a cumulative sum of non-negative values is near-linear
+ * even when daily ingestion is wildly bursty, which would over-report
+ * confidence exactly when one batch could blow the estimate. Capped at 'low'
+ * with too little history.
  */
 export function growthConfidence(dailyBytes: number[]): GrowthConfidence {
   const n = dailyBytes.length
@@ -198,7 +173,6 @@ export function growthConfidence(dailyBytes: number[]): GrowthConfidence {
 
 export interface TtlSuggestionInput {
   currentBytes: number
-  /** Non-negative bytes/day growth estimate for this table (clamp negative fits to 0 before calling). */
   dailyGrowthBytes: number
   freeBytes: number
   totalBytes: number
@@ -206,27 +180,20 @@ export interface TtlSuggestionInput {
 }
 
 export interface TtlSuggestionMath {
-  /** Largest TTL (days) that keeps *projected* utilization at/under the target — `null` when the table isn't growing (no pressure). */
   nSafeDays: number | null
-  /** Always `>= retentionDays` — the invariant this whole feature exists to protect. */
   suggestedTtlDays: number
   meetsUtilizationTarget: boolean
   riskNote: string
 }
 
 /**
- * Solve for a TTL (in days) that keeps projected disk utilization at/under
- * {@link DISK_UTILIZATION_TARGET}, never dropping below `retentionDays`.
- *
- * Steady state: with a TTL of N days, a table's size plateaus at
- * `dailyGrowthBytes * N` once data older than N days starts expiring. Solve
- * for the largest N such that `otherUsedBytes + dailyGrowthBytes * N <=
- * target * totalBytes`. If that N is still below the retention floor, the
- * floor wins (the suggestion is never lowered below it) and the risk note
- * says so plainly instead of silently suggesting an unsafe-but-compliant TTL.
- *
- * Pure — safe to fuzz with many synthetic inputs to prove the "never below
- * the retention floor" invariant.
+ * Largest TTL (days) keeping projected utilization at/under
+ * {@link DISK_UTILIZATION_TARGET}. Steady state: with a TTL of N days a table
+ * plateaus at `dailyGrowthBytes * N`, so solve `otherUsedBytes +
+ * dailyGrowthBytes * N <= target * totalBytes`. If N falls below the retention
+ * floor, the floor wins and the risk note says so instead of silently
+ * suggesting an unsafe TTL. Pure, so the "never below the floor" invariant can
+ * be fuzzed.
  */
 export function computeTtlSuggestion(
   input: TtlSuggestionInput
@@ -250,9 +217,7 @@ export function computeTtlSuggestion(
     dailyGrowthBytes > 0
       ? Math.floor(maxTableBytesAtTarget / dailyGrowthBytes)
       : null
-  // Growth so slow it would take >100 years to matter is functionally the
-  // same as "not growing" — collapse into the same null/no-pressure branch
-  // rather than suggesting an absurd `INTERVAL <huge number> DAY`.
+  // Growth so slow it takes >100 years to matter is "not growing"; avoids an absurd `INTERVAL <huge> DAY`.
   const nSafeDays =
     rawNSafeDays !== null && rawNSafeDays <= MAX_MEANINGFUL_FORECAST_DAYS
       ? rawNSafeDays
@@ -272,9 +237,7 @@ export function computeTtlSuggestion(
 }
 
 async function isPartLogAvailable(hostId: number): Promise<boolean> {
-  // 'unknown' means the probe itself failed (network/timeout/auth), not a
-  // confirmed answer — treat it as unavailable here, same as this function's
-  // prior fail-closed behavior (never fabricate a forecast, see file header).
+  // 'unknown' means the probe itself failed, not a confirmed answer: treat as unavailable, never fabricate a forecast.
   return (await checkTableExists(hostId, 'system', 'part_log')) === true
 }
 
@@ -379,7 +342,6 @@ async function queryEngineFull(
   return engineFull || null
 }
 
-/** Detect an existing TTL clause in a table's `engine_full` DDL snippet. */
 export function detectExistingTtlPolicy(engineFull: string | null): {
   hasTtl: boolean
   expression: string | null
@@ -394,10 +356,6 @@ export function detectExistingTtlPolicy(engineFull: string | null): {
   return { hasTtl: true, expression: expression || null }
 }
 
-/**
- * Top-N tables by write volume (`system.part_log` NewPart bytes) over the
- * last {@link FORECAST_WINDOW_DAYS} days.
- */
 export async function identifyHotTables(
   hostId: number,
   n = 5
@@ -441,12 +399,7 @@ export async function identifyHotTables(
   }
 }
 
-/**
- * Forecast when this host's disks will run out of free space, projecting
- * forward from the last {@link FORECAST_WINDOW_DAYS} days of `system.part_log`
- * NewPart write volume. Returns `available: false` (never a fabricated
- * number) when `system.part_log` isn't enabled.
- */
+/** Returns `available: false` (never a fabricated number) when `system.part_log` isn't enabled. */
 export async function forecastDiskFull(
   hostId: number,
   horizonDays = DEFAULT_HORIZON_DAYS
@@ -472,12 +425,8 @@ export async function forecastDiskFull(
 
   const rawDaysToFull =
     dailyGrowthBytes > 0 ? Math.floor(freeBytes / dailyGrowthBytes) : null
-  // Growth so slow it would take >100 years to fill the disk is functionally
-  // "never" — treat it like the no-growth case. This also guards against
-  // Date overflow: a tiny-but-positive rate against a large free space can
-  // otherwise produce a daysToFull so large that Date.now() + daysToFull *
-  // MS_PER_DAY exceeds JS's representable date range, throwing a RangeError
-  // out of toISOString() below.
+  // >100 years to fill is "never"; also avoids a Date overflow RangeError
+  // from toISOString() below (see MAX_PROJECTED_DAYS).
   const daysToFull =
     rawDaysToFull !== null && rawDaysToFull <= MAX_MEANINGFUL_FORECAST_DAYS
       ? rawDaysToFull
@@ -490,13 +439,13 @@ export async function forecastDiskFull(
       : null
   const willExceedHorizon = daysToFull !== null && daysToFull <= horizonDays
 
-  // Best-effort enrichment — a failure here must not sink the whole forecast.
+  // Best-effort enrichment: a failure must not sink the whole forecast.
   let topContributors: HotTable[] = []
   try {
     const hot = await identifyHotTables(hostId, 5)
     if (hot.available) topContributors = hot.tables
   } catch {
-    // ignore — enrichment only
+    // enrichment only
   }
 
   const explanation =
@@ -526,11 +475,7 @@ export async function forecastDiskFull(
   }
 }
 
-/**
- * Recommend a TTL for `database.table` that keeps projected disk utilization
- * at/under 80%, never suggesting fewer than `retentionDays`. Read-only and
- * recommend-only: returns a suggestion string, never executes it.
- */
+/** Recommend-only: returns a suggestion string, never executes it. */
 export async function suggestTtl(params: {
   hostId: number
   database: string

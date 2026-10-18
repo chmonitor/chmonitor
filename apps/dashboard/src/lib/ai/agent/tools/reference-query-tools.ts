@@ -3,16 +3,6 @@ import { z } from 'zod'
 import { dynamicTool } from 'ai'
 import { getSqlForDisplay, queries } from '@/lib/query-config'
 
-/**
- * find_reference_query — retrieval over the built-in `QueryConfig` catalog.
- *
- * The dashboard ships 100+ vetted, version-aware SQL statements (the same ones
- * the monitoring pages run). Rather than hand-writing `system.*` SQL from
- * scratch, the agent can look up the closest existing config and adapt its
- * known-good, version-safe SQL. This is a read-only, deterministic,
- * keyword-overlap lookup — no ClickHouse round-trip.
- */
-
 interface ScoredConfig {
   name: string
   description: string

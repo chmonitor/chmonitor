@@ -4,7 +4,7 @@
  * Wraps `lib/ai/advisor/mv-designer/` — mines frequent aggregation shapes
  * from `system.query_log` and returns ranked MV/projection DDL
  * recommendations with a size estimate, impact, and risk. Recommend-only:
- * copy-DDL, never applied. See plans/47-mv-projection-designer.md.
+ * copy-DDL, never applied.
  *
  * `designMaterializedViews` is imported dynamically inside `execute()`
  * (rather than statically at module scope) to keep merely constructing the

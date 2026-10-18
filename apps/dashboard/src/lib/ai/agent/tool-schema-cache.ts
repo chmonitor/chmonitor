@@ -1,5 +1,5 @@
 /**
- * Per-isolate cache of built-in tool input JSON schemas (issue #3560).
+ * Per-isolate cache of built-in tool input JSON schemas.
  *
  * The AI SDK converts every tool's zod `inputSchema` to JSON Schema in
  * `prepareTools` on EVERY step of the tool loop, and the tool factories build

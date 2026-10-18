@@ -1,11 +1,3 @@
-/**
- * ClickHouse AI Agent using AI SDK ToolLoopAgent
- *
- * A native AI SDK agent for querying ClickHouse using natural language.
- * Supports multiple LLM providers (OpenRouter, NVIDIA NIM, AnyRouter)
- * via the provider registry.
- */
-
 import type { ProviderOptions } from '@ai-sdk/provider-utils'
 import type { AgentConnectionBinding } from './host-query'
 
@@ -28,7 +20,6 @@ function filterTools<T extends Record<string, unknown>>(
   return filtered
 }
 
-/** Bound wandering. Override per request via `maxSteps`. */
 export const DEFAULT_MAX_STEPS = 10
 
 /** Per-step output cap so one runaway completion cannot drive cost. */
@@ -55,14 +46,11 @@ export function createClickHouseAgent(options: {
   disabledTools?: string[]
   systemPrompt?: string
   providerOptions?: ProviderOptions
-  /** Origin of the calling request — passed as OpenRouter HTTP-Referer. */
   referer?: string
   includeControlTools?: boolean
   /** Read-only integration tools, resolved by the route (integration-tools-gate.ts). */
   integrations?: { peerdb?: boolean; postgres?: boolean }
-  /** Session / conversation ID for structured log correlation. */
   sessionId?: string
-  /** Additional tools from connected custom MCP servers (prefixed mcp_*). */
   extraTools?: Record<string, unknown>
   /**
    * BYOK — a user-supplied provider API key. Overrides the deployment's env
@@ -94,11 +82,10 @@ export function createClickHouseAgent(options: {
     integrations
   )
   // Built-in schemas are static per tool name: reuse their JSON Schema across
-  // steps and requests instead of re-converting zod every step (#3560).
+  // steps and requests instead of re-converting zod every step.
   const filteredTools = withCachedInputSchemas(
     filterTools(allTools, disabledTools)
   )
-  // Wrap each tool's execute to emit structured logs (toolName, durationMs, etc.)
   // Built-in tools take precedence over MCP tools on key collision (mcp_ prefix
   // prevents collisions in practice).
   const mergedTools = extraTools

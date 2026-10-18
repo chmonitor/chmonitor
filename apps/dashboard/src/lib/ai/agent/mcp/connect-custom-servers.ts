@@ -1,10 +1,4 @@
 /**
- * Custom MCP server connection helper.
- *
- * Connects to user-supplied MCP endpoints at request time, merges their tools
- * into the agent's tool set (prefixed to avoid clobbering built-ins), and
- * provides a closeAll() for stream-end cleanup.
- *
  * Security: each endpoint passes an SSRF guard before any network call is
  * made. The guard reuses the shared `validateHostUrl` used for ClickHouse
  * connections — it resolves the hostname and rejects the endpoint if ANY
@@ -41,7 +35,6 @@ export interface CustomMcpServerInput {
   endpoint: string
   /** Transport to open the client over. Defaults to 'http'. */
   transport?: McpTransport
-  /** Structured auth; defaults to no auth. */
   auth?: McpAuth
 }
 
@@ -56,18 +49,11 @@ export interface McpConnectionResult {
   }>
 }
 
-/** Minimal MCP client surface used here (subset of the AI SDK client). */
 interface McpClientLike {
   tools: () => Promise<Record<string, unknown>>
   close: () => Promise<void>
 }
 
-/**
- * Factory for opening an MCP client. Injected in tests so the connect/close
- * lifecycle (and failure paths) can be driven without a live network call —
- * the default builds a real, SSRF-pinned AI SDK client (see
- * {@link defaultCreateMcpClient}).
- */
 export type McpClientFactory = (args: {
   url: string
   transport: McpTransport
@@ -75,16 +61,13 @@ export type McpClientFactory = (args: {
   serverName: string
 }) => Promise<McpClientLike>
 
-/** Options accepted across the connect helpers (test seams). */
 export interface ConnectOptions {
   createClient?: McpClientFactory
   resolveHostAddresses?: ResolveHostAddresses
 }
 
-/** Maximum number of custom servers to connect per request. */
 const MAX_SERVERS = 5
 
-/** Per-server connect+tools timeout in milliseconds. */
 const CONNECT_TIMEOUT_MS = 8_000
 
 /**
@@ -134,13 +117,10 @@ export async function isAllowedMcpUrl(
   const isLoopback =
     hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
 
-  // http is only permitted for loopback (dev convenience).
   if (protocol === 'http:') return isLoopback
 
-  // Loopback over https is fine and needs no DNS resolution.
   if (isLoopback) return true
 
-  // Reject any remaining IPv6 literal (only ::1 is allowed, handled above).
   // IPv6 SSRF filtering is subtle, so refuse all other v6 literals outright.
   if (hostname.includes(':')) return false
 
@@ -179,12 +159,10 @@ function rawHostname(raw: string): string {
  * there, and numeric-encoded forms (including loopback ones) are rejected here.
  */
 function isNumericEncodedHost(h: string): boolean {
-  // Standard dotted-decimal IPv4 quad — let validateHostUrl classify it.
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return false
 
-  // Bare integer forms.
-  if (/^0x[\da-f]+$/i.test(h)) return true // hex, e.g. 0x7f000001
-  if (/^\d+$/.test(h)) return true // decimal, e.g. 2130706433
+  if (/^0x[\da-f]+$/i.test(h)) return true
+  if (/^\d+$/.test(h)) return true
 
   // Dotted forms whose every part is numeric/hex but which are NOT a clean
   // decimal quad (short forms like 127.1, octal 0177.0.0.1, hex 0x7f.0.0.1).
@@ -196,10 +174,6 @@ function isNumericEncodedHost(h: string): boolean {
   return false
 }
 
-/**
- * Sanitise a server name into a safe tool key segment.
- * Output: lowercase [a-z0-9_], max 20 chars, never empty.
- */
 export function sanitizeServerName(name: string): string {
   const cleaned = name
     .toLowerCase()
@@ -209,16 +183,6 @@ export function sanitizeServerName(name: string): string {
   return cleaned || 'server'
 }
 
-/**
- * Connect to a list of custom MCP servers, returning merged AI SDK tools and
- * per-server statuses.
- *
- * Each tool key is prefixed as `mcp_<sanitizedServerName>_<toolName>` so it
- * cannot collide with built-in agent tools.
- *
- * At most MAX_SERVERS (5) servers are connected; extras are recorded as errors.
- * Per-server failures are isolated — one bad server does not affect others.
- */
 export async function connectCustomMcpServers(
   servers: CustomMcpServerInput[],
   opts?: ConnectOptions
@@ -236,7 +200,7 @@ export async function connectCustomMcpServers(
   for (const server of toConnect) {
     // On Workers the pinned fetch refuses hostnames, so the connect would fail
     // anyway. Fail before the DNS lookup and client setup: the built-in
-    // Firecrawl server hit this on every agent request (#3560).
+    // Firecrawl server hit this on every agent request.
     const pinningError = workerHostPinningError(server.endpoint)
     if (pinningError) {
       statuses.push({
@@ -294,7 +258,6 @@ export async function connectCustomMcpServers(
     }
   }
 
-  // Record any servers that were silently capped
   for (const server of servers.slice(MAX_SERVERS)) {
     statuses.push({
       id: server.id,
@@ -311,12 +274,6 @@ export async function connectCustomMcpServers(
   return { tools: allTools, closeAll, statuses }
 }
 
-/**
- * Test-connect to a single MCP endpoint WITHOUT persisting: SSRF-guard the URL,
- * open the (SSRF-pinned) client, list its advertised tools, and ALWAYS close
- * the client — on success AND on throw (the BUG-03 close-always invariant).
- * Returns the real advertised tool names on success, or a reason on failure.
- */
 export async function validateServer(
   input: CustomMcpServerInput,
   opts?: ConnectOptions
@@ -407,10 +364,6 @@ function normalizeEndpoint(endpoint: string): string {
   return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed
 }
 
-/**
- * Build outbound auth headers from a registration's structured auth. Returns
- * undefined for no auth so the transport sends none.
- */
 function buildAuthHeaders(auth?: McpAuth): Record<string, string> | undefined {
   if (!auth || auth.kind === 'none') return undefined
   if (auth.kind === 'bearer') return { Authorization: `Bearer ${auth.token}` }
@@ -447,11 +400,6 @@ const defaultCreateMcpClient: McpClientFactory = async ({
   }
 }
 
-/**
- * Connect to an MCP endpoint and fetch its tools, with a hard timeout.
- * Cleans up the client if the timeout fires OR if tools() throws after the
- * client opened, so a failed listing never leaks an open connection.
- */
 async function connectWithTimeout(
   server: CustomMcpServerInput,
   createClient: McpClientFactory

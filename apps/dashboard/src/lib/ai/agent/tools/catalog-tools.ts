@@ -1,22 +1,9 @@
 /**
- * `search_tools` — on-demand discovery of the tool surface (always a core tool).
- *
- * The agent ships its whole tool set in one flat namespace and the system
- * prompt is a flat prose list of names, so the model has no routing help beyond
- * the names. This tool is the same trick `load_skill` already plays for skills:
- * describe what you want, get back the handful of tools that fit, with a
- * one-line summary and when-to-use each.
- *
- * ## Gate contract
- *
  * The factory takes the **already-gated** tool-name list for this request, so
  * the Postgres / PeerDB / control-tool env gates are inherited rather than
  * re-implemented. It never advertises a tool that is not registered this
  * request — otherwise the model would call a tool that does not exist and burn
  * a step on the error.
- *
- * ## Why the whole tool set is still sent
- *
  * `search_tools` is discovery, not a gate. See `catalog.ts` for why the default
  * request still carries every tool: the AI SDK's `ToolLoopAgent` takes a static
  * `tools` map, so a tool discovered here cannot be injected mid-loop. A caller
@@ -35,9 +22,6 @@ import {
 import { capResultRows, truncationNote } from './helpers'
 import { dynamicTool } from 'ai'
 
-/**
- * A tool the model can actually call this request, with its live description.
- */
 export interface AvailableTool {
   name: string
   description: string
@@ -104,7 +88,6 @@ function scoreEntry(
 export interface SearchToolsResult {
   query: string
   category: string | null
-  /** Every gated-in tool the model could still call, not just the matches. */
   callable_tool_count: number
   matched: number
   results: {
@@ -115,19 +98,12 @@ export interface SearchToolsResult {
     core: boolean
     score: number
   }[]
-  /** Names offered by the catalog but not registered this request. */
   unavailable_due_to_gates: string[]
   truncated: boolean
   note?: string
   categories: string[]
 }
 
-/**
- * Create the `search_tools` tool bound to the tools registered this request.
- *
- * `available` is the caller's post-gate tool map, so the result can never
- * advertise an unregistered tool.
- */
 export function createSearchTools(available: SearchableTools): {
   search_tools: ReturnType<typeof dynamicTool>
 } {

@@ -14,12 +14,6 @@ export type SuggestedPromptCategory =
   | 'Operations'
   | 'Access'
 
-/**
- * Immutable prompt suggestion shown in empty states and the agent sidebar.
- *
- * `text` is submitted to chat, `category` groups the prompt for UI context,
- * and `tags` are matched against recent conversation text for ranking.
- */
 export interface SuggestedPrompt {
   readonly text: string
   readonly category: SuggestedPromptCategory
@@ -120,12 +114,6 @@ function contextTokens(messages: readonly UIMessage[]): Set<string> {
   return tokens
 }
 
-/**
- * Returns starter prompts ranked by recent conversation context.
- *
- * @returns Up to `limit` prompt suggestions, keeping stable starter order for
- * equally relevant prompts.
- */
 export function getSuggestedPrompts({
   messages = [],
   limit = DEFAULT_PROMPT_LIMIT,

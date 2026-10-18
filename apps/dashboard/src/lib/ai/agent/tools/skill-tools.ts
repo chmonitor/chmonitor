@@ -5,7 +5,6 @@ import { dynamicTool } from 'ai'
 
 const MAX_PURPOSE_CHARS = 60
 
-/** First sentence of a skill description, cut at a word boundary. */
 function shortPurpose(description: string): string {
   const first = description.split(/\.\s|\.$/)[0].trim()
   if (first.length <= MAX_PURPOSE_CHARS) return first

@@ -30,10 +30,6 @@ type HealthSnapshotRow = {
   metric_values?: unknown
 }
 
-/**
- * Fold one snapshot row into the metrics object `get_metrics` returns:
- * `version`, `uptime_seconds`, then one key per reported metric.
- */
 function toHealthMetrics(row: HealthSnapshotRow): Record<string, unknown> {
   const metrics: Record<string, unknown> = {
     version: row.version,

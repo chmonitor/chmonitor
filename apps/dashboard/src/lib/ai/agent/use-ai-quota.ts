@@ -1,23 +1,6 @@
 'use client'
 
-/**
- * useAiQuota — client hook for the agent's daily AI-message allowance.
- *
- * Cloud (SaaS) only. Free-tier users get a small daily included-message quota
- * (see `checkAiDailyLimit` in `lib/billing/entitlements.ts`); today that cap is
- * only surfaced by a 402 mid-conversation, so a Free user has no forewarning of
- * how many messages remain. This hook powers a subtle "X / N messages today"
- * indicator in the agent chrome.
- *
- * Design:
- * - Reads `GET /api/v1/billing/usage` (added by a sibling slice — B3). This hook
- *   consumes it defensively: any error, absence, or malformed body resolves to
- *   `show: false` so the indicator simply does not render. It never blocks or
- *   degrades the agent, and it never throws.
- * - OSS / self-hosted (not cloud mode) short-circuits to `show: false` and does
- *   not even hit the endpoint — the daily meter is a Cloud concept.
- * - Unlimited plans (Enterprise / BYOK, `limit == null`) also render nothing.
- */
+// Cloud-only daily-message meter. Reads GET /api/v1/billing/usage defensively: OSS, errors, malformed bodies and unlimited plans all resolve to show: false, so it never affects the agent.
 
 import { useQuery } from '@tanstack/react-query'
 
@@ -26,7 +9,6 @@ import { apiFetch } from '@/lib/swr/api-fetch'
 import { NON_CRITICAL_RETRY, visibilityAwareInterval } from '@/lib/swr/config'
 
 export interface AiQuota {
-  /** Messages already sent today. */
   used: number
   /** Daily included-message cap, or null when the plan is unlimited. */
   limit: number | null
@@ -39,12 +21,6 @@ export interface AiQuota {
 export interface UseAiQuotaResult extends AiQuota {
   isLoading: boolean
   error: Error | null
-  /**
-   * Whether the "X / N messages today" indicator should render at all. True only
-   * in cloud mode, when a bounded quota was resolved successfully. False on OSS,
-   * on any fetch/parse error, on absence of the endpoint, and for unlimited
-   * plans — so callers can `if (!quota.show) return null` unconditionally.
-   */
   show: boolean
 }
 
@@ -102,13 +78,6 @@ export function parseQuota(payload: unknown): AiQuota {
   return HIDDEN
 }
 
-/**
- * Reports the current user's daily AI-message allowance for the agent UI.
- *
- * Fails safe in every dimension: OSS builds and any endpoint error resolve to
- * `show: false`, so the indicator is purely additive and can never break the
- * agent.
- */
 export function useAiQuota(): UseAiQuotaResult {
   const cloud = isCloudModeClient()
 
@@ -116,8 +85,6 @@ export function useAiQuota(): UseAiQuotaResult {
     queryKey: ['billing', 'ai-usage'],
     enabled: cloud,
     staleTime: 30_000,
-    // Poll gently so the indicator ticks down as the user sends messages,
-    // without hammering the endpoint.
     refetchInterval: visibilityAwareInterval(60_000),
     refetchOnWindowFocus: true,
     // The endpoint may not exist yet (sibling slice) or the session cookie may

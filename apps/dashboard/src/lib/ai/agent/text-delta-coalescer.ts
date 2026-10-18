@@ -6,7 +6,7 @@
  * chunk. Every later stage — the patch guard, the AI SDK's UI-message state
  * update, SSE JSON serialisation and UTF-8 encoding — then ran once per
  * character instead of once per model token, which dominated the agent
- * request's CPU time on Workers (issue #3560).
+ * request's CPU time on Workers.
  *
  * `pipeJsonRenderCoalesced` tags the end of every upstream text delta with a
  * boundary marker. json-render passes unknown chunk types through unchanged

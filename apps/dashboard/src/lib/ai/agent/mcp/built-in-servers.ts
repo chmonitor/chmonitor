@@ -34,7 +34,6 @@ export function isFirecrawlMcpEnabled(
   return true
 }
 
-/** Built-in servers to merge after request-body + D1 registrations. */
 export function getBuiltInMcpServers(
   env: NodeJS.ProcessEnv = process.env
 ): CustomMcpServerInput[] {

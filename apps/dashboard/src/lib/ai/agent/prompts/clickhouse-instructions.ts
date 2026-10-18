@@ -1,7 +1,4 @@
-/**
- * ClickHouse agent system instructions — one operating procedure.
- * Keep this text short and stable so providers can cache the prefix.
- */
+// Keep this text short and stable so providers can cache the prefix.
 
 const TOOL_LIST = `
 ## Tools

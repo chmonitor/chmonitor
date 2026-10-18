@@ -1,9 +1,4 @@
-/**
- * SQL text parsing for the MV/projection designer — extracting GROUP BY keys
- * and aggregate function calls from a query's raw text. Pure, no I/O.
- *
- * See `./index.ts` for the module overview.
- */
+/** SQL text parsing for the MV/projection designer (GROUP BY keys, aggregate calls). Pure, no I/O. */
 
 export interface AggregateCall {
   func: string
@@ -72,15 +67,10 @@ function skipQuotedSpan(input: string, start: number): number {
   return input.length - 1
 }
 
-/** True when a GROUP BY key is a single unquoted identifier (no expressions). */
 export function isBareIdentifier(key: string): boolean {
   return /^[A-Za-z_][\w$]*$/.test(key.trim())
 }
 
-/**
- * Format GROUP BY keys for safe interpolation into generated SQL. Bare
- * identifiers pass through unchanged; complex expressions are kept verbatim.
- */
 export function formatGroupByListForSql(keys: readonly string[]): string {
   if (keys.every(isBareIdentifier)) return keys.join(', ')
   return keys
@@ -92,10 +82,7 @@ export function formatGroupByListForSql(keys: readonly string[]): string {
     .join(', ')
 }
 
-/**
- * Split a comma-separated expression list at the top level only — commas
- * nested inside function-call parens or string literals are not split points.
- */
+/** Top-level only: commas inside parens or string literals are not split points. */
 export function splitTopLevelCommas(input: string): string[] {
   const parts: string[] = []
   let depth = 0
@@ -121,11 +108,7 @@ export function splitTopLevelCommas(input: string): string[] {
   return parts.map((p) => p.trim()).filter(Boolean)
 }
 
-/**
- * Extract the GROUP BY key expressions from a query's text. Returns `[]` for
- * queries with no GROUP BY, or exotic forms (`GROUP BY ALL`, `GROUPING SETS`,
- * `ROLLUP`, `CUBE`) that this v1 doesn't model.
- */
+/** Returns `[]` for no GROUP BY, or forms this doesn't model (`GROUP BY ALL`, `GROUPING SETS`, `ROLLUP`, `CUBE`). */
 export function extractGroupByKeys(sql: string): string[] {
   const match = sql.match(GROUP_BY_CLAUSE_PATTERN)
   if (!match) return []
@@ -134,7 +117,6 @@ export function extractGroupByKeys(sql: string): string[] {
   return splitTopLevelCommas(clause)
 }
 
-/** Extract aggregate function calls (`sum(x)`, `count()`, `uniq(y)`, …) from a query's text. */
 export function extractAggregateCalls(sql: string): AggregateCall[] {
   const calls: AggregateCall[] = []
   for (const match of sql.matchAll(AGGREGATE_CALL_PATTERN)) {

@@ -115,7 +115,6 @@ export function createVisualizationTools(hostId: number) {
           }
         }
 
-        // Auto-pick chart type based on shape of results
         const resolvedChartType = (() => {
           if (chartType) return chartType
           // Single row + single metric → large number display

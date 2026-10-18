@@ -9,8 +9,7 @@
  * what the advisor module pulls in.
  *
  * Recommend-only: this tool returns ranked DDL/rewrite text, risk, effort,
- * and an estimated impact. It never executes or applies anything — see
- * plans/46-query-advisor-engine.md.
+ * and an estimated impact. It never executes or applies anything.
  */
 
 import { z } from 'zod'

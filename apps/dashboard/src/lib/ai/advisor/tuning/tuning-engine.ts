@@ -1,18 +1,12 @@
 /**
- * Advisor auto fine-tune engine — orchestration.
+ * Advisor tuning engine: orchestration. Gathers read-only metadata (cheap
+ * scans of `system.columns` / `system.parts` / `system.settings` /
+ * `system.merge_tree_settings`, no user-table data), runs the pure rules, and
+ * ranks findings. An unreadable settings table drops that section rather than
+ * failing the report.
  *
- * The thin I/O layer that gathers read-only metadata, runs the pure rule
- * functions (`schema-rules.ts`, `settings-rules.ts`), ranks the findings, and
- * returns a `TuningReport`. Companion to `recommendation-engine.ts`'s
- * `analyzeQuery`, but schema-scoped rather than query-scoped.
- *
- * ABSOLUTE INVARIANT: recommend-only. Everything here is read via
- * `readOnlyQuery` (forces `clickhouse_settings.readonly = '1'`) and every
- * returned figure is inert. All queries are cheap metadata scans over
- * `system.columns` / `system.parts` / `system.settings` /
- * `system.merge_tree_settings` — no user-table data is read. Degrades
- * gracefully: an unreadable settings table drops the settings section rather
- * than failing the whole report.
+ * ABSOLUTE INVARIANT: recommend-only. Everything goes through `readOnlyQuery`
+ * (forces `clickhouse_settings.readonly = '1'`).
  */
 
 import type {
@@ -37,17 +31,14 @@ import { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
 import { annotateDdlForTopology } from '@/lib/ddl/on-cluster'
 import { parseDistributedEngine } from '@/lib/explorer/engine-kind'
 
-/** System databases never worth linting. */
 const SYSTEM_DATABASES = new Set([
   'system',
   'information_schema',
   'INFORMATION_SCHEMA',
 ])
 
-/** Hard cap on columns scanned, so a huge schema stays a cheap query. */
 const COLUMN_SCAN_LIMIT = 2000
 
-/** Hard cap on tables scanned for TTL / engine / Distributed rules. */
 const TABLE_SCAN_LIMIT = 200
 
 const SEVERITY_ORDER: Record<TuningFinding['severity'], number> = {
@@ -59,15 +50,10 @@ const SEVERITY_ORDER: Record<TuningFinding['severity'], number> = {
 export interface AnalyzeTuningInput {
   hostId: number
   database: string
-  /** Optional single table; when omitted, the whole database is scanned. */
   table?: string
 }
 
-/**
- * Gather per-column bytes/type from `system.columns` (already aggregated over
- * parts) plus the owning table's active row count from `system.parts`. Ordered
- * by on-disk size so the cap keeps the biggest (highest-impact) columns.
- */
+/** Ordered by on-disk size so the cap keeps the biggest columns. */
 async function fetchColumnProfiles(
   hostId: number,
   database: string,
@@ -154,11 +140,7 @@ function leadingSortTypeFor(
   return col?.type ?? ''
 }
 
-/**
- * Gather MergeTree (and Distributed) table metadata for table-level rules.
- * Uses `engine_full` rather than `create_table_query`. Returns `[]` (never
- * throws) if `system.tables` is unreadable.
- */
+/** Uses `engine_full` rather than `create_table_query`. Returns `[]` (never throws) if `system.tables` is unreadable. */
 async function fetchTableProfiles(
   hostId: number,
   database: string,
@@ -232,10 +214,7 @@ async function fetchTableProfiles(
   }
 }
 
-/**
- * Local cluster + Distributed wrappers in this database. `null` when
- * `system.clusters` is empty or unreadable (single-node / no permission).
- */
+/** Local cluster + Distributed wrappers; `null` when `system.clusters` is empty or unreadable. */
 async function fetchClusterContext(
   hostId: number,
   database: string
@@ -290,12 +269,7 @@ async function fetchClusterContext(
   }
 }
 
-/**
- * Gather changed settings from `system.settings` and
- * `system.merge_tree_settings`. Only changed rows are pulled — the rules only
- * fire on non-default values, so this keeps the payload small. Returns `[]`
- * (never throws) if the tables can't be read.
- */
+/** Only changed rows are pulled (rules fire on non-default values only). Returns `[]` if unreadable. */
 async function fetchSettings(hostId: number): Promise<SettingRow[]> {
   const rows: SettingRow[] = []
   try {
@@ -350,10 +324,9 @@ async function fetchSettings(hostId: number): Promise<SettingRow[]> {
 }
 
 /**
- * Rank findings. Schema findings sort by estimated bytes saved (desc), then
- * severity; settings findings (no bytes) sort by severity. Schema findings
- * with real byte impact come first, settings after — both interleaved by the
- * comparator so a high-severity setting still floats above a tiny schema nit.
+ * Schema findings sort by estimated bytes saved, then severity; settings
+ * sort by severity. The comparator interleaves them so a high-severity setting
+ * still floats above a tiny schema nit.
  */
 export function rankFindings(findings: TuningFinding[]): TuningFinding[] {
   return [...findings].sort((a, b) => {
@@ -364,10 +337,7 @@ export function rankFindings(findings: TuningFinding[]): TuningFinding[] {
   })
 }
 
-/**
- * Analyze a database (or single table) and return ranked, recommend-only
- * schema + settings tuning findings. Read-only end to end.
- */
+/** Read-only end to end. */
 export async function analyzeTuning(
   input: AnalyzeTuningInput
 ): Promise<TuningReport> {

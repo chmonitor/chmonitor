@@ -55,13 +55,9 @@ export interface AnyRouterModelListItem {
    * string mirrors of `input_per_1m`/`output_per_1m`, in the same unit.
    */
   pricing?: {
-    /** USD per 1M input tokens, as a string (mirrors `input_per_1m`). */
     prompt?: string | number
-    /** USD per 1M output tokens, as a string (mirrors `output_per_1m`). */
     completion?: string | number
-    /** USD per 1M input tokens. */
     input_per_1m?: number
-    /** USD per 1M output tokens. */
     output_per_1m?: number
   }
   architecture?: {

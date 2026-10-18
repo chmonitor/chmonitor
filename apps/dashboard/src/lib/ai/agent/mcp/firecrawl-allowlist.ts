@@ -80,7 +80,6 @@ export function extractHttpHostsFromArgs(input: unknown): string[] {
   return hosts
 }
 
-/** First extracted host that is not on the allowlist, if any. */
 export function firstDisallowedFirecrawlHost(
   input: unknown,
   allowlist: readonly string[]

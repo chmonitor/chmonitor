@@ -1,21 +1,12 @@
 /**
- * Query-history picker for the Query Advisor page.
- *
- * Builds a parameterized `system.query_log` lookup so the advisor input can be
- * populated by browsing recent/expensive queries instead of pasting SQL by
- * hand. All free-text/user/kind values are bound as ClickHouse
- * `{param:Type}` query parameters (never string-interpolated), and the numeric
- * knobs (hours / min duration / limit) are clamped to safe integers and inlined
- * — the same fail-safe pattern used by `buildTimeFilter` in
- * `lib/clickhouse-query.ts`.
- *
- * This module is pure (no I/O) so it is unit-testable; the route in
- * `routes/api/v1/advisor/history.ts` runs the built query with `fetchData`.
+ * Parameterized `system.query_log` lookup for the Query Advisor history picker.
+ * Free-text/user/kind values are bound as `{param:Type}` query parameters; the
+ * numeric knobs are clamped to safe integers and inlined, like `buildTimeFilter`
+ * in `lib/clickhouse-query.ts`. Pure (no I/O).
  */
 
 import { QUERY_COMMENT } from '@chm/clickhouse-client/constants' // pragma: allowlist secret
 
-/** A ClickHouse query-kind the picker can filter on (subset of query_kind). */
 export const HISTORY_PICKER_KINDS = [
   'Select',
   'Insert',
@@ -26,7 +17,6 @@ export const HISTORY_PICKER_KINDS = [
 ] as const
 export type HistoryPickerKind = (typeof HISTORY_PICKER_KINDS)[number]
 
-/** Omit the `query_kind` predicate — every kind in the window. */
 export const HISTORY_PICKER_KIND_ALL = 'all' as const
 export type HistoryPickerKindFilter =
   | HistoryPickerKind
@@ -46,37 +36,24 @@ export const HISTORY_PICKER_KIND_OPTIONS: ReadonlyArray<{
 ]
 
 /**
- * Distinctive prefix `fetchData` prepends to every dashboard query. Running
- * query counts already drop rows whose query text contains this comment.
- * Trim the trailing newline so the match is independent of how query_log
- * stores whitespace after the block comment.
+ * Distinctive prefix `fetchData` prepends to every dashboard query. Trimmed so
+ * the match is independent of how query_log stores whitespace after the block
+ * comment.
  */
 export const DASHBOARD_QUERY_FINGERPRINT = QUERY_COMMENT.trim() // pragma: allowlist secret
 
 export interface HistoryPickerFilters {
-  /** Free-text, case-insensitive substring match on the query body. */
   keyword?: string
-  /** Exact `user` match. */
   user?: string
-  /**
-   * Restrict to a single `query_kind`. Unset / `'all'` means no kind
-   * predicate — do not default to Select.
-   */
+  /** Unset / `'all'` means no kind predicate; do not default to Select. */
   kind?: HistoryPickerKindFilter
-  /** Minimum `query_duration_ms`. */
   minDurationMs?: number
-  /** Look-back window in hours (event_time). */
   hours?: number
-  /** Max rows returned (hard-capped). */
   limit?: number
-  /**
-   * When true (the default), drop queries that carry the dashboard
-   * `QUERY_COMMENT` fingerprint. Pass `false` to include them.
-   */
+  /** Default true: drop queries carrying the dashboard `QUERY_COMMENT` fingerprint. */
   excludeSelf?: boolean
 }
 
-/** One row surfaced to the picker UI. */
 export interface HistoryQueryRow {
   query_id: string
   query: string
@@ -89,10 +66,9 @@ export interface HistoryQueryRow {
 export const HISTORY_PICKER_MAX_LIMIT = 50
 export const HISTORY_PICKER_DEFAULT_LIMIT = 50
 export const HISTORY_PICKER_DEFAULT_HOURS = 24
-/** Guard against an unbounded scan — widest window the picker allows. */
+/** Widest window the picker allows, so the scan stays bounded. */
 const HISTORY_PICKER_MAX_HOURS = 24 * 30 // 30 days
 
-/** Clamp to a positive integer within [min, max], falling back to `fallback`. */
 function clampInt(
   value: number | undefined,
   fallback: number,
@@ -116,12 +92,9 @@ function isHistoryPickerKind(value: string): value is HistoryPickerKind {
 }
 
 /**
- * Build the parameterized `system.query_log` picker query.
- *
- * Results are ordered by `query_duration_ms DESC` so the slowest (most
- * advisor-worthy) queries surface first. Rows are grouped by `query_id` (one
- * row per finished request) — ORMs and clients that reuse ids are not
- * collapsed by normalized text; that would be a separate product decision.
+ * Results are ordered by `query_duration_ms DESC`, grouped by `query_id`. ORMs
+ * and clients that reuse ids are not collapsed by normalized text; that would
+ * be a separate product decision.
  */
 export function buildHistoryPickerQuery(
   filters: HistoryPickerFilters = {}
@@ -230,10 +203,6 @@ export function buildHistoryUsersQuery(hours?: number): BuiltHistoryQuery {
   return { sql, params: {} }
 }
 
-/**
- * Collapse whitespace and clip a query to `max` characters for compact list
- * rendering. Adds an ellipsis when clipped.
- */
 export function truncateQueryText(query: string, max = 120): string {
   const normalized = query.replace(/\s+/g, ' ').trim()
   if (normalized.length <= max) return normalized

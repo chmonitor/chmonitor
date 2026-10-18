@@ -18,18 +18,12 @@ export interface WorkflowPlanOutput {
   type: 'workflow_plan'
   steps: WorkflowPlanStep[]
   note?: string
-  /** Human-readable workflow title when the plan came from a template. */
   workflow?: string
   total: number
   completed: number
   updatedAt: string
 }
 
-/**
- * Normalize a raw step list into a `workflow_plan` payload. Shared by the
- * `update_plan` tool and the `start_workflow` tool so both emit an identical
- * shape for the UI to render.
- */
 export function buildWorkflowPlan(
   steps: Array<{ title: string; status?: PlanStepStatus }>,
   options: { note?: string; workflow?: string } = {}
@@ -55,21 +49,6 @@ export function buildWorkflowPlan(
   }
 }
 
-/**
- * Creates the `update_plan` harness tool.
- *
- * This gives the agent an explicit, user-visible workflow: a checklist of the
- * steps it intends to take for a multi-step investigation. The agent calls this
- * once at the start to lay out the plan, then again after finishing each step to
- * mark progress. The frontend renders the latest plan as a live checklist, so the
- * user always knows where the agent is in its workflow.
- *
- * The tool is pure (no ClickHouse access) — it simply normalizes and echoes the
- * plan back so the UI can render it and the model retains the plan in context.
- *
- * @returns An object containing the `update_plan` tool that emits a
- * `{ type: 'workflow_plan', steps, note, total, completed, updatedAt }` payload.
- */
 export function createPlanTools() {
   return {
     update_plan: dynamicTool({

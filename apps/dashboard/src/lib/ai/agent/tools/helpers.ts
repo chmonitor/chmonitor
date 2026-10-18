@@ -1,10 +1,3 @@
-/**
- * Shared helpers for agent tool implementations.
- *
- * Provides common query execution patterns to eliminate boilerplate
- * across tool category files.
- */
-
 import { z } from 'zod'
 import type { DataFormat } from '@clickhouse/client'
 
@@ -17,10 +10,6 @@ import {
 import { fetchData } from '@chm/clickhouse-client'
 import { validateSqlQuery } from '@chm/sql-builder'
 
-/**
- * Simple in-memory LRU cache for metadata queries.
- * Cached per request with 60-second TTL to reduce redundant ClickHouse queries.
- */
 class MetadataCache {
   private cache = new Map<string, { data: unknown; expires: number }>()
   private readonly DEFAULT_TTL = 60000 // 60 seconds
@@ -65,15 +54,8 @@ class MetadataCache {
   }
 }
 
-/**
- * Global metadata cache instance.
- * Cleared between agent requests to prevent stale data.
- */
 export const metadataCache = new MetadataCache()
 
-/**
- * Resolve the effective host ID from tool input and default.
- */
 export function resolveHostId(
   toolHostId: number | undefined,
   defaultHostId: number
@@ -81,11 +63,6 @@ export function resolveHostId(
   return toolHostId ?? defaultHostId
 }
 
-/**
- * Execute a read-only query against ClickHouse.
- * Validates SQL, sets readonly mode, and returns data or throws.
- * Uses metadata cache for schema/metadata queries.
- */
 export async function readOnlyQuery(options: {
   query: string
   hostId: number
@@ -144,7 +121,6 @@ export async function readOnlyQuery(options: {
     throw new Error(result.error.message)
   }
 
-  // Cache successful metadata query results
   if (useCache) {
     metadataCache.set(hostId, query, result.data, query_params)
   }
@@ -152,10 +128,6 @@ export async function readOnlyQuery(options: {
   return result.data
 }
 
-/**
- * Execute a validated read-only SQL query (user-provided SQL).
- * Runs SQL validation before execution.
- */
 export async function validatedReadOnlyQuery(options: {
   sql: string
   hostId: number
@@ -237,20 +209,12 @@ export function capResultRows<T>(
   }
 }
 
-/**
- * Human-readable note explaining a truncated result set, matching the
- * `list_tables` truncation-note shape/wording.
- */
 export function truncationNote(
   maxRows: number = MAX_QUERY_RESULT_ROWS
 ): string {
   return `Results truncated to ${maxRows} rows. Add a LIMIT clause or aggregate the query to see the full result set.`
 }
 
-/**
- * Execute a write query (KILL, OPTIMIZE, etc.) against ClickHouse.
- * No readonly setting. Use only for control actions.
- */
 export async function writeQuery(options: {
   query: string
   hostId: number
@@ -278,16 +242,9 @@ export async function writeQuery(options: {
   return result.data
 }
 
-/**
- * Valid SQL identifier pattern for table names.
- * Reused from actions route for consistent validation.
- */
 const VALID_TABLE_IDENTIFIER =
   /^(`[^`]+`|[a-zA-Z_][a-zA-Z0-9_]*)(\.\s*(`[^`]+`|[a-zA-Z_][a-zA-Z0-9_]*))?$/
 
-/**
- * Validate table identifier to prevent SQL injection.
- */
 export function isValidTableIdentifier(table: string): boolean {
   if (!table || table.length > 256) return false
   return VALID_TABLE_IDENTIFIER.test(table.trim())

@@ -1,23 +1,7 @@
-/**
- * Structured logging wrapper for AI agent tool execution.
- *
- * Wraps each tool's `execute` function ONCE at agent-creation time to emit
- * a structured log entry on every tool call. Fields emitted:
- *   toolName, traceId (toolCallId), conversationId (sessionId), durationMs,
- *   resultCount, errorCategory
- *
- * Sensitive args are redacted before logging so passwords / SQL strings don't
- * leak into log aggregators.
- *
- * Usage:
- *   const tools = wrapToolsWithLogging(createAllTools(hostId), sessionId)
- */
-
 import type { ToolExecutionOptions, ToolSet } from 'ai'
 
 import { log, error as logError } from '@chm/logger'
 
-/** Keys whose values are redacted in logged args. */
 const SENSITIVE_KEYS = new Set([
   'password',
   'token',
@@ -31,7 +15,6 @@ const SENSITIVE_KEYS = new Set([
   'credentials',
 ])
 
-/** Maximum length for a stringified arg value in logs. */
 const MAX_ARG_LOG_LENGTH = 256
 
 function redactArgs(input: unknown): unknown {
@@ -57,10 +40,6 @@ function redactArgs(input: unknown): unknown {
   return result
 }
 
-/**
- * Count rows in the tool result for the `resultCount` field.
- * Returns undefined when the result doesn't look like a row set.
- */
 function countResults(result: unknown): number | undefined {
   if (Array.isArray(result)) return result.length
   if (typeof result === 'object' && result !== null) {
@@ -85,16 +64,6 @@ function classifyToolError(err: unknown): string {
   return 'unknown'
 }
 
-/**
- * Return a new tools record where each tool's `execute` is wrapped with
- * structured logging. The original tool objects are not mutated.
- *
- * Generic over `T extends ToolSet` so the return type is identical to the
- * input type — no AI SDK type information is lost at the call site.
- *
- * @param tools      - Tool record from `createAllTools` (satisfies `ToolSet`).
- * @param sessionId  - Agent session / conversation identifier for log correlation.
- */
 export function wrapToolsWithLogging<T extends ToolSet>(
   tools: T,
   sessionId: string

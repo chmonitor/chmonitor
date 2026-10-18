@@ -1,7 +1,4 @@
-/**
- * `/advisor` page tabs. Schema & Settings is first and the default.
- * Query Advisor stays available; `?query=` / `?queryId=` still open it.
- */
+/** `/advisor` page tabs; Schema & Settings is the default. `?query=` / `?queryId=` still open Query Advisor. */
 
 export const ADVISOR_TAB_SCHEMA = 'schema'
 export const ADVISOR_TAB_QUERY = 'query'

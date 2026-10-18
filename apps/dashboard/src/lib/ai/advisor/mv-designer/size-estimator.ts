@@ -1,17 +1,11 @@
-/**
- * Size + impact estimation math for the MV/projection designer. Pure, no I/O.
- *
- * See `./index.ts` for the module overview.
- */
+/** Size + impact estimation math for the MV/projection designer. Pure, no I/O. */
 
 import { formatBytes } from '@/lib/utils'
 
 export interface SizeEstimate {
-  /** Estimated row count for the MV/projection — approximated by the estimated distinct grouping-key combinations. */
   estimatedRows: number
   estimatedBytes: number
   readableEstimatedBytes: string
-  /** distinctCombinations / sourceRows, clamped to [0, 1]. */
   aggregationRatio: number
   label: 'estimate'
 }
@@ -29,12 +23,7 @@ export interface SizeEstimateInput {
   distinctCombinations: number
 }
 
-/**
- * MV/projection size ≈ source parts size × aggregation ratio, where the
- * ratio is `distinct grouping-key combinations / source rows`. Estimated
- * rows is approximated by the distinct-combination count (what the
- * table/projection converges to once merges finalize duplicate keys).
- */
+/** Size ≈ source parts size x (distinct grouping-key combinations / source rows). */
 export function estimateMvSize(input: SizeEstimateInput): SizeEstimate {
   const { sourceRows, sourceBytes, distinctCombinations } = input
   const ratio =
@@ -52,22 +41,10 @@ export function estimateMvSize(input: SizeEstimateInput): SizeEstimate {
 }
 
 /**
- * Scale a distinct-combination count observed in a bounded sample up to the
- * full table's row count by the inverse sampling fraction. Exact (no
- * scaling) when the sample already covers the whole table. Never exceeds
- * `sourceRows` (can't have more distinct combinations than rows).
- *
- * Honest caveat (labeled in the output as an "estimate", not hidden): linear
- * scaling of a sample's distinct count is a rough heuristic, not an
- * unbiased estimator — true cardinality-from-a-sample estimation is a
- * harder statistical problem. This tends to *overestimate* the true
- * distinct count when the grouping key's real cardinality is low/moderate
- * relative to the sample size (the sample already sees most distinct values
- * with little room left to find "new" ones, but scaling assumes the sample's
- * rate of finding new values holds for the rest of the table too). It's
- * cheapest/safest in the common case this tool targets — pre-aggregation
- * candidates where the whole point is that distinct combinations are far
- * fewer than rows — and never requires a full-table scan.
+ * Scale a sample's distinct-combination count up to the table's row count by
+ * the inverse sampling fraction (exact when the sample covers the table, never
+ * above `sourceRows`). A rough heuristic, not an unbiased estimator: it tends
+ * to overestimate when real cardinality is low relative to the sample.
  */
 export function scaleCardinality(
   sampleDistinct: number,

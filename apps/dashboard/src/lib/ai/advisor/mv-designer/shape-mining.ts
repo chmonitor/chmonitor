@@ -1,11 +1,4 @@
-/**
- * ClickHouse-backed mining for the MV/projection designer — pulls candidate
- * aggregation shapes from `system.query_log` and the per-table stats needed
- * to design + size a recommendation for each. Every query is read-only
- * (`readOnlyQuery` sets `readonly: '1'`).
- *
- * See `./index.ts` for the module overview.
- */
+/** ClickHouse-backed mining for the MV/projection designer. Every query is read-only (`readOnlyQuery`). */
 
 import type { AggregateCall } from './sql-parsing'
 
@@ -28,7 +21,6 @@ import {
  */
 const ADVISOR_QUERY_SETTINGS = { max_execution_time: 25 }
 
-/** Row cap for the cardinality sample query — bounded so mining never triggers a full-table scan. */
 export const CARDINALITY_SAMPLE_SIZE = 100_000
 
 export interface MinedShape {
@@ -111,7 +103,6 @@ export async function getTableSizeStats(
   }
 }
 
-/** Ordered sorting-key column/expression list, derived from `system.tables.sorting_key` (a comma-joined expression string). */
 export async function getSortingKeyColumns(
   hostId: number,
   database: string,
@@ -129,13 +120,7 @@ export async function getSortingKeyColumns(
   return splitTopLevelCommas(sortingKey)
 }
 
-/**
- * Cheap, bounded cardinality estimate for the GROUP BY key combination —
- * `uniqCombined` over a row-capped sample (never a full-table scan), scaled
- * up to the table's full row count. This resolves the plan's "cardinality
- * source" open question: a LIMIT-bounded sample is available on every
- * MergeTree table (unlike `SAMPLE n`, which needs a declared sampling key).
- */
+/** `uniqCombined` over a row-capped sample (never a full-table scan), scaled up to the table's row count. A LIMIT-bounded sample works on every MergeTree table, unlike `SAMPLE n`, which needs a sampling key. */
 export async function estimateGroupCardinality(
   hostId: number,
   database: string,

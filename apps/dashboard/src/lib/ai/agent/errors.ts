@@ -1,20 +1,13 @@
-/**
- * Agent error classification and formatting utilities.
- *
- * Provides structured error types, classification logic, and actionable
- * suggestions to improve the agent error UX.
- */
-
 export type AgentErrorType =
-  | 'auth_error' // 401, 403, invalid API key
-  | 'rate_limit' // 429, quota exceeded
-  | 'model_error' // Model not found, model overloaded
-  | 'tool_error' // Tool execution failed
-  | 'timeout' // Request/query timeout
-  | 'network_error' // Connection refused, DNS failure
-  | 'billing_error' // 402, insufficient credits
-  | 'upstream_error' // Provider/gateway upstream failure
-  | 'unknown' // Fallback
+  | 'auth_error'
+  | 'rate_limit'
+  | 'model_error'
+  | 'tool_error'
+  | 'timeout'
+  | 'network_error'
+  | 'billing_error'
+  | 'upstream_error'
+  | 'unknown'
 
 export interface AgentError {
   type: AgentErrorType

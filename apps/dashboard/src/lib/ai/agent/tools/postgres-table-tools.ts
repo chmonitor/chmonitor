@@ -17,7 +17,6 @@ import { z } from 'zod'
 import { pgHostIdSchema, runPostgresReadOnly } from './postgres-helpers'
 import { dynamicTool } from 'ai'
 
-/** Worst dead-tuple bloat + last (auto)vacuum/analyze per table. */
 const DEAD_TUPLE_TABLES_SQL = `SELECT
   (schemaname || '.' || relname) AS table_name,
   n_live_tup,
@@ -32,7 +31,6 @@ WHERE n_dead_tup > 0
 ORDER BY n_dead_tup::float / nullif(n_live_tup, 0) DESC NULLS LAST
 LIMIT $1`
 
-/** Unused indexes (never scanned), excluding PK / unique-constraint indexes. */
 const UNUSED_INDEXES_SQL = `SELECT
   (s.schemaname || '.' || s.relname) AS table_name,
   s.indexrelname AS index_name,

@@ -5,13 +5,6 @@ import { dynamicTool } from 'ai'
 const MAX_OPTIONS = 20
 const MAX_TEXT_LEN = 200
 
-/**
- * Creates tools for prompting the user with structured questions using supported input widgets.
- *
- * @returns An object containing an `ask_user` dynamic tool that, when executed, emits a payload of the form
- * `{ type: 'ask_user', question, inputType, options?, placeholder?, min, max, context?, awaiting_response: true }`
- * for the UI to render and collect the user's response.
- */
 export function createAskUserTools() {
   return {
     ask_user: dynamicTool({
