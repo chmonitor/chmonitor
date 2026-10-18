@@ -53,6 +53,13 @@ FROM (SELECT number, now() - toIntervalSecond(${startAgo} - number * ${every}) A
       startAgo: 120,
       noise: 50e6,
     })
+    // Two samples 5h and 2h ago: a 3h span, but a line through 2 points is not
+    // a trend. 100 GB then 50 GB free reads 800% ("full in ~3h") without the
+    // sample-count floor.
+    await series('sparse', 2, 100e9, -50e9, {
+      every: 3 * 3600,
+      startAgo: 5 * 3600,
+    })
     await client.command({
       query: `INSERT INTO system.asynchronous_metric_log (hostname, event_date, event_time, metric, value)
 VALUES (hostName(), today(), now(), 'DiskAvailable_${tag}_noisy', 49.8e9)`,
@@ -64,6 +71,7 @@ VALUES (hostName(), today(), now(), 'DiskAvailable_${tag}_noisy', 49.8e9)`,
     expect(await valueFor('flat')).toBe(0)
     expect(await valueFor('thin')).toBeNull()
     expect(await valueFor('noisy')).toBeNull()
+    expect(await valueFor('sparse')).toBeNull()
 
     await client.command({
       query: `ALTER TABLE system.asynchronous_metric_log DELETE WHERE startsWith(metric, 'DiskAvailable_${tag}')`,

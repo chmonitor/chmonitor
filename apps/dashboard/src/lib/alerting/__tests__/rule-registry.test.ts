@@ -228,7 +228,7 @@ describe('disk-time-to-full rule', () => {
   test('forecasts from asynchronous_metric_log, skipped without it', () => {
     expect(rule?.sql).toContain("startsWith(metric, 'DiskAvailable_')")
     expect(rule?.sql).toContain(
-      'HAVING max(event_time) - min(event_time) >= 3 * 3600'
+      'HAVING max(event_time) - min(event_time) >= 3 * 3600 AND count() >= 30'
     )
     expect(rule?.tableCheck).toBe('system.asynchronous_metric_log')
     expect(rule?.optional).toBe(true)
