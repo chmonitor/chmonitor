@@ -10,7 +10,7 @@
  *   row itself opens a detail dialog so users can read about what each skill
  *   covers before enabling/disabling.
  * - Tools popover: flat list of individual MCP tools with a per-tool toggle,
- *   no longer grouped by skill.
+ *   not grouped by skill.
  *
  * The send button itself stays inside the composer (the assistant-ui
  * `PromptInputTextareaWithMentions` already owns submission); this toolbar

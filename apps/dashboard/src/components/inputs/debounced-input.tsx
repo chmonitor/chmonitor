@@ -1,20 +1,3 @@
-/**
- * Debounced Input Component
- *
- * An input component with built-in debouncing to optimize performance
- * for search and filter operations. Prevents excessive updates/re-renders
- * while typing by delaying value changes until user stops typing.
- *
- * @example
- * ```tsx
- * <DebouncedInput
- *   placeholder="Search..."
- *   onValueChange={setSearchQuery}
- *   debounceMs={300}
- * />
- * ```
- */
-
 import {
   type InputHTMLAttributes,
   memo,
@@ -51,8 +34,6 @@ export const DebouncedInput = memo(function DebouncedInput({
 }: DebouncedInputProps) {
   const isControlled = controlledValue !== undefined
 
-  // Internal value tracks what the user is typing (for debouncing)
-  // In controlled mode, this syncs with controlledValue but allows local edits
   const [internalValue, setInternalValue] = useState(
     controlledValue ?? defaultValue
   )
@@ -67,7 +48,6 @@ export const DebouncedInput = memo(function DebouncedInput({
     }
   }, [isControlled, controlledValue])
 
-  // The input always shows the internal value for responsive typing
   const inputValue = internalValue
 
   const { debouncedValue, isPending } = useDebounceWithPending(
@@ -82,11 +62,8 @@ export const DebouncedInput = memo(function DebouncedInput({
     onValueChangeRef.current = onValueChange
   })
 
-  // Track the last value we reported to parent to avoid duplicate calls
   const lastReportedValue = useRef(controlledValue ?? defaultValue)
 
-  // Call onValueChange when debounced value changes
-  // Only call if the value actually changed from what we last reported
   useEffect(() => {
     if (debouncedValue !== lastReportedValue.current) {
       lastReportedValue.current = debouncedValue
@@ -94,7 +71,6 @@ export const DebouncedInput = memo(function DebouncedInput({
     }
   }, [debouncedValue])
 
-  // Handle input changes - always update internal state, let debounce handle callback
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInternalValue(e.target.value)
   }, [])

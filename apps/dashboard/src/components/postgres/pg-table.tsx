@@ -1,9 +1,6 @@
 /**
- * Declarative table for a `PgQueryConfig` (issue #2450). Renders the config's
- * `PgColumn[]` with per-column formatting and optional inline share bars (the
- * Postgres analog of the ClickHouse BackgroundBar `pct_*` convention), with
- * client-side pagination for the capped result sets. Clicking a row invokes
- * `onRowClick` (used to open the detail flyout).
+ * Declarative table for a `PgQueryConfig` with per-column formatting, optional share
+ * bars, and client-side pagination.
  */
 
 import {
@@ -34,7 +31,6 @@ const columnHelper = createColumnHelper<Row>()
 const PAGE_SIZE = 50
 const CODE_MAX = 160
 
-/** A single formatted cell, with an optional share bar behind the value. */
 function PgCell({ column, row }: { column: PgColumn; row: Row }) {
   const display = formatPgValue(row[column.key], column.format)
   const pct =

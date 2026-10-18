@@ -9,7 +9,7 @@ interface MirrorStatusPillProps {
 }
 
 /**
- * Colored status pill with a live dot, ported from the CHM Redesign StatusPill.
+ * Colored status pill with a live dot.
  * Uses inline hex tints (dot + '14'/'40') so the tone matches the design exactly
  * regardless of theme.
  */

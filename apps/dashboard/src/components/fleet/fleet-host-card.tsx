@@ -22,7 +22,6 @@ interface FleetHostCardProps {
   host: MergedHostInfo
 }
 
-/** Individual host card for the /fleet overview page. */
 export function FleetHostCard({ host }: FleetHostCardProps) {
   const navigate = useNavigate()
   // Browser connections (negative IDs) have no server-side status endpoint.

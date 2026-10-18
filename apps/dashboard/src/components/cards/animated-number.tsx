@@ -6,11 +6,6 @@ interface AnimatedNumberProps {
   className?: string
 }
 
-/**
- * Extracts numeric value from a string or number
- * Handles formats like "150.5 GiB", "1.2K", etc.
- * Returns the integer portion for animation
- */
 function parseNumericValue(value: string | number): {
   num: number
   suffix: string
@@ -23,27 +18,12 @@ function parseNumericValue(value: string | number): {
   return { num: Math.round(parseFloat(match[1])), suffix: match[2] }
 }
 
-/**
- * Ease-out quadratic function for smooth animation
- */
 function easeOutQuad(t: number): number {
   return t * (2 - t)
 }
 
-/**
- * Duration of animation in milliseconds
- */
 const ANIMATION_DURATION = 600
 
-/**
- * AnimatedNumber component that smoothly animates integer number changes
- *
- * Features:
- * - Integer-only counting animation with easing
- * - Preserves suffixes (e.g., "150 GiB" keeps the " GiB")
- * - Uses requestAnimationFrame for smooth 60fps animation
- * - Tracks previous value for seamless transitions
- */
 export function AnimatedNumber({ value, className }: AnimatedNumberProps) {
   const { num: targetNum, suffix } = parseNumericValue(value)
   const [displayNum, setDisplayNum] = useState(targetNum)

@@ -178,12 +178,10 @@ function CalendarBody({
   // to decide how many month blocks fit (oldest dropped first).
   const [gridWidth, setGridWidth] = useState(0)
 
-  // `today` is read once per render from the local clock; memoize so the
-  // cell build is off every hover re-render and only reruns on mode change.
-  // The window spans whole months up to MAX_WINDOW_MONTHS back — including
-  // empty months before the first data row — so a wide card fills its width.
-  // pickVisibleMonthBlocks then drops those oldest months first on resize.
-  // The current month always runs through its last day (remaining days dimmed).
+  // `today` is read once per render; memoized so the cell build only reruns on
+  // mode change. The window spans whole months, including empty months before
+  // the first data row, so a wide card fills its width; the current month
+  // always runs through its last day (remaining days dimmed).
   const dataStartIso = useMemo(() => earliestRowIso(data), [data])
   const model = useMemo(
     () => buildMonthWindowModel(data, new Date(), metric),

@@ -1,17 +1,8 @@
-/**
- * Shortcut handler hooks for keyboard navigation
- *
- * Provides navigation handlers for keyboard shortcuts.
- */
-
 import { useNavigate } from '@tanstack/react-router'
 
 import { useHostId } from '@/lib/swr'
 import { buildUrl, splitHref } from '@/lib/url/url-builder'
 
-/**
- * Navigation handlers for keyboard shortcuts
- */
 export function useShortcutHandlers() {
   const navigate = useNavigate()
   const hostId = useHostId()

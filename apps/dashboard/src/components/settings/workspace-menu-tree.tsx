@@ -133,7 +133,7 @@ function TreeNode({
               />
             ))
             if (!section.subgroup) return rows
-            // Subgroup headings are labels only here (#3676): search already
+            // Subgroup headings are labels only here: search already
             // narrows the list, so nothing collapses.
             return (
               <SidebarMenuSubItem key={`subgroup:${section.subgroup}`}>

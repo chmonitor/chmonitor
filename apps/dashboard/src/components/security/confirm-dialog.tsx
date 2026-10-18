@@ -1,8 +1,3 @@
-/**
- * DDL confirm dialog — shows the generated DDL and executes it on confirm.
- * Shared by every RBAC management operation.
- */
-
 import { TriangleAlert } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'

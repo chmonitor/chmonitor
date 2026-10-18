@@ -16,17 +16,10 @@ interface HealthDetailRowsProps {
 const SKELETON_KEYS = ['a', 'b', 'c', 'd'] as const
 
 /**
- * The drill-down breakdown for a health check: the actual rows behind the
- * headline number (lagging replicas, failing queries, offending partitions, …).
+ * Drill-down rows behind a check's headline number, rendered via `ResultTable`.
  *
- * Rendered only while the detail dialog is open — Radix unmounts `DialogContent`
- * when closed, so this component (and its `useChartData` fetch) mounts on open
- * and unmounts on close. That keeps the /health page from fetching 17 breakdown
- * queries up-front; each is fetched lazily the first time a card is opened.
- *
- * Generic by design: it renders whatever columns the check's detail query
- * returns via the shared `ResultTable`, so a new check needs only a
- * `detailChartName` — no per-card rendering code here.
+ * Rendered only while the detail dialog is open (Radix unmounts `DialogContent`
+ * when closed), so /health does not fetch every breakdown up-front.
  */
 export function HealthDetailRows({
   chartName,

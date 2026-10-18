@@ -85,11 +85,11 @@ export function resolveFirstRunAction(input: FirstRunInput): FirstRunAction {
 
   // The frontend is a rendering layer, not the security boundary: a 401/403 is
   // not something the visitor resolves here, so we don't wall the app — pages
-  // render and individual data calls surface their own states. (Unchanged.)
+  // render and individual data calls surface their own states.
   if (isUnauthorized) return { type: 'render' }
 
   // Account/billing/about/setup pages stay reachable with zero hosts and must
-  // not be re-pointed. (Unchanged.)
+  // not be re-pointed.
   if (onExemptPath) return { type: 'render' }
 
   // Cloud + signed-in: the env host is a hidden read-only demo. If the active

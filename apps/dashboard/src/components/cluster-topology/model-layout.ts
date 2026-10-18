@@ -1,14 +1,9 @@
 /**
  * Deterministic x/y layout pipeline: turns a layout-free `TopologyData` (from
  * `model-assemble.ts`) into the `TopologyModel` the SVG canvas + inspector
- * render. Pure & stable across live-metric ticks — no `Math.random` /
- * `Date.now`. See docs/knowledge/cluster-topology.md for the pipeline order
- * (`layoutKeepers` → `layoutChNodes` → `enforceMinDistance` → `clampToBand` →
- * `fitContent` → hull building) and the constant contracts.
- *
- * `buildTopologyModel(...)` composes `assembleTopology` + `layoutTopology` for
- * callers holding raw rows (the client fallback when the API route is
- * unavailable).
+ * render. Pure & stable across live-metric ticks (no `Math.random` /
+ * `Date.now`). Pipeline order and constant contracts:
+ * docs/knowledge/cluster-topology.md.
  */
 
 import type { ClusterTopologyRow } from '@/lib/query-config/system/clusters-topology'
@@ -51,8 +46,7 @@ import {
 } from './model-hulls'
 
 /**
- * Add deterministic x/y layout + lookup maps + hull to a TopologyData, producing
- * the model the SVG canvas + inspector consume. Pure & stable across live ticks.
+ * Add x/y layout + lookup maps + hull to a TopologyData.
  *
  * For very large clusters the rendered CH-node set is capped (the local node is
  * always kept) so the fixed viewBox stays readable; meta.truncated /
@@ -76,13 +70,11 @@ export function layoutTopology(
     hiddenChNodes = data.chNodes.length - chNodes.length
   }
 
-  // Clone so layout mutation does not affect the source data.
   const keepers = data.keepers.map((k) => ({ ...k }))
   const renderCh = chNodes.map((n) => ({ ...n }))
 
-  // Visible cluster territories. Node LAYOUT always uses the full set (positions
-  // are logical-cluster-driven, so this is a no-op there), but hull building and
-  // the height reserve drop physical/outline clusters when they are toggled off.
+  // Node layout always uses the full set; hulls and the height reserve drop
+  // physical/outline clusters when toggled off.
   const visibleClusters = showPhysical
     ? data.clusters
     : data.clusters.filter((c) => !c.outline)
@@ -90,20 +82,15 @@ export function layoutTopology(
   layoutKeepers(keepers)
   layoutChNodes(renderCh, data.clusters)
 
-  // Prevent overlap: push apart any nodes closer than the minimum spacing.
-  // Wide gaps so a single-node cluster boundary can't reach a neighbor glyph
-  // and labels never collide.
+  // Wide gaps so a single-node cluster boundary can't reach a neighbor glyph.
   enforceMinDistance(keepers, KP_R * 2 + 48)
   enforceMinDistance(renderCh, CH_R * 2 + 92)
 
   clampToBand(renderCh)
 
-  // Auto-layout: translate the whole composition so its content (every node +
-  // its labels) is centered in the draw area. This handles the no-keeper case
-  // and any sparse layout — content sits in the middle instead of a fixed band.
-  // Cluster RECTS outset past the node envelopes (margin + concentric NEST_STEP
-  // rings) and the name pills sit on the bottom edge, so reserve that room or a
-  // densely-nested graph spills below the viewBox.
+  // Cluster rects outset past the node envelopes (margin + NEST_STEP rings) and
+  // pills sit on the bottom edge; reserve that room or a nested graph spills
+  // below the viewBox.
   const { padTop, padBottom } = boundaryReserve(visibleClusters, chNodes)
   const vbHeight = fitContent(keepers, renderCh, padTop, padBottom)
 
@@ -121,10 +108,8 @@ export function layoutTopology(
 
   const renderedIds = new Set(renderCh.map((n) => n.id))
 
-  // Ceiling that keeps CH cluster boxes BELOW the keeper region: the lowest point
-  // any keeper glyph + its label reaches, plus a gap. Computed from the FINAL
-  // (post-centerContent) keeper positions so it matches the node coords the hulls
-  // are built from. Null when there are no keepers (nothing to clear).
+  // Ceiling keeping CH cluster boxes below the keeper region. Uses the FINAL
+  // (post-centerContent) keeper positions; null when there are no keepers.
   const clusterTopCeiling = keepers.length
     ? Math.max(...keepers.map((k) => k.y + keeperDownExtent(k))) +
       KEEPER_CLUSTER_GAP
@@ -137,8 +122,7 @@ export function layoutTopology(
     clusterTopCeiling
   )
 
-  // Keeper quorum region over VOTING keepers (observers excluded): a rounded
-  // rectangle whose envelope encloses every keeper glyph + its label. Absent → ''.
+  // Quorum region over VOTING keepers only (observers excluded).
   const voters = keepers.filter((k) => k.role !== 'observer')
   const keeperHull = voters.length >= 1 ? buildKeeperRect(voters) : ''
 
@@ -161,10 +145,7 @@ export function layoutTopology(
   }
 }
 
-/**
- * Compose assemble + layout for callers holding raw rows (client fallback when
- * the API route is unavailable). Live metrics default to none.
- */
+/** Compose assemble + layout for callers holding raw rows (client fallback when the API route is unavailable). */
 export function buildTopologyModel(
   clusterRows: ClusterTopologyRow[],
   keeperRows: KeeperInfoRow[],
@@ -195,55 +176,42 @@ function layoutKeepers(keepers: KeeperNode[]) {
     keepers[0].y = 120
     return
   }
-  // leader on top apex, followers spread on a lower row.
-  // When no keeper has been elected leader (findIndex === -1), don't crown
-  // keepers[0] as the visual apex — keep a sensible default layout (keepers[0]
-  // sits on top) but the apex node is NOT labeled leader (it has isLeader=false),
-  // so nothing is falsely presented as the elected leader.
+  // With no elected leader (findIndex === -1), keepers[0] still takes the apex
+  // but keeps isLeader=false, so nothing is falsely shown as leader.
   const rawIdx = keepers.findIndex((k) => k.isLeader)
   const leaderIdx = rawIdx === -1 ? 0 : rawIdx
   const followers = keepers.filter((_, i) => i !== leaderIdx)
   keepers[leaderIdx].x = cx
   keepers[leaderIdx].y = 100
-  // Spread followers wide enough that adjacent FQDN host labels (~166px when
-  // truncated to ~24 chars) never overlap — the glyph gap alone is not enough —
-  // but cap the row to the usable width so large ensembles (7+ keepers) stay in
-  // the viewBox. centerContent can only clamp one side, so an over-wide row
-  // would leave the end keeper + its label off-canvas.
+  // Wide enough that adjacent FQDN labels (~166px at ~24 chars) don't overlap,
+  // capped to the usable width: centerContent clamps only one side, so an
+  // over-wide row would push the end keeper off-canvas.
   const desired = Math.min(280, 188 + followers.length * 16)
   const spread =
     followers.length > 1
       ? Math.min(desired, (VB_W - 2 * CH_MARGIN) / (followers.length - 1))
       : desired
   const total = (followers.length - 1) * spread
-  // Sit the follower row below the leader's own label block (host + sub-line)
-  // so the leader's text never grazes the follower glyphs.
+  // Below the leader's label block so its text never grazes follower glyphs.
   followers.forEach((f, i) => {
     f.x = cx - total / 2 + i * spread
     f.y = 214
   })
 }
 
-// CH region: a band below the keepers. Layout is deterministic + seeded only by
-// structure so positions are stable across live ticks. The band leaves headroom
-// below for each node's two label lines + LOCAL badge (≈ CH_R + 46). Sits low
-// enough that keeper follower FQDN labels clear the CH cards + the topmost
-// (outermost concentric) cluster boundary — see `KEEPER_CLUSTER_GAP`.
+// CH region: a band below the keepers, with headroom for two label lines + LOCAL
+// badge (≈ CH_R + 46). Low enough that keeper follower labels clear the CH cards
+// and the outermost cluster boundary; see `KEEPER_CLUSTER_GAP`.
 const CH_BAND_Y = 392
 const CH_BAND_H = 120
 const CH_MARGIN = 170
 
 /**
- * ClickHouse node layout that makes overlapping clusters legible:
- *  - group nodes by which DRAWABLE (logical/virtual) clusters they belong to;
- *  - give each logical cluster a centroid slot along a horizontal band;
- *  - place a node at the AVERAGE of its clusters' centroids, so a host shared by
- *    two clusters lands on the boundary between them → their hulls intersect in
- *    a small intentional lens (the ch-03 story);
- *  - spread nodes inside the same group on a compact grid so glyphs don't stack.
- *
- * Falls back to the simple centered arc / multi-row grid when there are no
- * logical clusters (e.g. only the implicit `default` cluster).
+ * ClickHouse node layout that keeps overlapping clusters legible: each logical
+ * cluster gets a centroid slot along a band, and a node sits at the average of
+ * its clusters' centroids so a shared host lands on the boundary between them.
+ * Falls back to a centered arc / multi-row grid when there are no logical
+ * clusters (e.g. only the implicit `default`).
  */
 function layoutChNodes(nodes: ChNode[], clusters: ClusterInfo[]) {
   const n = nodes.length
@@ -255,8 +223,7 @@ function layoutChNodes(nodes: ChNode[], clusters: ClusterInfo[]) {
     return
   }
 
-  // Drawable clusters = logical/virtual (filled hulls). Physical/outline clusters
-  // span everything, so they don't drive grouping.
+  // Physical/outline clusters span everything, so they don't drive grouping.
   const ids = new Set(nodes.map((nd) => nd.id))
   const logical = clusters
     .filter((c) => !c.outline)
@@ -267,7 +234,6 @@ function layoutChNodes(nodes: ChNode[], clusters: ClusterInfo[]) {
     return
   }
 
-  // Centroid slot per logical cluster, evenly spread along the band.
   const slotY = CH_BAND_Y + CH_BAND_H / 2
   const usable = VB_W - 2 * CH_MARGIN
   const centroid = new Map<string, { x: number; y: number }>()
@@ -276,12 +242,9 @@ function layoutChNodes(nodes: ChNode[], clusters: ClusterInfo[]) {
     centroid.set(c.id, { x: CH_MARGIN + t * usable, y: slotY })
   })
 
-  // Membership of each node among logical clusters (deterministic order).
   const memberClusters = (id: string) =>
     logical.filter((c) => c.members[id]).map((c) => c.id)
 
-  // Group nodes by membership signature; place the whole group near the average
-  // of its clusters' centroids (boundary for shared nodes), then fan out.
   const groups = new Map<string, ChNode[]>()
   for (const nd of nodes) {
     const mc = memberClusters(nd.id)
@@ -290,7 +253,6 @@ function layoutChNodes(nodes: ChNode[], clusters: ClusterInfo[]) {
     groups.get(sig)!.push(nd)
   }
 
-  // Stable group order: by signature string.
   const sigOrder = [...groups.keys()].sort()
   for (const sig of sigOrder) {
     const members = groups.get(sig)!
@@ -301,7 +263,7 @@ function layoutChNodes(nodes: ChNode[], clusters: ClusterInfo[]) {
       gx = mc.reduce((s, id) => s + (centroid.get(id)?.x ?? cx), 0) / mc.length
       gy =
         mc.reduce((s, id) => s + (centroid.get(id)?.y ?? slotY), 0) / mc.length
-      // Shared nodes (≥2 clusters) sit slightly higher so the lens reads cleanly.
+      // Shared nodes (≥2 clusters) sit slightly higher so the overlap reads cleanly.
       if (mc.length >= 2) gy -= 30
     }
     fanOut(members, gx, gy)
@@ -310,8 +272,7 @@ function layoutChNodes(nodes: ChNode[], clusters: ClusterInfo[]) {
   clampToBand(nodes)
 }
 
-/** Spread `members` on a compact centered grid around (gx, gy). Deterministic.
- * Row/col steps shrink for large groups so the grid stays inside the band. */
+/** Spread `members` on a compact centered grid around (gx, gy); steps shrink for large groups. */
 function fanOut(members: ChNode[], gx: number, gy: number) {
   const k = members.length
   if (k === 1) {
@@ -319,9 +280,7 @@ function fanOut(members: ChNode[], gx: number, gy: number) {
     members[0].y = gy
     return
   }
-  // Prefer a WIDE grid (more columns, fewer rows) — the canvas has width to
-  // spare and tall stacks overlap. Small groups stay on a single row; even a
-  // capped 24-node cluster needs only ~3 rows.
+  // Prefer a WIDE grid: the canvas has width to spare and tall stacks overlap.
   const cols =
     k <= 5
       ? k
@@ -329,9 +288,7 @@ function fanOut(members: ChNode[], gx: number, gy: number) {
   const rows = Math.ceil(k / cols)
   const stepY = Math.min(132, rows > 1 ? CH_BAND_H / (rows - 1) : 132)
   const stepX = Math.min(160, Math.max(108, stepY))
-  // Zigzag: alternate columns sit half a stagger above/below the row line so
-  // adjacent nodes are never on the same horizontal line — their labels can't
-  // collide even when the group is squeezed near a margin.
+  // Zigzag so adjacent nodes never share a horizontal line and labels can't collide.
   const STAGGER = 46
   members.forEach((nd, i) => {
     const row = Math.floor(i / cols)
@@ -344,8 +301,7 @@ function fanOut(members: ChNode[], gx: number, gy: number) {
   })
 }
 
-/** Simple centered arc / multi-row grid (no logical clusters). Rows are packed
- * into the readable band so even a capped-large N stays inside the viewBox. */
+/** Centered arc / multi-row grid (no logical clusters), packed into the readable band. */
 function layoutArc(nodes: ChNode[], cx: number) {
   const n = nodes.length
   const usable = VB_W - 2 * CH_MARGIN
@@ -384,27 +340,21 @@ function clampToBand(nodes: ChNode[]) {
 }
 
 /**
- * Translate the whole composition (keepers + CH nodes) so the bounding box of
- * its CONTENT envelopes is centered in the draw area. Keeps relative positions
- * intact; offset is clamped so content never leaves the viewBox when it fits.
- * This is the "auto layout" — sparse graphs (no keeper, one node) sit centered
- * instead of stuck in a fixed band.
+ * Translate the whole composition so the bounding box of its content envelopes
+ * is centered in the draw area; the offset is clamped so content stays in the
+ * viewBox when it fits.
  */
 /**
- * Vertical room the cluster boundary rects + their bottom pills occupy BEYOND the
- * node envelopes, so `centerContent` can keep the whole composition in view.
- * Coincident logical clusters (same rendered member set) nest as concentric
- * rings stepped by `NEST_STEP`; distinct ones get the small expand-only jitter.
- * Name pills sit on the bottom edge → bottom needs an extra pill's worth.
+ * Vertical room the cluster rects + bottom pills occupy BEYOND the node
+ * envelopes, so `centerContent` can keep the whole composition in view.
  */
 function boundaryReserve(
   clusters: ClusterInfo[],
   chNodes: ChNode[]
 ): { padTop: number; padBottom: number } {
   const ids = new Set(chNodes.map((n) => n.id))
-  // Count EVERY cluster that produces a hull (outline ones too — they are now
-  // labelled and nest as concentric rings exactly like logical ones), matching
-  // `buildClusterHulls`'s coincident grouping so the reserve never undercounts.
+  // Count every cluster that produces a hull, matching `buildClusterHulls`'s
+  // coincident grouping so the reserve never undercounts.
   const drawn = clusters.filter((c) =>
     Object.keys(c.members).some((id) => ids.has(id))
   )
@@ -420,27 +370,21 @@ function boundaryReserve(
     groupSize.set(s, (groupSize.get(s) ?? 0) + 1)
   }
   const maxNest = Math.max(...groupSize.values())
-  // Outermost-ring outset for the deepest nest, else the distinct-rect jitter.
   const ring = Math.max((maxNest - 1) * NEST_STEP, 21)
   const pad = ring + ENVELOPE_MARGIN
-  // Bottom pills can stack DOWNWARD by a PILL_ROW per horizontally-overlapping
-  // distinct cluster (coincident clusters nest as rings instead, so count member
-  // SETS, not clusters). Reserve a few rows so a busy graph's lowest pill stays
-  // in view; capped because spread-out pills rarely all share one x-column.
+  // Pills stack downward by a PILL_ROW per overlapping distinct member SET
+  // (coincident clusters nest instead). Capped: spread-out pills rarely share an x-column.
   const stackRows = Math.min(groupSize.size, 3)
   return { padTop: pad, padBottom: pad + stackRows * PILL_ROW_H + 8 }
 }
 
-// Symmetric margin between the content bounding box and the viewBox edges when
-// the viewBox grows to fit. Keeps the territory rings off the very edge.
+// Margin between the content bounding box and the viewBox edges when it grows to fit.
 const FIT_MARGIN = 20
 
 /**
- * Center the composition horizontally in `VB_W` and compute a DATA-DRIVEN viewBox
- * height that exactly fits the content (keeper region + CH band + the deepest
- * cluster-ring outset and bottom pills, via `padTop`/`padBottom`), never below
- * `VB_H`. Content is then centered vertically within that height. Returns the
- * height for the canvas to use. Mutates node x/y in place. Deterministic.
+ * Center the composition horizontally in `VB_W` and compute a viewBox height
+ * that fits the content (including `padTop`/`padBottom`), never below `VB_H`.
+ * Returns the height. Mutates node x/y in place.
  */
 function fitContent(
   keepers: KeeperNode[],
@@ -465,13 +409,10 @@ function fitContent(
     minY = Math.min(minY, c.y - chUpExtent())
     maxY = Math.max(maxY, c.y + chDownExtent(c))
   }
-  // Reserve room for the cluster boundary rects + their bottom pills, which sit
-  // outside the node envelopes, so the fitted composition still encloses them.
   minY -= padTop
   maxY += padBottom
 
-  // Height grows to fit content (+ margins), floored at VB_H so a sparse graph
-  // stays compact and its glyphs render large.
+  // Floored at VB_H so a sparse graph stays compact and glyphs render large.
   const vbHeight = Math.max(VB_H, Math.round(maxY - minY + 2 * FIT_MARGIN))
 
   let dx = (VB_W - minX - maxX) / 2
@@ -488,10 +429,7 @@ function fitContent(
   return vbHeight
 }
 
-/**
- * Push apart any nodes closer than `minDist` from each other.
- * Iterative repulsion — converges in a few passes for typical cluster sizes.
- */
+/** Push apart nodes closer than `minDist` (iterative repulsion). */
 function enforceMinDistance(
   nodes: { x: number; y: number }[],
   minDist: number

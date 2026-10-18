@@ -16,7 +16,6 @@ const VERTICAL_KEYS: ReadonlySet<string> = new Set<TreeArrowVerticalKey>([
   'End',
 ])
 
-/** Visible (not inside a collapsed ancestor) treeitems, in document order. */
 function getVisibleTreeItems(container: HTMLElement): HTMLElement[] {
   return Array.from(
     container.querySelectorAll<HTMLElement>('[role="treeitem"]')
@@ -37,27 +36,13 @@ function closestTreeItem(target: EventTarget | null): HTMLElement | null {
 }
 
 /**
- * Wires WAI-ARIA Tree View keyboard navigation + roving tabindex onto a
- * `role="tree"` container: https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
- *
- * - Up/Down/Home/End move focus between visible treeitems.
- * - Right expands a closed node (or moves into its first child if already open).
- * - Left collapses an open node (or moves focus to the parent).
- * - Enter/Space activates the node (clicks its label, same as a mouse click).
- *
- * Operates on the live DOM (`querySelectorAll('[role="treeitem"]')`) rather
- * than a React-side registry, since `DatabaseNode`/`TableNode`/`ColumnNode`
- * mount, fetch, and expand independently of one another — there is no single
- * place that owns the full flattened list of currently-visible nodes.
- *
- * Expand/collapse/activate are triggered by clicking the underlying
- * `[data-tree-toggle]` / `[data-tree-label]` buttons so all existing
- * mouse-click logic (fetch-on-expand, `expandOnSelect`, selection) is reused
- * verbatim rather than duplicated here.
+ * WAI-ARIA Tree View keyboard navigation and roving tabindex for a `role="tree"`.
+ * Works on the live DOM because nodes mount, fetch, and expand independently, so
+ * no single place owns the flattened visible list. Expand/collapse/activate click
+ * the existing `[data-tree-toggle]` / `[data-tree-label]` buttons to reuse the
+ * mouse logic.
  */
 export function useTreeKeyboardNav() {
-  // Tracks the roving-tabindex anchor without forcing a React re-render on
-  // every focus change — mirrors the standard "manual roving tabindex" recipe.
   const lastActiveRef = useRef<HTMLElement | null>(null)
 
   const handleFocus = useCallback((event: FocusEvent<HTMLElement>) => {

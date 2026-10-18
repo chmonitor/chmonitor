@@ -169,7 +169,6 @@ export function DataTable<
     advancedFilters,
   })
 
-  // Reset column order to default (empty array means use natural order)
   const handleResetColumnOrder = resetColumnOrder
 
   return (

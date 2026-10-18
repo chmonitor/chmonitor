@@ -1,16 +1,8 @@
 'use client'
 
 /**
- * MCP Server Manager — per-user registry of external Model Context Protocol
- * servers (plan 43). Backed by D1 through `/api/v1/mcp/servers`; each server is
- * validated (SSRF-guarded) on save and loaded alongside the agent's built-in
- * tools at conversation start. Each row also shows a LIVE connection status
- * (re-probed with the server's stored, decrypted auth via
- * `POST /api/v1/mcp/servers/$id/probe`), not just the last manual "Test
- * connection" timestamp — see `LiveStatusBadge`.
- *
- * Distinct from the welcome-screen `AgentMcpPanel` (localStorage quick-config):
- * this surface PERSISTS per-user, server-side, with auth + a template library.
+ * Per-user registry of external MCP servers, persisted in D1 and loaded with the
+ * agent's built-in tools. Distinct from the localStorage-only `AgentMcpPanel`.
  */
 
 import { PlusIcon, ServerIcon } from 'lucide-react'

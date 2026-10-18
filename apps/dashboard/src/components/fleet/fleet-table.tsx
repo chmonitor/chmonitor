@@ -23,10 +23,8 @@ import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 import { splitHref } from '@/lib/url/url-builder'
 import { cn, getHost } from '@/lib/utils'
 
-/** Number of metric columns between "Host" and the trailing action column. */
 const METRIC_COLSPAN = 11
 
-/** Small status dot — green (online), red (offline), muted (unknown). */
 function StatusDot({
   state,
 }: {
@@ -46,7 +44,6 @@ function StatusDot({
   return <span className={cn('size-2 shrink-0 rounded-full', color)} />
 }
 
-/** Source/engine badge for the Host cell — omitted for plain self-hosted env. */
 function SourceBadge({ source }: { source: MergedHostInfo['source'] }) {
   if (source === 'env') return null
   const label =
@@ -222,7 +219,6 @@ function MetricSkeletonCell({ className }: { className?: string }) {
   )
 }
 
-/** Static row for a Postgres source — no ClickHouse status hook applies. */
 function FleetPgRow({ pg }: { pg: PgConnectionInfo }) {
   const navigate = useNavigate()
   const handleView = () => {
@@ -289,11 +285,6 @@ function FleetTableSkeleton() {
   )
 }
 
-/**
- * Cross-host comparison matrix — one row per host, each metric cell loading
- * asynchronously per host. Companion to the card grid (`FleetOverview`); the
- * two share the same host list and TanStack Query cache.
- */
 export function FleetTable() {
   const { hosts, isLoading } = useMergedHosts()
   const { connections: pgConnections } = usePgConnections()

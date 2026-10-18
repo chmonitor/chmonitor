@@ -17,10 +17,6 @@ export type TooltipIconButtonProps = ComponentPropsWithoutRef<typeof Button> & {
   side?: 'top' | 'bottom' | 'left' | 'right'
 }
 
-/**
- * Icon-only button with an accessible tooltip — shared by the assistant-ui
- * Thread, action bar, composer and thread-list components.
- */
 export const TooltipIconButton = forwardRef<
   ComponentRef<typeof Button>,
   TooltipIconButtonProps

@@ -1,9 +1,3 @@
-/**
- * Query performance chart imports
- *
- * Lazy-loaded charts for insert throughput and top inserters.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

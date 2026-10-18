@@ -48,11 +48,9 @@ interface DependencyGraphProps {
 
 type LayoutDirection = 'TB' | 'LR'
 
-// Node dimensions for dagre layout (must match actual rendered size)
 const NODE_WIDTH = 280
 const NODE_HEIGHT = 65
 
-// Stable fit-view options shared across renders (module-level constant)
 const FIT_VIEW_OPTIONS = {
   padding: 0.2,
   minZoom: 0.5,
@@ -86,7 +84,6 @@ function TableNode({
           : 'border-border hover:border-primary/50'
       )}
     >
-      {/* Invisible handles for edge connections */}
       <Handle type="target" position={targetPosition} className="!invisible" />
       <Link
         href={`/explorer?host=${data.hostId}&database=${encodeURIComponent(data.database)}&table=${encodeURIComponent(data.label)}&engine=${encodeURIComponent(data.engine)}`}
@@ -211,7 +208,6 @@ function getLayoutedElements(
 
   const layoutedNodes: Node[] = []
 
-  // Layout connected nodes with dagre (shared core in lib/graph/dagre-layout)
   if (connectedNodes.length > 0) {
     const positions = computeDagrePositions(
       connectedNodes.map((node) => node.id),
@@ -237,7 +233,6 @@ function getLayoutedElements(
     })
   }
 
-  // Layout isolated nodes in a grid below/beside the connected graph
   if (isolatedNodes.length > 0) {
     let maxY = 0
     let maxX = 0
@@ -246,7 +241,6 @@ function getLayoutedElements(
       maxX = Math.max(maxX, node.position.x + NODE_WIDTH)
     })
 
-    // Grid layout for isolated nodes - generous spacing to prevent overlap
     const GRID_GAP = 30
     const COLS = isHorizontal ? 3 : 4
     const startY = connectedNodes.length > 0 ? maxY + 60 : 0
@@ -376,7 +370,6 @@ export function DependencyGraph({
     setIsMounted(true)
   }, [])
 
-  // Stable string representation of dependencies to prevent unnecessary recalculations
   const depsKey = useMemo(() => JSON.stringify(dependencies), [dependencies])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: depsKey is a stable representation of dependencies to prevent unnecessary recalculations

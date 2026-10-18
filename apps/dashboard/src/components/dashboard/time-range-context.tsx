@@ -1,5 +1,5 @@
 /**
- * Dashboard-scoped shared time range (plan 57).
+ * Dashboard-scoped shared time range.
  *
  * Distinct from the app-wide `useTimeRange()` (`@/lib/context/time-range-context`,
  * mounted once in `__root.tsx` and used as the fallback for every registry
@@ -25,11 +25,8 @@ import { resolveDateRangeConfig, useDateRange } from '@/components/date-range'
 const DASHBOARD_DATE_RANGE_CONFIG = resolveDateRangeConfig('standard')
 
 interface DashboardTimeRangeContextValue {
-  /** Current lastHours (undefined = "all" range). */
   lastHours?: number
-  /** Current ClickHouse interval. */
   interval: DateRangeValue['interval']
-  /** Full current range value, for the `DateRangeSelector`. */
   range: DateRangeValue
   setRange: (range: DateRangeValue) => void
 }
@@ -67,7 +64,6 @@ export function DashboardTimeRangeProvider({
   )
 }
 
-/** The dashboard grid's config, exported for the toolbar's `DateRangeSelector`. */
 export const dashboardDateRangeConfig = DASHBOARD_DATE_RANGE_CONFIG
 
 /**

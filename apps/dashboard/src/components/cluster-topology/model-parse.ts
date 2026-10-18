@@ -62,11 +62,7 @@ export function isLoopbackName(name: string): boolean {
   )
 }
 
-/**
- * How "descriptive" a host_name is, used to pick the canonical label when several
- * names resolve to ONE physical machine. A real FQDN (`chi-...-0-0.svc...`) beats
- * the implicit `localhost` placeholder so the merged node shows its true name.
- */
+/** How descriptive a host_name is: a real FQDN beats the implicit `localhost` as the merged node's label. */
 export function nameScore(name: string): number {
   let s = 0
   if (!isLoopbackName(name)) s += 100 // a real name always beats localhost

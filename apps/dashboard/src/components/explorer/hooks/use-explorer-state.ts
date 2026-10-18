@@ -62,9 +62,7 @@ export function useExplorerState(): ExplorerState & {
     }
   }, [searchParams])
 
-  // Use a ref for searchParams so updateParams doesn't depend on it.
-  // This prevents ALL setter callbacks from being recreated on every URL change,
-  // which was causing the entire database tree to re-render on each navigation.
+  // Ref so updateParams stays stable and URL changes don't re-render the whole tree.
   const searchParamsRef = useRef(searchParams)
   searchParamsRef.current = searchParams
 

@@ -13,21 +13,11 @@ import {
 import { arrayToCsv, downloadCsv, slugifyFilename } from '@/lib/csv'
 
 interface ChartCsvExportButtonProps {
-  /** Current chart data array to serialize */
   data: ChartDataPoint[] | Record<string, unknown>[]
-  /** Human-readable chart label used to name the downloaded file */
   filename?: string
-  /** Always show the button (not just on card hover) */
   alwaysVisible?: boolean
 }
 
-/**
- * ChartCsvExportButton - one-click CSV export for a chart card.
- *
- * Serializes the chart's current data array to CSV and triggers a download
- * named after the chart. Renders only when data is present and matches the
- * hover-reveal behavior of the other chart card toolbar icons.
- */
 export const ChartCsvExportButton = function ChartCsvExportButton({
   data,
   filename,

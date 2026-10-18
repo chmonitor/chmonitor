@@ -1,11 +1,7 @@
 /**
- * PeerDB mirror rules panel.
- *
- * List / create / edit / enable / mute per-mirror PeerDB alert thresholds.
- * Persisted through `/api/v1/health/peerdb-rules` (the shared health DB, like
- * maintenance windows and quiet hours), so writes are gated by the same
- * store-availability notice. Rules from `alerts.yaml` show a source badge and
- * stay read-only here.
+ * PeerDB mirror rules panel: per-mirror alert thresholds persisted through
+ * `/api/v1/health/peerdb-rules`, so writes are gated by the store-availability
+ * notice. Rules from `alerts.yaml` show a source badge and stay read-only.
  */
 
 import { toast } from 'sonner'

@@ -11,11 +11,9 @@ import { getChartSkeletonType } from './chart-registry'
 import { ChartZoomButton } from './chart-zoom-button'
 
 /**
- * The zoom dialog renders the underlying rows in a full DataTable, so its
- * module pulls in the entire data-table system (~11k lines). ChartContainer
- * wraps every chart in the app, so a static import shipped all of that to every
- * page with a chart, for a dialog that is only opened deliberately. The render
- * site below was already gated on `zoomOpen`; the import needs to be too.
+ * ChartContainer wraps every chart, so a static import of the zoom dialog
+ * would ship the whole data-table system to every chart page. Load it only
+ * when the dialog is opened.
  */
 const ChartZoomDialog = lazy(async () => {
   const m = await import('./chart-zoom-dialog')
@@ -53,10 +51,7 @@ export interface ChartContainerProps<
   className?: string
   /** Chart className */
   chartClassName?: string
-  /**
-   * Children render function receives data, sql, metadata, staleError, and mutate
-   * staleError is set when revalidation fails but previous data exists
-   */
+  /** `staleError` is set when revalidation fails but previous data exists. */
   children: (
     data: TData[],
     sql: string | undefined,
@@ -78,31 +73,7 @@ export interface ChartContainerProps<
   type?: ChartSkeletonType
 }
 
-/**
- * ChartContainer - Unified chart loading state handler
- *
- * Eliminates duplicate loading/error/empty state handling across 32+ chart components.
- *
- * @example
- * ```tsx
- * export function MyChart({ hostId, title }: ChartProps) {
- *   const swr = useChartData<{ value: number }>({
- *     chartName: 'my-chart',
- *     hostId,
- *   })
- *
- *   return (
- *     <ChartContainer swr={swr} title={title} className="w-full">
- *       {(data, sql, metadata) => (
- *         <ChartCard title={title} sql={sql} data={data} metadata={metadata}>
- *           <AreaChart data={data} index="time" categories={['value']} />
- *         </ChartCard>
- *       )}
- *     </ChartContainer>
- *   )
- * }
- * ```
- */
+/** Shared loading, error, and empty handling for chart components. */
 export function ChartContainer<TData extends ChartDataPoint = ChartDataPoint>({
   swr,
   title,

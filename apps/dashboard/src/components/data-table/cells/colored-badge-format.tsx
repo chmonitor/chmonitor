@@ -19,7 +19,6 @@ export const ColoredBadgeFormat = memo(function ColoredBadgeFormat({
     isFirstRenderRef.current = false
   }, [])
 
-  // Memoize expensive color calculation - includes dark mode variants
   const pickedColor = useMemo(() => {
     if (value == null || value === '' || typeof value === 'boolean') return ''
 
@@ -32,7 +31,6 @@ export const ColoredBadgeFormat = memo(function ColoredBadgeFormat({
       'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300',
     ]
 
-    // Picked consistently based on the value
     return colors[
       Math.abs(
         value

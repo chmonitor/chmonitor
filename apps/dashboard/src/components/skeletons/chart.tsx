@@ -20,7 +20,6 @@ interface ChartSkeletonProps {
   headerClassName?: string
 }
 
-/** Area/Line chart skeleton using a beautifully simulated SVG wave */
 const AreaChartSkeleton = () => (
   <div className="relative w-full h-full min-h-[140px] flex flex-col justify-between pt-4">
     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40 py-2">
@@ -69,7 +68,6 @@ const AreaChartSkeleton = () => (
   </div>
 )
 
-/** Line chart skeleton without filled area */
 const LineChartSkeleton = () => (
   <div className="relative w-full h-full min-h-[140px] flex flex-col justify-between pt-4">
     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40 py-2">
@@ -104,7 +102,6 @@ const LineChartSkeleton = () => (
   </div>
 )
 
-/** Bar chart skeleton with mathematical heights (static, no animation) */
 const BarChartSkeleton = () => (
   <div className="w-full h-full min-h-[140px] flex flex-col justify-between pt-4">
     <div className="flex h-[90px] items-end justify-between gap-3 px-1 mt-auto">
@@ -132,7 +129,6 @@ const BarChartSkeleton = () => (
   </div>
 )
 
-/** KPI Metric Card Skeleton with sparkline trend outline */
 const MetricCardSkeleton = () => (
   <div className="flex h-full w-full items-center justify-between py-6 px-1 gap-4">
     <div className="space-y-3 flex-1">
@@ -168,7 +164,6 @@ const StatSkeleton = () => (
   </div>
 )
 
-/** Tabular skeleton mirroring actual tables */
 const TableSkeletonMini = () => (
   <div className="w-full h-full min-h-[140px] flex flex-col pt-1">
     <div className="flex items-center gap-4 border-b border-border/60 pb-2 mb-2 px-1">
@@ -189,12 +184,6 @@ const TableSkeletonMini = () => (
   </div>
 )
 
-/**
- * Chart skeleton that matches actual chart dimensions & layouts
- * - Matches DynamicChart: min-h-[140px] max-h-[240px]
- * - Matches ChartCard styling: gap-2, py-2, border-border/50
- * - Supports realistic mock types to prevent Layout Shift
- */
 export const ChartSkeleton = function ChartSkeleton({
   className,
   title,

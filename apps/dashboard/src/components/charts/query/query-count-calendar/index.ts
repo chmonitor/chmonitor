@@ -1,18 +1,10 @@
 /**
- * Pure helpers for the GitHub-style "Activity Calendar" contribution heatmap.
+ * Pure helpers for the "Activity Calendar" contribution heatmap: bucket the
+ * per-day rows of `query-count-heatmap` into Sunday-first week columns for a
+ * chosen {@link MetricConfig} and derive the KPI strip stats.
  *
- * The backing query (`query-count-heatmap`) returns one row per calendar day
- * carrying several metrics (query volume, failures, peak memory, avg duration,
- * bytes written). These helpers bucket those rows into Sunday-first week
- * columns (matching GitHub) for a chosen {@link MetricConfig} and derive the
- * summary stats shown in the KPI strip.
- *
- * All logic here is timezone-naive on purpose: it operates on the date *strings*
- * ClickHouse returns and on a local "today" anchor, so it stays deterministic
- * and unit-testable.
- *
- * Barrel: re-exports every symbol from the split modules below so existing
- * `./query-count-calendar` import sites keep resolving unchanged.
+ * Timezone-naive on purpose: it works on the date strings ClickHouse returns
+ * and a local "today" anchor, so it stays deterministic and unit-testable.
  */
 
 export type {

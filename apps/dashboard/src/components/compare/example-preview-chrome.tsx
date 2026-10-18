@@ -9,10 +9,6 @@ interface ExamplePreviewChromeProps {
   children: ReactNode
 }
 
-/**
- * Faded sample of TableList + DdlPair (or similar) under a real empty state.
- * Deterministic placeholder names — not live cluster data.
- */
 export function ExamplePreviewChrome({
   footnote = 'Sample layout with placeholder names — not live cluster data.',
   children,

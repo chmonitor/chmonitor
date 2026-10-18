@@ -1,14 +1,9 @@
 /**
- * Quiet hours panel.
- *
- * The recurring sibling of `MaintenanceWindowsPanel`: an operator declares a
- * recurring weekday + time-of-day range (in an IANA timezone) during which the
- * health sweep silences outbound alert delivery. Checks still run and findings
- * are still recorded — only delivery is gated. `severityCap = critical` lets
- * criticals keep paging; catch-up notifications fire for still-active criticals
- * once the window closes. Lives as a tab on the health settings page; every
- * action is an immediate server call (create/delete), same as the maintenance
- * panel. Free/OSS: no Clerk sign-in required.
+ * Quiet hours panel: recurring weekday + time-of-day ranges (IANA timezone)
+ * during which the health sweep silences delivery. Checks still run and
+ * findings are still recorded. `severityCap = critical` lets criticals keep
+ * paging; catch-up notifications fire for still-active criticals once the
+ * window closes. Every action is an immediate server call.
  */
 
 import { MoonStar } from 'lucide-react'

@@ -1,9 +1,8 @@
 'use client'
 
 /**
- * Table-overview wiring for the existing schema/settings tuning API.
- * Recommend-only: Scan is explicit (no first-paint request). Findings render
- * through TuningFindingsPanel — no apply/run control. See issue #3075.
+ * Recommend-only tuning findings for a table. Scan is explicit, so nothing is
+ * requested on first paint.
  */
 
 import { SlidersHorizontalIcon, WandSparklesIcon } from 'lucide-react'

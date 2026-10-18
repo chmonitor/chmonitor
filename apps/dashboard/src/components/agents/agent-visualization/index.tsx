@@ -35,8 +35,7 @@ import { cn } from '@/lib/utils'
 
 export type { AgentVisualizationProps, VizConfig } from './types'
 
-// Stable empty context object — avoids new reference on every render which
-// would defeat column-def memoization inside DataTable.
+// Stable reference: a new object per render would defeat column-def memoization in DataTable.
 const EMPTY_TABLE_CONTEXT: Record<string, string> = {}
 
 const AreaChartPrimitive = lazy(() =>

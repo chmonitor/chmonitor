@@ -257,8 +257,7 @@ export const AreaChart = function AreaChart({
     }
   })()
 
-  // Deploy markers (opt-in overlay, plans/45-github-deploy-correlation.md):
-  // snap each deployment to its nearest bucket on the `index` axis so
+  // Snap each deployment to its nearest bucket on the `index` axis so
   // ReferenceLine's category-axis `x` matches an actual data point.
   const deploymentMarkers = index
     ? (deployments ?? []).flatMap((deployment) => {

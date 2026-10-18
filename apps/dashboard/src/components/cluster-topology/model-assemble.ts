@@ -1,11 +1,8 @@
 /**
- * Assemble the layout-free structural topology (`TopologyData`) from raw
- * ClickHouse rows: `clusters-topology` (system.clusters), `keeper-info`
- * (system.zookeeper_info, optional), `keeper-presence`
- * (system.zookeeper_connection, optional), and an optional all-node live
- * snapshot. Pure — safe to run server-side (the /api/v1/cluster-topology
- * route serializes the result to JSON). No x/y — see `model-layout.ts` for
- * the layout stage that adds coordinates.
+ * Assemble the layout-free `TopologyData` from raw ClickHouse rows
+ * (system.clusters, optional system.zookeeper_info / zookeeper_connection, and
+ * an optional all-node live snapshot). Pure, so it runs server-side. No x/y;
+ * `model-layout.ts` adds coordinates.
  *
  * RESILIENCE: structural truth always comes from system.clusters (local, always
  * available). Live numbers come from the best-effort cluster fan-out. A node that
@@ -76,11 +73,9 @@ export interface ClusterLiveRow {
 }
 
 /**
- * Detect the coordination layer source from the presence/info rows.
- *  - keeper-info rows present → use them (richest).
- *  - presence rows present → coordination reachable; embedded Keeper vs external
- *    ZK is a soft hint from enabled_feature_flags / port.
- *  - neither → none.
+ * Detect the coordination layer: keeper-info rows win; presence rows alone mean
+ * reachable, with embedded Keeper vs external ZK a soft hint from
+ * enabled_feature_flags / port; neither → none.
  */
 function detectKeeperSource(
   keeperRows: KeeperInfoRow[],
@@ -104,10 +99,6 @@ function detectKeeperSource(
   return hasInfo ? 'keeper' : 'zookeeper'
 }
 
-/**
- * Assemble the layout-free structural topology from raw ClickHouse rows.
- * Pure — safe to run server-side.
- */
 export function assembleTopology(
   clusterRows: ClusterTopologyRow[],
   keeperRows: KeeperInfoRow[],
@@ -115,8 +106,7 @@ export function assembleTopology(
   liveRows: ClusterLiveRow[] = [],
   liveSource: TopologyMeta['liveSource'] = 'none'
 ): TopologyData {
-  // A host key combines name+port so the same machine listed in multiple clusters
-  // maps to ONE node (the overlapping-territory story).
+  // name+port key: the same machine listed in several clusters maps to ONE node.
   const hostKey = (r: { host_name: string; port: number }) =>
     `${r.host_name}:${r.port}`
 
@@ -309,13 +299,9 @@ export function assembleTopology(
   const clusters: ClusterInfo[] = clusterNames.map((name) => {
     const members = clusterMembers.get(name)!
     const shards = clusterShards.get(name)!.size
-    // A Replicated-DB cluster is always logical regardless of name; otherwise
-    // fall back to the name heuristic.
     const physical = !clusterReplicatedDb.get(name) && isPhysicalName(name)
     const maxR = Math.max(...clusterReplicas.get(name)!, 1)
-    // Every cluster gets its own palette color (physical included) so nested
-    // rings stay distinguishable; the physical/logical split is conveyed by the
-    // toggle + a softer fill, not by a flat gray.
+    // Every cluster gets its own palette color so nested rings stay distinguishable.
     const color = CLUSTER_PALETTE[paletteIdx++ % CLUSTER_PALETTE.length]
     return {
       id: name,
@@ -330,7 +316,6 @@ export function assembleTopology(
     }
   })
 
-  // attach default-cluster role to each CH node for the inspector identity row
   const defaultCluster =
     clusters.find((c) => c.name === 'default') ??
     clusters.find((c) => c.outline)

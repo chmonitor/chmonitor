@@ -130,7 +130,7 @@ function RowDisclosure({
  * Compact destructive row for a failed tool call: a short human-readable
  * message (never raw JSON), with the parsed detail tucked behind an
  * expandable disclosure. Falls back to a generic message when the backend
- * only sent a boilerplate error (issue: agent tool-call rendering polish).
+ * only sent a boilerplate error.
  */
 function ToolErrorRow({
   errorText,

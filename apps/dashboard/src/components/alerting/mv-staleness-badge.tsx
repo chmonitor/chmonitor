@@ -1,11 +1,8 @@
 'use client'
 
 /**
- * MV Staleness Badge (#1925)
- *
- * A badge that shows the count of stale/failed materialized view refreshes.
- * Rendered in the view-refreshes page header. Dispatches an in-app alert
- * when failed/stale views are detected.
+ * Badge counting stale/failed materialized view refreshes, rendered in the
+ * view-refreshes page header. Dispatches an in-app alert when any are found.
  */
 
 import { AlertTriangle } from 'lucide-react'
@@ -31,10 +28,6 @@ interface MvStalenessBadgeProps {
   className?: string
 }
 
-/**
- * MvStalenessBadge — shows a count badge when failed/stale MV refreshes exist.
- * Invisible when all views are healthy.
- */
 export function MvStalenessBadge({ hostId, className }: MvStalenessBadgeProps) {
   const { data, isLoading } = useChartData<MvRefreshRow>({
     chartName: 'mv-staleness',

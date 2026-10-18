@@ -22,12 +22,6 @@ interface DataTableFacetedFilterProps {
   queryConfig: QueryConfig
 }
 
-/**
- * Faceted filter dropdown for data tables
- *
- * Displays filter options based on queryConfig presets and URL params.
- * Shows active filter count and provides clear all option.
- */
 export function DataTableFacetedFilter({
   title,
   queryConfig,
@@ -100,9 +94,6 @@ interface FilterMenuItemProps
   href: string
 }
 
-/**
- * Individual filter menu item with icon and selection state
- */
 const FilterMenuItem = function FilterMenuItem({
   name,
   isSelected,

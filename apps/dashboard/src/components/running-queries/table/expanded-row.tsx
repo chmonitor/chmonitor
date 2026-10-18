@@ -25,9 +25,7 @@ interface ExpandedRowProps {
   d: DerivedQuery
   onKill: () => void
   isKilling: boolean
-  /** Row has finished and is being retained; swaps Kill → Dismiss. */
   done?: boolean
-  /** Drop this retained Done row from the table. */
   onDismiss?: () => void
 }
 
@@ -88,9 +86,6 @@ export function ExpandedRow({
         </dl>
       </div>
 
-      {/* Full query — a plain, scrollable code block. Not wrapped in a
-          button: the SQL is selectable text; "Open in Explorer" below is the
-          interactive path. */}
       <div>
         <div className="mb-1.5 flex items-center justify-between gap-2">
           <span className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">

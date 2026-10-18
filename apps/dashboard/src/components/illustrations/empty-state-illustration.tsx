@@ -3,12 +3,9 @@ import type { EmptyStateVariant } from '@/components/ui/empty-state'
 import { cn } from '@/lib/utils'
 
 /**
- * Bespoke ~40×40 mini-illustrations, one per {@link EmptyStateVariant}.
- *
- * These replace the single shared lucide glyph so each state reads distinctly
- * (empty tray vs. magnifier-over-nothing vs. severed plug vs. hourglass …)
- * while the surrounding circle frame + muted palette keep the system coherent
- * — we differentiate the illustration, not the chrome.
+ * Bespoke ~40×40 mini-illustrations, one per {@link EmptyStateVariant}, so each
+ * state reads distinctly while the shared circle frame and muted palette keep
+ * the system coherent.
  *
  * Rules (see `docs/knowledge/product-design.md` › Illustrations):
  * - Token-driven only. Tone comes from `currentColor` (set by the caller's
@@ -161,7 +158,6 @@ const BY_VARIANT: Record<EmptyStateVariant, (p: Props) => React.ReactNode> = {
   'filtered-empty': FilteredEmptyIllustration,
 }
 
-/** Default tone (a `text-*` class) applied to each variant's illustration. */
 const TONE_BY_VARIANT: Record<EmptyStateVariant, string> = {
   'no-data': 'text-muted-foreground/70',
   'no-results': 'text-muted-foreground/70',

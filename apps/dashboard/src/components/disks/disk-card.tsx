@@ -6,10 +6,6 @@ import { DiskUsageBar, usageLevel } from './disk-usage-bar'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
-/**
- * Re-export the canonical row type from the disks query config so consumers
- * (e.g. disks-bento) can import it from either location.
- */
 export type { DiskRow }
 
 const LEVEL_ACCENT: Record<ReturnType<typeof usageLevel>, string> = {

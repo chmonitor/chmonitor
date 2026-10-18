@@ -1,11 +1,3 @@
-/**
- * Additional provider icon components for providers not yet in the icon dir.
- *
- * These follow the same geometric style as the sibling icon files — minimal
- * SVGs, 16×16 viewBox, `currentColor`, `className` + `size` props — so they
- * work inline in the settings form and elsewhere.
- */
-
 interface IconProps {
   className?: string
   size?: number
@@ -456,10 +448,6 @@ export function VeniceIcon({ className, size = 16 }: IconProps) {
     </svg>
   )
 }
-
-// ── Inline-style icons for svgl.app providers ────────────────────────────────
-// These are branded "geometric simplification" versions for contexts where
-// an inline SVG is preferred over an <img> tag (e.g. settings form icons).
 
 export function DeepSeekIcon({ className, size = 16 }: IconProps) {
   return (

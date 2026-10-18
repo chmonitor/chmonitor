@@ -1,9 +1,3 @@
-/**
- * Full variant for ErrorAlert
- *
- * Complete display with icons, badges, accordions, and retry button.
- */
-
 import { RefreshCwIcon } from 'lucide-react'
 
 import type React from 'react'
@@ -85,12 +79,10 @@ export function FullErrorAlert({
           </div>
           {message && renderContent(message)}
 
-          {/* Development: Show stack trace */}
           {showDetails && stack && (
             <ErrorAlertAccordion title="Stack Trace" content={stack} />
           )}
 
-          {/* Always show query if available */}
           {Boolean(query) && (
             <ErrorAlertAccordion title="View Query Details" content={query} />
           )}

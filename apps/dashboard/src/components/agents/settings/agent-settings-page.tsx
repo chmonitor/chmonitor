@@ -5,8 +5,7 @@
  * provider status, model selection, the system prompt, skills, and external
  * MCP server registrations.
  *
- * Replaces the standalone `/mcp-servers` page (its `McpServerManager` content
- * now lives in the "MCP Servers" tab here) and complements the compact
+ * Complements the compact
  * "Agent settings" side panel on the chat page (`/agents`) — that panel stays
  * for quick in-conversation tweaks; this page is the fuller settings surface
  * it links out to.

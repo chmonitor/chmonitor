@@ -4,12 +4,6 @@ import { KpiCard } from './kpi-card'
 import { REFRESH_INTERVAL, useHostId } from '@/lib/swr'
 import { useHostStatus } from '@/lib/swr/use-host-status'
 
-/**
- * ClickHouseInfoCard - "Uptime" overview KPI.
- * Headline is a compact uptime (e.g. "12d 1h"); the version sits below.
- * Falls back to showing the version as the headline when uptime is missing.
- */
-
 const UNIT_ABBR: Record<string, string> = {
   year: 'y',
   month: 'mo',
@@ -20,13 +14,6 @@ const UNIT_ABBR: Record<string, string> = {
   second: 's',
 }
 
-/**
- * Condense a human uptime string ("12 days, 1 hour and 20 minutes") into the
- * two most significant parts ("12d 1h").
- *
- * Units outside {@link UNIT_ABBR} are dropped; if nothing matches, the
- * original trimmed string is returned unchanged.
- */
 function compactUptime(uptime: string): string {
   const matches = uptime.matchAll(
     /(\d+)\s*(year|month|week|day|hour|minute|second)s?/gi

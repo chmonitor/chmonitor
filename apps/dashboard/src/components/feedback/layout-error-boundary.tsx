@@ -6,10 +6,6 @@ import { Button } from '@/components/ui/button'
 import { captureException } from '@/lib/analytics/analytics'
 import { reportClientError } from '@/lib/observability/sentry'
 
-/**
- * Error boundary fallback for layout-level errors
- * Provides a clean recovery UI when a page component crashes
- */
 function LayoutErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <div className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
@@ -33,10 +29,6 @@ function LayoutErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   )
 }
 
-/**
- * Layout-level error boundary wrapper
- * Catches errors in page components and provides recovery UI
- */
 export function LayoutErrorBoundary({
   children,
 }: {
@@ -51,9 +43,7 @@ export function LayoutErrorBoundary({
           component: 'LayoutErrorBoundary',
           action: 'caught',
         })
-        // Report to Sentry (no-op when disabled / on the server).
         reportClientError(err, { boundary: 'LayoutErrorBoundary' })
-        // Report the crash to PostHog too (no-op when analytics is disabled).
         captureException(err, { boundary: 'LayoutErrorBoundary' })
       }}
     >

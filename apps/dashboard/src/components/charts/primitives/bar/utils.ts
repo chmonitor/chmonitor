@@ -1,7 +1,3 @@
-/**
- * Bar chart utility functions
- */
-
 import type { ChartConfig } from '@/components/ui/chart'
 
 import { seriesColorVar } from '@/components/charts/primitives/series-color'
@@ -88,9 +84,6 @@ export function generateChartConfig(
   )
 }
 
-/**
- * Radius calculation options for bar corners
- */
 export interface BarRadiusOptions {
   index: number
   categories: string[]

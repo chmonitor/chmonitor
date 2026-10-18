@@ -29,7 +29,6 @@ import { useTableData } from '@/lib/query/use-table-data'
 import { useHostId } from '@/lib/swr/use-host'
 import { cn } from '@/lib/utils'
 
-/** Auto-refresh cadence for the part_log table (ms). */
 const REFRESH_INTERVAL = 30_000
 
 function HeaderButton({
@@ -68,16 +67,6 @@ function LoadingState() {
   )
 }
 
-/**
- * PartLogView — the redesigned Part Log page.
- *
- * Reads `system.part_log` (via the `part-log` table config) and renders a
- * header, a collapsible chart strip ({@link PartLogCharts} — KPIs, lifecycle
- * stacked bars, merge-reason donut, per-table churn and a size histogram), and
- * the sortable {@link PartLogTable} with quick filters and expandable detail
- * panels. Every number is derived from real rows; the 24h lifecycle chart is
- * the only server-aggregated series (`part-log-lifecycle`).
- */
 export function PartLogView() {
   const hostId = useHostId()
   const [chartsOpen, setChartsOpen] = useState(true)

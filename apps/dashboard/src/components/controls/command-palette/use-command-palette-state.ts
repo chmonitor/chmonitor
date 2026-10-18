@@ -54,7 +54,6 @@ export function useCommandPaletteState({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, setOpen])
 
-  /** Close the palette and reset the search input — the common "act on a selection" tail. */
   const closeAndReset = () => {
     setOpen(false)
     setInputValue('')

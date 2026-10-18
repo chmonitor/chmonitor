@@ -4,11 +4,6 @@
  * (`/api/v1/explorer/query` — read-only-enforced, auth-gated the same way
  * for anon/write-restricted deployments), and renders the first numeric
  * value in the first row, large, with `props.statLabel` underneath.
- *
- * Deliberately simple (V1): no chart, no historical comparison, no custom
- * formatting — just a number. Errors (including "not authorized" for an
- * anonymous shared-dashboard viewer) degrade to a graceful empty state
- * rather than crashing the widget.
  */
 
 import { useQuery } from '@tanstack/react-query'
@@ -51,7 +46,6 @@ function useStatQuery(sql: string | undefined, hostId: number) {
   })
 }
 
-/** First numeric-looking value in the row, formatted for large display. */
 function firstNumericValue(
   row: Record<string, unknown> | undefined
 ): string | null {

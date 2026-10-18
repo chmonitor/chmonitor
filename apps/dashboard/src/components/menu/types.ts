@@ -62,7 +62,7 @@ export interface MenuItem {
   requiresMetadataDb?: boolean
   /**
    * Per-item opt-in for the Hide half of Settings → Navigation → *Unavailable
-   * pages* (issue #3463). Two classes of unavailability:
+   * pages*. Two classes of unavailability:
    *
    * - `tableCheck` present — the page can NEVER work on this host, so the
    *   default is to hide the row. No flag needed.
@@ -84,8 +84,7 @@ export interface MenuItem {
    */
   cloudOnly?: boolean
   /**
-   * Source engines this item applies to (issue #2450 — engine-aware menu swap,
-   * decision 4). ABSENT means the ClickHouse family (`clickhouse` +
+   * Source engines this item applies to (engine-aware menu swap). ABSENT means the ClickHouse family (`clickhouse` +
    * `clickhouse-cloud`) — i.e. every existing item is unchanged. Postgres-only
    * items declare `engines: ['postgres']`. Filtered centrally by
    * `getVisibleMenuItems` against the ACTIVE host's engine, so switching to a

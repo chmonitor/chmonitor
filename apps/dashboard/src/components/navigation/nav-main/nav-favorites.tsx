@@ -113,8 +113,8 @@ function SortableFavoriteItem({
 
 /**
  * "Favorites" group — pinned menu items in pin order, rendered above the
- * regular Main/Others sections. Hidden entirely when there are no favorites
- * (issue #2769). Favorites are derived from the live menu tree by href, so a
+ * regular Main/Others sections. Hidden entirely when there are no favorites.
+ * Favorites are derived from the live menu tree by href, so a
  * pinned route that got renamed or removed is dropped silently instead of
  * rendering a broken link.
  *

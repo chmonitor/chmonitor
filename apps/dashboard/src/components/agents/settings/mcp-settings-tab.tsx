@@ -3,8 +3,7 @@
 /**
  * MCP servers tab — `/agents/settings`.
  *
- * Splits what used to be one flat "MCP servers" list into two clearly
- * distinct sections, since they're very different things:
+ * Two distinct sections:
  *
  * - **Built-in**: this dashboard's own read-only MCP endpoint, self-access to
  *   the CURRENT cluster. Always on, nothing to add/configure — shown as a

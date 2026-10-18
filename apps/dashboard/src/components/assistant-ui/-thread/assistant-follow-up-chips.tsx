@@ -8,7 +8,7 @@ import { getFollowUpPrompts } from '@/lib/ai/agent/follow-up-prompts'
 import { track } from '@/lib/telemetry'
 
 /**
- * Deterministic follow-up chips (issue #2324) — rendered only under the last
+ * Deterministic follow-up chips, rendered only under the last
  * assistant message, once it has finished streaming. Unlike
  * `FollowUpSuggestions` (LLM-generated, AgentState-only), these are computed
  * instantly client-side from the last exchange via

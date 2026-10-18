@@ -1,17 +1,3 @@
-/**
- * Notifications Popover Component
- *
- * Displays notifications/alerts from the notifications API.
- * Shows a badge with count and a popover with the list of notifications.
- *
- * Features:
- * - Hidden when no notifications
- * - Badge shows total count
- * - Popover lists all notifications with links to details
- * - Dismiss individual or all notifications (saved to localStorage)
- * - Refresh button to manually refresh
- */
-
 import {
   AlertTriangle,
   Bell,
@@ -41,12 +27,6 @@ import {
 } from '@/lib/swr/use-notifications'
 import { cn } from '@/lib/utils'
 
-/**
- * NotificationsPopover - Shows notifications with badge and popover
- *
- * Displays a bell icon with notification count badge.
- * Click to see all notifications with dismiss and link actions.
- */
 export const NotificationsPopover = function NotificationsPopover() {
   const [isOpen, setIsOpen] = useState(false)
   const hostId = useHostId()
@@ -63,7 +43,7 @@ export const NotificationsPopover = function NotificationsPopover() {
   // Don't render badge if no notifications and not loading. A degraded cluster
   // view is NOT a reason to show the bell: it is an explanation for a number
   // the user has not asked about yet, not a new alert. It surfaces in the
-  // popover, which only opens once there is something to look at (#3682).
+  // popover, which only opens once there is something to look at.
   if (!isLoading && !error && totalCount === 0) {
     return (
       <IconButton
@@ -204,7 +184,7 @@ export const NotificationsPopover = function NotificationsPopover() {
 }
 
 /**
- * "Cluster-wide view unavailable: inter-server auth" (#3682).
+ * "Cluster-wide view unavailable: inter-server auth".
  *
  * Deliberately not a `Notification`: it is an explanation, not an alert, so it
  * carries no count, cannot be dismissed, and does not badge the bell. It sits

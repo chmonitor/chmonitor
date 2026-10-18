@@ -6,8 +6,7 @@
  * `MessageStatsFooter` renders a compact inline icon row (duration · throughput
  * · tokens · tools · model · timestamp) under each assistant message, with an
  * info button that opens `MessageStatsDialog` for the full token / timing /
- * model breakdown. Extracted from `thread.tsx` to keep that file focused on the
- * message-shell composition.
+ * model breakdown.
  */
 
 import {
@@ -36,10 +35,6 @@ import {
 import { extractMessageUsage } from '@/lib/ai/agent/message-metadata'
 import { formatDuration } from '@/lib/utils'
 
-/**
- * Detailed stats dialog content: full token breakdown, timing, model info,
- * resolved model badge, per-step data (when available), and timestamp.
- */
 function MessageStatsDialog({
   timing,
   usage,
@@ -227,11 +222,6 @@ function MessageStatsDialog({
   )
 }
 
-/**
- * Per-message stats footer — compact inline icon row with a "details" button
- * that opens a Dialog showing the full breakdown.
- * Only renders when there is something meaningful to show.
- */
 export function MessageStatsFooter() {
   const timing = useMessageTiming()
   const metadata = useAuiState((s) => s.message.metadata)

@@ -6,10 +6,6 @@ interface TableSearchInputProps {
   placeholder: string
 }
 
-/**
- * Toolbar search box shared by the query tables — an icon, a borderless input
- * that grows to fill the row, and a clear button that appears once non-empty.
- */
 export function TableSearchInput({
   value,
   onChange,

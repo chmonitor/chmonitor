@@ -68,7 +68,7 @@ const CollapsedSubMenuItem = function CollapsedSubMenuItem({
   )
 
   // The expanded rail already drops these rows, so the flyout must too —
-  // two surfaces disagreeing is worse than either behaviour (#3463).
+  // two surfaces disagreeing is worse than either behaviour.
   if (resolution.visibility === 'hidden') {
     return null
   }
@@ -162,7 +162,7 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
             }}
           />
           {/* One scrolling flyout: subgroup headings are plain labels, never
-              nested popovers (#3676). */}
+              nested popovers. */}
           <div className="flex max-h-[70vh] flex-col gap-0.5 overflow-y-auto">
             {groupChildrenBySubgroup(visibleChildren).map((section) => {
               const rows = section.items.map((subItem) => (

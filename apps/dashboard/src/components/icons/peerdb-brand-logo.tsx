@@ -2,7 +2,6 @@ import type { LucideProps } from 'lucide-react'
 
 import { forwardRef } from 'react'
 
-/** Official PeerDB winged elephant logo icon, centered in a standard 24x24 box. */
 export const PeerDBLogo = forwardRef<SVGSVGElement, LucideProps>(
   ({ className, width = 24, height = 24, ...props }, ref) => {
     return (

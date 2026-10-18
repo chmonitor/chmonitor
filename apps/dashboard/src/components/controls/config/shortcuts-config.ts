@@ -1,17 +1,8 @@
-/**
- * Keyboard shortcuts configuration
- *
- * Defines all available keyboard shortcuts for the dashboard.
- */
-
 export interface ShortcutDefinition {
   key: string
   description: string
 }
 
-/**
- * Keyboard shortcut definitions for help modal
- */
 export const SHORTCUTS: readonly ShortcutDefinition[] = [
   { key: '⌘K', description: 'Open command palette' },
   { key: '⌘G', description: 'Go to overview' },

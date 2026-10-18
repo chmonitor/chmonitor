@@ -145,7 +145,6 @@ export default function QueryMetricLogExpandedDetails({ row }: Props) {
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     retry: false,
-    // query_log is flushed asynchronously; poll until the row shows up.
     refetchInterval: (q) => (q.state.data ? false : 3_000),
     queryFn: async () => {
       const params = new URLSearchParams({

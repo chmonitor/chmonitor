@@ -31,7 +31,7 @@ interface GroupCustomizeButtonProps {
  * Hover + on a parent group heading. Absolute sibling of the collapsible
  * trigger (a <button> cannot nest inside the trigger's <button>), sitting in
  * the `pr-7` slot the title reserves just left of the flush-right expand
- * chevron (#3386). Opens a dialog of every catalog child — Add
+ * chevron. Opens a dialog of every catalog child — Add
  * (`showMenuHref`) / Remove (`hideMenuHref`) without navigating. Overview (no
  * children) never renders this.
  */

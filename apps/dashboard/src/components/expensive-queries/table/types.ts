@@ -44,11 +44,6 @@ export interface ExpensiveQueryRow {
 
 export type Severity = 'critical' | 'warning' | 'normal'
 
-/**
- * Classify a fingerprint by its total wall-clock time across all executions
- * in the window — the same thresholds the original `rowClassName` used, so the
- * heat accent stays consistent with the rest of the app.
- */
 function getSeverity(queriesDuration: number): Severity {
   if (queriesDuration > 30) return 'critical'
   if (queriesDuration > 5) return 'warning'
@@ -134,7 +129,6 @@ export type SortKey =
 export type SortDir = 'asc' | 'desc'
 
 export const SORT_ACCESSOR: Record<SortKey, (d: DerivedQuery) => number> = {
-  // Rank ascending == most expensive first (the server's native order).
   rank: (d) => -d.rank,
   cnt: (d) => d.cnt,
   duration: (d) => d.queriesDuration,

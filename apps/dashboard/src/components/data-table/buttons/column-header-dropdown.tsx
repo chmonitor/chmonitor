@@ -29,7 +29,6 @@ export const ColumnHeaderDropdown = function ColumnHeaderDropdown({
   const [open, setOpen] = useState(false)
   const reopenTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  // Clear any pending re-open timeout on unmount
   useEffect(() => {
     return () => clearTimeout(reopenTimeoutRef.current)
   }, [])
@@ -58,7 +57,6 @@ export const ColumnHeaderDropdown = function ColumnHeaderDropdown({
     e.preventDefault()
     e.stopPropagation()
     column.clearSorting()
-    // Keep dropdown open after reset
   }
 
   const handleCopy = async (e: React.MouseEvent) => {

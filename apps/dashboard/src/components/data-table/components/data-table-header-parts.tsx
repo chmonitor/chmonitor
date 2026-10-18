@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useIsMobile } from '@/hooks/use-mobile'
 
-/** Segmented table/cards toggle. */
 export function ViewToggle({
   view,
   onViewChange,
@@ -66,8 +65,6 @@ interface DisplayOptionsDropdownProps<TData extends RowData> {
   getColumnLabel: (colId: string) => string
 }
 
-/** Density radio group + column visibility checkboxes. Shared by both the
- *  schema-driven and client-side toolbar layouts. */
 export function DisplayOptionsDropdown<TData extends RowData>({
   table,
   density,

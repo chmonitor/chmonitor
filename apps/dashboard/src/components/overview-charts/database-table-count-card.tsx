@@ -5,11 +5,6 @@ import { useChartData } from '@/lib/query/use-chart-data'
 import { REFRESH_INTERVAL, useHostId } from '@/lib/swr'
 import { buildUrl } from '@/lib/url/url-builder'
 
-/**
- * DatabaseTableCountCard - "Schema" overview KPI.
- * Headline is the database count; the table count sits in the sub line.
- */
-
 export const DatabaseTableCountCard = function DatabaseTableCountCard() {
   const hostId = useHostId()
   const databaseSwr = useChartData<{ count: number }>({

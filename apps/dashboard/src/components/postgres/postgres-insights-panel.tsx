@@ -1,17 +1,6 @@
 /**
- * Postgres AI Insights panel.
- *
- * A compact, self-contained strip surfaced above the Postgres query-insights
- * table. It reads AI insights for an env-configured Postgres source
- * (`pgHostId`) via `usePostgresInsights` and reuses the shared `InsightCard`
- * for styling consistency with the ClickHouse insights board. Deep-links carry
- * the active `?pg=` connection so navigation stays on the Postgres routing
- * dimension.
- *
- * Renders nothing until there is at least one insight (or a generation is in
- * flight), so a source with no findings — or a disabled feature flag — adds no
- * visual noise. Kept intentionally minimal (no filter tabs / settings): the full
- * grouped board lives on `/insights` for ClickHouse.
+ * Compact AI-insights strip above the Postgres query-insights table. Renders nothing
+ * until there is an insight or a generation in flight.
  */
 
 import { RefreshCw, Sparkles, X } from 'lucide-react'
@@ -29,10 +18,6 @@ import { usePostgresInsights } from '@/lib/query/use-postgres-insights'
 import { cn } from '@/lib/utils'
 
 interface PostgresInsightsPanelProps {
-  /**
-   * Env Postgres source id (index into the POSTGRES_* lists) the insights are
-   * generated for. Defaults to the primary source (0).
-   */
   pgHostId?: number
   className?: string
 }
@@ -57,7 +42,6 @@ export function PostgresInsightsPanel({
   const linkSearch = { [PG_HOST_PARAM]: activePg ?? String(pgHostId) }
 
   const hasInsights = insights.length > 0
-  // Nothing to show and nothing pending → render nothing (no empty box).
   if (!hasInsights && !isGenerating) return null
 
   return (

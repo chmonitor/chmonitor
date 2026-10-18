@@ -1,9 +1,3 @@
-/**
- * Center label component for DonutChart
- *
- * Extracted from donut.tsx for better separation of concerns.
- */
-
 export interface DonutChartLabelProps {
   viewBox?: any
   total: number
@@ -11,11 +5,6 @@ export interface DonutChartLabelProps {
   formatValue: (value: number) => string
 }
 
-/**
- * Center label for donut charts
- *
- * Displays the total value and optional custom label in the center of the donut.
- */
 export function DonutChartLabel({
   viewBox,
   total,

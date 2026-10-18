@@ -5,11 +5,6 @@ import { LoaderCircleIcon } from 'lucide-react'
 import { useAuiState } from '@assistant-ui/react'
 import { Marker, MarkerIcon } from '@/components/ui/marker'
 
-/**
- * Shows a spinner + visible "Thinking…" pill while the thread is running and
- * the current assistant message has no real parts yet, so sighted users get a
- * clear streaming affordance (not just an aria-live region).
- */
 export function LoadingIndicator() {
   const isRunning = useAuiState((s) => s.thread.isRunning)
   const hasError = useAuiState(
@@ -36,8 +31,6 @@ export function LoadingIndicator() {
       <MarkerIcon>
         <LoaderCircleIcon className="animate-spin" />
       </MarkerIcon>
-      {/* Visible "Thinking…" pill so sighted users get the streaming affordance
-          too, not just an aria-live region (issue #2803). */}
       <span className="animate-pulse text-xs font-medium text-muted-foreground motion-reduce:animate-none">
         Thinking…
       </span>

@@ -13,7 +13,6 @@ export interface SortableHeaderProps {
   onSort?: (key: string) => void
 }
 
-/** Table header cell with an optional click-to-sort affordance. */
 export function SortableHeader({
   children,
   align = 'left',

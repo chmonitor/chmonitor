@@ -32,7 +32,6 @@ interface QueryPickerProps {
 
 type Row = Record<string, unknown>
 
-/** Collapse whitespace and cap length for a single-line SQL preview. */
 function preview(sql: string, max = 140): string {
   const flat = sql.replace(/\s+/g, ' ').trim()
   return flat.length > max ? `${flat.slice(0, max)}…` : flat
@@ -42,7 +41,6 @@ function str(v: unknown): string {
   return v == null ? '' : String(v)
 }
 
-/** Short relative time from an epoch-ms timestamp, e.g. "3m ago". */
 function timeAgo(ts: number): string {
   const secs = Math.max(0, Math.round((Date.now() - ts) / 1000))
   if (secs < 60) return `${secs}s ago`

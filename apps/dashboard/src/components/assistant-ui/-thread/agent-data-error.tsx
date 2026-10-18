@@ -8,12 +8,10 @@ import {
 } from '@/lib/ai/agent/errors'
 
 /**
- * Renders a `data-error` part the agent route streamed for a failure that
- * happened INSIDE the UI-message stream (provider/tool/upstream error surfacing
- * after the HTTP 200 headers were sent). assistant-ui's `MessagePrimitive.Error`
- * only covers the runtime's own error status, so without this these classified
- * errors were dropped and the message looked dead ("An error occurred" / an
- * empty bubble). This makes the real cause + actionable suggestion visible.
+ * Renders a `data-error` part streamed for a failure INSIDE the UI-message
+ * stream (after the HTTP 200 headers were sent). assistant-ui's
+ * `MessagePrimitive.Error` only covers the runtime's own error status, so
+ * without this the message would look dead.
  */
 export function AgentDataError() {
   const content = useAuiState((s) => s.message.content) as readonly unknown[]

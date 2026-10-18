@@ -65,13 +65,6 @@ function DetailField({
   )
 }
 
-/**
- * Inline expanded-row detail panel for the readonly-tables table.
- *
- * Prioritises the two exception fields (the actual failure reasons), then
- * surfaces replica connectivity context. Fields absent from the row (e.g.
- * version-dependent columns) are silently omitted.
- */
 export const ReadonlyTableDetails = function ReadonlyTableDetails({
   row,
 }: ReadonlyTableDetailsProps) {

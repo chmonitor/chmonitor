@@ -1,6 +1,5 @@
 import type { McpErrorKind } from '@/lib/mcp'
 
-/** Friendly copy per failure shape — never surface a raw fetch error. */
 export function describeError(kind: McpErrorKind): {
   title: string
   hint: string

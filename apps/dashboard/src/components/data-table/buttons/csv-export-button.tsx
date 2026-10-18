@@ -13,13 +13,9 @@ import { downloadCsv, valueToCsv } from '@/lib/csv'
 
 interface CsvExportButtonProps<TData extends RowData = RowData> {
   table: Table<TData>
-  /** Optional filename for the download (without extension) */
   filename?: string
 }
 
-/**
- * Generate CSV content from table rows and columns
- */
 function generateCsvContent<TData extends RowData>(
   table: Table<TData>
 ): string | null {
@@ -30,11 +26,9 @@ function generateCsvContent<TData extends RowData>(
     return null
   }
 
-  // Generate header row
   const headers = columns.map((col) => valueToCsv(col.id))
   const csvRows = [headers.join(',')]
 
-  // Generate data rows
   for (const row of rows) {
     const values = columns.map((col) => {
       const value = row.getValue(col.id)
@@ -46,19 +40,6 @@ function generateCsvContent<TData extends RowData>(
   return csvRows.join('\n')
 }
 
-/**
- * CSV Export Button - Export table data to CSV file
- *
- * Provides options to export:
- * - Current page only
- * - All data (if client-side filtered/paginated)
- *
- * Features:
- * - Handles null/undefined values
- * - Properly escapes values with commas, quotes, or newlines
- * - Generates filename with timestamp
- * - Shows toast notifications
- */
 export const CsvExportButton = function CsvExportButton<
   TData extends RowData = RowData,
 >({ table, filename = 'export' }: CsvExportButtonProps<TData>) {
@@ -87,11 +68,9 @@ export const CsvExportButton = function CsvExportButton<
 
     const columns = table.getAllLeafColumns()
 
-    // Generate header row
     const headers = columns.map((col) => valueToCsv(col.id))
     const csvRows = [headers.join(',')]
 
-    // Generate data rows from all data
     for (const row of allRows) {
       const values = columns.map((col) => {
         const value = row.getValue(col.id)

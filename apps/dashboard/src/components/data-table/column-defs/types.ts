@@ -1,7 +1,3 @@
-/**
- * Column definition types
- */
-
 import type { RowData } from '@tanstack/react-table'
 
 import type { FilterDraft } from '@/components/filters/filter-editor'

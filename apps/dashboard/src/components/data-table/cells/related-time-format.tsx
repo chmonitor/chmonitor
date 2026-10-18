@@ -10,10 +10,8 @@ export const RelatedTimeFormat = function RelatedTimeFormat({
 }: RelatedTimeFormatProps) {
   const userTimezone = useTimezone()
 
-  // Memoize dayjs computation
   const fromNow = (() => {
     try {
-      // Parse in user's timezone
       const parsed = dayjs.tz(value as string, userTimezone)
       return parsed.fromNow()
     } catch (_e) {

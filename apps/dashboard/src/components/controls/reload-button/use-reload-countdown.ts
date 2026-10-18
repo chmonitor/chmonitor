@@ -8,9 +8,6 @@ export interface ReloadCountdownOptions {
    * null means auto-reload is disabled
    */
   reloadInterval: number | null
-  /**
-   * Callback triggered when countdown reaches zero
-   */
   onCountdownComplete: () => void
   /**
    * Whether a reload operation is currently in progress
@@ -20,30 +17,12 @@ export interface ReloadCountdownOptions {
 }
 
 export interface ReloadCountdownReturn {
-  /**
-   * Current countdown value in seconds
-   */
   countDown: number
-  /**
-   * Manually reset the countdown to initial value
-   */
   resetCountDown: () => void
 }
 
 const DEFAULT_COUNTDOWN_SECONDS = 10
 
-/**
- * Custom hook for managing auto-reload countdown timer
- *
- * @example
- * ```tsx
- * const { countDown, resetCountDown } = useReloadCountdown({
- *   reloadInterval: 30000,
- *   onCountdownComplete: () => router.refresh(),
- *   isLoading: false,
- * })
- * ```
- */
 export function useReloadCountdown({
   reloadInterval,
   onCountdownComplete,
@@ -73,9 +52,6 @@ export function useReloadCountdown({
         setCountDown((prev) => prev - 1)
       }
     },
-    // Only run interval if:
-    // - Not currently loading
-    // - Auto-reload is enabled (reloadInterval != null)
     !isLoading && reloadInterval != null ? 1000 : null
   )
 

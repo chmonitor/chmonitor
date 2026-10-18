@@ -26,7 +26,6 @@ export interface ExplainTreeNode {
   children: ExplainTreeNode[]
 }
 
-/** Number of leading whitespace characters (treating a tab as one level). */
 function leadingIndent(line: string): number {
   let count = 0
   for (const ch of line) {
@@ -80,7 +79,6 @@ export function parseExplainTree(lines: string[]): ExplainTreeNode[] {
   return roots
 }
 
-/** Total node count, useful for empty / expand-all decisions. */
 export function countNodes(nodes: ExplainTreeNode[]): number {
   let total = 0
   for (const n of nodes) {

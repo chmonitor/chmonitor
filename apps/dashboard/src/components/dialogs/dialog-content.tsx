@@ -17,7 +17,6 @@ export interface DialogContentProps {
   description?: string
   content: string | React.ReactNode
   contentClassName?: string
-  /** Actions to display in the header (right side) */
   headerActions?: React.ReactNode
 }
 

@@ -1,11 +1,10 @@
 /**
- * Built-in alert list — every built-in alert with its display name,
- * its stable id, live state on the current host, and inline rename / reset.
+ * Built-in alerts with live state on the current host and inline rename / reset.
  *
- * The id is the stable key: `alert_state` / ACKs stay keyed on it, so a
- * rename never resets anything. The list always renders (the API answers with
- * defaults when there is no metadata DB); only rename/reset are gated on
- * `useHealthStoreAvailability` — `unknown` renders disabled too.
+ * The id is the stable key: `alert_state` / ACKs stay keyed on it, so a rename
+ * never resets anything. The list always renders (the API answers with defaults
+ * when there is no metadata DB); only rename/reset are gated on
+ * `useHealthStoreAvailability`, and `unknown` renders disabled too.
  */
 import { Check, Pencil, RotateCcw, X } from 'lucide-react'
 import { toast } from 'sonner'

@@ -49,16 +49,12 @@ export interface SlowQueryRow {
 
 type Severity = 'critical' | 'warning' | 'normal'
 
-/** Classify a query by how long it took (seconds). */
 function getSeverity(durationS: number): Severity {
   if (durationS > 60) return 'critical'
   if (durationS > 10) return 'warning'
   return 'normal'
 }
 
-// formatDuration is imported from @/components/query-tables/format-duration
-
-/** Toned chip for the query-cache usage enum. */
 const CACHE_BADGE: Record<string, string> = {
   Hit: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   Write: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
@@ -142,7 +138,6 @@ const SEVERITY_DURATION: Record<Severity, string> = {
   normal: 'text-foreground',
 }
 
-/** Rank indicator — a quiet monochrome ordinal (1 = slowest). */
 function RankBadge({ rank }: { rank: number }) {
   return (
     <span
@@ -154,7 +149,6 @@ function RankBadge({ rank }: { rank: number }) {
   )
 }
 
-/** A toned cache-usage chip. */
 function CacheBadge({ value }: { value: string }) {
   if (!value) return <span className="text-muted-foreground">—</span>
   return (
@@ -169,7 +163,6 @@ function CacheBadge({ value }: { value: string }) {
   )
 }
 
-/** A compact metric bar (value + share of the slowest run). */
 function MetricBar({ label, pct }: { label: string; pct: number }) {
   const width = Math.max(Math.min(pct, 100), 2)
   return (
@@ -186,9 +179,6 @@ function MetricBar({ label, pct }: { label: string; pct: number }) {
     </div>
   )
 }
-
-// SortableHeader is imported from @/components/query-tables/sortable-header
-// DetailField is imported from @/components/query-tables/detail-field
 
 /**
  * Expanded row — secondary-metric grid, the full query with syntax
@@ -217,7 +207,6 @@ function ExpandedDetail({ d }: { d: DerivedQuery }) {
 
   return (
     <div className="space-y-3 border-t border-border bg-muted/40 px-3 py-3.5 sm:px-5">
-      {/* Secondary metrics — a compact key/value grid */}
       <div className="overflow-hidden rounded-md border border-border bg-card">
         <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Query metrics
@@ -295,7 +284,6 @@ interface QueryRowProps {
   onToggle: () => void
 }
 
-/** One slow query rendered as a table row (collapsed) + detail row. */
 const QueryRow = memo(function QueryRow({
   d,
   rank,

@@ -1,9 +1,3 @@
-/**
- * ZooKeeper chart imports
- *
- * Lazy-loaded ZooKeeper-related charts.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

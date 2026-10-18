@@ -23,10 +23,6 @@ interface DataTablePaginationProps<TData extends RowData = RowData> {
 
 const pageSizeOptions = [10, 25, 50, 100, 200, 500, 1000]
 
-/**
- * Memoized pagination info displaying row range (desktop) or page number (mobile).
- * Uses cached Intl.NumberFormat from @/lib/format-number.
- */
 function PaginationInfo<TData extends RowData = RowData>({
   table,
 }: DataTablePaginationProps<TData>) {
@@ -54,7 +50,6 @@ function PaginationInfo<TData extends RowData = RowData>({
 export function DataTablePagination<TData extends RowData = RowData>({
   table,
 }: DataTablePaginationProps<TData>) {
-  // Memoized pagination handlers to prevent recreation on every render
   const handleFirstPage = () => {
     table.setPageIndex(0)
   }

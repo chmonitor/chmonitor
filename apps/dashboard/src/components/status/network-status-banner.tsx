@@ -4,10 +4,6 @@ import { cn } from '@/lib/utils'
 
 type NetworkStatus = 'online' | 'offline' | 'checking'
 
-/**
- * Network status banner that shows when the user goes offline
- * Automatically detects network changes and displays helpful information
- */
 export const NetworkStatusBanner = function NetworkStatusBanner() {
   const [status, setStatus] = useState<NetworkStatus>('checking')
   const wasOfflineRef = useRef(false)

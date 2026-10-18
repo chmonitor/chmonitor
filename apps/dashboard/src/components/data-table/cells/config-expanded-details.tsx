@@ -25,12 +25,7 @@ import type { ExpandedRenderer } from '@/types/query-config'
  */
 
 interface CreateConfigExpandedDetailsOptions {
-  /**
-   * Columns already shown in the table. They are skipped in the grid so the
-   * panel only adds *new* information instead of repeating the row.
-   */
   primaryColumns?: readonly string[]
-  /** Key holding a long description to render as prose. Default: `description`. */
   descriptionKey?: string
 }
 
@@ -128,11 +123,6 @@ export function ConfigExpandedDetails({
   )
 }
 
-/**
- * Factory returning an {@link ExpandedRenderer} bound to a set of options.
- * Lives in this `.tsx` module so plain `.ts` query-config files can opt into
- * row expansion without importing JSX themselves.
- */
 export function createConfigExpandedDetails(
   options: CreateConfigExpandedDetailsOptions = {}
 ): ExpandedRenderer {

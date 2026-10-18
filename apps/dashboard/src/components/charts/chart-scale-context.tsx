@@ -17,9 +17,6 @@ interface ChartScaleContextValue {
 
 const ChartScaleContext = createContext<ChartScaleContextValue | null>(null)
 
-/**
- * Get initial scale preference from localStorage
- */
 function getInitialScale(): YAxisScale {
   if (typeof window === 'undefined') return 'linear'
   try {
@@ -33,9 +30,6 @@ function getInitialScale(): YAxisScale {
   return 'linear' // Default to linear scale (log scale off)
 }
 
-/**
- * Save scale preference to localStorage
- */
 function saveScale(scale: YAxisScale) {
   if (typeof window === 'undefined') return
   try {
@@ -57,10 +51,6 @@ interface ChartScaleProviderProps {
   persist?: boolean
 }
 
-/**
- * Provider for chart scale context
- * Manages scale state with localStorage persistence
- */
 export function ChartScaleProvider({
   children,
   initialScale,
@@ -103,18 +93,11 @@ export function ChartScaleProvider({
   )
 }
 
-/**
- * Hook to access chart scale context
- * Returns null if not within a ChartScaleProvider
- */
 export function useChartScale(): ChartScaleContextValue | null {
   return use(ChartScaleContext)
 }
 
-/**
- * Hook to get the current scale value
- * Falls back to 'auto' if not in a provider
- */
+/** Falls back to 'auto' outside a provider. */
 export function useChartScaleValue(): YAxisScale {
   const context = use(ChartScaleContext)
   return context?.scale ?? 'auto'

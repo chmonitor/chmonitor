@@ -2,13 +2,6 @@ import { REFRESH_INTERVAL, useHostId } from '@/lib/swr'
 import { useHostStatus } from '@/lib/swr/use-host-status'
 import { cn } from '@/lib/utils'
 
-/**
- * OverviewStatusStrip — a thin connection-health banner above the KPI strip.
- *
- * State is derived honestly from {@link useHostStatus}: a pulsing green dot
- * when the cluster responds, amber when its status can't be read, and a muted
- * dot while the first probe is in flight.
- */
 export const OverviewStatusStrip = function OverviewStatusStrip({
   className,
 }: {
@@ -30,13 +23,9 @@ export const OverviewStatusStrip = function OverviewStatusStrip({
     dot = 'bg-muted-foreground/50'
     label = 'Connecting to cluster…'
   } else if (error && !data) {
-    // Initial probe failed — there is no status to show.
     dot = 'bg-amber-500'
     label = 'Cluster status unavailable'
   } else if (error) {
-    // Revalidation failed but an earlier probe succeeded — keep the online
-    // reading and flag the stale check, matching the dashboard's graceful
-    // degradation pattern for charts.
     dot = 'bg-amber-500'
     label = 'Cluster online · status check delayed'
   } else {

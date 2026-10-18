@@ -21,7 +21,6 @@ export function ExplainResult({
 }: {
   lines: string[]
   title: string
-  /** Whether a tree view makes sense for this EXPLAIN mode. */
   treeRenderable: boolean
 }) {
   const text = useMemo(() => lines.join('\n'), [lines])

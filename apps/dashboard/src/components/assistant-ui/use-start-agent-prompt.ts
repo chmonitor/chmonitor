@@ -1,10 +1,5 @@
 'use client'
 
-/**
- * Shared "send this suggested question" handler for the agent welcome grid
- * and the settings-sidebar prompt list.
- */
-
 import { useAui } from '@assistant-ui/react'
 import { useCallback } from 'react'
 import { useAgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'

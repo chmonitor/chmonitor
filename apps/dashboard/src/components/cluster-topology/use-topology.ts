@@ -18,14 +18,8 @@ const STRUCTURE_INTERVAL = 60_000
 const STRUCTURE_DEDUPE = 55_000
 
 /**
- * Fetch the assembled cluster-topology model from the server route.
- *
- * The route assembles the full structural model server-side from real ClickHouse
- * data (system.clusters + keeper presence/info + a per-node live fan-out) and
- * returns it as one cacheable document, so the client renders without recomputing.
- *
- * Layout (x/y) is applied client-side by `layoutTopology` in the view, keeping the
- * presentational concern out of the wire shape and stable across live ticks.
+ * Fetch the assembled cluster-topology model from the server route. Layout (x/y)
+ * is applied client-side by `layoutTopology`, keeping it out of the wire shape.
  */
 export function useTopology(hostId: number) {
   const { settings } = useUserSettings()

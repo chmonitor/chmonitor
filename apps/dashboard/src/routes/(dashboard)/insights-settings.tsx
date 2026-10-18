@@ -115,7 +115,6 @@ function InsightsSettingsPage() {
           Back to overview
         </Button>
 
-        {/* Header — crisp mark, no gradient blob */}
         <div className="flex items-center gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-foreground/70">
             <InsightsGlyph />

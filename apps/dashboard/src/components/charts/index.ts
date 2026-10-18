@@ -1,6 +1,3 @@
-// Chart barrel — only exports base components and primitives ported so far.
-// Individual chart components will be added in Phase 2 fan-out.
-
 export { ChartContainer } from './chart-container'
 export { ChartEmpty } from './chart-empty'
 export { ChartError } from './chart-error'

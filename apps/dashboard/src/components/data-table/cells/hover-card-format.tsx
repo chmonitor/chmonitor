@@ -24,11 +24,8 @@ export const HoverCardFormat = function HoverCardFormat<
 >({ row, value, options }: HoverCardProps<TData>): React.ReactNode {
   const { content } = options || {}
 
-  // Extract row data for template replacement
-  // Uses row.getValue() for each column to get the value
   const rowData = extractRowData(content, row as Row<unknown>)
 
-  // Content replacement, e.g. "Hover content: [column_name]"
   const processedContent = replaceTemplateInReactNode(content, rowData)
 
   // Normalize bigint to string: React 19 ReactNode includes bigint but radix-ui's
@@ -46,17 +43,12 @@ export const HoverCardFormat = function HoverCardFormat<
   )
 }
 
-/**
- * Extract row data for columns referenced in the content template
- * Uses row.getValue() to support TanStack Table's column accessors
- */
 function extractRowData(
   content: string | React.ReactNode | undefined,
   row: Row<unknown>
 ): Record<string, unknown> {
   const data: Record<string, unknown> = {}
 
-  // Find all [key] placeholders in content
   const extractKeys = (node: string | React.ReactNode | undefined): void => {
     if (typeof node === 'string') {
       const matches = node.match(/\[(.*?)\]/g)
@@ -67,7 +59,6 @@ function extractRowData(
         }
       }
     } else if (node && typeof node === 'object') {
-      // Handle React children recursively
       const children = (node as { props?: { children?: React.ReactNode } })
         .props?.children
       if (children) {

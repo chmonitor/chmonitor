@@ -3,18 +3,10 @@
 /**
  * Follow-up suggestions affordance.
  *
- * When the active conversation backend supports AI enrichment (AgentState) and
- * a persisted conversation exists, this renders a small "Suggested follow-ups"
- * control. Suggestions are fetched on demand (not automatically) and rendered
- * as clickable chips (via `FollowUpChips`, shared with the deterministic
- * per-message chips so both affordances read as one visual system); clicking
- * one appends it to the thread as a user message.
- *
- * The component renders nothing unless enrichment is supported and a remote
- * conversation id is available, so it can be dropped into the thread
- * unconditionally. It sits directly above the composer (see `thread.tsx`), so
- * its own top border + padding is what visually anchors it there rather than
- * floating loose above the input.
+ * Fetched on demand (not automatically) when the backend supports AI
+ * enrichment (AgentState) and a persisted conversation exists; renders nothing
+ * otherwise. Clicking a chip appends it to the thread as a user message.
+ * It sits directly above the composer, so its own top border anchors it there.
  */
 
 import { SparklesIcon } from 'lucide-react'

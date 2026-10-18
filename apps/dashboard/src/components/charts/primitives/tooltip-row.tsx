@@ -1,7 +1,3 @@
-/**
- * Reusable tooltip row components
- */
-
 import type { ChartConfig } from '@/components/ui/chart'
 
 import { TooltipColorIndicator } from './tooltip-color-indicator'
@@ -14,9 +10,6 @@ interface StandardTooltipRowProps {
   chartConfig: ChartConfig
 }
 
-/**
- * Standard tooltip row for displaying name/value pairs
- */
 export function StandardTooltipRow({
   name,
   value,
@@ -37,9 +30,6 @@ interface SummaryRowProps {
   chartConfig: ChartConfig
 }
 
-/**
- * Summary row for breakdown tooltips
- */
 export function SummaryRow({ name, value, chartConfig }: SummaryRowProps) {
   return (
     <div className="flex flex-row items-center justify-between gap-2 min-w-0">
@@ -57,9 +47,6 @@ interface TooltipRowLabelProps {
   chartConfig: ChartConfig
 }
 
-/**
- * Label section of tooltip row with color indicator
- */
 function TooltipRowLabel({ name, chartConfig }: TooltipRowLabelProps) {
   return (
     <div className="flex flex-row items-center gap-1.5 min-w-0">
@@ -77,9 +64,6 @@ interface TooltipRowValueProps {
   value: any
 }
 
-/**
- * Value section of tooltip row with readable fallback
- */
 function TooltipRowValue({ item, name, value }: TooltipRowValueProps) {
   return (
     <div className="text-foreground shrink-0 flex items-baseline gap-0.5 font-mono text-xs font-medium tabular-nums">

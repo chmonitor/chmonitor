@@ -89,7 +89,7 @@ export function AutocompletePopover({
         left: anchor.left,
         zIndex: 9999,
       }}
-      // Stop pointer events from bubbling to textarea (e.g. focus loss)
+      // Bubbling to the textarea would blur it
       onMouseDown={(e) => e.preventDefault()}
     >
       <Command

@@ -59,7 +59,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
-/** kebab-case registry/query-config name -> "Title Case" display label. */
 function kebabToTitleCase(name: string): string {
   return name
     .split('-')
@@ -111,7 +110,6 @@ function gridContainerStyle(): CSSProperties {
   }
 }
 
-/** Read-only grid — no dnd-kit, widgets positioned via plain CSS Grid. */
 function ViewGrid({ widgets }: { widgets: DashboardWidget[] }) {
   return (
     <div className={GRID_CONTAINER_CLASS} style={gridContainerStyle()}>
@@ -227,7 +225,6 @@ function ArrangeGridItem({
   )
 }
 
-/** Editable grid — dnd-kit drag-to-move + pointer-event resize. */
 function ArrangeGrid({ widgets, onChange }: Omit<GridProps, 'mode'>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [colWidth, setColWidth] = useState(0)

@@ -75,7 +75,7 @@ function FavoriteItem({
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } else {
-      // Silent failure here left the user clicking Copy with no feedback (#2729).
+      // Silent failure here left the user clicking Copy with no feedback.
       toast.error('Failed to copy link')
     }
   }

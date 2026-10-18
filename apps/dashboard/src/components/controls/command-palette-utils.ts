@@ -17,11 +17,8 @@ const TABLE_PATTERN = /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/i
 export type PaletteTab = 'all' | 'pages' | 'databases' | 'tables' | 'actions'
 
 export interface QuickNavMatch {
-  /** Looks like a (possibly partial) query/trace UUID. */
   isQueryId: boolean
-  /** Looks like a `database.table` reference. */
   isTableName: boolean
-  /** True when at least one quick-nav action applies. */
   hasMatch: boolean
 }
 

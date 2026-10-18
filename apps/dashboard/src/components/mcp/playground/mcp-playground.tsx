@@ -53,13 +53,8 @@ import {
 } from '@/lib/mcp'
 
 /**
- * A real MCP client for our own `/api/mcp` endpoint.
- *
- * Tools are DISCOVERED from the live server (`tools/list`) rather than read
- * from the static catalog, so the Playground always reflects what the endpoint
- * actually serves. The static `MCP_TOOLS` catalog is the fallback when
- * discovery is blocked (unauthenticated / plan-gated), which keeps the tab
- * useful in every auth posture instead of showing an empty page.
+ * MCP client for our own `/api/mcp`. Tools are discovered via `tools/list`; the static
+ * `MCP_TOOLS` catalog is the fallback when discovery is blocked.
  */
 
 export function McpPlayground() {

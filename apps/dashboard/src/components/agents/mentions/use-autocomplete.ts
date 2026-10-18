@@ -4,7 +4,7 @@ import type { AutocompleteItem, Mention, SlashCommand } from './types'
 
 import { useRef, useState } from 'react'
 
-// Generate unique IDs using crypto.randomUUID when available (avoids HMR state issues)
+// randomUUID avoids ID collisions across HMR reloads
 function uniqueId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `mention-${crypto.randomUUID()}`

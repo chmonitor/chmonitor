@@ -3,8 +3,6 @@
 import { useUser } from '@clerk/tanstack-react-start'
 
 /**
- * Returns the signed-in Clerk user id, or null when signed out.
- *
  * IMPORTANT: calls Clerk's `useUser()`, which throws unless a
  * `<ClerkProvider />` is mounted. Only invoke when `isClerkEnabled()` is true.
  */

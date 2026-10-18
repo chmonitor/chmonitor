@@ -1,29 +1,23 @@
 /**
  * Layout constants + presentation palettes for the cluster topology model.
  *
- * See docs/knowledge/cluster-topology.md for the constant contracts — several
- * of these numbers form cross-file agreements with `topo-canvas.tsx` (label
- * positions) and `model-layout.ts` (envelope math). Do not change a number in
- * isolation; check the contract in the knowledge doc first.
+ * Several numbers form cross-file contracts with `topo-canvas.tsx` (label
+ * positions) and `model-layout.ts` (envelope math); see
+ * docs/knowledge/cluster-topology.md before changing one.
  */
 
 import type { ChNode, KeeperNode } from './model-types'
 
 // Canvas viewBox. WIDE aspect so it fills the xl two-column container instead of
-// letterboxing horizontally — the "relax the space" ask. The extra height leaves
-// room for each node's labels to sit INSIDE its cluster boundary.
-// Imported by the layout tests, so the in-viewBox bounds check moves with them.
+// letterboxing horizontally; the extra height keeps node labels INSIDE their
+// cluster boundary.
 export const VB_W = 1280
-// MINIMUM viewBox height. The ACTUAL height is computed per-model (`vbHeight`,
-// see `fitContent`) so it grows to fit the keeper region, the widened keeper↔CH
-// gap (keepers sit fully OUTSIDE the CH cluster boxes), and deeply-nested cluster
-// rings + their now-labelled bottom pills — and stays compact (this floor) for a
-// simple graph so glyphs render large. The fixed-height container scales with
-// preserveAspectRatio="meet", so a taller viewBox letterboxes instead of clipping.
+// MINIMUM viewBox height. The actual height is computed per model (`vbHeight`,
+// see `fitContent`); the container uses preserveAspectRatio="meet", so a taller
+// viewBox letterboxes instead of clipping.
 export const VB_H = 560
-// Node radii are exported so the canvas glyphs render at exactly the size the
-// layout reserves spacing/hull padding for — no drift between layout and paint.
-// Sized so a typical hostname fits INSIDE the glyph (square card / hexagon).
+// Node radii are shared with the canvas so glyphs match the space the layout
+// reserves. Sized so a typical hostname fits INSIDE the glyph.
 export const CH_R = 42
 export const KP_R = 40
 
@@ -46,7 +40,6 @@ export const ENVELOPE_MARGIN = 12 // breathing room between content and the boun
 /** How far a ClickHouse glyph + its labels extend below its center. */
 export function chDownExtent(n: ChNode): number {
   const showHost = n.host !== n.id || n.id.length > 12
-  // sub-line at r+(16|31); LOCAL badge (local node) adds another ~17 below that.
   if (n.isLocal) return CH_R + (showHost ? 57 : 42)
   return CH_R + (showHost ? 36 : 21)
 }
@@ -73,16 +66,11 @@ export const STATUS_COLOR: Record<string, string> = {
   unreachable: '#94a3b8',
 }
 
-// Replication edge color (CH↔CH replica links) — blue, deliberately outside
-// STATUS_COLOR which is keyed by node health. Shared by the canvas stroke and
-// the legend swatch in topology-view.tsx.
+// Replication edge color: blue, deliberately outside STATUS_COLOR (node health).
 export const REPLICATION_COLOR = '#3b82f6'
 
-// Stable palette — EVERY cluster (logical and physical alike) draws a distinct
-// color from this list in encounter order, so concentric/overlapping territories
-// read as separate colored boundaries instead of a muddy stack of gray lines.
-// Claude-style: warm, editorial, muted earth tones led by the Claude clay/coral,
-// hues alternated warm↔cool so ADJACENT nested rings stay easy to tell apart.
+// Every cluster takes a distinct color in encounter order; hues alternate
+// warm↔cool so adjacent nested rings stay distinguishable.
 export const CLUSTER_PALETTE = [
   '#CC785C', // Claude clay (coral) — brand signature
   '#7AA2C0', // dusty blue

@@ -1,16 +1,3 @@
-/**
- * Formatters Module
- *
- * Provides a centralized registry for all cell formatters used in data tables.
- * Formatters are organized by complexity:
- * - Inline: Simple value transformations (no context needed)
- * - Value: Component formatters that only need value + options
- * - Context: Formatters requiring row/table context
- * - Advanced: Complex formatters with special behaviors
- *
- * @module formatters
- */
-
 import { ADVANCED_FORMATTERS } from './advanced-formatters'
 import { CONTEXT_FORMATTERS } from './context-formatters'
 import { INLINE_FORMATTERS } from './inline-formatters'
@@ -26,9 +13,6 @@ export type {
   ValueOnlyFormatter,
 } from './types'
 
-/**
- * Master formatter registry combining all formatter types
- */
 export const FORMATTER_REGISTRY = {
   inline: INLINE_FORMATTERS,
   value: VALUE_FORMATTERS,
@@ -36,7 +20,6 @@ export const FORMATTER_REGISTRY = {
   advanced: ADVANCED_FORMATTERS,
 } as const
 
-// Re-export all formatters for direct access if needed
 export {
   ADVANCED_FORMATTERS,
   codeDialogFormatter,
@@ -53,9 +36,7 @@ export {
   linkFormatter,
   runningQuerySummaryFormatter,
 } from './context-formatters'
-// Export core formatting function
 export { formatCell } from './format-cell'
-// Export formatter utilities
 export {
   getAdvancedFormatter,
   getContextFormatter,

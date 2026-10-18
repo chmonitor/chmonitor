@@ -1,48 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 
-/**
- * Configuration options for the refresh timer hook
- */
 export interface UseRefreshTimerOptions {
-  /** Refresh interval in milliseconds (default: 60000) */
   interval?: number
-  /** Callback fired when timer completes and refresh should occur */
   onRefresh?: () => void
-  /** Whether the timer is enabled (default: true) */
   enabled?: boolean
 }
 
-/**
- * Return value of the refresh timer hook
- */
 export interface UseRefreshTimerReturn {
-  /** Remaining seconds until next refresh (0 when disabled) */
   remaining: number
-  /** Whether the timer is currently paused */
   isPaused: boolean
   pause: () => void
   resume: () => void
-  /** Reset the countdown to the initial interval */
   reset: () => void
-  /** Progress value from 0-1 (useful for progress bars) */
   progress: number
 }
 
 const DEFAULT_INTERVAL = 60000 // 1 minute
 const TICK_RATE = 1000 // 1 second
 
-/**
- * Hook for managing auto-refresh countdown timer with pause/resume functionality
- *
- * @example
- * ```tsx
- * const { remaining, isPaused, pause, resume, reset, progress } = useRefreshTimer({
- *   interval: 60000,
- *   onRefresh: () => console.log('Refresh!'),
- *   enabled: true,
- * })
- * ```
- */
 export function useRefreshTimer({
   interval: intervalMs = DEFAULT_INTERVAL,
   onRefresh,
@@ -55,31 +30,19 @@ export function useRefreshTimer({
   const isRefreshingRef = useRef(false)
   const animationFrameRef = useRef<number | undefined>(undefined)
 
-  /**
-   * Reset countdown to initial value
-   */
   const reset = () => {
     setRemaining(initialSeconds)
     isRefreshingRef.current = false
   }
 
-  /**
-   * Pause the countdown timer
-   */
   const pause = () => {
     setIsPaused(true)
   }
 
-  /**
-   * Resume the countdown timer
-   */
   const resume = () => {
     setIsPaused(false)
   }
 
-  /**
-   * Handle the refresh callback with debouncing
-   */
   const triggerRefresh = () => {
     if (isRefreshingRef.current) return
 
@@ -138,7 +101,6 @@ export function useRefreshTimer({
     // biome-ignore lint/correctness/useExhaustiveDependencies: React Compiler stabilizes triggerRefresh; dependency kept for correctness without the compiler.
   }, [enabled, isPaused, initialSeconds, triggerRefresh])
 
-  // Calculate progress (0 = just started, 1 = about to refresh)
   const progress = enabled ? (initialSeconds - remaining) / initialSeconds : 0
 
   return {

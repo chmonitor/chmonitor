@@ -12,11 +12,6 @@ interface ModelContext {
   registerTool?: (tool: WebMcpTool) => void
 }
 
-/**
- * Registers WebMCP tools for browser-based AI agents.
- * Exposes core dashboard actions like get_cluster_health.
- * Matches navigator.modelContext.provideContext() and navigator.modelContext.registerTool() specs.
- */
 export function WebMcpRegistration() {
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -44,7 +39,6 @@ export function WebMcpRegistration() {
         },
       }
 
-      // Call provideContext (RFC / spec variation 1)
       if (typeof nav.modelContext.provideContext === 'function') {
         try {
           nav.modelContext.provideContext({
@@ -55,7 +49,6 @@ export function WebMcpRegistration() {
         }
       }
 
-      // Call registerTool (RFC / spec variation 2)
       if (typeof nav.modelContext.registerTool === 'function') {
         try {
           nav.modelContext.registerTool(getClusterHealth)

@@ -1,12 +1,3 @@
-/**
- * Chart Categories
- *
- * Chart category constants for organizing and grouping charts.
- */
-
-/**
- * Chart category identifiers
- */
 export const CHART_CATEGORIES = {
   QUERY: 'query',
   MERGE: 'merge',
@@ -20,15 +11,9 @@ export const CHART_CATEGORIES = {
   PAGE_VIEW: 'page-view',
 } as const
 
-/**
- * Chart category type
- */
 export type ChartCategory =
   (typeof CHART_CATEGORIES)[keyof typeof CHART_CATEGORIES]
 
-/**
- * Charts organized by category
- */
 export const CHARTS_BY_CATEGORY: Record<ChartCategory, string[]> = {
   [CHART_CATEGORIES.QUERY]: [
     'query-count',

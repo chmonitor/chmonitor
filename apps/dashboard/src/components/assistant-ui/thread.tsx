@@ -5,22 +5,12 @@
 /**
  * assistant-ui Thread for the ClickHouse agent.
  *
- * Composes the assistant-ui *runtime* primitives (Thread / Message / Composer /
- * ActionBar / BranchPicker — which own message data + streaming) with the
- * shadcn **Base UI** chat presentation layer:
- *  - `components/ui/message`         – Message / MessageContent layout + align
- *  - `components/ui/bubble`          – Bubble / BubbleContent surfaces
- *  - `components/ui/message-scroller`– scroll container that owns stick-to-bottom,
- *    turn anchoring, and the scroll-to-bottom button (replaces assistant-ui's
- *    Viewport + ScrollToBottom). assistant-ui still provides the message list via
- *    `ThreadPrimitive.Messages`; each rendered message wraps itself in a
- *    `MessageScrollerItem` keyed by its runtime id so the scroller can anchor it.
+ * assistant-ui runtime primitives own message data + streaming; the shadcn
+ * Base UI chat layer (`components/ui/message`, `bubble`, `message-scroller`)
+ * owns presentation and scrolling. Each rendered message wraps itself in a
+ * `MessageScrollerItem` keyed by its runtime id so the scroller can anchor it.
  *
- * Project-specific pieces live in co-located `./-thread/*` modules:
- *  - `composer.tsx`        – welcome + in-thread mention composers
- *  - `chain-of-thought.tsx`– GroupedParts reasoning/tool render pipeline
- *  - `message-stats.tsx`   – per-message stats footer + details dialog
- *  - `format.ts`           – shared duration/date helpers
+ * Project-specific pieces live in `./-thread/*`.
  */
 
 import type { ComponentProps, FC } from 'react'
@@ -75,15 +65,11 @@ export function Thread({
     <ThreadPrimitive.Root
       className="aui-root flex h-full flex-col overflow-hidden bg-background"
       style={{
-        // Cap assistant content to a readable measure (~64rem) instead of
-        // stretching edge-to-edge; charts/tables/SQL still fill this column
-        // and it centers within wider containers (issue #2803).
+        // Readable measure; charts/tables/SQL still fill this column.
         ['--assistant-max-width' as string]: 'min(100%, 64rem)',
       }}
     >
-      {/* Empty (welcome) state lives OUTSIDE the scroll container. The tall
-          welcome screen (composer + suggested questions) should start at the
-          top, not be pinned to the bottom by the scroller. */}
+      {/* Outside the scroll container so the tall welcome screen starts at the top. */}
       <ThreadPrimitive.If empty>
         <div className="flex flex-1 flex-col overflow-y-auto px-4 pt-14">
           <ThreadWelcome
@@ -96,8 +82,6 @@ export function Thread({
       </ThreadPrimitive.If>
 
       <ThreadPrimitive.If empty={false}>
-        {/* MessageScroller owns scroll: stick-to-bottom while streaming, turn
-            anchoring, and the floating scroll-to-bottom button. */}
         <MessageScrollerProvider autoScroll>
           <div className="relative flex flex-1 flex-col overflow-hidden">
             <MessageScroller className="flex flex-1 flex-col overflow-hidden">
@@ -182,11 +166,6 @@ const EditComposer: FC = () => {
   )
 }
 
-/**
- * Assistant message body. Renders streaming parts (text · reasoning · tool
- * calls) full-width without an "Agent" avatar — the column already aligns left
- * while user messages align right, so the chrome stays minimal.
- */
 const AssistantMessage: FC = () => {
   const messageId = useAuiState((s) => s.message.id)
   return (
@@ -200,8 +179,7 @@ const AssistantMessage: FC = () => {
               {
                 // The local GroupedRenderInfo is a structural approximation of
                 // the library's RenderInfo<ChainOfThoughtKey>; cast to the exact
-                // children signature the component expects (same code path as
-                // the Next app).
+                // children signature the component expects.
                 renderGroupedPart as ComponentProps<
                   typeof MessagePrimitive.GroupedParts
                 >['children']
@@ -212,9 +190,6 @@ const AssistantMessage: FC = () => {
 
             <MessageError />
 
-            {/* Surface errors the route streamed as a `data-error` part (a
-                failure inside the stream, after HTTP 200) — otherwise the
-                message looks dead. */}
             <AgentDataError />
 
             <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100 focus-within:opacity-100">

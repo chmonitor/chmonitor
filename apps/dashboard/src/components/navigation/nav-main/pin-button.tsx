@@ -18,7 +18,7 @@ interface PinButtonProps {
 
 /**
  * Hover-revealed pin/unpin affordance for a top-level sidebar menu item
- * (issue #2769) — same reveal pattern as `CardToolbar`. Renders as a sibling
+ * — same reveal pattern as `CardToolbar`. Renders as a sibling
  * of `SidebarMenuButton` via `SidebarMenuAction` rather than nesting inside
  * the link, so clicking it never triggers navigation.
  */
@@ -32,7 +32,7 @@ export function PinButton({ href, title, hasBadge }: PinButtonProps) {
         overlayActionClasses,
         // `SidebarMenuAction` forces `[&>svg]:size-4`; override so the pin
         // stays small and inset from the very right edge with breathing room.
-        // Below `lg` the row's "…" menu carries Pin / Unpin (#3580).
+        // Below `lg` the row's "…" menu carries Pin / Unpin.
         'right-2 max-lg:hidden [&>svg]:size-3',
         hasBadge && 'right-7'
       )}

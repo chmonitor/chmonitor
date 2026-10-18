@@ -143,12 +143,6 @@ function DetailItem({ icon: Icon, label, value, title }: DetailItemProps) {
   )
 }
 
-/**
- * Renders a memoized, responsive summary for a `system.processes` row.
- *
- * Expects `row.original` to contain running-query fields, tolerates missing
- * optional columns, and returns a React node for the data-table formatter.
- */
 export const RunningQuerySummaryFormat = function RunningQuerySummaryFormat<
   TData extends RowData,
 >({ row, value }: RunningQuerySummaryFormatProps<TData>): React.ReactNode {

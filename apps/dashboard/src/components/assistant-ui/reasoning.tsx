@@ -1,12 +1,5 @@
 'use client'
 
-/**
- * Reasoning components for displaying chain-of-thought / thinking output.
- *
- * Ghost / muted styling intentionally signals "background processing" —
- * the content feels secondary to the final assistant answer.
- */
-
 import { ChevronRightIcon, SparklesIcon } from 'lucide-react'
 
 import { useScrollLock } from '@assistant-ui/react'
@@ -34,13 +27,6 @@ interface ReasoningRootProps extends PropsWithChildren {
   isRunning?: boolean
 }
 
-/**
- * Collapsible container for reasoning / chain-of-thought content.
- * Uses ghost/muted styling so it reads as background-layer content.
- *
- * Controlled when `isRunning` is provided: the active (streaming) block stays
- * expanded while finished blocks collapse. A manual toggle wins permanently.
- */
 export function ReasoningRoot({
   children,
   className,
@@ -89,10 +75,6 @@ interface ReasoningTriggerProps extends PropsWithChildren {
   className?: string
 }
 
-/**
- * Toggle button for the reasoning collapsible.
- * Renders a subtle Sparkles icon + label; chevron rotates when open.
- */
 export function ReasoningTrigger({
   children,
   active,
@@ -125,9 +107,6 @@ interface ReasoningContentProps extends PropsWithChildren {
   className?: string
 }
 
-/**
- * Animated collapsible body for reasoning text.
- */
 export function ReasoningContent({
   children,
   className,
@@ -140,8 +119,6 @@ export function ReasoningContent({
         'data-open:animate-collapsible-down'
       )}
     >
-      {/* Indented under the trigger's icon + label, matching the tool row's
-          left-accent-bar indent so reasoning reads as one visual "system" */}
       <div className={cn('py-1 pl-5', className)}>{children}</div>
     </CollapsibleContent>
   )
@@ -152,9 +129,6 @@ interface ReasoningTextProps {
   className?: string
 }
 
-/**
- * Pre-formatted reasoning text with muted / italic ghost styling.
- */
 export function ReasoningText({ text, className }: ReasoningTextProps) {
   if (!text?.trim()) return null
   return (
@@ -175,10 +149,6 @@ interface ReasoningProps {
   className?: string
 }
 
-/**
- * Convenience wrapper that composes ReasoningRoot + Trigger + Content + Text.
- * Use the sub-components directly when you need more control.
- */
 export function Reasoning({ text, active, className }: ReasoningProps) {
   if (!text?.trim()) return null
   return (

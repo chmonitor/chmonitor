@@ -6,7 +6,7 @@
  * Renders a **static, illustrative** set of example insight cards that reflect
  * the operator's current settings (prompt style / enrichment / window). It makes
  * NO network or LLM call, so the example always renders — including for
- * anonymous visitors and read-only demo hosts, which previously only saw
+ * anonymous visitors and read-only demo hosts, which would otherwise only see
  * "Couldn't generate — the cluster may be unreachable or read-only."
  *
  * This is sample data, not live cluster analysis; the header labels it "Sample".

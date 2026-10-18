@@ -21,20 +21,6 @@ export interface ReloadButtonProps {
   className?: string
 }
 
-/**
- * Reload button with auto-reload countdown timer
- *
- * Features:
- * - Manual reload with keyboard shortcut (Cmd+R)
- * - Auto-reload with configurable intervals (30s, 1m, 2m, 10m, 30m)
- * - Countdown timer display showing time until next reload
- * - Disable auto-reload option
- *
- * @example
- * ```tsx
- * <ReloadButton className="ml-auto" />
- * ```
- */
 export const ReloadButton = function ReloadButton({
   className,
 }: ReloadButtonProps) {

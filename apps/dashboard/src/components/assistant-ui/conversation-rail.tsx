@@ -2,13 +2,11 @@
 
 /**
  * ConversationRail — the persistent, collapsible conversation history rail on
- * the AI Agent page (issue #2802). Replaces the old centered "Conversations"
- * dialog: the thread list is now always visible, one click switches threads.
+ * the AI Agent page: the thread list is always visible, one click switches threads.
  *
  * This is the single source of truth for rendering saved conversations — the
  * rail and its mobile Drawer both render the same {@link ThreadRow} over
- * {@link useConversationItems} (issue #2809, consolidating `thread-list.tsx` +
- * `recent-threads-rail.tsx` + the dialog).
+ * {@link useConversationItems}.
  *
  * Data comes from assistant-ui's thread-list runtime (`useAuiState` on
  * `s.threads`), so it stays in sync with the persistent adapter (D1 or
@@ -166,7 +164,7 @@ export function ThreadRow({ item, onSelect }: ThreadRowProps) {
 }
 
 interface ConversationRailBodyProps {
-  /** Called after a row is selected or a new chat starts (closes the mobile Drawer). */
+  /** Closes the mobile Drawer. */
   onNavigate?: () => void
   onCollapse?: () => void
   /** Hide the collapse button (mobile Drawer supplies its own close). */

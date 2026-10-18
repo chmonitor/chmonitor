@@ -1,9 +1,3 @@
-/**
- * Compact variant for ErrorAlert
- *
- * Minimal display with truncated message for space-constrained contexts.
- */
-
 import type React from 'react'
 import type { ErrorAlertVariant } from '../error-alert-variants'
 

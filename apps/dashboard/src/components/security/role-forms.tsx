@@ -1,7 +1,3 @@
-/**
- * Roles tab — Grant / Revoke role forms for the RBAC management page.
- */
-
 import type { AuditEntry } from './types'
 
 import { ConfirmDialog } from './confirm-dialog'

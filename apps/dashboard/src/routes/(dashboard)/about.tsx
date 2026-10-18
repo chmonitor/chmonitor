@@ -187,7 +187,6 @@ function AboutPage() {
 
       <Separator />
 
-      {/* Build Information - Only show in production builds */}
       {import.meta.env.VITE_CI && (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Build Information</h2>

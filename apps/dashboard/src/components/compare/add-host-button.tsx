@@ -13,9 +13,6 @@ interface AddHostButtonProps {
   variant?: 'default' | 'outline'
 }
 
-/**
- * Opens AddHostDialog — same local addOpen pattern as HostSwitcher / first-run.
- */
 export function AddHostButton({
   className,
   label = 'Add host',

@@ -14,10 +14,7 @@ import { useTimezone } from '@/lib/context/timezone-context'
 import { useChartData, useHostId } from '@/lib/swr'
 import { cn, createDateTickFormatter } from '@/lib/utils'
 
-/**
- * Check if all values in the specified categories are zero or empty
- * This helps detect when a chart has data rows but no meaningful values to display
- */
+/** True when the data has rows but every value in `categories` is zero or empty. */
 function hasOnlyZeroValues(
   data: Record<string, unknown>[],
   categories: string[]
@@ -32,23 +29,7 @@ function hasOnlyZeroValues(
   )
 }
 
-/**
- * Factory function to create a BarChart component with consistent patterns
- *
- * Eliminates ~45 lines of duplicate code per chart component.
- *
- * @example
- * ```typescript
- * export const ChartQueryType = createBarChart<{
- *   query_type: string
- *   count: number
- * }>({
- *   chartName: 'query-type',
- *   index: 'query_type',
- *   categories: ['count'],
- * })
- * ```
- */
+/** Creates a BarChart component with the shared loading/error/empty handling. */
 export function createBarChart(config: BarChartFactoryConfig): FC<ChartProps> {
   const resolvedDateRangeConfig = config.dateRangeConfig
     ? resolveDateRangeConfig(config.dateRangeConfig)

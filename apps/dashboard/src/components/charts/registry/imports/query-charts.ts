@@ -1,9 +1,3 @@
-/**
- * Query chart imports
- *
- * Lazy-loaded query-related charts.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

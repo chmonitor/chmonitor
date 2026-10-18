@@ -1,5 +1,3 @@
-/**
- */
 import { useQuery } from '@tanstack/react-query'
 
 import type { AlertStateRow } from '@/lib/health/alert-state-persist'

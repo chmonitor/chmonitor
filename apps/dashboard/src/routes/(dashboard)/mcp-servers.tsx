@@ -2,19 +2,12 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import { pageOgHead } from '@/lib/og'
 
-/**
- * `/mcp-servers` moved into the "MCP Servers" tab of `/agents/settings`
- * (menu/IA cleanup — the standalone registration page is now one section of
- * the fuller Agent Settings page). Redirect so old bookmarks/links keep
- * working.
- */
+/** Redirect: MCP servers live in the "MCP Servers" tab of `/agents/settings`. */
 export const Route = createFileRoute('/(dashboard)/mcp-servers')({
   head: () => pageOgHead('agents/settings'),
   beforeLoad: () => {
-    // `href` (not `to` + `search`) — `/agents/settings` doesn't declare a
-    // typed `tab` search param (its Tabs state reads the raw query string via
-    // `useUrlSearchParams`, matching the rest of the app), so a raw href
-    // is simpler than fighting the router's typed search for one param.
+    // `href`, not `to` + `search`: `/agents/settings` declares no typed `tab`
+    // search param (its Tabs read the raw query string).
     throw redirect({ href: '/agents/settings?tab=mcp' })
   },
 })

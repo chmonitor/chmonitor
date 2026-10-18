@@ -85,15 +85,6 @@ function DetailField({
   )
 }
 
-/**
- * Inline expanded-row detail panel for the recent-queries table.
- *
- * The collapsed row truncates the SQL (`CodeDialog max_truncate`) and shows
- * only compact metrics; expanding surfaces the full, syntax-highlighted query,
- * the row's identity + runtime metrics in a clean grid, and — for failed rows
- * (non-zero `exception_code`) — the full exception message, which is the single
- * most valuable field to read when a query errored.
- */
 export const RecentQueryExpandedDetails = function RecentQueryExpandedDetails({
   row,
 }: RecentQueryExpandedDetailsProps) {

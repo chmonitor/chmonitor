@@ -1,8 +1,6 @@
 'use client'
 
 /**
- * The floating agent's bubble trigger.
- *
  * Deliberately in its own module with no assistant-ui imports: the collapsed
  * bubble is all that renders on a dashboard page until the user actually opens
  * the agent, so it must not drag in the Thread chunk. See

@@ -4,8 +4,7 @@
  * Composers for the agent thread: the welcome-screen card (mentions textarea +
  * toolbar with model · skills · tools · add-context) and the in-thread composer
  * docked at the bottom of the viewport. Both share the same submission wiring
- * (auth gate → append user message → cancel-on-stop). Extracted from
- * `thread.tsx`.
+ * (auth gate → append user message → cancel-on-stop).
  */
 
 import { useAui, useAuiState } from '@assistant-ui/react'
@@ -21,11 +20,6 @@ import { useAgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { useAgentModel } from '@/lib/hooks/use-agent-model'
 import { track } from '@/lib/telemetry'
 
-/**
- * Welcome-screen composer card: mentions textarea + toolbar (model · skills ·
- * tools · add-context). Wraps the same submission wiring as the in-thread
- * composer below.
- */
 export function WelcomeComposer() {
   const aui = useAui()
   const isRunning = useAuiState((s) => s.thread.isRunning)
@@ -121,8 +115,6 @@ export function ThreadComposer() {
         }}
         onStop={() => aui.thread.cancelRun()}
       />
-      {/* Keep the toolbar (model · skills · tools · add-context) available
-          mid-conversation, not just on the welcome screen (issue #2804). */}
       <ComposerToolbar
         contextItems={contextItems}
         onAddContext={(item) => setContextItems((prev) => [...prev, item])}

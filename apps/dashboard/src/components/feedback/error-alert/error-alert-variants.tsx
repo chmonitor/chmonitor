@@ -1,9 +1,3 @@
-/**
- * Error alert variant styles
- *
- * Provides consistent styling for different error alert variants.
- */
-
 export type ErrorAlertVariant = 'default' | 'destructive' | 'warning' | 'info'
 
 const VARIANT_STYLES: Record<ErrorAlertVariant, string> = {

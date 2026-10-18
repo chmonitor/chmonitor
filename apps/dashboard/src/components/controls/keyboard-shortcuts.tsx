@@ -14,20 +14,6 @@ import { useKeyboardShortcut } from '@/lib/hooks/use-keyboard-shortcut'
  * - Cmd/Ctrl + R: Refresh current page data
  * - Cmd/Ctrl + /: Show keyboard shortcuts help
  * - Escape: Close modals/dialogs
- *
- * @example
- * ```tsx
- * import { KeyboardShortcuts } from '@/components/controls/keyboard-shortcuts'
- *
- * export function Layout({ children }) {
- *   return (
- *     <>
- *       <KeyboardShortcuts />
- *       {children}
- *     </>
- *   )
- * }
- * ```
  */
 export const KeyboardShortcuts = () => {
   const [showHelp, setShowHelp] = useState(false)

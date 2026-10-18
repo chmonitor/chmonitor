@@ -1,11 +1,8 @@
 import { cn } from '@/lib/utils'
 
 /**
- * Per-channel severity override control: a compact 3-way toggle —
- * Inherit (use the global gate) / Warning+ / Critical — mirroring the global
- * "Warning+ / Critical only" toggle's style. `Inherit` clears the channel's
- * `minSeverity` so it follows the global gate. Shared by the Health Settings
- * Alerts tab (localStorage channels) and the server-channel config panel.
+ * Per-channel severity override: Inherit / Warning+ / Critical. `Inherit`
+ * clears the channel's `minSeverity` so it follows the global gate.
  */
 export function ChannelSeverityToggle({
   value,

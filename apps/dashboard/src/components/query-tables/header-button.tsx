@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button'
 
-/** Header action button — outlined, compact, matches the redesign. */
 export function HeaderButton({
   onClick,
   children,

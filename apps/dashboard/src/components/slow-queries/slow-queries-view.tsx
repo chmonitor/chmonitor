@@ -37,13 +37,11 @@ const REFRESH_INTERVAL = 60_000
 const PRESETS = slowQueriesConfig.filterParamPresets ?? []
 const DEFAULTS = slowQueriesConfig.defaultParams ?? {}
 
-/** Group presets by the param key they drive (time window, min duration). */
 const PRESET_GROUPS: { key: string; icon: typeof Timer; label: string }[] = [
   { key: 'last_hours', icon: Timer, label: 'Time window' },
   { key: 'min_duration_s', icon: Gauge, label: 'Min duration' },
 ]
 
-/** A single-select chip group bound to one filter param key. */
 function FilterGroup({
   groupKey,
   icon: Icon,
@@ -89,14 +87,6 @@ function FilterGroup({
   )
 }
 
-/**
- * SlowQueriesView — the Slow Queries page.
- *
- * Header (title, slowest-query badge, refresh) → preset filter bar (time
- * window + min duration) → the related occurrences chart → the bespoke
- * {@link SlowQueriesTable}. Filters are stored in the URL so they survive
- * reloads and shape the data fetched from `/api/v1/tables/slow-queries`.
- */
 export function SlowQueriesView() {
   const hostId = useHostId()
   useFeatureTracking('slow_queries')

@@ -24,13 +24,10 @@ export const BackgroundBarFormat = function BackgroundBarFormat<
   value,
   options,
 }: BackgroundBarFormatProps<TData>): React.ReactNode {
-  // Disable if row count <= 1
   if (table.getCoreRowModel()?.rows?.length <= 1) return value
 
-  // Looking at pct_{columnName} for the value
   const colName = columnName.replace('readable_', '')
   const pctColName = `pct_${colName}`
-  // row.original is generic (TData); read dynamic keys via a narrow record cast.
   const original = row.original as Record<string, unknown>
   const pct = original[pctColName]
   const orgValue = original[colName]
@@ -40,13 +37,10 @@ export const BackgroundBarFormat = function BackgroundBarFormat<
     return value
   }
 
-  // Get color from bank based on column name (deterministic)
   const baseColor = getColorFromBank(columnName)
 
-  // Calculate shade based on percentage (larger = darker)
   const shade = getShade(pct as number)
 
-  // Build inline style with dynamic color (lower opacity for a subtle background bar)
   const barStyle = getBarStyle(baseColor, shade, 0.35)
 
   return (

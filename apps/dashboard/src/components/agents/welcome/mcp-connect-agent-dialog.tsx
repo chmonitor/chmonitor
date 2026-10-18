@@ -5,8 +5,7 @@
  *
  * Shows how to point an external agent / IDE at THIS cluster's MCP endpoint:
  * the endpoint URL, per-client setup guides, and example prompts. Opened from
- * the "Connect your own agent" entry in the agent settings sidebar (previously
- * a link that navigated away to the full /mcp page).
+ * the "Connect your own agent" entry in the agent settings sidebar.
  *
  * Reuses the same building blocks as the standalone /mcp page — McpEndpointUrl,
  * McpSetupGuides, McpExamplePrompts — so the two surfaces stay in sync. Layout

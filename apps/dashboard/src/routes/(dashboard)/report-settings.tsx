@@ -1,6 +1,4 @@
 /**
- * Report Settings — /report-settings (#2783 / #2790)
- *
  * Configure scheduled cluster health reports (cadence + covered hosts), and
  * try the pipeline immediately: "Generate now" opens a fresh HTML report,
  * "Send test report" delivers one through the configured alert channels.

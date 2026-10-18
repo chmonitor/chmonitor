@@ -11,12 +11,6 @@ import { lazy, Suspense } from 'react'
 
 const LazyPanel = lazy(() => import('./query-metric-log-expanded-details'))
 
-/**
- * Factory returning an {@link ExpandedRenderer} for the Query Metric Log table.
- * Lives in this `.tsx` module so the plain `.ts` query-config can opt into the
- * bespoke, lazily-fetched row-expand panel without importing JSX (or the panel's
- * client-only dependencies) itself.
- */
 export function createQueryMetricLogExpandedDetails(): ExpandedRenderer {
   return (row) => (
     <Suspense

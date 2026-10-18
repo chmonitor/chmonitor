@@ -5,9 +5,7 @@ const WIDTH = 100
 const HEIGHT = 20
 
 interface FleetSparklineProps {
-  /** Samples, oldest first. Fewer than two finite points renders nothing. */
   values: readonly number[] | undefined
-  /** Accessible label describing what the series measures. */
   label: string
   className?: string
 }

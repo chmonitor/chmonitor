@@ -51,7 +51,6 @@ export interface CodeDialogOptions {
   json?: boolean
   dialog_classname?: string
   show_explorer_link?: boolean
-  /** Force the dialog trigger for short content; defaults to false. */
   force_dialog?: boolean
   /**
    * Render a plain, non-interactive truncated preview instead of a dialog
@@ -439,8 +438,6 @@ export const CodeDialogFormat = memo(function CodeDialogFormat({
     )
   }
 
-  // The syntax-highlighted code body + footer. Extracted so it can render
-  // standalone or as the first tab when a Query Plan tab is present.
   const codeView = (
     <>
       <div className="group/code relative flex min-h-0 flex-1 flex-col">

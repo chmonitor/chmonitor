@@ -35,11 +35,6 @@ import {
 import { buildUrl } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
-/**
- * 1. Header card — query_id, status/type badge, exception, user, times,
- * databases/tables/client, exception + stack trace, and the "Explain query" /
- * "Open in Explorer" actions.
- */
 export function QueryDetailHeader({
   row,
   queryId,
@@ -66,8 +61,6 @@ export function QueryDetailHeader({
     .trim()
   const clientName = toStr(row.client_name)
   const clientHost = toStr(row.client_hostname)
-  // Lineage: if this is a leaf of a distributed/parallel query, link back to
-  // the initial (root) query_id. Empty for root queries themselves.
   const initialQueryId = toStr(row.initial_query_id)
   const stackTrace = toStr(row.stack_trace)
   const hasException = Boolean(
@@ -205,7 +198,6 @@ export function QueryDetailHeader({
   )
 }
 
-/** 2. Metrics strip — KpiCards for duration, read rows, read bytes, memory. */
 export function QueryDetailMetrics({ row }: { row: QueryDetailRow }) {
   const durationSecs = toNumber(row.query_duration)
   const readRows = toNumber(row.read_rows)
@@ -272,7 +264,6 @@ export function QueryDetailMetrics({ row }: { row: QueryDetailRow }) {
   )
 }
 
-/** 4. Insights — client-side red flags derived from the row. */
 export function QueryDetailInsights({
   insights,
 }: {
@@ -312,10 +303,6 @@ export function QueryDetailInsights({
   )
 }
 
-/**
- * 6. Child queries — distributed/parallel leaves spawned by this root
- * (initial_query_id match). Linked back into /query detail.
- */
 export function QueryDetailChildren({
   childrenData,
   hostId,

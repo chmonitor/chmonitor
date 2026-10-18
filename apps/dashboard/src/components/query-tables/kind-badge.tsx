@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
 
-/** Toned chip class per query kind, so SELECT/INSERT/DDL scan at a glance. */
 export const KIND_BADGE: Record<string, string> = {
   Select: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
   Insert:
@@ -19,7 +18,6 @@ export function kindBadgeClass(kind: string): string {
   return KIND_BADGE[kind] ?? 'bg-muted text-muted-foreground'
 }
 
-/** A toned, monospace query-kind chip. */
 export function KindBadge({ kind }: { kind: string }) {
   return (
     <span

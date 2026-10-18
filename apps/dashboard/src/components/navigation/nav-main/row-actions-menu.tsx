@@ -37,7 +37,7 @@ interface RowActionsMenuProps {
 }
 
 /**
- * Touch path to a sidebar page row's actions (#3580). Below `lg` there is no
+ * Touch path to a sidebar page row's actions. Below `lg` there is no
  * hover, so the hover pin / hide / drag grip are replaced by one trailing "…"
  * button (36px target) opening a menu: Pin / Unpin, Hide from sidebar, and —
  * in the Favorites group — Move up / Move down. `lg`+ keeps the hover

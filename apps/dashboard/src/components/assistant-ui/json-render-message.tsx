@@ -4,8 +4,8 @@
 
 /**
  * Renders `@json-render` generative-UI specs that the agent streams as
- * `data-spec` message parts. Ported from the old `chat/message.tsx`; the same
- * size / element-count safety limits are enforced before rendering.
+ * `data-spec` message parts; size / element-count safety limits are enforced
+ * before rendering.
  */
 
 import { ErrorBoundary } from 'react-error-boundary'
@@ -65,10 +65,6 @@ function countElements(spec: Spec | null): number {
   return Object.keys(spec.elements as Record<string, unknown>).length
 }
 
-/**
- * Validate + sanitize a parsed json-render spec against the agent's safety
- * limits before it is rendered.
- */
 export function validateAndSanitizeSpecFromParts(
   parts: readonly DataPart[],
   parsed: { spec: Spec | null; text: string; hasSpec: boolean }
@@ -179,10 +175,6 @@ function useSafeJsonRender(parts: readonly unknown[]): SafeJsonRenderResult {
   }, [dataParts, hasSpec, spec, text])
 }
 
-/**
- * Reads the active assistant message's parts and renders any json-render
- * generative UI. Mounted once per assistant message after its text/tool parts.
- */
 export function JsonRenderMessage() {
   const parts = useAuiState((s) => s.message.content) as readonly unknown[]
   const isRunning = useAuiState((s) => s.message.status?.type === 'running')

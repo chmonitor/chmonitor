@@ -8,7 +8,6 @@ interface CompareToolbarProps {
   className?: string
 }
 
-/** Shared compare-tools chrome: padded card, tabs on top, fields below. */
 export function CompareToolbar({
   tabs,
   children,

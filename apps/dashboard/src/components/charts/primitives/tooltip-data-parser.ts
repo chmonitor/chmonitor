@@ -1,8 +1,4 @@
 /**
- * Data parsing utilities for chart tooltips
- */
-
-/**
  * Parse breakdown data into consistent [name, value] tuples
  *
  * Handles both array format: [('A', 1000)]

@@ -86,11 +86,6 @@ function TreeNode({
   )
 }
 
-/**
- * Collapsible CSS tree view of a parsed EXPLAIN plan. Pure CSS/flex layout —
- * no graph dependency. Nodes with children get an expand/collapse chevron;
- * collapsed node ids are tracked in local state.
- */
 export function ExplainTree({ nodes }: { nodes: ExplainTreeNode[] }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 

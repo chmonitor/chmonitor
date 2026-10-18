@@ -29,13 +29,11 @@ function LinkFormatComponent<
 >({ row, data, value, context, options }: LinkFormatProps<TData, TValue>) {
   const { href: rawHref, className, ...rest } = options ?? {}
 
-  // No href provided, return value as is
   if (!rawHref) return value
 
   // No label — an empty link has no accessible name and a dead href
   if (value == null || String(value).trim() === '') return value
 
-  // Normalize href to string (may be string, URL, or UrlObject)
   const href = typeof rawHref === 'string' ? rawHref : String(rawHref)
 
   const originalRow = data[row.index] as Record<string, string | undefined>
@@ -44,8 +42,6 @@ function LinkFormatComponent<
     ...context,
   }
 
-  // Href contains placeholders, e.g. /database/[database]/[table]
-  // Replace placeholders with values from the row
   const hrefBinding = replaceTemplateVariables(href, mappingKeyValue)
 
   return (

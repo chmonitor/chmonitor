@@ -25,7 +25,6 @@ interface SuggestionCardProps {
 export function SuggestionCard({ suggestion, className }: SuggestionCardProps) {
   const [isOpen, setIsOpen] = useState(false)
 
-  // Split by code block markers or detect SQL patterns
   const parts = parseIntelligent(suggestion)
 
   const renderContent = () => (
@@ -146,7 +145,6 @@ function parseIntelligent(text: string): TextPart[] {
     })
   }
 
-  // If no code blocks found, try to detect SQL statements
   if (parts.length === 0) {
     const sqlRegex =
       /(^|\n)((?:SELECT|CREATE|SET|ALTER|DROP|INSERT|UPDATE|DELETE|SHOW|EXPLAIN)[\s\S]*?)(?=\n\n|\n[0-9]+\.|$)/gm
@@ -184,7 +182,6 @@ function parseIntelligent(text: string): TextPart[] {
  * Detects URLs starting with http/https or www.
  */
 function renderTextWithLinks(text: string): React.ReactNode {
-  // URL regex that matches http/https URLs and www URLs
   const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g
   // Non-global test regex — testing with the /g one would leak lastIndex
   // between .map iterations and fail to linkify alternating URL segments.

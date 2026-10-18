@@ -203,9 +203,7 @@ const CompletedRow = memo(function CompletedRow({
 
 interface CompletedQueriesTableProps {
   rows: CompletedQueryRow[]
-  /** query_ids observed running on the previous poll but gone on this one. */
   justFinishedIds: Set<string>
-  /** Auto-refresh cadence label, e.g. "5s". */
   refreshLabel?: string
 }
 

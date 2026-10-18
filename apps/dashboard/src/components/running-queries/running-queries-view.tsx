@@ -219,7 +219,6 @@ function HostRunningQueriesView({ hostId }: { hostId: number }) {
         return additions.length > 0 ? [...additions, ...prev] : prev
       })
     }
-    // Runs once per running-list poll (each new `data` reference).
   }, [data])
 
   // Merge synthetic pending rows with the real query_log rows. A pending row is

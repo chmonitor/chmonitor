@@ -121,12 +121,10 @@ export function TopologyView({
   detailHref,
 }: {
   hostId: number
-  /** When set (e.g. embedded on the overview tab), shows a link through to the
-   * full cluster page for more detail. Omitted on the /clusters page itself. */
+  /** When set (e.g. embedded on the overview tab), links through to the full cluster page. */
   detailHref?: string
 }) {
-  // Real per-node live metrics for EVERY node are included in this document
-  // (server-side clusterAllReplicas fan-out), refreshed every 60s.
+  // Live metrics for every node come from the server-side clusterAllReplicas fan-out (60s).
   const {
     topology,
     error: clusterError,
@@ -144,14 +142,11 @@ export function TopologyView({
       LIVE_INTERVAL
     )
 
-  // ── physical/implicit clusters (all-replicated, all-sharded, default) are
-  // HIDDEN by default — they are structural scaffolding that clutters the graph.
-  // A legend toggle reveals them (rendered solid + slate, a bit different). ──
+  // Physical/implicit clusters (all-replicated, all-sharded, default) are hidden
+  // by default as structural clutter; a legend toggle reveals them.
   const [showPhysical, setShowPhysical] = useState(false)
 
-  // ── model: layout applied client-side; rebuilt ONLY when structure or the
-  // physical-visibility toggle changes (toggling drops the outer rings + shrinks
-  // the viewBox; node positions are logical-driven so they never move). ──
+  // Rebuilt only when structure or the physical-visibility toggle changes.
   const model = useMemo(
     () => layoutTopology(topology ?? EMPTY_TOPOLOGY, { showPhysical }),
     [topology, showPhysical]
@@ -184,17 +179,16 @@ export function TopologyView({
   const [activeCluster, setActiveCluster] = useState<string | null>(null)
   const onClearSelect = useOnClearSelect(setSelected)
 
-  // A hidden physical cluster must not act as the filter — its hull isn't drawn,
-  // so it would fade every visible hull with no anchor. Derive the EFFECTIVE
-  // active cluster in-render (rather than clearing via an effect, which would dim
-  // everything for one frame); toggling physical back on restores the filter.
+  // A hidden physical cluster must not act as the filter (it would fade every
+  // visible hull with no anchor). Derived in render, not via an effect, which
+  // would dim everything for one frame.
   const effectiveActiveCluster =
     activeCluster &&
     (showPhysical || !model.clusterById[activeCluster]?.outline)
       ? activeCluster
       : null
 
-  // ── fast-tick live snapshot for the LOCAL node (overrides the 60s server one) ──
+  // Fast-tick live snapshot for the LOCAL node (overrides the 60s server one).
   const fastLocalLive: NodeLiveMetrics | null = useMemo(() => {
     if (!liveRow) return null
     const n = (v: unknown) => {

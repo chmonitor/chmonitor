@@ -1,9 +1,3 @@
-/**
- * System chart imports
- *
- * Lazy-loaded system metric charts.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

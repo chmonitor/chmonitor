@@ -121,10 +121,6 @@ export const runningQuerySummaryFormatter: RowContextFormatter = <
   )
 }
 
-/**
- * Registry of context formatters
- * These formatters need access to row, table, and context data
- */
 export const stackedShareFormatter: RowContextFormatter = <
   TData extends RowData,
   TValue,

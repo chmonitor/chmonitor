@@ -1,15 +1,11 @@
 'use client'
 
 /**
- * Compact "current page" chip shown above the floating agent's composer. It
- * makes the widget's page awareness VISIBLE — the agent already receives the
- * page as `pageContext` (see `agent-runtime-provider.tsx`), and this chip tells
- * the user so, e.g. `⌞ Fleet Overview`. Clicking × drops page context for the
- * current page (re-arms on navigation).
+ * Shows the floating agent's `pageContext` (see `agent-runtime-provider.tsx`),
+ * e.g. `⌞ Fleet Overview`. Clicking × drops it for the current page.
  *
- * Renders nothing when there's no page-context control (the full `/agents`
- * page, which never mounts the provider), no resolvable page, or the user has
- * dismissed it — so it's strictly a floating-widget affordance.
+ * Renders nothing without a page-context control (the full `/agents` page), a
+ * resolvable page, or after dismissal.
  */
 
 import { TextQuoteIcon, XIcon } from 'lucide-react'

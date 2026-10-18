@@ -35,7 +35,6 @@ function geometryFor(kind: ConnectionErrorKind): Geometry {
   }
 }
 
-/** A small node tile (browser / chmonitor / source). */
 function Node({
   x,
   children,
@@ -59,7 +58,6 @@ function Node({
   )
 }
 
-/** A dashed connector; `broken` cuts it with a gap + red X, else it streams. */
 function Wire({ x, broken }: { x: number; broken: boolean }) {
   if (broken) {
     return (

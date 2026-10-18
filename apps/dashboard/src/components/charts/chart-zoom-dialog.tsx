@@ -122,9 +122,8 @@ function CopyableValue({
 }
 
 /**
- * Controls bar for the enlarged chart: y-axis scale (linear/log) toggle,
- * reading from the zoom-local ChartScaleProvider so the page chart keeps its
- * own preference. Legend items in the chart itself toggle series visibility.
+ * Scale toggle for the enlarged chart. Reads the zoom-local ChartScaleProvider
+ * so the page chart keeps its own preference.
  */
 function ZoomChartControls() {
   const scaleContext = useChartScale()

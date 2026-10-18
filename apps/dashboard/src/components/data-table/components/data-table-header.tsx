@@ -43,48 +43,30 @@ import { cn } from '@/lib/utils'
 import { getSqlForDisplay } from '@/types/query-config'
 
 export interface DataTableHeaderProps<TData extends RowData> {
-  /** Table title displayed in header */
   title: string
-  /** Table description or subtitle */
   description: string | React.ReactNode
-  /** Query configuration defining columns, formats, sorting */
   queryConfig: QueryConfig
-  /** Additional toolbar elements (left side) */
   toolbarExtras?: React.ReactNode
-  /** Additional toolbar elements (right side) */
   topRightToolbarExtras?: React.ReactNode
-  /** Show SQL button visibility */
   showSQL: boolean
-  /** TanStack Table instance */
   table: Table<TData>
-  /** Show loading indicator when refreshing data */
   isRefreshing: boolean
-  /** The actual SQL that was executed (after version selection) */
   executedSql?: string
-  /** Query execution metadata */
   metadata?: Partial<ApiResponseMetadata>
-  /** Enable column reordering with drag-and-drop */
   enableColumnReordering?: boolean
-  /** Callback to reset column order to default */
   onResetColumnOrder?: () => void
-  /** Skip the title row and sit extras on the search toolbar. */
   embedded?: boolean
-  /** Current row density mode */
   density?: TableDensity
-  /** Callback to change row density mode */
   onDensityChange?: (density: TableDensity) => void
 
-  /** Client-side global search state */
   globalSearch: string
   onGlobalSearchChange: (value: string) => void
-  /** Client-side advanced filter conditions */
   advancedFilters: TableFilterCondition[]
   onAdvancedFiltersChange: (filters: TableFilterCondition[]) => void
 
   /** Schema-driven FilterBar rendered inline (server-side filters). When present, hides client-side search/filters. */
   filterBarSlot?: React.ReactNode
 
-  /** View toggle: show table/cards switch */
   offerViewToggle?: boolean
   view?: 'table' | 'cards' | 'auto'
   onViewChange?: (view: 'table' | 'cards') => void
@@ -127,7 +109,6 @@ export const DataTableHeader = memo(function DataTableHeader<
 }: DataTableHeaderProps<TData>) {
   const displaySql = executedSql || getSqlForDisplay(queryConfig.sql)
 
-  // Popover filter draft state
   const [filterDrafts, setFilterDrafts] = useState<TableFilterCondition[]>([])
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
 
@@ -137,7 +118,6 @@ export const DataTableHeader = memo(function DataTableHeader<
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-  // A blank filter draft seeded with the first filterable column.
   const blankFilterDraft = (): TableFilterCondition => ({
     id: createFilterId(),
     columnId: filterableColumns[0]?.column.id || '',
@@ -145,13 +125,10 @@ export const DataTableHeader = memo(function DataTableHeader<
     value: '',
   })
 
-  // Memoize filterable columns with their labels to avoid recomputing on every render.
-  // This stabilizes the SelectItem arrays and reduces popover open cost.
   const filterableColumns = useMemo(() => {
     const cols = table
       .getAllLeafColumns()
       .filter((col) => !UTILITY_COLUMN_IDS.has(col.id))
-    // Pre-compute labels once
     return cols.map((col) => {
       const header = col.columnDef.header
       const label = typeof header === 'string' ? header : col.id
@@ -159,13 +136,11 @@ export const DataTableHeader = memo(function DataTableHeader<
     })
   }, [table])
 
-  // Resolve a human-readable label for a column (uses memoized label)
   const getColumnLabel = (colId: string) => {
     const found = filterableColumns.find((item) => item.column.id === colId)
     return found?.label || colId
   }
 
-  // Memoize operator options to avoid recreating SelectItems on every render
   const operatorOptions = useMemo(
     () =>
       Object.entries(OPERATOR_LABELS).map(([value, label]) => ({
@@ -175,7 +150,6 @@ export const DataTableHeader = memo(function DataTableHeader<
     []
   )
 
-  // Open popover: sync draft state with committed state
   const handleOpenFilters = (open: boolean) => {
     setIsFiltersOpen(open)
     if (open) {
@@ -206,7 +180,6 @@ export const DataTableHeader = memo(function DataTableHeader<
   }
 
   const applyFilters = () => {
-    // Only apply valid filters with values
     const validFilters = filterDrafts.filter(
       (draft) => draft.value.trim() !== ''
     )

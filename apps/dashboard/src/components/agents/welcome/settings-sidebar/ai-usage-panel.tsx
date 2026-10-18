@@ -20,7 +20,7 @@ export function AiUsagePanel() {
   const quota = useAiQuota()
   // Gate the whole section on visibility so a header with a dangling chevron
   // and no body never shows on OSS / unlimited plans; the meter itself is the
-  // shared rendering (issue #2809).
+  // shared rendering.
   if (!quota.show || quota.limit === null) return null
 
   return (

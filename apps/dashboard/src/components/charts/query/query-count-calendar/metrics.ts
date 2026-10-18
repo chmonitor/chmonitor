@@ -162,10 +162,7 @@ export const METRIC_ORDER: MetricKey[] = [
   'written',
 ]
 
-/**
- * Default intensity ramp (query mode). Exported for the legend fallback and for
- * back-compat with existing tests. Tier 0 is empty / no-activity.
- */
+/** Default intensity ramp (query mode). Tier 0 is empty / no-activity. */
 export const INTENSITY_TIERS = METRIC_CONFIGS.queries.tiers
 
 export const TIER_THRESHOLDS = [0, 0.01, 0.25, 0.5, 0.75] as const

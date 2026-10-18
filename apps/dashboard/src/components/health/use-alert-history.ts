@@ -1,5 +1,3 @@
-/**
- */
 import { useQuery } from '@tanstack/react-query'
 
 import type { AlertEventRecord } from '@/lib/health/alert-history-store'

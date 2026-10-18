@@ -43,25 +43,19 @@ import { useHostId } from '@/lib/swr/use-host'
 import { splitHref } from '@/lib/url/url-builder'
 import { cn } from '@/lib/utils'
 
-// LoadingState is replaced by QueryPageSkeleton from @/components/query-tables/query-page-skeleton
-// HeaderButton is imported from @/components/query-tables/header-button
-
 const PRESETS = expensiveQueriesConfig.filterParamPresets ?? []
 const DEFAULTS = expensiveQueriesConfig.defaultParams ?? {}
 
-/** Group presets by the param key they drive (time window, min duration). */
 const PRESET_GROUPS: { key: string; icon: typeof Timer; label: string }[] = [
   { key: 'last_hours', icon: Timer, label: 'Time window' },
   { key: 'min_duration_s', icon: Gauge, label: 'Min duration' },
 ]
 
-/** Format an hours count as a compact window label (1 → "1h", 168 → "7d"). */
 function formatHoursLabel(hours: number): string {
   if (hours > 0 && hours % 24 === 0) return `${hours / 24}d`
   return `${hours}h`
 }
 
-/** A single-select chip group bound to one filter param key. */
 function FilterGroup({
   groupKey,
   icon: Icon,
@@ -107,15 +101,6 @@ function FilterGroup({
   )
 }
 
-/**
- * ExpensiveQueriesView — the Most Expensive Queries page.
- *
- * A self-contained layout: header (title, fingerprint count, charts toggle,
- * refresh) → a collapsible related-charts strip → the sortable, responsive
- * {@link ExpensiveQueriesTable}. Data is the `expensive-queries` config —
- * normalized query fingerprints aggregated over the last 24h of
- * `system.query_log`, ordered most-expensive-first.
- */
 export const ExpensiveQueriesView = function ExpensiveQueriesView() {
   const hostId = useHostId()
   const { timeRange } = useTimeRange()
@@ -146,9 +131,7 @@ export const ExpensiveQueriesView = function ExpensiveQueriesView() {
     useTableData<ExpensiveQueryRow>('expensive-queries', hostId, filterParams)
 
   const rows = data ?? []
-  // The hook always returns an array (never null), so the old `!data` guard was
-  // dead — the empty state flashed during the initial fetch. Gate the skeleton
-  // on the query state + emptiness instead. Using `isLoading && rows.length===0`
+  // Gate the skeleton on the query state + emptiness. `isLoading && rows.length===0`
   // (not `||`) keeps prior rows visible on chip/range changes via placeholderData.
   const showSkeleton = isLoading && rows.length === 0
   const activeHours = Number(filterParams.last_hours ?? timeRange.lastHours)
@@ -235,7 +218,6 @@ export const ExpensiveQueriesView = function ExpensiveQueriesView() {
           }
         />
 
-        {/* Filter bar — time window + minimum per-query duration. */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border bg-card px-3 py-2.5">
           {PRESET_GROUPS.map((group) => (
             <FilterGroup
@@ -277,7 +259,6 @@ export const ExpensiveQueriesView = function ExpensiveQueriesView() {
           </Card>
         ) : (
           <>
-            {/* Heavy-vs-light load summary, derived from the fetched rows. */}
             {rows.length > 0 && <LoadSummary rows={rows} />}
             {expensiveQueriesConfig.relatedCharts &&
               expensiveQueriesConfig.relatedCharts.length > 0 &&

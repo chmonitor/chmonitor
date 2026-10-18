@@ -1,9 +1,3 @@
-/**
- * Reusable color indicator for chart tooltips
- *
- * Provides consistent styling for color dots across different chart types.
- */
-
 import type { HTMLAttributes } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -13,9 +7,6 @@ interface TooltipColorIndicatorProps extends HTMLAttributes<HTMLDivElement> {
   size?: 'default' | 'small'
 }
 
-/**
- * Standard color indicator dot for chart tooltips
- */
 export function TooltipColorIndicator({
   colorVar,
   size = 'default',

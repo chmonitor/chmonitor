@@ -19,7 +19,6 @@ const ActionItem = lazy(() =>
   import('./action-item').then((res) => ({ default: res.ActionItem }))
 )
 
-// NoSsr wrapper for client-only components
 function NoSsr({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
@@ -76,5 +75,4 @@ function ActionMenuComponent<TData extends RowData, TValue>({
   )
 }
 
-// Memoized export to prevent unnecessary re-renders
 export const ActionMenu = ActionMenuComponent as typeof ActionMenuComponent

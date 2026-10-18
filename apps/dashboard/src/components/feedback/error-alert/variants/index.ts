@@ -1,9 +1,3 @@
-/**
- * Error alert variants
- *
- * Exports all variant components for ErrorAlert.
- */
-
 export type { CompactErrorAlertProps } from './compact'
 export type { FullErrorAlertProps } from './full'
 

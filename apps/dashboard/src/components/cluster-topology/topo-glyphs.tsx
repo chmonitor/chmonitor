@@ -20,11 +20,9 @@ function fit(s: string, max: number): string {
 }
 
 /**
- * Bound a host label's width so long FQDNs
- * (`chi-...-0-0.clickhouse.svc.cluster.local`) don't sprawl past their cluster
- * boundary into neighbours — keeps the meaningful head + tail with a middle
- * ellipsis. ~24 chars ≈ the `chHalfExtent` the layout reserves. The full host is
- * still available on hover (a <title>) and in the inspector.
+ * Bound a host label's width so long FQDNs don't sprawl past their cluster
+ * boundary: keeps head + tail with a middle ellipsis. ~24 chars ≈ the
+ * `chHalfExtent` the layout reserves. The full host stays in the hover <title>.
  */
 function truncateMiddle(s: string, max = 24): string {
   if (s.length <= max) return s
@@ -66,9 +64,7 @@ export function hexPath(r: number): string {
   return `M ${pts.join(' L ')} Z`
 }
 
-/** A gently curved connector between two points — softer than a straight line.
- * The control point is offset perpendicular to the chord by a capped fraction
- * of its length, so every edge bows consistently. */
+/** Gently curved connector; the control point is offset perpendicular to the chord by a capped fraction of its length. */
 export function curvePath(
   x1: number,
   y1: number,
@@ -106,8 +102,7 @@ function NodeLabel({
   id: string
   sub: string
 }) {
-  // Dedupe: the id is already shown inside the glyph; only repeat the full host
-  // below when it carries more than the short id (e.g. an FQDN).
+  // The id is already inside the glyph; repeat the host only when it adds more (e.g. an FQDN).
   const showHost = host !== id
   const subY = showHost ? r + 31 : r + 16
   return (
@@ -467,9 +462,7 @@ export function KeeperGlyph({
   )
 }
 
-/** A rounded label chip rendered over a hull so the name stays readable. Every
- * cluster — logical or physical — gets the same solid-bordered pill in its own
- * color; the physical/logical distinction lives in the toggle, not the pill. */
+/** A rounded label chip rendered over a hull so the name stays readable. */
 export function HullLabel({
   x,
   y,

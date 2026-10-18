@@ -64,7 +64,6 @@ export function useTableColumns<
     [queryConfig, data]
   )
 
-  // Column definitions for the table (memoized to prevent recalculation)
   const columnDefs = useMemo(
     () =>
       getColumnDefs<TData, TValue>(

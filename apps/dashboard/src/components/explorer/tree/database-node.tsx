@@ -33,11 +33,8 @@ interface DatabaseNodeProps {
   selectedTable: string | null
   selectedDatabase: string | null
   level: number
-  /** 1-indexed position among sibling databases, for `aria-posinset`. */
   posInSet?: number
-  /** Total count of sibling databases, for `aria-setsize`. */
   setSize?: number
-  /** Roving-tabindex fallback anchor — see `TreeNode`. */
   isDefaultTabbable?: boolean
   searchFilter: string
   careKeys?: ReadonlySet<string>
@@ -130,7 +127,6 @@ export const DatabaseNode = function DatabaseNode({
 
   const showLoadingSkeleton = isLoading && isExpanded && !tables
 
-  // Only highlight if this database is selected and no table is selected
   const isHighlighted = selectedDatabase === database && !selectedTable
   // Fall back to this database as the roving-tabindex anchor while a table
   // under it is selected but its table list hasn't loaded yet (so no deeper

@@ -55,7 +55,6 @@ function formatAddress(row: Record<string, unknown>): string {
   return address
 }
 
-/** Format a ProfileEvents counter, choosing readable size/quantity per key. */
 function formatProfileEventValue(key: string, value: number): string {
   const lower = key.toLowerCase()
   if (lower.includes('bytes')) return formatReadableSize(value)
@@ -118,13 +117,6 @@ function DetailField({
   )
 }
 
-/**
- * Inline expanded-row detail panel for the running-queries table.
- *
- * Renders a clean grid of the row's identity (query_id, user, address),
- * runtime (elapsed, memory), and a filtered, formatted view of
- * ProfileEvents (zero-valued counters omitted, top entries first).
- */
 export const RunningQueryExpandedDetails =
   function RunningQueryExpandedDetails({
     row,

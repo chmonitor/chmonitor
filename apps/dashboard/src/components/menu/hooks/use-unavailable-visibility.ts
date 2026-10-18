@@ -18,7 +18,7 @@ import { resolveUnavailable } from '@/lib/menu/unavailable-visibility'
  * Hook bindings for the one availability policy in
  * `lib/menu/unavailable-visibility.ts`. Every nav render site goes through
  * these hooks, so the expanded rail, the collapsed flyout, and ⌘K cannot
- * disagree about whether a page is available (#3463).
+ * disagree about whether a page is available.
  */
 
 /**

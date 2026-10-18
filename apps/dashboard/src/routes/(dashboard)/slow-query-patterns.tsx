@@ -8,7 +8,7 @@ import { slowQueryPatternsConfig } from '@/lib/query-config/queries/slow-query-p
 
 /**
  * Slow Query Patterns page. Custom (not a bare `createPage()`) so it can hold
- * the selected-pattern state and render the detail flyout (#2262) alongside
+ * the selected-pattern state and render the detail flyout alongside
  * the table — clicking a row opens `PatternDetailSheet` scoped to that row's
  * `normalized_query_hash`.
  */

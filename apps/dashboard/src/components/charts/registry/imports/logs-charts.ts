@@ -1,9 +1,3 @@
-/**
- * Logs chart imports
- *
- * Lazy-loaded logging and error tracking charts.
- */
-
 import type { ChartRegistryMap } from '../types'
 
 import { lazy } from 'react'

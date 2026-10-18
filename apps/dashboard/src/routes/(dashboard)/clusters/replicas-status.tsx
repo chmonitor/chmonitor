@@ -21,7 +21,6 @@ function ReplicasStatusContent() {
     <div className="flex flex-col gap-4">
       {cluster ? (
         <>
-          {/* Readonly tables warning indicator */}
           <ReadonlyTablesWarning hostId={hostId} cluster={cluster} />
 
           <Suspense fallback={<TableSkeleton />}>

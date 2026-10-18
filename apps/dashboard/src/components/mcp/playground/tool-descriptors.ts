@@ -2,7 +2,6 @@ import type { McpToolDescriptor } from '@/lib/mcp'
 
 import { MCP_TOOLS } from '@chm/mcp-server/data'
 
-/** Static catalog → discovered-tool shape, for the offline fallback. */
 export function staticToolDescriptors(): McpToolDescriptor[] {
   return MCP_TOOLS.map((tool) => ({
     name: tool.name,

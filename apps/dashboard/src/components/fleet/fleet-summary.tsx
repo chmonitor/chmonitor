@@ -53,7 +53,6 @@ function HostStatusProbe({
   return null
 }
 
-/** Single compact stat tile. Deliberately lighter than a ChartCard. */
 function StatTile({
   label,
   value,
@@ -97,11 +96,6 @@ interface FleetSummaryStripProps {
   hosts: readonly MergedHostInfo[]
 }
 
-/**
- * Fleet-wide stat tiles shown above both the card grid and the table: host
- * counts, ClickHouse version spread (flagging drift), and summed running
- * queries / databases / tables across every reachable host.
- */
 export function FleetSummaryStrip({ hosts }: FleetSummaryStripProps) {
   const [entries, setEntries] = useState<Record<string, FleetSummaryEntry>>({})
 

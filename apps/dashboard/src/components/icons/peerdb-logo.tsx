@@ -8,7 +8,6 @@ interface DbLogoProps {
   height?: number
 }
 
-/** Check if we have an official SVG logo path for a given database type. */
 export function hasDbLogo(type?: string): boolean {
   if (!type) return false
   const t = type.toUpperCase().replace(/[^A-Z0-9]/g, '')
@@ -24,7 +23,6 @@ export function hasDbLogo(type?: string): boolean {
   ].includes(t)
 }
 
-/** Render a highly accurate, beautiful official database branding logo. */
 export function DbLogo({
   type = 'UNKNOWN',
   className,

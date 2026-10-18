@@ -13,11 +13,6 @@ import { cn } from '@/lib/utils'
 export const OVERVIEW_KPI_GRID_CLASS =
   'grid auto-rows-fr grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4'
 
-/**
- * OverviewCharts - Main grid component for overview metrics
- * Displays 4 cards: Running/Today Queries, Databases/Tables, Disk Usage, Version
- */
-
 interface OverviewChartsProps {
   className?: string
 }

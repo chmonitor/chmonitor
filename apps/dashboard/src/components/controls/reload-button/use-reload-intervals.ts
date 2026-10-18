@@ -17,57 +17,19 @@ export const RELOAD_INTERVALS: ReloadIntervalOption[] = [
 export type ReloadIntervalValue = number | null
 
 export interface UseReloadIntervalsOptions {
-  /**
-   * Current reload interval in milliseconds
-   * null means auto-reload is disabled
-   */
+  /** Current reload interval in ms; null means auto-reload is disabled */
   reloadInterval: ReloadIntervalValue
-  /**
-   * Callback to update the reload interval
-   */
   setReloadInterval: (interval: ReloadIntervalValue) => void
 }
 
 export interface UseReloadIntervalsReturn {
-  /**
-   * Available interval options
-   */
   intervals: ReloadIntervalOption[]
-  /**
-   * Set a specific reload interval
-   */
   setInterval: (interval: number) => void
-  /**
-   * Disable auto-reload
-   */
   disableAutoReload: () => void
-  /**
-   * Check if a specific interval is currently active
-   */
   isIntervalActive: (interval: number) => boolean
-  /**
-   * Check if auto-reload is currently enabled
-   */
   isAutoReloadEnabled: boolean
 }
 
-/**
- * Custom hook for managing reload interval options and state
- *
- * @example
- * ```tsx
- * const {
- *   intervals,
- *   setInterval,
- *   disableAutoReload,
- *   isIntervalActive,
- *   isAutoReloadEnabled,
- * } = useReloadIntervals({
- *   reloadInterval: 30000,
- *   setReloadInterval: (interval) => context.setReloadInterval(interval),
- * })
- * ```
- */
 export function useReloadIntervals({
   reloadInterval,
   setReloadInterval,

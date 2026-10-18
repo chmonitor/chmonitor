@@ -1,9 +1,3 @@
-/**
- * Formatter lookup utilities
- *
- * Provides functions to retrieve formatters by type.
- */
-
 import type { Row, RowData, Table } from '@tanstack/react-table'
 
 import type { ColumnFormat, ColumnFormatOptions } from '@/types/column-format'
@@ -14,18 +8,12 @@ import { CONTEXT_FORMATTERS } from './context-formatters'
 import { INLINE_FORMATTERS } from './inline-formatters'
 import { VALUE_FORMATTERS } from './value-formatters'
 
-/**
- * Get an inline formatter by format type
- */
 export function getInlineFormatter(
   format: ColumnFormat
 ): ((value: unknown) => React.ReactNode) | undefined {
   return INLINE_FORMATTERS[format as keyof typeof INLINE_FORMATTERS]
 }
 
-/**
- * Get a value-only formatter by format type
- */
 export function getValueFormatter(
   format: ColumnFormat
 ):
@@ -34,9 +22,6 @@ export function getValueFormatter(
   return VALUE_FORMATTERS[format as keyof typeof VALUE_FORMATTERS]
 }
 
-/**
- * Get a context formatter by format type
- */
 export function getContextFormatter<TData extends RowData, TValue>(
   format: ColumnFormat
 ):
@@ -55,9 +40,6 @@ export function getContextFormatter<TData extends RowData, TValue>(
   ] as RowContextFormatter<TData, TValue>
 }
 
-/**
- * Get an advanced formatter by format type
- */
 export function getAdvancedFormatter<TData extends RowData, TValue>(
   format: ColumnFormat
 ):

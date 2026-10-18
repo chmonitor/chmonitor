@@ -22,27 +22,16 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
-/**
- * Metadata type for CardToolbar - uses shared ApiResponseMetadata
- * with optional fields for flexibility
- */
 export type CardToolbarMetadata = Partial<ApiResponseMetadata>
 
 export interface CardToolbarProps {
   sql?: string
   data?: ChartDataPoint[] | Record<string, unknown>[]
   metadata?: CardToolbarMetadata
-  /** Always show the button (not just on hover) */
   alwaysVisible?: boolean
-  /** Human-readable label used to name the CSV export download */
   filename?: string
 }
 
-/**
- * CardToolbar - Dropdown menu for viewing request info and raw data
- *
- * Extracted as a standalone component for reuse in both ChartCard and ChartEmpty.
- */
 export const CardToolbar = function CardToolbar({
   sql,
   data,
@@ -77,10 +66,8 @@ export const CardToolbar = function CardToolbar({
 
   const hasData = data && (Array.isArray(data) ? data.length > 0 : true)
 
-  // Check if we have request info to show (metadata or SQL)
   const hasRequestInfo = hasMetadata || sql
 
-  // Don't render if nothing to show
   if (!sql && !hasData && !hasMetadata) return null
 
   return (

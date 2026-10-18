@@ -1,13 +1,3 @@
-/**
- * SavedDashboardsToolbar
- *
- * Toolbar for managing saved dashboard configurations. Persists to D1 (per
- * signed-in owner, synced across devices) when server-side dashboard storage
- * is enabled, else falls back to localStorage — see
- * `@/lib/dashboard-storage`. Provides load, save, and delete operations via
- * simple UI controls.
- */
-
 import { Bookmark, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -38,9 +28,7 @@ import {
 } from '@/lib/dashboard-storage'
 
 interface SavedDashboardsToolbarProps {
-  /** Currently active layout, to save */
   layout: DashboardLayout
-  /** Called when user loads a saved dashboard */
   onLoad: (layout: DashboardLayout) => void
 }
 
@@ -53,7 +41,6 @@ export function SavedDashboardsToolbar({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  // Refresh the list (D1 or localStorage, depending on backend).
   const refreshList = async () => {
     setSavedNames(await listDashboards())
   }

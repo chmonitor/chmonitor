@@ -1,9 +1,3 @@
-/**
- * Tooltip components for AreaChart
- *
- * Provides standard and breakdown tooltip variants.
- */
-
 import type { ChartConfig } from '@/components/ui/chart'
 
 import { BreakdownSection } from './tooltip-breakdown-section'
@@ -24,11 +18,6 @@ export interface RenderChartTooltipOptions {
   categories: string[]
 }
 
-/**
- * Main tooltip renderer for AreaChart
- *
- * Delegates to appropriate tooltip based on breakdown configuration.
- */
 export function renderChartTooltip({
   breakdown,
   breakdownLabel,
@@ -54,9 +43,6 @@ export function renderChartTooltip({
   })
 }
 
-/**
- * Standard tooltip without breakdown
- */
 function renderStandardTooltip(chartConfig: ChartConfig) {
   return (
     <ChartTooltip
@@ -82,9 +68,6 @@ function renderStandardTooltip(chartConfig: ChartConfig) {
   )
 }
 
-/**
- * Breakdown tooltip with detailed data
- */
 function renderBreakdownTooltip({
   breakdown,
   breakdownLabel,
@@ -125,9 +108,6 @@ function renderBreakdownTooltip({
   )
 }
 
-/**
- * Tooltip content with breakdown data
- */
 function BreakdownTooltipContent({
   name,
   value,
@@ -171,9 +151,6 @@ function BreakdownTooltipContent({
   )
 }
 
-/**
- * Renders a pinned breakdown tooltip for deterministic non-hover states.
- */
 export function PinnedBreakdownTooltip({
   data,
   category,

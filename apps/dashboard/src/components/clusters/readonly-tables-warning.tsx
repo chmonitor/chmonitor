@@ -27,17 +27,10 @@ import { useClusterCount } from '@/lib/swr/use-cluster-count'
 import { cn } from '@/lib/utils'
 
 interface ReadonlyTablesWarningProps {
-  /** Host ID for the API call */
   hostId: number
   cluster: string
 }
 
-/**
- * ReadonlyTablesWarning - Shows a warning when cluster has readonly tables
- *
- * Displays a red warning indicator with count badge.
- * Click to see details and link to full readonly tables page.
- */
 export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
   hostId,
   cluster,
@@ -49,7 +42,6 @@ export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
     cluster
   )
 
-  // Don't render if loading, error, or count is 0
   if (isLoading || error || count === null || count === 0) {
     return null
   }

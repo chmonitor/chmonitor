@@ -1,16 +1,7 @@
-/**
- * Chart Type Hints
- *
- * Defines the skeleton type for each registered chart.
- * Used by ChartSkeleton to display appropriate loading state.
- */
+/** Skeleton type for each registered chart, used by ChartSkeleton while loading. */
 
 import type { ChartSkeletonType } from './types'
 
-/**
- * Chart type hints mapping
- * Maps each chart name to its appropriate skeleton type
- */
 export const CHART_TYPE_HINTS: Record<string, ChartSkeletonType> = {
   'query-count': 'area',
   'query-count-by-user': 'bar',

@@ -1,10 +1,7 @@
 /**
- * Inbound Events Page
- * Route: /(dashboard)/inbound-events
- *
  * Lists normalized inbound events (Alertmanager, Datadog, generic webhook)
  * ingested via POST /api/events/ingest, with source/severity filters. Reads
- * GET /api/events. See lib/events/ and plans/36-inbound-event-bus-queues.md.
+ * GET /api/events. See lib/events/.
  */
 
 import { Settings2 } from 'lucide-react'

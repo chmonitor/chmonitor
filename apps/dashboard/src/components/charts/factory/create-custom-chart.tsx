@@ -49,9 +49,6 @@ function CustomChartBody({
   )
 }
 
-/**
- * Factory function to create a custom chart component with consistent patterns
- */
 export function createCustomChart(
   config: CustomChartFactoryConfig
 ): FC<ChartProps> {

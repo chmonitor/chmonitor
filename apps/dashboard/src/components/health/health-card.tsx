@@ -28,11 +28,7 @@ interface HealthCardProps {
   availability?: AlertRuleStoreAvailability
 }
 
-/**
- * A single health check card. Presentational: the grid computes status (so it
- * can sort/count/filter) and hands it down. The card renders the shared shell
- * and owns only its own detail dialog.
- */
+/** A health check card; the grid computes status and hands it down. Owns its detail dialog. */
 export function HealthCard({
   check,
   thresholds,

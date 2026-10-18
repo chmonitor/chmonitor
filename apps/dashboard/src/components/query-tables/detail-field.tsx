@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
 
-/** A labelled value in the expandable details grid. */
 export function DetailField({
   label,
   value,

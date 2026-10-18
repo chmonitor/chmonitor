@@ -1,7 +1,3 @@
-/**
- * Column header component with sorting and filtering
- */
-
 import {
   ArrowDown,
   ArrowUp,
@@ -46,7 +42,6 @@ export interface ColumnHeaderProps<TData extends RowData> {
   isFilterable: boolean
   filterValue: string
   onFilterChange: (value: string) => void
-  /** Schema-driven per-column filter (typed inputs via FilterEditor). */
   schemaFilter?: SchemaFilterContext
 }
 

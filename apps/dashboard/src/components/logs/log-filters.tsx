@@ -25,20 +25,12 @@ export const SEVERITY_LEVELS = [
 export type SeverityLevel = (typeof SEVERITY_LEVELS)[number]
 
 interface LogFiltersProps {
-  /** Called when the severity filter changes. Receives the new level, or undefined for "All". */
   onSeverityChange?: (severity: string | undefined) => void
-  /** Called when the search text changes (debounced). */
   onSearchChange?: (search: string | undefined) => void
 }
 
 const DEBOUNCE_MS = 300
 
-/**
- * Filter bar for log pages. Reads and writes severity/search to URL search params
- * so filters survive navigation and can be shared via URL.
- *
- * URL params used: `?severity=Error&search=keyword`
- */
 export function LogFilters({
   onSeverityChange,
   onSearchChange,
@@ -53,7 +45,6 @@ export function LogFilters({
 
   const [searchInput, setSearchInput] = useState(searchFromUrl)
 
-  // Keep local search state in sync when URL changes externally (e.g. back/forward).
   useEffect(() => {
     setSearchInput(searchFromUrl)
   }, [searchFromUrl])
@@ -84,7 +75,6 @@ export function LogFilters({
     [updateParam, onSeverityChange]
   )
 
-  // Debounce the search input before writing to the URL.
   useEffect(() => {
     const timer = setTimeout(() => {
       const trimmed = searchInput.trim()

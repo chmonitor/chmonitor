@@ -62,16 +62,6 @@ function DetailField({
   )
 }
 
-/**
- * Inline expanded-row detail panel for the keeper-connections table.
- *
- * Renders the secondary fields that are moved out of the main column list:
- * index, client_id, xid, keeper_api_version, session_timeout_ms,
- * last_zxid_seen, enabled_feature_flags, availability_zone.
- *
- * Fields that are absent from the row (version-dependent columns) are
- * silently omitted — the panel only shows what is present.
- */
 export const KeeperConnectionExpandedDetails =
   function KeeperConnectionExpandedDetails({
     row,

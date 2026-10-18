@@ -1,8 +1,3 @@
-/**
- * Shared types for the RBAC management UI (route:
- * /(dashboard)/security/management) and its extracted components.
- */
-
 export type AuditEntry = {
   id: string
   timestamp: string
