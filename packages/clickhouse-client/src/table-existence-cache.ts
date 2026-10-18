@@ -110,7 +110,7 @@ export async function checkTableExists(
   return checkExists(key, hostId, {
     query: `
           SELECT
-            countIf(name = {table:String}) AS count,
+            countIf(database = {database:String} AND name = {table:String}) AS count,
             countIf(database = 'system' AND name = '${SYSTEM_SENTINEL}') AS sentinel
           FROM system.tables
           WHERE (database = {database:String} AND name = {table:String})

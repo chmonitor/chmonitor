@@ -268,6 +268,40 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
 
       expect(await l2cache.checkTableExists(0, 'app', 'events')).toBe(false)
     })
+
+    // The sentinel row (system.one) is in the result set of every probe, so
+    // the count must match the database too, or `<db>.one` reads as present.
+    // Runs the real probe SQL in `clickhouse local`.
+    const ch = Bun.which('clickhouse')
+    it.skipIf(!ch)(
+      '`<db>.one` is missing when only system.one exists',
+      async () => {
+        mockClientQuery.mockImplementation((async ({
+          query,
+          query_params,
+        }: {
+          query: string
+          query_params: Record<string, string>
+        }) => {
+          const params = Object.entries(query_params).map(
+            ([k, v]) => `--param_${k}=${v}`
+          )
+          const out = Bun.spawnSync([
+            ch as string,
+            'local',
+            ...params,
+            '-q',
+            `${query} FORMAT JSONEachRow`,
+          ])
+          if (out.exitCode !== 0) throw new Error(out.stderr.toString())
+          const row = JSON.parse(out.stdout.toString().trim())
+          return { json: () => Promise.resolve([row]) }
+        }) as never)
+
+        expect(await l2cache.checkTableExists(0, 'default', 'one')).toBe(false)
+        expect(await l2cache.checkTableExists(0, 'system', 'one')).toBe(true)
+      }
+    )
   })
 
   describe('transient probe failures (issue #2505)', () => {
