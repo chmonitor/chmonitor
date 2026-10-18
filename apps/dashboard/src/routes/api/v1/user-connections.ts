@@ -31,6 +31,15 @@ const ROUTE_GET = { route: '/api/v1/user-connections', method: 'GET' }
 const ROUTE_POST = { route: '/api/v1/user-connections', method: 'POST' }
 
 async function handleGet(): Promise<Response> {
+  // Auth before the feature check: an anonymous caller gets 401, never a
+  // 501 that reveals how storage is configured (#4013).
+  let userId: string
+  try {
+    userId = await resolveConnectionUserId()
+  } catch (error) {
+    return mapConnectionApiError(error, ROUTE_GET)
+  }
+
   if (!getUserConnectionsServerConfig().dbStorageEnabled) {
     return createApiErrorResponse(
       {
@@ -43,7 +52,6 @@ async function handleGet(): Promise<Response> {
   }
 
   try {
-    const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
     const connections = await store.list(userId)
     return createSuccessResponse(
@@ -82,6 +90,15 @@ interface CreateRequest {
 }
 
 async function handlePost(request: Request): Promise<Response> {
+  // Auth before the feature check: an anonymous caller gets 401, never a
+  // 501 that reveals how storage is configured (#4013).
+  let userId: string
+  try {
+    userId = await resolveConnectionUserId()
+  } catch (error) {
+    return mapConnectionApiError(error, ROUTE_POST)
+  }
+
   if (!getUserConnectionsServerConfig().dbStorageEnabled) {
     return createApiErrorResponse(
       {
@@ -139,7 +156,6 @@ async function handlePost(request: Request): Promise<Response> {
   }
 
   try {
-    const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
 
     const owner = await resolveBillingOwner()

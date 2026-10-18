@@ -30,6 +30,15 @@ async function handlePatch(
   request: Request,
   connectionId: string
 ): Promise<Response> {
+  // Auth before the feature check: an anonymous caller gets 401, never a
+  // 501 that reveals how storage is configured (#4013).
+  let userId: string
+  try {
+    userId = await resolveConnectionUserId()
+  } catch (error) {
+    return mapConnectionApiError(error, ROUTE_PATCH)
+  }
+
   if (!getUserConnectionsServerConfig().dbStorageEnabled) {
     return createApiErrorResponse(
       {
@@ -72,7 +81,6 @@ async function handlePatch(
   }
 
   try {
-    const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
     const hasCredentialUpdate =
       typeof body.password === 'string' &&
@@ -117,6 +125,15 @@ async function handlePatch(
 }
 
 async function handleDelete(connectionId: string): Promise<Response> {
+  // Auth before the feature check: an anonymous caller gets 401, never a
+  // 501 that reveals how storage is configured (#4013).
+  let userId: string
+  try {
+    userId = await resolveConnectionUserId()
+  } catch (error) {
+    return mapConnectionApiError(error, ROUTE_DELETE)
+  }
+
   if (!getUserConnectionsServerConfig().dbStorageEnabled) {
     return createApiErrorResponse(
       {
@@ -129,7 +146,6 @@ async function handleDelete(connectionId: string): Promise<Response> {
   }
 
   try {
-    const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
     // Fetch metadata BEFORE delete purely so the emitted event can name which
     // connection was removed — `store.delete()` returns void and the row is

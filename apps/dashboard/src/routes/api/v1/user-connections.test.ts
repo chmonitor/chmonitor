@@ -19,15 +19,17 @@ import type { BillingOwner } from '@/lib/billing/billing-owner'
 
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { BILLING_PLANS } from '@/lib/billing/plans'
+import { ConnectionStoreError } from '@/lib/connection-store/types'
 
 let logEventImpl = mock((_e: unknown) => Promise.resolve())
 mock.module('@/lib/audit/logEvent', () => ({
   logEvent: (e: unknown) => logEventImpl(e),
 }))
 
+let dbStorageEnabled = true
 mock.module('@/lib/connection-store/server-feature', () => ({
   getUserConnectionsServerConfig: () => ({
-    dbStorageEnabled: true,
+    dbStorageEnabled,
     requiresAuth: true,
     encryptionConfigured: true,
   }),
@@ -149,6 +151,7 @@ function makeRequest(): Request {
 }
 
 beforeEach(() => {
+  dbStorageEnabled = true
   logEventImpl = mock(() => Promise.resolve())
   resolveConnectionUserId = mock(async () => 'user_1')
   resolveBillingOwner = mock(
@@ -174,6 +177,32 @@ beforeEach(() => {
       updatedAt: 1,
     })
   )
+})
+
+describe('POST /api/v1/user-connections — auth before feature check (#4013)', () => {
+  test('anonymous caller gets 401 even when db storage is not enabled', async () => {
+    dbStorageEnabled = false
+    resolveConnectionUserId = mock(async () => {
+      throw new ConnectionStoreError(
+        'Authentication is required for user connections.',
+        'UNAUTHORIZED'
+      )
+    })
+
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(401)
+    expect(storeCreate).not.toHaveBeenCalled()
+  })
+
+  test('signed-in caller still gets 501 when db storage is not enabled', async () => {
+    dbStorageEnabled = false
+
+    const res = await handlePost(makeRequest())
+
+    expect(res.status).toBe(501)
+    expect(storeCreate).not.toHaveBeenCalled()
+  })
 })
 
 describe('POST /api/v1/user-connections — audit wiring', () => {
