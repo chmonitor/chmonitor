@@ -145,6 +145,10 @@
       "since": ["19.1", "24.1"]
     },
     {
+      "name": "storage-policies",
+      "since": ["23.3", "23.8"]
+    },
+    {
       "name": "top-usage-columns",
       "since": ["23.8", "24.1"]
     },
