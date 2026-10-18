@@ -112,6 +112,9 @@ export const runningQueriesFilterSchema: FilterSchema = {
  * from `length(thread_ids)` rather than `system.processes.peak_threads_usage`
  * because that column does not exist before ~25.1 (absent in 24.5–24.12 per
  * `docs/clickhouse-schemas/tables/processes.md`); `thread_ids` is universal.
+ * 23.x `format()` takes only String arguments, and its
+ * `formatReadableTimeDelta` has no `minimum_unit` argument, so `elapsed` is
+ * stringified and truncated to whole minutes before formatting.
  */
 export const runningQueriesConfig: QueryConfig = {
   name: 'running-queries',
@@ -155,9 +158,9 @@ export const runningQueriesConfig: QueryConfig = {
         ProfileEvents,
         length(thread_ids) AS thread_count,
         query_id AS action,
-        multiIf (elapsed < 30, format('{} seconds', round(elapsed, 1)),
+        multiIf (elapsed < 30, format('{} seconds', toString(round(elapsed, 1))),
                  elapsed < 90, 'a minute',
-                 formatReadableTimeDelta(elapsed, 'days', 'minutes')) AS readable_elapsed,
+                 formatReadableTimeDelta(intDiv(toUInt64(elapsed), 60) * 60, 'days')) AS readable_elapsed,
         formatReadableQuantity(read_rows) AS readable_read_rows,
         formatReadableSize(read_bytes) AS readable_read_bytes,
         formatReadableQuantity(written_rows) AS readable_written_rows,
@@ -222,9 +225,9 @@ export const runningQueriesConfig: QueryConfig = {
         ProfileEvents,
         length(thread_ids) AS thread_count,
         query_id AS action,
-        multiIf (elapsed < 30, format('{} seconds', round(elapsed, 1)),
+        multiIf (elapsed < 30, format('{} seconds', toString(round(elapsed, 1))),
                  elapsed < 90, 'a minute',
-                 formatReadableTimeDelta(elapsed, 'days', 'minutes')) AS readable_elapsed,
+                 formatReadableTimeDelta(intDiv(toUInt64(elapsed), 60) * 60, 'days')) AS readable_elapsed,
         formatReadableQuantity(read_rows) AS readable_read_rows,
         formatReadableSize(read_bytes) AS readable_read_bytes,
         formatReadableQuantity(written_rows) AS readable_written_rows,
