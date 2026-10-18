@@ -180,8 +180,7 @@ const PUBLIC: Record<string, string> = {
 }
 
 /** "METHOD /path" -> issue tracking the missing rejection. */
-const KNOWN_GAPS: Record<string, string> = {
-}
+const KNOWN_GAPS: Record<string, string> = {}
 
 /**
  * Routes that answer an unauthorized caller with 404 on purpose, so they do
