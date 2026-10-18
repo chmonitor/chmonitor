@@ -16,12 +16,10 @@ import type { InsightAction, InsightCard, InsightSeverity } from './types'
 import { resolveInsightsStore } from './store/resolve-store'
 import { INSIGHT_SOURCES, insightKey, pgInsightStoreHostId } from './types'
 
-/** Default lookback for the panel — recent enough that insights stay relevant. */
 const DEFAULT_SINCE = '6 HOUR'
 
 const VALID_SEVERITY = new Set<InsightSeverity>(['info', 'warning', 'critical'])
 
-/** Re-derive a sensible Postgres action from the persisted metric/category. */
 function derivePostgresAction(
   metric: string,
   category: string

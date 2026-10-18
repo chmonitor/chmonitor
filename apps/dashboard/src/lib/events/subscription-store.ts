@@ -41,7 +41,6 @@ export interface WebhookSubscription {
 export interface CreateWebhookSubscriptionInput {
   url: string
   eventTypes: EmittableEventType[]
-  /** Defaults to `'user'` when omitted. */
   scope?: SubscriptionScope
 }
 
@@ -61,7 +60,6 @@ export interface WebhookDeliveryRecord {
   attempts: number
   lastStatusCode: number | null
   lastError: string | null
-  /** Epoch ms the source event occurred. */
   eventTime: number
   /** Epoch ms the delivery sequence finished; null while never-succeeded. */
   deliveredAt: number | null
@@ -166,7 +164,6 @@ function rowToDelivery(row: D1DeliveryRow): WebhookDeliveryRecord {
   }
 }
 
-/** List every subscription owned by `userId`. */
 export async function listSubscriptions(
   userId: string
 ): Promise<WebhookSubscription[]> {

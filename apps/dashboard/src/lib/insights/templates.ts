@@ -14,7 +14,6 @@ export type InsightTemplateId = 'quick' | 'deep' | 'learn' | 'raw'
 export interface InsightTemplate {
   readonly id: InsightTemplateId
   readonly label: string
-  /** lucide-react icon name, resolved in the UI. */
   readonly icon: 'Zap' | 'FileText' | 'GraduationCap' | 'Activity'
   /** Short, scannable hint (<= ~24 chars). */
   readonly hint: string

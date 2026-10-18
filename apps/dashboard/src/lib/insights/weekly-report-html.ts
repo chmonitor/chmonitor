@@ -27,7 +27,6 @@ import type {
   WeeklyTopFinding,
 } from './types'
 
-/** Escape untrusted finding text before interpolating into markup. */
 export function esc(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -43,7 +42,6 @@ const SEVERITY_LABEL: Record<InsightSeverity, string> = {
   info: 'Info',
 }
 
-/** Percentage (0–100, rounded) of `part` out of `total`; 0 when total is 0. */
 function pct(part: number, total: number): number {
   if (total <= 0) return 0
   return Math.round((part / total) * 100)
@@ -224,7 +222,6 @@ const STYLE = `
   .host-block > h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 4px; }
 `
 
-/** Shared inlined stylesheet, reused by the fleet renderer. */
 export const REPORT_STYLE = STYLE
 
 export function formatQuantity(n: number): string {
@@ -272,7 +269,6 @@ export function sparklinePath(
 const SPARK_W = 600
 const SPARK_H = 80
 
-/** Inline SVG area sparkline for a per-day series, with first/last date labels. */
 function renderSparkline(
   series: readonly ReportSeriesPoint[],
   ariaLabel: string,
@@ -396,11 +392,6 @@ function renderCapacity(cap: WeeklyReportCapacity): string {
     </div>`
 }
 
-/**
- * "Query activity" section: stat tiles (total, failed %, p50, p95) plus a
- * daily-query sparkline (and a failed-query sparkline when failures occurred).
- * Omitted entirely when the collector produced no data.
- */
 function renderQueryActivity(s: WeeklyReportSummary): string {
   const qa = s.queryActivity
   if (!qa) return ''
@@ -429,10 +420,6 @@ function renderQueryActivity(s: WeeklyReportSummary): string {
     </section>`
 }
 
-/**
- * "Ingestion" section: INSERT-written totals plus a daily-bytes sparkline and
- * a daily-rows sparkline. Omitted when the collector produced no data.
- */
 function renderIngestion(s: WeeklyReportSummary): string {
   const ing = s.ingestion
   if (!ing) return ''
@@ -454,11 +441,6 @@ function renderIngestion(s: WeeklyReportSummary): string {
     </section>`
 }
 
-/**
- * "Storage" section: cluster totals + top tables by size with relative size
- * bars and window-growth annotations. Omitted when the collector produced no
- * data.
- */
 function renderStorage(s: WeeklyReportSummary): string {
   const st = s.storage
   if (!st) return ''

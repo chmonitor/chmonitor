@@ -36,17 +36,10 @@ import { ConversationStoreError } from './types'
 import { AgentState, AgentStateError } from '@agentstate/sdk'
 import { debug, error as logError } from '@chm/logger'
 
-/**
- * Default AgentState API base URL.
- */
 const DEFAULT_BASE_URL = 'https://agentstate.app/api'
 
 const APP_ID = 'clickhouse-monitoring'
 
-/**
- * Generic conversation titles that should be replaced by AI-generated titles
- * when AI enrichment is enabled.
- */
 const GENERIC_TITLES = new Set([
   'New Conversation',
   'New Chat',
@@ -55,9 +48,6 @@ const GENERIC_TITLES = new Set([
   '',
 ])
 
-/**
- * Page size used when paginating AgentState's conversation list.
- */
 const LIST_PAGE_SIZE = 100
 
 /**
@@ -78,23 +68,12 @@ const LIST_PAGE_SIZE = 100
  */
 const MAX_LIST_SCAN = 5000
 
-/**
- * Constructor options for {@link AgentStateStore}.
- */
 export interface AgentStateStoreOptions {
-  /** AgentState API key (`as_live_...`). Required. */
   apiKey: string
-  /** AgentState API base URL. Defaults to {@link DEFAULT_BASE_URL}. */
   baseUrl?: string
-  /** Whether to call AgentState AI enrichment (title generation). */
   aiEnrich?: boolean
 }
 
-/**
- * Shape of the conversation-level metadata we persist on AgentState. Mirrors
- * the fixed columns of {@link ConversationMeta} so reads can reconstruct it
- * without a separate database.
- */
 interface StoredConversationMetadata {
   userId: string
   model?: string
@@ -114,23 +93,6 @@ interface StoredConversationMetadata {
   meta?: ConversationMetadata
 }
 
-/**
- * AgentState-based conversation storage implementation.
- *
- * @example
- * ```ts
- * const store = new AgentStateStore({ apiKey: process.env.AGENTSTATE_API_KEY! })
- * await store.upsert({
- *   id: 'conv-123',
- *   userId: 'user-abc',
- *   title: 'My Conversation',
- *   messages: [...],
- *   createdAt: Date.now(),
- *   updatedAt: Date.now(),
- *   messageCount: 5,
- * })
- * ```
- */
 export class AgentStateStore implements ConversationStore {
   private readonly client: AgentState
   private readonly aiEnrich: boolean
@@ -153,10 +115,6 @@ export class AgentStateStore implements ConversationStore {
     return `${userId}:${conversationId}`
   }
 
-  /**
-   * Derive the dashboard conversation id from an AgentState external id,
-   * falling back to the stored metadata if the prefix does not match.
-   */
   private conversationIdFromExternal(
     externalId: string | null,
     userId: string
@@ -198,7 +156,6 @@ export class AgentStateStore implements ConversationStore {
 
     return {
       role,
-      // AgentState requires content min length 1.
       content: text || ' ',
       metadata: {
         ui: uiMessage as unknown,
@@ -233,20 +190,12 @@ export class AgentStateStore implements ConversationStore {
     }
   }
 
-  /**
-   * Extract the stored UIMessage id from an AgentState message (used for
-   * append diffing).
-   */
   private uiIdOf(agentMessage: Message): string | undefined {
     const metadata = (agentMessage.metadata ?? {}) as Record<string, unknown>
     const uiId = metadata.uiId
     return typeof uiId === 'string' ? uiId : undefined
   }
 
-  /**
-   * Build the AgentState conversation metadata payload from a stored
-   * conversation. Only defined fields are included.
-   */
   private buildMetadata(
     conversation: StoredConversation
   ): Record<string, unknown> {
@@ -316,10 +265,6 @@ export class AgentStateStore implements ConversationStore {
     }
   }
 
-  /**
-   * Look up an AgentState conversation by external id, returning null when it
-   * does not exist (NOT_FOUND / 404).
-   */
   private async findByExternalId(
     userId: string,
     conversationId: string
@@ -336,9 +281,6 @@ export class AgentStateStore implements ConversationStore {
     }
   }
 
-  /**
-   * Whether an error represents a missing resource (NOT_FOUND / status 404).
-   */
   private isNotFound(err: unknown): boolean {
     return (
       err instanceof AgentStateError &&
@@ -346,10 +288,6 @@ export class AgentStateStore implements ConversationStore {
     )
   }
 
-  /**
-   * Map an underlying error into a ConversationStoreError with an appropriate
-   * code. Re-throws existing ConversationStoreErrors untouched.
-   */
   private wrap(message: string, err: unknown): ConversationStoreError {
     if (err instanceof ConversationStoreError) {
       return err
@@ -409,7 +347,6 @@ export class AgentStateStore implements ConversationStore {
           if (metadata.userId !== userId) {
             continue
           }
-          // Skip conversations outside the retention window
           if (sinceMs != null && conv.updated_at < sinceMs) {
             continue
           }
@@ -508,7 +445,6 @@ export class AgentStateStore implements ConversationStore {
       } else {
         internalId = existing.id
 
-        // Append only messages we have not stored yet (by UIMessage id).
         const storedUiIds = new Set(
           (existing.messages ?? [])
             .map((message) => this.uiIdOf(message))
@@ -611,14 +547,6 @@ export class AgentStateStore implements ConversationStore {
     }
   }
 
-  /**
-   * Delete all conversations for a user.
-   *
-   * Pages through the conversation list (filtered by `metadata.userId`) and
-   * deletes each owned conversation.
-   *
-   * @param userId - User ID to scope queries
-   */
   async deleteAll(userId: string): Promise<void> {
     try {
       let cursor: string | undefined

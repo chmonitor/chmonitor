@@ -269,7 +269,6 @@ export class PostgresStore implements ConversationStore {
     await this.ensureInitialized()
 
     try {
-      // Serialize messages to JSON string for safe parameter passing
       const messagesJson = JSON.stringify(conversation.messages)
 
       const res = await this.sql`
@@ -327,13 +326,6 @@ export class PostgresStore implements ConversationStore {
     }
   }
 
-  /**
-   * Delete all conversations for a user.
-   *
-   * Useful for user data deletion requests (GDPR, etc).
-   *
-   * @param userId - User ID to scope queries
-   */
   async deleteAll(userId: string): Promise<void> {
     await this.ensureInitialized()
 

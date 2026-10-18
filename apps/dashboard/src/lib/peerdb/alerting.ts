@@ -1,7 +1,7 @@
 /**
  * PeerDB issue alerting — classify / format / validate / audit / investigate.
  *
- * Lifecycle (see issue #3405):
+ * Lifecycle:
  *
  *   collect (read-only PeerDB signals, caller-provided)
  *     → classify (ok / warning / error)
@@ -35,7 +35,7 @@ export type PeerDBAlertSeverity = 'ok' | 'warning' | 'error'
  *
  * - `log-api`     — the ERROR-log read ran and returned.
  * - `unavailable` — the read ran and FAILED. Report "error count unavailable".
- * - `skipped`     — the read was deliberately not issued (#3677): status said
+ * - `skipped`     — the read was deliberately not issued: status said
  *                   the mirror is `STATUS_RUNNING` with no `errorMessage`, so
  *                   the expensive `flow_errors` scan was skipped. This is NOT a
  *                   failure: it must never classify on its own, never hold a
@@ -81,7 +81,7 @@ export interface PeerDBMirrorSignal {
   isCdc?: boolean
   /**
    * Seconds the `rowsSynced` total has stayed unchanged across sweep ticks
-   * (#3728). Set by the alert cycle from the persisted previous sample; `null`
+   *. Set by the alert cycle from the persisted previous sample; `null`
    * / absent when there is no earlier sample, the store is unavailable, or the
    * mirror is not a running CDC mirror. Never classifies on its own otherwise.
    */
@@ -179,7 +179,7 @@ export function classifyPeerDBMirror(
       ? signal.recentErrorCount
       : null
   if (source === 'skipped') {
-    // Deliberate healthy-skip (#3677): no ERROR-log read was issued, so there is
+    // Deliberate healthy-skip: no ERROR-log read was issued, so there is
     // no count to reason about. Record why it is absent, but never classify and
     // never claim the count was "unavailable".
     reasons.push('error-count-skipped')
@@ -205,7 +205,7 @@ export function classifyPeerDBMirror(
   if (signal.snapshotStalled) {
     escalate('warning', 'snapshot-stalled')
   }
-  // Throughput zero (#3728): only a RUNNING CDC mirror, and only when the
+  // Throughput zero: only a RUNNING CDC mirror, and only when the
   // cycle measured a flat total against a persisted earlier sample.
   const flatSec =
     status === 'STATUS_RUNNING' && signal.isCdc === true
@@ -293,7 +293,7 @@ export function formatPeerDBAlertMessage(
   if (source === 'unavailable') {
     labelParts.push('error count unavailable')
   } else if (source === 'skipped') {
-    // Deliberate skip (#3677) — say nothing. Claiming "unavailable" would send
+    // Deliberate skip — say nothing. Claiming "unavailable" would send
     // operators chasing a read that was never attempted.
   } else if (
     typeof signal.recentErrorCount === 'number' &&

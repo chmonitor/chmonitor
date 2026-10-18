@@ -26,7 +26,7 @@ export interface PeerDBAlertThresholds {
   staleSyncErrorSec: number
   /**
    * Seconds a RUNNING CDC mirror's `rowsSynced` total may stay unchanged
-   * before it is `warning` (#3728). Default 1800.
+   * before it is `warning`. Default 1800.
    */
   throughputZeroWarnSec: number
   /**

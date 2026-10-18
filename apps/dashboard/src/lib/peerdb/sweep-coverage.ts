@@ -1,5 +1,5 @@
 /**
- * Coverage contract for a bounded PeerDB sweep (issue #3687).
+ * Coverage contract for a bounded PeerDB sweep.
  *
  * A sweep that stops early — a wall-clock budget elapsing, or an operator-set
  * guard — used to return a number (`mirrorsChecked: 50`) with nothing saying how
@@ -19,7 +19,7 @@
  * it, not average it away.
  *
  * Dependency-free (no logger, no fetch client, no env) so every PeerDB reader
- * can import it — the alert collector today, the mirror-logs feed (#3678) next.
+ * can import it — the alert collector today, the mirror-logs feed next.
  * `formatSweepCoverage` is the human phrasing both put in their output.
  */
 

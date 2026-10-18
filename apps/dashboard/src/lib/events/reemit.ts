@@ -22,7 +22,6 @@ export interface ReemitDeps {
   resolveHostAddresses?: Parameters<typeof validateHostUrl>[1]
 }
 
-/** Build the outbound JSON body forwarded to the re-emit webhook. */
 export function buildReemitBody(event: NormalizedEvent): {
   text: string
   content: string

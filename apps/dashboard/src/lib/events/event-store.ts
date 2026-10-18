@@ -12,7 +12,6 @@ import type { NormalizedEvent, StoredEvent } from './types'
 
 import { getPlatformBindings } from '@chm/platform'
 
-/** Inbound events are retained ~30 days (see plans/36-inbound-event-bus-queues.md). */
 export const EVENT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
 
 function getDb(): D1Database | null {
@@ -102,9 +101,7 @@ export async function upsertEvent(event: NormalizedEvent): Promise<boolean> {
 export interface ListEventsFilters {
   source?: string
   severity?: string
-  /** Only return events last seen at or after this instant (ms). */
   sinceMs?: number
-  /** Default/max 500; defaults to the last {@link EVENT_RETENTION_MS} window. */
   limit?: number
 }
 

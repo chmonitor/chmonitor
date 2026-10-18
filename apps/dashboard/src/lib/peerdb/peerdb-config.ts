@@ -59,7 +59,7 @@ export function getPeerDBConfig(): PeerDBConfig | null {
 
 /**
  * Why a PeerDB request failed, kept distinct so operators are not sent looking
- * for a network problem that does not exist (#3677). A 10s
+ * for a network problem that does not exist. A 10s
  * `PEERDB_FETCH_TIMEOUT_MS` abort and a refused connection both used to log as
  * `[PeerDB] connection failed`, which reads as "the network is broken".
  *
@@ -107,7 +107,7 @@ export class PeerDBError extends Error {
   constructor(
     message: string,
     readonly status: number,
-    /** Optional failure kind so the classification survives the wrap (#3677). */
+    /** Optional failure kind so the classification survives the wrap. */
     readonly kind?: PeerDBFetchFailure
   ) {
     super(message)
@@ -187,7 +187,7 @@ export function classifyPeerDBFetchFailure(
 /**
  * Flatten an error into loggable fields. `JSON.stringify(new Error(...))` is
  * `{}` — the name, message and `cause.code` that identify the failure are all
- * non-enumerable — so they must be lifted out explicitly (#3677).
+ * non-enumerable — so they must be lifted out explicitly.
  */
 export function describePeerDBFailure(err: unknown): {
   errName: string
@@ -281,7 +281,7 @@ export async function peerdbFetch<T = unknown>(
   debug('[PeerDB] fetch', { method, url })
 
   // Our deadline AND any caller-supplied signal (e.g. the alert sweep's wall
-  // clock budget, #3677) must abort this request. Previously `init.signal` was
+  // clock budget) must abort this request. Previously `init.signal` was
   // silently overwritten, so a caller could never cancel.
   const controller = new AbortController()
   const callerSignal = init?.signal
@@ -308,7 +308,7 @@ export async function peerdbFetch<T = unknown>(
     const kind = classifyPeerDBFetchFailure(err, { callerAborted })
     // `err` serialises to `{}` — log the lifted name/message/cause.code so the
     // abort is actually diagnosable, and name the failure instead of calling
-    // every transport problem a "connection failed" (#3677).
+    // every transport problem a "connection failed".
     error(`[PeerDB] ${peerDBFailureLabel(kind)}`, err, {
       url: config.baseUrl,
       method,

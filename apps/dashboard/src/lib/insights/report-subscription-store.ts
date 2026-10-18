@@ -1,5 +1,5 @@
 /**
- * D1-backed store for per-owner scheduled report subscriptions (#2783).
+ * D1-backed store for per-owner scheduled report subscriptions.
  *
  * One row per owner: cadence (off/weekly/monthly), covered env host ids, and
  * a lightweight delivery audit (last attempt time + status). Follows the
@@ -43,11 +43,8 @@ export function isReportCadence(value: unknown): value is ReportCadence {
 export interface ReportSubscription {
   readonly ownerId: string
   readonly cadence: ReportCadence
-  /** Env host indices this subscription covers (deduped, sorted). */
   readonly hostIds: number[]
-  /** Unix epoch ms of the last delivery attempt, or null if never sent. */
   readonly lastSentAt: number | null
-  /** Compact status of the last attempt, e.g. `email:ok telegram:fail`. */
   readonly lastStatus: string | null
   readonly updatedAt: number
 }
@@ -128,7 +125,6 @@ export async function getReportSubscription(
   }
 }
 
-/** Upsert an owner's cadence + host selection (audit fields untouched). */
 export async function saveReportSubscription(
   ownerId: string,
   cadence: ReportCadence,
@@ -155,7 +151,7 @@ export async function saveReportSubscription(
   }
 }
 
-/** Record the outcome of a delivery attempt (best-effort audit, #2789). */
+/** Record the outcome of a delivery attempt (best-effort audit). */
 export async function recordReportDelivery(
   ownerId: string,
   status: string
@@ -176,7 +172,6 @@ export async function recordReportDelivery(
   }
 }
 
-/** All subscriptions with the given cadence (for the cron fan-out). */
 export async function listSubscriptionsByCadence(
   cadence: Exclude<ReportCadence, 'off'>
 ): Promise<ReportSubscription[]> {

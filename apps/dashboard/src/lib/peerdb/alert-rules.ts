@@ -1,5 +1,5 @@
 /**
- * PeerDB alert rules (#3699) — per-mirror thresholds and mutes.
+ * PeerDB alert rules — per-mirror thresholds and mutes.
  *
  * A rule targets one mirror-health check (`lag`, `slot-lag`, `errors`,
  * `stale-sync`, `throughput-zero`) on the mirrors whose name matches `match`, and replaces that

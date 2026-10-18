@@ -1,5 +1,5 @@
 /**
- * Multi-channel report delivery (#2787 / #2788).
+ * Multi-channel report delivery.
  *
  * Fans a built report out to the owner's already-configured alert channels
  * (`alert_channel_config` via `resolveServerChannels` — no separate recipient
@@ -41,11 +41,8 @@ export type ReportChannel =
   | 'pushover'
 
 export interface ReportDeliveryResult {
-  /** Channels that were configured and attempted, with per-channel outcome. */
   readonly channels: Partial<Record<ReportChannel, boolean>>
-  /** True when at least one channel was configured. */
   readonly channelConfigured: boolean
-  /** True when at least one configured channel accepted the report. */
   readonly delivered: boolean
 }
 
@@ -89,11 +86,8 @@ async function sendWebhook(url: string, text: string): Promise<boolean> {
   })
 }
 
-/** Optional extras for a delivery (e.g. a rendered PDF to attach — #2794). */
 export interface ReportDeliveryOptions {
-  /** PDF bytes to attach to the email channel. Ignored by digest channels. */
   readonly pdf?: Uint8Array
-  /** Attachment filename for the PDF (defaults to `report.pdf`). */
   readonly pdfFilename?: string
 }
 
@@ -101,8 +95,8 @@ export interface ReportDeliveryOptions {
  * Deliver a report to every non-paging channel the owner has configured.
  * Never throws; failures degrade to `ok: false` per channel.
  *
- * When `options.pdf` is provided it is attached to the email channel only
- * (#2794); the digest channels (webhook/telegram/ntfy/pushover) stay text.
+ * When `options.pdf` is provided it is attached to the email channel only;
+ * the digest channels (webhook/telegram/ntfy/pushover) stay text.
  */
 export async function deliverReport(
   ownerId: string,
@@ -188,7 +182,6 @@ export async function deliverReport(
   }
 }
 
-/** Compact `email:ok webhook:fail` audit string for `last_status`. */
 export function formatDeliveryStatus(result: ReportDeliveryResult): string {
   const parts = Object.entries(result.channels).map(
     ([channel, ok]) => `${channel}:${ok ? 'ok' : 'fail'}`

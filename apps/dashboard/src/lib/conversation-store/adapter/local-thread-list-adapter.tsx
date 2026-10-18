@@ -1,14 +1,5 @@
 'use client'
 
-/**
- * localStorage-backed assistant-ui thread list adapter.
- *
- * The default conversation-history backend — used by self-hosted / Docker
- * deployments where the ClickHouse connection is read-only and no server-side
- * store is available. Persists the thread list and each thread's messages
- * entirely in the browser.
- */
-
 import type {
   GenericThreadHistoryAdapter,
   MessageFormatAdapter,
@@ -73,11 +64,6 @@ function removeKey(key: string): void {
 const loadThreads = () => readJson<ThreadMeta[]>(THREADS_KEY, [])
 const saveThreads = (threads: ThreadMeta[]) => writeJson(THREADS_KEY, threads)
 
-/**
- * Per-thread message history. `useChatRuntime` calls `withFormat()` to obtain a
- * format-bound `GenericThreadHistoryAdapter`; the legacy `load` / `append` are
- * required by the type but unused on the AI SDK runtime.
- */
 function createLocalHistoryAdapter(
   aui: ReturnType<typeof useAui>
 ): ThreadHistoryAdapter {
@@ -144,10 +130,6 @@ const HistoryProvider: FC<PropsWithChildren> = ({ children }) => {
   )
 }
 
-/**
- * Build a `RemoteThreadListAdapter` that stores threads + messages in
- * `window.localStorage`.
- */
 export function createLocalThreadListAdapter(): RemoteThreadListAdapter {
   return {
     unstable_Provider: HistoryProvider,
@@ -223,9 +205,6 @@ export function createLocalThreadListAdapter(): RemoteThreadListAdapter {
     },
 
     async generateTitle(remoteId) {
-      // Derive a title from the first user message in the stored conversation.
-      // Stored entries may be either bare messages or `{ message }` wrappers
-      // (the format-adapter repository shape), so normalize before reading.
       const repo = readJson<{ messages: unknown[] }>(messagesKey(remoteId), {
         messages: [],
       })
@@ -241,7 +220,6 @@ export function createLocalThreadListAdapter(): RemoteThreadListAdapter {
       const firstUserMsg = messages.find((m) => m?.role === 'user')
       const title = deriveTitleFromUserMessage(firstUserMsg) ?? 'New Chat'
 
-      // Persist the generated title
       const threads = loadThreads()
       const thread = threads.find((item) => item.remoteId === remoteId)
       if (thread) {
@@ -249,7 +227,6 @@ export function createLocalThreadListAdapter(): RemoteThreadListAdapter {
         saveThreads(threads)
       }
 
-      // Stream the title back so assistant-ui updates the thread list item
       return createAssistantStream((controller) => {
         controller.appendText(title)
       })

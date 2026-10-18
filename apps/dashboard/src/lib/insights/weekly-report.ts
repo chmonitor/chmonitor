@@ -36,7 +36,6 @@ import { debug, warn } from '@chm/logger'
 import { forecastDiskFull } from '@/lib/ai/advisor/capacity-forecaster'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 
-/** Per-cadence rolling window; monthly reuses the same pipeline over 30 days. */
 const PERIOD_WINDOW_DAYS: Record<ReportPeriod, number> = {
   weekly: 7,
   monthly: 30,
@@ -65,9 +64,7 @@ function toSeverity(value: string): InsightSeverity {
 
 export interface WeeklyReport {
   readonly summary: WeeklyReportSummary
-  /** Markdown narrative — the full digest, before any delivery-channel truncation. */
   readonly markdown: string
-  /** Presentation-quality, fully self-contained HTML document (see `weekly-report-html.ts`). */
   readonly html: string
 }
 
@@ -172,7 +169,6 @@ function fmtQty(n: number): string {
   return `${Math.round(n)}`
 }
 
-/** Brief cluster-data bullets (query/ingestion/storage) — only when collected. */
 function clusterDataLines(summary: WeeklyReportSummary): string[] {
   const lines: string[] = []
   const qa = summary.queryActivity
@@ -501,14 +497,10 @@ async function deliverWeeklyReportWebhook(
   }
 }
 
-/** Outcome of running the weekly report pipeline for one host. */
 export interface WeeklyReportRunResult {
   readonly hostId: number
-  /** Whether the report was successfully written to the weekly_reports store. */
   readonly persisted: boolean
-  /** Whether a configured channel accepted the report. */
   readonly delivered: boolean
-  /** Whether any delivery channel was configured at all (independent of success). */
   readonly channelConfigured: boolean
   readonly summary: WeeklyReportSummary
 }

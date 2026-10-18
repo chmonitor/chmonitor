@@ -22,14 +22,8 @@ import {
   saveConversations,
 } from '@/lib/ai/agent/conversation-utils'
 
-/**
- * Default user ID for localStorage (since it's single-user per browser).
- */
 const DEFAULT_USER_ID = 'local'
 
-/**
- * Adapter class wrapping localStorage functions behind ConversationStore interface.
- */
 export class BrowserStore implements ConversationStore {
   /**
    * List conversations for a user.
@@ -62,7 +56,6 @@ export class BrowserStore implements ConversationStore {
         meta = meta.filter((m) => m.updatedAt >= sinceMs)
       }
 
-      // Already sorted by updatedAt DESC from upsertConversation
       const result = limit ? meta.slice(0, limit) : meta
 
       return result

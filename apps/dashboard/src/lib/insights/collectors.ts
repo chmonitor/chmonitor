@@ -74,10 +74,6 @@ async function firstRow(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Anomaly collector — recent (1h) vs baseline (24h), ported from anomaly-tools.
-// ---------------------------------------------------------------------------
-
 /** How a metric's raw value is rendered in user-facing copy. */
 export type AnomalyUnit = 'bytes' | 'ms' | 'percent' | 'count'
 
@@ -369,10 +365,6 @@ async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
   return out
 }
 
-// ---------------------------------------------------------------------------
-// Storage collector — fragmented tables + poor compression.
-// ---------------------------------------------------------------------------
-
 async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
   const out: InsightCandidate[] = []
 
@@ -444,10 +436,6 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
   return out
 }
 
-// ---------------------------------------------------------------------------
-// Reliability collector — readonly replicas + replication lag.
-// ---------------------------------------------------------------------------
-
 async function collectReliability(hostId: number): Promise<InsightCandidate[]> {
   const out: InsightCandidate[] = []
 
@@ -498,12 +486,7 @@ async function collectReliability(hostId: number): Promise<InsightCandidate[]> {
   return out
 }
 
-// ---------------------------------------------------------------------------
-// Operational collector — cheap point-in-time health checks across storage,
-// reliability and performance (each a single count/aggregate on a small system
-// table). Classification lives in ./operational-checks so it is unit-tested as
-// pure functions; this layer only owns the SQL.
-// ---------------------------------------------------------------------------
+// Cheap point-in-time checks; classification lives in ./operational-checks (pure, unit-tested), this layer owns the SQL.
 
 async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
   const out: InsightCandidate[] = []
@@ -671,13 +654,7 @@ async function collectPartsPressure(
   return null
 }
 
-// ---------------------------------------------------------------------------
-// Schema-optimization collector — reuses the query advisor's `analyzeQuery`
-// (skip index / projection / partition key / PREWHERE) against a few
-// representative heavy recent queries and surfaces the ranked recommendations
-// as "Optimization" insights. Read-only end to end (EXPLAIN + system tables);
-// the pure ranking/mapping lives in ./schema-optimizations so it is unit-tested.
-// ---------------------------------------------------------------------------
+// Reuses the query advisor's `analyzeQuery` on a few heavy recent queries; ranking lives in ./schema-optimizations.
 
 /** How many representative queries to analyze per sweep (bounds ClickHouse round-trips). */
 const SCHEMA_OPT_MAX_QUERIES = 3

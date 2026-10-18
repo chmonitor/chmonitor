@@ -216,7 +216,6 @@ export class D1Store implements ConversationStore {
     try {
       const db = this.getDb()
 
-      // Serialize messages to JSON string
       const messagesJson = JSON.stringify(conversation.messages)
 
       const stmt = db

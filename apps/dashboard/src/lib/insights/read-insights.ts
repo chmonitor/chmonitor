@@ -15,7 +15,6 @@ import type { InsightAction, InsightCard, InsightSeverity } from './types'
 import { resolveInsightsStore } from './store/resolve-store'
 import { advisorInsightKey, INSIGHT_SOURCES, insightKey } from './types'
 
-/** Default lookback for the panel — recent enough that insights stay relevant. */
 const DEFAULT_SINCE = '6 HOUR'
 
 const VALID_SEVERITY = new Set<InsightSeverity>(['info', 'warning', 'critical'])
@@ -102,10 +101,6 @@ function toCard(hostId: number, row: FindingRow): InsightCard {
   }
 }
 
-/**
- * Fetch the current set of AI insights for a host, de-duplicated by key
- * (newest occurrence wins) and ordered by severity then recency.
- */
 export async function readInsights(
   hostId: number,
   opts: { since?: string; limit?: number } = {}
@@ -117,7 +112,6 @@ export async function readInsights(
     limit: opts.limit ?? 200,
   })
 
-  // listRecentFindings returns newest-first; keep the first row seen per key.
   const byKey = new Map<string, InsightCard>()
   for (const row of rows) {
     if (

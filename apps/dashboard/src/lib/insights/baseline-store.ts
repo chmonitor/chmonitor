@@ -12,8 +12,7 @@
  * unmigrated table, or any other D1 error is caught, logged, and resolved to
  * `null` / `[]` / void rather than thrown — so a deployment with no D1
  * configured (the OSS/self-hosted default) simply never gets a baseline, and
- * callers fall back to the static thresholds (fail-open; see
- * plans/48-statistical-anomaly-baselines.md).
+ * callers fall back to the static thresholds (fail-open).
  */
 
 import type { Baseline } from './baseline-types'

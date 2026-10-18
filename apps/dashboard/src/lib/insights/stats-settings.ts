@@ -11,18 +11,14 @@
  */
 
 export interface StatsInsightsSettings {
-  /** Moving-average window in data points. */
   readonly maWindow: number
-  /** Band half-width as a multiple of the rolling standard deviation (±k·σ). */
   readonly bandMultiplier: number
   /**
    * Absolute horizontal threshold value, or null when no absolute threshold is
    * set (only the moving-average band flags anomalies).
    */
   readonly threshold: number | null
-  /** Draw the moving-average line + ±k·σ band. */
   readonly showMovingAverage: boolean
-  /** Draw the absolute threshold line (only meaningful when `threshold` is set). */
   readonly showThreshold: boolean
 }
 
