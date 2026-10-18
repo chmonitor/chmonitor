@@ -51,24 +51,8 @@ export const queryDetailDeclarative: DeclarativeQueryConfig = {
   tableCheck: 'system.query_log',
   sql: [
     {
-      since: '20.0',
-      description: 'Legacy: exception_text column, no query_cache_usage',
-      sql: `
-    SELECT
-      ${baseSelect},
-      exception_text,
-      '' AS query_cache_usage
-    FROM system.query_log
-    WHERE query_id = {query_id: String}
-      AND event_date >= today() - {days:UInt16}
-    ORDER BY event_time DESC
-    LIMIT 1
-  `,
-    },
-    {
       since: '23.8',
-      description:
-        'exception column (renamed from exception_text); query_cache_usage stubbed',
+      description: 'Oldest supported: query_cache_usage stubbed',
       sql: `
     SELECT
       ${baseSelect},
