@@ -23,6 +23,7 @@ export type AlertRuleType =
   | 'failed-mutations'
   | 'stuck-merges'
   | 'disk-usage'
+  | 'disk-time-to-full'
   | 'query-timeout'
   | 'concurrent-queries'
   | 'failed-backups'
