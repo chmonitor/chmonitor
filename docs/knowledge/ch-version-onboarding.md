@@ -49,8 +49,6 @@ A failure on both is a config bug. File one issue for each.
   `## ClickHouse release vX.Y`, but upstream now uses
   `### <a id="269"></a> ClickHouse release 26.9`. Every `--version` prints
   `0 entries` and still exits 0.
-- **`LTS_VERSIONS` lags.** `scripts/ch-schema/constants.ts` lists up to `26.3`.
-  `26.8` is LTS, so the support matrix is out of date until someone adds it.
 - **`clickhouse local` reads stdin.** Started from a script without `< /dev/null`,
   it fails every query with `CANNOT_DETECT_FORMAT`.
 - **`*_log` tables are absent in `clickhouse local`**, and so are keeper, kafka,

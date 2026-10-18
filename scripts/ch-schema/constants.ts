@@ -26,7 +26,7 @@ export const SUPPORTED_MAJOR_VERSIONS = [23, 24, 25, 26] as const
 /**
  * Known LTS versions (major.minor). Keep aligned with upstream ClickHouse LTS
  * lines that chmonitor still targets for docs + support-matrix generation.
- * As of 2026-08: 25.8 and 26.3 are current LTS series (plus older 23.x/24.x).
+ * As of 2026-10: 25.8, 26.3 and 26.8 are current LTS series (plus older 23.x/24.x).
  */
 export const LTS_VERSIONS = [
   '23.3',
@@ -35,6 +35,7 @@ export const LTS_VERSIONS = [
   '24.8',
   '25.8',
   '26.3',
+  '26.8',
 ] as const
 
 export const GITHUB_URLS = {

@@ -153,7 +153,7 @@
       "since": ["25.4"]
     }
   ],
-  "ltsVersions": ["23.3", "23.8", "24.3", "24.8", "25.8", "26.3"],
+  "ltsVersions": ["23.3", "23.8", "24.3", "24.8", "25.8", "26.3", "26.8"],
   "minimumSupportedVersion": "23.3",
   "supportedMajorVersions": [23, 24, 25, 26]
 }
