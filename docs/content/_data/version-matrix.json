@@ -89,6 +89,10 @@
       "since": ["23.8", "24.1"]
     },
     {
+      "name": "merge-performance",
+      "since": ["19.1", "24.3"]
+    },
+    {
       "name": "merges",
       "since": ["19.1", "21.11", "26.6"]
     },
@@ -126,7 +130,7 @@
     },
     {
       "name": "recent-merges",
-      "since": ["19.1", "23.8"]
+      "since": ["19.1", "23.8", "24.3"]
     },
     {
       "name": "running-queries",

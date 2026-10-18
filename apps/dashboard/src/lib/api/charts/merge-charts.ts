@@ -91,15 +91,11 @@ export const mergeCharts: Record<string, ChartQueryBuilder> = {
     lastHours = 24 * 14,
   }) => {
     const timeFilter = buildTimeFilter(lastHours)
-    return {
-      // Use numeric comparison via toInt8() for cross-version/cross-shard compatibility
-      // This works when merge() combines tables with different schemas (Int8 vs Enum)
-      // MergeParts=2, RegularMerge=1 based on ClickHouse source
-      query: `
+    const avgDurationSql = (readable: string) => `
     SELECT
         ${applyInterval(interval, 'event_time')},
         AVG(duration_ms) AS avg_duration_ms,
-        formatReadableTimeDelta(avg_duration_ms / 1000, 'seconds', 'milliseconds') AS readable_avg_duration_ms,
+        ${readable} AS readable_avg_duration_ms,
         bar(avg_duration_ms, 0, MAX(avg_duration_ms) OVER ()) AS bar
     FROM merge('system', '^part_log')
     WHERE toInt8(event_type) = 2
@@ -108,7 +104,27 @@ export const mergeCharts: Record<string, ChartQueryBuilder> = {
     GROUP BY 1
     ORDER BY 1 ASC
     WITH FILL TO ${nowOrToday(interval)} STEP ${fillStep(interval)}
-  `,
+  `
+    const legacySql = avgDurationSql(
+      "if(avg_duration_ms < 1000, concat(toString(round(avg_duration_ms)), ' milliseconds'), formatReadableTimeDelta(avg_duration_ms / 1000, 'seconds'))"
+    )
+    return {
+      // Use numeric comparison via toInt8() for cross-version/cross-shard compatibility
+      // This works when merge() combines tables with different schemas (Int8 vs Enum)
+      // MergeParts=2, RegularMerge=1 based on ClickHouse source
+      // formatReadableTimeDelta takes a third (minimum_unit) argument only
+      // from 24.x; 23.x rejects it, so the fallback prints sub-second
+      // averages as plain milliseconds.
+      query: legacySql,
+      sql: [
+        { since: '1.0', sql: legacySql },
+        {
+          since: '24.3',
+          sql: avgDurationSql(
+            "formatReadableTimeDelta(avg_duration_ms / 1000, 'seconds', 'milliseconds')"
+          ),
+        },
+      ],
       optional: true,
       tableCheck: 'system.part_log',
     }

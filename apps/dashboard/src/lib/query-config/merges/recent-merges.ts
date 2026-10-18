@@ -29,6 +29,8 @@ export const recentMergesConfig: QueryConfig = {
   // The base branch sticks to long-standing part_log columns. 23.8 adds the
   // two this page also likes to show; they are stubbed below that so an older
   // server degrades to blank cells instead of an unknown-identifier error.
+  // formatReadableTimeDelta takes a third (minimum_unit) argument only from
+  // 24.x; 23.x rejects it, so below 24.3 sub-second merges print as plain ms.
   sql: [
     {
       since: '19.1',
@@ -42,7 +44,7 @@ export const recentMergesConfig: QueryConfig = {
           merge_reason,
           '' AS merge_algorithm,
           duration_ms,
-          formatReadableTimeDelta(duration_ms / 1000, 'minutes', 'milliseconds') AS readable_duration,
+          if(duration_ms < 1000, concat(toString(duration_ms), ' milliseconds'), formatReadableTimeDelta(duration_ms / 1000, 'minutes')) AS readable_duration,
           round(100 * duration_ms / nullIf(max(duration_ms) OVER (), 0)) AS pct_duration,
           rows,
           formatReadableQuantity(rows) AS readable_rows,
@@ -66,6 +68,40 @@ export const recentMergesConfig: QueryConfig = {
     {
       since: '23.8',
       description: 'Includes merge_algorithm and peak_memory_usage',
+      sql: `
+        SELECT
+          database || '.' || table AS table,
+          event_time,
+          part_name,
+          partition_id,
+          merge_reason,
+          merge_algorithm,
+          duration_ms,
+          if(duration_ms < 1000, concat(toString(duration_ms), ' milliseconds'), formatReadableTimeDelta(duration_ms / 1000, 'minutes')) AS readable_duration,
+          round(100 * duration_ms / nullIf(max(duration_ms) OVER (), 0)) AS pct_duration,
+          rows,
+          formatReadableQuantity(rows) AS readable_rows,
+          round(100 * rows / nullIf(max(rows) OVER (), 0)) AS pct_rows,
+          size_in_bytes,
+          formatReadableSize(size_in_bytes) AS readable_size_in_bytes,
+          round(100 * size_in_bytes / nullIf(max(size_in_bytes) OVER (), 0)) AS pct_size_in_bytes,
+          read_rows,
+          formatReadableQuantity(read_rows) AS readable_read_rows,
+          peak_memory_usage,
+          formatReadableSize(peak_memory_usage) AS readable_peak_memory_usage,
+          length(merged_from) AS parts_merged,
+          error
+        FROM system.part_log
+        WHERE toInt8(event_type) = 2
+          AND event_time >= now() - INTERVAL {lastHours:UInt32} HOUR
+        ORDER BY event_time DESC
+        LIMIT 1000
+      `,
+    },
+    {
+      since: '24.3',
+      description:
+        'Millisecond precision in readable_duration (three-argument formatReadableTimeDelta)',
       sql: `
         SELECT
           database || '.' || table AS table,
