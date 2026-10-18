@@ -6,7 +6,6 @@
 import type { ClusterTopologyRow } from '@/lib/query-config/system/clusters-topology'
 import type { ChNode, KeeperNode, KeeperRole } from './model-types'
 
-/** Type guard: is this node a Keeper (vs a ClickHouse node)? */
 export function isKeeperNode(n: KeeperNode | ChNode): n is KeeperNode {
   return 'role' in n
 }
@@ -38,7 +37,6 @@ export function deriveKeeperRole(
   return count === 1 ? 'standalone' : 'follower'
 }
 
-/** Short, stable id for a host (last hostname label or the address). */
 export function shortId(host: string, index: number): string {
   const label = host.split('.')[0] || host
   return label || `node-${index}`
@@ -55,7 +53,6 @@ export function isLoopbackAddr(addr: string | undefined): boolean {
   )
 }
 
-/** A host_name that is a placeholder for "this server" rather than a real name. */
 export function isLoopbackName(name: string): boolean {
   return (
     name === 'localhost' ||

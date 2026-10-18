@@ -96,7 +96,6 @@ export function layoutTopology(
   enforceMinDistance(keepers, KP_R * 2 + 48)
   enforceMinDistance(renderCh, CH_R * 2 + 92)
 
-  // Re-clamp after collision avoidance (repulsion can push nodes outside bounds).
   clampToBand(renderCh)
 
   // Auto-layout: translate the whole composition so its content (every node +
@@ -131,7 +130,6 @@ export function layoutTopology(
       KEEPER_CLUSTER_GAP
     : null
 
-  // Cluster overlays: offset convex hulls, z-ordered by area DESC, label-nudged.
   const clusterHulls = buildClusterHulls(
     visibleClusters,
     nodeById,

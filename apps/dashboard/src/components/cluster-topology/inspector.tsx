@@ -5,8 +5,6 @@ import type { ChNode, ClusterInfo, KeeperNode, TopologyModel } from './model'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-// ── inspector primitives (bespoke, translated from the design tokens) ──
-
 function InsRow({
   label,
   children,
@@ -178,7 +176,6 @@ function fmtUptime(seconds: number): string {
   return `${m}m`
 }
 
-// ── public live snapshot shape consumed by the inspector ──
 export interface LiveSnapshot {
   cpuPct: number | null
   memUsed: number | null
@@ -211,7 +208,6 @@ function membershipsOf(model: TopologyModel, id: string) {
     .map((c) => ({ cl: c, role: c.members[id] }))
 }
 
-// ── ClickHouse node inspector ──
 export function ChInspector({
   node,
   model,

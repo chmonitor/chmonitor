@@ -13,7 +13,6 @@ export function ExplorerLayout() {
   if (isMobile) {
     return (
       <div className="flex h-full flex-col">
-        {/* Mobile Header with title and sidebar trigger */}
         <div
           data-role="explorer-header"
           className="flex items-center gap-3 border-b p-3"

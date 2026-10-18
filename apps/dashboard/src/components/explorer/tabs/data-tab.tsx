@@ -36,10 +36,6 @@ import { cn } from '@/lib/utils'
 
 const MAX_CELL_LENGTH = 100
 
-/**
- * Expandable cell component for long text content
- * Shows truncated text inline with click-to-expand functionality
- */
 const ExpandableCell = function ExpandableCell({ value }: { value: unknown }) {
   const [expanded, setExpanded] = useState(false)
   const stringValue = String(value ?? '')
@@ -72,7 +68,6 @@ const ExpandableCell = function ExpandableCell({ value }: { value: unknown }) {
   )
 }
 
-/** Custom error class to carry API error details */
 class DataTabError extends Error {
   type: string
   details?: Record<string, unknown>
@@ -304,7 +299,6 @@ export function DataTab() {
                           header.column.columnDef.header,
                           header.getContext()
                         )}
-                    {/* Column resize handle */}
                     <div
                       role="presentation"
                       onDoubleClick={() => header.column.resetSize()}

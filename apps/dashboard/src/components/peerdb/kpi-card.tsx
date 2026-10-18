@@ -19,7 +19,6 @@ interface KpiCardProps {
   counting?: boolean
 }
 
-/** KPI stat card with a status dot and optional inline sparkline (PdbKpi). */
 export function KpiCard({
   label,
   value,

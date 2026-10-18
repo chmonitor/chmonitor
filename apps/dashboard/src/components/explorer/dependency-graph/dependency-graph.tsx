@@ -21,9 +21,6 @@ import { computeDagrePositions } from '@/lib/graph/dagre-layout'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
 
-/**
- * Dependency type indicating the nature of the relationship
- */
 export type DependencyType =
   | 'dependency' // Standard MV/View dependency from system.tables
   | 'dictGet' // dictGet() function call in definition
@@ -32,9 +29,6 @@ export type DependencyType =
   | 'dict_source' // Dictionary source table
   | 'external' // External engine (PostgreSQL, Kafka, etc.)
 
-/**
- * Dependency data from the API
- */
 export interface DependencyEdge {
   source_database: string
   source_table: string
@@ -65,11 +59,6 @@ const FIT_VIEW_OPTIONS = {
   maxZoom: 1.5,
 }
 
-/**
- * Custom node component for tables/views
- * Supports dynamic handle positions for vertical (TB) and horizontal (LR) layouts
- * Handles are invisible but still functional for edge connections
- */
 function TableNode({
   data,
   targetPosition = Position.Top,
@@ -131,9 +120,6 @@ const nodeTypes = {
   tableNode: TableNode,
 }
 
-/**
- * Legend item component for dependency type (shadcn badge style)
- */
 function LegendItem({
   color,
   label,
@@ -171,29 +157,23 @@ function LegendItem({
   )
 }
 
-/**
- * Get edge color based on dependency type
- */
 function getDependencyColor(type?: DependencyType): string {
   switch (type) {
     case 'dictGet':
-      return '#f97316' // orange-500
+      return '#f97316'
     case 'joinGet':
-      return '#8b5cf6' // violet-500
+      return '#8b5cf6'
     case 'mv_target':
-      return '#22c55e' // green-500
+      return '#22c55e'
     case 'dict_source':
-      return '#f59e0b' // amber-500
+      return '#f59e0b'
     case 'external':
-      return '#94a3b8' // slate-400
+      return '#94a3b8'
     default:
-      return '#3b82f6' // blue-500 for MV/View
+      return '#3b82f6'
   }
 }
 
-/**
- * Get edge label based on dependency type
- */
 function getDependencyLabel(type?: DependencyType): string | undefined {
   switch (type) {
     case 'dictGet':
@@ -268,7 +248,7 @@ function getLayoutedElements(
 
     // Grid layout for isolated nodes - generous spacing to prevent overlap
     const GRID_GAP = 30
-    const COLS = isHorizontal ? 3 : 4 // Fewer columns for horizontal layout
+    const COLS = isHorizontal ? 3 : 4
     const startY = connectedNodes.length > 0 ? maxY + 60 : 0
     const startX = 0
 
@@ -290,9 +270,6 @@ function getLayoutedElements(
   return { nodes: layoutedNodes, edges }
 }
 
-/**
- * Build initial nodes and edges from dependency data
- */
 function buildInitialGraph(
   dependencies: DependencyEdge[],
   currentTable: string | undefined,
@@ -366,11 +343,10 @@ function buildInitialGraph(
     }
   }
 
-  // Create nodes with initial positions (will be recalculated by dagre)
   const nodes: Node[] = Array.from(nodeMap.entries()).map(([key, info]) => ({
     id: key,
     type: 'tableNode',
-    position: { x: 0, y: 0 }, // Will be set by dagre
+    position: { x: 0, y: 0 },
     data: {
       label: info.table,
       engine: info.engine,
@@ -384,9 +360,6 @@ function buildInitialGraph(
   return { nodes, edges, edgeCount: edges.length }
 }
 
-/**
- * Dependency graph visualization using React Flow with dagre auto-layout
- */
 export function DependencyGraph({
   dependencies,
   currentTable,
@@ -406,7 +379,6 @@ export function DependencyGraph({
   // Stable string representation of dependencies to prevent unnecessary recalculations
   const depsKey = useMemo(() => JSON.stringify(dependencies), [dependencies])
 
-  // Build and layout the graph structure stably
   // biome-ignore lint/correctness/useExhaustiveDependencies: depsKey is a stable representation of dependencies to prevent unnecessary recalculations
   const { layoutedNodes, layoutedEdges, edgeCount } = useMemo(() => {
     const {
@@ -425,7 +397,6 @@ export function DependencyGraph({
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges)
 
-  // Update nodes and edges when layoutedNodes or layoutedEdges change
   useEffect(() => {
     setNodes(layoutedNodes)
     setEdges(layoutedEdges)
@@ -498,7 +469,6 @@ export function DependencyGraph({
         <Background />
         <Controls />
 
-        {/* Layout controls */}
         <Panel position="top-left" className="flex gap-1">
           <button
             type="button"
@@ -526,12 +496,10 @@ export function DependencyGraph({
           </button>
         </Panel>
 
-        {/* Stats panel */}
         <Panel position="top-right" className="text-xs text-muted-foreground">
           {nodes.length} tables{edgeCount > 0 && `, ${edgeCount} dependencies`}
         </Panel>
 
-        {/* Legend panel - only show when there are edges */}
         {edgeCount > 0 && (
           <Panel
             position="bottom-left"

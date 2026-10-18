@@ -21,7 +21,6 @@ interface ExplorerContentProps {
   hostName?: string
 }
 
-// Track which tabs have been visited for this table to enable pre-loading
 function useTabVisitTracker(tableKey: string | null, currentTab: ExplorerTab) {
   const [visitedTabs, setVisitedTabs] = useState<Set<ExplorerTab>>(
     () => new Set<ExplorerTab>(['overview', currentTab])
@@ -37,7 +36,6 @@ function useTabVisitTracker(tableKey: string | null, currentTab: ExplorerTab) {
     }
   }, [tableKey])
 
-  // Track visited tabs when currentTab changes externally (e.g. URL/history navigation)
   useEffect(() => {
     setVisitedTabs((prev) => {
       if (prev.has(currentTab)) return prev
@@ -74,17 +72,14 @@ export function ExplorerContent({ hostName }: ExplorerContentProps) {
     [tab, markVisited, setTab]
   )
 
-  // No database selected and not on query tab — show empty state
   if (!database && tab !== 'query') {
     return <ExplorerEmptyState />
   }
 
-  // Database selected but no table, and not on query tab — show database overview
   if (database && !table && tab !== 'query') {
     return <DatabaseOverview database={database} />
   }
 
-  // Query tab without a table context — render standalone (no tab strip)
   if (tab === 'query' && !table) {
     return (
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">

@@ -28,7 +28,6 @@ import { cn } from '@/lib/utils'
 const NODE_WIDTH = 220
 const NODE_HEIGHT = 64
 
-/** Stable fit-view options shared across renders (module-level constant). */
 const FIT_VIEW_OPTIONS = { padding: 0.2, minZoom: 0.4, maxZoom: 1.5 }
 
 interface PeerNodeData {
@@ -37,7 +36,6 @@ interface PeerNodeData {
   [key: string]: unknown
 }
 
-/** Custom React Flow node: a peer with its type icon, name, and type label. */
 function PeerNode({
   data,
   targetPosition = Position.Left,
@@ -233,7 +231,6 @@ interface PeerGraphProps {
   className?: string
 }
 
-/** Source→destination relationship graph: peers are nodes, mirrors are edges. */
 export function PeerGraph({ peers, mirrors, className }: PeerGraphProps) {
   const instance = useRef<ReactFlowInstance | null>(null)
 

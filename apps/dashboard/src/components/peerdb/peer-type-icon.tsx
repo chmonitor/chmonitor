@@ -73,7 +73,6 @@ interface PeerTypeBadgeProps {
   className?: string
 }
 
-/** Icon + peer name, used in tables and the source→destination cell. */
 export function PeerTypeBadge({ name, type, className }: PeerTypeBadgeProps) {
   return (
     <span className={cn('inline-flex items-center gap-1.5', className)}>

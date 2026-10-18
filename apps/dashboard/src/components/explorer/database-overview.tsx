@@ -35,7 +35,6 @@ export function DatabaseOverview({ database }: DatabaseOverviewProps) {
   const hostId = useHostId()
   const { setTab } = useExplorerState()
 
-  // Use unified query that includes all dependency types + standalone tables
   const depsUrl = `/api/v1/explorer/dependencies?hostId=${hostId}&database=${encodeURIComponent(database)}&direction=all`
 
   const { data: depsData, isLoading } = useQuery<ApiResponse<DependencyEdge[]>>(
@@ -85,7 +84,6 @@ export function DatabaseOverview({ database }: DatabaseOverviewProps) {
 
   return (
     <div className="group flex h-full flex-col gap-3 p-3 sm:gap-4 sm:p-4">
-      {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
           <DatabaseIcon className="size-5 text-muted-foreground" />
@@ -116,7 +114,6 @@ export function DatabaseOverview({ database }: DatabaseOverviewProps) {
         />
       </div>
 
-      {/* Dependency Graph - full area */}
       <DependencyGraph
         dependencies={graphData}
         currentDatabase={database}

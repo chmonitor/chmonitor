@@ -22,19 +22,6 @@ export interface ExplorerState {
   customQuery: string | null
 }
 
-/**
- * Exposes explorer state derived from the current URL search parameters and provides setters that update those parameters.
- *
- * The returned state mirrors the explorer's URL-driven values: `hostId`, `database`, `table`, `engine`, `tab`, and `customQuery`.
- * Setter functions modify the URL search parameters so the explorer state stays in sync with the browser address bar.
- *
- * @returns An object containing the current explorer state and setter functions:
- * - `setDatabase(database: string | null)` — set or clear the `database` parameter; clearing the database also clears `table` and `engine`.
- * - `setTable(table: string | null, engine?: string | null)` — set or clear the `table` parameter; optionally set or clear `engine`. Clearing the table also clears `engine`.
- * - `setDatabaseAndTable(database: string, table: string, engine?: string)` — set `database`, `table`, and `engine` (defaults `engine` to `null` when omitted) and clear `customQuery`.
- * - `setTab(tab: ExplorerTab)` — set the `tab` parameter.
- * - `setCustomQuery(sql: string | null)` — set or clear the encoded custom query (`q`) parameter.
- */
 export function useExplorerState(): ExplorerState & {
   setDatabase: (database: string | null) => void
   setDefaultDatabase: (database: string | null) => void
@@ -88,7 +75,7 @@ export function useExplorerState(): ExplorerState & {
       if (updates.database !== undefined) {
         if (updates.database === null) {
           params.delete('database')
-          params.delete('table') // Clear table when database is cleared
+          params.delete('table')
           params.delete('engine')
         } else {
           params.set('database', updates.database)
@@ -131,7 +118,7 @@ export function useExplorerState(): ExplorerState & {
 
   const setDatabase = useCallback(
     (database: string | null) => {
-      updateParams({ database, table: null }) // Clear table when changing database
+      updateParams({ database, table: null })
     },
     [updateParams]
   )
@@ -159,7 +146,7 @@ export function useExplorerState(): ExplorerState & {
         database,
         table,
         engine: engine ?? null,
-        customQuery: null, // Clear stale query when switching tables
+        customQuery: null,
       })
     },
     [updateParams]

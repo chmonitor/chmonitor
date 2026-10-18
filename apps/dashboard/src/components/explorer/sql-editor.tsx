@@ -138,7 +138,6 @@ export function SqlEditor({
   onChangeRef.current = onChange
   onRunRef.current = onRun
 
-  // Create editor on mount
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — value/schema/placeholder are initial values; sync handled by separate effects
   useEffect(() => {
     if (!containerRef.current) return
@@ -207,7 +206,6 @@ export function SqlEditor({
     // Only recreate on theme change — value/schema sync handled separately
   }, [resolvedTheme])
 
-  // Dynamically reconfigure SQL schema when it changes (e.g., databases load)
   useEffect(() => {
     const view = viewRef.current
     if (!view || !schema) return
@@ -217,7 +215,6 @@ export function SqlEditor({
     })
   }, [schema])
 
-  // Sync external value changes (e.g., format button, URL prefill)
   useEffect(() => {
     const view = viewRef.current
     if (!view) return
@@ -240,7 +237,6 @@ export function SqlEditor({
     }
   }, [value])
 
-  // Focus helper for parent components
   const handleContainerClick = useCallback(() => {
     viewRef.current?.focus()
   }, [])

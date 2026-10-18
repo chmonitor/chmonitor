@@ -48,7 +48,6 @@ export function buildSyncHistory(
 
 const DEFAULT_PAGE_SIZE = 25
 
-/** QRep partition sync-progress table with search, paging, and totals. */
 export function QRepPartitions({
   partitions,
   pageSize = DEFAULT_PAGE_SIZE,

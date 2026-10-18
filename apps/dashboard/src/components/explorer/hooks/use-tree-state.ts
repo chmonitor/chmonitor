@@ -85,7 +85,6 @@ export function useTreeState(
     }
   }, [database, table])
 
-  // Save to localStorage whenever state changes
   useEffect(() => {
     saveTreeState(state)
   }, [state])

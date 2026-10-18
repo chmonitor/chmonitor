@@ -23,7 +23,6 @@ import { apiFetch } from '@/lib/swr/api-fetch'
 import { useHostId } from '@/lib/swr/use-host'
 import { cn } from '@/lib/utils'
 
-/** Small syntax-highlighted SQL expression block (e.g. engine, key expr). */
 function SqlExprBlock({ code }: { code: string }) {
   const html = useMemo(() => highlightCode(code, 'sql'), [code])
   return (
@@ -212,7 +211,6 @@ export function IndexesTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Engine Info */}
       {indexData?.engine && (
         <Card className="gap-3 py-4">
           <CardHeader className="px-4">
@@ -235,7 +233,6 @@ export function IndexesTab() {
         </Card>
       )}
 
-      {/* Keys Grid */}
       <div className="grid gap-3 md:grid-cols-2">
         {keyFields.map(({ label, value, icon }) => (
           <Card key={label} className="gap-2 py-3">
@@ -256,7 +253,6 @@ export function IndexesTab() {
         ))}
       </div>
 
-      {/* Skip Indexes */}
       <Card className="gap-3 py-4">
         <CardHeader className="px-4">
           <CardTitle className="flex items-center gap-2 text-sm">
@@ -320,7 +316,6 @@ export function IndexesTab() {
         </CardContent>
       </Card>
 
-      {/* Projections */}
       <Card className="gap-3 py-4">
         <CardHeader className="px-4">
           <CardTitle className="flex items-center gap-2 text-sm">
