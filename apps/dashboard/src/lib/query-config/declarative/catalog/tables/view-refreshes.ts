@@ -14,12 +14,12 @@ AS SELECT col1, col2 FROM my_table;
 The view will refresh automatically on schedule.
 Monitor status, failures, and performance here.
 
-Requires: ClickHouse 23.8+
+Requires: ClickHouse 24.3+
 Only for views with explicit REFRESH intervals.
 
 Learn more:
 https://clickhouse.com/docs/en/sql-reference/statements/create/view#materialized-view`,
-  optional: false,
+  optional: true,
   tableCheck: 'system.view_refreshes',
   sql: `
     SELECT *
