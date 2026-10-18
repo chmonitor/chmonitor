@@ -382,6 +382,29 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
       expect(mockClientQuery).not.toHaveBeenCalled()
     })
 
+    // @clickhouse/client serializes a JS array of pairs as nested arrays
+    // ([['system','a']]), which ClickHouse cannot parse as
+    // Array(Tuple(String, String)) — so every batch failed live (#3906).
+    // Only flat string arrays survive serialization.
+    it('sends only flat Array(String) params, never tuple params', async () => {
+      mockClientQuery.mockResolvedValue({ json: () => Promise.resolve([]) })
+
+      await l2cache.checkTablesExist(0, [
+        ['system', 'processes'],
+        ['default', 'events'],
+      ])
+
+      const [{ query, query_params }] = mockClientQuery.mock
+        .calls[0] as unknown as [
+        { query: string; query_params: Record<string, unknown> },
+      ]
+      expect(query).not.toContain('Tuple')
+      expect(query_params).toEqual({
+        databases: ['system', 'default'],
+        tables: ['processes', 'events'],
+      })
+    })
+
     it('warm cache: no query at all', async () => {
       mockClientQuery.mockResolvedValue({
         json: () => Promise.resolve([{ database: 'system', name: 'a' }]),
