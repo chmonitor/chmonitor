@@ -127,7 +127,7 @@ export const failedQueriesConfig: QueryConfig = {
         -- granules with no exceptions, so the heavy query/stack_trace/toString
         -- blobs are only read for the few rows that survive the filter.
         PREWHERE type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
-            AND ({type:String} = '' OR type = {type:String})
+            AND ({type:String} = '' OR toString(type) = {type:String})
             AND event_time > now() - interval {last_hours:UInt64} hour
         ORDER BY query_start_time DESC
         LIMIT 1000
@@ -174,7 +174,7 @@ export const failedQueriesConfig: QueryConfig = {
         -- granules with no exceptions, so the heavy query/stack_trace/toString
         -- blobs are only read for the few rows that survive the filter.
         PREWHERE type IN ['ExceptionBeforeStart', 'ExceptionWhileProcessing']
-            AND ({type:String} = '' OR type = {type:String})
+            AND ({type:String} = '' OR toString(type) = {type:String})
             AND event_time > now() - interval {last_hours:UInt64} hour
         ORDER BY query_start_time DESC
         LIMIT 1000
