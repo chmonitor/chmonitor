@@ -387,6 +387,7 @@ describe('selectCluster', () => {
       selectCluster({
         tables: new Set<string>(),
         clusters: ['a'],
+        localClusters: ['a'],
         probeFailed: true,
         probedAt: 0,
       })
@@ -398,9 +399,36 @@ describe('selectCluster', () => {
       selectCluster({
         tables: new Set<string>(),
         clusters: [],
+        localClusters: [],
         probeFailed: false,
         probedAt: 0,
       })
     ).toBeNull()
+  })
+
+  test('prefers a cluster this node belongs to over an earlier name (#3892)', () => {
+    // `a_test` sorts first but this node is not in it: fanning out there
+    // reports another topology, or "unavailable".
+    expect(
+      selectCluster({
+        tables: new Set<string>(),
+        clusters: ['a_test', 'main'],
+        localClusters: ['main'],
+        probeFailed: false,
+        probedAt: 0,
+      })
+    ).toBe('main')
+  })
+
+  test('falls back to the first name when no cluster is local', () => {
+    expect(
+      selectCluster({
+        tables: new Set<string>(),
+        clusters: ['a_test', 'main'],
+        localClusters: [],
+        probeFailed: false,
+        probedAt: 0,
+      })
+    ).toBe('a_test')
   })
 })

@@ -212,7 +212,7 @@ function probeFailureCapability(
   entry: ClusterEntry | undefined,
   authFailure: boolean
 ): ClusterFanoutCapability {
-  const cluster = capabilities.clusters[0] ?? null
+  const cluster = selectCluster(capabilities)
   if (!authFailure) {
     return capabilityFor(
       'unavailable',
@@ -323,8 +323,14 @@ export async function getClusterFanout(
 }
 
 /**
- * Pick the one cluster to fan out to: the first name `system.clusters` reports,
- * which is deterministic because the capability cache sorts them.
+ * Pick the one cluster to fan out to: the first cluster (by name) this node is
+ * a member of, else the first name overall. Sorted, so deterministic.
+ *
+ * Membership comes first because a server can define clusters it is not part
+ * of (test clusters, a foreign topology): fanning out there reports another
+ * cluster's replicas, or a false "unavailable" (#3892). The fallback keeps a
+ * node whose `is_local` is wrong everywhere (hostname mismatch in a container)
+ * working as before.
  *
  * Picking *a* cluster rather than every name is what turns three failing probes
  * per tick into one. The trade is deliberate and stated in the PR: a mixed
@@ -334,7 +340,7 @@ export async function getClusterFanout(
  */
 export function selectCluster(capabilities: HostCapabilities): string | null {
   if (capabilities.probeFailed) return null
-  return capabilities.clusters[0] ?? null
+  return capabilities.localClusters[0] ?? capabilities.clusters[0] ?? null
 }
 
 /**

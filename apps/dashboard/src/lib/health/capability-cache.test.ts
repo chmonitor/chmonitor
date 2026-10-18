@@ -52,7 +52,7 @@ function healthyRows(): Array<{ kind: string; name: string }> {
     { kind: 'table', name: 'system.backup_log' },
     { kind: 'table', name: 'system.monitoring_findings' },
     { kind: 'cluster', name: 'all-replicated' },
-    { kind: 'cluster', name: 'default' },
+    { kind: 'local_cluster', name: 'default' },
     { kind: 'cluster', name: 'all-clusters' },
   ]
 }
@@ -81,7 +81,7 @@ describe('the probe statement', () => {
     expect(sql).toContain("database IN ('system', {appDatabase: String})")
     // One statement, not two: the two halves are UNION ALL-ed.
     expect(sql).toContain('UNION ALL')
-    expect(sql.match(/SELECT DISTINCT/g)).toHaveLength(1)
+    expect(sql.match(/UNION ALL/g)).toHaveLength(1)
   })
 
   test('scopes the catalog scan to local database engines (#3686)', () => {
@@ -223,10 +223,22 @@ describe('the cluster half of the snapshot', () => {
     expect(caps.clusters).toEqual(['all-clusters', 'all-replicated', 'default'])
   })
 
+  test('clusters this node belongs to are kept apart (#3892)', async () => {
+    const caps = await getHostCapabilities(0)
+    expect(caps.localClusters).toEqual(['default'])
+  })
+
+  test('the probe marks membership from is_local', () => {
+    expect(buildCapabilityProbeSql('system')).toContain(
+      "if(is_local = 1, 'local_cluster', 'cluster')"
+    )
+  })
+
   test('a failed probe reports no clusters rather than an empty guess', async () => {
     probeError = { type: 'query_error', message: 'boom' }
     const caps = await getHostCapabilities(0)
     expect(caps.clusters).toEqual([])
+    expect(caps.localClusters).toEqual([])
     expect(caps.probeFailed).toBe(true)
   })
 })
