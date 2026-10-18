@@ -9,7 +9,7 @@
  * who acked it and when it expires, with a "Clear" button to un-ACK early.
  * ACK/snooze is a free, OSS-included capability — no plan gating.
  */
-import { RefreshCw } from 'lucide-react'
+import { AlertCircle, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { AckDurationKey, AlertAck } from '@/lib/health/alert-ack-store'
@@ -154,7 +154,7 @@ function AckControl({
 }
 
 export function ActiveAlertsPanel() {
-  const { findings, acks, isLoading, isFetching, error, refetch } =
+  const { findings, acks, isLoading, isFetching, error, acksError, refetch } =
     useActiveAlerts()
   // An ACK with no backend would be discarded; `unknown` stays disabled too.
   const availability = useHealthStoreAvailability()
@@ -241,6 +241,16 @@ export function ActiveAlertsPanel() {
           feature="Alert acknowledgements"
           className="text-xs"
         />
+        {acksError && !error && (
+          <span
+            data-testid="acks-unavailable"
+            title={acksError.message}
+            className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400"
+          >
+            <AlertCircle className="size-3.5" aria-hidden />
+            Ack state unavailable
+          </span>
+        )}
         <Button
           variant="ghost"
           size="sm"

@@ -11,17 +11,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AckDurationKey, AlertAck } from '@/lib/health/alert-ack-store'
 import type { CurrentFinding } from '@/lib/health/current-findings'
 
-import { useClerkIsSignedIn as useClerkIsSignedInImpl } from '@/components/assistant-ui/use-clerk-is-signed-in'
-import { isClerkEnabled } from '@/lib/clerk/clerk-client'
-import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
+import { useCloudAccess } from '@/lib/cloud/use-cloud-access'
 import { apiFetch } from '@/lib/swr/api-fetch'
 import { throwIfNotOk } from '@/lib/swr/fetch-error'
-
-// Clerk's useUser() throws without a ClerkProvider, so non-Clerk builds read
-// "signed out" without calling it.
-const useClerkIsSignedIn: () => boolean = isClerkEnabled()
-  ? useClerkIsSignedInImpl
-  : () => false
 
 const REFRESH_INTERVAL_MS = 30_000
 
@@ -50,13 +42,14 @@ export interface UseActiveAlertsResult {
   isLoading: boolean
   isFetching: boolean
   error: Error | null
+  /** Set when the ACK read failed; findings still load, ACK state is unknown. */
+  acksError: Error | null
   refetch: () => void
 }
 
 export function useActiveAlerts(): UseActiveAlertsResult {
-  // Cloud answers 401 to a signed-out ACK read, so skip it there.
-  const signedIn = useClerkIsSignedIn()
-  const acksEnabled = !(isCloudModeClient() && !signedIn)
+  // Cloud answers 401 to a signed-out ACK read, so read only when open.
+  const acksEnabled = useCloudAccess() === 'open'
 
   const findingsQuery = useQuery<FindingsResponse, Error>({
     queryKey: FINDINGS_QUERY_KEY,
@@ -92,6 +85,7 @@ export function useActiveAlerts(): UseActiveAlertsResult {
     isFetching: findingsQuery.isFetching || acksQuery.isFetching,
     // ACKs only annotate findings; a failed ACK read must not hide them.
     error: findingsQuery.error,
+    acksError: acksEnabled ? acksQuery.error : null,
     refetch: () => {
       void findingsQuery.refetch()
       if (acksEnabled) void acksQuery.refetch()
