@@ -114,7 +114,6 @@ body {
   box-shadow: none;
 }
 
-/* ── article column: ~760px measure, TOC/sidebar unchanged ── */
 #nd-page {
   max-width: 760px;
 }
@@ -123,7 +122,6 @@ body {
   max-width: 1168px;
 }
 
-/* ── hero eyebrow: the top-level section as quiet brand-ink text ── */
 .doc-eyebrow {
   margin: 0;
   color: var(--brand-ink);
