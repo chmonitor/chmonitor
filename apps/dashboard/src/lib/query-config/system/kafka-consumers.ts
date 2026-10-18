@@ -11,8 +11,7 @@ export const kafkaConsumersConfig: QueryConfig = {
   refreshInterval: 15_000,
   optional: true,
   tableCheck: 'system.kafka_consumers',
-  // CH 25.12 adds dependencies / missing_dependencies to detect broken Kafka→MV pipelines
-  // and num_commit_failures for commit health.
+  // CH 25.12 adds dependencies / missing_dependencies to detect broken Kafka→MV pipelines.
   sql: [
     {
       since: '22.8',
@@ -29,8 +28,8 @@ export const kafkaConsumersConfig: QueryConfig = {
         num_messages_read,
         last_commit_time,
         num_commits,
-        last_exception_time,
-        last_exception
+        exceptions.time[-1] AS last_exception_time,
+        exceptions.text[-1] AS last_exception
       FROM system.kafka_consumers
       ORDER BY table
     `,
@@ -50,11 +49,10 @@ export const kafkaConsumersConfig: QueryConfig = {
         num_messages_read,
         last_commit_time,
         num_commits,
-        num_commit_failures,
-        last_exception_time,
-        last_exception,
-        arrayStringConcat(dependencies, ', ') AS dependencies,
-        arrayStringConcat(missing_dependencies, ', ') AS missing_dependencies
+        exceptions.time[-1] AS last_exception_time,
+        exceptions.text[-1] AS last_exception,
+        arrayStringConcat(arrayFlatten(dependencies), ', ') AS dependencies,
+        arrayStringConcat(arrayFlatten(missing_dependencies), ', ') AS missing_dependencies
       FROM system.kafka_consumers
       ORDER BY table
     `,
@@ -70,7 +68,6 @@ export const kafkaConsumersConfig: QueryConfig = {
     'num_messages_read',
     'last_commit_time',
     'num_commits',
-    'num_commit_failures',
     'last_exception_time',
     'last_exception',
     'dependencies',
@@ -81,7 +78,6 @@ export const kafkaConsumersConfig: QueryConfig = {
     table: ColumnFormat.ColoredBadge,
     num_messages_read: ColumnFormat.NumberShort,
     num_commits: ColumnFormat.NumberShort,
-    num_commit_failures: ColumnFormat.Number,
     last_exception: ColumnFormat.CodeDialog,
     dependencies: ColumnFormat.CodeToggle,
     missing_dependencies: ColumnFormat.ColoredBadge,

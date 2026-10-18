@@ -10,8 +10,7 @@ export const kafkaConsumersDeclarative: DeclarativeQueryConfig = {
   // system.kafka_consumers only exists if Kafka table engines are configured
   optional: true,
   tableCheck: 'system.kafka_consumers',
-  // CH 25.12 adds dependencies / missing_dependencies to detect broken Kafka→MV pipelines
-  // and num_commit_failures for commit health.
+  // CH 25.12 adds dependencies / missing_dependencies to detect broken Kafka→MV pipelines.
   sql: [
     {
       since: '22.8',
@@ -28,8 +27,8 @@ export const kafkaConsumersDeclarative: DeclarativeQueryConfig = {
         num_messages_read,
         last_commit_time,
         num_commits,
-        last_exception_time,
-        last_exception
+        exceptions.time[-1] AS last_exception_time,
+        exceptions.text[-1] AS last_exception
       FROM system.kafka_consumers
       ORDER BY table
     `,
@@ -49,11 +48,10 @@ export const kafkaConsumersDeclarative: DeclarativeQueryConfig = {
         num_messages_read,
         last_commit_time,
         num_commits,
-        num_commit_failures,
-        last_exception_time,
-        last_exception,
-        arrayStringConcat(dependencies, ', ') AS dependencies,
-        arrayStringConcat(missing_dependencies, ', ') AS missing_dependencies
+        exceptions.time[-1] AS last_exception_time,
+        exceptions.text[-1] AS last_exception,
+        arrayStringConcat(arrayFlatten(dependencies), ', ') AS dependencies,
+        arrayStringConcat(arrayFlatten(missing_dependencies), ', ') AS missing_dependencies
       FROM system.kafka_consumers
       ORDER BY table
     `,
@@ -69,7 +67,6 @@ export const kafkaConsumersDeclarative: DeclarativeQueryConfig = {
     'num_messages_read',
     'last_commit_time',
     'num_commits',
-    'num_commit_failures',
     'last_exception_time',
     'last_exception',
     'dependencies',
@@ -80,7 +77,6 @@ export const kafkaConsumersDeclarative: DeclarativeQueryConfig = {
     table: 'colored-badge',
     num_messages_read: 'number-short',
     num_commits: 'number-short',
-    num_commit_failures: 'number',
     last_exception: 'code-dialog',
     dependencies: 'code-toggle',
     missing_dependencies: 'colored-badge',
