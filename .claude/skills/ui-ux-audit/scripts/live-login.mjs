@@ -19,7 +19,7 @@ import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs'
 const HOME = process.env.HOME
 const creds = JSON.parse(readFileSync(`${HOME}/.config/chmonitor/test-account.json`, 'utf8'))
 const USERDATA = `${HOME}/.config/chmonitor/clerk-userdata`
-const TARGET = 'https://dash-tsr.chmonitor.dev/overview?host=0'
+const TARGET = 'https://dash.chmonitor.dev/overview?host=0'
 const OTP_FILE = '/tmp/chm-otp.txt'
 const SHOT = '/tmp/chm-login'
 mkdirSync(USERDATA, { recursive: true })

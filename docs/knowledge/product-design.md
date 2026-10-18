@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-10-11
+updated: 2026-10-18
 tags:
   - design-system
   - ui
@@ -1247,6 +1247,17 @@ back the **TTL & Partition Health** card on `/health` (`HEALTH_CHECKS` id
 breakdown. Do not add a third TTL reporting surface. Never `ALTER TTL`
 or `DROP PARTITION` from this page. Postgres-only items stay engine-gated
 and are not moved here.
+
+⌘K layout: category tabs All / Pages / Databases / Tables / Actions sit
+under the search input (`CommandPaletteTabs`, `h-9 px-3`, strip
+`px-3 pt-1.5`). Pages nest under sidebar group headings with one continuous
+left rail on `cmdk-group-items`, not a per-row `border-l`. Query tokens
+highlight in the visible title and description (`HighlightText`). Titles stay
+on one line (`whitespace-nowrap`) so `TTL & Partitions` does not wrap on `&`.
+All caps explorer rows; the Databases and Tables tabs show the full fetch.
+Closing resets the tab and the query. A page whose tab title differs from
+title-casing its last URL segment needs a `ROUTE_TITLE_MAP` entry in
+`lib/page-title.ts`, because ⌘K searches the `<title>` too.
 
 ⌘K (`components/controls/command-palette.tsx`) indexes the **full**
 permission/engine/cloud-allowed catalog (`usePaletteMenuItems` /

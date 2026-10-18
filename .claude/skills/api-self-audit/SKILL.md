@@ -4,9 +4,8 @@ description: >-
   Hunt for chmonitor API routes that ship without an auth guard, and triage
   each one: guard it, or allowlist it with a reason. Use when adding or
   changing a route under apps/dashboard/src/routes/api/, when
-  auth-guard-coverage.test.ts fails, or when reviewing auth on an API change.
-  Triggers: "new API route", "unguarded route", "auth guard", "public route",
-  "PUBLIC_ROUTES", "api self-audit".
+  auth-guard-coverage.test.ts fails, when allowlisting a public route in
+  PUBLIC_ROUTES, or when reviewing auth on an API change.
 ---
 
 # API self-audit
@@ -33,8 +32,8 @@ takes the path from `createFileRoute('...')`, and decides:
 
 A route that needs a guard passes when its file calls a name in `GUARDS`
 (`name(`, after comments and import lines are stripped; a mention in a comment
-or an import does not count), or its path is in `PUBLIC_ROUTES` or `READ_ONLY_POSTS`. The check is per file: one guard anywhere in the file counts for
-all its handlers. When a file mixes a public GET with a guarded POST, read it.
+or an import does not count), or its path is in `PUBLIC_ROUTES` or `READ_ONLY_POSTS`. The check is per
+file: one guard anywhere in the file counts for all its handlers. When a file mixes a public GET with a guarded POST, read it.
 
 ## Triage a failing route
 

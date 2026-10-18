@@ -1,32 +1,20 @@
 ---
 name: verify-production
 description: >-
-  Prove the deployed chmonitor product actually works, not just that the
-  Worker answers. Use after every deploy to dash.chmonitor.dev (or a preview),
-  when triaging "no data" / "blank overview" / "agent does not answer", when a
-  CI deploy was green but production looks broken, and when deciding whether to
-  revert or roll back. Covers the verify-deploy contract, what the health
-  endpoints do and do not prove, the agent/guest-model probes, usage and quota
-  watch, and the restore-service order (revert PR first, wrangler rollback only
-  as an opt-in emergency). Triggers: "verify deploy", "production is down",
-  "deploy looks green", "revert", "rollback", "wrangler rollback", "agent not
-  responding", "guest AI", "model unavailable", "usage", "quota", "no data in
-  production", "downtime".
+  Prove the deployed chmonitor product works, not just that the Worker
+  answers. Use after a deploy to dash.chmonitor.dev or a preview, when
+  production shows no data or the agent does not answer although CI was green,
+  when a guest model or quota looks wrong, and before any revert or
+  wrangler rollback.
 ---
 
 # Verify production
 
-The dashboard deploys itself: `.github/workflows/cloudflare.yml` builds, ships,
-and runs `bun scripts/verify-deploy.ts` on every push to `main`. So CI proves
-the deploy path. It does **not** prove the product works, because the checks CI
-runs stop at "the endpoints answered".
-
-This skill is the knowledge for the second pair of eyes: what to probe, what a
-green probe actually means, and what to do when it is red.
-
-Script contract, gotchas, and the assertion list: `scripts/verify-deploy.ts`
-(`apps/dashboard/`). The desk job that runs all of this on a schedule is
-`local:prod` — see `docs/herdr-desk/prod-watch.md`.
+`.github/workflows/cloudflare.yml` deploys every push to `main` and runs
+`apps/dashboard/scripts/verify-deploy.ts`. That proves the deploy path, not the
+product: its anonymous checks stop at "the endpoints answered". This skill says
+what to probe, what a green probe means, and what to do when it is red. The
+`local:prod` desk job runs it on a schedule (`docs/herdr-desk/prod-watch.md`).
 
 ## What each signal is worth
 
@@ -48,8 +36,7 @@ env, `verify-deploy.ts` does the authenticated call for you.
 
 ## `--skip-auth` passing does not mean ClickHouse is reachable
 
-This is the trap, and it cost a full day of a broken guest experience before
-anyone noticed. The authenticated half of `verify-deploy.ts` is the only check
+This trap cost a full day of broken guest experience. The authenticated half of `verify-deploy.ts` is the only check
 that proves the Worker can *query* ClickHouse, and it needs
 `CHM_API_KEY_SECRET`. Without it, run the compensating check:
 
@@ -60,10 +47,9 @@ curl -sS https://dash.chmonitor.dev/api/healthz | head -c 400
 ```
 
 - **500 with `{"error":"error code: 1016"}`** — Cloudflare cannot resolve the
-  origin domain. The signature of a ClickHouse host that only resolves on a
-  tailnet: a `*.ts.net` MagicDNS name has **no public DNS record**, so it answers
-  from a tailnet-connected box and nowhere else. Workers resolve through public
-  DNS, so the edge gets 1016 while the host itself is alive and healthy.
+  origin domain. The usual cause is a `*.ts.net` host without Tailscale Funnel:
+  it resolves only on the tailnet, so it answers from your box while the edge
+  gets 1016. A Funnel host resolves publicly and works.
 - **503 with `hosts[0].status: "down"`** — the Worker is up; upstream is not.
   `/api/healthz` returns 503 for the *whole deployment* when one host is down, so
   read it as a host signal, not a Worker signal.
@@ -101,9 +87,7 @@ Flags: `--base-url <url>` (default `https://dash.chmonitor.dev`), `--hosts 0,1`,
 error. The secret lives in `apps/dashboard/.env.local` and the GitHub secret of
 the same name — source it into the env, never print it.
 
-**When `--skip-auth` is all you can run** (the secret is unset locally), add the
-`host-status` probe below. Four green unauthenticated checks and a broken guest
-product is a combination that actually happens.
+When `--skip-auth` is all you can run, add the `host-status` probe above.
 
 ## Agent and guest-model probes
 
@@ -161,16 +145,13 @@ default id is a product decision: it needs a human.
   registry endpoints (`/api/v1/charts/[name]`, `/api/v1/tables/[name]`,
   `menu-counts`, …) run queries — use those to prove connectivity.
 - The data API param is `hostId`, not `host`.
-- The ClickHouse hosts may be Tailscale Funnel URLs (`*.ts.net`): on the tailnet
-  MagicDNS gives a private `100.x` address, but public DNS resolves the funnel
-  ingress, so `https://<host>/ping` → 200 and the CF edge can reach it.
 - A `chm_` token is JWT-shaped (`chm_<payload>.<sig>`). Extract the **full**
   value including the `.`; a `chm_[A-Za-z0-9_]+` regex truncates it and the
   failure looks like "malformed token".
 - Give the Worker a few seconds to propagate after a deploy before probing
   (CI sleeps 5).
-- The chart smoke test (`scripts/smoke-test.ts`) is
+- The chart smoke test (repo-root `scripts/smoke-test.ts`) is
   `continue-on-error: true` in CI — informational, not a gate.
 - `Claude Issues` (red: missing Anthropic credentials) and `promptfoo` (red:
-  gateway `404 model_unavailable`) are known-informational on `main`. They are
-  not code defects and must not gate anything.
+  gateway `404 model_unavailable`) are known-informational on `main`
+  (`docs/herdr-desk/red-jobs.md`). They must not gate anything.

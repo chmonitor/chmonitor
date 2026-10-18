@@ -3,7 +3,7 @@ id: cloud-saas-mode
 title: Cloud (SaaS) mode — one codebase, two products
 type: spec
 status: active
-updated: 2026-10-16
+updated: 2026-10-18
 tags:
   - saas
   - cloud
@@ -191,7 +191,9 @@ The public ClickHouse Playground is *not* a drop-in — it denies `SELECT` on th
 no `auth_mode` in CLI config. Resolver:
 `apps/dashboard/src/lib/auth/cli-auth-discovery.ts` (route
 `routes/api/v1/auth/cli.ts`). Device-login enablement still comes from
-`CHM_DEVICE_LOGIN` + `CHM_API_KEY_SECRET` as in the matrix above. See
+`CHM_DEVICE_LOGIN` + `CHM_API_KEY_SECRET` as in the matrix above
+(resolver `lib/auth/device-login-config.ts`, codes stored in D1 or memory by
+`lib/auth/device-code-store.ts`). See
 [standalone-cli.md](standalone-cli.md).
 
 ## Files
@@ -204,7 +206,7 @@ no `auth_mode` in CLI config. Resolver:
 - `.github/workflows/cloudflare.yml` build step — `build:preview` (PRs) / `build:production` (main) set `CHM_BUILD_ENV`; values come from the `.env*` files, none hardcoded.
 - `lib/swr/use-merged-hosts.ts` — demo tagging, hide-when-signed-in; exposes `cloudMode` / `isSignedIn`.
 - `components/host/host-switcher.tsx` — Demo / read-only badges; `demo` behaves like `env` for live status (server-backed by index).
-- `components/host/first-run-empty-state.tsx` — welcome/setup (cloud signed-in / cloud anon / self-hosted). Signed-in cloud goes straight to connect (no Polar plan picker). `POST /api/v1/user-connections` does not require a Polar subscription. Paid path is landing `/pricing` → `hooks.chmonitor.dev/checkout/license`. The dashboard has no `/billing` page.
+- `components/host/first-run-empty-state.tsx` — welcome/setup (cloud signed-in / cloud anon / self-hosted). Gate `ClerkSignInButton` behind `isClerkEnabled()`. Signed-in cloud goes straight to connect (no Polar plan picker). `POST /api/v1/user-connections` does not require a Polar subscription. Paid path is landing `/pricing` → `hooks.chmonitor.dev/checkout/license`. The dashboard has no `/billing` page.
 - `routes/sign-in.tsx` + `routes/sign-up.tsx` + `components/clerk/auth-page.tsx` (#3092) — human HTML auth entry. Clerk-on: sidebar modal CTA. Clerk-off: "use the dashboard Sign in control". `/login` redirects to `/sign-in`. **Never** serve agent markdown here. `/auth.md` (in `start.ts`) stays the agent-facing document. `HUMAN_AUTH_PATHS` is excluded from page markdown negotiation; responses send `Cache-Control: private, no-store` and markdown responses send `Vary: Accept` so a crawler HIT cannot poison browsers.
 - `components/host/first-run-gate.tsx` + `first-run-decision.ts` — enforce the "signed-in ⇒ no demo data" invariant at the render boundary. The active host for data comes from `?host=` (`useHostId`), which is DECOUPLED from the visible host list; a stale `?host=0` (carried over from browsing the demo while anonymous) points at the now-hidden demo, and `resolve-host-fetch.ts` falls back to the server/demo host for an id not in the merged list — so a signed-in, zero-connection user could otherwise see demo data. The gate refuses to render the routed page (its charts fetch `?host` directly) until the active host resolves to one of the user's OWN visible hosts: while their connections load it shows a skeleton (never demo charts); with zero it routes to `/setup`; with some it re-points `?host` at a real host. Discriminator is deterministic — user connections use NEGATIVE ids (`DB_CONNECTION_HOST_ID_START = -1000`), env/demo use `0,1,2…`, so a non-negative `?host` for a signed-in user is always the demo. OSS + anonymous-cloud behaviour is unchanged. Invariant covered by `first-run-decision.test.ts`.
 - `components/host/demo-unavailable-banner.tsx` + `demo-unavailable.ts` (#3592) — when the ACTIVE host is `source:'demo'` and its `host-status` probe fails (demo origin restarting, tunnel 502/1033), `FirstRunGate` renders a "Demo temporarily unavailable" `Alert` with Retry above the page instead of leaving guests with unexplained empty cards. `isDemoUnavailable(source, error)` is the only gate: `env`/`browser`/`database` hosts never show it, so self-hosted is unchanged. Shares the host-status query key with the switcher (no extra request); `useHostStatus` now also returns `refetch`/`isFetching`. Tested in `demo-unavailable.test.tsx`.
@@ -337,7 +339,8 @@ self-host skips this entirely (fail-closed to self-hosted).
   MCP and host restrictions still apply. Signed-in users' tokens are stored
   AES-256-GCM encrypted in D1 `user_provider_tokens` (owner+provider bound
   into the GCM additional data; fail closed without key/D1). Key order:
-  request key → stored token → deployment key (`selectAgentApiKey`). An
+  request key → stored token → deployment key (`selectAgentApiKey` in
+  `lib/ai/agent/byok.ts`; tokens in `lib/ai/agent/user-token-store.ts`). An
   AnyRouter 401 on a user token returns `code: 'anyrouter_token_expired'`.
   `/api/v1/agents/anyrouter/login` is on the guest agent path list so
   anonymous Cloud visitors can start sign-in.
