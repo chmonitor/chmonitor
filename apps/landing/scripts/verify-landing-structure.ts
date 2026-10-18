@@ -253,10 +253,6 @@ try {
     console.error('STALE donate section in dist/license/index.html')
     failed = true
   } else {
-    // The sponsor tier amounts are asserted per-tier further down, from
-    // SPONSOR_TIERS, against both this page and /sponsors. They used to be
-    // hardcoded here too, which is how the two lists drifted: this one was
-    // still missing the $19 rung that OFFER_REQUIRED had picked up.
     console.log(
       'OK: dist/license/index.html has License cards + sponsor section'
     )
@@ -304,14 +300,8 @@ if (!heroSlot) {
 }
 
 // The tier expectations come from SPONSOR_TIERS and sponsorHref, never a
-// hand-written amount list. Two reasons the old `$NN` needles were not good
-// enough:
-//
-//   1. Two lists of them existed and drifted — this file carried one for
-//      /license and another for /sponsors, and the first missed the $19 rung.
-//   2. `"$199".includes("$19")` is true, so the bare `$19` needle was satisfied
-//      by the $199 chip. That assertion could never fail, which means the $19
-//      tier has never actually been verified by the build.
+// hand-written amount list: `"$199".includes("$19")` is true, so a bare `$19`
+// needle is satisfied by the $199 chip and can never fail.
 //
 // So each tier is pinned by its exact CTA id and by the checkout href
 // sponsorHref() builds for its amount. Both are quoted or delimited in the

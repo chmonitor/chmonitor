@@ -1,5 +1,3 @@
-// Site-wide constants shared across layouts and routes.
-
 export const appName = 'chmonitor'
 
 // Current documentation version. Surfaced as a badge in the nav and used by the

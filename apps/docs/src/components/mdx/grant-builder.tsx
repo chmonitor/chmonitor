@@ -5,10 +5,6 @@ import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useState } from 'react'
 import { copyToClipboard } from '@/lib/clipboard'
 
-/* ------------------------------------------------------------------ */
-/* Feature definitions                                                  */
-/* ------------------------------------------------------------------ */
-
 interface Feature {
   id: string
   name: string
@@ -44,10 +40,6 @@ const FEATURES: Feature[] = [
     requires: 'actions',
   },
 ]
-
-/* ------------------------------------------------------------------ */
-/* Code generators                                                      */
-/* ------------------------------------------------------------------ */
 
 function buildSQL(enabled: Set<string>): string {
   const lines: string[] = [
@@ -136,10 +128,6 @@ function buildXML(enabled: Set<string>): string {
   return lines.join('\n')
 }
 
-/* ------------------------------------------------------------------ */
-/* Minimal syntax colouring — no external deps                         */
-/* ------------------------------------------------------------------ */
-
 function colourSQL(raw: string): string {
   const SQL_KEYWORDS =
     /\b(CREATE|USER|IDENTIFIED|WITH|BY|HOST|ANY|GRANT|ON|TO|SELECT|TEMPORARY|TABLE|KILL|QUERY|OPTIMIZE)\b/g
@@ -167,7 +155,6 @@ function colourXML(raw: string): string {
         return `<span class="ch-comment">${escape(line)}</span>`
       }
       let out = escape(line)
-      // XML tags
       out = out.replace(
         /(&lt;\/?[\w_:.-]+(?:\s[^&gt;]*)?\/?&gt;)/g,
         '<span class="ch-tag">$1</span>'
@@ -184,10 +171,6 @@ function escape(s: string): string {
     .replace(/>/g, '&gt;')
     .replace(/'/g, '&#39;')
 }
-
-/* ------------------------------------------------------------------ */
-/* Component                                                            */
-/* ------------------------------------------------------------------ */
 
 export function GrantBuilder() {
   const [enabled, setEnabled] = useState<Set<string>>(new Set())
@@ -222,7 +205,6 @@ export function GrantBuilder() {
 
   return (
     <div className="my-6 overflow-hidden rounded-xl border border-fd-border bg-fd-card">
-      {/* ── Feature toggles ── */}
       <div className="border-b border-fd-border px-4 py-3">
         <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-fd-muted-foreground">
           Select features
@@ -243,7 +225,6 @@ export function GrantBuilder() {
                       : 'hover:bg-fd-muted/50',
                 ].join(' ')}
               >
-                {/* custom checkbox */}
                 <div className="relative mt-0.5 shrink-0">
                   <input
                     type="checkbox"
@@ -269,7 +250,6 @@ export function GrantBuilder() {
                   </div>
                 </div>
 
-                {/* label text */}
                 <div className="min-w-0">
                   <span className="block text-sm font-medium leading-snug text-fd-foreground">
                     {f.name}
@@ -289,7 +269,6 @@ export function GrantBuilder() {
         </div>
       </div>
 
-      {/* ── SQL / XML toggle + Copy ── */}
       <div className="flex items-center justify-between border-b border-fd-border bg-fd-muted/30 px-3 py-1.5">
         <div className="flex gap-0.5 rounded-md bg-fd-muted p-0.5">
           {(['sql', 'xml'] as const).map((m) => (
@@ -326,7 +305,6 @@ export function GrantBuilder() {
         </button>
       </div>
 
-      {/* ── Code output ── */}
       <style>{`
         .grant-code .ch-comment { color: var(--fd-muted-foreground); font-style: italic; }
         .grant-code .ch-kw      { color: var(--fd-primary); font-weight: 600; }
