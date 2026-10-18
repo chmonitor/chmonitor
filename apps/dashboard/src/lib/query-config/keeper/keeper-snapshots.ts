@@ -11,7 +11,7 @@ export const keeperSnapshotsConfig: QueryConfig = {
   name: 'keeper-snapshots',
   defaultView: 'table',
   description:
-    'Local Keeper snapshot files: path, creation time, and file size. Snapshots are periodic full images of the Keeper znode tree used for recovery and log compaction.',
+    'Local Keeper snapshot files: path, last log index, modification time, and size. Snapshots are periodic full images of the Keeper znode tree used for recovery and log compaction.',
   optional: true,
   tableCheck: 'system.keeper_snapshots',
   docs: 'https://clickhouse.com/docs/en/operations/system-tables/keeper_snapshots',
@@ -22,20 +22,27 @@ export const keeperSnapshotsConfig: QueryConfig = {
         ${QUERY_COMMENT}
         SELECT
             path,
-            created_at,
-            file_size,
-            formatReadableSize(file_size) AS readable_file_size,
-            round(file_size * 100.0 / nullIf(max(file_size) OVER (), 0), 2) AS pct_file_size
+            last_log_index,
+            last_modified_at,
+            size_bytes,
+            formatReadableSize(size_bytes) AS readable_size_bytes,
+            round(size_bytes * 100.0 / nullIf(max(size_bytes) OVER (), 0), 2) AS pct_size_bytes
         FROM system.keeper_snapshots
-        ORDER BY created_at DESC
+        ORDER BY last_modified_at DESC
         LIMIT 100
       `,
     },
   ],
-  columns: ['path', 'created_at', 'readable_file_size'],
+  columns: [
+    'path',
+    'last_log_index',
+    'last_modified_at',
+    'readable_size_bytes',
+  ],
   columnFormats: {
     path: ColumnFormat.Text,
-    created_at: ColumnFormat.RelatedTime,
-    readable_file_size: ColumnFormat.BackgroundBar,
+    last_log_index: ColumnFormat.Number,
+    last_modified_at: ColumnFormat.RelatedTime,
+    readable_size_bytes: ColumnFormat.BackgroundBar,
   },
 }
