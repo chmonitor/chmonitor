@@ -22,25 +22,57 @@ https://clickhouse.com/docs/en/operations/query-cache`,
   // system.query_cache only exists once the query cache is enabled (CH 23.5+).
   optional: true,
   tableCheck: 'system.query_cache',
-  sql: `
-      SELECT
-          query,
-          result_size,
-          formatReadableSize(result_size) AS readable_result_size,
-          round(100 * result_size / nullIf(max(result_size) OVER (), 0)) AS pct_result_size,
-          stale,
-          shared,
-          compressed,
-          if(stale, 'Yes', 'No') AS readable_stale,
-          if(shared, 'Yes', 'No') AS readable_shared,
-          if(compressed, 'Yes', 'No') AS readable_compressed,
-          expires_at,
-          (expires_at - now()) AS expires_in,
-          key_hash
-      FROM system.query_cache
-      ORDER BY expires_at DESC
-      LIMIT 1000
-    `,
+  // system.query_cache.compressed (and query_cache_compress_entries) arrive in
+  // 23.8; 23.3 never compresses entries, so false is the real value there.
+  sql: [
+    {
+      since: '23.3',
+      description:
+        'compressed stubbed: 23.3 has no column and no entry compression',
+      sql: `
+          SELECT
+              query,
+              result_size,
+              formatReadableSize(result_size) AS readable_result_size,
+              round(100 * result_size / nullIf(max(result_size) OVER (), 0)) AS pct_result_size,
+              stale,
+              shared,
+              false AS compressed,
+              if(stale, 'Yes', 'No') AS readable_stale,
+              if(shared, 'Yes', 'No') AS readable_shared,
+              if(compressed, 'Yes', 'No') AS readable_compressed,
+              expires_at,
+              (expires_at - now()) AS expires_in,
+              key_hash
+          FROM system.query_cache
+          ORDER BY expires_at DESC
+          LIMIT 1000
+        `,
+    },
+    {
+      since: '23.8',
+      description: 'Includes the compressed column',
+      sql: `
+          SELECT
+              query,
+              result_size,
+              formatReadableSize(result_size) AS readable_result_size,
+              round(100 * result_size / nullIf(max(result_size) OVER (), 0)) AS pct_result_size,
+              stale,
+              shared,
+              compressed,
+              if(stale, 'Yes', 'No') AS readable_stale,
+              if(shared, 'Yes', 'No') AS readable_shared,
+              if(compressed, 'Yes', 'No') AS readable_compressed,
+              expires_at,
+              (expires_at - now()) AS expires_in,
+              key_hash
+          FROM system.query_cache
+          ORDER BY expires_at DESC
+          LIMIT 1000
+        `,
+    },
+  ],
   columns: [
     'query',
     'readable_result_size',
