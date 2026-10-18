@@ -64,6 +64,10 @@ async function handlePost(request: Request): Promise<Response> {
   debug('[POST /api/dashboards/save] Saving dashboard', { requestId })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const ownerId = await resolveDashboardOwnerId()
+
     await autoMigrate()
 
     if (!isFeatureEnabled('conversationDb')) {
@@ -78,7 +82,6 @@ async function handlePost(request: Request): Promise<Response> {
       )
     }
 
-    const ownerId = await resolveDashboardOwnerId()
     debug('[POST /api/dashboards/save] Owner resolved', {
       ownerId,
       requestId,

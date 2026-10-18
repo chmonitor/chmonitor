@@ -32,6 +32,10 @@ async function handleGet(): Promise<Response> {
   debug('[GET /api/dashboards/list] Listing dashboards', { requestId })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const ownerId = await resolveDashboardOwnerId()
+
     await autoMigrate()
 
     if (!isFeatureEnabled('conversationDb')) {
@@ -46,7 +50,6 @@ async function handleGet(): Promise<Response> {
       )
     }
 
-    const ownerId = await resolveDashboardOwnerId()
     debug('[GET /api/dashboards/list] Owner resolved', { ownerId, requestId })
 
     const store = await resolveDashboardStore()

@@ -61,6 +61,10 @@ async function handleGet(id: string): Promise<Response> {
   })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const userId = await resolveUserId()
+
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
@@ -76,8 +80,6 @@ async function handleGet(id: string): Promise<Response> {
       )
     }
 
-    // Resolve authenticated user (or guest)
-    const userId = await resolveUserId()
     debug('[GET /api/v1/conversations/$id] User resolved', {
       userId,
       requestId,
@@ -188,6 +190,10 @@ async function handlePut(request: Request, id: string): Promise<Response> {
   })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const userId = await resolveUserId()
+
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
@@ -203,8 +209,6 @@ async function handlePut(request: Request, id: string): Promise<Response> {
       )
     }
 
-    // Resolve authenticated user (or guest)
-    const userId = await resolveUserId()
     debug('[PUT /api/v1/conversations/$id] User resolved', {
       userId,
       requestId,
@@ -379,6 +383,10 @@ async function handleDelete(id: string): Promise<Response> {
   })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const userId = await resolveUserId()
+
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
@@ -394,8 +402,6 @@ async function handleDelete(id: string): Promise<Response> {
       )
     }
 
-    // Resolve authenticated user (or guest)
-    const userId = await resolveUserId()
     debug('[DELETE /api/v1/conversations/$id] User resolved', {
       userId,
       requestId,

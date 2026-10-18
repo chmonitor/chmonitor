@@ -30,6 +30,10 @@ async function handleDelete(request: Request): Promise<Response> {
   debug('[DELETE /api/dashboards/delete] Deleting dashboard', { requestId })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const ownerId = await resolveDashboardOwnerId()
+
     await autoMigrate()
 
     if (!isFeatureEnabled('conversationDb')) {
@@ -44,7 +48,6 @@ async function handleDelete(request: Request): Promise<Response> {
       )
     }
 
-    const ownerId = await resolveDashboardOwnerId()
     debug('[DELETE /api/dashboards/delete] Owner resolved', {
       ownerId,
       requestId,

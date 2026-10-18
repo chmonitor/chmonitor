@@ -87,13 +87,15 @@ async function handlePost(request: Request): Promise<Response> {
   debug('[POST /api/dashboards/share] Enabling sharing', { requestId })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const ownerId = await resolveDashboardOwnerId()
+
     await autoMigrate()
 
     if (!isFeatureEnabled('conversationDb')) {
       return featureDisabledResponse(ROUTE_CONTEXT_POST)
     }
-
-    const ownerId = await resolveDashboardOwnerId()
 
     const body = (await request.json()) as { name?: unknown }
     if (typeof body.name !== 'string' || body.name.trim().length === 0) {
@@ -152,13 +154,15 @@ async function handleDelete(request: Request): Promise<Response> {
   debug('[DELETE /api/dashboards/share] Revoking sharing', { requestId })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const ownerId = await resolveDashboardOwnerId()
+
     await autoMigrate()
 
     if (!isFeatureEnabled('conversationDb')) {
       return featureDisabledResponse(ROUTE_CONTEXT_DELETE)
     }
-
-    const ownerId = await resolveDashboardOwnerId()
 
     const url = new URL(request.url)
     const name = url.searchParams.get('name')

@@ -42,6 +42,10 @@ async function handleGet(id: string): Promise<Response> {
   })
 
   try {
+    // Auth before the feature check: an anonymous caller is rejected,
+    // never shown a 501 that reveals how storage is configured (#4020).
+    const userId = await resolveUserId()
+
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
@@ -57,8 +61,6 @@ async function handleGet(id: string): Promise<Response> {
       )
     }
 
-    // Resolve authenticated user
-    const userId = await resolveUserId()
     debug('[GET /api/v1/conversations/$id/follow-ups] User resolved', {
       userId,
       requestId,
