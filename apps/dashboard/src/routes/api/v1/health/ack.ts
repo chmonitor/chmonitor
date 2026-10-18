@@ -11,8 +11,11 @@
  * it is purely a post-decision notification gate.
  *
  * ACK scope: self-hosted stores every ACK under the single-tenant owner
- * (`''`), the owner the health sweep reads. Cloud scopes ACKs to the signed-in
- * billing owner and answers 401 without one (see `resolveAckOwner`).
+ * (`''`), the owner the health sweep reads, so an ACK there suppresses
+ * notifications. Cloud stores ACKs under the signed-in billing owner and
+ * answers 401 without one (see `resolveAckOwner`). The sweep never reads those
+ * owners, so in cloud an ACK is display-only: it marks the finding in the
+ * panel and suppresses nothing.
  * `resolveBillingOwner()` also gives the `ackedBy` attribution, degrading to
  * `ackedBy='operator'` on a Clerk-less deployment. Writes (POST/DELETE) are gated behind the 'health' feature
  * permission so an anonymous caller on a Clerk-public-read cloud deployment
@@ -48,8 +51,9 @@ const SELF_HOSTED_ACK_OWNER_ID = ''
 
 /**
  * The owner an ACK is stored and read under. Self-hosted: the single-tenant
- * `''`. Cloud: the signed-in billing owner (org or user), so tenants never see
- * or suppress each other's ACKs; with no signed-in owner the caller gets 401.
+ * `''`, which the sweep reads. Cloud: the signed-in billing owner (org or
+ * user), so tenants never see each other's ACKs; with no signed-in owner the
+ * caller gets 401. Cloud ACKs are display-only because the sweep reads `''`.
  */
 async function resolveAckOwner(
   method: 'GET' | 'POST' | 'DELETE'
