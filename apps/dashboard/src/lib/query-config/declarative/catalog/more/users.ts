@@ -21,7 +21,7 @@ export const usersDeclarative: DeclarativeQueryConfig = {
   description: 'Users account',
   tableCheck: 'system.users',
   sql: `
-      SELECT *,
+      SELECT *
       FROM system.users
       ORDER BY name
     `,

@@ -22,7 +22,7 @@ export const usersConfig: QueryConfig = {
   description: 'Users account',
   tableCheck: 'system.users',
   sql: `
-      SELECT *,
+      SELECT *
       FROM system.users
       ORDER BY name
     `,
