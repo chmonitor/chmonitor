@@ -47,11 +47,50 @@ export function extractHttpStatusCode(
   return undefined
 }
 
+/** ClickHouse error types that map to a specific category. */
+const CLICKHOUSE_ERROR_TYPES: Readonly<Record<string, FetchDataErrorType>> = {
+  UNKNOWN_TABLE: 'table_not_found',
+  UNKNOWN_DATABASE: 'table_not_found',
+  ACCESS_DENIED: 'permission_error',
+  AUTHENTICATION_FAILED: 'permission_error',
+  TIMEOUT_EXCEEDED: 'timeout_error',
+  SOCKET_TIMEOUT: 'timeout_error',
+  NETWORK_ERROR: 'network_error',
+  ALL_CONNECTION_TRIES_FAILED: 'network_error',
+}
+
+// Same shape as the client's own parser: the greedy `.*Exception: ` lands on
+// the innermost exception of a cluster-wrapped error.
+const RAW_CLICKHOUSE_ERROR =
+  /(?:Code|Error): \d+[\s\S]*Exception: [\s\S]+?\(([A-Z0-9_]*[A-Z]{3}[A-Z0-9_]*)\)/
+
 /**
- * Categorize an error message into a `FetchDataErrorType`. Order matters — the
- * first matching category wins, mirroring the original if/else chain.
+ * The ClickHouse error type (e.g. `ACCESS_DENIED`) of a thrown error, read from
+ * the client's `ClickHouseError.type` or, for unparsed text, from the raw
+ * `Code: N. DB::Exception: ... (TYPE)` message.
  */
-export function classifyFetchError(errorMessage: string): FetchDataErrorType {
+export function clickHouseErrorType(err: unknown): string | undefined {
+  if (err instanceof Error && 'type' in err && typeof err.type === 'string') {
+    return err.type
+  }
+  const message = err instanceof Error ? err.message : String(err)
+  return message.match(RAW_CLICKHOUSE_ERROR)?.[1]
+}
+
+/**
+ * Categorize an error into a `FetchDataErrorType`. A ClickHouse server error
+ * is classified by its error type alone: its message text names user
+ * identifiers (`access_type`, `system.certificates`) that the substring
+ * heuristics below would misread. Other errors (network, proxy, TLS) fall
+ * back to those heuristics, where the first matching category wins.
+ */
+export function classifyFetchError(
+  errorMessage: string,
+  clickHouseType?: string
+): FetchDataErrorType {
+  if (clickHouseType) {
+    return CLICKHOUSE_ERROR_TYPES[clickHouseType] ?? 'query_error'
+  }
   // SSL/TLS errors (Cloudflare 525/526 as standalone status codes, not
   // digits embedded in larger numbers like "525.00 MiB" or "15251")
   if (
@@ -127,7 +166,10 @@ export function handleFetchError({
       : String(originalError)
 
   // Categorize error types based on error message patterns
-  const errorType = classifyFetchError(errorMessage)
+  const errorType = classifyFetchError(
+    errorMessage,
+    clickHouseErrorType(originalError)
+  )
 
   // Extract HTTP status code from fetch errors
   const httpStatusCode = extractHttpStatusCode(errorMessage)
