@@ -42,6 +42,50 @@ references. Then `EXPLAIN PLAN` each config's applicable SQL on both binaries.
 A failure on the new binary only is a regression and needs a `since:` variant.
 A failure on both is a config bug. File one issue for each.
 
+## Run the query audit
+
+`scripts/audit-query-configs.ts` runs the `EXPLAIN PLAN` step across many
+versions in one command. It covers every registered `QueryConfig` and every
+chart builder in `chart-registry.ts`.
+
+```sh
+# one official clickhouse-common-static binary per version you want covered
+bun scripts/audit-query-configs.ts \
+  --bin chbins/23.3/clickhouse --bin chbins/25.8/clickhouse --bin chbins/26.9/clickhouse \
+  --json audit.json          # optional: full error text per cell
+# --only <substring> narrows to matching ids, --all prints passing rows too
+```
+
+For each binary it starts a throwaway `clickhouse server` (one at a time,
+ports from 19100) with every system log and an embedded Keeper enabled. It
+runs `SYSTEM FLUSH LOGS` so the `*_log` tables exist, and stops the server when
+done. It does not use `clickhouse local`, because local never creates log
+tables. Each query gets the variant that `selectVersionedSql` picks for the
+server's `version()`. The query is sent with its `defaultParams` and
+`clickhouseSettings`. The script prints a status × version count table, every
+row that is not `ok` on some version, and the first line of each error. It
+exits 1 when any cell is `defect` or `other`. One binary takes about 8 seconds.
+
+| Cell | Meaning |
+|---|---|
+| `ok` | plans |
+| `defect` | wrong SQL for that version: unknown column or function, a type error, syntax |
+| `gated` | optional query whose table or `columnCheck` column is missing. The app hides it, so it is not checked |
+| `absent` | non-optional query whose table is missing. The page errors on that version, unless the table needs setup a bare server lacks |
+| `harness` | error caused by a placeholder value the script made up, such as an empty host |
+| `other` | anything else. Read it |
+
+Limits: kafka, rabbitmq, and replicated or distributed tables have no rows on
+a bare server. A log table that never got an entry (`latency_log`,
+`crash_log`) may not be created. Those configs show as `gated` or `absent`,
+not `ok`. `opentelemetry_span_log` gets an explicit `partition_by`, because on
+23.x its default key names a missing column and `SYSTEM FLUSH LOGS` hangs.
+The script sends each query with its config's settings, but not with the
+settings the app adds itself (`session_timezone`, the query-cache knobs,
+`max_execution_time`, the row cap). `EXPLAIN PLAN` catches unknown columns and
+type errors. It does not catch errors that only show at run time, such as a
+bad cast on real data.
+
 ## Traps
 
 - **The schema generator writes into the repo by default** (`--output` defaults
