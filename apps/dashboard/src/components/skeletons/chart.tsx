@@ -23,7 +23,6 @@ interface ChartSkeletonProps {
 /** Area/Line chart skeleton using a beautifully simulated SVG wave */
 const AreaChartSkeleton = () => (
   <div className="relative w-full h-full min-h-[140px] flex flex-col justify-between pt-4">
-    {/* Grid lines */}
     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40 py-2">
       <div className="border-b border-dashed border-border w-full" />
       <div className="border-b border-dashed border-border w-full" />
@@ -31,7 +30,6 @@ const AreaChartSkeleton = () => (
       <div className="w-full" />
     </div>
 
-    {/* Simulated wave SVG with gradient sweep */}
     <div className="relative w-full h-[90px] mt-auto">
       <svg
         className="w-full h-full text-muted-foreground/15 dark:text-muted-foreground/10"
@@ -52,7 +50,6 @@ const AreaChartSkeleton = () => (
           d="M0,100 L0,68 Q50,22 100,52 Q150,80 200,44 Q250,22 300,58 Q350,82 400,48 L400,100 Z"
           fill="url(#area-skeleton-grad)"
         />
-        {/* Wavy line stroke */}
         <path
           d="M0,68 Q50,22 100,52 Q150,80 200,44 Q250,22 300,58 Q350,82 400,48"
           fill="none"
@@ -63,7 +60,6 @@ const AreaChartSkeleton = () => (
       </svg>
     </div>
 
-    {/* Bottom X-axis labels mock */}
     <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1 pt-1 border-t border-border/30">
       <Skeleton className="h-2 w-8" />
       <Skeleton className="h-2 w-8" />
@@ -76,7 +72,6 @@ const AreaChartSkeleton = () => (
 /** Line chart skeleton without filled area */
 const LineChartSkeleton = () => (
   <div className="relative w-full h-full min-h-[140px] flex flex-col justify-between pt-4">
-    {/* Grid lines */}
     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40 py-2">
       <div className="border-b border-dashed border-border w-full" />
       <div className="border-b border-dashed border-border w-full" />
@@ -84,7 +79,6 @@ const LineChartSkeleton = () => (
       <div className="w-full" />
     </div>
 
-    {/* Simulated wave SVG with gradient sweep */}
     <div className="relative w-full h-[90px] mt-auto">
       <svg
         className="w-full h-full text-muted-foreground/25 dark:text-muted-foreground/15"
@@ -101,7 +95,6 @@ const LineChartSkeleton = () => (
       </svg>
     </div>
 
-    {/* Bottom X-axis labels mock */}
     <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1 pt-1 border-t border-border/30">
       <Skeleton className="h-2 w-8" />
       <Skeleton className="h-2 w-8" />
@@ -114,7 +107,6 @@ const LineChartSkeleton = () => (
 /** Bar chart skeleton with mathematical heights (static, no animation) */
 const BarChartSkeleton = () => (
   <div className="w-full h-full min-h-[140px] flex flex-col justify-between pt-4">
-    {/* Simulated Bars */}
     <div className="flex h-[90px] items-end justify-between gap-3 px-1 mt-auto">
       {[50, 75, 45, 90, 60, 70, 35, 85].map((height, i) => (
         <div
@@ -131,7 +123,6 @@ const BarChartSkeleton = () => (
       ))}
     </div>
 
-    {/* Bottom X-axis labels mock */}
     <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1.5 pt-1 border-t border-border/30">
       <Skeleton className="h-2 w-6" />
       <Skeleton className="h-2 w-6" />
@@ -153,7 +144,6 @@ const MetricCardSkeleton = () => (
       <Skeleton className="h-3.5 w-1/2 opacity-70" />
     </div>
 
-    {/* Trend Sparkline line */}
     <div className="w-[30%] h-12 self-end pb-1 opacity-25 dark:opacity-15 text-muted-foreground">
       <svg
         className="h-full w-full"
@@ -181,14 +171,12 @@ const StatSkeleton = () => (
 /** Tabular skeleton mirroring actual tables */
 const TableSkeletonMini = () => (
   <div className="w-full h-full min-h-[140px] flex flex-col pt-1">
-    {/* Simulated Table Header */}
     <div className="flex items-center gap-4 border-b border-border/60 pb-2 mb-2 px-1">
       <Skeleton className="h-3 w-1/3 opacity-80" />
       <Skeleton className="h-3 w-1/4 opacity-60" />
       <Skeleton className="h-3 w-1/5 opacity-40 ml-auto" />
     </div>
 
-    {/* Table rows (static, no animation) */}
     <div className="space-y-3 p-1 flex-1">
       {[1, 2, 3].map((row) => (
         <div key={row} className="flex items-center gap-4">

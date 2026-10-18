@@ -43,7 +43,6 @@ export function InsightsSettingsForm({ className }: { className?: string }) {
         {/* Templates — pick a vibe in one click */}
         <TemplatesSection activeTemplate={activeTemplate} update={update} />
 
-        {/* Enhance with AI */}
         <EnhanceSection
           settings={settings}
           update={update}
@@ -51,10 +50,8 @@ export function InsightsSettingsForm({ className }: { className?: string }) {
           docsProviderUrl={docsProviderUrl}
         />
 
-        {/* Prompt style — segmented icon control */}
         <PromptStyleSection settings={settings} update={update} off={off} />
 
-        {/* Model + Window — 2-col grid */}
         <ModelWindowSection
           settings={settings}
           update={update}

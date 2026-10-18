@@ -83,7 +83,6 @@ export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
 
       <PopoverContent align="end" className="w-80 p-4">
         <div className="space-y-3">
-          {/* Header */}
           <div className="flex items-start gap-3">
             <div className="rounded-full bg-destructive/10 p-2">
               <AlertTriangle className="size-5 text-destructive" />
@@ -97,7 +96,6 @@ export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
             </div>
           </div>
 
-          {/* Description */}
           <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
             <p>
               Readonly tables cannot accept writes. This typically indicates:
@@ -109,7 +107,6 @@ export const ReadonlyTablesWarning = function ReadonlyTablesWarning({
             </ul>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center justify-between pt-2 border-t">
             <Button
               variant="ghost"

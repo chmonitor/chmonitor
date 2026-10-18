@@ -38,7 +38,6 @@ export function StatsInsightsSettingsForm({
   return (
     <Card className={cn(className)}>
       <CardContent className="space-y-5 pt-6">
-        {/* Moving average + band */}
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
@@ -99,7 +98,6 @@ export function StatsInsightsSettingsForm({
           </div>
         </div>
 
-        {/* Absolute threshold */}
         <div className="space-y-3 border-t pt-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">

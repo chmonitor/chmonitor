@@ -29,7 +29,6 @@ function ClustersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Section 1: Cluster Topology visualization */}
       <Suspense fallback={<TopologySkeleton />}>
         <TopologyView hostId={hostId} />
       </Suspense>

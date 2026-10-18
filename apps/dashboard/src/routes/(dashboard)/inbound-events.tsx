@@ -117,7 +117,6 @@ function InboundEventsPage() {
 
       <InboundEventsSetupDialog open={setupOpen} onOpenChange={setSetupOpen} />
 
-      {/* Filter bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
         <Select
           value={source}
@@ -159,7 +158,6 @@ function InboundEventsPage() {
         </Select>
       </div>
 
-      {/* Table */}
       <Card>
         <CardContent className="p-0">
           {isLoading ? (

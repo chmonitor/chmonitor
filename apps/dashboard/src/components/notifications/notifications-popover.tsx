@@ -266,7 +266,6 @@ const NotificationItem = function NotificationItem({
       className="block rounded-md hover:bg-muted/50 focus-visible:bg-muted/50 transition-colors group relative"
     >
       <div className="flex items-start gap-3 px-3 py-2.5">
-        {/* Icon */}
         <div
           className={cn(
             'rounded-md p-1.5 shrink-0 mt-0.5',
@@ -276,7 +275,6 @@ const NotificationItem = function NotificationItem({
           <AlertTriangle className={cn('size-4', severityColor)} />
         </div>
 
-        {/* Content - 2-line layout */}
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-medium truncate">{title}</p>
@@ -295,7 +293,6 @@ const NotificationItem = function NotificationItem({
           </div>
         </div>
 
-        {/* External link icon */}
         {/* External link icon — a decorative affordance hint. The row's own
             `aria-label` supplies the accessible name, so the icon has to stay
             out of it.

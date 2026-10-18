@@ -118,7 +118,6 @@ export function ExpandedRow({ d }: { d: DerivedQuery }) {
         </CodeBlock>
       </div>
 
-      {/* Actions */}
       <div className="flex flex-wrap items-center gap-2">
         <DialogSQL
           sql={d.query}

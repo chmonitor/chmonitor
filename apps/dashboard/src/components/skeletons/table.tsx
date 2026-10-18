@@ -37,13 +37,11 @@ export const TableSkeleton = function TableSkeleton({
 
       {/* Table body - matches DataTable border container */}
       <div className="mb-5 flex-1 overflow-hidden rounded-md border">
-        {/* Table header row */}
         <div className="flex items-center gap-4 border-b bg-muted/30 px-4 py-3">
           {Array.from({ length: cols }).map((_, j) => (
             <Skeleton key={`header-${j}`} className="h-4 flex-1" />
           ))}
         </div>
-        {/* Table rows */}
         <div className="flex flex-col">
           {Array.from({ length: rows }).map((_, i) => (
             <div
@@ -58,7 +56,6 @@ export const TableSkeleton = function TableSkeleton({
         </div>
       </div>
 
-      {/* Pagination footer */}
       <span className="sr-only">Loading table data…</span>
     </div>
   )

@@ -144,19 +144,15 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-2.5 py-2.5 sm:px-3">
-        {/* Search */}
         <TableSearchInput
           value={search}
           onChange={setSearch}
           placeholder="Search query…"
         />
 
-        {/* Severity (heat) segment */}
         <SeverityFilterBar value={severity} onChange={setSeverity} />
 
-        {/* More filters */}
         <Popover>
           <PopoverTrigger render={<ToolbarButton active={moreFiltersActive} />}>
             <ListFilter className="size-3.5" />
@@ -232,17 +228,14 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
           </span>
           <div className="h-5 w-px bg-border" />
 
-          {/* Table / cards view */}
           <ViewToggle active={view} onChange={setView} />
 
-          {/* Column visibility */}
           <ColumnVisibilityMenu
             columns={OPTIONAL_COLUMNS}
             hiddenColumns={hiddenColumns}
             onToggle={toggleColumn}
           />
 
-          {/* Export */}
           <ToolbarButton
             onClick={() => downloadExpensiveCsv(visible)}
             disabled={visible.length === 0}
@@ -373,7 +366,6 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
         </div>
       )}
 
-      {/* Footer */}
       <div className="border-t border-border px-3 py-2 text-[11.5px] text-muted-foreground">
         Showing{' '}
         <span className="font-medium tabular-nums text-foreground">

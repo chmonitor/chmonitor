@@ -19,14 +19,12 @@ export function AnthropicIcon({ className, size = 16 }: AnthropicIconProps) {
       aria-hidden="true"
       className={className}
     >
-      {/* Outer triangle — Anthropic "A" silhouette */}
       <path
         d="M8 2L14 14H2L8 2Z"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
-      {/* Cross-bar */}
       <line
         x1="5.5"
         y1="10"

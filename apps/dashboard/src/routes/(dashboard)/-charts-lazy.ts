@@ -123,7 +123,6 @@ export const ChartSlowQueryOccurrences = lazy(() =>
     default: mod.ChartSlowQueryOccurrences,
   }))
 )
-// Query performance charts
 export const ChartInsertPerformance = lazy(() =>
   import('@/components/charts/query-performance/insert-performance').then(
     (mod) => ({ default: mod.ChartInsertPerformance })

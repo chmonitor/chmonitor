@@ -77,7 +77,6 @@ export function QueryDetailHeader({
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        {/* Left: id + badges */}
         <div className="flex flex-wrap items-center gap-2">
           <code className="font-mono text-[13px] font-semibold text-foreground/90">
             {queryId}
@@ -110,7 +109,6 @@ export function QueryDetailHeader({
           )}
         </div>
 
-        {/* Right: actions */}
         {queryText && (
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -144,7 +142,6 @@ export function QueryDetailHeader({
         )}
       </div>
 
-      {/* Meta grid */}
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {user && <MetaField label="User" value={user} icon={UserIcon} />}
         {eventTime && (
@@ -180,7 +177,6 @@ export function QueryDetailHeader({
         )}
       </dl>
 
-      {/* Exception text */}
       {hasException && row.exception_text && (
         <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 dark:border-rose-900/40 dark:bg-rose-950/20">
           <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">

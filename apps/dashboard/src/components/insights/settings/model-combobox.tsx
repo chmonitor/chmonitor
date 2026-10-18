@@ -131,7 +131,6 @@ export function ModelCombobox({
           <CommandList className="max-h-64">
             <CommandEmpty>No models found.</CommandEmpty>
 
-            {/* Default option */}
             {defaultMatches && (
               <CommandGroup>
                 <CommandItem

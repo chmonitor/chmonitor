@@ -105,7 +105,6 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi
           label="Total events"
@@ -136,7 +135,6 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
         />
       </div>
 
-      {/* Charts row A */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <ChartCard className="lg:col-span-2">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -231,7 +229,6 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
         </ChartCard>
       </div>
 
-      {/* Charts row B */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <ChartCard className="lg:col-span-2">
           <div className="mb-3 flex items-center justify-between gap-2">

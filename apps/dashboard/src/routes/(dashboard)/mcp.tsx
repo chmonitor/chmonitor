@@ -44,7 +44,6 @@ function EndpointStat({
 function McpPage() {
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
-      {/* Header */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-xl font-semibold">MCP Server</h1>
@@ -81,7 +80,6 @@ function McpPage() {
         </div>
       </div>
 
-      {/* Endpoint URL — always visible */}
       <Card>
         <CardContent className="pt-4 pb-4">
           <div className="space-y-1.5">
@@ -93,7 +91,6 @@ function McpPage() {
         </CardContent>
       </Card>
 
-      {/* Main tabbed content */}
       <Tabs defaultValue="setup">
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="setup" className="text-xs flex-1 sm:flex-none">

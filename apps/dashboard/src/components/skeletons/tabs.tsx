@@ -24,7 +24,6 @@ export function TabsSkeleton({
 }: TabsSkeletonProps) {
   return (
     <div className={cn('space-y-2', className)}>
-      {/* Tabs list skeleton */}
       {variant === 'underline' ? (
         <div className="scrollbar-hide min-w-0 w-full overflow-x-auto py-0.5">
           <div className="inline-flex h-auto w-max min-w-full flex-nowrap items-center justify-start gap-1 border-b border-border bg-transparent p-0">
@@ -45,7 +44,6 @@ export function TabsSkeleton({
           </div>
         </div>
       )}
-      {/* Tab content skeleton */}
       <div className="space-y-2">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (

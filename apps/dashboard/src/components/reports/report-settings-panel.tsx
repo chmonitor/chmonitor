@@ -234,7 +234,6 @@ export function ReportSettingsPanel() {
 
   return (
     <div className="space-y-8">
-      {/* Schedule */}
       <section className="space-y-3">
         <div>
           <h3 className="text-sm font-medium">Schedule</h3>
@@ -286,7 +285,6 @@ export function ReportSettingsPanel() {
         </div>
       </section>
 
-      {/* Hosts */}
       {cadence !== 'off' && hosts.length > 0 ? (
         <section className="space-y-3">
           <div>
@@ -324,7 +322,6 @@ export function ReportSettingsPanel() {
         ) : null}
       </div>
 
-      {/* Try it now */}
       <section className="space-y-3 border-t pt-6">
         <div>
           <h3 className="text-sm font-medium">Try it now</h3>

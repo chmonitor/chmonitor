@@ -142,7 +142,6 @@ export function BulkExplainDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4 overflow-hidden px-5 py-4">
-          {/* N selector + run button */}
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-muted-foreground">Analyze top</span>
             <div className="flex items-center gap-1">
@@ -179,14 +178,12 @@ export function BulkExplainDialog({
             </Button>
           </div>
 
-          {/* Progress */}
           {running && progress !== null && (
             <p className="text-[12px] text-muted-foreground">
               Analyzing {progress} of {selected.length}…
             </p>
           )}
 
-          {/* Results */}
           {results.length > 0 && (
             <ScrollArea className="max-h-[55vh] rounded-md border">
               <div className="divide-y">
@@ -255,7 +252,6 @@ export function BulkExplainDialog({
             </ScrollArea>
           )}
 
-          {/* Footer actions */}
           {results.length > 0 && !running && (
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11.5px] text-muted-foreground">

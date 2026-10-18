@@ -221,7 +221,6 @@ export function SlowQueriesView() {
           }
         />
 
-        {/* Filter bar */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border bg-card px-3 py-2.5">
           {PRESET_GROUPS.map((group) => (
             <FilterGroup
@@ -235,7 +234,6 @@ export function SlowQueriesView() {
           ))}
         </div>
 
-        {/* Body */}
         {isLoading && !data ? (
           <QueryPageSkeleton />
         ) : error && !data ? (

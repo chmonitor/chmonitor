@@ -95,10 +95,8 @@ export function FullErrorAlert({
             <ErrorAlertAccordion title="View Query Details" content={query} />
           )}
 
-          {/* Show documentation */}
           {Boolean(docs) && <ErrorAlertDocs docs={docs} />}
 
-          {/* Show error digest for tracking */}
           {digest && <ErrorAlertDigest digest={digest} />}
 
           {reset && (

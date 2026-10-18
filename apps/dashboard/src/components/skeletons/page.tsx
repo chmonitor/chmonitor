@@ -22,14 +22,12 @@ export const PageSkeleton = function PageSkeleton({
       aria-busy="true"
       aria-label="Loading page content"
     >
-      {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {Array.from({ length: chartCount }).map((_, i) => (
           <ChartSkeleton key={`chart-${i}`} />
         ))}
       </div>
 
-      {/* Table */}
       <TableSkeleton rows={tableRows} />
     </div>
   )
@@ -105,11 +103,8 @@ export const AgentsPageSkeleton = function AgentsPageSkeleton({
       aria-busy="true"
       aria-label="Loading agent"
     >
-      {/* Main column */}
       <div className="relative flex min-w-0 flex-1 flex-col">
-        {/* Top-left "Conversations" button placeholder */}
         <Skeleton className="absolute top-3 left-3 h-8 w-32 rounded-md" />
-        {/* Centered welcome area */}
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
           <Skeleton className="h-6 w-64" />
           <Skeleton className="h-4 w-80" />

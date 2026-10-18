@@ -23,7 +23,6 @@ export function AgentGreetingIllustration({
       role="img"
       aria-label="AI agent ready to chat"
     >
-      {/* Orbit ring */}
       <circle
         cx="48"
         cy="48"
@@ -34,7 +33,6 @@ export function AgentGreetingIllustration({
         fill="none"
       />
 
-      {/* Chat tile */}
       <rect
         x="30"
         y="32"
@@ -51,13 +49,11 @@ export function AgentGreetingIllustration({
         strokeLinejoin="round"
       />
 
-      {/* Primary sparkle */}
       <path
         d="M48 38 C49 43 50 44 55 45 C50 46 49 47 48 52 C47 47 46 46 41 45 C46 44 47 43 48 38 Z"
         className="fill-orange-500 motion-safe:animate-pulse motion-reduce:animate-none"
       />
 
-      {/* Satellite stars on the orbit */}
       <circle cx="78" cy="48" r="2.5" className="fill-chart-2" />
       <circle cx="18" cy="48" r="2" className="fill-chart-4" />
       <circle

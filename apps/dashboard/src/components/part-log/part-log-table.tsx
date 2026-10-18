@@ -135,7 +135,6 @@ export function PartLogTable({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* search + quick filters */}
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex flex-wrap items-center gap-2 border-b border-border px-2.5 py-2.5 sm:px-3">
           <div className="relative flex min-w-[200px] flex-1 items-center">
@@ -182,7 +181,6 @@ export function PartLogTable({
         </div>
       </div>
 
-      {/* table */}
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[12px]">
           <span className="font-semibold">Events</span>

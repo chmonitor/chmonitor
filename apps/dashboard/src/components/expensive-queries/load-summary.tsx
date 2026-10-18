@@ -146,7 +146,6 @@ export function LoadSummary({ rows }: LoadSummaryProps) {
             })}
           </div>
 
-          {/* Legend with per-bucket share */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
             {order.map((sev) => (
               <div key={sev} className="flex items-center gap-1.5">
