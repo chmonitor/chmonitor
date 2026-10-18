@@ -9,9 +9,10 @@ import { KNOWN_COLUMN_CHANGES, TARGET_TABLES } from './constants'
 export function parseChangelog(content: string): ChangelogEntry[] {
   const entries: ChangelogEntry[] = []
 
-  // Format: ## ClickHouse release v24.1.1.xxx, 2024-01-xx
+  // Old: ## ClickHouse release v24.1.1.xxx, 2024-01-xx
+  // Current: ### <a id="268"></a> ClickHouse release 26.8 LTS, 2026-08-27.
   const versionPattern =
-    /^## ClickHouse release v(\d+\.\d+)(?:\.\d+)?(?:\.\d+)?,?\s*(\d{4}-\d{2}-\d{2})?/gm
+    /^#{2,3} (?:<a id="[^"]*"><\/a> )?ClickHouse release v?(\d+\.\d+)(?:\.\d+)*(?: LTS)?,?\s*(\d{4}-\d{2}-\d{2})?/gm
 
   const sections = content.split(versionPattern)
 
