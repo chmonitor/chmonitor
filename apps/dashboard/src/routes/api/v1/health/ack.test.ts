@@ -13,8 +13,12 @@ mock.module('@/lib/feature-permissions/server', () => ({
   authorizeFeatureRequest: async () => null,
 }))
 
+let billingOwnerId: string | null = 'operator'
 mock.module('@/lib/billing/billing-owner', () => ({
-  resolveBillingOwner: async () => ({ id: 'operator' }),
+  resolveBillingOwner: async () => {
+    if (billingOwnerId === null) throw new Error('UNAUTHORIZED')
+    return { id: billingOwnerId }
+  },
 }))
 
 let backend: 'd1' | 'postgres' | null = null
@@ -25,6 +29,7 @@ mock.module('@/lib/health/resolve-store', () => ({
 
 const ackCalls: unknown[] = []
 const clearCalls: unknown[] = []
+const listCalls: string[] = []
 mock.module('@/lib/health/alert-ack-store', () => ({
   isAckDurationKey: (v: unknown) =>
     v === '5m' || v === '15m' || v === '60m' || v === '240m',
@@ -35,7 +40,10 @@ mock.module('@/lib/health/alert-ack-store', () => ({
   clearAck: async (...args: unknown[]) => {
     clearCalls.push(args)
   },
-  listActiveAcks: async () => [],
+  listActiveAcks: async (ownerId: string) => {
+    listCalls.push(ownerId)
+    return []
+  },
 }))
 
 const {
@@ -59,8 +67,12 @@ const deleteRequest = () =>
 
 beforeEach(() => {
   backend = null
+  billingOwnerId = 'operator'
   ackCalls.length = 0
   clearCalls.length = 0
+  listCalls.length = 0
+  delete process.env.CHM_CLOUD_MODE
+  delete process.env.CHM_DEPLOYMENT_MODE
 })
 
 describe('POST/DELETE /api/v1/health/ack with no backend (#3498)', () => {
@@ -102,5 +114,50 @@ describe('POST/DELETE /api/v1/health/ack with a backend', () => {
     const res = await handleDelete(deleteRequest())
     expect(res.status).toBe(200)
     expect(clearCalls).toHaveLength(1)
+  })
+})
+
+describe('ACK owner scope (#3897)', () => {
+  test('self-hosted reads and writes the single-tenant owner', async () => {
+    backend = 'd1'
+    await handleGet()
+    await handlePost(postRequest({ hostId: 0, ruleId: 'disk', duration: '5m' }))
+    await handleDelete(deleteRequest())
+    expect(listCalls).toEqual([''])
+    expect((ackCalls[0] as { ownerId: string }).ownerId).toBe('')
+    expect(clearCalls).toEqual([['', 0, 'disk']])
+  })
+
+  test('cloud: anonymous GET is a 401 and reads nothing', async () => {
+    process.env.CHM_CLOUD_MODE = 'true'
+    billingOwnerId = null
+    const res = await handleGet()
+    expect(res.status).toBe(401)
+    expect(listCalls).toHaveLength(0)
+  })
+
+  test('cloud: anonymous POST and DELETE are 401 and write nothing', async () => {
+    process.env.CHM_CLOUD_MODE = 'true'
+    backend = 'd1'
+    billingOwnerId = null
+    const post = await handlePost(
+      postRequest({ hostId: 0, ruleId: 'disk', duration: '5m' })
+    )
+    const del = await handleDelete(deleteRequest())
+    expect([post.status, del.status]).toEqual([401, 401])
+    expect(ackCalls).toHaveLength(0)
+    expect(clearCalls).toHaveLength(0)
+  })
+
+  test('cloud: a signed-in tenant reads and writes only its own owner', async () => {
+    process.env.CHM_CLOUD_MODE = 'true'
+    backend = 'd1'
+    billingOwnerId = 'org_a'
+    await handleGet()
+    await handlePost(postRequest({ hostId: 0, ruleId: 'disk', duration: '5m' }))
+    await handleDelete(deleteRequest())
+    expect(listCalls).toEqual(['org_a'])
+    expect((ackCalls[0] as { ownerId: string }).ownerId).toBe('org_a')
+    expect(clearCalls).toEqual([['org_a', 0, 'disk']])
   })
 })

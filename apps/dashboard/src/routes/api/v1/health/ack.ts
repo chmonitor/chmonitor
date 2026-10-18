@@ -10,17 +10,16 @@
  * underlying dedup state (`alert-state-store.ts`) or run any cluster action;
  * it is purely a post-decision notification gate.
  *
- * ACK scope: every ACK is stored under the single OSS-tenant owner id (`''`)
- * — see `ACK_OWNER_ID` below for why (the sweep is an operator-level cron
- * with no per-request user context, so it can only ever read `''`; scoping
- * ACKs to a resolved billing owner would make the panel show "acked" while
- * the sweep keeps dispatching). `resolveBillingOwner()` is only used for the
- * `ackedBy` attribution, wrapped in try/catch so a Clerk-less/self-hosted
- * deployment degrades to `ackedBy='operator'` rather than failing the
- * request. Writes (POST/DELETE) are gated behind the 'health' feature
+ * ACK scope: self-hosted stores every ACK under the single-tenant owner
+ * (`''`), the owner the health sweep reads, so an ACK there suppresses
+ * notifications. Cloud stores ACKs under the signed-in billing owner and
+ * answers 401 without one (see `resolveAckOwner`). The sweep never reads those
+ * owners, so in cloud an ACK is display-only: it marks the finding in the
+ * panel and suppresses nothing.
+ * `resolveBillingOwner()` also gives the `ackedBy` attribution, degrading to
+ * `ackedBy='operator'` on a Clerk-less deployment. Writes (POST/DELETE) are gated behind the 'health' feature
  * permission so an anonymous caller on a Clerk-public-read cloud deployment
- * cannot mutate ACK state; GET is left to the centralized /api/v1 middleware
- * like the sibling history/snapshot routes.
+ * cannot mutate ACK state.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
@@ -30,6 +29,7 @@ import { createInternalErrorResponse } from '@/lib/api/error-handler'
 import { createErrorResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { resolveBillingOwner } from '@/lib/billing/billing-owner'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import {
   ackAlert,
@@ -42,18 +42,36 @@ import { resolveHealthBackend } from '@/lib/health/resolve-store'
 const ROUTE_CONTEXT = { route: '/api/v1/health/ack' } as const
 
 /**
- * ACK scope. The health sweep (`server-sweep.ts`) is an operator-level cron
- * over env-configured `CLICKHOUSE_*` hosts with no per-request user context —
- * it can only ever read `listActiveAcks('')`. If this route wrote ACKs under
- * a resolved billing-owner id (org/user), a cloud deployment's panel would
- * show "acked" while the sweep, scoped to `''`, never sees it and still
- * dispatches the webhook. So every ACK is stored under the single OSS-tenant
- * scope `''` regardless of auth — the resolved identity is only used for the
- * `ackedBy` attribution, never for D1 row scoping. Multi-tenant ACK scoping
- * (per-org suppression matching a per-org sweep) is out of scope here; see
- * plans/29-alert-ack-manual-resolution.md.
+ * Self-hosted ACK scope. The health sweep (`server-sweep.ts`) is an
+ * operator-level cron over env-configured `CLICKHOUSE_*` hosts with no
+ * per-request user context, so it reads `listActiveAcks('')`. Self-hosted ACKs
+ * are stored there so the panel and the sweep agree.
  */
-const ACK_OWNER_ID = ''
+const SELF_HOSTED_ACK_OWNER_ID = ''
+
+/**
+ * The owner an ACK is stored and read under. Self-hosted: the single-tenant
+ * `''`, which the sweep reads. Cloud: the signed-in billing owner (org or
+ * user), so tenants never see each other's ACKs; with no signed-in owner the
+ * caller gets 401. Cloud ACKs are display-only because the sweep reads `''`.
+ */
+async function resolveAckOwner(
+  method: 'GET' | 'POST' | 'DELETE'
+): Promise<string | Response> {
+  if (!isCloudModeServer()) return SELF_HOSTED_ACK_OWNER_ID
+  try {
+    return (await resolveBillingOwner()).id
+  } catch {
+    return createErrorResponse(
+      {
+        type: ApiErrorType.PermissionError,
+        message: 'Sign in to view or change alert acknowledgements',
+      },
+      401,
+      { ...ROUTE_CONTEXT, method }
+    )
+  }
+}
 
 /**
  * Resolve the ACK actor for `ackedBy` attribution. Fails open to
@@ -112,6 +130,8 @@ async function handlePost(request: Request): Promise<Response> {
   if (permissionResponse) return permissionResponse
   const notConfigured = notConfiguredResponse('POST')
   if (notConfigured) return notConfigured
+  const ownerId = await resolveAckOwner('POST')
+  if (ownerId instanceof Response) return ownerId
 
   let body: AckRequestBody
   try {
@@ -141,7 +161,7 @@ async function handlePost(request: Request): Promise<Response> {
 
   try {
     const ack = await ackAlert({
-      ownerId: ACK_OWNER_ID,
+      ownerId,
       hostId,
       ruleId,
       durationKey: duration,
@@ -159,7 +179,9 @@ async function handlePost(request: Request): Promise<Response> {
 }
 
 async function handleGet(): Promise<Response> {
-  const acks = await listActiveAcks(ACK_OWNER_ID)
+  const ownerId = await resolveAckOwner('GET')
+  if (ownerId instanceof Response) return ownerId
+  const acks = await listActiveAcks(ownerId)
   return Response.json(
     { success: true, acks },
     {
@@ -178,6 +200,8 @@ async function handleDelete(request: Request): Promise<Response> {
   if (permissionResponse) return permissionResponse
   const notConfigured = notConfiguredResponse('DELETE')
   if (notConfigured) return notConfigured
+  const ownerId = await resolveAckOwner('DELETE')
+  if (ownerId instanceof Response) return ownerId
 
   const { searchParams } = new URL(request.url)
   const hostIdParam = searchParams.get('hostId')
@@ -199,7 +223,7 @@ async function handleDelete(request: Request): Promise<Response> {
     )
   }
 
-  await clearAck(ACK_OWNER_ID, hostId, ruleId)
+  await clearAck(ownerId, hostId, ruleId)
   return Response.json({ success: true }, { status: 200 })
 }
 

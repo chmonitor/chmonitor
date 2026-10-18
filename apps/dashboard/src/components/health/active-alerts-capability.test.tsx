@@ -23,6 +23,8 @@ mock.module('sonner', () => ({
 type ConfigAnswer = 'pending' | 'none' | 'd1' | 'absent'
 let configAnswer: ConfigAnswer = 'pending'
 let acks: unknown[] = []
+let ackStatus = 200
+const requested: string[] = []
 const realFetch = globalThis.fetch
 
 const FINDING = {
@@ -49,6 +51,7 @@ beforeAll(() => {
   ).IS_REACT_ACT_ENVIRONMENT = true
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     const url = String(input instanceof Request ? input.url : input)
+    requested.push(url)
     if (url.includes('/api/v1/config')) {
       if (configAnswer === 'pending') return new Promise<Response>(() => {})
       const base = {
@@ -72,7 +75,10 @@ beforeAll(() => {
     }
     if (url.includes('/api/v1/health/findings'))
       return json({ success: true, findings: [FINDING] })
-    if (url.includes('/api/v1/health/ack')) return json({ success: true, acks })
+    if (url.includes('/api/v1/health/ack'))
+      return ackStatus === 200
+        ? json({ success: true, acks })
+        : json({ error: 'Authentication required' }, ackStatus)
     return json({})
   }) as typeof fetch
 })
@@ -86,6 +92,9 @@ afterEach(() => {
   document.body.replaceChildren()
   configAnswer = 'pending'
   acks = []
+  ackStatus = 200
+  requested.length = 0
+  delete process.env.VITE_CLOUD_MODE
 })
 
 async function render(which: 'active' | 'thresholds') {
@@ -196,5 +205,34 @@ describe('ThresholdsPanel restart copy (#3498)', () => {
     configAnswer = 'd1'
     c = await render('thresholds')
     expect(c.querySelector('[data-alert-state-volatile]')).toBeNull()
+  })
+})
+
+describe('ActiveAlertsPanel when acks are unavailable (#3897)', () => {
+  const ackRequests = () =>
+    requested.filter((u) => u.includes('/api/v1/health/ack'))
+
+  test('cloud signed-out visitor sees findings and never requests acks', async () => {
+    process.env.VITE_CLOUD_MODE = 'true'
+    ackStatus = 401
+    configAnswer = 'd1'
+    const c = await render('active')
+    expect(c.textContent).toContain('Disk usage')
+    expect(c.textContent).not.toContain('Authentication required')
+    expect(ackRequests()).toEqual([])
+  })
+
+  test('a failing acks request does not hide findings', async () => {
+    ackStatus = 500
+    configAnswer = 'd1'
+    const c = await render('active')
+    expect(c.textContent).toContain('Disk usage')
+    expect(button(c, 'Acknowledge')).toBeDefined()
+  })
+
+  test('self-hosted still requests acks', async () => {
+    configAnswer = 'd1'
+    await render('active')
+    expect(ackRequests().length).toBeGreaterThan(0)
   })
 })
