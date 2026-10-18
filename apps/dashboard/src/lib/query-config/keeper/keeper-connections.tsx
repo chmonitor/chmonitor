@@ -13,6 +13,9 @@ export const keeperConnectionsConfig: QueryConfig = {
   optional: true,
   tableCheck: 'system.zookeeper_connection',
   docs: 'https://clickhouse.com/docs/en/operations/system-tables/zookeeper_connection',
+  // Each bound is the first tested LTS line whose system.zookeeper_connection
+  // has the added columns (xid 24.3, availability_zone 24.8,
+  // session_timeout_ms 25.8, last_zxid_seen 26.3).
   sql: [
     {
       since: '22.11',
@@ -34,27 +37,7 @@ export const keeperConnectionsConfig: QueryConfig = {
       `,
     },
     {
-      since: '23.3',
-      sql: `
-        ${QUERY_COMMENT}
-        SELECT
-          name,
-          host,
-          port,
-          index,
-          connected_time,
-          session_uptime_elapsed_seconds,
-          is_expired,
-          keeper_api_version,
-          client_id,
-          xid
-        FROM system.zookeeper_connection
-        ORDER BY name, host, port, index
-        LIMIT 50
-      `,
-    },
-    {
-      since: '24.1',
+      since: '24.3',
       sql: `
         ${QUERY_COMMENT}
         SELECT
@@ -68,15 +51,14 @@ export const keeperConnectionsConfig: QueryConfig = {
           keeper_api_version,
           client_id,
           xid,
-          session_timeout_ms,
-          last_zxid_seen
+          enabled_feature_flags
         FROM system.zookeeper_connection
         ORDER BY name, host, port, index
         LIMIT 50
       `,
     },
     {
-      since: '25.1',
+      since: '24.8',
       sql: `
         ${QUERY_COMMENT}
         SELECT
@@ -90,10 +72,55 @@ export const keeperConnectionsConfig: QueryConfig = {
           keeper_api_version,
           client_id,
           xid,
-          session_timeout_ms,
-          last_zxid_seen,
           enabled_feature_flags,
           availability_zone
+        FROM system.zookeeper_connection
+        ORDER BY name, host, port, index
+        LIMIT 50
+      `,
+    },
+    {
+      since: '25.8',
+      sql: `
+        ${QUERY_COMMENT}
+        SELECT
+          name,
+          host,
+          port,
+          index,
+          connected_time,
+          session_uptime_elapsed_seconds,
+          is_expired,
+          keeper_api_version,
+          client_id,
+          xid,
+          enabled_feature_flags,
+          availability_zone,
+          session_timeout_ms
+        FROM system.zookeeper_connection
+        ORDER BY name, host, port, index
+        LIMIT 50
+      `,
+    },
+    {
+      since: '26.3',
+      sql: `
+        ${QUERY_COMMENT}
+        SELECT
+          name,
+          host,
+          port,
+          index,
+          connected_time,
+          session_uptime_elapsed_seconds,
+          is_expired,
+          keeper_api_version,
+          client_id,
+          xid,
+          enabled_feature_flags,
+          availability_zone,
+          session_timeout_ms,
+          last_zxid_seen
         FROM system.zookeeper_connection
         ORDER BY name, host, port, index
         LIMIT 50
