@@ -69,6 +69,7 @@ async function withEnv<T>(
 const TABLE_CATEGORY: Record<string, string> = {
   'system.replicas': 'replication',
   'system.replication_queue': 'replication',
+  'system.distribution_queue': 'replication',
   'system.disks': 'storage',
   'system.parts': 'parts & merges',
   'system.part_log': 'parts & merges',

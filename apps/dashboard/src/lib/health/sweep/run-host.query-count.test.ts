@@ -9,7 +9,7 @@
  *
  * The claim under test is the issue's: **total background queries per host per
  * sweep down at least 50%**. Both numbers are printed by the `> reports the
- * measured counts` test so a reviewer reading CI output sees 19 → 4 rather than
+ * measured counts` test so a reviewer reading CI output sees 20 → 4 rather than
  * a bare pass.
  */
 
@@ -127,6 +127,7 @@ beforeEach(() => {
     'system.metrics',
     'system.asynchronous_metrics',
     'system.detached_parts',
+    'system.distribution_queue',
   ])
   fakeNow = 1_000_000
   setCapabilityCacheClock(clock)
@@ -169,7 +170,7 @@ describe('background queries per host per sweep', () => {
     expect(warm.total).toBeLessThan(BEFORE_PER_TICK * 0.3)
   })
 
-  test('reports the measured counts so CI output shows 19 → 4', async () => {
+  test('reports the measured counts so CI output shows 20 → 4', async () => {
     const cold = await tick()
     const reduction = Math.round((1 - cold.total / BEFORE_PER_TICK) * 100)
     console.log(
@@ -179,7 +180,7 @@ describe('background queries per host per sweep', () => {
       before: BEFORE_PER_TICK,
       after: cold.total,
       reductionPct: reduction,
-    }).toEqual({ before: 19, after: 4, reductionPct: 79 })
+    }).toEqual({ before: 20, after: 4, reductionPct: 80 })
   })
 
   test('the count does not grow once the cache is warm', async () => {
@@ -210,9 +211,9 @@ describe('background queries per host per sweep', () => {
     await tick()
     const batch = queries.find((q) => q.includes('AS rule_id'))
     expect(batch).toBeDefined()
-    // 18 rules, 2 excluded → 16 branches, 15 joins.
-    expect(batch!.match(/AS rule_id/g)).toHaveLength(16)
-    expect(batch!.match(/UNION ALL/g)).toHaveLength(15)
+    // 19 rules, 2 excluded → 17 branches, 16 joins.
+    expect(batch!.match(/AS rule_id/g)).toHaveLength(17)
+    expect(batch!.match(/UNION ALL/g)).toHaveLength(16)
     // The `system.parts` scans are separate statements.
     const partsScans = queries.filter(
       (q) => !q.includes('AS rule_id') && q.includes('system.parts')
@@ -247,8 +248,8 @@ describe('the batch fallback', () => {
     batchFails = true
     const cold = await tick()
 
-    // 1 capability probe + 1 failed batch attempt + 16 individual batched
-    // rules + 2 heavy = 20, i.e. the pre-fix cost of 19 plus the failed attempt.
+    // 1 capability probe + 1 failed batch attempt + 17 individual batched
+    // rules + 2 heavy = 21, i.e. the pre-fix cost of 20 plus the failed attempt.
     // A tick that loses the batch is slower than before by exactly one
     // statement, and only while the failure persists — that is the intended
     // trade. Degrading to "blind" would not be.
@@ -286,7 +287,7 @@ describe('the batch fallback', () => {
     await tick()
     const batch = queries.find((q) => q.includes('AS rule_id'))!
     expect(batch).not.toContain('system.backup_log')
-    expect(batch.match(/AS rule_id/g)).toHaveLength(15)
+    expect(batch.match(/AS rule_id/g)).toHaveLength(16)
   })
 })
 

@@ -401,6 +401,41 @@ LIMIT 20`,
   },
 
   {
+    id: 'distribution-queue',
+    type: 'distribution-queue',
+    title: 'Stuck Distributed Send Queue',
+    description:
+      'Distributed tables whose async insert queue is not draining: queued files with send errors or a blocked queue, or broken files that were never sent. The data is not on the shards yet, and the queue grows on local disk — check the shard named in last_exception.',
+    // A healthy queue drains in seconds and has no errors, so only errored,
+    // blocked or broken queues count. Broken files stay until an operator
+    // removes them, so the alert holds until then.
+    sql: `SELECT countIf((data_files > 0 AND (error_count > 0 OR is_blocked)) OR broken_data_files > 0) AS stuck_tables
+FROM system.distribution_queue`,
+    valueKey: 'stuck_tables',
+    defaults: { warning: 1, critical: 5 },
+    formatLabel: fmtCount(
+      'Distributed table with a stuck queue',
+      'Distributed tables with a stuck queue'
+    ),
+    optional: true,
+    tableCheck: 'system.distribution_queue',
+    remediationActions: [
+      {
+        id: 'distribution-queue-detail',
+        label: 'Get stuck Distributed queues',
+        kind: 'diagnostic',
+        description:
+          'Distributed tables with queued or broken files, their error count and last exception.',
+        sql: `SELECT database, table, is_blocked, error_count, data_files, formatReadableSize(data_compressed_bytes) AS queued, broken_data_files, last_exception_time, substring(last_exception, 1, 300) AS last_exception
+FROM system.distribution_queue
+WHERE data_files > 0 OR broken_data_files > 0
+ORDER BY error_count DESC, data_files DESC
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
     id: 'delayed-inserts',
     type: 'delayed-inserts',
     title: 'Delayed Inserts',

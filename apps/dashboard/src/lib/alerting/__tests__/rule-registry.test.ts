@@ -528,6 +528,21 @@ describe('replica-session-expired rule', () => {
   })
 })
 
+describe('distribution-queue rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'distribution-queue')
+
+  test('is a built-in, optional on system.distribution_queue', () => {
+    expect(rule?.tableCheck).toBe('system.distribution_queue')
+    expect(rule?.optional).toBe(true)
+  })
+
+  test('first stuck table warns, five are critical', () => {
+    expect(classifyValue(0, rule!.defaults)).toBe('ok')
+    expect(classifyValue(1, rule!.defaults)).toBe('warning')
+    expect(classifyValue(5, rule!.defaults)).toBe('critical')
+  })
+})
+
 describe('delayed-inserts rule', () => {
   const rule = BUILTIN_RULES.find((r) => r.id === 'delayed-inserts')!
 

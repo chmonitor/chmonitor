@@ -387,6 +387,32 @@
       "title": "Replica Keeper Session Expired"
     },
     {
+      "category": "replication",
+      "commonCauses": [],
+      "description": "Distributed tables whose async insert queue is not draining: queued files with send errors or a blocked queue, or broken files that were never sent. The data is not on the shards yet, and the queue grows on local disk — check the shard named in last_exception.",
+      "fix": [
+        {
+          "description": "Distributed tables with queued or broken files, their error count and last exception.",
+          "id": "distribution-queue-detail",
+          "kind": "diagnostic",
+          "label": "Get stuck Distributed queues",
+          "sql": "SELECT database, table, is_blocked, error_count, data_files, formatReadableSize(data_compressed_bytes) AS queued, broken_data_files, last_exception_time, substring(last_exception, 1, 300) AS last_exception\nFROM system.distribution_queue\nWHERE data_files > 0 OR broken_data_files > 0\nORDER BY error_count DESC, data_files DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "distribution-queue",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "1 Distributed table with a stuck queue",
+      "sql": "SELECT countIf((data_files > 0 AND (error_count > 0 OR is_blocked)) OR broken_data_files > 0) AS stuck_tables\nFROM system.distribution_queue",
+      "tableCheck": "system.distribution_queue",
+      "thresholds": {
+        "critical": 5,
+        "warning": 1
+      },
+      "title": "Stuck Distributed Send Queue"
+    },
+    {
       "category": "other",
       "commonCauses": [
         "Too-small batches producing many parts (recommend ≥ 1000 rows / insert)",
