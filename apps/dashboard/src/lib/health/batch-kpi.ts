@@ -48,6 +48,8 @@
 
 import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 
+import { parseAffectedNames } from '@/lib/alerting/rule-registry'
+
 /**
  * Rule ids that never ride the batch. Both scan `system.parts` — see the
  * module header for why the heaviest query is kept out of the statement the
@@ -63,12 +65,15 @@ export interface BatchedKpi {
   readonly ruleId: string
   readonly valueKey: string
   readonly sql: string
+  /** Column holding up to 5 affected names (`Array(String)`), when the rule lists them. */
+  readonly affectedKey?: string
 }
 
 /** One parsed `(rule_id, value)` row of the batched result. */
 export interface BatchedKpiRow {
   rule_id?: string
   value?: string | number | null
+  affected?: unknown
 }
 
 /** Rules the batch must not touch, because they nest badly or are too heavy. */
@@ -113,7 +118,8 @@ export function buildBatchedKpiSql(kpis: readonly BatchedKpi[]): string | null {
   if (kpis.length === 0) return null
   const branches = kpis.map(
     (kpi) =>
-      `  SELECT '${kpi.ruleId}' AS rule_id, toString(\`${kpi.valueKey}\`) AS value\n` +
+      `  SELECT '${kpi.ruleId}' AS rule_id, toString(\`${kpi.valueKey}\`) AS value, ` +
+      `${kpi.affectedKey ? `\`${kpi.affectedKey}\`` : "CAST([], 'Array(String)')"} AS affected\n` +
       `  FROM (\n${kpi.sql.trim().replace(/;+\s*$/, '')}\n  )`
   )
   return branches.join('\n  UNION ALL\n')
@@ -144,6 +150,21 @@ export function parseBatchedKpiRows(
     }
     const num = Number(raw)
     out.set(ruleId, Number.isFinite(num) ? num : null)
+  }
+  return out
+}
+
+/** Parse the batched result into `ruleId -> affected names` (rules that list none are absent). */
+export function parseBatchedAffected(
+  rows: readonly BatchedKpiRow[] | null | undefined
+): Map<string, string[]> {
+  const out = new Map<string, string[]>()
+  if (!Array.isArray(rows)) return out
+  for (const row of rows) {
+    const names = parseAffectedNames(row?.affected)
+    if (typeof row?.rule_id === 'string' && names.length > 0) {
+      out.set(row.rule_id, names)
+    }
   }
   return out
 }
@@ -185,7 +206,12 @@ export function partitionRulesForSweep(
       continue
     }
     if (isBatchableRule(rule)) {
-      batched.push({ ruleId: rule.id, valueKey: rule.valueKey, sql: rule.sql })
+      batched.push({
+        ruleId: rule.id,
+        valueKey: rule.valueKey,
+        sql: rule.sql,
+        ...(rule.affectedKey ? { affectedKey: rule.affectedKey } : {}),
+      })
       continue
     }
     individual.push(rule)

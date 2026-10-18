@@ -371,6 +371,13 @@ missing (for example no `system.backup_log`) is skipped, not failed.
 
 <AlertRuleList />
 
+Rules that report a count also name what they count, so the alert says which
+tables, parts, mutations, views or queries to look at. The label lists up to
+5 names, then "and N more", for example `7 stuck merges: db.events
+all_1_9_2, db.logs all_3_7_1 and 5 more`. The names come from the same query
+(`groupArray(5)`), so they add no extra statement. Each name is cut to 80
+characters and escaped in HTML, Slack and Teams bodies.
+
 `keeper-unavailable` warns at 5, not 1: one `KEEPER_EXCEPTION` an hour is
 routine (a session reconnect or leader re-election). Sustained exceptions are
 the quorum signal. `rejected-inserts` reads a one-hour `query_log` window

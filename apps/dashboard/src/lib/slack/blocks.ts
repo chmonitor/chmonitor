@@ -14,6 +14,8 @@ import type { AlertPayload, AlertSeverity } from '@/lib/health/adapters/types'
 import type { AlertEventRecord } from '@/lib/health/alert-history-store'
 import type { IncidentSnapshot } from '@/lib/health/incident-snapshot'
 
+import { escapeSlackMrkdwn } from '@/lib/health/adapters/slack'
+
 export interface SlackTextObject {
   type: 'plain_text' | 'mrkdwn'
   text: string
@@ -269,7 +271,10 @@ export function buildAlertBlocksWithAck(
           type: 'mrkdwn',
           text: `*Value:*\n${payload.value === null ? 'n/a' : payload.value}`,
         },
-        { type: 'mrkdwn', text: `*Detail:*\n${payload.label}` },
+        {
+          type: 'mrkdwn',
+          text: `*Detail:*\n${escapeSlackMrkdwn(payload.label)}`,
+        },
       ],
     },
   ]

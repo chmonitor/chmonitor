@@ -26,6 +26,7 @@ import {
   type BatchedKpi,
   type BatchedKpiRow,
   buildBatchedKpiSql,
+  parseBatchedAffected,
   parseBatchedKpiRows,
   partitionRulesForSweep,
 } from '../batch-kpi'
@@ -33,7 +34,11 @@ import { getExistingTables } from '../capability-cache'
 import { fetchData } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { debug } from '@chm/logger'
-import { classifyValue } from '@/lib/alerting/rule-registry'
+import {
+  classifyValue,
+  parseAffectedNames,
+  ruleLabel,
+} from '@/lib/alerting/rule-registry'
 import { generateInsights } from '@/lib/insights/generate-insights'
 
 export interface SweepFinding {
@@ -67,17 +72,25 @@ export function hostLabel(config: ClickHouseConfig): string {
   return config.customName?.trim() || redactHostCredentials(config.host)
 }
 
+/** One rule's read: the numeric value and, for count-only rules, up to 5 affected names. */
+export interface RuleQueryResult {
+  value: number | null
+  affected: string[]
+}
+
 /**
  * Run a single rule's SQL on one host in read-only mode and read the numeric
- * value from the configured `valueKey`. Mirrors the client read path
- * (`readOnlyQuery`) so cron results match what the Health dashboard shows.
+ * value from the configured `valueKey` (and the names from `affectedKey`).
+ * Mirrors the client read path (`readOnlyQuery`) so cron results match what
+ * the Health dashboard shows.
  */
 export async function runRuleQuery(
   sql: string,
   valueKey: string,
   hostId: number,
-  settings?: AlertRuleDef['clickhouseSettings']
-): Promise<number | null> {
+  settings?: AlertRuleDef['clickhouseSettings'],
+  affectedKey?: string
+): Promise<RuleQueryResult> {
   const result = await fetchData<Array<Record<string, unknown>>>({
     query: sql,
     hostId,
@@ -90,13 +103,16 @@ export async function runRuleQuery(
   }
 
   const rows = result.data
-  if (!Array.isArray(rows) || rows.length === 0) return 0
+  if (!Array.isArray(rows) || rows.length === 0)
+    return { value: 0, affected: [] }
+  const affected = affectedKey ? parseAffectedNames(rows[0]?.[affectedKey]) : []
   const raw = rows[0]?.[valueKey]
   // A NULL / missing value is *unknown*, not healthy: returning 0 here would
   // classify as ok and send a false "resolved" for a firing alert.
-  if (raw === null || raw === undefined || raw === '') return null
+  if (raw === null || raw === undefined || raw === '')
+    return { value: null, affected }
   const num = Number(raw)
-  return Number.isFinite(num) ? num : null
+  return { value: Number.isFinite(num) ? num : null, affected }
 }
 
 /**
@@ -129,10 +145,14 @@ export async function getExistingSystemTables(
 export async function runBatchedKpis(
   kpis: readonly BatchedKpi[],
   hostId: number
-): Promise<{ values: Map<string, number | null>; failed: boolean }> {
+): Promise<{
+  values: Map<string, number | null>
+  affected: Map<string, string[]>
+  failed: boolean
+}> {
   const sql = buildBatchedKpiSql(kpis)
   if (sql === null)
-    return { values: new Map<string, number | null>(), failed: false }
+    return { values: new Map(), affected: new Map(), failed: false }
 
   try {
     const result = await fetchData<BatchedKpiRow[]>({
@@ -144,6 +164,7 @@ export async function runBatchedKpis(
     if (result.error) throw new Error(result.error.message)
     return {
       values: parseBatchedKpiRows(result.data, kpis),
+      affected: parseBatchedAffected(result.data),
       failed: false,
     }
   } catch (err) {
@@ -151,7 +172,7 @@ export async function runBatchedKpis(
       `[health-sweep] batched KPI query failed on host ${hostId}; falling back to per-rule queries`,
       err instanceof Error ? err.message : String(err)
     )
-    return { values: new Map<string, number | null>(), failed: true }
+    return { values: new Map(), affected: new Map(), failed: true }
   }
 }
 
@@ -185,7 +206,8 @@ export async function runHostSweep(
   // how many statements it took.
   const evaluateRule = async (
     rule: AlertRuleDef,
-    value: number | null
+    value: number | null,
+    affected: readonly string[]
   ): Promise<void> => {
     // Unknown value (NULL / non-numeric): no classification, no finding, no
     // dispatch — so a firing alert is neither re-fired nor falsely resolved.
@@ -200,6 +222,7 @@ export async function runHostSweep(
       ? rule.classify(value, thresholds)
       : classifyValue(value, thresholds)
     perHostResults[rule.id] = { value, severity }
+    const label = ruleLabel(rule, value, affected)
 
     if (severity !== 'ok') {
       findings.push({
@@ -209,7 +232,7 @@ export async function runHostSweep(
         title: rule.title,
         severity,
         value,
-        label: rule.formatLabel ? rule.formatLabel(value) : String(value),
+        label,
       })
     }
 
@@ -222,7 +245,7 @@ export async function runHostSweep(
         severity,
         value,
         ruleType: rule.type,
-        label: rule.formatLabel ? rule.formatLabel(value) : String(value),
+        label,
         warnThreshold: thresholds.warning,
         critThreshold: thresholds.critical,
       })
@@ -252,7 +275,11 @@ export async function runHostSweep(
     if (batch.failed) continue
     checksRun++
     try {
-      await evaluateRule(rule, batch.values.get(kpi.ruleId) ?? null)
+      await evaluateRule(
+        rule,
+        batch.values.get(kpi.ruleId) ?? null,
+        batch.affected.get(kpi.ruleId) ?? []
+      )
     } catch (err) {
       errored++
       debug(
@@ -272,13 +299,14 @@ export async function runHostSweep(
     if (!rule.sql) continue
     checksRun++
     try {
-      const value = await runRuleQuery(
+      const { value, affected } = await runRuleQuery(
         rule.sql,
         rule.valueKey,
         config.id,
-        rule.clickhouseSettings
+        rule.clickhouseSettings,
+        rule.affectedKey
       )
-      await evaluateRule(rule, value)
+      await evaluateRule(rule, value, affected)
     } catch (err) {
       errored++
       debug(

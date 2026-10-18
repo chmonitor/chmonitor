@@ -76,7 +76,7 @@ function thresholdText(payload: AlertPayload): string {
  */
 export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
-  const summary = `${escapeSlackMrkdwn(instancePrefix(payload))}[${heading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
+  const summary = `${escapeSlackMrkdwn(instancePrefix(payload))}[${heading(payload.severity)}] ${payload.title} — ${escapeSlackMrkdwn(payload.label)} (host ${payload.hostLabel})`
 
   const blocks: SlackBlock[] = [
     {
@@ -104,7 +104,10 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
     },
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Detail:* ${payload.label}` },
+      text: {
+        type: 'mrkdwn',
+        text: `*Detail:* ${escapeSlackMrkdwn(payload.label)}`,
+      },
     },
   ]
 
@@ -200,7 +203,9 @@ export function buildSlackDigestBody(
   const style = SEVERITY_STYLE[digest.topSeverity]
   const summary = `Health digest: ${escapeSlackMrkdwn(digest.summaryLine)} (${digest.total} alerts)`
 
-  const listLines = digest.findingLines.map((line) => `• ${line}`)
+  const listLines = digest.findingLines.map(
+    (line) => `• ${escapeSlackMrkdwn(line)}`
+  )
   if (digest.overflow > 0) {
     listLines.push(`…and ${digest.overflow} more`)
   }

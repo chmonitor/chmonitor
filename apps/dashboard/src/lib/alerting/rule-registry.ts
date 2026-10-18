@@ -82,6 +82,12 @@ export interface AlertRuleDef {
   clickhouseSettings?: Readonly<Record<string, string | number>>
   /** Column name to read the numeric value from the SQL result row. */
   valueKey: string
+  /**
+   * Column holding up to {@link MAX_AFFECTED_NAMES} names of what the count
+   * counts (`Array(String)`), e.g. `groupArray(5)(concat(database, '.', table))`.
+   * Each name stands for one counted item, so the rest is `value - names`.
+   */
+  affectedKey?: string
   /** Default thresholds. Overridable via thresholds-storage. */
   defaults: { warning: number; critical: number }
   /** Human-readable label for the triggered value. */
@@ -151,6 +157,40 @@ export function assertReadOnlyAction(action: RemediationAction): void {
       `Remediation action "${action.id}": diagnostic SQL must not contain DDL/mutation/SYSTEM statements`
     )
   }
+}
+
+/** Names a count-only rule lists in its label; the SQL caps its array to this. */
+export const MAX_AFFECTED_NAMES = 5
+const MAX_AFFECTED_NAME_LENGTH = 80
+
+/** Read a ClickHouse `Array(String)` cell into at most 5 short, single-line names. */
+export function parseAffectedNames(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((n): n is string => typeof n === 'string' && n.trim() !== '')
+    .slice(0, MAX_AFFECTED_NAMES)
+    .map((n) => {
+      const flat = n.replace(/\s+/g, ' ').trim()
+      return flat.length > MAX_AFFECTED_NAME_LENGTH
+        ? `${flat.slice(0, MAX_AFFECTED_NAME_LENGTH - 1)}…`
+        : flat
+    })
+}
+
+/**
+ * A rule's finding label: its own `formatLabel`, then the affected names and
+ * "and N more" when the count is larger than the list,
+ * e.g. `"7 stuck merges: db.a p1, db.b p2 and 5 more"`.
+ */
+export function ruleLabel(
+  rule: Pick<AlertRuleDef, 'formatLabel'>,
+  value: number | null,
+  affected: readonly string[] = []
+): string {
+  const base = rule.formatLabel ? rule.formatLabel(value) : String(value)
+  if (affected.length === 0) return base
+  const more = Math.max(0, (value ?? 0) - affected.length)
+  return `${base}: ${affected.join(', ')}${more > 0 ? ` and ${more.toLocaleString()} more` : ''}`
 }
 
 export interface AlertRuleThresholds {
