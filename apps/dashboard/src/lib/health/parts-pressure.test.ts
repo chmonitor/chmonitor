@@ -165,6 +165,16 @@ describe('buildPartsPressureProjectionSql', () => {
     expect(injected).toContain('INTERVAL 6 HOUR')
     expect(injected).toContain('LIMIT 20')
   })
+
+  test('reads part_log by partition_id, which 23.3 has (it has no partition)', () => {
+    const partLog = sql.slice(
+      sql.indexOf('part_rate AS ('),
+      sql.indexOf('\nSELECT')
+    )
+    expect(partLog).toContain('GROUP BY database, table, partition_id')
+    expect(partLog).not.toMatch(/\bpartition\b(?!_id)/)
+    expect(sql).toContain('l.partition_id = r.partition_id')
+  })
 })
 
 describe('buildPartsPressureCurrentSql', () => {

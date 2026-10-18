@@ -149,10 +149,10 @@ function tableSettingSql(setting: string): string {
  */
 function effectiveLimitsCte(): string {
   return `parts_now AS (
-    SELECT database, table, partition, count() AS parts
+    SELECT database, table, partition_id, partition, count() AS parts
     FROM system.parts
     WHERE active AND database NOT IN (${EXCLUDED_DATABASES})
-    GROUP BY database, table, partition
+    GROUP BY database, table, partition_id, partition
   ),
   table_overrides AS (
     SELECT
@@ -174,6 +174,7 @@ function effectiveLimitsCte(): string {
     SELECT
       p.database AS database,
       p.table AS table,
+      p.partition_id AS partition_id,
       p.partition AS partition,
       p.parts AS parts,
       if(o.throw_override > 0, o.throw_override, (SELECT throw_default FROM server_defaults)) AS throw_limit,
@@ -206,7 +207,8 @@ FROM limits`
  *
  * Net rate = (NewPart events − RemovePart events) over the rate window, per
  * partition: a positive net means parts are accumulating faster than merges
- * consume them. Rows are ordered worst-first — already-delaying partitions, then
+ * consume them. part_log is grouped and joined by `partition_id`, which every
+ * supported version has; `part_log.partition` does not exist on 23.3. Rows are ordered worst-first — already-delaying partitions, then
  * the soonest projected breach.
  */
 export function buildPartsPressureProjectionSql(opts?: {
@@ -223,12 +225,12 @@ export function buildPartsPressureProjectionSql(opts?: {
     SELECT
       database,
       table,
-      partition,
+      partition_id,
       (countIf(event_type = 'NewPart') - countIf(event_type = 'RemovePart')) / ${windowHours}.0 AS net_parts_per_hour
     FROM system.part_log
     WHERE event_time > now() - INTERVAL ${windowHours} HOUR
       AND database NOT IN (${EXCLUDED_DATABASES})
-    GROUP BY database, table, partition
+    GROUP BY database, table, partition_id
   )
 SELECT
   l.database AS database,
@@ -245,7 +247,7 @@ SELECT
     NULL
   ) AS hours_to_throw
 FROM limits l
-LEFT JOIN part_rate r ON l.database = r.database AND l.table = r.table AND l.partition = r.partition
+LEFT JOIN part_rate r ON l.database = r.database AND l.table = r.table AND l.partition_id = r.partition_id
 ORDER BY is_delaying DESC, hours_to_throw ASC NULLS LAST, parts DESC
 LIMIT ${limit}`
 }
