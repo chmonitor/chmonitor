@@ -121,7 +121,9 @@ FROM system.disks`,
     // A disk that is flat or growing reads 0, so a firing alert resolves.
     // A series spanning less than 3 hours (asynchronous_metric_log just
     // enabled, or a disk that just appeared) reads NULL: unknown, no alert.
-    // A sample count is not enough: 2 minutes of 1s samples is 120 points of
+    // The span alone is not enough either: two samples 3h apart is a line, not
+    // a trend, hence the 30-sample floor. A sample count alone is not enough:
+    // 2 minutes of 1s samples is 120 points of
     // noise that extrapolates to a disk filling within the hour. Capped at 10000% (full in
     // ~15 minutes) so one empty disk cannot produce Infinity.
     sql: `SELECT round(maxOrNull(fill_pct), 1) AS fill_24h_percent
@@ -135,7 +137,7 @@ FROM (
     AND event_date >= toDate(now() - INTERVAL 6 HOUR)
     AND event_time > now() - INTERVAL 6 HOUR
   GROUP BY metric
-  HAVING max(event_time) - min(event_time) >= 3 * 3600
+  HAVING max(event_time) - min(event_time) >= 3 * 3600 AND count() >= 30
 )`,
     valueKey: 'fill_24h_percent',
     defaults: { warning: 100, critical: 400 },

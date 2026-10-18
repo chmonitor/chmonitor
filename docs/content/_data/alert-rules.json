@@ -127,7 +127,7 @@
       "link": "https://docs.chmonitor.dev/guide/guides/disk-usage-runbook",
       "optional": true,
       "sampleLabel": "full in ~24h at the current rate",
-      "sql": "SELECT round(maxOrNull(fill_pct), 1) AS fill_24h_percent\nFROM (\n  SELECT\n    argMax(value, event_time) AS free_now,\n    simpleLinearRegression(toFloat64(toUInt32(event_time)), value).1 AS bytes_per_second,\n    if(free_now <= 0, 10000, least(greatest(-bytes_per_second, 0) * 86400 * 100 / free_now, 10000)) AS fill_pct\n  FROM system.asynchronous_metric_log\n  WHERE startsWith(metric, 'DiskAvailable_')\n    AND event_date >= toDate(now() - INTERVAL 6 HOUR)\n    AND event_time > now() - INTERVAL 6 HOUR\n  GROUP BY metric\n  HAVING max(event_time) - min(event_time) >= 3 * 3600\n)",
+      "sql": "SELECT round(maxOrNull(fill_pct), 1) AS fill_24h_percent\nFROM (\n  SELECT\n    argMax(value, event_time) AS free_now,\n    simpleLinearRegression(toFloat64(toUInt32(event_time)), value).1 AS bytes_per_second,\n    if(free_now <= 0, 10000, least(greatest(-bytes_per_second, 0) * 86400 * 100 / free_now, 10000)) AS fill_pct\n  FROM system.asynchronous_metric_log\n  WHERE startsWith(metric, 'DiskAvailable_')\n    AND event_date >= toDate(now() - INTERVAL 6 HOUR)\n    AND event_time > now() - INTERVAL 6 HOUR\n  GROUP BY metric\n  HAVING max(event_time) - min(event_time) >= 3 * 3600 AND count() >= 30\n)",
       "tableCheck": "system.asynchronous_metric_log",
       "thresholds": {
         "critical": 400,
