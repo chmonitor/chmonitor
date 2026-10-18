@@ -73,15 +73,60 @@ beforeEach(() => {
   queries.length = 0
 })
 
-describe('clusterNodes (#3893)', () => {
+// Runs the route's real counts SQL in `clickhouse local`, with
+// `system.clusters` swapped for a fixture table when rows are given.
+const CH = Bun.which('clickhouse')
+function runCountsLocally(
+  query: string,
+  clusters: [string, string, number][] | null
+): Record<string, unknown> {
+  let sql = query
+  if (clusters) {
+    const values = clusters
+      .map(([c, h, l]) => `('${c}', '${h}', ${l})`)
+      .join(', ')
+    sql = `CREATE TABLE fx (cluster String, host_name String, is_local UInt8) ENGINE = Memory;
+INSERT INTO fx VALUES ${values};
+${query.replaceAll('system.clusters', 'fx')} FORMAT JSONEachRow`
+  } else sql = `${query} FORMAT JSONEachRow`
+  const out = Bun.spawnSync([CH as string, 'local', '--multiquery', '-q', sql])
+  if (out.exitCode !== 0) throw new Error(out.stderr.toString())
+  return JSON.parse(out.stdout.toString().trim())
+}
+
+async function clusterNodesFor(clusters: [string, string, number][] | null) {
+  await getFleet()
+  const counts = queries.find((q) => q.includes('AS clusterNodes'))
+  return Number(runCountsLocally(counts as string, clusters).clusterNodes)
+}
+
+describe.skipIf(!CH)('clusterNodes (#3893), run in clickhouse local', () => {
   test('counts hosts only from clusters this node belongs to', async () => {
-    // Live on a node in `main` + `b_dead` (one dead extra host) that also
-    // defines a foreign `a_test_other`: the unscoped count was 3, this is 2.
-    await getFleet()
-    const counts = queries.find((q) => q.includes('AS clusterNodes'))
-    expect(counts).toContain(
-      'FROM system.clusters WHERE cluster IN (SELECT cluster FROM system.clusters WHERE is_local = 1)'
-    )
+    // A node in `main` that also defines a foreign `a_test_other`: the
+    // unscoped count was 3, the right answer is 2.
+    expect(
+      await clusterNodesFor([
+        ['main', 'self', 1],
+        ['main', 'peer', 0],
+        ['a_test_other', 'stranger', 0],
+      ])
+    ).toBe(2)
+  })
+
+  test('falls back to every cluster when no row is is_local', async () => {
+    // Hostname mismatch in a container: is_local is 0 everywhere. Counting
+    // local clusters only would report 0 nodes.
+    expect(
+      await clusterNodesFor([
+        ['main', 'self', 0],
+        ['main', 'peer', 0],
+        ['other', 'stranger', 0],
+      ])
+    ).toBe(3)
+  })
+
+  test('no clusters at all stays 0, as before', async () => {
+    expect(await clusterNodesFor(null)).toBe(0)
   })
 })
 
