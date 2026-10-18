@@ -410,15 +410,21 @@ describe('dropUnsupportedSettings', () => {
   test('drops analyzer-off on 26.9 and later', () => {
     expect(
       dropUnsupportedSettings(
-        { allow_experimental_analyzer: 0 },
+        { allow_experimental_analyzer: 0 } as Record<string, unknown>,
         v('26.9.21.9')
       )
     ).toEqual({})
     expect(
-      dropUnsupportedSettings({ enable_analyzer: '0' }, v('27.1.1.1'))
+      dropUnsupportedSettings(
+        { enable_analyzer: '0' } as Record<string, unknown>,
+        v('27.1.1.1')
+      )
     ).toEqual({})
     expect(
-      dropUnsupportedSettings({ enable_analyzer: false }, v('26.9'))
+      dropUnsupportedSettings(
+        { enable_analyzer: false } as Record<string, unknown>,
+        v('26.9')
+      )
     ).toEqual({})
   })
 
