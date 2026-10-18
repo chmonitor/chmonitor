@@ -268,7 +268,6 @@ export function stripSqlComments(
  * ```
  */
 export function validateSqlQuery(sql: string): void {
-  // Check for empty query
   if (!sql || sql.trim().length === 0) {
     throw new Error('SQL query cannot be empty')
   }
@@ -286,7 +285,6 @@ export function validateSqlQuery(sql: string): void {
   // monitoring queries and must not read as DDL or a table-function call.
   const scannable = stripSqlComments(sql, { blankLiterals: true })
 
-  // Check for SQL injection patterns
   for (const pattern of SQL_INJECTION_PATTERNS) {
     if (pattern.test(scannable)) {
       throw new Error(
