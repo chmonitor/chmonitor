@@ -4,7 +4,7 @@
  *   GET /api/v1/reports/subscription — the caller's subscription + plan gate
  *   PUT /api/v1/reports/subscription — upsert cadence + covered hosts
  *
- * Owner-scoped via {@link resolveAlertRoutingOwnerId} (same convention as
+ * Owner-scoped via {@link resolveConfigOwner} (same convention as
  * alert-config): OSS single-tenant edits under owner `''` with zero auth,
  * cloud requires sign-in for writes. Plan gate (#2791): weekly cadence
  * requires a paid plan for cloud owners; monthly is available to everyone.
@@ -20,7 +20,7 @@ import { getPlanForOwner } from '@/lib/billing/user-subscription'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import {
   requiresSignInForWrite,
-  resolveAlertRoutingOwnerId,
+  resolveConfigOwner,
 } from '@/lib/health/alert-routing-auth'
 import { weeklyReportsAllowed } from '@/lib/insights/report-fanout'
 import {
@@ -40,7 +40,8 @@ async function handleGet(request: Request): Promise<Response> {
   )
   if (permissionResponse) return permissionResponse
 
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   const subscription = await getReportSubscription(ownerId)
   // OSS single-tenant is never plan-gated (fail-open, like lib/edition).
   const weeklyAllowed =
@@ -66,7 +67,8 @@ async function handlePut(request: Request): Promise<Response> {
   )
   if (permissionResponse) return permissionResponse
 
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   if (requiresSignInForWrite(ownerId)) {
     return jsonError('Sign in to schedule reports.', 401)
   }

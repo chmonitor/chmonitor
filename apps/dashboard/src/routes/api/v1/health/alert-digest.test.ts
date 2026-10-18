@@ -27,8 +27,8 @@ mock.module('@/lib/feature-permissions/server', () => ({
 
 let requiresSignIn = false
 mock.module('@/lib/health/alert-routing-auth', () => ({
-  requireCloudSignInForRead: async () => null,
-  resolveAlertRoutingOwnerId: async () => '',
+  resolveConfigOwner: async () => '',
+  SINGLE_TENANT_OWNER_ID: '',
   requiresSignInForWrite: () => requiresSignIn,
 }))
 
@@ -80,7 +80,9 @@ describe('GET /api/v1/health/alert-digest', () => {
   test('reflects a saved row over the env value', async () => {
     getResult = { enabled: true, windowMinutes: 45 }
     envWindow = 10
-    const res = await handleGet()
+    const res = await handleGet(
+      new Request('http://localhost/api/v1/health/alert-digest')
+    )
     const json = (await res.json()) as Record<string, unknown>
     expect(json).toMatchObject({
       success: true,
@@ -94,7 +96,9 @@ describe('GET /api/v1/health/alert-digest', () => {
   test('falls back to the env value when no row exists', async () => {
     getResult = null
     envWindow = 20
-    const res = await handleGet()
+    const res = await handleGet(
+      new Request('http://localhost/api/v1/health/alert-digest')
+    )
     const json = (await res.json()) as Record<string, unknown>
     expect(json).toMatchObject({
       enabled: true,

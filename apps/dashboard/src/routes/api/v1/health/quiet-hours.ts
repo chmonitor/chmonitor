@@ -15,23 +15,13 @@
 import { z } from 'zod'
 import { createFileRoute } from '@tanstack/react-router'
 
-import { resolveBillingOwnerId } from '@/lib/billing/billing-owner'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
-import { requireCloudSignInForRead } from '@/lib/health/alert-routing-auth'
+import { resolveConfigOwner } from '@/lib/health/alert-routing-auth'
 import {
   createQuietHours,
   deleteQuietHours,
   listQuietHours,
 } from '@/lib/health/quiet-hours'
-
-/** OSS single-tenant fallback when Clerk is not configured / no session. */
-async function resolveOwnerId(): Promise<string> {
-  try {
-    return await resolveBillingOwnerId()
-  } catch {
-    return ''
-  }
-}
 
 function jsonError(message: string, status: number): Response {
   return Response.json(
@@ -49,10 +39,8 @@ const CreateQuietHoursSchema = z.object({
 })
 
 async function handleGet(request: Request): Promise<Response> {
-  const signIn = await requireCloudSignInForRead(request)
-  if (signIn) return signIn
-
-  const ownerId = await resolveOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'billing')
+  if (ownerId instanceof Response) return ownerId
   const windows = await listQuietHours(ownerId)
   return Response.json(
     { success: true, windows },
@@ -88,7 +76,8 @@ async function handlePost(request: Request): Promise<Response> {
   }
   const { days, start, end, timezone, severityCap } = parsed.data
 
-  const ownerId = await resolveOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'billing')
+  if (ownerId instanceof Response) return ownerId
   try {
     const window = await createQuietHours({
       ownerId,
@@ -124,7 +113,8 @@ async function handleDelete(request: Request): Promise<Response> {
     return jsonError('Missing "id" query parameter', 400)
   }
 
-  const ownerId = await resolveOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'billing')
+  if (ownerId instanceof Response) return ownerId
   await deleteQuietHours(ownerId, id)
   return Response.json({ success: true })
 }

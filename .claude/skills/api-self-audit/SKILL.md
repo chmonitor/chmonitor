@@ -56,7 +56,7 @@ file: one guard anywhere in the file counts for all its handlers. When a file mi
 Add it to `GUARDS` only if it rejects the caller when there is no valid
 identity or secret (returns 401/403 or throws an UNAUTHORIZED error). A
 resolver that falls back to an anonymous id is not a guard. Removed for that
-reason: `resolveAlertRoutingOwnerId` (returns `''`), `resolveCustomRuleOwnerId`
+reason: `resolveConfigOwner` (returns `''` self-hosted), `resolveCustomRuleOwnerId`
 (`'oss'`), `resolveRegistryUserId` and `resolveAgentUserId` (`'guest'`),
 `resolveOwnerId` (catches and returns `''`), and `authenticateRequest` (the
 `none` provider always passes). Read the function body before adding a name.

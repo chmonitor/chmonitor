@@ -121,17 +121,25 @@ export function jsonError(message: string, status: number): Response {
 }
 
 /**
- * Whether the request carries a valid `chm_` API key (Bearer or `x-api-key`).
- * Returns false when API-key auth is disabled or no candidate verifies.
+ * The subject of the first valid `chm_` API key on the request (Bearer or
+ * `x-api-key`), or null when API-key auth is disabled or no candidate verifies.
+ * The subject may be `''` (an admin-issued key with an empty label).
  */
-export async function hasValidChmApiKey(request: Request): Promise<boolean> {
-  if (!apiKeyAuthEnabled()) return false
+export async function verifiedChmApiKeySub(
+  request: Request
+): Promise<string | null> {
+  if (!apiKeyAuthEnabled()) return null
   for (const candidate of apiKeyCandidates(request)) {
     if (!candidate.startsWith('chm_')) continue
     const result = await verifyApiKey(candidate)
-    if (result.valid) return true
+    if (result.valid) return result.sub ?? ''
   }
-  return false
+  return null
+}
+
+/** Whether the request carries a valid `chm_` API key (Bearer or `x-api-key`). */
+export async function hasValidChmApiKey(request: Request): Promise<boolean> {
+  return (await verifiedChmApiKeySub(request)) !== null
 }
 
 /**

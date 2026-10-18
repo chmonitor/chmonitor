@@ -22,12 +22,13 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import {
   requiresSignInForWrite,
-  resolveAlertRoutingOwnerId,
+  resolveConfigOwner,
 } from '@/lib/health/alert-routing-auth'
 import { listPagerDutyServices } from '@/lib/health/pagerduty-config'
 
-async function handleGet(): Promise<Response> {
-  const ownerId = await resolveAlertRoutingOwnerId()
+async function handleGet(request: Request): Promise<Response> {
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   if (requiresSignInForWrite(ownerId)) {
     return Response.json(
       {
@@ -45,7 +46,7 @@ async function handleGet(): Promise<Response> {
 export const Route = createFileRoute('/api/v1/health/pagerduty-services')({
   server: {
     handlers: {
-      GET: async () => handleGet(),
+      GET: async ({ request }) => handleGet(request),
     },
   },
 })

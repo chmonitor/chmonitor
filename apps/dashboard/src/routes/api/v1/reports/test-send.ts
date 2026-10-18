@@ -20,7 +20,7 @@ import { parseHostIdParam } from '@/lib/api/shared/validators/host-id'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import {
   requiresSignInForWrite,
-  resolveAlertRoutingOwnerId,
+  resolveConfigOwner,
 } from '@/lib/health/alert-routing-auth'
 import {
   deliverReport,
@@ -41,7 +41,8 @@ async function handlePost(request: Request): Promise<Response> {
   )
   if (permissionResponse) return permissionResponse
 
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   if (requiresSignInForWrite(ownerId)) {
     return jsonError('Sign in to send a test report.', 401)
   }

@@ -5,7 +5,7 @@
  *   POST   /api/v1/health/routes             — create a route
  *   DELETE /api/v1/health/routes?id=<id>     — delete a route by id
  *
- * Owner-scoped via {@link resolveAlertRoutingOwnerId} — see
+ * Owner-scoped via {@link resolveConfigOwner} — see
  * `lib/health/alert-routing-auth.ts` for the fail-open (self-hosted) /
  * auth-gated-write (cloud) split. The underlying store
  * (`lib/health/alert-routing.ts`) is best-effort D1: it degrades to `[]` /
@@ -25,9 +25,8 @@ import {
   listRoutes,
 } from '@/lib/health/alert-routing'
 import {
-  requireCloudSignInForRead,
   requiresSignInForWrite,
-  resolveAlertRoutingOwnerId,
+  resolveConfigOwner,
 } from '@/lib/health/alert-routing-auth'
 import { redactWebhookUrl } from '@/lib/health/custom-webhook-targets'
 import { PAGERDUTY_EVENTS_API_URL } from '@/lib/health/pagerduty-config'
@@ -100,10 +99,8 @@ function toPublicRoute(
 }
 
 async function handleGet(request: Request): Promise<Response> {
-  const signIn = await requireCloudSignInForRead(request)
-  if (signIn) return signIn
-
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   const routes = await listRoutes(ownerId)
   return Response.json(
     { success: true, routes: routes.map(toPublicRoute) },
@@ -142,7 +139,8 @@ interface CreateRouteBody {
 }
 
 async function handlePost(request: Request): Promise<Response> {
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   if (requiresSignInForWrite(ownerId)) {
     return jsonError('Sign in to create alert routes.', 401)
   }
@@ -391,7 +389,8 @@ async function handlePost(request: Request): Promise<Response> {
 }
 
 async function handleDelete(request: Request): Promise<Response> {
-  const ownerId = await resolveAlertRoutingOwnerId()
+  const ownerId = await resolveConfigOwner(request, 'user')
+  if (ownerId instanceof Response) return ownerId
   if (requiresSignInForWrite(ownerId)) {
     return jsonError('Sign in to delete alert routes.', 401)
   }
