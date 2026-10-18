@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * UI/UX audit runner for the ClickHouse Monitor dashboard (dashboard-tsr).
+ * UI/UX audit runner for the chmonitor dashboard (apps/dashboard).
  *
  * For every dashboard route it: navigates, waits for data/skeletons to settle,
  * captures console errors + failed network calls, runs an axe-core accessibility
@@ -11,7 +11,7 @@
  *
  * Targets:
  *   --target=local  (default)  http://localhost:3000, auth bypassed (auth=none)
- *   --target=live              https://dash-tsr.chmonitor.dev, Clerk session reused
+ *   --target=live              https://dash.chmonitor.dev, Clerk session reused
  *                              from ~/.config/chmonitor/clerk-state.json
  *
  * Usage (run from the qa-tools dir so `playwright` resolves — see setup.sh):
@@ -41,10 +41,8 @@ const A11Y = args.a11y !== 'off'
 const SETTLE = Number(args.settle || 3500)
 const HOME = process.env.HOME
 const SKILL_DIR = join(dirname(fileURLToPath(import.meta.url)), '..')
-// repo root: walk up from skill dir until we find apps/dashboard-tsr
-// app dir moved from apps/dashboard-tsr -> apps/dashboard after the TSR cutover;
-// support both so the skill works on old and new checkouts.
-const APP_DIRS = ['apps/dashboard', 'apps/dashboard-tsr']
+// repo root: walk up from skill dir until we find apps/dashboard
+const APP_DIRS = ['apps/dashboard']
 function appRoutesRel(repo) {
   for (const a of APP_DIRS) {
     if (existsSync(join(repo, a, 'src/routes'))) return join(a, 'src/routes')
@@ -63,7 +61,7 @@ const REPO = args.repo || findRepoRoot(SKILL_DIR)
 
 const BASE_URL =
   process.env.BASE_URL ||
-  (TARGET === 'live' ? 'https://dash-tsr.chmonitor.dev' : 'http://localhost:3000')
+  (TARGET === 'live' ? 'https://dash.chmonitor.dev' : 'http://localhost:3000')
 const STATE = `${HOME}/.config/chmonitor/clerk-state.json`
 const STAMP = args.stamp || new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
 const OUT = args.out || `/tmp/chm-ui-audit/${TARGET}-${STAMP}`

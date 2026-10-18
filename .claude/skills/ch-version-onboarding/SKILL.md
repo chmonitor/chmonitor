@@ -1,16 +1,11 @@
 ---
 name: ch-version-onboarding
 description: >-
-  Audit chmonitor against a newly released ClickHouse version: detect the
-  newest stable and LTS tags, compare with the newest
-  docs/clickhouse-schemas/v*.md, diff system.columns between the official
-  binaries for every system table the query configs read, EXPLAIN each
-  config's SQL on the new binary, regenerate the support matrix, and file one
-  issue per broken config. Use when a ClickHouse release ships, when a page
-  errors only on a newer server, before bumping the CI ClickHouse pin, or when
-  adding a `since:` variant. Triggers: "new ClickHouse version", "ClickHouse
-  26.x", "onboard version", "since variant", "system table changed", "column
-  missing on new version", "support matrix", "LTS", "bump CI ClickHouse".
+  Audit chmonitor against a new ClickHouse release: diff system.columns
+  between official binaries, EXPLAIN every query config on the new version,
+  regenerate the support matrix, file one issue per broken config. Use when a
+  ClickHouse release ships, a page errors only on a newer server, before
+  bumping the CI ClickHouse version, or when adding a `since:` variant.
 ---
 
 # ClickHouse version onboarding
@@ -29,8 +24,9 @@ background, traps, and the first dry run are in
    (`scripts/ch-schema/constants.ts`).
 3. **Scrape (cross-check).** Run
    `bun run scripts/build-ch-schema-docs.ts --version X.Y --output <scratch>`.
-   Always pass `--output`, because the default writes into the repo. If it
-   prints `0 entries`, the scrape failed, not the release.
+   Always pass `--output`, because the default writes into the repo. It exits
+   non-zero when it parses 0 entries; that means the changelog format moved,
+   not that the release is empty.
 4. **Prove.** Download and sha512-check the official
    `clickhouse-common-static` tarballs. Diff `system.columns` for the tables
    that `apps/dashboard/src/lib/query-config/**` references (excluding tests),
@@ -42,9 +38,10 @@ background, traps, and the first dry run are in
    column, the failing versions, and the exact command with its error. A
    failure only on the new version needs a `since:` variant. A failure on
    every version is a config bug.
-7. **CI pin.** `.github/workflows/ci.yml` pins ClickHouse to `25.8`. If a
-   newer LTS exists, recommend adding it as a matrix leg. Do not edit `ci.yml`
-   as part of the audit.
+7. **CI versions.** `test-queries-config` in `.github/workflows/test.yml` runs
+   on `25.8` and `26.8`; the jobs in `ci.yml` stay on `25.8`. If a newer LTS
+   exists, recommend adding it as a matrix leg. Do not edit workflows as part
+   of the audit.
 
 ## Rules
 

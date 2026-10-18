@@ -61,10 +61,9 @@ Preconditions:
   Worker and checks `/overview?host=0`, the client entry asset, and the
   anonymous API gate.
 - **Manual broad audit.** `.claude/skills/ui-ux-audit/` can discover routes,
-  capture console errors, inspect overflow and skeletons, and run axe. Its
-  source still contains legacy `dash-tsr` live defaults and an external tool
-  setup step, so do not treat it as the CI proof or run its installer from a
-  validation-only worktree.
+  capture console errors, inspect overflow and skeletons, and run axe. It needs
+  an external tool setup step, so do not treat it as the CI proof or run its
+  installer from a validation-only worktree.
 - **Evidence.** Record the workflow URL, job name, route list or job step, and
   the observed result. For a failed job, use the documented
   `gh run view <RUN_ID> --job <JOB_ID> --log-failed` command and quote the

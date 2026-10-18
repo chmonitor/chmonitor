@@ -3,7 +3,7 @@ id: ch-version-onboarding
 title: ClickHouse version onboarding audit
 type: workflow
 status: active
-updated: 2026-10-14
+updated: 2026-10-18
 tags:
   - clickhouse
   - versions
@@ -24,8 +24,9 @@ playbook `docs/herdr-desk/ch-version.md`) and as the
 
 ## Why
 
-- `ci.yml` pins every ClickHouse-backed job to `25.8`. Query configs whose
-  newest `since:` variant targets 26.x never run in CI.
+- CI runs the query configs on two versions only (`test-queries-config` in
+  `test.yml`: `25.8` and `26.8`; `ci.yml` stays on `25.8`). A `since:` variant
+  for any other version never runs in CI.
 - A system table can rename a column, retype it, or move it behind a config.
   The page then shows an error card for every user on that version.
 - The changelog scraper (`scripts/build-ch-schema-docs.ts`) is a cross-check
@@ -45,10 +46,10 @@ A failure on both is a config bug. File one issue for each.
 
 - **The schema generator writes into the repo by default** (`--output` defaults
   to `docs/clickhouse-schemas`). Always pass a scratch `--output`.
-- **The scraper silently finds nothing.** `parseChangelog` matches
-  `## ClickHouse release vX.Y`, but upstream now uses
-  `### <a id="269"></a> ClickHouse release 26.9`. Every `--version` prints
-  `0 entries` and still exits 0.
+- **The scraper depends on the changelog heading format.** Upstream moved from
+  `## ClickHouse release vX.Y` to `### <a id="269"></a> ClickHouse release 26.9`
+  and the scraper found nothing until #3880. It now parses both and exits 1 on
+  0 entries; a new heading format will fail it again.
 - **`clickhouse local` reads stdin.** Started from a script without `< /dev/null`,
   it fails every query with `CANNOT_DETECT_FORMAT`.
 - **`*_log` tables are absent in `clickhouse local`**, and so are keeper, kafka,
@@ -66,7 +67,7 @@ A failure on both is a config bug. File one issue for each.
 - Newest stable: `v26.9.18.11-stable`. Newest LTS: `v26.8.26.12-lts`.
 - Newest schema doc: `v26.6.md`.
 - Step 3 scrape: `Filtered to version 26.9: 0 entries`, and the same for 26.8.
-  This is the parser trap above.
+  This was the parser trap above, fixed since in #3880.
 - **Column diff 26.6.8.7 → 26.9.18.11** (server `system.columns`, 66 referenced tables):
   - Added: `asynchronous_metrics.key_values`, `mutations.finish_time`,
     `parts.part_storage_type`, `parts_columns.estimates.default_count`,
