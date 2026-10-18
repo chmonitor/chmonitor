@@ -13,32 +13,29 @@ export const queryConditionCacheDeclarative: DeclarativeQueryConfig = {
   tableCheck: 'system.query_condition_cache',
   defaultView: 'auto',
   card: {
-    primary: 'condition',
-    badges: ['hits'],
-    metrics: ['hits'],
+    primary: 'key_hash',
+    badges: ['readable_entry_size'],
+    metrics: ['entry_size'],
   },
   sql: `
       SELECT
-          key,
-          hits,
-          formatReadableQuantity(hits) AS readable_hits,
-          round(hits * 100.0 / nullIf(max(hits) OVER (), 0), 2) AS pct_hits,
-          query,
-          condition
+          toString(key_hash) AS key_hash,
+          entry_size,
+          formatReadableSize(entry_size) AS readable_entry_size,
+          round(entry_size * 100.0 / nullIf(max(entry_size) OVER (), 0), 2) AS pct_entry_size,
+          matching_marks
       FROM system.query_condition_cache
-      ORDER BY hits DESC
+      ORDER BY entry_size DESC
       LIMIT 1000
     `,
-  columns: ['key', 'hits', 'readable_hits', 'query', 'condition'],
+  columns: ['key_hash', 'readable_entry_size', 'matching_marks'],
   columnFormats: {
-    hits: 'number-short',
-    readable_hits: 'background-bar',
-    query: ['code-dialog', { max_truncate: 120, hide_query_comment: true }],
-    condition: ['code-dialog', { max_truncate: 120 }],
+    readable_entry_size: 'background-bar',
+    matching_marks: ['code-dialog', { max_truncate: 120 }],
   },
   expandable: {
     type: 'config-details',
-    primaryColumns: ['key', 'hits', 'readable_hits'],
+    primaryColumns: ['key_hash', 'readable_entry_size'],
   },
   relatedCharts: [['query-cache', {}]],
 }
