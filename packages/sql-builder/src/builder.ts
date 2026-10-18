@@ -102,7 +102,6 @@ export class SqlBuilder {
     operator?: string,
     value?: SqlValue
   ): SqlBuilder {
-    // Grouped WHERE
     if (typeof column === 'function') {
       const grouped = column(new SqlBuilder())
       if (grouped.state.wheres.length === 0) {
@@ -119,7 +118,6 @@ export class SqlBuilder {
       })
     }
 
-    // Regular WHERE
     if (operator === undefined || value === undefined) {
       throw new Error('WHERE clause requires column, operator, and value')
     }
@@ -232,7 +230,6 @@ export class SqlBuilder {
     operator?: string,
     value?: SqlValue
   ): SqlBuilder {
-    // Grouped HAVING
     if (typeof column === 'function') {
       const grouped = column(new SqlBuilder())
       if (grouped.state.wheres.length === 0) {
@@ -249,7 +246,6 @@ export class SqlBuilder {
       })
     }
 
-    // Regular HAVING
     if (operator === undefined || value === undefined) {
       throw new Error('HAVING clause requires column, operator, and value')
     }

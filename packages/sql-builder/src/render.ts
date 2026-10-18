@@ -222,7 +222,6 @@ function formatValue(value: unknown): string {
     return 'NULL'
   }
   if (typeof value === 'string') {
-    // Escape single quotes
     return `'${value.replace(/'/g, "''")}'`
   }
   if (typeof value === 'boolean') {

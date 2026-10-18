@@ -202,8 +202,6 @@ export function col(column: string): ColumnBuilder {
   return new ColumnBuilder(column)
 }
 
-// Static helper methods on col namespace
-
 /**
  * Concatenate strings and column values
  *

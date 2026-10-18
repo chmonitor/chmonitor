@@ -92,10 +92,6 @@ export class ExtendedBuilder {
     this.modifications = modifications
   }
 
-  // ============================================================================
-  // Column Modifications
-  // ============================================================================
-
   /**
    * Adds a column to the SELECT clause
    *
@@ -158,10 +154,6 @@ export class ExtendedBuilder {
     ])
   }
 
-  // ============================================================================
-  // WHERE Modifications
-  // ============================================================================
-
   /**
    * Adds a WHERE condition (AND logic)
    *
@@ -206,10 +198,6 @@ export class ExtendedBuilder {
       { type: 'removeWhere', column, operator, value },
     ])
   }
-
-  // ============================================================================
-  // ORDER BY Modifications
-  // ============================================================================
 
   /**
    * Changes the ORDER BY direction for a column
@@ -276,10 +264,6 @@ export class ExtendedBuilder {
       { type: 'removeOrderBy', column },
     ])
   }
-
-  // ============================================================================
-  // JOIN Modifications
-  // ============================================================================
 
   /**
    * Adds an INNER JOIN
@@ -349,10 +333,6 @@ export class ExtendedBuilder {
     ])
   }
 
-  // ============================================================================
-  // Extension Chaining
-  // ============================================================================
-
   /**
    * Creates a new ExtendedBuilder extending this one
    *
@@ -368,7 +348,6 @@ export class ExtendedBuilder {
    * ```
    */
   extend(): ExtendedBuilder {
-    // Create a virtual builder that represents the current state
     const virtualBuilder: SqlBuilderLike = {
       state: this.getModifiedState(),
       build: () => this.build(),
@@ -376,10 +355,6 @@ export class ExtendedBuilder {
     }
     return new ExtendedBuilder(virtualBuilder, [])
   }
-
-  // ============================================================================
-  // Build Methods
-  // ============================================================================
 
   /**
    * Builds the final SQL query with all modifications applied
@@ -421,20 +396,14 @@ export class ExtendedBuilder {
     return renderExtendedQuery(state, true)
   }
 
-  // ============================================================================
-  // Internal Methods
-  // ============================================================================
-
   /**
    * Applies all modifications to base state
    *
    * @returns Modified builder state
    */
   private getModifiedState(): BuilderState {
-    // Clone the base state
     let state: BuilderState = this.cloneState(this.baseBuilder.state)
 
-    // Apply each modification in sequence
     for (const mod of this.modifications) {
       state = this.applyModification(state, mod)
     }
@@ -592,7 +561,6 @@ export class ExtendedBuilder {
     if (typeof column === 'string') {
       return column
     }
-    // SqlFragment type
     if ('alias' in column && typeof (column as any).alias === 'string') {
       return (column as any).alias as string
     }
