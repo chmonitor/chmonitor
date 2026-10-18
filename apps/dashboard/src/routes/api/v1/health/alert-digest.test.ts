@@ -27,6 +27,7 @@ mock.module('@/lib/feature-permissions/server', () => ({
 
 let requiresSignIn = false
 mock.module('@/lib/health/alert-routing-auth', () => ({
+  requireCloudSignInForRead: async () => null,
   resolveAlertRoutingOwnerId: async () => '',
   requiresSignInForWrite: () => requiresSignIn,
 }))

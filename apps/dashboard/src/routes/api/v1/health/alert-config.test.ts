@@ -32,6 +32,7 @@ mock.module('@/lib/feature-permissions/server', () => ({
 // Owner resolution — self-hosted single-tenant by default; write gate off.
 let requiresSignIn = false
 mock.module('@/lib/health/alert-routing-auth', () => ({
+  requireCloudSignInForRead: async () => null,
   SINGLE_TENANT_OWNER_ID: '',
   resolveAlertRoutingOwnerId: async () => '',
   requiresSignInForWrite: () => requiresSignIn,

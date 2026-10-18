@@ -8,6 +8,7 @@ let ownerId = ''
 let requiresSignIn = false
 
 mock.module('@/lib/health/alert-routing-auth', () => ({
+  requireCloudSignInForRead: async () => null,
   SINGLE_TENANT_OWNER_ID: '',
   resolveAlertRoutingOwnerId: async () => ownerId,
   requiresSignInForWrite: (resolvedOwnerId: string) =>
