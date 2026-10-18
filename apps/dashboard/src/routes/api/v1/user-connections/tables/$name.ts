@@ -34,6 +34,15 @@ async function handlePost(
   request: Request,
   tableName: string
 ): Promise<Response> {
+  // Auth before the feature check: an anonymous caller gets 401, never a
+  // 501 that reveals how storage is configured (#4013).
+  let userId: string
+  try {
+    userId = await resolveConnectionUserId()
+  } catch (error) {
+    return mapConnectionApiError(error, ROUTE_CONTEXT)
+  }
+
   if (!getUserConnectionsServerConfig().dbStorageEnabled) {
     return createErrorResponse(
       {
@@ -78,7 +87,6 @@ async function handlePost(
   }
 
   try {
-    const userId = await resolveConnectionUserId()
     const store = await resolveConnectionStore()
     const credentials = await store.getCredentials(userId, body.connectionId)
     if (!credentials) {
