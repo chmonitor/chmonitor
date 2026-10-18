@@ -22,13 +22,11 @@ import {
   selectVersionedSql,
 } from '@chm/clickhouse-client/clickhouse-version'
 import { getAvailableCharts, getChartQuery } from '@/lib/api/chart-registry'
+import { isMissingTableError } from '@/lib/query-config/__tests__/live-clickhouse'
 
 const HOST = process.env.CLICKHOUSE_HOST ?? ''
 const USER = process.env.CLICKHOUSE_USER ?? 'default'
 const PASSWORD = process.env.CLICKHOUSE_PASSWORD ?? ''
-
-/** UNKNOWN_TABLE (60) and UNKNOWN_DATABASE (81): the table is not configured. */
-const MISSING_TABLE = /\(UNKNOWN_TABLE\)|\(UNKNOWN_DATABASE\)|Code: (60|81)\./
 
 interface LiveQuery {
   label: string
@@ -154,7 +152,7 @@ describe('chart-registry SQL against a live ClickHouse (optional)', () => {
         )
         if (
           query.optional &&
-          (MISSING_TABLE.test(result.text) || declaredMissing)
+          (isMissingTableError(result.text) || declaredMissing)
         ) {
           skipped.push(query.label)
           console.log(`skip ${query.label}: ${result.text.slice(0, 160)}`)

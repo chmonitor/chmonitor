@@ -81,6 +81,19 @@ export async function postToLiveServer(
 const MISSING_TABLE_CODES = new Set([60, 81])
 
 /**
+ * `merge('system', '^part_log')` reports a missing table as
+ * CANNOT_EXTRACT_TABLE_STRUCTURE (636), not UNKNOWN_TABLE. Only this message
+ * counts: 636 from any other table function is a real error.
+ */
+const NO_MERGE_SOURCE = /Code: 636\..*no tables satisfied provided regexp/
+
+/** True when the server rejected a query because a table it reads is absent. */
+export function isMissingTableError(text: string): boolean {
+  const code = Number(/Code: (\d+)/.exec(text)?.[1])
+  return MISSING_TABLE_CODES.has(code) || NO_MERGE_SOURCE.test(text)
+}
+
+/**
  * Errors that say the server is not set up for this query, not that the SQL is
  * wrong: NO_ELEMENTS_IN_CONFIG (no ZooKeeper section), NO_ZOOKEEPER,
  * KEEPER_EXCEPTION, and UNKNOWN_QUERY_PARAMETER (a parameter the page fills in
@@ -109,7 +122,7 @@ export function classifyRejection(
   const declaresOptional = Boolean(config.optional || config.tableCheck)
   if (
     ENVIRONMENT_CODES.has(code) ||
-    (MISSING_TABLE_CODES.has(code) && declaresOptional)
+    (isMissingTableError(text) && declaresOptional)
   ) {
     return { kind: 'skip', reason }
   }
