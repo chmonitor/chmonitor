@@ -223,7 +223,8 @@ export async function executeTableConfig<
   const tableSettings = getTableClickHouseSettings(
     queryConfig,
     options.timezone,
-    maxResultRows
+    maxResultRows,
+    clickhouseVersion
   )
 
   // ClickHouse rejects `use_query_cache` combined with a non-'throw'

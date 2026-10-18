@@ -4,9 +4,11 @@ import type { QueryConfig } from '@/lib/query-config'
 
 import { getConnectionVersion, queryConnection } from './connection-client'
 import {
+  type ClickHouseVersion,
   parseVersion,
   selectVersionedSql,
 } from '@chm/clickhouse-client/clickhouse-version'
+import { dropUnsupportedSettings } from '@/lib/api/table-query-settings'
 
 /** Keep the config's string/number settings (e.g. `max_execution_time`). */
 function primitiveSettings(
@@ -19,14 +21,18 @@ function primitiveSettings(
   return out
 }
 
-async function selectSqlForConnection(
-  sql: string | VersionedSql[],
+async function getVersionForConnection(
   credentials: ConnectionCredentials
-): Promise<string> {
-  if (typeof sql === 'string') return sql
+): Promise<ClickHouseVersion | null> {
   const versionStr = await getConnectionVersion(credentials)
-  const version = versionStr ? parseVersion(versionStr) : null
-  return selectVersionedSql(sql, version)
+  return versionStr ? parseVersion(versionStr) : null
+}
+
+function selectSqlForVersion(
+  sql: string | VersionedSql[],
+  version: ClickHouseVersion | null
+): string {
+  return typeof sql === 'string' ? sql : selectVersionedSql(sql, version)
 }
 
 export async function executeConnectionTableConfig<
@@ -41,11 +47,19 @@ export async function executeConnectionTableConfig<
   metadata: Record<string, string | number>
   executedSql: string
 }> {
-  const executedSql = await selectSqlForConnection(queryConfig.sql, credentials)
+  const configSettings = primitiveSettings(queryConfig.clickhouseSettings)
+  // The version picks the SQL variant and drops settings it rejects; skip the
+  // round-trip when neither applies.
+  const version =
+    typeof queryConfig.sql !== 'string' ||
+    Object.keys(configSettings).length > 0
+      ? await getVersionForConnection(credentials)
+      : null
+  const executedSql = selectSqlForVersion(queryConfig.sql, version)
 
   const start = Date.now()
   const clickhouse_settings: Record<string, string | number> = {
-    ...primitiveSettings(queryConfig.clickhouseSettings),
+    ...dropUnsupportedSettings(configSettings, version),
     ...(timezone ? { session_timezone: timezone } : {}),
   }
 

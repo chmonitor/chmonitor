@@ -3,12 +3,14 @@ import type { QueryConfig } from '@/types/query-config'
 import {
   capTableResultRows,
   detectTableTruncation,
+  dropUnsupportedSettings,
   getTableClickHouseSettings,
   resolveTableResultRowLimit,
   TABLE_RESULT_OVERFLOW_MODE,
   TABLE_RESULT_ROW_LIMIT,
 } from './table-query-settings'
 import { describe, expect, test } from 'bun:test'
+import { parseVersion } from '@chm/clickhouse-client/clickhouse-version'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -393,5 +395,72 @@ describe('detectTableTruncation', () => {
       rowsBeforeLimit: 100,
     })
     expect(result.truncated).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// dropUnsupportedSettings — 26.9 made the analyzer mandatory and rejects any
+// query that disables it (SETTING_CONSTRAINT_VIOLATION). tables-overview
+// sends `allow_experimental_analyzer: 0`, so it failed on every 26.9 host.
+// ---------------------------------------------------------------------------
+
+describe('dropUnsupportedSettings', () => {
+  const v = parseVersion
+
+  test('drops analyzer-off on 26.9 and later', () => {
+    expect(
+      dropUnsupportedSettings(
+        { allow_experimental_analyzer: 0 } as Record<string, unknown>,
+        v('26.9.21.9')
+      )
+    ).toEqual({})
+    expect(
+      dropUnsupportedSettings(
+        { enable_analyzer: '0' } as Record<string, unknown>,
+        v('27.1.1.1')
+      )
+    ).toEqual({})
+    expect(
+      dropUnsupportedSettings(
+        { enable_analyzer: false } as Record<string, unknown>,
+        v('26.9')
+      )
+    ).toEqual({})
+  })
+
+  test('keeps analyzer-off below 26.9, where the old analyzer still exists', () => {
+    expect(
+      dropUnsupportedSettings(
+        { allow_experimental_analyzer: 0 },
+        v('26.8.30.8')
+      )
+    ).toEqual({ allow_experimental_analyzer: 0 })
+  })
+
+  test('keeps settings unchanged when the version is unknown', () => {
+    expect(
+      dropUnsupportedSettings({ allow_experimental_analyzer: 0 }, null)
+    ).toEqual({ allow_experimental_analyzer: 0 })
+  })
+
+  test('keeps analyzer-on and unrelated settings on 26.9', () => {
+    expect(
+      dropUnsupportedSettings(
+        { enable_analyzer: 1, max_execution_time: 25 },
+        v('26.9.21.9')
+      )
+    ).toEqual({ enable_analyzer: 1, max_execution_time: 25 })
+  })
+
+  test('getTableClickHouseSettings applies it for the given version', () => {
+    const config = {
+      clickhouseSettings: { allow_experimental_analyzer: 0 },
+    } as unknown as QueryConfig
+    expect(
+      getTableClickHouseSettings(config, undefined, 0, v('26.9.21.9'))
+    ).toEqual({})
+    expect(
+      getTableClickHouseSettings(config, undefined, 0, v('26.8.30.8'))
+    ).toEqual({ allow_experimental_analyzer: 0 })
   })
 })

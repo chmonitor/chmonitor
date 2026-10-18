@@ -1,6 +1,9 @@
 import type { ClickHouseSettings } from '@clickhouse/client'
 
+import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
 import type { QueryConfig } from '@/types/query-config'
+
+import { meetsMinVersion } from '@chm/clickhouse-client/clickhouse-version'
 
 /**
  * Default server-side row cap for table queries (#2490). Many table configs
@@ -51,6 +54,29 @@ function resolveResultRowLimit(
   return cap
 }
 
+const ANALYZER_SETTINGS = ['allow_experimental_analyzer', 'enable_analyzer']
+const FALSY_SETTING_VALUES = new Set(['0', 'false'])
+
+/**
+ * Drop config settings the server's version rejects. ClickHouse 26.9 made the
+ * analyzer mandatory and fails any query that turns it off
+ * (SETTING_CONSTRAINT_VIOLATION), so `allow_experimental_analyzer: 0` /
+ * `enable_analyzer: 0` is removed there and kept on older versions, where the
+ * config still gets the old analyzer it asked for. Unknown version: unchanged.
+ */
+export function dropUnsupportedSettings<T extends Record<string, unknown>>(
+  settings: T,
+  version: ClickHouseVersion | null | undefined
+): T {
+  if (!version || !meetsMinVersion(version, 26, 9)) return settings
+  const out: Record<string, unknown> = { ...settings }
+  for (const key of ANALYZER_SETTINGS) {
+    if (key in out && FALSY_SETTING_VALUES.has(String(out[key]).toLowerCase()))
+      delete out[key]
+  }
+  return out as T
+}
+
 /**
  * Build the `clickhouse_settings` for a table query, applying the row cap
  * (`max_result_rows` + `result_overflow_mode: 'break'`) so ClickHouse
@@ -58,13 +84,18 @@ function resolveResultRowLimit(
  * A config's own `max_result_rows` is respected as long as it doesn't exceed
  * the resolved cap. Passing `cap: 0` (`CHM_TABLE_MAX_RESULT_ROWS=0`) disables
  * the cap entirely — no `max_result_rows`/`result_overflow_mode` are set.
+ * Settings `version` rejects are dropped first (see `dropUnsupportedSettings`).
  */
 export function getTableClickHouseSettings(
   config: QueryConfig | undefined,
   timezone: string | undefined,
-  cap: number = resolveTableResultRowLimit()
+  cap: number = resolveTableResultRowLimit(),
+  version: ClickHouseVersion | null = null
 ): TableClickHouseSettings {
-  const configSettings = config?.clickhouseSettings ?? {}
+  const configSettings = dropUnsupportedSettings(
+    config?.clickhouseSettings ?? {},
+    version
+  )
 
   if (cap <= 0) {
     return {
