@@ -5,7 +5,7 @@
  * DELETE /api/v1/health/quiet-hours?id=... — delete a window
  *
  * Auth mirrors the sibling maint-windows.ts route: GET rides the global
- * /api/v1 middleware auth gate; POST/DELETE self-enforce a write gate
+ * /api/v1 middleware (signed-in only in cloud mode); POST/DELETE self-enforce a write gate
  * (`authorizeFeatureRequest`, feature 'settings') because that middleware is a
  * public passthrough under provider='none' / CHM_CLERK_PUBLIC_READ. Owner
  * resolution falls back to the OSS single-tenant owner (`''`) when Clerk isn't
@@ -17,6 +17,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { resolveBillingOwnerId } from '@/lib/billing/billing-owner'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
+import { requireCloudSignInForRead } from '@/lib/health/alert-routing-auth'
 import {
   createQuietHours,
   deleteQuietHours,
@@ -47,7 +48,10 @@ const CreateQuietHoursSchema = z.object({
   severityCap: z.literal('critical').nullable().optional().default(null),
 })
 
-async function handleGet(): Promise<Response> {
+async function handleGet(request: Request): Promise<Response> {
+  const signIn = await requireCloudSignInForRead(request)
+  if (signIn) return signIn
+
   const ownerId = await resolveOwnerId()
   const windows = await listQuietHours(ownerId)
   return Response.json(
@@ -128,9 +132,12 @@ async function handleDelete(request: Request): Promise<Response> {
 export const Route = createFileRoute('/api/v1/health/quiet-hours')({
   server: {
     handlers: {
-      GET: async () => handleGet(),
+      GET: async ({ request }) => handleGet(request),
       POST: async ({ request }) => handlePost(request),
       DELETE: async ({ request }) => handleDelete(request),
     },
   },
 })
+
+// Exported for unit tests only.
+export { handleGet as __handleGetForTests }

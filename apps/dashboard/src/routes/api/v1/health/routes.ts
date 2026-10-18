@@ -25,6 +25,7 @@ import {
   listRoutes,
 } from '@/lib/health/alert-routing'
 import {
+  requireCloudSignInForRead,
   requiresSignInForWrite,
   resolveAlertRoutingOwnerId,
 } from '@/lib/health/alert-routing-auth'
@@ -98,7 +99,10 @@ function toPublicRoute(
   }
 }
 
-async function handleGet(): Promise<Response> {
+async function handleGet(request: Request): Promise<Response> {
+  const signIn = await requireCloudSignInForRead(request)
+  if (signIn) return signIn
+
   const ownerId = await resolveAlertRoutingOwnerId()
   const routes = await listRoutes(ownerId)
   return Response.json(
@@ -409,7 +413,7 @@ async function handleDelete(request: Request): Promise<Response> {
 export const Route = createFileRoute('/api/v1/health/routes')({
   server: {
     handlers: {
-      GET: async () => handleGet(),
+      GET: async ({ request }) => handleGet(request),
       POST: async ({ request }) => handlePost(request),
       DELETE: async ({ request }) => handleDelete(request),
     },

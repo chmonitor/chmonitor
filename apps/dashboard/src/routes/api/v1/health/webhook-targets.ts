@@ -12,6 +12,7 @@ import type { AlertPayload } from '@/lib/health/adapters'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 import {
+  requireCloudSignInForRead,
   requiresSignInForWrite,
   resolveAlertRoutingOwnerId,
 } from '@/lib/health/alert-routing-auth'
@@ -88,7 +89,10 @@ async function requireWriteAccess(
   return null
 }
 
-async function handleGet(): Promise<Response> {
+async function handleGet(request: Request): Promise<Response> {
+  const signIn = await requireCloudSignInForRead(request)
+  if (signIn) return signIn
+
   const ownerId = await resolveAlertRoutingOwnerId()
   const effective = await listEffectiveCustomWebhookConfig(ownerId)
   return Response.json(
@@ -282,7 +286,7 @@ async function handlePreview(request: Request): Promise<Response> {
 export const Route = createFileRoute('/api/v1/health/webhook-targets')({
   server: {
     handlers: {
-      GET: async () => handleGet(),
+      GET: async ({ request }) => handleGet(request),
       PUT: async ({ request }) => handlePut(request),
       POST: async ({ request }) => handlePreview(request),
       DELETE: async ({ request }) => handleDelete(request),

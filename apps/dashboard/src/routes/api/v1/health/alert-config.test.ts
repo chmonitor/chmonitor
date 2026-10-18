@@ -93,7 +93,9 @@ describe('GET /api/v1/health/alert-config', () => {
         updatedAt: 5,
       },
     ]
-    const res = await handleGet()
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/health/alert-config')
+    )
     const body = (await res.json()) as {
       configs: {
         channel: string
@@ -113,7 +115,9 @@ describe('GET /api/v1/health/alert-config', () => {
   })
 
   test('reports which channels are env-configured without leaking secrets', async () => {
-    const res = await handleGet()
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/health/alert-config')
+    )
     const body = (await res.json()) as { env: Record<string, boolean> }
     expect(typeof body.env.opsgenie).toBe('boolean')
     expect(typeof body.env.webhook).toBe('boolean')
@@ -128,7 +132,11 @@ describe('GET /api/v1/health/alert-config', () => {
     try {
       process.env.HEALTH_ALERT_ENABLED = 'false'
       process.env.CHM_HEALTH_SWEEP_ENABLED = 'true'
-      let body = (await (await handleGet()).json()) as {
+      let body = (await (
+        await handleGet(
+          new Request('https://dash.example.com/api/v1/health/alert-config')
+        )
+      ).json()) as {
         delivery: { alertingEnabled: boolean; sweepEnabled: boolean }
       }
       expect(body.delivery).toEqual({
@@ -138,7 +146,11 @@ describe('GET /api/v1/health/alert-config', () => {
 
       process.env.HEALTH_ALERT_ENABLED = 'true'
       process.env.CHM_HEALTH_SWEEP_ENABLED = 'false'
-      body = (await (await handleGet()).json()) as typeof body
+      body = (await (
+        await handleGet(
+          new Request('https://dash.example.com/api/v1/health/alert-config')
+        )
+      ).json()) as typeof body
       expect(body.delivery).toEqual({
         alertingEnabled: true,
         sweepEnabled: false,
@@ -147,7 +159,11 @@ describe('GET /api/v1/health/alert-config', () => {
       // Flag unset + webhook URL set → on (same resolution as the sweep).
       delete process.env.HEALTH_ALERT_ENABLED
       process.env.HEALTH_ALERT_WEBHOOK_URL = 'https://hooks.slack.com/test'
-      body = (await (await handleGet()).json()) as typeof body
+      body = (await (
+        await handleGet(
+          new Request('https://dash.example.com/api/v1/health/alert-config')
+        )
+      ).json()) as typeof body
       expect(body.delivery.alertingEnabled).toBe(true)
     } finally {
       if (saved.url === undefined) delete process.env.HEALTH_ALERT_WEBHOOK_URL

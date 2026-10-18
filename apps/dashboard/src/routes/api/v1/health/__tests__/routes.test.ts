@@ -76,7 +76,9 @@ function jsonContainsFullSecret(body: unknown, secret: string): boolean {
 
 describe('GET /api/v1/health/routes', () => {
   test('returns 200 with empty list when store has no routes', async () => {
-    const res = await handleGet()
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/health/routes')
+    )
     expect(res.status).toBe(200)
     expect(
       (await res.json()) as { success: boolean; routes: unknown[] }
@@ -108,7 +110,9 @@ describe('GET /api/v1/health/routes', () => {
       },
     ]
 
-    const res = await handleGet()
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/health/routes')
+    )
     const body = await res.json()
     expect(res.status).toBe(200)
     expect(jsonContainsFullSecret(body, FULL_ROUTING_KEY)).toBe(false)
