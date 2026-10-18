@@ -112,6 +112,69 @@ FROM system.disks`,
   },
 
   {
+    id: 'disk-time-to-full',
+    type: 'disk-time-to-full',
+    title: 'Disk Fill Forecast',
+    description:
+      'Fits a linear trend to each disk’s free space over the last 6 hours and reports how much of the current free space that trend uses up in 24 hours. 100% means the disk fills within a day, 400% within 6 hours. Catches a fast-filling disk long before disk-usage crosses its percent threshold.',
+    // Higher is worse, so the shared thresholds and classifier apply as-is.
+    // A disk that is flat or growing reads 0, so a firing alert resolves.
+    // Fewer than 30 samples in the window (asynchronous_metric_log just
+    // enabled) reads NULL: unknown, no alert. Capped at 10000% (full in
+    // ~15 minutes) so one empty disk cannot produce Infinity.
+    sql: `SELECT round(maxOrNull(fill_pct), 1) AS fill_24h_percent
+FROM (
+  SELECT
+    argMax(value, event_time) AS free_now,
+    simpleLinearRegression(toFloat64(toUInt32(event_time)), value).1 AS bytes_per_second,
+    if(free_now <= 0, 10000, least(greatest(-bytes_per_second, 0) * 86400 * 100 / free_now, 10000)) AS fill_pct
+  FROM system.asynchronous_metric_log
+  WHERE startsWith(metric, 'DiskAvailable_')
+    AND event_date >= toDate(now() - INTERVAL 6 HOUR)
+    AND event_time > now() - INTERVAL 6 HOUR
+  GROUP BY metric
+  HAVING count() >= 30
+)`,
+    valueKey: 'fill_24h_percent',
+    defaults: { warning: 100, critical: 400 },
+    formatLabel: (v) =>
+      v && v > 0
+        ? `full in ~${Math.max(1, Math.round(2400 / v))}h at the current rate`
+        : 'not filling',
+    optional: true,
+    tableCheck: 'system.asynchronous_metric_log',
+    remediationActions: [
+      {
+        id: 'disk-time-to-full-runbook',
+        label: 'Disk usage runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/disk-usage-runbook',
+      },
+      {
+        id: 'disk-time-to-full-detail',
+        label: 'Get disk fill rates',
+        kind: 'diagnostic',
+        description:
+          'Per disk: free space now, the 6-hour trend, and hours until full at that rate.',
+        sql: `SELECT
+  replaceOne(metric, 'DiskAvailable_', '') AS disk,
+  formatReadableSize(argMax(value, event_time)) AS free_now,
+  formatReadableSize(-simpleLinearRegression(toFloat64(toUInt32(event_time)), value).1 * 3600) AS used_per_hour,
+  if(simpleLinearRegression(toFloat64(toUInt32(event_time)), value).1 < 0,
+    round(argMax(value, event_time) / -simpleLinearRegression(toFloat64(toUInt32(event_time)), value).1 / 3600, 1),
+    NULL) AS hours_to_full
+FROM system.asynchronous_metric_log
+WHERE startsWith(metric, 'DiskAvailable_')
+  AND event_date >= toDate(now() - INTERVAL 6 HOUR)
+  AND event_time > now() - INTERVAL 6 HOUR
+GROUP BY metric
+ORDER BY hours_to_full ASC NULLS LAST
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
     id: 'keeper-unavailable',
     type: 'keeper-unavailable',
     title: 'Keeper Exceptions',

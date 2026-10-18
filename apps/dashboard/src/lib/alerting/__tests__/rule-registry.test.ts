@@ -222,6 +222,27 @@ describe('disk-usage rule', () => {
   })
 })
 
+describe('disk-time-to-full rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'disk-time-to-full')
+
+  test('forecasts from asynchronous_metric_log, skipped without it', () => {
+    expect(rule?.sql).toContain("startsWith(metric, 'DiskAvailable_')")
+    expect(rule?.sql).toContain('HAVING count() >= 30')
+    expect(rule?.tableCheck).toBe('system.asynchronous_metric_log')
+    expect(rule?.optional).toBe(true)
+  })
+
+  // 100% of free space per 24h = full in a day; 400% = full in 6 hours.
+  test('full within 24h warns, within 6h is critical, not filling is ok', () => {
+    expect(classifyValue(0, rule!.defaults)).toBe('ok')
+    expect(classifyValue(99, rule!.defaults)).toBe('ok')
+    expect(classifyValue(100, rule!.defaults)).toBe('warning')
+    expect(classifyValue(400, rule!.defaults)).toBe('critical')
+    expect(rule!.formatLabel!(100)).toBe('full in ~24h at the current rate')
+    expect(rule!.formatLabel!(0)).toBe('not filling')
+  })
+})
+
 describe('keeper-unavailable rule', () => {
   const rule = BUILTIN_RULES.find((r) => r.id === 'keeper-unavailable')!
 

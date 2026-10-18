@@ -71,6 +71,7 @@ const TABLE_CATEGORY: Record<string, string> = {
   'system.replication_queue': 'replication',
   'system.distribution_queue': 'replication',
   'system.disks': 'storage',
+  'system.asynchronous_metric_log': 'storage',
   'system.parts': 'parts & merges',
   'system.part_log': 'parts & merges',
   'system.merges': 'parts & merges',
