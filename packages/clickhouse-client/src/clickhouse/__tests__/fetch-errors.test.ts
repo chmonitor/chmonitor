@@ -57,6 +57,14 @@ describe('handleFetchError classifies by ClickHouse error type', () => {
       'table_not_found',
     ],
     [
+      'Code: 636. DB::Exception: There are no tables satisfied provided regexp, you must specify table structure manually. (CANNOT_EXTRACT_TABLE_STRUCTURE)',
+      'table_not_found',
+    ],
+    [
+      'Code: 636. DB::Exception: The table structure cannot be extracted from a CSV format file. You can specify the structure manually. (CANNOT_EXTRACT_TABLE_STRUCTURE)',
+      'query_error',
+    ],
+    [
       "Code: 497. DB::Exception: ro: Not enough privileges. To execute this query, it's necessary to have the grant SELECT(event_time) ON system.query_log. (ACCESS_DENIED)",
       'permission_error',
     ],
