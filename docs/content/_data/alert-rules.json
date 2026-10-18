@@ -216,6 +216,32 @@
       "title": "Query Timeout Breaches (1h)"
     },
     {
+      "category": "other",
+      "commonCauses": [],
+      "description": "Running queries as a percentage of max_concurrent_queries. At 100% every new query fails with TOO_MANY_SIMULTANEOUS_QUERIES — find what is holding slots (long or stuck queries, a client retry storm).",
+      "fix": [
+        {
+          "description": "Running queries grouped by user, with the oldest elapsed time in each group.",
+          "id": "concurrent-queries-detail",
+          "kind": "diagnostic",
+          "label": "Get running queries by user",
+          "sql": "SELECT user, count() AS running, round(max(elapsed)) AS oldest_seconds, any(substring(query, 1, 200)) AS sample_query\nFROM system.processes\nGROUP BY user\nORDER BY running DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "concurrent-queries",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "80% of max_concurrent_queries",
+      "sql": "SELECT round(\n  (SELECT value FROM system.metrics WHERE metric = 'Query') * 100.0\n  / nullIf(toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_concurrent_queries')), 0),\n  1\n) AS concurrency_percent",
+      "tableCheck": "system.server_settings",
+      "thresholds": {
+        "critical": 95,
+        "warning": 80
+      },
+      "title": "Concurrent Query Saturation"
+    },
+    {
       "category": "backups",
       "commonCauses": [
         "Remote storage unavailable or credentials expired",

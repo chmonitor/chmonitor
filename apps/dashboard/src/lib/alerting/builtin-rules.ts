@@ -227,6 +227,41 @@ WHERE event_time > now() - INTERVAL 1 HOUR
   },
 
   {
+    id: 'concurrent-queries',
+    type: 'concurrent-queries',
+    title: 'Concurrent Query Saturation',
+    description:
+      'Running queries as a percentage of max_concurrent_queries. At 100% every new query fails with TOO_MANY_SIMULTANEOUS_QUERIES — find what is holding slots (long or stuck queries, a client retry storm).',
+    // NULL when the limit is 0 (unlimited), so the rule is skipped. At 100%
+    // the sweep's own query is refused, which shows as a failed check, not
+    // as this alert; the thresholds warn before that point.
+    sql: `SELECT round(
+  (SELECT value FROM system.metrics WHERE metric = 'Query') * 100.0
+  / nullIf(toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_concurrent_queries')), 0),
+  1
+) AS concurrency_percent`,
+    valueKey: 'concurrency_percent',
+    defaults: { warning: 80, critical: 95 },
+    formatLabel: (v) => `${v ?? 0}% of max_concurrent_queries`,
+    optional: true,
+    tableCheck: 'system.server_settings',
+    remediationActions: [
+      {
+        id: 'concurrent-queries-detail',
+        label: 'Get running queries by user',
+        kind: 'diagnostic',
+        description:
+          'Running queries grouped by user, with the oldest elapsed time in each group.',
+        sql: `SELECT user, count() AS running, round(max(elapsed)) AS oldest_seconds, any(substring(query, 1, 200)) AS sample_query
+FROM system.processes
+GROUP BY user
+ORDER BY running DESC
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
     id: 'failed-backups',
     type: 'failed-backups',
     title: 'Failed Backups (24h)',

@@ -309,6 +309,23 @@ describe('query-timeout rule', () => {
   })
 })
 
+describe('concurrent-queries rule', () => {
+  const rule = BUILTIN_RULES.find((r) => r.id === 'concurrent-queries')
+
+  test('is a built-in percent of max_concurrent_queries', () => {
+    expect(rule?.sql).toContain("metric = 'Query'")
+    expect(rule?.sql).toContain("name = 'max_concurrent_queries'")
+    expect(rule?.tableCheck).toBe('system.server_settings')
+  })
+
+  test('boundaries; an unlimited server (NULL) never fires', () => {
+    expect(classifyValue(79.9, rule!.defaults)).toBe('ok')
+    expect(classifyValue(80, rule!.defaults)).toBe('warning')
+    expect(classifyValue(95, rule!.defaults)).toBe('critical')
+    expect(classifyValue(null, rule!.defaults)).toBe('ok')
+  })
+})
+
 describe('failed-backups rule', () => {
   const rule = BUILTIN_RULES.find((r) => r.id === 'failed-backups')!
 
