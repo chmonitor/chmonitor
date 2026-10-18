@@ -1,5 +1,6 @@
 import type { QueryConfig } from '@/types/query-config'
 
+import { CLUSTER_FANOUT_SETTINGS } from '@/lib/cluster/fanout-settings'
 import { ColumnFormat } from '@/types/column-format'
 
 export type Row = {
@@ -57,6 +58,7 @@ export const clustersReplicasStatusConfig: QueryConfig = {
       ORDER BY
           1 ASC,
           2 DESC
+      ${CLUSTER_FANOUT_SETTINGS}
   `,
   columns: [
     'host',
@@ -125,6 +127,7 @@ export const replicaTablesConfig: QueryConfig = {
       ORDER BY
           1 ASC,
           2 DESC
+      ${CLUSTER_FANOUT_SETTINGS}
   `,
   columns: [
     'host',

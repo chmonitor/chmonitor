@@ -51,6 +51,7 @@ import type { HostCapabilities } from './capability-cache'
 import { CAPABILITY_TTL_MS, getHostCapabilities } from './capability-cache'
 import { fetchData } from '@chm/clickhouse-client'
 import { debug } from '@chm/logger'
+import { CLUSTER_FANOUT_SETTINGS } from '@/lib/cluster/fanout-settings'
 
 /** First re-probe delay after an auth failure. Same order as the TTL. */
 export const CLUSTER_AUTH_BACKOFF_START_MS = 10 * 60 * 1000
@@ -140,6 +141,7 @@ export function buildClusterFanoutProbeSql(): string {
   return `
     SELECT count() AS replica_count
     FROM clusterAllReplicas({cluster: String}, system.replicas)
+    ${CLUSTER_FANOUT_SETTINGS}
   `
 }
 

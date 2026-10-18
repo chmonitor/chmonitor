@@ -10,6 +10,8 @@
  * Clients send a countKey and cluster name, not raw SQL.
  */
 
+import { CLUSTER_FANOUT_SETTINGS } from '@/lib/cluster/fanout-settings'
+
 export interface ClusterCountQuery {
   /** SQL query with {cluster: String} parameter */
   query: string
@@ -30,6 +32,7 @@ export const clusterCountRegistry: Record<string, ClusterCountQuery> = {
       SELECT COUNT() as count
       FROM clusterAllReplicas({cluster: String}, system.replicas)
       WHERE is_readonly = 1
+      ${CLUSTER_FANOUT_SETTINGS}
     `,
   },
 
@@ -38,6 +41,7 @@ export const clusterCountRegistry: Record<string, ClusterCountQuery> = {
     query: `
       SELECT COUNT() as count
       FROM clusterAllReplicas({cluster: String}, system.replication_queue)
+      ${CLUSTER_FANOUT_SETTINGS}
     `,
   },
 
@@ -47,6 +51,7 @@ export const clusterCountRegistry: Record<string, ClusterCountQuery> = {
       SELECT COUNT() as count
       FROM clusterAllReplicas({cluster: String}, system.replicas)
       WHERE absolute_delay > 300
+      ${CLUSTER_FANOUT_SETTINGS}
     `,
   },
 }

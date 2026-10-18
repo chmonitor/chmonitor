@@ -33,6 +33,7 @@ import { sanitizeDbQueryError } from '@/lib/api/error-handler/sanitize-error'
 import { runWithQueryCache } from '@/lib/api/query-cache-settings'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
+import { CLUSTER_FANOUT_SETTINGS } from '@/lib/cluster/fanout-settings'
 import {
   clusterViewNotice,
   getClusterFanout,
@@ -186,6 +187,7 @@ export const Route = createFileRoute('/api/v1/notifications')({
               SELECT COUNT() as count
               FROM clusterAllReplicas({cluster: String}, system.replicas)
               WHERE is_readonly = 1
+              ${CLUSTER_FANOUT_SETTINGS}
             `,
                 format: 'JSONEachRow',
                 query_params: { cluster: fanout.cluster },
