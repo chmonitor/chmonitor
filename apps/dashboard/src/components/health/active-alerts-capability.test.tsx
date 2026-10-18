@@ -230,6 +230,26 @@ describe('ActiveAlertsPanel when acks are unavailable (#3897)', () => {
     expect(button(c, 'Acknowledge')).toBeDefined()
   })
 
+  test('a failing acks request shows the ack-state marker beside the findings (#3965)', async () => {
+    ackStatus = 500
+    configAnswer = 'd1'
+    const c = await render('active')
+    expect(c.textContent).toContain('Disk usage')
+    const marker = c.querySelector('[data-testid="acks-unavailable"]')
+    expect(marker?.textContent).toContain('Ack state unavailable')
+  })
+
+  test('no marker when acks load, or when a signed-out cloud visitor skips them (#3965)', async () => {
+    configAnswer = 'd1'
+    let c = await render('active')
+    expect(c.querySelector('[data-testid="acks-unavailable"]')).toBeNull()
+    document.body.replaceChildren()
+    process.env.VITE_CLOUD_MODE = 'true'
+    ackStatus = 401
+    c = await render('active')
+    expect(c.querySelector('[data-testid="acks-unavailable"]')).toBeNull()
+  })
+
   test('self-hosted still requests acks', async () => {
     configAnswer = 'd1'
     await render('active')
