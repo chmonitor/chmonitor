@@ -208,7 +208,9 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
       () =>
         new Promise((resolve) => {
           release = () =>
-            resolve({ json: () => Promise.resolve([{ count: '0' }]) })
+            resolve({
+              json: () => Promise.resolve([{ count: '0', sentinel: '1' }]),
+            })
         })
     )
 
@@ -237,6 +239,37 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
 
   // Regression coverage for issue #2505: a probe failure (network/timeout/
   // auth) must be distinguishable from a confirmed-missing table.
+  describe('grant-filtered system.tables (#3895)', () => {
+    it('a system table missing from a filtered listing is hidden, and not cached', async () => {
+      mockClientQuery.mockResolvedValue({
+        json: () => Promise.resolve([{ count: '0', sentinel: '0' }]),
+      })
+
+      expect(await l2cache.checkTableExists(0, 'system', 'backup_log')).toBe(
+        'hidden'
+      )
+      expect(l2cache.tableCacheSize()).toBe(0)
+    })
+
+    it('a system table missing from a full listing is still missing', async () => {
+      mockClientQuery.mockResolvedValue({
+        json: () => Promise.resolve([{ count: '0', sentinel: '1' }]),
+      })
+
+      expect(await l2cache.checkTableExists(0, 'system', 'backup_log')).toBe(
+        false
+      )
+    })
+
+    it('a non-system table is never reported hidden', async () => {
+      mockClientQuery.mockResolvedValue({
+        json: () => Promise.resolve([{ count: '0', sentinel: '0' }]),
+      })
+
+      expect(await l2cache.checkTableExists(0, 'app', 'events')).toBe(false)
+    })
+  })
+
   describe('transient probe failures (issue #2505)', () => {
     it('returns "unknown" (not false) when the probe query throws', async () => {
       mockClientQuery.mockRejectedValue(new Error('connection refused'))
@@ -356,6 +389,7 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
           Promise.resolve([
             { database: 'system', name: 'backup_log' },
             { database: 'system', name: 'error_log' },
+            { database: 'system', name: 'one' },
           ]),
       })
       const pairs = [
@@ -415,6 +449,26 @@ describe('checkTableExists — L2 (KV) cache wiring (issue #2183)', () => {
       const again = await l2cache.checkTablesExist(0, [['system', 'a']])
       expect(again.get('system.a')).toBe(true)
       expect(mockClientQuery).not.toHaveBeenCalled()
+    })
+
+    it('a grant-filtered view reports unseen system tables as hidden, not missing (#3895)', async () => {
+      // Live on 26.5 as a user with only GRANT SELECT ON system.parts:
+      // system.tables lists `parts` and nothing else, not even `one`.
+      mockClientQuery.mockResolvedValue({
+        json: () => Promise.resolve([{ database: 'system', name: 'parts' }]),
+      })
+
+      const batch = await l2cache.checkTablesExist(0, [
+        ['system', 'parts'],
+        ['system', 'backup_log'],
+        ['app', 'events'],
+      ])
+
+      expect(batch.get('system.parts')).toBe(true)
+      expect(batch.get('system.backup_log')).toBe('hidden')
+      expect(batch.get('app.events')).toBe(false)
+      // Not cached: a later GRANT is seen on the next probe.
+      expect(l2cache.tableCacheSize()).toBe(2)
     })
 
     it('failed query yields unknown, never false, and caches nothing', async () => {

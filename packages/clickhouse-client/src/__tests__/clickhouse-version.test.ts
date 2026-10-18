@@ -515,9 +515,23 @@ describe('checkTableAvailability', () => {
     expect(result.message).not.toContain('does not exist')
   })
 
+  it('tells a user whose grants hide the table to grant it (#3895)', async () => {
+    mockClientQuery.mockResolvedValue({
+      json: () => Promise.resolve([{ count: '0', sentinel: '0' }]),
+    })
+
+    const result = await checkTableAvailability(0, 'system', 'backup_log')
+
+    expect(result.exists).toBe(false)
+    expect(result.checkFailed).toBe(true)
+    expect(result.message).toBe(
+      'Table system.backup_log is not visible to this user. Grant SHOW TABLES and SELECT ON system.backup_log to the monitoring user.'
+    )
+  })
+
   it('reports a confirmed missing table without checkFailed when the probe succeeds', async () => {
     mockClientQuery.mockResolvedValue({
-      json: () => Promise.resolve([{ count: '0' }]),
+      json: () => Promise.resolve([{ count: '0', sentinel: '1' }]),
     })
 
     const result = await checkTableAvailability(0, 'system', 'backup_log')

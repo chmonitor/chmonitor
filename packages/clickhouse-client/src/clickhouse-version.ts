@@ -319,6 +319,14 @@ export async function checkTableAvailability(
       message: `Could not verify table ${database}.${table} — connection issue while checking availability.`,
     }
   }
+  if (exists === 'hidden') {
+    return {
+      exists: false,
+      hasData: false,
+      checkFailed: true,
+      message: `Table ${database}.${table} is not visible to this user. Grant SHOW TABLES and SELECT ON ${database}.${table} to the monitoring user.`,
+    }
+  }
   if (!exists) {
     return {
       exists: false,

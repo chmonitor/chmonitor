@@ -310,6 +310,26 @@ describe('Table Validator', () => {
       expect(result.error).toContain('system.backup_log')
     })
 
+    it('runs the query for a table hidden by grants, so ClickHouse names the missing grant (#3895)', async () => {
+      const { tableExistenceCache } = await import('../table-existence-cache')
+      const mockCheckTableExists =
+        tableExistenceCache.checkTableExists as jest.MockedFunction<
+          typeof tableExistenceCache.checkTableExists
+        >
+      mockCheckTableExists.mockResolvedValue('hidden')
+
+      const config: QueryConfigLike = {
+        name: 'test',
+        sql: 'SELECT * FROM system.backup_log',
+        columns: ['name'],
+        optional: true,
+        tableCheck: 'system.backup_log',
+      }
+
+      const result = await validateTableExistence(config, 0)
+      expect(result).toEqual({ shouldProceed: true, missingTables: [] })
+    })
+
     it('should prioritize "probe_failed" over "table_missing" when some tables error and others are confirmed missing', async () => {
       const { tableExistenceCache } = await import('../table-existence-cache')
       const mockCheckTableExists =
