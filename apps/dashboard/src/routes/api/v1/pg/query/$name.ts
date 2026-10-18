@@ -23,6 +23,8 @@ import {
   formatPostgresError,
   type PostgresConnectionConfig,
 } from '@chm/postgres-client'
+import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { classifyConnectionError } from '@/lib/connection-errors'
 import {
   credentialsToPgConfig,
@@ -116,6 +118,11 @@ async function resolvePgConfig(
 }
 
 async function handlePost(request: Request, name: string): Promise<Response> {
+  // Cloud only: self-hosted visitors keep querying Postgres anonymously.
+  if (isCloudModeServer() && !(await isAuthenticatedRequest(request))) {
+    return jsonError('permission_error', 'Authentication required', 401)
+  }
+
   if (!featureFlags.postgresSource()) {
     return jsonError(
       'permission_error',
@@ -183,3 +190,6 @@ export const Route = createFileRoute('/api/v1/pg/query/$name')({
     },
   },
 })
+
+// Exported for unit tests only.
+export { handlePost as __handlePostForTests }
