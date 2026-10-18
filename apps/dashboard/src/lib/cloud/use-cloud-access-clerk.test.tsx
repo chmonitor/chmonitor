@@ -10,15 +10,18 @@ import {
   beforeAll,
   describe,
   expect,
+  jest,
   mock,
   test,
 } from 'bun:test'
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 
 let clerkUser = { isLoaded: false, isSignedIn: false }
+let clerkStatus = 'loading'
 mock.module('@/lib/clerk/clerk-client', () => ({ isClerkEnabled: () => true }))
 mock.module('@clerk/tanstack-react-start', () => ({
   useUser: () => clerkUser,
+  useClerk: () => ({ status: clerkStatus }),
   SignInButton: ({ children }: { children: unknown }) => children,
 }))
 mock.module('@/lib/hooks/use-active-pg-connection', () => ({
@@ -54,13 +57,22 @@ afterAll(async () => {
   await GlobalRegistrator.unregister()
 })
 
-afterEach(() => {
+const roots: { unmount: () => void }[] = []
+
+afterEach(async () => {
+  const { act } = await import('react')
+  await act(async () => {
+    for (const root of roots.splice(0)) root.unmount()
+  })
   document.body.replaceChildren()
   requested.length = 0
   delete process.env.VITE_CLOUD_MODE
+  clerkStatus = 'loading'
+  jest.useRealTimers()
 })
 
-async function renderPgPage() {
+// Fake timers swallow setTimeout, so that test flushes via setImmediate.
+async function renderPgPage(sleep: 'timeout' | 'immediate' = 'timeout') {
   const { act, createElement } = await import('react')
   const { createRoot } = await import('react-dom/client')
   const { QueryClient, QueryClientProvider } = await import(
@@ -73,8 +85,10 @@ async function renderPgPage() {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const config = { name: 'activity', title: 'Activity', sql: '', columns: [] }
+  const root = createRoot(container)
+  roots.push(root)
   await act(async () => {
-    createRoot(container).render(
+    root.render(
       createElement(
         QueryClientProvider,
         { client },
@@ -84,7 +98,9 @@ async function renderPgPage() {
   })
   for (let i = 0; i < 5; i++)
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 0))
+      await new Promise((r) =>
+        sleep === 'immediate' ? setImmediate(r) : setTimeout(r, 0)
+      )
     })
   return container
 }
@@ -100,6 +116,29 @@ describe('cloud with Clerk (#3957)', () => {
     clerkUser = { isLoaded: false, isSignedIn: false }
     const c = await renderPgPage()
     expect(prompt(c)).toBeNull()
+    expect(pgRequests()).toEqual([])
+  })
+
+  test('Clerk never loads: guest after the timeout, so the prompt shows (#3966)', async () => {
+    process.env.VITE_CLOUD_MODE = 'true'
+    clerkUser = { isLoaded: false, isSignedIn: false }
+    jest.useFakeTimers({ doNotFake: ['setImmediate'] } as { now?: number })
+    const { act } = await import('react')
+    const c = await renderPgPage('immediate')
+    expect(prompt(c)).toBeNull()
+    await act(async () => {
+      jest.advanceTimersByTime(8_000)
+    })
+    expect(prompt(c)).not.toBeNull()
+    expect(pgRequests()).toEqual([])
+  })
+
+  test('Clerk reports a load error: guest straight away (#3966)', async () => {
+    process.env.VITE_CLOUD_MODE = 'true'
+    clerkUser = { isLoaded: false, isSignedIn: false }
+    clerkStatus = 'error'
+    const c = await renderPgPage()
+    expect(prompt(c)).not.toBeNull()
     expect(pgRequests()).toEqual([])
   })
 
