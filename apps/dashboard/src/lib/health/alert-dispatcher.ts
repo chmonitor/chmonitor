@@ -6,6 +6,7 @@ import {
   buildWebhookDispatchBody,
 } from './adapters'
 import { instancePrefix } from './adapters/identity'
+import { escapeSlackMrkdwn } from './adapters/slack'
 import {
   resolveChannelDelivery,
   severityMeetsThreshold,
@@ -163,7 +164,7 @@ export async function fireWebhook(
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 10_000)
   try {
-    const text = `${instancePrefix(identity ?? {})}[${alertPrefix(alert)}] ${alert.title} — ${alert.label} (host ${alert.hostId})`
+    const text = `${instancePrefix(identity ?? {})}[${alertPrefix(alert)}] ${alert.title} — ${escapeSlackMrkdwn(alert.label)} (host ${alert.hostId})`
     // Per-URL body selection (#2656): a Discord target previews the real rich
     // embed via the proxy's verbatim `provider` path; every other URL keeps the
     // backward-compatible `{ url, text }` (the proxy wraps it as

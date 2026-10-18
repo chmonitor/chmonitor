@@ -169,3 +169,23 @@ describe('dispatchAlert — per-channel gating', () => {
     expect(healthchecksCalls()).toHaveLength(0)
   })
 })
+
+describe('fireWebhook — label escaping', () => {
+  test('a label with Slack control sequences is escaped in the posted text', async () => {
+    saveAlertSettings(BASE)
+    await dispatchAlert({
+      checkId: 'c',
+      title: 'T',
+      severity: 'warning',
+      value: 1,
+      label: '<!channel> <@U123> *bold* a&b',
+      hostId: 0,
+    })
+    const calls = webhookCalls()
+    expect(calls).toHaveLength(1)
+    const text = String(calls[0].body.text)
+    expect(text).toContain('&lt;!channel&gt; &lt;@U123&gt; *bold* a&amp;b')
+    expect(text).not.toContain('<!channel>')
+    expect(text).not.toContain('<@U123>')
+  })
+})
