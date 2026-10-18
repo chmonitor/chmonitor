@@ -189,7 +189,6 @@ const KNOWN_GAPS: Record<string, string> = {
   'GET /api/v1/health/quiet-hours': '#3898',
   'GET /api/v1/health/peerdb-rules': '#3898',
   'POST /api/v1/pg/query/$name': '#3899',
-  'GET /api/v1/slack/install': '#3900',
 }
 
 /**

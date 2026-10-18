@@ -7,15 +7,18 @@
  * browser to Slack.
  *
  * Fails closed: with the Slack app unconfigured (OSS default) this returns 501
- * and nothing happens. Does NOT require sign-in — owner binding is best-effort
- * (a signed-in Clerk/proxy user is bound by subject; otherwise the install is
- * single-tenant `default`), so the app works for self-hosted OSS with no auth.
+ * and nothing happens. A signed-in Clerk/proxy user is bound by subject. In
+ * cloud mode an install without a signed-in subject is rejected with 401;
+ * self-hosted falls back to the single-tenant `default` owner, so OSS works
+ * with no auth.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
 
+import { jsonError } from '@/lib/auth/api-guard'
 import { getAuthProvider } from '@/lib/auth/provider'
 import { resolveServerAuthProvider } from '@/lib/auth/providers'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import {
   getSlackClientId,
   getSlackOAuthRedirectUrl,
@@ -52,6 +55,10 @@ async function handleGet(request: Request): Promise<Response> {
   }
 
   const ownerRef = await resolveOwnerRef(request)
+  // Cloud is multi-tenant: an install must be bound to a signed-in owner.
+  if (isCloudModeServer() && ownerRef === 'default') {
+    return jsonError('Authentication required', 401)
+  }
   const state = await signOAuthState(signingSecret, ownerRef)
 
   const url = new URL(SLACK_AUTHORIZE_URL)
