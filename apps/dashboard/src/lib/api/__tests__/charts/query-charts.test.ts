@@ -77,6 +77,18 @@ describe('queryCharts', () => {
         expect(result.query).toContain("exception != '' OR retry > 0")
         expect(result.query).not.toContain("status IN ('Error', 'Failed')")
       })
+
+      // view_refreshes.retry arrives in 25.3; 24.x rejects it.
+      test('reads retry only from 25.3', () => {
+        const result = builder({})
+        if (!('query' in result)) throw new Error('expected a single query')
+        const bySince = Object.fromEntries(
+          (result.sql ?? []).map((v) => [v.since, v.sql])
+        )
+        expect(bySince['24.3']).toContain("exception != ''")
+        expect(bySince['24.3']).not.toContain('retry')
+        expect(bySince['25.3']).toContain("exception != '' OR retry > 0")
+      })
     }
 
     if (name === 'query-count-today') {

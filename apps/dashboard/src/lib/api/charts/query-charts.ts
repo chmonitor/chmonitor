@@ -474,8 +474,8 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
    * MV refresh staleness (#1925).
    * Returns all view_refreshes rows enriched with staleness_seconds.
    */
-  'mv-staleness': () => ({
-    query: `
+  'mv-staleness': () => {
+    const sql = (failed: string) => `
     SELECT
       database,
       view,
@@ -485,7 +485,7 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
       next_refresh_time,
       dateDiff('second', coalesce(last_success_time, toDateTime(0)), now()) AS staleness_seconds,
       multiIf(
-        exception != '' OR retry > 0, 1,
+        ${failed}, 1,
         isNull(last_success_time), 1,
         dateDiff('second', last_success_time, now()) > 3600, 1,
         0
@@ -494,8 +494,17 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
     FROM system.view_refreshes
     WHERE status NOT IN ('Running', 'Scheduled')
     ORDER BY is_failed DESC, staleness_seconds DESC
-  `,
-    optional: true,
-    tableCheck: 'system.view_refreshes',
-  }),
+  `
+    return {
+      query: sql("exception != '' OR retry > 0"),
+      // `retry` arrives in 25.3; 24.x has only `exception`. The oldest entry
+      // is also the fallback when the server version is unknown.
+      sql: [
+        { since: '24.3', sql: sql("exception != ''") },
+        { since: '25.3', sql: sql("exception != '' OR retry > 0") },
+      ],
+      optional: true,
+      tableCheck: 'system.view_refreshes',
+    }
+  },
 }

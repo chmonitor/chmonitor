@@ -191,6 +191,24 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
     SELECT countIf(exception != '' OR retry > 0) AS failed_count
     FROM system.view_refreshes
   `,
+    // `retry` arrives in 25.3; 24.x has only `exception`. The oldest entry is
+    // also the fallback when the server version is unknown.
+    sql: [
+      {
+        since: '24.3',
+        sql: `
+    SELECT countIf(exception != '') AS failed_count
+    FROM system.view_refreshes
+  `,
+      },
+      {
+        since: '25.3',
+        sql: `
+    SELECT countIf(exception != '' OR retry > 0) AS failed_count
+    FROM system.view_refreshes
+  `,
+      },
+    ],
     optional: true,
     tableCheck: 'system.view_refreshes',
   }),

@@ -284,3 +284,27 @@ describe('new-parts-created wire payload', () => {
     expect(sqlFor()).toMatch(/GROUP BY\s+event_time,\s+table/)
   })
 })
+
+// The MV-refresh drill-down must list the views the headline counts. A failed
+// refresh stays `Scheduled` with a non-empty exception, so a status filter
+// returned no rows. `retry` arrives in 25.3; 24.x rejects it.
+describe('mv-refresh-failures headline and drill-down', () => {
+  const variants = (name: string): Record<string, string> => {
+    const def = systemCharts[name]?.({})
+    if (!def || !('query' in def)) throw new Error(`no query for ${name}`)
+    return Object.fromEntries((def.sql ?? []).map((v) => [v.since, v.sql]))
+  }
+
+  test.each([
+    'health-mv-refresh-failures',
+    'health-mv-refresh-failures-detail',
+  ])('%s keys on exception, and on retry only from 25.3', (name) => {
+    const sql = variants(name)
+    expect(sql['24.3']).toContain("exception != ''")
+    expect(sql['24.3']).not.toContain('retry')
+    expect(sql['25.3']).toContain("exception != '' OR retry > 0")
+    for (const text of Object.values(sql)) {
+      expect(text).not.toContain("status IN ('Error', 'Failed')")
+    }
+  })
+})

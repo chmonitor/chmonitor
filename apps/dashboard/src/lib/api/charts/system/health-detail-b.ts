@@ -95,6 +95,8 @@ export const healthDetailBCharts: Record<string, ChartQueryBuilder> = {
     tableCheck: 'system.backup_log',
   }),
 
+  // Lists the views the headline counts. A failed refresh stays `Scheduled`
+  // with a non-empty `exception` (#3625), so `status` is not the signal.
   'health-mv-refresh-failures-detail': () => ({
     query: `
     SELECT
@@ -103,9 +105,39 @@ export const healthDetailBCharts: Record<string, ChartQueryBuilder> = {
       status,
       substring(exception, 1, 300) AS exception
     FROM system.view_refreshes
-    WHERE status IN ('Error', 'Failed')
+    WHERE exception != '' OR retry > 0
     LIMIT 50
   `,
+    // `retry` arrives in 25.3; 24.x has only `exception`. The oldest entry is
+    // also the fallback when the server version is unknown.
+    sql: [
+      {
+        since: '24.3',
+        sql: `
+    SELECT
+      database,
+      view,
+      status,
+      substring(exception, 1, 300) AS exception
+    FROM system.view_refreshes
+    WHERE exception != ''
+    LIMIT 50
+  `,
+      },
+      {
+        since: '25.3',
+        sql: `
+    SELECT
+      database,
+      view,
+      status,
+      substring(exception, 1, 300) AS exception
+    FROM system.view_refreshes
+    WHERE exception != '' OR retry > 0
+    LIMIT 50
+  `,
+      },
+    ],
     optional: true,
     tableCheck: 'system.view_refreshes',
   }),
