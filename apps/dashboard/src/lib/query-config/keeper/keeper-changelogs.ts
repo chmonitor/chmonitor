@@ -11,7 +11,7 @@ export const keeperChangelogsConfig: QueryConfig = {
   name: 'keeper-changelogs',
   defaultView: 'table',
   description:
-    'Local Keeper changelog (WAL) files: log index range, creation time, and file size. Changelogs record every Raft log entry and are compacted once a snapshot covers their range.',
+    'Local Keeper changelog (WAL) files: log index range, entry count, modification time, size, and compressed/active/broken flags. Changelogs record every Raft log entry and are compacted once a snapshot covers their range.',
   optional: true,
   tableCheck: 'system.keeper_changelogs',
   docs: 'https://clickhouse.com/docs/en/operations/system-tables/keeper_changelogs',
@@ -22,30 +22,40 @@ export const keeperChangelogsConfig: QueryConfig = {
         ${QUERY_COMMENT}
         SELECT
             path,
-            created_at,
-            first_log_index,
-            last_log_index,
-            file_size,
-            formatReadableSize(file_size) AS readable_file_size,
-            round(file_size * 100.0 / nullIf(max(file_size) OVER (), 0), 2) AS pct_file_size
+            modification_time,
+            from_log_index,
+            to_log_index,
+            entries,
+            is_compressed,
+            active,
+            is_broken,
+            size_bytes,
+            formatReadableSize(size_bytes) AS readable_size_bytes,
+            round(size_bytes * 100.0 / nullIf(max(size_bytes) OVER (), 0), 2) AS pct_size_bytes
         FROM system.keeper_changelogs
-        ORDER BY first_log_index DESC
+        ORDER BY from_log_index DESC
         LIMIT 100
       `,
     },
   ],
   columns: [
     'path',
-    'created_at',
-    'first_log_index',
-    'last_log_index',
-    'readable_file_size',
+    'modification_time',
+    'from_log_index',
+    'to_log_index',
+    'entries',
+    'active',
+    'is_broken',
+    'readable_size_bytes',
   ],
   columnFormats: {
     path: ColumnFormat.Text,
-    created_at: ColumnFormat.RelatedTime,
-    first_log_index: ColumnFormat.Number,
-    last_log_index: ColumnFormat.Number,
-    readable_file_size: ColumnFormat.BackgroundBar,
+    modification_time: ColumnFormat.RelatedTime,
+    from_log_index: ColumnFormat.Number,
+    to_log_index: ColumnFormat.Number,
+    entries: ColumnFormat.Number,
+    active: ColumnFormat.Boolean,
+    is_broken: ColumnFormat.Boolean,
+    readable_size_bytes: ColumnFormat.BackgroundBar,
   },
 }
