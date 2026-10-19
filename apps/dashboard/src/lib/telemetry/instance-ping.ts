@@ -12,9 +12,9 @@
 //     telemetry; the server derives the country itself.
 //   - Only the HASH of a per-install identifier is transmitted — the raw value
 //     never leaves the device. It is a SHA-256 over a random per-install secret
-//     plus the dashboard and ClickHouse hostnames, so treat the id as
-//     pseudonymous rather than anonymous: the hash is of a partly low-entropy
-//     string, and both hostnames are recoverable by dictionary attack.
+//     plus the dashboard and ClickHouse hostnames, so the id cannot be reversed
+//     by dictionary attack on the hostnames; treat it as pseudonymous rather
+//     than anonymous.
 //   - ClickHouse version is truncated to MAJOR.MINOR (e.g. '24.8') so it cannot
 //     be mistaken for an IPv4 address and cannot fingerprint a specific patch release.
 
