@@ -477,8 +477,9 @@ export const PEERDB_LOG_PATTERN_HOST_NAME = 'peerdb:log-pattern'
  * persisted alert state is the seen-set, so it survives restarts through the
  * same D1 hydrate/flush as every other rule.
  *
- * Recovery: a firing pattern absent from this tick dispatches `ok` through
- * the same path — but only when the tick's log picture is complete
+ * Recovery: a pattern absent from this tick dispatches `ok` through the same
+ * path — a fired one to resolve, a HELD breach streak to be reset (#4033) —
+ * but only when the tick's log picture is complete
  * (`errorLogsComplete`); otherwise the recovery is held and audited, matching
  * the per-mirror partial-read hold.
  */
@@ -580,13 +581,25 @@ async function evaluatePeerDBLogPatterns(
     })
   }
 
-  // Recovery: firing pattern records absent from this tick.
+  // Recovery: pattern records absent from this tick — a fired incident, and a
+  // HELD breach streak that has to start over (#4033). Filtering held records
+  // out (`rec.severity !== 'ok'`) let a `pendingCount` streak survive every
+  // successful sweep, so `decideNotification` never saw the opposing `ok` and
+  // the count meant failures since the process started rather than consecutive
+  // ones — with `HEALTH_HYSTERESIS_PEERDB_LOG_PATTERN_BREACHES=3`, three
+  // isolated patterns days apart still paged. Dispatching the held `ok` clears
+  // it in `decideNotification` case (A) — `next: null`, nothing notified,
+  // since a held record never fired.
   const prefix = `${PEERDB_ALERT_HOST_ID}:${PEERDB_LOG_PATTERN_RULE_ID}:`
-  const firing = [...alertStateStore.entries()]
-    .filter(([key, rec]) => key.startsWith(prefix) && rec.severity !== 'ok')
+  const clearing = [...alertStateStore.entries()]
+    .filter(
+      ([key, rec]) =>
+        key.startsWith(prefix) &&
+        (rec.severity !== 'ok' || (rec.pendingCount ?? 0) > 0)
+    )
     .map(([key]) => key.slice(`${PEERDB_ALERT_HOST_ID}:`.length))
     .filter((ruleId) => !present.has(ruleId))
-  for (const ruleId of firing) {
+  for (const ruleId of clearing) {
     if (!collection.errorLogsComplete) {
       await ctx
         .audit({
