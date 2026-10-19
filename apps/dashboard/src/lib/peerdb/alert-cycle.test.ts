@@ -576,6 +576,30 @@ describe('runPeerDBAlertCycle — log patterns (#3700)', () => {
     `connection to 10.0.0.${i}:5432 refused after ${i + 1} retries`
   const PATTERN_RULE = peerDBLogPatternRuleId(fingerprintLogMessage(MSG(0)))
   const PATTERN_KEY = `${PEERDB_ALERT_HOST_ID}:${PATTERN_RULE}`
+  const MINUTE = 60_000
+  const T0 = Date.parse('2026-10-01T00:00:00Z')
+
+  const PATTERN_ENV_KEYS = [
+    'HEALTH_HYSTERESIS_BREACHES',
+    'HEALTH_HYSTERESIS_CLEARS',
+    'HEALTH_HYSTERESIS_PEERDB_LOG_PATTERN_BREACHES',
+    'HEALTH_HYSTERESIS_PEERDB_LOG_PATTERN_CLEARS',
+  ] as const
+  const savedEnv: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of PATTERN_ENV_KEYS) {
+      savedEnv[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of PATTERN_ENV_KEYS) {
+      if (savedEnv[key] === undefined) delete process.env[key]
+      else process.env[key] = savedEnv[key]
+    }
+  })
 
   /** Failing mirrors whose ERROR-log reads return `perMirror` messages. */
   function patternReader(
@@ -608,6 +632,76 @@ describe('runPeerDBAlertCycle — log patterns (#3700)', () => {
       },
     }
   }
+
+  interface PatternTape extends Tape {
+    /** Transitions the real dispatcher would have DELIVERED, by rule id. */
+    notified: Array<{ ruleId: string; kind: string }>
+    now: number
+    dispatch: (p: DispatchFindingParams) => Promise<void>
+    audit: PeerDBAuditFn
+  }
+
+  /**
+   * Same contract as `committingTape`, plus the per-rule settings the real
+   * `dispatchFinding` resolves (#4029): without them `evaluateAlert` always
+   * confirms on the first breach and cannot observe a held streak at all.
+   */
+  function patternTape(): PatternTape {
+    const t = tape()
+    const notified: PatternTape['notified'] = []
+    const state: PatternTape = {
+      ...t,
+      notified,
+      now: T0,
+      audit: t.audit,
+      dispatch: async (p) => {
+        await t.dispatch(p)
+        const hysteresis = getServerHysteresisConfig(PEERDB_ALERT_RULE_IDS)
+        const cooldown = getServerAlertCooldownConfig(PEERDB_ALERT_RULE_IDS)
+        const ruleHysteresis = resolvePerRuleOverride(
+          hysteresis.byRule,
+          p.ruleId,
+          hysteresis.defaults
+        )
+        const { decision, commit } = evaluateAlert(alertStateStore, {
+          hostId: p.hostId,
+          ruleId: p.ruleId,
+          severity: p.severity,
+          cooldownMs: resolvePerRuleOverride(
+            cooldown.byRule,
+            p.ruleId,
+            cooldown.defaultMs
+          ),
+          minConsecutiveBreaches: ruleHysteresis.minConsecutiveBreaches,
+          minConsecutiveClears: ruleHysteresis.minConsecutiveClears,
+          now: state.now,
+        })
+        if (decision.notify)
+          notified.push({ ruleId: p.ruleId, kind: decision.kind })
+        commit()
+      },
+    }
+    return state
+  }
+
+  const patternNotified = (t: PatternTape) =>
+    t.notified.filter((n) => n.ruleId === PATTERN_RULE)
+
+  const patternTick = async (
+    t: PatternTape,
+    reader: PeerDBAlertSnapshotReader,
+    now: number
+  ): Promise<void> => {
+    t.now = now
+    await runPeerDBAlertCycle({
+      reader,
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+      now,
+    })
+  }
+
   const patternDispatches = (t: Tape) =>
     t.dispatches.filter((d) => d.ruleId.startsWith('peerdb-log-pattern:'))
   const live = (
@@ -692,6 +786,29 @@ describe('runPeerDBAlertCycle — log patterns (#3700)', () => {
     })
     expect(res.findings.some((f) => f.checkId === PATTERN_RULE)).toBe(true)
     expect(t.dispatches).toHaveLength(0)
+  })
+
+  test('BREACHES=3: a pattern that disappears resets the streak, so isolated failures never fire (#4033)', async () => {
+    process.env.HEALTH_HYSTERESIS_PEERDB_LOG_PATTERN_BREACHES = '3'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const t = patternTape()
+
+    await patternTick(t, patternReader(['streak_pat']), T0)
+    expect(alertStateStore.get(PATTERN_KEY)?.pendingCount).toBe(1)
+
+    // Absent this tick: the held `ok` must still reach the state store so the
+    // streak starts over. Before #4033 the recovery filter admitted only
+    // firing records, so the held one survived and kept counting.
+    await patternTick(t, patternReader(['streak_pat'], 0), T0 + MINUTE)
+    expect(alertStateStore.get(PATTERN_KEY)).toBeUndefined()
+    expect(patternNotified(t)).toHaveLength(0)
+
+    await patternTick(t, patternReader(['streak_pat']), T0 + 2 * MINUTE)
+    expect(alertStateStore.get(PATTERN_KEY)?.pendingCount).toBe(1)
+    await patternTick(t, patternReader(['streak_pat']), T0 + 3 * MINUTE)
+    expect(alertStateStore.get(PATTERN_KEY)?.pendingCount).toBe(2)
+    // Two isolated failures are NOT three in a row.
+    expect(patternNotified(t)).toHaveLength(0)
   })
 })
 

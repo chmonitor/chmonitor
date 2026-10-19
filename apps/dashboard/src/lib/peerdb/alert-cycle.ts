@@ -583,7 +583,13 @@ async function evaluatePeerDBLogPatterns(
   // Recovery: firing pattern records absent from this tick.
   const prefix = `${PEERDB_ALERT_HOST_ID}:${PEERDB_LOG_PATTERN_RULE_ID}:`
   const firing = [...alertStateStore.entries()]
-    .filter(([key, rec]) => key.startsWith(prefix) && rec.severity !== 'ok')
+    // A held `ok` with a streak in flight counts too (#4033): without it the
+    // state store never sees the opposing `ok`, and the breach streak spans
+    // ticks the pattern was absent instead of counting consecutive failures.
+    .filter(
+      ([key, rec]) =>
+        key.startsWith(prefix) && (rec.severity !== 'ok' || rec.pendingCount)
+    )
     .map(([key]) => key.slice(`${PEERDB_ALERT_HOST_ID}:`.length))
     .filter((ruleId) => !present.has(ruleId))
   for (const ruleId of firing) {
