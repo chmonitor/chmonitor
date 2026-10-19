@@ -97,7 +97,8 @@ const PUBLIC: Record<string, string> = {
   'GET /api/v1/releases': STATIC,
   'GET /api/v1/mcp/info': STATIC,
   'GET /api/v1/config': STATIC,
-  'GET /api/v1/runtime-env': STATIC,
+  // 'GET /api/v1/runtime-env' was removed with the telemetry bake change: the
+  // endpoint is baked at build time and nothing reads this route any more.
   'GET /api/v1/auth/cli': STATIC,
   'GET /api/v1/auth/me': "the caller's own principal, anonymous here",
   'GET /api/v1/auth/device/status': STATIC,
