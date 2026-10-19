@@ -8,7 +8,7 @@ chmonitor is **GPL-3.0**. You can self-host every feature, unlimited hosts, with
 
 A **commercial license** is optional. Buy it if you need an invoice, a named vendor, email support, or a public listing. The app does **not** unlock features from a key and does **not** fail closed if the key is missing or invalid.
 
-After you buy, set `CHM_LICENSE_KEY` on the dashboard process to the **Polar checkout id** from the receipt (the same id [lookup](https://chmonitor.dev/license/lookup) already accepts). When [product telemetry](/operate/advanced/telemetry) is on, the daily instance ping includes that id so licensed installs can be counted. Opt out of telemetry and nothing is sent.
+After you buy, set `CHM_LICENSE_KEY` on the dashboard process to the **Polar checkout id** from the receipt (the same id [lookup](https://chmonitor.dev/license/lookup) already accepts). The key is **not** sent in [product telemetry](/operate/advanced/telemetry): a license key is an identifier, and telemetry is public aggregate data.
 
 ## Who this is for
 
@@ -41,11 +41,10 @@ Set it on the dashboard process (Docker `-e`, Compose `environment`, Helm `extra
 
 | What it does | What it does not do |
 |---|---|
-| Included on the daily telemetry **instance ping** when telemetry is on | Unlock pages or edition features |
-| Lets us count licensed self-host installs | Fail startup if missing or invalid |
-| Same id lookup already uses | Appear as a Settings field |
-
-Telemetry off (`CHM_TELEMETRY=off` / `DO_NOT_TRACK=1` / empty endpoint) still sends **nothing**, including the key.
+| Records which receipt belongs to this deployment | Unlock pages or edition features |
+| Same id lookup already uses | Fail startup if missing or invalid |
+| | Get sent in telemetry, with telemetry on or off |
+| | Appear as a Settings field |
 
 ## How purchase actually works
 
@@ -176,7 +175,7 @@ You do **not** get extra dashboard features versus the community build today. Pl
 
 <Cards>
   <Card title="Editions" href="/operate/advanced/editions" description="Community vs planned Team/Enterprise gates." />
-  <Card title="Product telemetry" href="/operate/advanced/telemetry" description="Optional license_key on the daily instance ping." />
+  <Card title="Product telemetry" href="/operate/advanced/telemetry" description="What the dashboard and CLI send, and how to opt out." />
   <Card title="Self-host" href="/operate/deploy/self-host" description="Run the dashboard on your infra." />
   <FeatureCard title="Cloud sign-up" href="/guide/getting-started/cloud-signup" description="Hosted product if you do not want to operate it." badge="cloud" />
 </Cards>

@@ -15,6 +15,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+# Integration tests may run the real CLI; it must never report usage from CI.
+# Guarded by tests/repo/ci-telemetry.test.ts.
+env:
+  DO_NOT_TRACK: '1'
+
 jobs:
   rust:
     runs-on: ubuntu-latest

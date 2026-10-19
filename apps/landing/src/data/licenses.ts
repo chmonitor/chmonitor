@@ -105,7 +105,7 @@ I'd like approval to buy a commercial license for chmonitor, the ClickHouse moni
 Why this, not another SaaS:
 • It runs next to our cluster. GPL-3.0. No DRM, no cloud tenant, no query data leaving our network.
 • ${team.name} is $${teamYearly}/year for ${team.hosts} hosts ($${teamLifetime} lifetime if we want to stop renewing). ${unlimited.name} is $${unlimitedYearly}/year.
-• We get an invoice, a named vendor, and email support. Polar takes the card and emails the receipt. Optional CHM_LICENSE_KEY (Polar checkout id) is honor-system telemetry, not a feature unlock.
+• We get an invoice, a named vendor, and email support. Polar takes the card and emails the receipt. Optional CHM_LICENSE_KEY (Polar checkout id) is an honor-system record on your deployment, not a feature unlock, and is never sent in telemetry.
 
 The software itself is already free. The license is paperwork and support — not a feature unlock.
 
@@ -127,7 +127,7 @@ export const licenseFaqs = [
   },
   {
     q: 'Do I need a license key in the binary?',
-    a: 'No DRM and no feature unlock. After you pay, register your company name and website. Set CHM_LICENSE_KEY to the Polar checkout id from the receipt if you want the install counted on telemetry ping. Missing or invalid does not change the app.',
+    a: 'No DRM and no feature unlock. After you pay, register your company name and website. Optionally set CHM_LICENSE_KEY to the Polar checkout id from the receipt as your own record; it is never sent in telemetry. Missing or invalid does not change the app.',
   },
   {
     q: 'What is a host?',
@@ -151,7 +151,7 @@ export const licenseFaqs = [
   },
   {
     q: 'Where do I paste the license key?',
-    a: 'Not in Settings — there is no license field in the app. Set CHM_LICENSE_KEY on the dashboard process to the Polar checkout id from the receipt (the same id lookup accepts). It is sent on the telemetry ping when telemetry is on and does not unlock features.',
+    a: 'Not in Settings — there is no license field in the app. Set CHM_LICENSE_KEY on the dashboard process to the Polar checkout id from the receipt (the same id lookup accepts). It is never sent in telemetry and does not unlock features.',
   },
   {
     q: 'Who emails me after I pay?',

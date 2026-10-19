@@ -40,8 +40,8 @@ self-host [REDACTED]. Hosted Polar SaaS stays as a convenience path only.
 - **`CHM_LICENSE_KEY` is the Polar checkout id** from the receipt — the same
   identifier lookup already accepts. Cloud-hooks does not issue a second
   format. Operators set it on the dashboard process (Docker / Helm / Worker).
-  When telemetry is on, the instance ping includes `license_key`; when
-  telemetry is off, nothing is sent. Do not add a Settings license field.
+  The key is never sent in telemetry (it is an identifier, and telemetry goes
+  to a public aggregate service). Do not add a Settings license field.
 
 ## SKUs (USD)
 
@@ -114,8 +114,8 @@ invitation survives the first sponsor.
 - Hero sponsor slot: `apps/landing/src/components/SponsorSlot.astro` (in
   `Hero.astro`, below the feature list)
 - User docs: `docs/content/operate/advanced/commercial-license.mdx`
-- Dashboard env: `CHM_LICENSE_KEY` (Polar checkout id) → instance ping
-  `license_key` when telemetry is on (`lib/telemetry/instance-ping.ts`)
+- Dashboard env: `CHM_LICENSE_KEY` (Polar checkout id) — a purchase record
+  only; nothing in the dashboard reads or sends it
 - Cloud Polar checkout is hooks/landing only: [billing-checkout-flow](billing-checkout-flow.md)
 
 ## Do not
