@@ -1,3 +1,4 @@
+import type { AlertDecisionKind } from '@/lib/health/alert-state-store'
 import type { DispatchFindingParams } from '@/lib/health/sweep/dispatch/types'
 import type { PeerDBAlertSnapshotReader } from './alert-collector'
 import type { PeerDBAuditFn } from './alert-cycle'
@@ -1043,5 +1044,222 @@ describe('runPeerDBAlertCycle — API health hysteresis + escalation (#4029)', (
     expect(t.notified).toEqual(['new'])
     await tick(t, healthyReader({ name: 'did_fire' }), T0 + 5 * MINUTE)
     expect(t.notified).toEqual(['new', 'recovery'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// #4033 — log patterns: the breach streak must reset on a successful sweep,
+// same defect class as #4029. Before the fix the recovery pass filtered held
+// records out (`rec.severity !== 'ok'`), so a `pendingCount` in flight survived
+// every clean tick and the count meant failures since the process started
+// rather than CONSECUTIVE ones.
+//
+// The dispatcher mirrors the real `dispatchFinding`: resolve the per-rule
+// settings by the DISPATCHED id (an env var cannot carry the fingerprint hash,
+// so the static base `peerdb-log-pattern` wins — `perRuleEnvBaseId`), then
+// evaluate and commit. Same shape as the #4029 API-health tests below, so
+// this sequence is a real end-to-end sweep.
+// ---------------------------------------------------------------------------
+describe('runPeerDBAlertCycle — log-pattern streak reset (#4033)', () => {
+  const MINUTE = 60_000
+  const T0 = Date.parse('2026-10-02T00:00:00Z')
+  const MSG = 'connection to 10.0.0.7:5432 refused after 3 retries'
+  const PATTERN_RULE = peerDBLogPatternRuleId(fingerprintLogMessage(MSG))
+  const PATTERN_KEY = `${PEERDB_ALERT_HOST_ID}:${PATTERN_RULE}`
+  const FLOW = 'streak_pat'
+
+  const ENV_KEYS = [
+    'HEALTH_HYSTERESIS_PEERDB_LOG_PATTERN_BREACHES',
+    'HEALTH_HYSTERESIS_CLEARS',
+  ] as const
+  const savedEnv: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of ENV_KEYS) {
+      savedEnv[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of ENV_KEYS) {
+      if (savedEnv[key] === undefined) delete process.env[key]
+      else process.env[key] = savedEnv[key]
+    }
+  })
+
+  /**
+   * A tick in which the pattern IS present (`perMirror: 1`) and a successful
+   * sweep in which it is not (`perMirror: 0`, complete log read).
+   */
+  function streakReader(perMirror: number): PeerDBAlertSnapshotReader {
+    return {
+      ...readerFor([{ name: FLOW, status: 'STATUS_FAILED' }]),
+      mirrorErrorCount: async () => ({
+        count: perMirror,
+        source: 'log-api',
+        messages: Array.from({ length: perMirror }, () => MSG),
+      }),
+    }
+  }
+
+  interface Delivery {
+    ruleId: string
+    kind: AlertDecisionKind
+  }
+
+  interface StreakTape extends Tape {
+    /** Every transition the real dispatcher would have DELIVERED. */
+    delivered: Delivery[]
+    now: number
+    dispatch: (p: DispatchFindingParams) => Promise<void>
+    audit: PeerDBAuditFn
+  }
+
+  function streakTape(): StreakTape {
+    const t = tape()
+    const delivered: Delivery[] = []
+    const state: StreakTape = {
+      ...t,
+      delivered,
+      now: T0,
+      audit: t.audit,
+      dispatch: async (p) => {
+        await t.dispatch(p)
+        const hysteresis = getServerHysteresisConfig(PEERDB_ALERT_RULE_IDS)
+        const cooldown = getServerAlertCooldownConfig(PEERDB_ALERT_RULE_IDS)
+        const ruleHysteresis = resolvePerRuleOverride(
+          hysteresis.byRule,
+          p.ruleId,
+          hysteresis.defaults
+        )
+        const { decision, commit } = evaluateAlert(alertStateStore, {
+          hostId: p.hostId,
+          ruleId: p.ruleId,
+          severity: p.severity,
+          cooldownMs: resolvePerRuleOverride(
+            cooldown.byRule,
+            p.ruleId,
+            cooldown.defaultMs
+          ),
+          minConsecutiveBreaches: ruleHysteresis.minConsecutiveBreaches,
+          minConsecutiveClears: ruleHysteresis.minConsecutiveClears,
+          now: state.now,
+        })
+        if (decision.notify) {
+          delivered.push({ ruleId: p.ruleId, kind: decision.kind })
+        }
+        commit()
+      },
+    }
+    return state
+  }
+
+  const tick = async (
+    t: StreakTape,
+    perMirror: number,
+    now: number
+  ): Promise<void> => {
+    t.now = now
+    await runPeerDBAlertCycle({
+      reader: streakReader(perMirror),
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+      now,
+    })
+  }
+
+  /** Notifications for the pattern rule only — the mirror rule fires too. */
+  const patternNotifications = (t: StreakTape) =>
+    t.delivered.filter((d) => d.ruleId === PATTERN_RULE).map((d) => d.kind)
+  const patternSeverities = (t: StreakTape) =>
+    t.dispatches.filter((d) => d.ruleId === PATTERN_RULE).map((d) => d.severity)
+
+  test('BREACHES=3: fail, succeed, fail, fail never fires — only three CONSECUTIVE failures do', async () => {
+    process.env.HEALTH_HYSTERESIS_PEERDB_LOG_PATTERN_BREACHES = '3'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const t = streakTape()
+
+    await tick(t, 1, T0)
+    expect(alertStateStore.get(PATTERN_KEY)?.pendingCount).toBe(1)
+    await tick(t, 1, T0 + 5 * MINUTE)
+    expect(alertStateStore.get(PATTERN_KEY)?.pendingCount).toBe(2)
+    expect(patternNotifications(t)).toHaveLength(0)
+
+    // One successful sweep resets the streak. Before #4033 the held record was
+    // filtered out of the recovery pass, so nothing dispatched `ok` and this
+    // record survived with pendingCount 2 intact.
+    await tick(t, 0, T0 + 10 * MINUTE)
+    expect(alertStateStore.get(PATTERN_KEY)).toBeUndefined()
+    expect(patternSeverities(t)).toEqual(['warning', 'warning', 'ok'])
+    expect(patternNotifications(t)).toHaveLength(0)
+
+    await tick(t, 1, T0 + 15 * MINUTE)
+    expect(alertStateStore.get(PATTERN_KEY)?.pendingCount).toBe(1)
+    await tick(t, 1, T0 + 20 * MINUTE)
+    expect(alertStateStore.get(PATTERN_KEY)?.pendingCount).toBe(2)
+    // Two isolated errors plus this one are NOT three in a row.
+    expect(patternNotifications(t)).toHaveLength(0)
+
+    await tick(t, 1, T0 + 25 * MINUTE)
+    expect(patternNotifications(t)).toEqual(['new'])
+    expect(alertStateStore.get(PATTERN_KEY)?.severity).toBe('warning')
+  })
+
+  test('a held warning that never fired clears silently — no resolve claimed', async () => {
+    process.env.HEALTH_HYSTERESIS_PEERDB_LOG_PATTERN_BREACHES = '2'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const t = streakTape()
+
+    await tick(t, 1, T0)
+    expect(patternSeverities(t)).toEqual(['warning'])
+    expect(patternNotifications(t)).toEqual([])
+
+    await tick(t, 0, T0 + 5 * MINUTE)
+    // `decideNotification` case (A): ok→ok clears the record without notifying,
+    // because nothing was ever delivered.
+    expect(patternSeverities(t)).toEqual(['warning', 'ok'])
+    expect(patternNotifications(t)).toEqual([])
+    expect(alertStateStore.get(PATTERN_KEY)).toBeUndefined()
+  })
+
+  test('a pattern that DID fire recovers with a resolve', async () => {
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const t = streakTape()
+
+    await tick(t, 1, T0)
+    expect(patternNotifications(t)).toEqual(['new'])
+    await tick(t, 0, T0 + 5 * MINUTE)
+    expect(patternSeverities(t)).toEqual(['warning', 'ok'])
+    expect(patternNotifications(t)).toEqual(['new', 'recovery'])
+    expect(alertStateStore.get(PATTERN_KEY)).toBeUndefined()
+  })
+
+  test('an incomplete log read still holds the streak reset', async () => {
+    process.env.HEALTH_HYSTERESIS_PEERDB_LOG_PATTERN_BREACHES = '3'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const t = streakTape()
+
+    await tick(t, 1, T0)
+    expect(alertStateStore.get(PATTERN_KEY)?.pendingCount).toBe(1)
+    // Pattern absent, but the log read came back `unavailable`: absence is not
+    // evidence of recovery, so the streak must survive this tick too.
+    t.now = T0 + 5 * MINUTE
+    await runPeerDBAlertCycle({
+      reader: {
+        ...streakReader(0),
+        mirrorErrorCount: async () => ({ count: 0, source: 'unavailable' }),
+      },
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+      now: T0 + 5 * MINUTE,
+    })
+    expect(patternSeverities(t)).toEqual(['warning'])
+    expect(t.audits.map((a) => a.decisionKind)).toContain(
+      'peerdb-hold:recovery-data-unavailable'
+    )
+    expect(alertStateStore.get(PATTERN_KEY)?.pendingCount).toBe(1)
   })
 })
