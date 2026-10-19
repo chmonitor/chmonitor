@@ -160,7 +160,12 @@ export const tablesListConfig: QueryConfig = {
   ],
   columnFormats: {
     parts_count: ColumnFormat.Number,
-    detached_parts_count: ColumnFormat.Link,
+    detached_parts_count: [
+      ColumnFormat.Link,
+      {
+        href: '/detached-parts?host=[ctx.hostId]&table=[database].[table]',
+      },
+    ],
     table: [
       ColumnFormat.Link,
       {

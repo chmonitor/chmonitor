@@ -147,7 +147,12 @@ export const tablesListDeclarative: DeclarativeQueryConfig = {
   ],
   columnFormats: {
     parts_count: 'number',
-    detached_parts_count: 'link',
+    detached_parts_count: [
+      'link',
+      {
+        href: '/detached-parts?host=[ctx.hostId]&table=[database].[table]',
+      },
+    ],
     table: [
       'link',
       {
