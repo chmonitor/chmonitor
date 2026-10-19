@@ -1,9 +1,11 @@
 import {
+  DEFAULT_PEERDB_FETCH_TIMEOUT_MS,
   getPeerDBConfig,
   isPeerDBEnabled,
   PeerDBError,
   peerdbFetch,
   readNonNegativeIntEnv,
+  resolvePeerDBHealthTimeoutMs,
 } from './peerdb-config'
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -537,5 +539,123 @@ describe('peerdbFetch', () => {
     expect(rejection).toBeInstanceOf(PeerDBError)
     expect((rejection as PeerDBError).status).toBe(502)
     expect((rejection as PeerDBError).message).toContain('timed out')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// PEERDB_HEALTH_TIMEOUT_MS (#4029) — the deadline of the ONE call whose
+// failure pages. Falls back to PEERDB_FETCH_TIMEOUT_MS, and can be given a
+// longer budget without lengthening every UI/agent read.
+// ---------------------------------------------------------------------------
+
+describe('resolvePeerDBHealthTimeoutMs (#4029)', () => {
+  let origHealth: string | undefined
+  let origFetch: string | undefined
+
+  beforeEach(() => {
+    origHealth = process.env.PEERDB_HEALTH_TIMEOUT_MS
+    origFetch = process.env.PEERDB_FETCH_TIMEOUT_MS
+  })
+
+  afterEach(() => {
+    if (origHealth === undefined) delete process.env.PEERDB_HEALTH_TIMEOUT_MS
+    else process.env.PEERDB_HEALTH_TIMEOUT_MS = origHealth
+    if (origFetch === undefined) delete process.env.PEERDB_FETCH_TIMEOUT_MS
+    else process.env.PEERDB_FETCH_TIMEOUT_MS = origFetch
+  })
+
+  test('defaults to the shared fetch timeout', () => {
+    delete process.env.PEERDB_HEALTH_TIMEOUT_MS
+    process.env.PEERDB_FETCH_TIMEOUT_MS = '4200'
+    expect(resolvePeerDBHealthTimeoutMs()).toBe(4200)
+  })
+
+  test('falls back to the product default when neither is set', () => {
+    delete process.env.PEERDB_HEALTH_TIMEOUT_MS
+    delete process.env.PEERDB_FETCH_TIMEOUT_MS
+    expect(resolvePeerDBHealthTimeoutMs()).toBe(DEFAULT_PEERDB_FETCH_TIMEOUT_MS)
+  })
+
+  test('PEERDB_HEALTH_TIMEOUT_MS wins over PEERDB_FETCH_TIMEOUT_MS', () => {
+    process.env.PEERDB_HEALTH_TIMEOUT_MS = '25000'
+    process.env.PEERDB_FETCH_TIMEOUT_MS = '10000'
+    expect(resolvePeerDBHealthTimeoutMs()).toBe(25_000)
+  })
+
+  test('an unusable value falls through instead of disabling the deadline', () => {
+    process.env.PEERDB_HEALTH_TIMEOUT_MS = '0'
+    process.env.PEERDB_FETCH_TIMEOUT_MS = '9000'
+    expect(resolvePeerDBHealthTimeoutMs()).toBe(9000)
+    process.env.PEERDB_HEALTH_TIMEOUT_MS = 'nonsense'
+    expect(resolvePeerDBHealthTimeoutMs()).toBe(9000)
+  })
+})
+
+describe('peerdbFetch per-call timeout override (#4029)', () => {
+  let origUrl: string | undefined
+  let origPassword: string | undefined
+  let origTimeout: string | undefined
+  let origFetch: typeof globalThis.fetch
+
+  beforeEach(() => {
+    origUrl = process.env.PEERDB_API_URL
+    origPassword = process.env.PEERDB_PASSWORD
+    origTimeout = process.env.PEERDB_FETCH_TIMEOUT_MS
+    origFetch = globalThis.fetch
+  })
+
+  afterEach(() => {
+    globalThis.fetch = origFetch
+    if (origUrl === undefined) delete process.env.PEERDB_API_URL
+    else process.env.PEERDB_API_URL = origUrl
+    if (origPassword === undefined) delete process.env.PEERDB_PASSWORD
+    else process.env.PEERDB_PASSWORD = origPassword
+    if (origTimeout === undefined) delete process.env.PEERDB_FETCH_TIMEOUT_MS
+    else process.env.PEERDB_FETCH_TIMEOUT_MS = origTimeout
+  })
+
+  /** Capture the deadline `peerdbFetch` arms for one call. */
+  async function deadlineFor(
+    run: () => Promise<unknown>
+  ): Promise<number | undefined> {
+    const originalSetTimeout = globalThis.setTimeout
+    const delays: number[] = []
+    globalThis.setTimeout = ((
+      callback: (...args: unknown[]) => void,
+      ms?: number,
+      ...args: unknown[]
+    ) => {
+      delays.push(Number(ms))
+      return originalSetTimeout(callback, 0, ...args)
+    }) as unknown as typeof globalThis.setTimeout
+    globalThis.fetch = mock(
+      async () => new Response(JSON.stringify({}), { status: 200 })
+    )
+    try {
+      await run()
+    } finally {
+      globalThis.setTimeout = originalSetTimeout
+    }
+    return delays.find((d) => d > 0)
+  }
+
+  test('the override replaces the shared timeout for that call only', async () => {
+    process.env.PEERDB_API_URL = 'http://flow-api:8113'
+    delete process.env.PEERDB_PASSWORD
+    process.env.PEERDB_FETCH_TIMEOUT_MS = '10000'
+
+    const overridden = await deadlineFor(() =>
+      peerdbFetch('/v1/health-timeout-override', undefined, {
+        timeoutMs: 31000,
+      })
+    )
+    expect(overridden).toBe(31_000)
+
+    // A sibling call without the override is untouched — UI/agent reads keep
+    // the shared deadline.
+    const shared = await deadlineFor(() =>
+      peerdbFetch('/v1/health-timeout-shared')
+    )
+    expect(shared).toBe(10_000)
   })
 })

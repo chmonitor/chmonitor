@@ -215,6 +215,38 @@ export function readNonNegativeIntEnv(name: string, fallback: number): number {
   return normalized >= 0 ? normalized : fallback
 }
 
+/** Default upstream deadline when `PEERDB_FETCH_TIMEOUT_MS` is unset/unusable. */
+export const DEFAULT_PEERDB_FETCH_TIMEOUT_MS = 10_000
+
+/**
+ * Deadline for the alert sweep's health probe, `GET /v1/mirrors/list` (#4029).
+ *
+ * `PEERDB_HEALTH_TIMEOUT_MS` when set, else `PEERDB_FETCH_TIMEOUT_MS`, else
+ * {@link DEFAULT_PEERDB_FETCH_TIMEOUT_MS}. Kept separate from the global fetch
+ * timeout so an operator can give the one call that pages a longer deadline
+ * without also lengthening every UI and agent call.
+ */
+export function resolvePeerDBHealthTimeoutMs(): number {
+  const own = readNonNegativeIntEnv('PEERDB_HEALTH_TIMEOUT_MS', 0)
+  if (own > 0) return own
+  return (
+    readNonNegativeIntEnv(
+      'PEERDB_FETCH_TIMEOUT_MS',
+      DEFAULT_PEERDB_FETCH_TIMEOUT_MS
+    ) || DEFAULT_PEERDB_FETCH_TIMEOUT_MS
+  )
+}
+
+/** Per-call knobs for {@link peerdbFetch}. */
+export interface PeerDBFetchOptions {
+  /**
+   * Deadline for THIS call, in ms. Falls back to `PEERDB_FETCH_TIMEOUT_MS`.
+   * The alert sweep's health probe passes its own `PEERDB_HEALTH_TIMEOUT_MS`
+   * so a single paging call can be given more room than every UI/agent read.
+   */
+  timeoutMs?: number
+}
+
 /**
  * Server-side fetch against the PeerDB REST API.
  *
@@ -223,6 +255,7 @@ export function readNonNegativeIntEnv(name: string, fallback: number): number {
  *   honoured: passing one lets a caller (e.g. the alert sweep's wall-clock
  *   budget) cancel in-flight reads, which is reported as `aborted` rather than
  *   `timeout`.
+ * @param opts  Per-call deadline override; see {@link PeerDBFetchOptions}.
  * @throws {PeerDBError} carrying a {@link PeerDBFetchFailure} `kind` when
  *   PeerDB is unconfigured, the request timed out / was aborted, the transport
  *   failed, or the upstream answered non-2xx.
@@ -253,7 +286,8 @@ function pruneCache(now: number, ttlMs: number, maxEntries: number): void {
 
 export async function peerdbFetch<T = unknown>(
   path: string,
-  init?: RequestInit
+  init?: RequestInit,
+  opts?: PeerDBFetchOptions
 ): Promise<T> {
   const config = currentConfig()
   if (!config) {
@@ -267,7 +301,12 @@ export async function peerdbFetch<T = unknown>(
   const cacheTtlMs = readNonNegativeIntEnv('PEERDB_CACHE_TTL_MS', 10_000)
   const cacheMaxEntries = readNonNegativeIntEnv('PEERDB_CACHE_MAX_ENTRIES', 500)
   const fetchTimeoutMs =
-    readNonNegativeIntEnv('PEERDB_FETCH_TIMEOUT_MS', 10_000) || 10_000
+    (opts?.timeoutMs && opts.timeoutMs > 0 ? Math.floor(opts.timeoutMs) : 0) ||
+    readNonNegativeIntEnv(
+      'PEERDB_FETCH_TIMEOUT_MS',
+      DEFAULT_PEERDB_FETCH_TIMEOUT_MS
+    ) ||
+    DEFAULT_PEERDB_FETCH_TIMEOUT_MS
   const method = init?.method ?? 'GET'
   const cacheKey = `${method} ${path} ${typeof init?.body === 'string' ? init.body : ''}`
   if (cacheTtlMs > 0) {

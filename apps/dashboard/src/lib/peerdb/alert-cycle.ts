@@ -39,6 +39,7 @@
  * Per-connection (`?connection=<id>`) coverage is out of v1.
  */
 
+import type { AlertStateRecord } from '@/lib/health/alert-state-store'
 import type { DispatchFindingParams } from '@/lib/health/sweep/dispatch/types'
 import type { PeerDBRule } from './alert-rules'
 import type {
@@ -50,6 +51,10 @@ import type {
 } from './alerting'
 import type { PeerDBSweepCoverage } from './sweep-coverage'
 
+import {
+  PEERDB_ALERT_RULE_ID,
+  PEERDB_API_HEALTH_RULE_ID,
+} from './alert-rule-ids'
 import { mutingPeerDBRule, thresholdsForMirror } from './alert-rules'
 import {
   auditPeerDBAlert,
@@ -77,12 +82,13 @@ import {
 } from './throughput-samples'
 import { debug } from '@chm/logger'
 import { alertStateStore } from '@/lib/health/alert-state-store'
+import { getPeerDBApiCriticalAfterMs } from '@/lib/health/server-alert-config'
 
 /** Pseudo-host id for PeerDB conditions (ClickHouse hosts are 0..n). */
 export const PEERDB_ALERT_HOST_ID = -1
 
 /** Base rule id; per-mirror conditions dedup under `<base>:<flow-slug>`. */
-export const PEERDB_ALERT_RULE_ID = 'peerdb-mirror-health'
+export { PEERDB_ALERT_RULE_ID }
 
 /** Rule type carried into route matching (glob `*` / `peerdb*` catch-alls). */
 export const PEERDB_ALERT_RULE_TYPE = 'peerdb'
@@ -94,7 +100,7 @@ export const PEERDB_ALERT_RULE_TYPE = 'peerdb'
  * key for the whole deployment, so an outage is one incident, not one per
  * mirror — and never a silent `skipped`.
  */
-export const PEERDB_API_HEALTH_RULE_ID = 'peerdb-api-health'
+export { PEERDB_API_HEALTH_RULE_ID }
 
 /** Host name the API-health finding is reported under. */
 export const PEERDB_API_HEALTH_HOST_NAME = 'peerdb'
@@ -325,11 +331,35 @@ function runDeterministicPeerDBInvestigation(
 }
 
 /**
+ * When the current API-health failure streak began, read off the persisted
+ * record (#4029). `null` when nothing is on record, i.e. this sweep opens the
+ * streak.
+ *
+ * - A HELD record (`severity: 'ok'` with a `pendingCount`) has not fired yet,
+ *   so the breach countdown is the interesting clock. `decideNotification`'s
+ *   `hold()` stamps `updatedAt` only when it CREATES the record and carries
+ *   that value forward afterwards, so `updatedAt` is the sweep the streak
+ *   started on.
+ * - A FIRED record reports the incident start explicitly as `firstFiredAt`.
+ */
+function apiHealthFailureStreakStartMs(
+  prev: AlertStateRecord | undefined
+): number | null {
+  if (!prev) return null
+  if (prev.severity === 'ok') return prev.updatedAt
+  return prev.firstFiredAt ?? prev.updatedAt
+}
+
+/**
  * One fleet-level finding for the PeerDB API, through the same
  * audit-before-dispatch path as the per-mirror conditions. Recovery evidence
  * is a successful `GET /v1/mirrors/list`, which is a complete read for this
  * condition, so the partial-read hold does not apply to it — an absent
  * collection (no evidence either way) never reaches this function.
+ *
+ * Severity escalates by DURATION (#4029): `warning` until the failure has
+ * lasted `HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES`, `critical` once it has.
+ * Default `0` keeps the pre-#4029 behaviour — critical on the first failure.
  */
 async function evaluatePeerDBApiHealth(
   failure: import('./alert-collector').PeerDBListFailure | null,
@@ -338,6 +368,7 @@ async function evaluatePeerDBApiHealth(
     audit: PeerDBAuditFn
     dispatch?: PeerDBDispatchFn
     dryRun: boolean
+    now: number
   }
 ): Promise<void> {
   const ruleId = PEERDB_API_HEALTH_RULE_ID
@@ -349,6 +380,17 @@ async function evaluatePeerDBApiHealth(
   const label = failure
     ? `GET /v1/mirrors/list failed: ${failure.label} (${failure.kind})`
     : 'GET /v1/mirrors/list answered'
+  const prev = alertStateStore.get(`${PEERDB_ALERT_HOST_ID}:${ruleId}`)
+
+  const criticalAfterMs = getPeerDBApiCriticalAfterMs()
+  const streakStartMs = apiHealthFailureStreakStartMs(prev)
+  const findingSeverity: 'warning' | 'critical' | 'ok' =
+    failure === null
+      ? 'ok'
+      : criticalAfterMs === 0 ||
+          (streakStartMs !== null && ctx.now - streakStartMs >= criticalAfterMs)
+        ? 'critical'
+        : 'warning'
 
   if (failure) {
     ctx.result.findings.push({
@@ -356,17 +398,27 @@ async function evaluatePeerDBApiHealth(
       hostName: PEERDB_API_HEALTH_HOST_NAME,
       checkId: ruleId,
       title,
-      severity: 'critical',
+      severity: findingSeverity as 'warning' | 'critical',
       value: 1,
       label,
     })
   } else {
-    // Success only matters as a recovery of a persisted firing state.
-    const prev = alertStateStore.get(`${PEERDB_ALERT_HOST_ID}:${ruleId}`)
-    if (!prev || prev.severity === 'ok') return
+    // A success only matters to the ALERT STATE: a fired incident recovering,
+    // or a breach streak that has to start over (#4029). Without the pending
+    // branch the held record survives untouched, `decideNotification` never
+    // observes the opposing `ok`, and the streak counts failures since the
+    // process started rather than consecutive ones — so four isolated
+    // timeouts days apart still page at `BREACHES=4`. No record, or a settled
+    // `ok` record with no streak in flight, still send nothing.
+    if (!prev || (prev.severity === 'ok' && !prev.pendingCount)) return
   }
 
-  const severity = failure ? ('error' as const) : ('ok' as const)
+  const severity =
+    findingSeverity === 'critical'
+      ? ('error' as const)
+      : findingSeverity === 'warning'
+        ? ('warning' as const)
+        : ('ok' as const)
   if (ctx.dryRun || !ctx.dispatch) {
     await ctx
       .audit({
@@ -405,7 +457,7 @@ async function evaluatePeerDBApiHealth(
     ruleId,
     ruleType: PEERDB_ALERT_RULE_TYPE,
     ruleTitle: failure ? title : 'PeerDB API',
-    severity: failure ? 'critical' : 'ok',
+    severity: findingSeverity,
     value: failure ? 1 : 0,
     label,
     warnThreshold: null,
@@ -620,6 +672,7 @@ export async function runPeerDBAlertCycle(
           audit,
           dispatch: opts.dispatch,
           dryRun,
+          now: clock,
         })
       } catch (err) {
         result.errored++
@@ -736,12 +789,16 @@ export async function runPeerDBAlertCycle(
             label: message.label,
           })
         } else {
-          // `ok` signals only matter as potential recoveries: peek the
-          // persistent store (pure read, no commit). No record → nothing
-          // ever fired → skip silently (no audit row, no dispatch).
+          // `ok` signals only matter to the ALERT STATE: a persisted incident
+          // recovering, or a breach streak that has to start over (#4029).
+          // Without the pending branch a held record survives untouched,
+          // `decideNotification` never observes the opposing `ok`, and the
+          // streak counts failures since the process started rather than
+          // consecutive ones. A settled `ok` record with no streak in flight,
+          // and no record at all, still skip silently (no audit, no dispatch).
           const key = `${PEERDB_ALERT_HOST_ID}:${ruleId}`
           const prev = alertStateStore.get(key)
-          if (!prev || prev.severity === 'ok') continue
+          if (!prev || (prev.severity === 'ok' && !prev.pendingCount)) continue
 
           // A partial read is not evidence of recovery. In particular, do not
           // clear a persisted incident when the status endpoint failed or the

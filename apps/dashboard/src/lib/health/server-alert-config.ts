@@ -581,6 +581,61 @@ export function getServerMutedRules(): string[] {
 }
 
 /**
+ * The static prefix of a rule id: everything before the first `:` (#4029).
+ *
+ * `peerdb-mirror-health:pg-to-ch-orders` → `peerdb-mirror-health`. An env var
+ * name cannot contain a colon, so a PARAMETERISED rule id has no per-id env
+ * var of its own and always resolves through its base. An id with no colon is
+ * returned unchanged.
+ */
+export function perRuleEnvBaseId(ruleId: string): string {
+  const colon = ruleId.indexOf(':')
+  return colon === -1 ? ruleId : ruleId.slice(0, colon)
+}
+
+/**
+ * Look up a per-rule setting for a DISPATCHED rule id, falling back to the
+ * static base id (#4029) and then to the caller's global default.
+ *
+ * Exact id first, so an operator who ever gets a colon-free id keeps the
+ * precise knob; base second, so `HEALTH_HYSTERESIS_PEERDB_MIRROR_HEALTH_BREACHES`
+ * covers every `peerdb-mirror-health:<mirror>` dispatched by the PeerDB cycle.
+ * Ids with no base entry (`custom:…`, compound rules) are unchanged: they keep
+ * using the global value, exactly as documented.
+ */
+export function resolvePerRuleOverride<T>(
+  byRule: Readonly<Record<string, T>>,
+  ruleId: string,
+  globalDefault: T
+): T {
+  const exact = byRule[ruleId]
+  if (exact !== undefined) return exact
+  const base = byRule[perRuleEnvBaseId(ruleId)]
+  return base !== undefined ? base : globalDefault
+}
+
+/**
+ * How long a failed `GET /v1/mirrors/list` must persist before the PeerDB
+ * API-health finding escalates from `warning` to `critical`
+ * (`HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES`, #4029).
+ *
+ * Default `0` = escalate on the first failed sweep, which is the behaviour
+ * that shipped before the variable existed. A positive value keeps the finding
+ * at `warning` until the failure has lasted that long, so a single dropped or
+ * stalled request produces a self-resolving warning instead of a page; a real
+ * outage still reaches `critical` once the threshold elapses.
+ *
+ * `0`/unset/unparseable/negative → `0` (immediate critical).
+ */
+export function getPeerDBApiCriticalAfterMs(): number {
+  const raw = process.env.HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES?.trim()
+  if (!raw) return 0
+  const minutes = Number(raw)
+  if (!Number.isFinite(minutes) || minutes <= 0) return 0
+  return Math.floor(minutes) * 60_000
+}
+
+/**
  * Whether the sweep should dispatch alerts at all (env-resolved): true when
  * ANY channel is configured and not disabled, so `HEALTH_ALERT_ENABLED` is
  * optional. An explicit false-like `HEALTH_ALERT_ENABLED` is the master off

@@ -36,7 +36,7 @@ import type {
   PeerDBInvestigationMetrics,
   PeerDBMirrorSignal,
 } from './alerting'
-import type { PeerDBFetchFailure } from './peerdb-config'
+import type { PeerDBFetchFailure, PeerDBFetchOptions } from './peerdb-config'
 import type { PeerDBSweepCoverage } from './sweep-coverage'
 import type {
   ListMirrorsResponse,
@@ -219,7 +219,11 @@ async function defaultReader(
     | (() => { baseUrl: string } | null)
     | undefined
   const fetchFn = mod?.peerdbFetch as
-    | (<T>(path: string, init?: RequestInit) => Promise<T>)
+    | (<T>(
+        path: string,
+        init?: RequestInit,
+        opts?: PeerDBFetchOptions
+      ) => Promise<T>)
     | undefined
   // Unconfigured → no reader at all, so the collection reports
   // `configured: false` instead of a listing that merely came back empty.
@@ -235,12 +239,39 @@ async function defaultReader(
   const fetchOptions = (body: string): RequestInit =>
     signal ? { method: 'POST', body, signal } : { method: 'POST', body }
 
+  /**
+   * `GET /v1/mirrors/list` — the one call whose failure pages. It gets its own
+   * deadline (`PEERDB_HEALTH_TIMEOUT_MS`, defaulting to
+   * `PEERDB_FETCH_TIMEOUT_MS`, #4029) and ONE immediate retry, so a single
+   * dropped connection or momentary stall is absorbed here instead of becoming
+   * a `peerdb-api-health` incident. Everything else keeps the shared timeout:
+   * a per-mirror read that fails is already covered as partial coverage.
+   */
+  const listMirrorsOnce = async (): Promise<MirrorListItem[]> => {
+    const res = await fetchFn<ListMirrorsResponse>(
+      '/v1/mirrors/list',
+      undefined,
+      { timeoutMs: mod?.resolvePeerDBHealthTimeoutMs?.() }
+    )
+    return Array.isArray(res?.mirrors) ? res.mirrors : []
+  }
+
   return {
     // Deliberately NOT wrapped in `safe`: a failed list call must reach the
     // collection as a failure, not as an empty fleet.
     listMirrors: async () => {
-      const res = await fetchFn<ListMirrorsResponse>('/v1/mirrors/list')
-      return Array.isArray(res?.mirrors) ? res.mirrors : []
+      try {
+        return await listMirrorsOnce()
+      } catch (err) {
+        // One retry inside the same sweep. Skipped when the failure is not
+        // transient by nature (bad credentials, a cancelled sweep budget, no
+        // configuration to call) — retrying those only delays the same answer.
+        const kind = mod?.classifyPeerDBFetchFailure(err)
+        if (kind === 'auth' || kind === 'aborted' || kind === 'unconfigured') {
+          throw err
+        }
+        return listMirrorsOnce()
+      }
     },
     mirrorStatus: (name) =>
       safe(

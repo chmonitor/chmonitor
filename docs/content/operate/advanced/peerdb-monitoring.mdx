@@ -68,6 +68,7 @@ PEERDB_API_URL=http://localhost:8113
 | `PEERDB_CACHE_TTL_MS` | `10000` | TTL for the server-side response cache (set `0` to disable). |
 | `PEERDB_CACHE_MAX_ENTRIES` | `500` | Max cached responses before oldest entries are evicted. |
 | `PEERDB_FETCH_TIMEOUT_MS` | `10000` | Upstream request timeout. |
+| `PEERDB_HEALTH_TIMEOUT_MS` | `PEERDB_FETCH_TIMEOUT_MS` | Timeout for the alert sweep's health probe (`GET /v1/mirrors/list`) only, so the one call that pages can have a longer deadline than every UI and agent read. The probe is retried once inside the same sweep before a failure counts. |
 | `PEERDB_SWEEP_CONCURRENCY` | `8` | Max in-flight reads per alert-sweep tick. Lower it if PeerDB struggles under the sweep. |
 | `PEERDB_SWEEP_BUDGET_MS` | `60000` | Wall-clock budget for one alert-sweep collection. Mirrors left unread when it elapses are deferred to the next tick. |
 | `PEERDB_SWEEP_MAX_MIRRORS` | unset (no limit) | Optional cap on mirrors read per alert-sweep tick. Leave unset so every listed mirror is read; see [Partial coverage](#partial-coverage). |

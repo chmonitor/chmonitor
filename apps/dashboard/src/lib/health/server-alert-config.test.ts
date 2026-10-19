@@ -1,4 +1,5 @@
 import {
+  getPeerDBApiCriticalAfterMs,
   getServerAlertConfig,
   getServerAlertCooldownConfig,
   getServerChannelSettings,
@@ -13,8 +14,11 @@ import {
   isAnyAlertChannelEnabled,
   parseAlertIdentity,
   parseAlertMetadata,
+  perRuleEnvBaseId,
+  resolvePerRuleOverride,
 } from './server-alert-config'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { PEERDB_ALERT_RULE_IDS } from '@/lib/peerdb/alert-rule-ids'
 
 const ENV_KEYS = [
   'HEALTH_ALERT_ENABLED',
@@ -779,6 +783,126 @@ describe('getServerHysteresisConfig', () => {
       minConsecutiveBreaches: 1,
       minConsecutiveClears: 2,
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// #4029 — the dispatched PeerDB rule ids get their own per-rule knobs, and a
+// parameterised id (`peerdb-mirror-health:<mirror>`) resolves through the
+// static base because a colon cannot appear in an env var name.
+// ---------------------------------------------------------------------------
+describe('perRuleEnvBaseId / resolvePerRuleOverride', () => {
+  it('cuts a parameterised id at its first colon', () => {
+    expect(perRuleEnvBaseId('peerdb-mirror-health:pg-to-ch')).toBe(
+      'peerdb-mirror-health'
+    )
+    expect(perRuleEnvBaseId('peerdb-log-pattern:ab12cd34')).toBe(
+      'peerdb-log-pattern'
+    )
+    expect(perRuleEnvBaseId('disk-usage')).toBe('disk-usage')
+    expect(perRuleEnvBaseId('custom:my-rule')).toBe('custom')
+  })
+
+  it('falls back from the exact id to the static base, then to the global', () => {
+    const byRule = {
+      'disk-usage': 'exact',
+      'peerdb-mirror-health': 'base',
+    }
+    expect(resolvePerRuleOverride(byRule, 'disk-usage', 'global')).toBe('exact')
+    expect(
+      resolvePerRuleOverride(byRule, 'peerdb-mirror-health:orders', 'global')
+    ).toBe('base')
+    expect(resolvePerRuleOverride(byRule, 'memory-usage', 'global')).toBe(
+      'global'
+    )
+    // A colon id whose base was never registered keeps the global value —
+    // the documented behaviour for `custom:*` rules.
+    expect(resolvePerRuleOverride(byRule, 'custom:whatever', 'global')).toBe(
+      'global'
+    )
+  })
+
+  it('keeps a falsy per-rule value (cooldown 0 = no reminders)', () => {
+    expect(resolvePerRuleOverride({ 'disk-usage': 0 }, 'disk-usage', 60)).toBe(
+      0
+    )
+  })
+})
+
+describe('per-rule settings for the dispatched PeerDB ids', () => {
+  const KEYS = [
+    'HEALTH_HYSTERESIS_BREACHES',
+    'HEALTH_HYSTERESIS_PEERDB_API_HEALTH_BREACHES',
+    'HEALTH_HYSTERESIS_PEERDB_MIRROR_HEALTH_BREACHES',
+    'HEALTH_ALERT_COOLDOWN_MINUTES',
+    'HEALTH_ALERT_COOLDOWN_PEERDB_API_HEALTH_MINUTES',
+    'HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES',
+  ] as const
+  let saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of KEYS) {
+      saved[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+  afterEach(() => {
+    for (const key of KEYS) {
+      if (saved[key] === undefined) delete process.env[key]
+      else process.env[key] = saved[key]
+    }
+    saved = {}
+  })
+
+  it('resolves the PeerDB ids registered by the sweep', () => {
+    process.env.HEALTH_HYSTERESIS_PEERDB_API_HEALTH_BREACHES = '4'
+    process.env.HEALTH_HYSTERESIS_PEERDB_MIRROR_HEALTH_BREACHES = '3'
+    const { byRule, defaults } = getServerHysteresisConfig(
+      PEERDB_ALERT_RULE_IDS
+    )
+    expect(byRule['peerdb-api-health']?.minConsecutiveBreaches).toBe(4)
+    expect(byRule['peerdb-mirror-health']?.minConsecutiveBreaches).toBe(3)
+    expect(byRule['peerdb-log-pattern']?.minConsecutiveBreaches).toBe(
+      defaults.minConsecutiveBreaches
+    )
+  })
+
+  it('resolves the PeerDB cooldown override, including 0', () => {
+    process.env.HEALTH_ALERT_COOLDOWN_PEERDB_API_HEALTH_MINUTES = '0'
+    const { byRule } = getServerAlertCooldownConfig(PEERDB_ALERT_RULE_IDS)
+    expect(byRule['peerdb-api-health']).toBe(0)
+  })
+})
+
+describe('getPeerDBApiCriticalAfterMs', () => {
+  const KEY = 'HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES'
+  let saved: string | undefined
+
+  beforeEach(() => {
+    saved = process.env[KEY]
+    delete process.env[KEY]
+  })
+  afterEach(() => {
+    if (saved === undefined) delete process.env[KEY]
+    else process.env[KEY] = saved
+  })
+
+  it('defaults to 0 — critical on the first failed sweep, as before #4029', () => {
+    expect(getPeerDBApiCriticalAfterMs()).toBe(0)
+  })
+
+  it('converts whole minutes to ms and truncates fractions', () => {
+    process.env[KEY] = '15'
+    expect(getPeerDBApiCriticalAfterMs()).toBe(15 * 60_000)
+    process.env[KEY] = '2.9'
+    expect(getPeerDBApiCriticalAfterMs()).toBe(2 * 60_000)
+  })
+
+  it('treats unset, unparseable and non-positive values as immediate critical', () => {
+    for (const raw of ['', '  ', 'nope', '-5', '0']) {
+      process.env[KEY] = raw
+      expect(getPeerDBApiCriticalAfterMs()).toBe(0)
+    }
   })
 })
 
