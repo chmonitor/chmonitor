@@ -10,9 +10,11 @@
 //   - No license key, deployment-location hash or client-derived country is
 //     sent. A license key is an identifier and must never reach public
 //     telemetry; the server derives the country itself.
-//   - Only the HASH of a randomly-generated local ID is transmitted — the raw ID
-//     never leaves the device. The hash is stable across pings (re-hashes the same
-//     stored ID) so the server can count distinct instances without learning identity.
+//   - Only the HASH of a per-install identifier is transmitted — the raw value
+//     never leaves the device. It is a SHA-256 over a random per-install secret
+//     plus the dashboard and ClickHouse hostnames, so treat the id as
+//     pseudonymous rather than anonymous: the hash is of a partly low-entropy
+//     string, and both hostnames are recoverable by dictionary attack.
 //   - ClickHouse version is truncated to MAJOR.MINOR (e.g. '24.8') so it cannot
 //     be mistaken for an IPv4 address and cannot fingerprint a specific patch release.
 
@@ -29,8 +31,12 @@ import { APP_VERSION } from '@/lib/whats-new/app-version'
 
 export const PING_INTERVAL_MS = 24 * 60 * 60 * 1000
 
+const FETCH_TIMEOUT_MS = 5_000
+
 export const STORAGE_KEY_INSTANCE_ID = 'chm_telemetry_instance_id'
 const STORAGE_KEY_LAST_PING = 'chm_telemetry_last_ping_at'
+export const STORAGE_KEY_INSTANCE_SECRET = 'chm_telemetry_instance_secret'
+export const STORAGE_KEY_CH_HOSTNAME = 'chm_telemetry_ch_hostname'
 
 export { DEFAULT_TELEMETRY_ENDPOINT }
 
@@ -163,6 +169,49 @@ export interface PingDeps {
 }
 
 /**
+ * Reads the per-install random secret, minting and persisting one on first use.
+ * It never leaves the device; it only raises the entropy of the string that gets
+ * hashed, so the instance id cannot be reversed by dictionary attack on the
+ * hostnames.
+ */
+export function getOrCreateInstanceSecret(
+  getItem: (k: string) => string | null,
+  setItem: (k: string, v: string) => void,
+  randomId: () => string
+): string {
+  const stored = getItem(STORAGE_KEY_INSTANCE_SECRET)
+  if (stored) return stored
+  const secret = randomId()
+  setItem(STORAGE_KEY_INSTANCE_SECRET, secret)
+  return secret
+}
+
+/**
+ * Builds and persists the raw instance id: the per-install secret joined to the
+ * dashboard and ClickHouse hostnames. The caller hashes it; the raw string never
+ * leaves the device. Shared by the ping and the event sink so both mint the same
+ * id for the same install.
+ */
+export function buildInstanceId(
+  chHostname: string,
+  getItem: (k: string) => string | null,
+  setItem: (k: string, v: string) => void,
+  randomId: () => string
+): string {
+  // Always persist a secret, including off-browser (SSR/prerender/tests): the
+  // legacy check treats "id without a secret" as pre-salt, so an id minted
+  // without one would be re-minted on every subsequent call.
+  const secret = getOrCreateInstanceSecret(getItem, setItem, randomId)
+  const id =
+    typeof window === 'undefined' || !window.location
+      ? secret
+      : `${secret}|${window.location.hostname}|${chHostname || 'default'}`
+  setItem(STORAGE_KEY_INSTANCE_ID, id)
+  if (chHostname) setItem(STORAGE_KEY_CH_HOSTNAME, chHostname)
+  return id
+}
+
+/**
  * Core ping orchestration.  All side-effects come through deps — unit tests
  * pass fake implementations to exercise every branch without touching real
  * browser globals or making real HTTP calls.
@@ -203,21 +252,18 @@ export async function runInstancePing(deps: PingDeps): Promise<PingResult> {
   // Get-or-create stable local instance ID (never transmitted raw)
   let instanceId = getItem(STORAGE_KEY_INSTANCE_ID)
   const currentChHostname = deps.chHostname || ''
-  const storedChHostname = getItem('chm_telemetry_ch_hostname') || ''
+  const storedChHostname = getItem(STORAGE_KEY_CH_HOSTNAME) || ''
+  // A stored id with no secret predates the salt: re-mint once so an upgraded
+  // install stops shipping the reversible `hostname|chHostname` id forever.
+  const isLegacyId =
+    Boolean(instanceId) && !getItem(STORAGE_KEY_INSTANCE_SECRET)
 
   if (
     !instanceId ||
+    isLegacyId ||
     (currentChHostname && currentChHostname !== storedChHostname)
   ) {
-    if (typeof window !== 'undefined' && window.location) {
-      instanceId = `${window.location.hostname}|${currentChHostname || 'default'}`
-      if (currentChHostname) {
-        setItem('chm_telemetry_ch_hostname', currentChHostname)
-      }
-    } else {
-      instanceId = randomId()
-    }
-    setItem(STORAGE_KEY_INSTANCE_ID, instanceId)
+    instanceId = buildInstanceId(currentChHostname, getItem, setItem, randomId)
   }
 
   const instanceHash = await hash(instanceId)
@@ -312,6 +358,7 @@ export function maybePingInstance(
         headers: { 'content-type': 'application/json' },
         body,
         keepalive: true,
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       }).then(() => undefined),
     version: chVersion, // caller may populate via a separate ClickHouse query
     chHostname,

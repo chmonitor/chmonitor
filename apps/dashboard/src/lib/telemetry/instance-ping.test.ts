@@ -6,6 +6,7 @@ import {
   type PingDeps,
   type PingPayload,
   runInstancePing,
+  sha256hex,
   shouldPing,
 } from './instance-ping'
 import { describe, expect, test } from 'bun:test'
@@ -282,7 +283,12 @@ describe('runInstancePing happy path', () => {
   test('reuses existing stored instance id (does not regenerate)', async () => {
     let randomCalled = 0
     const deps = makeDeps({
-      storageOverrides: { chm_telemetry_instance_id: 'existing-stable-id' },
+      // A secret is present, so this id is already salted: it must be reused.
+      // The unsalted shape is covered by the legacy-upgrade suite below.
+      storageOverrides: {
+        chm_telemetry_instance_id: 'existing-stable-id',
+        chm_telemetry_instance_secret: 'existing-secret',
+      },
       randomId: () => {
         randomCalled++
         return 'new-uuid'
@@ -296,6 +302,177 @@ describe('runInstancePing happy path', () => {
     // The hash is of the EXISTING id: same id → user counts stay continuous
     const body = JSON.parse(deps.posts[0].body) as PingPayload
     expect(body.id).toBe('hash:existing-stable-id')
+  })
+})
+
+// Without a per-install secret the raw id is just `dashboardHost|chHost`, so two
+// installs behind the same hostnames collide and the hash is reversible by
+// dictionary attack. These pin the salt.
+describe('instance id is salted per install', () => {
+  const savedWindow = globalThis.window
+
+  function withWindow<T>(fn: () => T): T {
+    // @ts-expect-error — bun test runs without a DOM
+    globalThis.window = { location: { hostname: 'dash.example.com' } }
+    try {
+      return fn()
+    } finally {
+      if (savedWindow === undefined) {
+        // @ts-expect-error
+        delete globalThis.window
+      } else {
+        globalThis.window = savedWindow
+      }
+    }
+  }
+
+  async function pingWithSecret(secret: string, chHostname: string) {
+    const deps = makeDeps({
+      chHostname,
+      randomId: () => secret,
+    })
+    await runInstancePing(deps)
+    const body = JSON.parse(deps.posts[0].body) as PingPayload
+    return { body, store: deps.store }
+  }
+
+  test('two installs with identical hostnames get different ids', async () => {
+    const { body: a, store: storeA } = await withWindow(() =>
+      pingWithSecret('secret-aaa', 'ch.internal.example')
+    )
+    const { body: b, store: storeB } = await withWindow(() =>
+      pingWithSecret('secret-bbb', 'ch.internal.example')
+    )
+
+    // Same dashboard host + same ClickHouse host, different installs.
+    expect(storeA.chm_telemetry_instance_id).not.toBe(
+      storeB.chm_telemetry_instance_id
+    )
+    expect(a.id).not.toBe(b.id)
+  })
+
+  test('the raw id embeds the secret and both hostnames', async () => {
+    const { body, store } = await withWindow(() =>
+      pingWithSecret('secret-ccc', 'ch.internal.example')
+    )
+    expect(store.chm_telemetry_instance_id).toBe(
+      'secret-ccc|dash.example.com|ch.internal.example'
+    )
+    // makeDeps' fake hash is a passthrough, so assert the wiring, not secrecy:
+    // the transmitted id is the hash OF the raw id.
+    expect(body.id).toBe(`hash:${store.chm_telemetry_instance_id}`)
+  })
+
+  test('the real SHA-256 hash does not contain the raw id', async () => {
+    const deps = makeDeps({
+      chHostname: 'ch.internal.example',
+      randomId: () => 'secret-ddd',
+      hash: sha256hex,
+    })
+    await withWindow(() => runInstancePing(deps))
+    const body = JSON.parse(deps.posts[0].body) as PingPayload
+
+    expect(body.id).toMatch(/^[0-9a-f]{64}$/)
+    expect(body.id).not.toContain('secret-ddd')
+    expect(body.id).not.toContain('ch.internal.example')
+  })
+
+  test('the secret is minted once and reused on later pings', async () => {
+    let minted = 0
+    const deps = makeDeps({
+      chHostname: 'ch.internal.example',
+      randomId: () => {
+        minted++
+        return 'secret-once'
+      },
+    })
+    await withWindow(() => runInstancePing(deps))
+    const firstId = deps.store.chm_telemetry_instance_id
+
+    await withWindow(() => runInstancePing(deps))
+
+    expect(minted).toBe(1)
+    expect(deps.store.chm_telemetry_instance_id).toBe(firstId)
+  })
+})
+
+// An install that pinged before the salt has a stored `hostname|chHostname` id
+// and no secret, so it matches both pre-existing reuse conditions. It must be
+// re-minted once, then stay stable — otherwise the privacy fix never reaches the
+// installs that already existed.
+describe('upgrading from a legacy unsalted instance id', () => {
+  const savedWindow = globalThis.window
+  const LEGACY_ID = 'dash.example.com|ch.internal.example'
+
+  function withWindow<T>(fn: () => T): T {
+    // @ts-expect-error — bun test runs without a DOM
+    globalThis.window = { location: { hostname: 'dash.example.com' } }
+    try {
+      return fn()
+    } finally {
+      if (savedWindow === undefined) {
+        // @ts-expect-error
+        delete globalThis.window
+      } else {
+        globalThis.window = savedWindow
+      }
+    }
+  }
+
+  function legacyDeps() {
+    return makeDeps({
+      chHostname: 'ch.internal.example',
+      randomId: () => 'fresh-secret',
+      storageOverrides: {
+        chm_telemetry_instance_id: LEGACY_ID,
+        chm_telemetry_ch_hostname: 'ch.internal.example',
+      },
+    })
+  }
+
+  test('re-mints the legacy id on the first ping after upgrade', async () => {
+    const deps = legacyDeps()
+    await withWindow(() => runInstancePing(deps))
+
+    expect(deps.store.chm_telemetry_instance_id).not.toBe(LEGACY_ID)
+    expect(deps.store.chm_telemetry_instance_id).toBe(
+      'fresh-secret|dash.example.com|ch.internal.example'
+    )
+    expect(deps.store.chm_telemetry_instance_secret).toBe('fresh-secret')
+  })
+
+  test('the re-minted id stays stable on later pings', async () => {
+    const deps = legacyDeps()
+    await withWindow(() => runInstancePing(deps))
+    const afterUpgrade = deps.store.chm_telemetry_instance_id
+
+    // Past the cadence window so the ping actually runs again.
+    deps.now = 1_700_000_000_000 + PING_INTERVAL_MS
+    await withWindow(() => runInstancePing(deps))
+
+    expect(deps.store.chm_telemetry_instance_id).toBe(afterUpgrade)
+  })
+
+  test('leaves an already-salted id untouched', async () => {
+    const salted = 'fresh-secret|dash.example.com|ch.internal.example'
+    let minted = 0
+    const deps = makeDeps({
+      chHostname: 'ch.internal.example',
+      randomId: () => {
+        minted++
+        return 'should-not-be-used'
+      },
+      storageOverrides: {
+        chm_telemetry_instance_id: salted,
+        chm_telemetry_instance_secret: 'fresh-secret',
+        chm_telemetry_ch_hostname: 'ch.internal.example',
+      },
+    })
+    await withWindow(() => runInstancePing(deps))
+
+    expect(deps.store.chm_telemetry_instance_id).toBe(salted)
+    expect(deps.store.chm_telemetry_instance_secret).toBe('fresh-secret')
+    expect(minted).toBe(0)
   })
 })
 

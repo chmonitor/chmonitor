@@ -28,7 +28,7 @@ describe('CI never sends telemetry', () => {
     ['test.yml', 'e2e-test loads the dashboard in Chrome'],
     ['a11y.yml', 'axe-core loads the dashboard in Chrome'],
     ['cli-rust-ci.yml', 'cargo test can run the real CLI'],
-  ])('%s sets DO_NOT_TRACK at workflow level (%s)', (file) => {
+  ])('%s sets DO_NOT_TRACK at workflow level (%s)', (file, _why) => {
     expect(String(workflowEnv(file)?.DO_NOT_TRACK)).toBe('1')
   })
 

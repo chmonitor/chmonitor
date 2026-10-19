@@ -10,3 +10,22 @@
 // (client build). An empty string is the hard no-network kill-switch.
 export const DEFAULT_TELEMETRY_ENDPOINT =
   'https://telemetry.anyr.workers.dev/chmonitor'
+
+/**
+ * The `VITE_TELEMETRY_ENDPOINT` value vite.config.ts bakes into the bundle.
+ * Precedence matches every other dual-surface setting in that file:
+ * explicit VITE_* → canonical CHM_* → committed default.
+ *
+ * Pure and alias-free so vite.config.ts can import it by relative path and a
+ * unit test can pin its output. An explicit empty string is preserved: callers
+ * read it as the hard no-network kill-switch, not as "unset".
+ */
+export function resolveClientTelemetryEndpoint(
+  e: Record<string, string | undefined>
+): string {
+  return (
+    e.VITE_TELEMETRY_ENDPOINT ??
+    e.CHM_TELEMETRY_ENDPOINT ??
+    DEFAULT_TELEMETRY_ENDPOINT
+  )
+}

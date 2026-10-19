@@ -171,34 +171,3 @@ declare global {
     __CHM_DEPLOY_TARGET__?: string
   }
 }
-
- * Detect platform/OS from navigator.userAgent (generic categories only).
- * Returns 'windows', 'macos', 'linux', 'android', 'ios', or 'unknown'.
- *
- * Privacy contract:
- *   - Only generic OS families, not specific versions
- *   - Returns 'unknown' when userAgent is unavailable or unparseable
- *   - No device fingerprinting or unique identifiers
- */
-export function detectPlatform(): string {
-  if (typeof navigator === 'undefined' || !navigator.userAgent) {
-    return 'unknown'
-  }
-
-  const ua = navigator.userAgent.toLowerCase()
-
-  if (ua.includes('android')) return 'android'
-  if (ua.includes('iphone') || ua.includes('ipad')) return 'ios'
-  if (ua.includes('mac os') || ua.includes('macintosh')) return 'macos'
-  if (ua.includes('windows')) return 'windows'
-  if (ua.includes('linux')) return 'linux'
-
-  return 'unknown'
-}
-
-declare global {
-  interface Window {
-    /** Set by the inline script in `routes/__root.tsx`. */
-    __CHM_DEPLOY_TARGET__?: string
-  }
-}

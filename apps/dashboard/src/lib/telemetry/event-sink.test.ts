@@ -3,7 +3,11 @@ import {
   installTelemetryEventSink,
   uninstallTelemetryEventSink,
 } from './event-sink'
-import { getChmVersion, STORAGE_KEY_INSTANCE_ID } from './instance-ping'
+import {
+  getChmVersion,
+  STORAGE_KEY_INSTANCE_ID,
+  STORAGE_KEY_INSTANCE_SECRET,
+} from './instance-ping'
 import { clearTelemetrySinks, track } from './track'
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { createHash } from 'node:crypto'
@@ -64,6 +68,9 @@ afterEach(() => {
 
 describe('installTelemetryEventSink', () => {
   test('POSTs tracked events to the shared endpoint with the instance hash as id', async () => {
+    // Salted shape, so the stored id is followed as-is. The unsalted (legacy)
+    // shape is covered by the re-mint test below.
+    store.set(STORAGE_KEY_INSTANCE_SECRET, 'a-secret')
     store.set(STORAGE_KEY_INSTANCE_ID, 'example.com|default')
     installTelemetryEventSink(ON)
     track('cluster_connected', { ch_flavor: 'oss', num_hosts: 2 }, ON)
@@ -89,15 +96,40 @@ describe('installTelemetryEventSink', () => {
     expect(calls[0].url).toBe(DEFAULT_TELEMETRY_ENDPOINT)
   })
 
-  test('omits id until the ping has stored an instance id, rather than inventing one', async () => {
+  test('mints an instance id when app_loaded wins the race with the ping', async () => {
+    // The service counts an id-less event as a separate daily user, which
+    // inflates DAU. So an early event mints and persists the same id the ping
+    // would have used, instead of being sent without one.
     installTelemetryEventSink(ON)
     track('app_loaded', {}, ON)
     await waitForCalls(1)
-    expect('id' in calls[0].body).toBe(false)
+
+    expect(calls[0].body.id).toBeDefined()
+    const raw = store.get(STORAGE_KEY_INSTANCE_ID)
+    expect(raw).toBeTruthy()
+    // Transmitted as the hash of the persisted raw id, never raw.
+    expect(calls[0].body.id).toBe(sha256(raw as string))
+  })
+
+  test('drops id only when storage is unavailable', async () => {
+    const saved = globalThis.localStorage
+    // @ts-expect-error — simulate private browsing / blocked storage
+    delete globalThis.localStorage
+    try {
+      installTelemetryEventSink(ON)
+      track('app_loaded', {}, ON)
+      await waitForCalls(1)
+      expect('id' in calls[0].body).toBe(false)
+    } finally {
+      globalThis.localStorage = saved
+    }
   })
 
   test('follows the stored id when the ping regenerates it', async () => {
     installTelemetryEventSink(ON)
+    // A secret is present, so both ids are already salted and must be followed
+    // as stored rather than re-minted.
+    store.set(STORAGE_KEY_INSTANCE_SECRET, 'a-secret')
     store.set(STORAGE_KEY_INSTANCE_ID, 'a.example|default')
     track('health_viewed', {}, ON)
     await waitForCalls(1)
@@ -109,6 +141,20 @@ describe('installTelemetryEventSink', () => {
       sha256('a.example|default'),
       sha256('a.example|ch-1'),
     ])
+  })
+
+  test('re-mints a legacy unsalted id instead of shipping it', async () => {
+    installTelemetryEventSink(ON)
+    // Pre-salt shape: a stored id and no secret.
+    store.set(STORAGE_KEY_INSTANCE_ID, 'a.example|default')
+    track('health_viewed', {}, ON)
+    await waitForCalls(1)
+
+    const minted = store.get(STORAGE_KEY_INSTANCE_ID)
+    expect(minted).toBeTruthy()
+    expect(minted).not.toBe('a.example|default')
+    expect(store.get(STORAGE_KEY_INSTANCE_SECRET)).toBeTruthy()
+    expect(calls[0].body.id).toBe(sha256(minted as string))
   })
 
   test('never sends a license key, even if a caller passes one', async () => {
