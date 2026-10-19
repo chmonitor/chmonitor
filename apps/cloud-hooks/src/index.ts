@@ -44,6 +44,7 @@ import {
   collectUsage,
   fetchUsageStats,
   referenceDayFor,
+  statsCoverReferenceDay,
   type TelemetryStats,
 } from './usage'
 import { handlePolarWebhook } from './webhook'
@@ -141,6 +142,7 @@ async function runUsageAnomaly(
 ): Promise<void> {
   if (!stats) return
   const referenceDay = referenceDayFor(nowSeconds)
+  if (!statsCoverReferenceDay(stats, referenceDay)) return
   const series = dailySeriesFromStats(stats, referenceDay)
   if (series.length === 0) return
   const anomaly = detectAnomaly(series, referenceDay)

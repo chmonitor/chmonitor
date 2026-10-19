@@ -147,6 +147,18 @@ export function referenceDayFor(now: number): string {
 }
 
 /**
+ * Whether the stats series actually contains the reference day. A missing row
+ * is a stale rollup, not a collapse to zero: detectAnomaly would otherwise
+ * read current = 0 over a full baseline and fire a false -100% drop.
+ */
+export function statsCoverReferenceDay(
+  stats: TelemetryStats,
+  referenceDay: string
+): boolean {
+  return stats.series.some((row) => row.day === referenceDay)
+}
+
+/**
  * Active-install counts as of yesterday. `now` is unix seconds (injectable for
  * tests). Returns null when there are no stats or they do not cover the
  * reference day — better to omit the section than report another day's numbers
@@ -160,7 +172,7 @@ export function collectUsage(
 ): UsageMetrics | null {
   if (!stats) return null
   const referenceDay = referenceDayFor(now)
-  if (!stats.series.some((row) => row.day === referenceDay)) {
+  if (!statsCoverReferenceDay(stats, referenceDay)) {
     onLogError(
       `[cloud-hooks] telemetry stats do not cover ${referenceDay}; digest omits usage`
     )
