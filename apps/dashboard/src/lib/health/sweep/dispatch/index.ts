@@ -62,6 +62,7 @@ import {
 import {
   buildHealthDeepLink,
   getServerAlertIdentity,
+  resolvePerRuleOverride,
 } from './../../server-alert-config'
 import { SWEEP_ACK_OWNER_ID } from './../resolve-config'
 import {
@@ -187,13 +188,24 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       critThreshold,
     } = params
     const effective = effectiveSeverity(severity, settings.minSeverity)
-    const ruleHysteresis =
-      ctx.hysteresis.byRule[ruleId] ?? ctx.hysteresis.defaults
+    // Per-rule hysteresis/cooldown (#4029): exact rule id first, then the
+    // static base for a parameterised id the env cannot name
+    // (`peerdb-mirror-health:<slug>` → `peerdb-mirror-health`), then the
+    // global default.
+    const ruleHysteresis = resolvePerRuleOverride(
+      ctx.hysteresis.byRule,
+      ruleId,
+      ctx.hysteresis.defaults
+    )
     const { decision, commit } = evaluateAlert(alertStateStore, {
       hostId,
       ruleId,
       severity: effective,
-      cooldownMs: ctx.cooldown.byRule[ruleId] ?? ctx.cooldown.defaultMs,
+      cooldownMs: resolvePerRuleOverride(
+        ctx.cooldown.byRule,
+        ruleId,
+        ctx.cooldown.defaultMs
+      ),
       minConsecutiveBreaches: ruleHysteresis.minConsecutiveBreaches,
       minConsecutiveClears: ruleHysteresis.minConsecutiveClears,
     })

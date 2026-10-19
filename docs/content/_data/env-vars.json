@@ -844,6 +844,12 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "LLM_API_BASE",
       "prefix": "LLM"
     },
@@ -959,6 +965,12 @@
       "exampleDefault": null,
       "inEnvExample": false,
       "name": "PEERDB_FETCH_TIMEOUT_MS",
+      "prefix": "PEERDB"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "PEERDB_HEALTH_TIMEOUT_MS",
       "prefix": "PEERDB"
     },
     {

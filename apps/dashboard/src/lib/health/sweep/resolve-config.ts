@@ -48,6 +48,7 @@ import {
   topoSortCompound,
 } from '@/lib/alerting/compound-rules'
 import { ruleRegistry } from '@/lib/alerting/rule-registry'
+import { PEERDB_ALERT_RULE_IDS } from '@/lib/peerdb/alert-rule-ids'
 
 /**
  * Owner id the sweep loads routes under. The sweep is a session-less cron
@@ -130,11 +131,16 @@ export async function resolveSweepContext(): Promise<SweepContext> {
   )
 
   // Hysteresis config (#2767): per-check anti-flap knobs. Resolved for every
-  // base + compound rule id; dispatch looks up `byRule[id] ?? defaults`
-  // (compound ids fall through to defaults). Env-configured, like thresholds.
+  // base + compound rule id; dispatch looks up the exact id, then the static
+  // base, then `defaults` (compound ids fall through to defaults).
+  // Env-configured, like thresholds. The PeerDB ids are dispatched by the
+  // alert cycle rather than the ClickHouse rule registry, so they are added
+  // explicitly (#4029) — by STATIC base, which is the only id an env var can
+  // name (`peerdb-mirror-health:<slug>` carries a colon).
   const ruleIds = [
     ...rules.map((r) => r.id),
     ...compoundRuleRegistry.getAll().map((r) => r.id),
+    ...PEERDB_ALERT_RULE_IDS,
   ]
   const hysteresis = getServerHysteresisConfig(ruleIds)
   // Re-notify cooldown (#3869): same resolution shape as hysteresis.

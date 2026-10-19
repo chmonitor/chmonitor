@@ -17,7 +17,7 @@ import {
   resolvePeerDBSweepConcurrency,
   resolvePeerDBSweepMaxMirrors,
 } from './sweep-pool'
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
 function stubReader(
   overrides: Partial<PeerDBAlertSnapshotReader> = {}
@@ -922,6 +922,140 @@ describe('defaultReader via mocked peerdbFetch', () => {
     expect(seenAuth.length).toBeGreaterThan(0)
     expect(seenAuth.every((auth) => auth === 'Bearer alert-token')).toBe(true)
     expect(s.slotLagMb).toBe(7)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// #4029 — the health list call retries once inside the same sweep, and gives
+// the retry up for failures a retry cannot fix. Without the retry a single
+// dropped connection became a `peerdb-api-health` incident; without the
+// give-up rule a wrong password would be tried twice per sweep.
+// ---------------------------------------------------------------------------
+describe('defaultReader health-list retry (#4029)', () => {
+  const URL = 'http://flow-api:8113'
+  let origUrl: string | undefined
+  let origPassword: string | undefined
+  let origHealthTimeout: string | undefined
+  let origFetch: typeof globalThis.fetch
+  let listCalls = 0
+
+  beforeEach(() => {
+    origUrl = process.env.PEERDB_API_URL
+    origPassword = process.env.PEERDB_PASSWORD
+    origHealthTimeout = process.env.PEERDB_HEALTH_TIMEOUT_MS
+    origFetch = globalThis.fetch
+    listCalls = 0
+    process.env.PEERDB_API_URL = URL
+    delete process.env.PEERDB_PASSWORD
+    delete process.env.PEERDB_HEALTH_TIMEOUT_MS
+    // Fresh cache namespace per test (the response cache is module-level).
+    process.env.PEERDB_CACHE_TTL_MS = '0'
+  })
+
+  afterEach(() => {
+    globalThis.fetch = origFetch
+    if (origUrl === undefined) delete process.env.PEERDB_API_URL
+    else process.env.PEERDB_API_URL = origUrl
+    if (origPassword === undefined) delete process.env.PEERDB_PASSWORD
+    else process.env.PEERDB_PASSWORD = origPassword
+    if (origHealthTimeout === undefined) {
+      delete process.env.PEERDB_HEALTH_TIMEOUT_MS
+    } else {
+      process.env.PEERDB_HEALTH_TIMEOUT_MS = origHealthTimeout
+    }
+  })
+
+  test('a transient failure is absorbed by one retry, so the sweep sees a fleet', async () => {
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const path = String(input).slice(URL.length)
+      if (path === '/v1/mirrors/list') {
+        listCalls++
+        if (listCalls === 1) throw new TypeError('fetch failed')
+        return new Response(
+          JSON.stringify({ mirrors: [{ name: 'retry_a' }] }),
+          {
+            status: 200,
+          }
+        )
+      }
+      return new Response('{}', { status: 200 })
+    }) as typeof globalThis.fetch
+
+    const out = await collectPeerDBSignals(undefined)
+    expect(listCalls).toBe(2)
+    expect(out.listFailure).toBeNull()
+    expect(out.signals.map((s) => s.flowName)).toEqual(['retry_a'])
+  })
+
+  test('a persistent failure retries once and then still reports the outage', async () => {
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      if (String(input).slice(URL.length) === '/v1/mirrors/list') {
+        listCalls++
+        throw new TypeError('fetch failed')
+      }
+      return new Response('{}', { status: 200 })
+    }) as typeof globalThis.fetch
+
+    const out = await collectPeerDBSignals(undefined)
+    expect(listCalls).toBe(2)
+    expect(out.configured).toBe(true)
+    expect(out.listFailure).not.toBeNull()
+  })
+
+  test('auth failure is not retried — a wrong password gets the same answer twice', async () => {
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      if (String(input).slice(URL.length) === '/v1/mirrors/list') {
+        listCalls++
+        return new Response('nope', { status: 401, statusText: 'Unauthorized' })
+      }
+      return new Response('{}', { status: 200 })
+    }) as typeof globalThis.fetch
+
+    const out = await collectPeerDBSignals(undefined)
+    expect(listCalls).toBe(1)
+    expect(out.listFailure?.kind).toBe('auth')
+  })
+
+  test('the health call gets PEERDB_HEALTH_TIMEOUT_MS while the rest do not', async () => {
+    process.env.PEERDB_HEALTH_TIMEOUT_MS = '27000'
+    process.env.PEERDB_FETCH_TIMEOUT_MS = '10000'
+    const deadlines: number[] = []
+    const originalSetTimeout = globalThis.setTimeout
+    globalThis.setTimeout = ((
+      callback: (...args: unknown[]) => void,
+      ms?: number,
+      ...args: unknown[]
+    ) => {
+      const n = Number(ms)
+      if (n > 0) deadlines.push(n)
+      return originalSetTimeout(callback, 0, ...args)
+    }) as unknown as typeof globalThis.setTimeout
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const path = String(input).slice(URL.length)
+      if (path === '/v1/mirrors/list') {
+        return new Response(JSON.stringify({ mirrors: [{ name: 'to_a' }] }), {
+          status: 200,
+        })
+      }
+      if (path === '/v1/mirrors/status') {
+        return new Response(
+          JSON.stringify({ currentFlowState: 'STATUS_RUNNING' }),
+          {
+            status: 200,
+          }
+        )
+      }
+      return new Response('{}', { status: 200 })
+    }) as typeof globalThis.fetch
+
+    try {
+      await collectPeerDBSignals(undefined)
+    } finally {
+      globalThis.setTimeout = originalSetTimeout
+    }
+    expect(deadlines).toContain(27_000)
+    // The per-mirror reads still use the shared timeout.
+    expect(deadlines).toContain(10_000)
   })
 })
 

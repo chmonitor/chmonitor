@@ -9,14 +9,20 @@ import {
   peerDBRuleIdForFlow,
   runPeerDBAlertCycle,
 } from './alert-cycle'
+import { PEERDB_ALERT_RULE_IDS } from './alert-rule-ids'
 import { fingerprintLogMessage } from './log-fingerprint'
 import {
   PEERDB_LOG_PATTERN_SPIKE_COUNT,
   peerDBLogPatternRuleId,
 } from './log-pattern-alerts'
 import { PeerDBError } from './peerdb-config'
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { alertStateStore, evaluateAlert } from '@/lib/health/alert-state-store'
+import {
+  getServerAlertCooldownConfig,
+  getServerHysteresisConfig,
+  resolvePerRuleOverride,
+} from '@/lib/health/server-alert-config'
 
 function readerFor(
   mirrors: Array<{
@@ -770,5 +776,272 @@ describe('runPeerDBAlertCycle — per-mirror rules (#3699)', () => {
     expect(t.dispatches).toHaveLength(1)
     expect(t.dispatches[0]!.severity).toBe('warning')
     expect(t.dispatches[0]!.critThreshold).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// #4029 — PeerDB API health: the breach streak must reset on a success, the
+// per-rule hysteresis/cooldown must apply to the dispatched PeerDB ids, and
+// the severity must escalate by duration instead of paging on the first blip.
+//
+// The dispatcher below mirrors the real `dispatchFinding`: resolve the
+// per-rule settings by the DISPATCHED id (with the static-base fallback an
+// env var can actually name), then run `evaluateAlert` and commit. That is
+// what makes the sequence below a real end-to-end sweep, not a unit test of
+// one guard.
+// ---------------------------------------------------------------------------
+describe('runPeerDBAlertCycle — API health hysteresis + escalation (#4029)', () => {
+  const API_KEY = `${PEERDB_ALERT_HOST_ID}:${PEERDB_API_HEALTH_RULE_ID}`
+  const MINUTE = 60_000
+  const T0 = Date.parse('2026-10-01T00:00:00Z')
+
+  const ENV_KEYS = [
+    'HEALTH_HYSTERESIS_BREACHES',
+    'HEALTH_HYSTERESIS_CLEARS',
+    'HEALTH_HYSTERESIS_PEERDB_API_HEALTH_BREACHES',
+    'HEALTH_HYSTERESIS_PEERDB_MIRROR_HEALTH_BREACHES',
+    'HEALTH_HYSTERESIS_PEERDB_API_HEALTH_CLEARS',
+    'HEALTH_HYSTERESIS_PEERDB_MIRROR_HEALTH_CLEARS',
+    'HEALTH_ALERT_COOLDOWN_PEERDB_API_HEALTH_MINUTES',
+    'HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES',
+  ] as const
+  const savedEnv: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of ENV_KEYS) {
+      savedEnv[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of ENV_KEYS) {
+      if (savedEnv[key] === undefined) delete process.env[key]
+      else process.env[key] = savedEnv[key]
+    }
+  })
+
+  interface DedupTape extends Tape {
+    /** Kinds of transitions the real dispatcher would have DELIVERED. */
+    notified: string[]
+    now: number
+    dispatch: (p: DispatchFindingParams) => Promise<void>
+    audit: PeerDBAuditFn
+  }
+
+  function dedupTape(): DedupTape {
+    const t = tape()
+    const notified: string[] = []
+    const state: DedupTape = {
+      ...t,
+      notified,
+      now: T0,
+      audit: t.audit,
+      dispatch: async (p) => {
+        await t.dispatch(p)
+        // Env is read per dispatch, exactly like `resolveSweepContext` does
+        // once per tick — so a test that changes it between ticks is honoured.
+        const hysteresis = getServerHysteresisConfig(PEERDB_ALERT_RULE_IDS)
+        const cooldown = getServerAlertCooldownConfig(PEERDB_ALERT_RULE_IDS)
+        const ruleHysteresis = resolvePerRuleOverride(
+          hysteresis.byRule,
+          p.ruleId,
+          hysteresis.defaults
+        )
+        const { decision, commit } = evaluateAlert(alertStateStore, {
+          hostId: p.hostId,
+          ruleId: p.ruleId,
+          severity: p.severity,
+          cooldownMs: resolvePerRuleOverride(
+            cooldown.byRule,
+            p.ruleId,
+            cooldown.defaultMs
+          ),
+          minConsecutiveBreaches: ruleHysteresis.minConsecutiveBreaches,
+          minConsecutiveClears: ruleHysteresis.minConsecutiveClears,
+          now: state.now,
+        })
+        if (decision.notify) notified.push(decision.kind)
+        commit()
+      },
+    }
+    return state
+  }
+
+  const tick = async (
+    t: DedupTape,
+    reader: PeerDBAlertSnapshotReader,
+    now: number
+  ): Promise<void> => {
+    t.now = now
+    await runPeerDBAlertCycle({
+      reader,
+      dispatch: t.dispatch,
+      audit: t.audit,
+      dryRun: false,
+      now,
+    })
+  }
+
+  const failingReader = (): PeerDBAlertSnapshotReader => ({
+    ...readerFor([]),
+    listMirrors: async () => {
+      throw new PeerDBError('502', 502, 'network')
+    },
+  })
+
+  const healthyReader = (
+    ...mirrors: Array<{ name: string; status?: string | null }>
+  ): PeerDBAlertSnapshotReader => readerFor(mirrors)
+
+  test('BREACHES=3: fail, succeed, fail, fail never fires — only three CONSECUTIVE failures do', async () => {
+    process.env.HEALTH_HYSTERESIS_PEERDB_API_HEALTH_BREACHES = '3'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const t = dedupTape()
+
+    await tick(t, failingReader(), T0)
+    expect(alertStateStore.get(API_KEY)?.pendingCount).toBe(1)
+    await tick(t, failingReader(), T0 + 5 * MINUTE)
+    expect(alertStateStore.get(API_KEY)?.pendingCount).toBe(2)
+    expect(t.notified).toHaveLength(0)
+
+    // One successful sweep resets the streak. Before #4029 the `ok` was never
+    // dispatched, so this record survived with pendingCount intact.
+    await tick(t, healthyReader({ name: 'streak_api' }), T0 + 10 * MINUTE)
+    expect(alertStateStore.get(API_KEY)).toBeUndefined()
+    expect(t.notified).toHaveLength(0)
+
+    await tick(t, failingReader(), T0 + 15 * MINUTE)
+    expect(alertStateStore.get(API_KEY)?.pendingCount).toBe(1)
+    await tick(t, failingReader(), T0 + 20 * MINUTE)
+    expect(alertStateStore.get(API_KEY)?.pendingCount).toBe(2)
+    // Two isolated timeouts plus this one are NOT three in a row.
+    expect(t.notified).toHaveLength(0)
+
+    await tick(t, failingReader(), T0 + 25 * MINUTE)
+    expect(t.notified).toEqual(['new'])
+  })
+
+  test('the same streak reset applies to a per-mirror rule', async () => {
+    process.env.HEALTH_HYSTERESIS_PEERDB_MIRROR_HEALTH_BREACHES = '3'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const flow = 'streak-mirror'
+    const key = KEY(flow)
+    let status = 'STATUS_FAILED'
+    const reader: PeerDBAlertSnapshotReader = {
+      listMirrors: async () => [{ name: flow }],
+      mirrorStatus: async () => ({ currentFlowState: status }),
+      mirrorErrorCount: async () => ({ count: 0, source: 'log-api' }),
+      peerSlots: async () => [],
+      listSourcePeers: async () => [],
+    }
+    const t = dedupTape()
+
+    await tick(t, reader, T0)
+    expect(alertStateStore.get(key)?.pendingCount).toBe(1)
+    await tick(t, reader, T0 + 5 * MINUTE)
+    expect(alertStateStore.get(key)?.pendingCount).toBe(2)
+
+    status = 'STATUS_RUNNING'
+    await tick(t, reader, T0 + 10 * MINUTE)
+    expect(alertStateStore.get(key)).toBeUndefined()
+
+    status = 'STATUS_FAILED'
+    await tick(t, reader, T0 + 15 * MINUTE)
+    await tick(t, reader, T0 + 20 * MINUTE)
+    expect(alertStateStore.get(key)?.pendingCount).toBe(2)
+    expect(t.notified).toHaveLength(0)
+  })
+
+  test('HEALTH_HYSTERESIS_PEERDB_API_HEALTH_BREACHES is honoured (per-rule, not global)', async () => {
+    // Global default stays 1: without the per-rule var the very first failure
+    // fires. This is the defect from the issue — the per-rule var did nothing.
+    process.env.HEALTH_HYSTERESIS_PEERDB_API_HEALTH_BREACHES = '3'
+    const t = dedupTape()
+    await tick(t, failingReader(), T0)
+    await tick(t, failingReader(), T0 + 5 * MINUTE)
+    expect(t.notified).toHaveLength(0)
+    expect(
+      getServerHysteresisConfig(['disk-usage']).defaults.minConsecutiveBreaches
+    ).toBe(1)
+  })
+
+  test('HEALTH_ALERT_COOLDOWN_PEERDB_API_HEALTH_MINUTES=0 silences the reminder a global cooldown would send', async () => {
+    const control = dedupTape()
+    await tick(control, failingReader(), T0)
+    await tick(control, failingReader(), T0 + 61 * MINUTE)
+    expect(control.notified).toEqual(['new', 'reminder'])
+
+    alertStateStore.delete(API_KEY)
+    process.env.HEALTH_ALERT_COOLDOWN_PEERDB_API_HEALTH_MINUTES = '0'
+    const t = dedupTape()
+    await tick(t, failingReader(), T0)
+    await tick(t, failingReader(), T0 + 61 * MINUTE)
+    expect(t.notified).toEqual(['new'])
+  })
+
+  test('critical is immediate by default — the escalation knob is opt-in', async () => {
+    const t = dedupTape()
+    await tick(t, failingReader(), T0)
+    expect(t.dispatches[0]).toMatchObject({ severity: 'critical' })
+    expect(t.notified).toEqual(['new'])
+  })
+
+  test('HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES escalates warning → critical on a long outage', async () => {
+    process.env.HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES = '15'
+    const t = dedupTape()
+
+    await tick(t, failingReader(), T0)
+    expect(t.dispatches[0]).toMatchObject({ severity: 'warning' })
+    expect(t.notified).toEqual(['new'])
+
+    // Still inside the window at 14 minutes.
+    await tick(t, failingReader(), T0 + 14 * MINUTE)
+    expect(t.dispatches[1]).toMatchObject({ severity: 'warning' })
+    expect(t.notified).toEqual(['new'])
+
+    // A real outage that lasts past the threshold still pages.
+    await tick(t, failingReader(), T0 + 15 * MINUTE)
+    expect(t.dispatches[2]).toMatchObject({ severity: 'critical' })
+    expect(t.notified).toEqual(['new', 'escalated'])
+  })
+
+  test('a transient blip under the escalation knob only warns, then clears itself', async () => {
+    process.env.HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES = '15'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const t = dedupTape()
+    await tick(t, failingReader(), T0)
+    await tick(t, healthyReader({ name: 'blip_api' }), T0 + 5 * MINUTE)
+    // A 10s timeout that recovers on the next sweep is a warning and a
+    // resolve — never the critical page the issue reported.
+    expect(t.dispatches.map((d) => d.severity)).toEqual(['warning', 'ok'])
+    expect(t.notified).toEqual(['new', 'recovery'])
+    expect(alertStateStore.get(API_KEY)).toBeUndefined()
+  })
+
+  test('a warning that never fired never gets a resolve', async () => {
+    // Hysteresis holds the warning: nothing was ever delivered, so the
+    // recovery must not claim one.
+    process.env.HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES = '15'
+    process.env.HEALTH_HYSTERESIS_PEERDB_API_HEALTH_BREACHES = '2'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const t = dedupTape()
+    await tick(t, failingReader(), T0)
+    expect(t.dispatches.map((d) => d.severity)).toEqual(['warning'])
+    expect(t.notified).toEqual([])
+    await tick(t, healthyReader({ name: 'never_fired' }), T0 + 5 * MINUTE)
+    expect(t.dispatches.map((d) => d.severity)).toEqual(['warning', 'ok'])
+    expect(t.notified).toEqual([])
+    expect(alertStateStore.get(API_KEY)).toBeUndefined()
+  })
+
+  test('a warning that DID fire recovers with a resolve', async () => {
+    process.env.HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES = '15'
+    process.env.HEALTH_HYSTERESIS_CLEARS = '1'
+    const t = dedupTape()
+    await tick(t, failingReader(), T0)
+    expect(t.notified).toEqual(['new'])
+    await tick(t, healthyReader({ name: 'did_fire' }), T0 + 5 * MINUTE)
+    expect(t.notified).toEqual(['new', 'recovery'])
   })
 })

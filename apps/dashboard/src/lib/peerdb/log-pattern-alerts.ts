@@ -16,10 +16,11 @@
 
 import type { AlertStateRecord } from '@/lib/health/alert-state-store'
 
+import { PEERDB_LOG_PATTERN_RULE_ID } from './alert-rule-ids'
 import { fingerprintLogMessage } from './log-fingerprint'
 
 /** Base rule id; each pattern dedups under `<base>:<hash>`. */
-export const PEERDB_LOG_PATTERN_RULE_ID = 'peerdb-log-pattern'
+export { PEERDB_LOG_PATTERN_RULE_ID }
 
 /**
  * ERROR entries of one pattern in a single tick at which the pattern escalates
