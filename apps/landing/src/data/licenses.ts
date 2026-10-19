@@ -105,7 +105,7 @@ I'd like approval to buy a commercial license for chmonitor, the ClickHouse moni
 Why this, not another SaaS:
 • It runs next to our cluster. GPL-3.0. No DRM, no cloud tenant, no query data leaving our network.
 • ${team.name} is $${teamYearly}/year for ${team.hosts} hosts ($${teamLifetime} lifetime if we want to stop renewing). ${unlimited.name} is $${unlimitedYearly}/year.
-• We get an invoice, a named vendor, and email support. Polar takes the card and emails the receipt. Optional CHM_LICENSE_KEY (Polar checkout id) is an honor-system record on your deployment, not a feature unlock, and is never sent in telemetry.
+• We get an invoice, a named vendor, and email support. Polar takes the card and emails the receipt. The Polar checkout id is the purchase record — keep it for lookup. No key in the binary, no feature unlock, and nothing license-related in telemetry.
 
 The software itself is already free. The license is paperwork and support — not a feature unlock.
 
@@ -127,7 +127,7 @@ export const licenseFaqs = [
   },
   {
     q: 'Do I need a license key in the binary?',
-    a: 'No DRM and no feature unlock. After you pay, register your company name and website. Optionally set CHM_LICENSE_KEY to the Polar checkout id from the receipt as your own record; it is never sent in telemetry. Missing or invalid does not change the app.',
+    a: 'No DRM and no feature unlock. After you pay, register your company name and website, then keep the Polar checkout id from the receipt — lookup takes that id or your billing email. No setting in the app reads a license key, and none is sent in telemetry. Missing it changes nothing.',
   },
   {
     q: 'What is a host?',
@@ -151,7 +151,7 @@ export const licenseFaqs = [
   },
   {
     q: 'Where do I paste the license key?',
-    a: 'Not in Settings — there is no license field in the app. Set CHM_LICENSE_KEY on the dashboard process to the Polar checkout id from the receipt (the same id lookup accepts). It is never sent in telemetry and does not unlock features.',
+    a: 'Nowhere — there is no license field in the app, and no environment variable it reads. Keep the Polar checkout id from the receipt for lookup, or your billing email. It is never sent in telemetry and it unlocks nothing.',
   },
   {
     q: 'Who emails me after I pay?',

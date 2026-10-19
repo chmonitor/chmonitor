@@ -46,7 +46,7 @@ const checkSvg = `<svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" s
           <h1>{paid ? 'Register your company' : 'Pick a license'}</h1>
           <p>
             {paid
-              ? 'Payment went through. Polar emailed the receipt. Register the company, then set CHM_LICENSE_KEY to the Polar checkout id.'
+              ? 'Payment went through. Polar emailed the receipt. Register the company, then keep the Polar checkout id for lookup.'
               : 'The app stays GPL-3.0 and free. A paid license is an invoice and support, not extra features. Prices are USD before tax; Polar adds VAT/GST after you pick a country.'}
           </p>
         </div>
@@ -116,7 +116,7 @@ const checkSvg = `<svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" s
 
         <div id="done" class="summary" hidden>
           <strong>Registered</strong>
-          <span>Saved. Set CHM_LICENSE_KEY to the Polar checkout id. Email {LICENSE_HELP_EMAIL} if something is wrong.</span>
+          <span>Saved. Keep the Polar checkout id from the receipt — lookup takes it or your billing email. Email {LICENSE_HELP_EMAIL} if something is wrong.</span>
         </div>
 
         <form class="reg" method="get" action={`mailto:${LICENSE_HELP_EMAIL}`} id="reg-form">
