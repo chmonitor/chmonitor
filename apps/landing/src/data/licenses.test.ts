@@ -132,6 +132,33 @@ describe('customers listing is opt-in', () => {
   })
 })
 
+describe('landing copy stops at the purchase record', () => {
+  // The dashboard reads no license key: #3829 removed the only read (the
+  // telemetry ping) and the Rust CLI asserts it is never sent either. A
+  // "set CHM_LICENSE_KEY" instruction left here tells a pilot to configure an
+  // environment variable nothing reads, so it has nowhere to be sent back to.
+  const surfaces = [
+    'src/data/licenses.ts',
+    'src/data/pricing.ts',
+    'src/pages/license.astro',
+    'src/pages/license/register.astro',
+    'src/pages/license/lookup.astro',
+  ]
+
+  test('no license surface tells the reader to set CHM_LICENSE_KEY', () => {
+    for (const rel of surfaces) {
+      const src = readFileSync(join(landingRoot, rel), 'utf8')
+      expect(`${rel}: ${src.includes('CHM_LICENSE_KEY')}`).toBe(`${rel}: false`)
+    }
+  })
+
+  test('the purchase record is still named, so the flow stays actionable', () => {
+    const src = readFileSync(join(landingRoot, 'src/data/licenses.ts'), 'utf8')
+    expect(src).toContain('Polar checkout id')
+    expect(bossPitch.body).toContain('Polar checkout id')
+  })
+})
+
 describe('static pages exist', () => {
   test('license, register, lookup, and customers pages are in source', () => {
     expect(existsSync(join(landingRoot, 'src/pages/license.astro'))).toBe(true)
