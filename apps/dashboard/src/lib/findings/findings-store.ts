@@ -81,13 +81,47 @@ export interface ListFindingsOptions {
 // Per-host guard so we only attempt CREATE TABLE once per process per host.
 const ensuredHosts = new Set<number>()
 
-/**
- * Best-effort CREATE TABLE IF NOT EXISTS. Never throws; returns whether the
- * table is believed to exist after the call.
- */
-async function ensureTable(hostId: number): Promise<boolean> {
-  if (ensuredHosts.has(hostId)) return true
+// A host whose CREATE failed (read-only user, missing grant) is not retried
+// until this deadline, so a sweep does not re-issue the same failing DDL and
+// log the same warning for every finding it records.
+const ENSURE_FAILURE_TTL_MS = 10 * 60 * 1000
+const MAX_FAILED_HOSTS = 256
+const failedUntil = new Map<number, number>()
 
+// Concurrent callers for one host (Promise.all over a sweep's findings) share
+// one in-flight CREATE.
+const inFlight = new Map<number, Promise<boolean>>()
+
+let now: () => number = Date.now
+let failureTtlMs = ENSURE_FAILURE_TTL_MS
+
+/** Test hook: inject a clock/TTL and clear all ensure state. */
+export function resetFindingsStoreForTests(opts?: {
+  now?: () => number
+  failureTtlMs?: number
+}): void {
+  ensuredHosts.clear()
+  failedUntil.clear()
+  inFlight.clear()
+  now = opts?.now ?? Date.now
+  failureTtlMs = opts?.failureTtlMs ?? ENSURE_FAILURE_TTL_MS
+}
+
+function rememberFailure(hostId: number): void {
+  const t = now()
+  for (const [id, until] of failedUntil) {
+    if (until <= t) failedUntil.delete(id)
+  }
+  failedUntil.delete(hostId)
+  while (failedUntil.size >= MAX_FAILED_HOSTS) {
+    const oldest = failedUntil.keys().next().value
+    if (oldest === undefined) break
+    failedUntil.delete(oldest)
+  }
+  failedUntil.set(hostId, t + failureTtlMs)
+}
+
+async function createTable(hostId: number): Promise<boolean> {
   try {
     const client = await getClient({ hostId })
     // getClient leases the pooled client (inUse++) — release it or the pool
@@ -95,17 +129,43 @@ async function ensureTable(hostId: number): Promise<boolean> {
     try {
       await client.command({ query: CREATE_FINDINGS_TABLE })
       ensuredHosts.add(hostId)
+      failedUntil.delete(hostId)
       log(`ensured ${FINDINGS_TABLE} on host ${hostId}`)
       return true
     } finally {
       releaseClient({ hostId })
     }
   } catch (err) {
+    rememberFailure(hostId)
     warn(
-      `could not ensure ${FINDINGS_TABLE} on host ${hostId} (read-only?): ${err}`
+      `could not ensure ${FINDINGS_TABLE} on host ${hostId} (read-only?); ` +
+        `not retrying for ${Math.round(failureTtlMs / 1000)}s: ${err}`
     )
     return false
   }
+}
+
+/**
+ * Best-effort CREATE TABLE IF NOT EXISTS. Never throws; returns whether the
+ * table is believed to exist after the call. Successes are cached for the
+ * process; failures are cached per host for a short TTL; concurrent calls for
+ * one host share a single attempt.
+ */
+function ensureTable(hostId: number): Promise<boolean> {
+  if (ensuredHosts.has(hostId)) return Promise.resolve(true)
+
+  const until = failedUntil.get(hostId)
+  if (until !== undefined) {
+    if (until > now()) return Promise.resolve(false)
+    failedUntil.delete(hostId)
+  }
+
+  const pending = inFlight.get(hostId)
+  if (pending) return pending
+
+  const attempt = createTable(hostId).finally(() => inFlight.delete(hostId))
+  inFlight.set(hostId, attempt)
+  return attempt
 }
 
 /**
