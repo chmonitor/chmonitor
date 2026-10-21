@@ -38,6 +38,7 @@ Agents discover knowledge in this order:
 | **Operations** | [core-memory.md](core-memory.md) | workflow | Automation core memory: code-smell scans, dead-code rules |
 | **Operations** | [issue-desk.md](issue-desk.md) | workflow | 4 herdr-desk jobs (triage / babysit / prod / improve), repo-owned playbooks, the EISDIR outage that silenced 24 fires, `name` must equal the folder |
 | **Operations** | [secret-rotation.md](secret-rotation.md) | workflow | Cloudflare Workers secret rotation: redeploy after wrangler secret put |
+| **Operations** | [lockfile-security.md](lockfile-security.md) | workflow | Red Dependabot Updates = unpatched advisories; audit script, targeted lockfile refresh, pnpm version and libc traps, known unfixable |
 | **Operations** | [github-repo-metadata.md](github-repo-metadata.md) | workflow | Canonical GitHub repo description + topics; banned nextjs/vercel; re-check on stack/positioning change |
 | **Operations** | [k8s-health-probes.md](k8s-health-probes.md) | reference | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image incident; non-helm manifest + migration prompt |
 | **Operations** | [workers-cache.md](workers-cache.md) | reference | Cloudflare Workers Cache: `[cache] enabled` per-worker; docs pages set `public, max-age=300, swr=86400` via start.ts middleware; landing/blog assets-only; dashboard/telemetry/mcp enabled-but-uncached (per-user/authed) |
