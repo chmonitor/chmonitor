@@ -84,6 +84,11 @@ export interface AlertStateRecord {
   pendingCount?: number
   /** Observed value at the last notification actually dispatched. */
   lastNotifiedValue?: number
+  /**
+   * Reminders sent while the value stayed flat (#4049). Drives the optional
+   * back-off. Absent = 0; dropped on any state change.
+   */
+  repeatCount?: number
 }
 
 /** What kind of transition the current evaluation represents. */
@@ -180,7 +185,17 @@ export interface DecideOptions {
    * the last notification. Unset = off. Fails open without a stored value.
    */
   repeatMinDelta?: number | null
+  /**
+   * Cap in ms for back-off of repeat reminders. Each reminder sent doubles the
+   * interval (`cooldown * 2^repeatCount`) up to this cap; the count resets on a
+   * state change or a value move of `repeatMinDelta`. Unset / non-positive =
+   * off. A cooldown of 0 (once until resolved) is never affected.
+   */
+  backoffMaxMs?: number | null
 }
+
+/** Largest exponent applied, so `cooldown * 2^n` stays a finite, safe number. */
+const MAX_BACKOFF_EXPONENT = 30
 
 /**
  * Pure state transition: given the previous record and the current severity,
@@ -221,6 +236,27 @@ export function decideNotification(
       : undefined
   const prevValue = prev?.lastNotifiedValue
 
+  const prevCount =
+    typeof prev?.repeatCount === 'number' &&
+    Number.isFinite(prev.repeatCount) &&
+    prev.repeatCount > 0
+      ? Math.floor(prev.repeatCount)
+      : 0
+  const backoffMaxMs =
+    typeof opts.backoffMaxMs === 'number' &&
+    Number.isFinite(opts.backoffMaxMs) &&
+    opts.backoffMaxMs > 0
+      ? opts.backoffMaxMs
+      : 0
+  // A value that moved by at least the (positive) delta ends the flat streak.
+  // A delta of 0 is "suppression off", not "always moved", so it never resets.
+  const movedPastDelta =
+    typeof opts.repeatMinDelta === 'number' &&
+    opts.repeatMinDelta > 0 &&
+    value !== undefined &&
+    prevValue !== undefined &&
+    Math.abs(value - prevValue) >= opts.repeatMinDelta
+
   const withFired = (rec: AlertStateRecord): AlertStateRecord => ({
     ...rec,
     ...(firstFiredAt !== undefined && { firstFiredAt }),
@@ -231,6 +267,9 @@ export function decideNotification(
     value !== undefined ? { ...rec, lastNotifiedValue: value } : rec
   const kept = (rec: AlertStateRecord): AlertStateRecord =>
     prevValue !== undefined ? { ...rec, lastNotifiedValue: prevValue } : rec
+  // Same state, nothing sent: keep the flat-reminder streak too.
+  const keptSteady = (rec: AlertStateRecord): AlertStateRecord =>
+    kept(prevCount > 0 ? { ...rec, repeatCount: prevCount } : rec)
 
   // A "hold" keeps the confirmed state exactly as-is (so the cooldown clock and
   // incident timer are untouched) while recording the in-flight pending streak.
@@ -244,7 +283,7 @@ export function decideNotification(
       severity: current,
       previousSeverity: confirmed,
     },
-    next: kept(
+    next: keptSteady(
       withFired({
         severity: confirmed,
         updatedAt: prev?.updatedAt ?? now,
@@ -271,7 +310,19 @@ export function decideNotification(
     }
     // Firing steady: re-notify only once the cooldown has elapsed.
     const elapsed = now - (prev?.notifiedAt ?? 0)
-    if (cooldownMs > 0 && elapsed >= cooldownMs) {
+    // Back-off: base * 2^count, capped, never below the base cooldown.
+    const flatCount = movedPastDelta ? 0 : prevCount
+    const intervalMs =
+      backoffMaxMs > 0 && cooldownMs > 0
+        ? Math.max(
+            cooldownMs,
+            Math.min(
+              backoffMaxMs,
+              cooldownMs * 2 ** Math.min(flatCount, MAX_BACKOFF_EXPONENT)
+            )
+          )
+        : cooldownMs
+    if (cooldownMs > 0 && elapsed >= intervalMs) {
       const minDelta = opts.repeatMinDelta
       if (
         typeof minDelta === 'number' &&
@@ -288,7 +339,7 @@ export function decideNotification(
             severity: current,
             previousSeverity: confirmed,
           },
-          next: kept(
+          next: keptSteady(
             withFired({
               severity: current,
               updatedAt: prev?.updatedAt ?? now,
@@ -312,6 +363,10 @@ export function decideNotification(
             severity: current,
             updatedAt: prev?.updatedAt ?? now,
             notifiedAt: now,
+            ...(backoffMaxMs > 0 &&
+              !movedPastDelta && {
+                repeatCount: Math.min(flatCount + 1, MAX_BACKOFF_EXPONENT),
+              }),
           })
         ),
       }
@@ -323,7 +378,7 @@ export function decideNotification(
         severity: current,
         previousSeverity: confirmed,
       },
-      next: kept(
+      next: keptSteady(
         withFired({
           severity: current,
           updatedAt: prev?.updatedAt ?? now,
@@ -411,6 +466,7 @@ export function evaluateAlert(
     minConsecutiveClears?: number
     value?: number | null
     repeatMinDelta?: number | null
+    backoffMaxMs?: number | null
   }
 ): { decision: AlertDecision; commit: () => void } {
   const key = alertStateKey(params.hostId, params.ruleId)
@@ -422,6 +478,7 @@ export function evaluateAlert(
     minConsecutiveClears: params.minConsecutiveClears,
     value: params.value,
     repeatMinDelta: params.repeatMinDelta,
+    backoffMaxMs: params.backoffMaxMs,
   })
   const commit = () => {
     if (next === null) {

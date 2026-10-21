@@ -71,9 +71,11 @@ CREATE TABLE IF NOT EXISTS alert_state (
   pending_severity TEXT,
   pending_count    INTEGER,
   last_notified_value DOUBLE PRECISION,
+  repeat_count     INTEGER,
   PRIMARY KEY (host_id, rule_id)
 );
 ALTER TABLE alert_state ADD COLUMN IF NOT EXISTS last_notified_value DOUBLE PRECISION;
+ALTER TABLE alert_state ADD COLUMN IF NOT EXISTS repeat_count INTEGER;
 
 CREATE TABLE IF NOT EXISTS alert_events (
   id            TEXT PRIMARY KEY,

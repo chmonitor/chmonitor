@@ -226,6 +226,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
         ruleId,
         ctx.repeatMinDelta.default
       ),
+      backoffMaxMs: ctx.repeatBackoffMaxMs,
     })
     const isRecovery = decision.kind === 'recovery'
 

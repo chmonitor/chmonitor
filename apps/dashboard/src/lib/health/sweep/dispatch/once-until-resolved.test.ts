@@ -92,6 +92,7 @@ function makeCtx(): SweepContext {
     alertingEnabled: true,
     cooldown: { defaultMs: HOUR, bySeverity: {}, byRule: {} },
     repeatMinDelta: { default: null, byRule: {} },
+    repeatBackoffMaxMs: null,
     mutedRules: [],
     rules: [],
     thresholdOverrides: {} as SweepContext['thresholdOverrides'],

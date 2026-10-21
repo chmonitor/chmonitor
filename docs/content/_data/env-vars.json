@@ -568,6 +568,12 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "HEALTH_ALERT_BACKOFF_MAX_MINUTES",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES",
       "prefix": "HEALTH"
     },

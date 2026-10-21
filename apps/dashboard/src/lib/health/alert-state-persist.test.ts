@@ -24,6 +24,7 @@ interface Row {
   pending_severity: string | null
   pending_count: number | null
   last_notified_value?: number | null
+  repeat_count?: number | null
 }
 
 /** Minimal fake D1: DDL is a no-op, SELECT returns `rows`, batch upserts. */
@@ -61,6 +62,7 @@ function makeFakeD1(rows: Row[]) {
         ps,
         pc,
         lnv,
+        rc,
       ] = s.args as [
         number,
         string,
@@ -69,6 +71,7 @@ function makeFakeD1(rows: Row[]) {
         number,
         number | null,
         string | null,
+        number | null,
         number | null,
         number | null,
       ]
@@ -82,6 +85,7 @@ function makeFakeD1(rows: Row[]) {
         pending_severity: ps,
         pending_count: pc,
         last_notified_value: lnv,
+        repeat_count: rc,
       })
     }
     return []
@@ -209,6 +213,47 @@ describe('alert state on first metadata-DB attach (#3534: discard)', () => {
     const reader = new MemoryAlertStateStore()
     await hydrateAlertState(reader)
     expect(reader.get(alertStateKey(2, 'disk-usage'))).toEqual(withValue)
+  })
+
+  test('repeatCount round-trips through flush and hydrate', async () => {
+    const backedOff: AlertStateRecord = {
+      severity: 'critical',
+      updatedAt: 2_000,
+      notifiedAt: 2_000,
+      repeatCount: 3,
+    }
+    const db = makeFakeD1([])
+    currentDb = db
+    const writer = new MemoryAlertStateStore()
+    await hydrateAlertState(writer) // attach
+    writer.set(alertStateKey(4, 'disk-usage'), backedOff)
+    await flushAlertState(writer)
+    expect(db.rows[0]?.repeat_count).toBe(3)
+
+    resetAlertStateAttachForTests()
+    const reader = new MemoryAlertStateStore()
+    await hydrateAlertState(reader)
+    expect(reader.get(alertStateKey(4, 'disk-usage'))).toEqual(backedOff)
+  })
+
+  test('a row without repeat_count hydrates with no repeatCount', async () => {
+    currentDb = makeFakeD1([
+      {
+        host_id: 5,
+        rule_id: 'parts',
+        severity: 'warning',
+        updated_at: 1,
+        notified_at: 1,
+        first_fired_at: null,
+        pending_severity: null,
+        pending_count: null,
+        last_notified_value: null,
+        repeat_count: null,
+      },
+    ])
+    const store = new MemoryAlertStateStore()
+    await hydrateAlertState(store)
+    expect(store.get(alertStateKey(5, 'parts'))?.repeatCount).toBeUndefined()
   })
 
   test('a row without a stored value hydrates with no lastNotifiedValue', async () => {
