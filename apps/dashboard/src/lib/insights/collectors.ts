@@ -38,6 +38,7 @@ import {
   REPLICATION_QUEUE_STUCK_AGE_SECONDS,
   REPLICATION_QUEUE_STUCK_TRIES,
 } from './operational-checks'
+import { collectRetentionForecast } from './retention-forecast-collector'
 import {
   type AnalyzedQuery,
   selectSchemaOptimizations,
@@ -379,19 +380,24 @@ async function collectAnomalies(hostId: number): Promise<InsightCandidate[]> {
 async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
   const out: InsightCandidate[] = []
 
-  const [partsSettled, compressionSettled, ttlSettled, ttlRewriteSettled] =
-    await Promise.allSettled([
-      firstRow(
-        `SELECT database, table, count() AS value,
+  const [
+    partsSettled,
+    compressionSettled,
+    ttlSettled,
+    ttlRewriteSettled,
+    retentionSettled,
+  ] = await Promise.allSettled([
+    firstRow(
+      `SELECT database, table, count() AS value,
        formatReadableSize(sum(bytes_on_disk)) AS size
      FROM system.parts WHERE active
      GROUP BY database, table
      ORDER BY value DESC
      LIMIT 1`,
-        hostId
-      ),
-      firstRow(
-        `SELECT database, table,
+      hostId
+    ),
+    firstRow(
+      `SELECT database, table,
        round(sum(data_compressed_bytes) * 1.0 / nullIf(sum(data_uncompressed_bytes), 0), 3) AS value,
        formatReadableSize(sum(data_uncompressed_bytes)) AS uncompressed
      FROM system.parts WHERE active
@@ -399,11 +405,12 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
      HAVING sum(data_uncompressed_bytes) > 1073741824
      ORDER BY value DESC
      LIMIT 1`,
-        hostId
-      ),
-      collectTtlPartitionHealth(hostId),
-      collectTtlRewriteAmplification(hostId),
-    ])
+      hostId
+    ),
+    collectTtlPartitionHealth(hostId),
+    collectTtlRewriteAmplification(hostId),
+    collectRetentionForecast(hostId),
+  ])
 
   const parts = partsSettled.status === 'fulfilled' ? partsSettled.value : null
   if (parts) {
@@ -446,6 +453,9 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
   }
   if (ttlRewriteSettled.status === 'fulfilled') {
     out.push(...ttlRewriteSettled.value)
+  }
+  if (retentionSettled.status === 'fulfilled') {
+    out.push(...retentionSettled.value)
   }
 
   return out
