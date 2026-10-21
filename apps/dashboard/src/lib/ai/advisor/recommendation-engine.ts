@@ -88,6 +88,12 @@ export interface AnalyzeQueryInput {
   sql?: string
   queryId?: string
   database?: string
+  /**
+   * Result of an EXPLAIN the caller already ran for this exact `sql`. When
+   * set (even to `null`), `analyzeQuery` does not repeat the EXPLAIN. Only
+   * in-process callers set it; the API and agent tool never forward it.
+   */
+  explain?: ExplainIndexesInfo | null
 }
 
 export interface AnalyzeQueryOk {
@@ -165,7 +171,10 @@ export async function analyzeQuery(
 
   let schema: TableSchema
   let parts: PartsStats
-  const explainP = fetchExplainIndexes(hostId, sql)
+  const explainP =
+    input.explain !== undefined
+      ? Promise.resolve(input.explain)
+      : fetchExplainIndexes(hostId, sql)
   const topologyP = fetchTableTopology(hostId, target.database, target.table)
   try {
     ;[schema, parts] = await Promise.all([

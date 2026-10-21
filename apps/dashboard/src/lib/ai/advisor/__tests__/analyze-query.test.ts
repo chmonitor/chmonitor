@@ -501,3 +501,22 @@ describe('coverage — at least 70% of a realistic fixture set produce >=1 recom
     expect(hits / scenarios.length).toBeGreaterThanOrEqual(0.7)
   })
 })
+
+describe('analyzeQuery — caller-supplied EXPLAIN', () => {
+  const sql = "SELECT * FROM default.events WHERE status = 'error'"
+  const explainCalls = () =>
+    calls.filter((c) => c.query === `EXPLAIN PLAN indexes = 1 ${sql}`)
+
+  test('runs its own EXPLAIN when none is supplied', async () => {
+    calls.length = 0
+    await analyzeQuery({ hostId: 0, sql })
+    expect(explainCalls()).toHaveLength(1)
+  })
+
+  test('does not repeat the EXPLAIN when the caller already ran it', async () => {
+    calls.length = 0
+    const result = await analyzeQuery({ hostId: 0, sql, explain: null })
+    expect(result.ok).toBe(true)
+    expect(explainCalls()).toHaveLength(0)
+  })
+})

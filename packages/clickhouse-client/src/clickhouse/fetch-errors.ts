@@ -1,6 +1,6 @@
 import type { FetchDataErrorType, FetchDataResult } from './types'
 
-import { error } from '@chm/logger'
+import { debug, error } from '@chm/logger'
 
 /**
  * Extract an HTTP status code (100–599) from a fetch error message.
@@ -165,10 +165,17 @@ export function handleFetchError({
   originalError,
   host,
   start,
+  quiet = false,
 }: {
   originalError: unknown
   host: string
   start: Date
+  /**
+   * Best-effort query: the caller reports the failure itself, so the
+   * `Query failed` / `[Error Details]` pair is logged at debug, not error.
+   * The returned error is unchanged.
+   */
+  quiet?: boolean
 }): Pick<FetchDataResult<never>, 'metadata' | 'error'> {
   const errorMessage =
     originalError instanceof Error
@@ -184,8 +191,9 @@ export function handleFetchError({
 
   const enrichedMessage = `${errorMessage} (host: ${host})`
 
-  error(`Query failed (host: ${host}):`, errorMessage)
-  error(`[Error Details]`, {
+  const log = quiet ? debug : error
+  log(`Query failed (host: ${host}):`, errorMessage)
+  log(`[Error Details]`, {
     errorType,
     httpStatusCode,
     host,

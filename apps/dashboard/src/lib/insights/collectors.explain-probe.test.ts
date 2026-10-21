@@ -1,6 +1,6 @@
 import type { readOnlyQuery } from '@/lib/ai/agent/tools/helpers'
 
-import { describe, expect, mock, test } from 'bun:test'
+import { describe, expect, mock, spyOn, test } from 'bun:test'
 
 type ReadOnlyQueryOptions = Parameters<typeof readOnlyQuery>[0]
 
@@ -8,7 +8,9 @@ const readOnlyQueryMock = mock(
   async (_options: ReadOnlyQueryOptions): Promise<unknown> => []
 )
 const analyzeQueryMock = mock(
-  async (_input: { hostId: number; sql: string }) => ({ ok: false })
+  async (_input: { hostId: number; sql: string; explain?: unknown }) => ({
+    ok: false,
+  })
 )
 
 mock.module('@/lib/ai/agent/tools/helpers', () => ({
@@ -47,6 +49,44 @@ function setup(
 }
 
 describe('collectSchemaOptimizations EXPLAIN probing', () => {
+  test('the EXPLAIN probe is marked quiet; no other query is', async () => {
+    const memory = createFailedProbeMemory({ now: () => 0 })
+    setup([{ sample_query: 'SELECT 1 FROM t', query_hash: '31' }], () => false)
+
+    await collectSchemaOptimizations(0, memory)
+
+    const calls = readOnlyQueryMock.mock.calls.map((c) => c[0])
+    const explain = calls.filter((c) => c.query.startsWith('EXPLAIN'))
+    expect(explain).toHaveLength(1)
+    expect(explain[0].quiet).toBe(true)
+    expect(
+      calls.filter((c) => !c.query.startsWith('EXPLAIN') && c.quiet)
+    ).toEqual([])
+  })
+
+  test('a failed probe is reported once, at warn', async () => {
+    const memory = createFailedProbeMemory({ now: () => 0 })
+    setup([{ sample_query: 'SELECT broken', query_hash: '32' }], () => true)
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await collectSchemaOptimizations(0, memory)
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      warnSpy.mockRestore()
+    }
+  })
+
+  test('the probe result is handed to analyzeQuery, so it is not EXPLAINed twice', async () => {
+    const memory = createFailedProbeMemory({ now: () => 0 })
+    setup([{ sample_query: 'SELECT 1 FROM t', query_hash: '33' }], () => false)
+
+    await collectSchemaOptimizations(0, memory)
+
+    const input = analyzeQueryMock.mock.calls[0][0] as { explain?: unknown }
+    expect('explain' in input).toBe(true)
+    expect(input.explain).not.toBeUndefined()
+  })
+
   test('a failed hash is not re-probed within the window, but is after expiry', async () => {
     let t = 0
     const memory = createFailedProbeMemory({ ttlMs: 1000, now: () => t })

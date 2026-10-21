@@ -553,6 +553,41 @@ describe('clickhouse-fetch', () => {
         expect(result.error?.type).toBe('query_error')
       })
 
+      it('logs the Query failed / [Error Details] pair at error level by default', async () => {
+        mockError.mockClear()
+        mockDebug.mockClear()
+        mockClientQuery.mockRejectedValue(new Error('Unknown error'))
+
+        await fetchData(defaultParams)
+
+        const lines = mockError.mock.calls.map((c) => String(c[0]))
+        expect(lines.filter((l) => l.startsWith('Query failed'))).toHaveLength(
+          1
+        )
+        expect(lines.filter((l) => l === '[Error Details]')).toHaveLength(1)
+      })
+
+      it('quiet: logs nothing at error level, still returns the same error', async () => {
+        const failure = new Error('Unknown error')
+        mockClientQuery.mockRejectedValue(failure)
+        const loud = await fetchData(defaultParams)
+
+        mockError.mockClear()
+        mockDebug.mockClear()
+        const quiet = await fetchData({ ...defaultParams, quiet: true })
+
+        expect(mockError).not.toHaveBeenCalled()
+        expect(
+          mockDebug.mock.calls.some((c) =>
+            String(c[0]).startsWith('Query failed')
+          )
+        ).toBe(true)
+        expect(quiet.data).toBeNull()
+        expect(quiet.error?.type).toBe(loud.error?.type)
+        expect(quiet.error?.message).toBe(loud.error?.message)
+        expect(quiet.error?.details?.originalError).toBe(failure)
+      })
+
       it('should include original error in details', async () => {
         const originalError = new Error('Test error')
         mockClientQuery.mockRejectedValue(originalError)
