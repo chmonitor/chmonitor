@@ -1,7 +1,8 @@
 import { type ColumnStatsByTable, fetchColumnStats } from '../cost-estimator'
 import { describe, expect, test } from 'bun:test'
 
-const DELAY_MS = 80
+/** Each read costs one logical tick. No wall-clock time is ever measured. */
+const READ_TICKS = 1
 
 type ColumnRow = {
   name: string
@@ -59,6 +60,10 @@ function isColumnRow(value: unknown): value is ColumnRow {
 
 function createQuerier() {
   const calls: RecordedCall[] = []
+  // Logical clock: a read starts at the current tick and the clock only moves
+  // forward when a read finishes. Reads awaited one after another therefore
+  // line up end to start; reads issued together share the same start tick.
+  let clock = 0
 
   async function querier(options: {
     query: string
@@ -66,8 +71,8 @@ function createQuerier() {
     query_params?: Record<string, unknown>
     useCache?: boolean
   }): Promise<ColumnRow[] | BatchColumnRow[]> {
-    const start = performance.now()
-    await new Promise((resolve) => setTimeout(resolve, DELAY_MS))
+    const start = clock
+    await Promise.resolve()
 
     const params = options.query_params
     let rows: ColumnRow[] | BatchColumnRow[]
@@ -105,7 +110,8 @@ function createQuerier() {
       )
     }
 
-    const end = performance.now()
+    const end = start + READ_TICKS
+    clock = Math.max(clock, end)
     calls.push({
       start,
       end,
@@ -119,6 +125,14 @@ function createQuerier() {
   }
 
   return { calls, querier }
+}
+
+/** Logical makespan: ticks from the first read starting to the last one ending. */
+function rounds(calls: RecordedCall[]): number {
+  return (
+    Math.max(...calls.map((call) => call.end)) -
+    Math.min(...calls.map((call) => call.start))
+  )
 }
 
 function statsView(stats: ColumnStatsByTable) {
@@ -163,7 +177,7 @@ describe('fetchColumnStats batch', () => {
     expect(got.get('db.a')?.columnBytes.get('a_payload')).toBe(400)
   })
 
-  test('three tables: one read, half the uncoordinated makespan, same map', async () => {
+  test('three tables: one read, a third of the uncoordinated rounds, same map', async () => {
     const { calls, querier } = createQuerier()
 
     await fetchColumnStats(0, [TABLES[0]], querier)
@@ -197,30 +211,30 @@ describe('fetchColumnStats batch', () => {
 
     expect(calls).toHaveLength(TABLES.length)
     const baseline = calls.splice(0, calls.length)
-    const sumOfUnitDelays = baseline.reduce(
-      (sum, call) => sum + (call.end - call.start),
-      0
-    )
+    // Uncoordinated path: three reads awaited in turn, so three sequential rounds.
+    const baselineRounds = rounds(baseline)
+    expect(baselineRounds).toBe(TABLES.length * READ_TICKS)
     const baselineBytes = baseline.map((call) => call.bytes)
     const baselineSum = baselineBytes.reduce((sum, bytes) => sum + bytes, 0)
 
     for (let run = 1; run <= 2; run++) {
       calls.length = 0
-      const started = performance.now()
       const got = await fetchColumnStats(0, TABLES, querier)
-      const makespan = performance.now() - started
 
       expect(statsView(got)).toEqual(statsView(expected))
       expect(calls).toHaveLength(1)
       const invocations = calls.length
       expect(invocations).toBeLessThanOrEqual(0.5 * TABLES.length)
 
-      expect(makespan).toBeLessThanOrEqual(0.5 * sumOfUnitDelays)
+      // Batched path: one read, so one round, at most half the uncoordinated rounds.
+      const batchedRounds = rounds(calls)
+      expect(batchedRounds).toBe(READ_TICKS)
+      expect(batchedRounds).toBeLessThanOrEqual(0.5 * baselineRounds)
 
       const invocationRatio = invocations / TABLES.length
-      const makespanRatio = makespan / sumOfUnitDelays
+      const roundsRatio = batchedRounds / baselineRounds
       console.log(
-        `run ${run}: invocations/unbatched=${invocationRatio.toFixed(3)} makespan/sum=${makespanRatio.toFixed(3)}`
+        `run ${run}: invocations/unbatched=${invocationRatio.toFixed(3)} rounds/unbatched=${roundsRatio.toFixed(3)}`
       )
 
       const batchedBytes = calls[0]?.bytes ?? 0
