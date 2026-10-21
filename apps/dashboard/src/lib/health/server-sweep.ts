@@ -35,12 +35,19 @@ export interface SweepSummary {
   enabled: boolean
   /**
    * True when ANY webhook delivery path is active: the legacy
-   * `HEALTH_ALERT_WEBHOOK_URL` or at least one enabled named target (env,
-   * declarative config, or DB).
+   * `HEALTH_ALERT_WEBHOOK_URL`, at least one enabled named target (env,
+   * declarative config, or DB), or at least one enabled per-rule webhook
+   * route (each route carries its own `channelUrl`).
    */
   webhookConfigured: boolean
   /** Enabled named webhook targets the dispatcher fans out to (excludes the legacy URL). */
   webhookTargets: number
+  /**
+   * Distinct URLs of enabled `webhook`-provider routes that are not already a
+   * named target (excludes the legacy URL; PagerDuty/Telegram/ntfy/Pushover
+   * routes are separate providers and not counted).
+   */
+  webhookRoutes: number
   /** Whether `HEALTH_ALERT_EMAIL_*` env vars resolve to a usable email config. */
   emailConfigured: boolean
   minSeverity: 'warning' | 'critical'
@@ -152,15 +159,30 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   if (ctx.alertingEnabled) await flushAlertState(alertStateStore)
 
   // Same loader the dispatcher fans out to, so the summary matches delivery.
-  const webhookTargets = (await loadSweepCustomTargets()).filter(
+  const activeTargets = (await loadSweepCustomTargets()).filter(
     (t) => t.enabled && t.url
-  ).length
+  )
+  const webhookTargets = activeTargets.length
+  // A route owns its destination URL (`AlertRoute.channelUrl`), so it delivers
+  // even with no legacy URL and no named target. Count each distinct URL once,
+  // skipping any URL a named target already delivers to.
+  const targetUrls = new Set(activeTargets.map((t) => t.url))
+  const webhookRoutes = new Set(
+    ctx.routes
+      .filter((r) => r.enabled && r.provider === 'webhook' && r.channelUrl)
+      .map((r) => r.channelUrl)
+      .filter((url) => !targetUrls.has(url))
+  ).size
 
   return {
     ranAt,
     enabled: ctx.alertingEnabled,
-    webhookConfigured: Boolean(ctx.channels.webhookUrl) || webhookTargets > 0,
+    webhookConfigured:
+      Boolean(ctx.channels.webhookUrl) ||
+      webhookTargets > 0 ||
+      webhookRoutes > 0,
     webhookTargets,
+    webhookRoutes,
     emailConfigured: ctx.channels.email !== null,
     minSeverity: ctx.settings.minSeverity,
     hostsChecked: ctx.configs.length,
