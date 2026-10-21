@@ -166,8 +166,6 @@ const declarativeChartBaseSchema = z.object({
   enableScaleToggle: z.boolean().optional(),
 })
 
-// Area chart definition
-
 export const declarativeAreaChartSchema = declarativeChartBaseSchema.extend({
   type: z.literal('area'),
   index: z.string().min(1, 'index is required'),
@@ -181,8 +179,6 @@ export const declarativeAreaChartSchema = declarativeChartBaseSchema.extend({
 })
 
 export type DeclarativeAreaChart = z.infer<typeof declarativeAreaChartSchema>
-
-// Bar chart definition
 
 export const declarativeBarChartSchema = declarativeChartBaseSchema.extend({
   type: z.literal('bar'),

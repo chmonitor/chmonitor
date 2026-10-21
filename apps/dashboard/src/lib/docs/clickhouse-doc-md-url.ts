@@ -36,7 +36,6 @@ export function toClickHouseDocMarkdownUrl(htmlUrl: string): string | null {
     relativePath = relativePath.slice(0, fragmentIndex)
   }
 
-  // Strip trailing slashes.
   relativePath = relativePath.replace(/\/+$/, '')
 
   // Strip a leading /en/ or en/ prefix if already present to avoid doubling it.

@@ -16,7 +16,6 @@ export interface ColumnFilterProps {
   placeholder?: string
   /** Whether to show clear button */
   showClear?: boolean
-  /** Additional class names */
   className?: string
 }
 

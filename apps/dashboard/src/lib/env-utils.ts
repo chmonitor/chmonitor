@@ -8,7 +8,6 @@
  * In client components, we check typeof window to detect browser environment
  */
 function getNodeEnv(): string {
-  // Server-side: use process.env directly
   if (typeof window === 'undefined') {
     return process.env.NODE_ENV || 'development'
   }

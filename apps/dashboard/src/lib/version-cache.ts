@@ -148,7 +148,6 @@ export function getVersionCache(kv?: KVNamespace | null): VersionCacheAdapter {
     }
   }
 
-  // 2. Fallback to in-memory
   debug('[version-cache] Using in-memory cache (fallback)')
   cacheInstance = new InMemoryCache()
   return cacheInstance

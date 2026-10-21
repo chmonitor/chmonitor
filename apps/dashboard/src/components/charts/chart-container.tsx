@@ -47,9 +47,7 @@ export interface ChartContainerProps<
   swr: UseChartResult<TData>
   /** Chart title for skeleton/error/empty states */
   title?: string
-  /** Container className */
   className?: string
-  /** Chart className */
   chartClassName?: string
   /** `staleError` is set when revalidation fails but previous data exists. */
   children: (
@@ -67,7 +65,6 @@ export interface ChartContainerProps<
   dateRangeConfig?: DateRangeConfig
   /** Current selected range value */
   currentRange?: string
-  /** Callback when date range changes */
   onRangeChange?: (range: DateRangeValue) => void
   /** Skeleton type hint (auto-detected from chart name if omitted) */
   type?: ChartSkeletonType

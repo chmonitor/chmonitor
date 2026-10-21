@@ -171,7 +171,6 @@ export function SqlConsole({
         </Suspense>
       </ClientOnly>
 
-      {/* Action bar — moved BELOW the input area */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -267,7 +266,6 @@ export function SqlConsole({
         </div>
       </div>
 
-      {/* Status bar */}
       <StatusBar
         isRunning={isRunning}
         hasRun={hasRun}

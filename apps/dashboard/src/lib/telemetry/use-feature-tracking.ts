@@ -1,5 +1,3 @@
-// useFeatureTracking hook
-//
 // A thin, fire-and-forget wrapper around track('feature_viewed', …). Call it
 // once inside any page or feature component's useEffect to record that the user
 // navigated to / viewed that feature.

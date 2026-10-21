@@ -83,7 +83,6 @@ export function validateChartParams(
       continue // skip nulls (treat as absent)
     }
 
-    // String value bounds
     if (typeof value === 'string') {
       if (value.length > MAX_VALUE_STRING_LENGTH) {
         return {

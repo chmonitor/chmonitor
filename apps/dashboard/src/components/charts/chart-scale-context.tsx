@@ -11,7 +11,6 @@ interface ChartScaleContextValue {
   isLogScale: boolean
   /** Toggle between linear and auto (log) scale */
   toggleScale: () => void
-  /** Set scale explicitly */
   setScale: (scale: YAxisScale) => void
 }
 

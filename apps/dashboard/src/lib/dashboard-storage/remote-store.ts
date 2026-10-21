@@ -83,7 +83,6 @@ export async function saveDashboardRemote(
   }
 }
 
-/** Delete a dashboard by name. */
 export async function deleteDashboardRemote(name: string): Promise<void> {
   const res = await apiFetch(
     `${BASE}/delete?name=${encodeURIComponent(name)}`,

@@ -46,7 +46,6 @@ export const ChartZookeeperSummaryTable = function ChartZookeeperSummaryTable({
     )
   }
 
-  // Show empty state if no data
   if (!dataArray || dataArray.length === 0) {
     return <ChartEmpty title={title} className={className} />
   }

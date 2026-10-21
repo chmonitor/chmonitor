@@ -106,7 +106,6 @@ export interface FilterPreset {
   filters: (FilterValue & { key: string })[]
 }
 
-/** Quick filter display type. */
 export type QuickFilterDisplay = 'segmented' | 'select'
 
 /**

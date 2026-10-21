@@ -85,7 +85,6 @@ export function resolveYAxisScale(
     return 'log'
   }
 
-  // Auto-detect
   if (scale === 'auto') {
     const analysis = analyzeDataForLogScale(data, categories)
     return analysis.shouldUseLog ? 'log' : 'linear'
