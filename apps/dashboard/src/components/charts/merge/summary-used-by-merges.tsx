@@ -77,7 +77,6 @@ export const ChartSummaryUsedByMerges = function ChartSummaryUsedByMerges({
     return <ChartError error={error} title={title} />
   }
 
-  // Show empty state if no data or transformation failed
   if (!data || data.length === 0 || !transformedData) {
     return <ChartEmpty title={title} className={className} />
   }

@@ -7,8 +7,6 @@
  * Only queries stored in the clickhouse_monitoring_custom_dashboard table
  * are allowed to be executed without a queryConfig.
  *
- * Ported from apps/dashboard/app/api/v1/data/validators/dashboard-query-validator.ts.
- * Import paths fixed: co-located cache-manager moved alongside this file.
  * SECURITY behavior preserved exactly (fail-closed allowlist).
  *
  * @module lib/api/data/dashboard-query-validator
@@ -103,7 +101,6 @@ export async function validateDashboardQuery(
       }
     }
 
-    // Extract and cache queries
     const queries = new Set<string>()
     for (const row of result.data as Array<{ query: string }>) {
       queries.add(row.query)

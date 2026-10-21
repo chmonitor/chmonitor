@@ -45,7 +45,6 @@ export interface DataTableProps<TData extends RowData> {
   executedSql?: string
   /** Enable row selection with checkboxes (default: false) */
   enableRowSelection?: boolean
-  /** Callback when row selection changes */
   onRowSelectionChange?: (selectedRows: RowSelectionState) => void
   /** Query execution metadata */
   metadata?: Partial<ApiResponseMetadata>

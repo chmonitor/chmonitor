@@ -151,19 +151,16 @@ export function detectCardErrorVariant(error: CardError): CardErrorVariant {
     return 'offline'
   }
 
-  // 3. Check for offline/connection keywords
   if (ERROR_KEYWORDS.offline.some((keyword) => message.includes(keyword))) {
     return 'offline'
   }
 
-  // 4. Check for table missing keywords
   if (
     ERROR_KEYWORDS.tableMissing.some((keyword) => message.includes(keyword))
   ) {
     return 'table-missing'
   }
 
-  // 5. Default to generic error
   return 'error'
 }
 
@@ -351,7 +348,6 @@ export function formatCardErrorForLogging(error: CardError): {
 }
 
 export interface TableMissingInfo {
-  /** Names of missing tables */
   missingTables: readonly string[]
   /** Guidance for enabling the tables */
   guidance?: TableGuidance

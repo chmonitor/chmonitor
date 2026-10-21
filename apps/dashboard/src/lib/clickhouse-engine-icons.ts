@@ -154,7 +154,6 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
     }
   }
 
-  // Dictionary
   if (engine === 'Dictionary') {
     return {
       icon: BookOpen,
@@ -164,7 +163,6 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
     }
   }
 
-  // Database integrations
   if (DATABASE_ENGINES.has(engine)) {
     // Special icons for common databases
     if (engine === 'PostgreSQL' || engine === 'MaterializedPostgreSQL') {
@@ -199,7 +197,6 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
     }
   }
 
-  // Queue integrations
   if (QUEUE_ENGINES.has(engine)) {
     if (engine === 'Kafka') {
       return {
@@ -225,7 +222,6 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
     }
   }
 
-  // Cloud storage
   if (CLOUD_STORAGE_ENGINES.has(engine)) {
     if (engine === 'S3' || engine === 'S3Queue') {
       return {
@@ -251,7 +247,6 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
     }
   }
 
-  // Data lake
   if (DATA_LAKE_ENGINES.has(engine)) {
     return {
       icon: Waves,
@@ -270,7 +265,6 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
     }
   }
 
-  // Memory engines
   if (MEMORY_ENGINES.has(engine)) {
     return {
       icon: MemoryStick,
@@ -280,7 +274,6 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
     }
   }
 
-  // Buffer
   if (engine === 'Buffer') {
     return {
       icon: FolderKanban,
@@ -290,7 +283,6 @@ export function getEngineIconConfig(engine: string): EngineIconConfig {
     }
   }
 
-  // Distributed engines
   if (engine === 'Distributed') {
     return {
       icon: Network,

@@ -125,7 +125,6 @@ export function normalizeCapabilities(
     }
   }
 
-  // Populate from column rows
   for (const row of input.columns ?? []) {
     const key = tableKey(row.database, row.table)
     if (!tableMap.has(key)) {
@@ -140,7 +139,6 @@ export function normalizeCapabilities(
     tables[key] = [...tableMap.get(key)!].sort()
   }
 
-  // --- buildFlags ---
   let buildFlags: Record<string, string> | undefined
   if (input.buildOptions && input.buildOptions.length > 0) {
     const sortedOptions = [...input.buildOptions].sort((a, b) =>

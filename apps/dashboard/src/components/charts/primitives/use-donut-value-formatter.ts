@@ -27,7 +27,6 @@ export function useDonutValueFormatter({
   valueKey,
 }: UseDonutValueFormatterOptions) {
   return useMemo(() => {
-    // Use custom formatter if provided
     if (valueFormatter) return valueFormatter
 
     if (!readable || !readableColumn) {

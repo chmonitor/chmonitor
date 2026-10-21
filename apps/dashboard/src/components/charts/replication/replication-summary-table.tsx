@@ -38,7 +38,6 @@ export const ChartReplicationSummaryTable =
     if (error)
       return <ChartError error={error} title={title} onRetry={mutate} />
 
-    // Show empty state if no data
     if (!dataArray || dataArray.length === 0) {
       return <ChartEmpty title={title} className={className} />
     }

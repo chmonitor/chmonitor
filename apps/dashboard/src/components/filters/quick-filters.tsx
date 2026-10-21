@@ -12,7 +12,6 @@ import {
 import { cn } from '@/lib/utils'
 
 interface QuickFiltersProps {
-  /** Quick filter configs from schema */
   configs: QuickFilterConfig[]
   activeFilters: ActiveFilter[]
   /** Callback to set a filter value */

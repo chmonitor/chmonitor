@@ -98,7 +98,6 @@ export class PostgresStore implements ConversationStore {
       )
     }
 
-    // Create postgres client with connection pooling
     // Default options optimized for serverless/Workers
     this.sql = postgres(url, {
       max: 1, // Single connection for serverless (connection per invocation)

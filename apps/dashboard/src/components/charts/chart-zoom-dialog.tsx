@@ -279,7 +279,6 @@ export const ChartZoomDialog = function ChartZoomDialog({
     document.addEventListener('mouseup', handleMouseUp)
   }
 
-  // Memoize QueryConfig for DataTable
   const queryConfig = ((): QueryConfig<string[]> | undefined => {
     if (!data || data.length === 0) return undefined
     return {
@@ -308,7 +307,6 @@ export const ChartZoomDialog = function ChartZoomDialog({
     }
   })()
 
-  // Check if we have metadata to show
   const hasMetadata =
     metadata &&
     (metadata.duration !== undefined ||

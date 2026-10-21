@@ -25,7 +25,6 @@ import {
 } from '@/lib/filters/where-builder'
 import { getSqlForDisplay, queries } from '@/lib/query-config'
 
-/** Params for building a table query. */
 export interface TableQueryParams {
   /** Host id to run against. */
   hostId: number | string
@@ -40,7 +39,6 @@ export interface TableQueryParams {
   serverVersion?: string | null
 }
 
-/** Result of resolving a table query. */
 export interface TableQueryResult {
   /** SQL string for display; execution re-selects the versioned SQL. */
   query: string
@@ -139,7 +137,6 @@ export function getAvailableTables(): string[] {
   return Array.from(tableRegistry.keys()).sort()
 }
 
-/** Get a raw config by name. */
 export function getTableConfig(name: string): QueryConfig | undefined {
   return tableRegistry.get(name)
 }

@@ -7,8 +7,6 @@ import {
   isClerkClientEnabled,
 } from '@/lib/clerk/clerk-client'
 
-// Port of apps/dashboard/components/clerk/clerk-auth-provider.tsx.
-//
 // Conditionally mounts Clerk's <ClerkProvider> ONLY when isClerkClientEnabled() is
 // true. When disabled, children render untouched and <ClerkProvider> is never
 // instantiated - so non-Clerk builds never reach into Clerk's runtime, and any

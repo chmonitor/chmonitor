@@ -15,7 +15,6 @@ export function DonutChartLabel({
     return null
   }
 
-  // Convert string to number if needed
   const cx =
     typeof viewBox.cx === 'string' ? parseFloat(viewBox.cx) : (viewBox.cx ?? 0)
   const cy =

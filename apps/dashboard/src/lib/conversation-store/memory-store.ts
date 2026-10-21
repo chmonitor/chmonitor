@@ -89,14 +89,12 @@ export class MemoryStore implements ConversationStore {
     const existingIndex = conversations.findIndex((c) => c.id === id)
 
     if (existingIndex >= 0) {
-      // Update existing conversation
       // Store a copy to prevent external mutations
       conversations[existingIndex] = {
         ...conversation,
         messages: [...conversation.messages],
       }
     } else {
-      // Add new conversation
       // Store a copy to prevent external mutations
       conversations.push({
         ...conversation,
