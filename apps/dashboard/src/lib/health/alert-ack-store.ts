@@ -20,6 +20,7 @@
 
 import type { HealthSqlDb } from './sql-db'
 
+import { noBackendMessage } from './no-backend-message'
 import { getHealthDb } from './resolve-store'
 import { isPostgresHealthDb } from './sql-db'
 import { ErrorLogger } from '@chm/logger'
@@ -137,9 +138,7 @@ export interface AckAlertParams {
 export async function ackAlert(params: AckAlertParams): Promise<AlertAck> {
   const db = getDb()
   if (!db) {
-    throw new Error(
-      'No alert state backend configured for alert acks (D1 binding CHM_CLOUD_D1, or Postgres DATABASE_URL)'
-    )
+    throw new Error(noBackendMessage('Acknowledging alerts'))
   }
   await ensureMigrated(db)
 

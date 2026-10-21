@@ -22,6 +22,7 @@ import {
   type SourceLayer,
 } from '@/lib/health/declarative/merge'
 import { readHealthConfigLayers } from '@/lib/health/declarative/sources'
+import { noBackendMessage } from '@/lib/health/no-backend-message'
 import { getHealthDb } from '@/lib/health/resolve-store'
 import { isPostgresHealthDb } from '@/lib/health/sql-db'
 
@@ -99,9 +100,7 @@ function ensureMigrated(db: HealthSqlDb): Promise<void> {
 function requireDb(): HealthSqlDb {
   const db = getHealthDb()
   if (!db) {
-    throw new Error(
-      'No alert state backend configured (D1 binding CHM_CLOUD_D1, or Postgres DATABASE_URL)'
-    )
+    throw new Error(noBackendMessage('PeerDB alert rules'))
   }
   return db
 }

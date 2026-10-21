@@ -26,6 +26,7 @@ import { z } from 'zod'
 import type { HealthSqlDb } from './sql-db'
 
 import { CustomRuleStoreError } from './custom-rules-store'
+import { noBackendMessage } from './no-backend-message'
 import { getHealthDb } from './resolve-store'
 import { MAX_NAME_LENGTH } from './rule-builder-schema'
 import { HEALTH_CHECKS } from '@/components/health/health-checks'
@@ -111,7 +112,7 @@ function requireDb(): HealthSqlDb {
   const db = getHealthDb()
   if (!db) {
     throw new CustomRuleStoreError(
-      'No alert state backend configured. Naming check alerts requires a D1 binding (CHM_CLOUD_D1) or a Postgres DATABASE_URL.',
+      noBackendMessage('Naming check alerts'),
       'NOT_CONFIGURED'
     )
   }

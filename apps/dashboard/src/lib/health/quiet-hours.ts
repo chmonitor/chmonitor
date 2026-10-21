@@ -33,6 +33,7 @@ import {
   type SourceLayer,
 } from './declarative/merge'
 import { readHealthConfigLayers } from './declarative/sources'
+import { noBackendMessage } from './no-backend-message'
 import { getHealthDb } from './resolve-store'
 import { isPostgresHealthDb } from './sql-db'
 import { ErrorLogger } from '@chm/logger'
@@ -453,7 +454,7 @@ export async function createQuietHours(
   const db = getDb()
   if (!db) {
     throw new Error(
-      'No alert state backend configured (D1 binding MAINTENANCE_D1 / CHM_CLOUD_D1, or Postgres DATABASE_URL)'
+      noBackendMessage('Quiet hours', 'MAINTENANCE_D1 or CHM_CLOUD_D1')
     )
   }
   await ensureMigrated(db)
