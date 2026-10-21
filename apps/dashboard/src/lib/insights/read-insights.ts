@@ -28,6 +28,10 @@ export function deriveAction(
   metric: string,
   category: string
 ): InsightAction | undefined {
+  // Per-table metric (`ttl_rewrite:<db.table>`): the table is in the metric so
+  // each table keeps its own stable dismissal, so it cannot be a literal case.
+  if (metric.startsWith('ttl_rewrite:'))
+    return { label: 'View TTL inventory', href: '/ttl-partition-health' }
   switch (metric) {
     case 'error_rate':
     case 'query_duration_p95':
