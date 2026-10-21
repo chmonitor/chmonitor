@@ -36,16 +36,18 @@ import { authorizeFeatureRequest } from '@/lib/feature-permissions/server'
 
 const MAX_LAST_HOURS = 24 * 365
 
-function parseDataJson(dataJson: string | null): unknown[] {
-  if (!dataJson || dataJson === 'null') return []
-  try {
-    const parsed = JSON.parse(dataJson) as unknown
-    if (Array.isArray(parsed)) return parsed
-    if (parsed && typeof parsed === 'object') return [parsed]
-    return []
-  } catch {
-    return []
-  }
+/**
+ * Rows as a JSON array string, spliced into the body without a parse and
+ * re-stringify. `dataJson` is the executor's own `JSON.stringify(rows)`, so
+ * it is already valid JSON. Shape rules match the old parse-based path:
+ * array as-is, single object wrapped, null / empty / scalar become `[]`.
+ */
+function rowsJson(dataJson: string | null): string {
+  if (!dataJson) return '[]'
+  const text = dataJson.trim()
+  if (text.startsWith('[')) return text
+  if (text.startsWith('{')) return `[${text}]`
+  return '[]'
 }
 
 export async function handler(request: Request): Promise<Response> {
@@ -228,44 +230,32 @@ export async function handler(request: Request): Promise<Response> {
       timezone,
     })
 
-    const data: Record<
-      string,
-      {
-        data: unknown[]
-        metadata: Record<string, unknown>
-        error?: { type: string; message: string }
-      }
-    > = {}
-
+    const entries: string[] = []
     for (const [name, entry] of Object.entries(grouped)) {
-      data[name] = {
-        data: parseDataJson(entry.dataJson),
-        metadata: {
-          queryId: String(entry.metadata?.queryId || ''),
-          duration: Number(entry.metadata?.duration || 0),
-          rows: Number(entry.metadata?.rows || 0),
-          host: String(hostId),
-          sql: entry.executedSql?.trim(),
-        },
-        ...(entry.error
-          ? {
-              error: {
-                type: entry.error.type,
-                message: entry.error.message,
-              },
-            }
-          : {}),
+      const metadata = {
+        queryId: String(entry.metadata?.queryId || ''),
+        duration: Number(entry.metadata?.duration || 0),
+        rows: Number(entry.metadata?.rows || 0),
+        host: String(hostId),
+        sql: entry.executedSql?.trim(),
       }
+      const errorJson = entry.error
+        ? `,"error":${JSON.stringify({
+            type: entry.error.type,
+            message: entry.error.message,
+          })}`
+        : ''
+      entries.push(
+        `${JSON.stringify(name)}:{"data":${rowsJson(entry.dataJson)},"metadata":${JSON.stringify(metadata)}${errorJson}}`
+      )
     }
 
-    return Response.json(
-      { success: true, data },
-      {
-        headers: {
-          'Cache-Control': groupingCacheControl(names),
-        },
-      }
-    )
+    return new Response(`{"success":true,"data":{${entries.join(',')}}}`, {
+      headers: {
+        'Content-Type': 'application/json;charset=utf-8',
+        'Cache-Control': groupingCacheControl(names),
+      },
+    })
   } catch (err) {
     if (err instanceof UnknownChartGroupingError) {
       return Response.json(
