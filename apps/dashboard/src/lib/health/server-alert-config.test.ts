@@ -9,6 +9,7 @@ import {
   getServerNtfyConfig,
   getServerOpsgenieConfig,
   getServerPushoverConfig,
+  getServerRepeatBackoffMaxMs,
   getServerRepeatMinDeltaConfig,
   getServerTelegramConfig,
   getServerTwilioConfig,
@@ -1190,6 +1191,41 @@ describe('getServerRepeatMinDeltaConfig (#4049)', () => {
     process.env.HEALTH_ALERT_REPEAT_MIN_DELTA_PEERDB_API_HEALTH = '3'
     const { byRule } = getServerRepeatMinDeltaConfig(PEERDB_ALERT_RULE_IDS)
     expect(byRule['peerdb-api-health']).toBe(3)
+  })
+})
+
+describe('getServerRepeatBackoffMaxMs (#4049)', () => {
+  let saved: string | undefined
+  beforeEach(() => {
+    saved = process.env.HEALTH_ALERT_BACKOFF_MAX_MINUTES
+    delete process.env.HEALTH_ALERT_BACKOFF_MAX_MINUTES
+  })
+  afterEach(() => {
+    if (saved === undefined) delete process.env.HEALTH_ALERT_BACKOFF_MAX_MINUTES
+    else process.env.HEALTH_ALERT_BACKOFF_MAX_MINUTES = saved
+  })
+
+  it('is off (null) when unset', () => {
+    expect(getServerRepeatBackoffMaxMs()).toBeNull()
+  })
+
+  it('converts a positive number of minutes to ms', () => {
+    process.env.HEALTH_ALERT_BACKOFF_MAX_MINUTES = '240'
+    expect(getServerRepeatBackoffMaxMs()).toBe(240 * 60_000)
+    process.env.HEALTH_ALERT_BACKOFF_MAX_MINUTES = '1.5'
+    expect(getServerRepeatBackoffMaxMs()).toBe(90_000)
+  })
+
+  it.each([
+    '0',
+    '-5',
+    'abc',
+    '',
+    '  ',
+    'Infinity',
+  ])('an invalid or non-positive value %p turns it off', (value) => {
+    process.env.HEALTH_ALERT_BACKOFF_MAX_MINUTES = value
+    expect(getServerRepeatBackoffMaxMs()).toBeNull()
   })
 })
 

@@ -38,6 +38,7 @@ import {
   getServerAlertCooldownConfig,
   getServerHysteresisConfig,
   getServerMutedRules,
+  getServerRepeatBackoffMaxMs,
   getServerRepeatMinDeltaConfig,
   isAnyAlertChannelEnabled,
 } from './../server-alert-config'
@@ -80,6 +81,8 @@ export interface SweepContext {
   cooldown: ReturnType<typeof getServerAlertCooldownConfig>
   /** Min value change for a reminder (#4049); `null` = off. */
   repeatMinDelta: ReturnType<typeof getServerRepeatMinDeltaConfig>
+  /** Cap in ms for reminder back-off (#4049); `null` = off. */
+  repeatBackoffMaxMs: number | null
   /** Rule ids / globs muted on every channel (#3869). */
   mutedRules: string[]
   rules: AlertRuleDef[]
@@ -149,6 +152,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
   // Re-notify cooldown (#3869): same resolution shape as hysteresis.
   const cooldown = getServerAlertCooldownConfig(ruleIds)
   const repeatMinDelta = getServerRepeatMinDeltaConfig(ruleIds)
+  const repeatBackoffMaxMs = getServerRepeatBackoffMaxMs()
 
   // Durable state (#2767): hydrate the in-memory transition/hysteresis store
   // from D1 so streaks + incident timers survive worker restarts. Best-effort —
@@ -205,6 +209,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
     alertingEnabled,
     cooldown,
     repeatMinDelta,
+    repeatBackoffMaxMs,
     mutedRules,
     rules,
     thresholdOverrides,

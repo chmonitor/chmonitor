@@ -45,12 +45,16 @@ const MIGRATION_SQL = `
     pending_severity TEXT,
     pending_count    INTEGER,
     last_notified_value REAL,
+    repeat_count     INTEGER,
     PRIMARY KEY (host_id, rule_id)
   )
 `
 
 /** Additive upgrade for tables created before `last_notified_value` existed. */
 const ADD_LAST_NOTIFIED_VALUE_SQL = `ALTER TABLE ${TABLE} ADD COLUMN last_notified_value REAL`
+
+/** Additive upgrade for tables created before `repeat_count` existed. */
+const ADD_REPEAT_COUNT_SQL = `ALTER TABLE ${TABLE} ADD COLUMN repeat_count INTEGER`
 
 /** Current alert state for one (host, rule) — the hydrated row shape for the UI. */
 export interface AlertStateRow extends AlertStateRecord {
@@ -68,6 +72,7 @@ interface D1AlertStateRow {
   pending_severity: string | null
   pending_count: number | null
   last_notified_value: number | null
+  repeat_count?: number | null
 }
 
 let migration: Promise<void> | null = null
@@ -97,14 +102,19 @@ function ensureMigrated(db: HealthSqlDb): Promise<void> {
     migration = (async () => {
       try {
         await db.prepare(MIGRATION_SQL).run()
-        try {
-          await db.prepare(ADD_LAST_NOTIFIED_VALUE_SQL).run()
-        } catch (err) {
-          // Column already exists (fresh table or already upgraded).
-          if (
-            !/duplicate column/i.test(String((err as Error)?.message ?? err))
-          ) {
-            throw err
+        for (const alter of [
+          ADD_LAST_NOTIFIED_VALUE_SQL,
+          ADD_REPEAT_COUNT_SQL,
+        ]) {
+          try {
+            await db.prepare(alter).run()
+          } catch (err) {
+            // Column already exists (fresh table or already upgraded).
+            if (
+              !/duplicate column/i.test(String((err as Error)?.message ?? err))
+            ) {
+              throw err
+            }
           }
         }
       } catch (err) {
@@ -133,6 +143,9 @@ function rowToRecord(row: D1AlertStateRow): AlertStateRecord {
   ) {
     rec.lastNotifiedValue = row.last_notified_value
   }
+  if (row.repeat_count !== null && row.repeat_count !== undefined) {
+    rec.repeatCount = row.repeat_count
+  }
   return rec
 }
 
@@ -158,7 +171,7 @@ export async function hydrateAlertState(store: AlertStateStore): Promise<void> {
     await ensureMigrated(db)
     const result = await db
       .prepare(
-        `SELECT host_id, rule_id, severity, updated_at, notified_at, first_fired_at, pending_severity, pending_count, last_notified_value
+        `SELECT host_id, rule_id, severity, updated_at, notified_at, first_fired_at, pending_severity, pending_count, last_notified_value, repeat_count
          FROM ${TABLE}`
       )
       .all<D1AlertStateRow>()
@@ -202,8 +215,8 @@ export async function flushAlertState(store: AlertStateStore): Promise<void> {
         db
           .prepare(
             `INSERT INTO ${TABLE}
-               (host_id, rule_id, severity, updated_at, notified_at, first_fired_at, pending_severity, pending_count, last_notified_value)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+               (host_id, rule_id, severity, updated_at, notified_at, first_fired_at, pending_severity, pending_count, last_notified_value, repeat_count)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
              ON CONFLICT(host_id, rule_id) DO UPDATE SET
                severity = excluded.severity,
                updated_at = excluded.updated_at,
@@ -211,7 +224,8 @@ export async function flushAlertState(store: AlertStateStore): Promise<void> {
                first_fired_at = excluded.first_fired_at,
                pending_severity = excluded.pending_severity,
                pending_count = excluded.pending_count,
-               last_notified_value = excluded.last_notified_value`
+               last_notified_value = excluded.last_notified_value,
+               repeat_count = excluded.repeat_count`
           )
           .bind(
             hostId,
@@ -222,7 +236,8 @@ export async function flushAlertState(store: AlertStateStore): Promise<void> {
             rec.firstFiredAt ?? null,
             rec.pendingSeverity ?? null,
             rec.pendingCount ?? null,
-            rec.lastNotifiedValue ?? null
+            rec.lastNotifiedValue ?? null,
+            rec.repeatCount ?? null
           )
       )
     }
@@ -259,7 +274,7 @@ export async function readAlertStates(
     const db = getDb()
     if (!db) return []
     await ensureMigrated(db)
-    const base = `SELECT host_id, rule_id, severity, updated_at, notified_at, first_fired_at, pending_severity, pending_count, last_notified_value FROM ${TABLE}`
+    const base = `SELECT host_id, rule_id, severity, updated_at, notified_at, first_fired_at, pending_severity, pending_count, last_notified_value, repeat_count FROM ${TABLE}`
     const stmt =
       hostId === undefined
         ? db.prepare(`${base} ORDER BY updated_at DESC`)

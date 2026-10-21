@@ -54,6 +54,7 @@ function makeCtx(acks: AlertAck[]): SweepContext {
     alertingEnabled: true,
     cooldown: { defaultMs: 60_000, bySeverity: {}, byRule: {} },
     repeatMinDelta: { default: null, byRule: {} },
+    repeatBackoffMaxMs: null,
     mutedRules: [],
     rules: [],
     thresholdOverrides: {},

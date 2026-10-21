@@ -596,6 +596,19 @@ function parseMinDeltaEnv(value: string | undefined): number | null {
 }
 
 /**
+ * Cap, in ms, for back-off of repeat reminders while a value stays flat
+ * (#4049): `HEALTH_ALERT_BACKOFF_MAX_MINUTES`. Unset (the default), empty,
+ * invalid, zero or negative = `null` (off, fixed cooldown as before).
+ */
+export function getServerRepeatBackoffMaxMs(): number | null {
+  const raw = process.env.HEALTH_ALERT_BACKOFF_MAX_MINUTES?.trim()
+  if (raw === undefined || raw === '') return null
+  const minutes = Number(raw)
+  if (!Number.isFinite(minutes) || minutes <= 0) return null
+  return minutes * 60_000
+}
+
+/**
  * Minimum absolute value change needed for a REMINDER to be sent (#4049).
  *
  * `HEALTH_ALERT_REPEAT_MIN_DELTA` is the global value; unset (the default) =

@@ -479,3 +479,168 @@ describe('decideNotification: repeat min delta (#4049)', () => {
     expect(r.decision.kind).toBe('suppressed')
   })
 })
+
+describe('repeat back-off (#4049)', () => {
+  const HOUR = 3_600_000
+  const base = { cooldownMs: HOUR, backoffMaxMs: 4 * HOUR }
+
+  /** Sweep every 10 minutes from the first alert; return reminder offsets in hours. */
+  function reminderHours(
+    opts: Parameters<typeof decideNotification>[2],
+    sweeps = 12 * 6,
+    value: (i: number) => number = () => 50
+  ): number[] {
+    let state: AlertStateRecord | undefined
+    const sent: number[] = []
+    for (let i = 0; i <= sweeps; i++) {
+      const now = i * 600_000
+      const r = decideNotification(state, 'warning', {
+        ...opts,
+        now,
+        value: value(i),
+      })
+      if (r.decision.notify) sent.push(now / HOUR)
+      state = r.next ?? undefined
+    }
+    return sent
+  }
+
+  test('off by default: reminders keep the fixed cooldown', () => {
+    expect(reminderHours({ cooldownMs: HOUR }, 6 * 6)).toEqual([
+      0, 1, 2, 3, 4, 5, 6,
+    ])
+    expect(
+      reminderHours({ cooldownMs: HOUR, backoffMaxMs: null }, 6 * 6)
+    ).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(reminderHours({ cooldownMs: HOUR, backoffMaxMs: 0 }, 6 * 6)).toEqual(
+      [0, 1, 2, 3, 4, 5, 6]
+    )
+  })
+
+  test('with a 4h cap and a 1h base the gaps go 1h, 2h, 4h, 4h', () => {
+    // Sends at 0 (new), then +1h, +2h, +4h, +4h.
+    expect(reminderHours(base, 15 * 6)).toEqual([0, 1, 3, 7, 11, 15])
+  })
+
+  test('the count grows only on a reminder that is actually sent', () => {
+    const t0 = decideNotification(undefined, 'warning', { now: 0, ...base })
+    expect(t0.next?.repeatCount).toBeUndefined()
+    const r1 = decideNotification(t0.next ?? undefined, 'warning', {
+      now: HOUR,
+      ...base,
+    })
+    expect(r1.next?.repeatCount).toBe(1)
+    const waiting = decideNotification(r1.next ?? undefined, 'warning', {
+      now: HOUR + 600_000,
+      ...base,
+    })
+    expect(waiting.decision.notify).toBe(false)
+    expect(waiting.next?.repeatCount).toBe(1)
+  })
+
+  test('escalation resets the count and the interval', () => {
+    const state = rec({ notifiedAt: 0, repeatCount: 2 })
+    const r = decideNotification(state, 'critical', { now: 600_000, ...base })
+    expect(r.decision.kind).toBe('escalated')
+    expect(r.next?.repeatCount).toBeUndefined()
+  })
+
+  test('de-escalation and recovery drop the count', () => {
+    const state = rec({ severity: 'critical', notifiedAt: 0, repeatCount: 2 })
+    const down = decideNotification(state, 'warning', { now: 600_000, ...base })
+    expect(down.next?.repeatCount).toBeUndefined()
+    const ok = decideNotification(state, 'ok', { now: 600_000, ...base })
+    expect(ok.decision.kind).toBe('recovery')
+    expect(ok.next).toBeNull()
+  })
+
+  test('a value move of at least the delta resets the interval and the count', () => {
+    const state = rec({
+      notifiedAt: 0,
+      repeatCount: 3,
+      lastNotifiedValue: 50,
+    })
+    const opts = { ...base, repeatMinDelta: 10 }
+    // 8h backed-off interval is capped at 4h, so 1h would normally wait.
+    const flat = decideNotification(state, 'warning', {
+      ...opts,
+      now: HOUR,
+      value: 55,
+    })
+    expect(flat.decision.notify).toBe(false)
+    const moved = decideNotification(state, 'warning', {
+      ...opts,
+      now: HOUR,
+      value: 60,
+    })
+    expect(moved.decision.kind).toBe('reminder')
+    expect(moved.next?.repeatCount).toBeUndefined()
+    expect(moved.next?.lastNotifiedValue).toBe(60)
+  })
+
+  test('a delta of 0 never counts as a move, so back-off still applies', () => {
+    const state = rec({ notifiedAt: 0, repeatCount: 2, lastNotifiedValue: 50 })
+    const r = decideNotification(state, 'warning', {
+      ...base,
+      repeatMinDelta: 0,
+      now: 2 * HOUR,
+      value: 99,
+    })
+    expect(r.decision.notify).toBe(false)
+  })
+
+  test('a huge count cannot overflow the interval and stays at the cap', () => {
+    const state = rec({ notifiedAt: 0, repeatCount: 1e9 })
+    const early = decideNotification(state, 'warning', {
+      ...base,
+      now: 4 * HOUR - 1,
+    })
+    expect(early.decision.notify).toBe(false)
+    const due = decideNotification(state, 'warning', { ...base, now: 4 * HOUR })
+    expect(due.decision.notify).toBe(true)
+    expect(due.next?.repeatCount).toBeLessThanOrEqual(30)
+  })
+
+  test('the interval is never shorter than the base cooldown', () => {
+    const state = rec({ notifiedAt: 0, repeatCount: 5 })
+    const r = decideNotification(state, 'warning', {
+      cooldownMs: 6 * HOUR,
+      backoffMaxMs: HOUR,
+      now: 5 * HOUR,
+    })
+    expect(r.decision.notify).toBe(false)
+  })
+
+  test('a cooldown of 0 (once until resolved) is untouched', () => {
+    const state = rec({ notifiedAt: 0 })
+    const r = decideNotification(state, 'warning', {
+      cooldownMs: 0,
+      backoffMaxMs: 4 * HOUR,
+      now: 100 * HOUR,
+    })
+    expect(r.decision.notify).toBe(false)
+    expect(r.next?.repeatCount).toBeUndefined()
+  })
+
+  test('a missing, negative or non-finite stored count counts as 0', () => {
+    for (const repeatCount of [undefined, -4, Number.NaN]) {
+      const state = rec({ notifiedAt: 0, repeatCount })
+      const r = decideNotification(state, 'warning', { ...base, now: HOUR })
+      expect(r.decision.kind).toBe('reminder')
+      expect(r.next?.repeatCount).toBe(1)
+    }
+  })
+
+  test('evaluateAlert threads backoffMaxMs through to the store', () => {
+    const store = new MemoryAlertStateStore()
+    const params = { hostId: 1, ruleId: 'r', severity: 'warning' as const }
+    evaluateAlert(store, { ...params, now: 0, ...base }).commit()
+    const second = evaluateAlert(store, { ...params, now: HOUR, ...base })
+    second.commit()
+    expect(store.get(alertStateKey(1, 'r'))?.repeatCount).toBe(1)
+    expect(
+      evaluateAlert(store, { ...params, now: 2 * HOUR, ...base }).decision
+        .notify
+    ).toBe(false)
+  })
+})
