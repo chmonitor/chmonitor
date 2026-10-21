@@ -9,6 +9,7 @@ onlyBuiltDependencies:
   - workerd
 
 overrides:
+  sharp: ^0.35.5
   '@anthropic-ai/sdk': 0.92.0
   '@babel/plugin-transform-modules-systemjs': ^8.0.0
   '@codemirror/autocomplete': 6.20.2

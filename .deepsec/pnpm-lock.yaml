@@ -13,9 +13,12 @@ importers:
 
   .:
     dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.32.1
+        version: 1.32.1(zod@3.24.4)
       deepsec:
         specifier: ^2.0.9
-        version: 2.0.9(@anthropic-ai/sdk@0.97.1(zod@3.24.4))(@modelcontextprotocol/sdk@1.29.0(zod@3.24.4))(zod@3.24.4)
+        version: 2.0.9(@anthropic-ai/sdk@0.97.1(zod@3.24.4))(@modelcontextprotocol/sdk@1.32.1(zod@3.24.4))(zod@3.24.4)
 
 packages:
 
@@ -94,8 +97,8 @@ packages:
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
     engines: {node: '>=18.0.0'}
 
-  '@modelcontextprotocol/sdk@1.29.0':
-    resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
+  '@modelcontextprotocol/sdk@1.32.1':
+    resolution: {integrity: sha512-2DdE+SJDtzLEEWzY1ZjY7Q+VcPhcV1KisD3zI4u0XZyktsjHum1mwbMI+JaulUBi2OZk+KJAi2uPXzxichPkdw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -208,9 +211,9 @@ packages:
     resolution: {integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==}
     engines: {node: '>=18'}
 
-  brace-expansion@5.0.6:
-    resolution: {integrity: sha512-kLpxurY4Z4r9sgMsyG0Z9uzsBlgiU/EFKhj/h91/8yHu0edo7XuixOIH3VcJ8kkxs6/jPzoI6U9Vj3WqbMQ94g==}
-    engines: {node: 18 || 20 || >=22}
+  brace-expansion@5.0.12:
+    resolution: {integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==}
+    engines: {node: 20 || >=22}
 
   bytes@3.1.2:
     resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
@@ -575,8 +578,8 @@ packages:
   tar-stream@3.1.7:
     resolution: {integrity: sha512-qJj60CXt7IU1Ffyc3NJMjh6EkuCFej46zUqJ4J7pqYlThyd9bO0XBTmcOIhSzZJVWfsLks0+nle/j538YAW9RQ==}
 
-  tar@7.5.20:
-    resolution: {integrity: sha512-9FcyK4PA6+WbzlTM9WhQm6vB5W7cP7dUiPsv1g7YDwEQnQ1CGpK3MGlKk/ITVWMk05kHZuBhmVhiv8LZoy/PFQ==}
+  tar@7.5.22:
+    resolution: {integrity: sha512-MFO/QzvtAOmJbkhOaCTvbGcFN9L9b+JunIsDwaKljSOdcLMea3NJ1k9Usz/rjdfSXTq4dfzfeS7W4p4YOAAHeA==}
     engines: {node: '>=18'}
 
   text-decoder@1.2.7:
@@ -593,8 +596,8 @@ packages:
     resolution: {integrity: sha512-faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA==}
     engines: {node: '>= 18'}
 
-  undici@7.28.0:
-    resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
+  undici@7.30.1:
+    resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
 
   unpipe@1.0.0:
@@ -659,10 +662,10 @@ snapshots:
   '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.145':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk@0.3.145(@anthropic-ai/sdk@0.97.1(zod@3.24.4))(@modelcontextprotocol/sdk@1.29.0(zod@3.24.4))(zod@3.24.4)':
+  '@anthropic-ai/claude-agent-sdk@0.3.145(@anthropic-ai/sdk@0.97.1(zod@3.24.4))(@modelcontextprotocol/sdk@1.32.1(zod@3.24.4))(zod@3.24.4)':
     dependencies:
       '@anthropic-ai/sdk': 0.97.1(zod@3.24.4)
-      '@modelcontextprotocol/sdk': 1.29.0(zod@3.24.4)
+      '@modelcontextprotocol/sdk': 1.32.1(zod@3.24.4)
       zod: 3.24.4
     optionalDependencies:
       '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.145
@@ -691,7 +694,7 @@ snapshots:
     dependencies:
       minipass: 7.1.3
 
-  '@modelcontextprotocol/sdk@1.29.0(zod@3.24.4)':
+  '@modelcontextprotocol/sdk@1.32.1(zod@3.24.4)':
     dependencies:
       '@hono/node-server': 1.19.17(hono@4.13.13)
       ajv: 8.20.0
@@ -759,7 +762,7 @@ snapshots:
       ms: 2.1.3
       picocolors: 1.1.1
       tar-stream: 3.1.7
-      undici: 7.28.0
+      undici: 7.30.1
       xdg-app-paths: 5.1.0
       zod: 3.24.4
     transitivePeerDependencies:
@@ -808,7 +811,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  brace-expansion@5.0.6:
+  brace-expansion@5.0.12:
     dependencies:
       balanced-match: 4.0.4
 
@@ -851,16 +854,16 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  deepsec@2.0.9(@anthropic-ai/sdk@0.97.1(zod@3.24.4))(@modelcontextprotocol/sdk@1.29.0(zod@3.24.4))(zod@3.24.4):
+  deepsec@2.0.9(@anthropic-ai/sdk@0.97.1(zod@3.24.4))(@modelcontextprotocol/sdk@1.32.1(zod@3.24.4))(zod@3.24.4):
     dependencies:
-      '@anthropic-ai/claude-agent-sdk': 0.3.145(@anthropic-ai/sdk@0.97.1(zod@3.24.4))(@modelcontextprotocol/sdk@1.29.0(zod@3.24.4))(zod@3.24.4)
+      '@anthropic-ai/claude-agent-sdk': 0.3.145(@anthropic-ai/sdk@0.97.1(zod@3.24.4))(@modelcontextprotocol/sdk@1.32.1(zod@3.24.4))(zod@3.24.4)
       '@openai/codex': 0.125.0
       '@openai/codex-sdk': 0.125.0
       '@vercel/oidc': 3.4.1
       '@vercel/sandbox': 1.10.2
       jiti: 2.7.0
       minimatch: 10.2.5
-      tar: 7.5.20
+      tar: 7.5.22
     transitivePeerDependencies:
       - '@anthropic-ai/sdk'
       - '@modelcontextprotocol/sdk'
@@ -1049,7 +1052,7 @@ snapshots:
 
   minimatch@10.2.5:
     dependencies:
-      brace-expansion: 5.0.6
+      brace-expansion: 5.0.12
 
   minipass@7.1.3: {}
 
@@ -1208,7 +1211,7 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
-  tar@7.5.20:
+  tar@7.5.22:
     dependencies:
       '@isaacs/fs-minipass': 4.0.1
       chownr: 3.0.0
@@ -1232,7 +1235,7 @@ snapshots:
       media-typer: 1.1.1
       mime-types: 3.0.2
 
-  undici@7.28.0: {}
+  undici@7.30.1: {}
 
   unpipe@1.0.0: {}
 
