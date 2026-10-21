@@ -64,7 +64,7 @@ async function fetchColumnProfiles(
     readOnlyQuery({
       query: `
         SELECT
-          database, table, name, type, compression_codec,
+          database, table, name, type, compression_codec, is_in_sorting_key,
           data_compressed_bytes AS compressed_bytes,
           data_uncompressed_bytes AS uncompressed_bytes
         FROM system.columns
@@ -81,6 +81,7 @@ async function fetchColumnProfiles(
         name: string
         type: string
         compression_codec: string
+        is_in_sorting_key?: number | string | boolean
         compressed_bytes: number | string
         uncompressed_bytes: number | string
       }>
@@ -106,6 +107,10 @@ async function fetchColumnProfiles(
     name: c.name,
     type: c.type,
     compressionCodec: c.compression_codec ?? '',
+    isInSortingKey:
+      c.is_in_sorting_key === undefined
+        ? undefined
+        : Number(c.is_in_sorting_key) === 1,
     compressedBytes: Number(c.compressed_bytes),
     uncompressedBytes: Number(c.uncompressed_bytes),
     rows: rowsByTable.get(c.table) ?? 0,
