@@ -119,6 +119,7 @@ const DASHBOARD_ROUTES = [
   '/top-usage-tables',
   '/traffic',
   '/ttl-partition-health',
+  '/unused-tables',
   '/user-processes',
   '/users',
   '/view-refreshes',

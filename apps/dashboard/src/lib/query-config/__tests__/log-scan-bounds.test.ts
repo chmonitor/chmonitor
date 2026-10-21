@@ -14,6 +14,7 @@ import { DECLARATIVE_CATALOG } from '../declarative/catalog'
 import { mergePerformanceConfig } from '../merges/merge-performance'
 import { topUsageColumnsConfig } from '../more/top-usage-columns'
 import { topUsageTablesConfig } from '../more/top-usage-tables'
+import { unusedTablesConfig } from '../more/unused-tables'
 import { queryChildrenConfig } from '../queries/query-children'
 import { queryDetailConfig } from '../queries/query-detail'
 import { partLogConfig } from '../system/part-log'
@@ -31,6 +32,7 @@ const DAYS_BOUND = /event_date >= today\(\) - \{days:UInt16\}/
 const daysBounded: [QueryConfig, string][] = [
   [topUsageColumnsConfig, '7'],
   [topUsageTablesConfig, '7'],
+  [unusedTablesConfig, '30'],
   [mergePerformanceConfig, '30'],
   [queryDetailConfig, '30'],
   [queryChildrenConfig, '30'],
@@ -47,6 +49,25 @@ describe('event_date-bounded log configs', () => {
   test('top-usage-columns: every SQL version is LIMITed', () => {
     for (const sql of sqlsOf(topUsageColumnsConfig))
       expect(sql).toMatch(/LIMIT 200\s*$/)
+  })
+})
+
+describe('unused-tables: both query_log scans are bounded', () => {
+  test('SQL is LIMITed and every query_log read has the event_date bound', () => {
+    const [sql] = sqlsOf(unusedTablesConfig)
+    expect(sql).toMatch(/LIMIT 200\s*$/)
+    const logReads = sql.match(/merge\('system', '\^query_log'\)/g) ?? []
+    const bounds = sql.match(/event_date >= today\(\) - \{days:UInt16\}/g) ?? []
+    expect(logReads.length).toBe(2)
+    expect(bounds.length).toBe(logReads.length)
+  })
+
+  test('counts only Select reads, exposes the window start, says "unread"', () => {
+    const [sql] = sqlsOf(unusedTablesConfig)
+    expect(sql).toContain("query_kind = 'Select'")
+    expect(sql).toContain('log_window_start')
+    expect(unusedTablesConfig.description).toContain('This replica only')
+    expect(unusedTablesConfig.description).not.toMatch(/safe to drop/i)
   })
 })
 
