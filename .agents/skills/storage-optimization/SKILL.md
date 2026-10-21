@@ -32,7 +32,7 @@ description: "Compression codecs, TTL policies, tiered storage, part management,
 ## Part Management
 - Monitor part count: `SELECT count() FROM system.parts WHERE active AND database = 'db' AND table = 't'`
 - Too many parts (>300 per partition) = degraded performance
-- Detached parts: check `system.detached_parts`, clean with `DROP DETACHED PART`
+- Detached parts: diagnose with `system.detached_parts` (`reason`, age, `bytes_on_disk`) and compare with `system.parts WHERE active`. A detached part can be the only copy of data (for example after a failed or manual operation). Before any removal, confirm on each replica that the part's block range is covered by an active part and that other replicas hold the data. `ATTACH` only what is still needed after review. `attaching_*`, `deleting_*` and `tmp-fetch_*` entries cannot be removed via SQL.
 - Part size target: 1-10GB per part for optimal performance
 
 ## Disk Space Recovery

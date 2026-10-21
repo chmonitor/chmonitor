@@ -55,7 +55,7 @@ export function checkDetachedParts(count: number): InsightCandidate | null {
     category: 'storage',
     metric: 'detached_parts',
     title: `${count} detached parts need review`,
-    detail: `This cluster has ${count} detached parts that are not broken — usually leftovers from ALTER ... DETACH, replica clones, or ignored parts. They occupy disk without being queryable. What to do: check each part's reason, ATTACH the ones you still need, and run ALTER TABLE ... DROP DETACHED PART for the rest.`,
+    detail: `This cluster has ${count} detached parts that are not broken — usually leftovers from ALTER ... DETACH, replica clones, or ignored parts. They occupy disk without being queryable. A detached part can be the only copy of its data (for example after a failed or manual operation), so do not remove anything yet. What to do: look at each part's reason, age and bytes in system.detached_parts and compare with system.parts. ATTACH only the ones you still need after review. Before any removal, confirm on each replica that the part's block range is covered by an active part (system.parts WHERE active) and that other replicas hold the data. attaching_*, deleting_* and tmp-fetch_* entries cannot be removed via SQL.`,
     value: count,
     action: { label: 'View detached parts', href: '/detached-parts' },
   }

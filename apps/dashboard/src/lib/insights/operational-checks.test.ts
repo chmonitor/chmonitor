@@ -55,6 +55,18 @@ describe('checkDetachedParts', () => {
     expect(checkDetachedParts(10_000)?.severity).toBe('info')
   })
 
+  test('never calls detached data safe or recommends DROP as the next step', () => {
+    // Detached parts can be the only copy of data; removal needs coverage proof.
+    const detail = checkDetachedParts(DETACHED_PARTS_MIN)?.detail ?? ''
+    expect(detail.length).toBeGreaterThan(0)
+    expect(detail).not.toMatch(/\bsafe/i)
+    expect(detail).not.toMatch(/DROP DETACHED/i)
+    expect(detail).toMatch(/only copy/i)
+    expect(detail).toMatch(/block range is covered by an active part/)
+    expect(detail).toMatch(/system\.parts WHERE active/)
+    expect(detail).toMatch(/replica/)
+  })
+
   test('non-finite input is ignored', () => {
     expect(checkDetachedParts(Number.NaN)).toBeNull()
   })
