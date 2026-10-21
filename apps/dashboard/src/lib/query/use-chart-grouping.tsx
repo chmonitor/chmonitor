@@ -7,6 +7,7 @@ import type { ChartMetadata, UseChartResult } from '@/lib/query/use-chart-data'
 
 import { createContext, type ReactNode, useContext, useMemo } from 'react'
 import { getChartGrouping } from '@/lib/api/chart-batch'
+import { pausableInterval } from '@/lib/hooks/use-in-viewport'
 import {
   fetchChartForHost,
   isCustomHost,
@@ -46,6 +47,8 @@ interface ChartGroupingProviderProps {
   interval?: string
   params?: Record<string, unknown>
   timezone?: string
+  /** false pauses polling (e.g. section off-screen); initial fetch and cached data are kept. */
+  pollingActive?: boolean
   children: ReactNode
 }
 
@@ -61,6 +64,7 @@ export function ChartGroupingProvider({
   interval,
   params,
   timezone,
+  pollingActive = true,
   children,
 }: ChartGroupingProviderProps) {
   const { hosts, getConnectionByHostId } = useMergedHosts()
@@ -136,10 +140,7 @@ export function ChartGroupingProvider({
     staleTime: Math.max(refreshInterval * 0.9, 5_000),
     refetchInterval:
       refreshInterval > 0
-        ? () =>
-            typeof document !== 'undefined' && document.hidden
-              ? false
-              : refreshInterval
+        ? pausableInterval(refreshInterval, pollingActive)
         : false,
     refetchOnMount: true,
     refetchOnReconnect: true,

@@ -2,7 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 
 import type { ApiResponseMetadata } from '@/lib/api/types'
 
+import { useChartViewportActive } from './chart-viewport'
 import { useMemo, useRef } from 'react'
+import {
+  pausableInterval,
+  useRefetchOnResume,
+} from '@/lib/hooks/use-in-viewport'
 import {
   fetchChartForHost,
   isCustomHost,
@@ -57,6 +62,8 @@ export interface UseChartDataParams {
   params?: Record<string, unknown>
   timezone?: string
   refreshInterval?: RefreshInterval | number
+  /** false pauses polling (default: the surrounding ChartViewportContext, true without one); initial fetch and cached data are kept. */
+  pollingActive?: boolean
 }
 
 export function useChartData<T extends ChartDataPoint = ChartDataPoint>({
@@ -67,7 +74,10 @@ export function useChartData<T extends ChartDataPoint = ChartDataPoint>({
   params,
   timezone,
   refreshInterval: refreshIntervalProp,
+  pollingActive: pollingActiveProp,
 }: UseChartDataParams): UseChartResult<T> {
+  const viewportActive = useChartViewportActive()
+  const pollingActive = pollingActiveProp ?? viewportActive
   const refreshInterval =
     refreshIntervalProp ??
     chartRefreshInterval(chartName) ??
@@ -116,56 +126,58 @@ export function useChartData<T extends ChartDataPoint = ChartDataPoint>({
 
   const resolvedRefetchInterval =
     refreshInterval > 0
-      ? () =>
-          typeof document !== 'undefined' && document.hidden
-            ? false
-            : (refreshInterval as number)
+      ? pausableInterval(refreshInterval as number, pollingActive)
       : false
 
-  const { data, error, isPending, isFetching, refetch } = useQuery<
-    ChartDataResponse<T>,
-    Error
-  >({
-    queryKey,
-    queryFn: async () => {
-      if (isCustomHost(numericHostId)) {
-        const result = await fetchChartForHost<T[]>({
-          chartName,
-          hostId: numericHostId,
-          hosts,
-          browserConnection,
-          interval,
-          lastHours,
-          params,
-          timezone,
-        })
-        return {
-          data: result.data as ChartDataResponse<T>['data'],
-          metadata: (result.metadata ?? {}) as unknown as ChartMetadata,
-        } satisfies ChartDataResponse<T>
-      }
+  const { data, error, isPending, isFetching, refetch, dataUpdatedAt } =
+    useQuery<ChartDataResponse<T>, Error>({
+      queryKey,
+      queryFn: async () => {
+        if (isCustomHost(numericHostId)) {
+          const result = await fetchChartForHost<T[]>({
+            chartName,
+            hostId: numericHostId,
+            hosts,
+            browserConnection,
+            interval,
+            lastHours,
+            params,
+            timezone,
+          })
+          return {
+            data: result.data as ChartDataResponse<T>['data'],
+            metadata: (result.metadata ?? {}) as unknown as ChartMetadata,
+          } satisfies ChartDataResponse<T>
+        }
 
-      const response = await apiFetch(url)
-      await throwIfNotOk(response, 'Failed to fetch chart data')
-      return response.json() as Promise<ChartDataResponse<T>>
-    },
-    staleTime: Math.max((refreshInterval as number) * 0.9, 5_000),
-    refetchInterval: resolvedRefetchInterval,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
-    placeholderData: keepPreviousDataForHost(hostId),
-    retry: (failureCount, err) => {
-      if (
-        'status' in err &&
-        typeof (err as { status?: number }).status === 'number'
-      ) {
-        const status = (err as { status: number }).status
-        if (status >= 400 && status < 500 && status !== 429) return false
-      }
-      return failureCount < 3
-    },
-    retryDelay: (attemptIndex) => Math.min(30_000, 1_000 * 2 ** attemptIndex),
-  })
+        const response = await apiFetch(url)
+        await throwIfNotOk(response, 'Failed to fetch chart data')
+        return response.json() as Promise<ChartDataResponse<T>>
+      },
+      staleTime: Math.max((refreshInterval as number) * 0.9, 5_000),
+      refetchInterval: resolvedRefetchInterval,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      placeholderData: keepPreviousDataForHost(hostId),
+      retry: (failureCount, err) => {
+        if (
+          'status' in err &&
+          typeof (err as { status?: number }).status === 'number'
+        ) {
+          const status = (err as { status: number }).status
+          if (status >= 400 && status < 500 && status !== 429) return false
+        }
+        return failureCount < 3
+      },
+      retryDelay: (attemptIndex) => Math.min(30_000, 1_000 * 2 ** attemptIndex),
+    })
+
+  useRefetchOnResume(
+    pollingActive,
+    dataUpdatedAt,
+    refreshInterval as number,
+    refetch
+  )
 
   const dataArray =
     Array.isArray(data?.data) || !data?.data
