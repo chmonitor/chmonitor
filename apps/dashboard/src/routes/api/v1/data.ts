@@ -154,9 +154,6 @@ function handleQueryError(
   )
 }
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-
 /**
  * Handle GET requests for data fetching
  * Accepts query and parameters via URL query string
@@ -266,7 +263,6 @@ const handleGet = withApiHandler(async (request: Request) => {
     return handleQueryError(result.error, hostId, 'GET')
   }
 
-  // Create successful response with timezone in metadata
   return createSuccessResponse(result.data, { ...result.metadata, timezone })
 }, ROUTE_CONTEXT)
 
@@ -529,7 +525,6 @@ export const handlePost = withApiHandler(async (request: Request) => {
     return handleQueryError(result.error, hostId, 'POST')
   }
 
-  // Create successful response with timezone in metadata
   return createSuccessResponse(result.data, { ...result.metadata, timezone })
 }, ROUTE_CONTEXT)
 

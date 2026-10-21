@@ -139,9 +139,6 @@ function errorResponse(message: string, status: number): Response {
   return Response.json({ success: false, error: { message } }, { status })
 }
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-
 async function handle(
   method: 'GET' | 'POST',
   request: Request,

@@ -17,8 +17,8 @@ function getDeploymentInfo(bindings: Record<string, string | undefined>) {
   // Determine runtime: in workerd the CLOUDFLARE_WORKERS binding is set to '1'
   const runtime = bindings.CLOUDFLARE_WORKERS === '1' ? 'cloudflare' : 'node'
 
-  // Build-time metadata + client config are inlined via import.meta.env.VITE_*
-  // (the Next NEXT_PUBLIC_* equivalent). Runtime auth comes from the worker
+  // Build-time metadata + client config are inlined via import.meta.env.VITE_*.
+  // Runtime auth comes from the worker
   // shared getAuthProvider() resolver (runtime var → runtime mode → build).
   return {
     gitSha: import.meta.env.VITE_GIT_SHA || null,

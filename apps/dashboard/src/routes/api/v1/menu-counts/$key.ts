@@ -133,7 +133,6 @@ async function handler(
       hostId,
     })
 
-    // Get the pre-defined query from registry
     const menuCount = getMenuCountQuery(countKey)
     if (!menuCount) {
       error('[GET /api/v1/menu-counts] Count query not found:', undefined, {

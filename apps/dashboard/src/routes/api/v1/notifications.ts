@@ -46,9 +46,6 @@ import {
 /** Query-cache TTL (seconds), matching the 30s client poll and s-maxage. */
 const NOTIFICATIONS_CACHE_TTL_SECONDS = 30
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-
 export interface Notification {
   readonly type: 'readonly-tables'
   readonly cluster: string
@@ -83,9 +80,6 @@ export interface NotificationsResponse {
     readonly nextRetryAt: string
   } | null
 }
-
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 
 export const Route = createFileRoute('/api/v1/notifications')({
   server: {

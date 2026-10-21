@@ -294,7 +294,6 @@ async function runExplain(
     planSettings: settingsClause || '(defaults)',
   })
 
-  // Build EXPLAIN query
   let explainQuery: string
   if (settingsClause) {
     explainQuery = `EXPLAIN PLAN ${settingsClause.trim()} ${normalizedQuery}`

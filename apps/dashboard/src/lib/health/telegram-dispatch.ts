@@ -29,7 +29,6 @@ export interface TelegramDispatchDeps {
   fetchImpl?: typeof fetch
 }
 
-/** Build the Bot API `sendMessage` URL for a token. */
 export function telegramSendMessageUrl(botToken: string): string {
   return `https://api.telegram.org/bot${botToken}/sendMessage`
 }
