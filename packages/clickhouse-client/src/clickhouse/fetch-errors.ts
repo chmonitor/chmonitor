@@ -9,11 +9,14 @@ import { error } from '@chm/logger'
  * 1. Try a keyword-anchored match that handles:
  *    - "status: 500", "HTTP status 403", "HTTP error 502"
  *    - Standard HTTP status lines: "HTTP/1.1 500", "HTTP/2 502"
- * 2. If (1) fails AND the message also contains a ClickHouse "Code:" clause
- *    that sits at the start of a line or is unaccompanied by HTTP keywords,
- *    skip the generic digit scan to avoid misidentifying internal error codes.
+ * 2. If (1) fails AND the message has ClickHouse wording (a "Code:" clause,
+ *    "Syntax error", "position N", "line N"), skip the generic digit scan to
+ *    avoid misidentifying internal error codes and parser positions.
  * 3. Otherwise fall back to a generic 3-digit match.
  */
+const CLICKHOUSE_WORDING =
+  /\bCode:|DB::Exception|Syntax error|\bposition\s+\d+|\bline\s+\d+/i
+
 export function extractHttpStatusCode(
   errorMessage: string
 ): number | undefined {
@@ -25,9 +28,10 @@ export function extractHttpStatusCode(
     return parseInt(keywordMatch[1], 10)
   }
 
-  // Skip generic digit scan when ClickHouse internal codes are present and no
-  // HTTP keyword was found above, to avoid false positives like "Code: 210".
-  if (errorMessage.includes('Code:')) {
+  // Skip generic digit scan when the message is ClickHouse wording and no HTTP
+  // keyword was found above: internal codes ("Code: 210") and parser
+  // locations ("failed at position 514", "line 3, col 120") are not statuses.
+  if (CLICKHOUSE_WORDING.test(errorMessage)) {
     return undefined
   }
 
