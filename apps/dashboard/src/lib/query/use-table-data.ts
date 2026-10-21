@@ -3,7 +3,12 @@ import { useQuery } from '@tanstack/react-query'
 import type { ApiResponseMetadata } from '@/lib/api/types'
 import type { StaleError } from './use-chart-data'
 
+import { useChartViewportActive } from './chart-viewport'
 import { useMemo, useRef } from 'react'
+import {
+  pausableInterval,
+  useRefetchOnResume,
+} from '@/lib/hooks/use-in-viewport'
 import {
   fetchTableForHost,
   isCustomHost,
@@ -40,8 +45,11 @@ export function useTableData<T = unknown>(
   hostId?: number,
   searchParams?: TableQueryParams,
   refreshInterval?: number,
-  timezone?: string
+  timezone?: string,
+  pollingActiveProp?: boolean
 ) {
+  const viewportActive = useChartViewportActive()
+  const pollingActive = pollingActiveProp ?? viewportActive
   const { hosts, getConnectionByHostId } = useMergedHosts()
   const browserConnection =
     hostId !== undefined && hostId < 0 ? getConnectionByHostId(hostId) : null
@@ -79,44 +87,46 @@ export function useTableData<T = unknown>(
 
   const resolvedRefetchInterval =
     refreshInterval && refreshInterval > 0
-      ? () =>
-          typeof document !== 'undefined' && document.hidden
-            ? false
-            : refreshInterval
+      ? pausableInterval(refreshInterval, pollingActive)
       : false
 
-  const { data, error, isPending, isFetching, refetch } = useQuery<
-    TableDataResponse<T>,
-    Error
-  >({
-    queryKey,
-    queryFn: async () => {
-      if (isCustomHost(hostId)) {
-        const result = await fetchTableForHost<T>({
-          queryConfigName,
-          hostId,
-          hosts,
-          browserConnection,
-          searchParams,
-          timezone,
-        })
-        return {
-          data: result.data,
-          metadata: (result.metadata ??
-            {}) as unknown as TableDataResponse<T>['metadata'],
-        } satisfies TableDataResponse<T>
-      }
+  const { data, error, isPending, isFetching, refetch, dataUpdatedAt } =
+    useQuery<TableDataResponse<T>, Error>({
+      queryKey,
+      queryFn: async () => {
+        if (isCustomHost(hostId)) {
+          const result = await fetchTableForHost<T>({
+            queryConfigName,
+            hostId,
+            hosts,
+            browserConnection,
+            searchParams,
+            timezone,
+          })
+          return {
+            data: result.data,
+            metadata: (result.metadata ??
+              {}) as unknown as TableDataResponse<T>['metadata'],
+          } satisfies TableDataResponse<T>
+        }
 
-      const response = await apiFetch(url)
-      await throwIfNotOk(response, 'Failed to fetch table data')
-      return response.json() as Promise<TableDataResponse<T>>
-    },
-    staleTime: Math.max((refreshInterval ?? 0) * 0.9, 5_000),
-    refetchInterval: resolvedRefetchInterval,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
-    placeholderData: keepPreviousDataForHost(hostId),
-  })
+        const response = await apiFetch(url)
+        await throwIfNotOk(response, 'Failed to fetch table data')
+        return response.json() as Promise<TableDataResponse<T>>
+      },
+      staleTime: Math.max((refreshInterval ?? 0) * 0.9, 5_000),
+      refetchInterval: resolvedRefetchInterval,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      placeholderData: keepPreviousDataForHost(hostId),
+    })
+
+  useRefetchOnResume(
+    pollingActive,
+    dataUpdatedAt,
+    refreshInterval ?? 0,
+    refetch
+  )
 
   const dataArray = data?.data ?? []
   const hasData = dataArray.length > 0

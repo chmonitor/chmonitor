@@ -3,6 +3,7 @@ import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 import type { QueryConfig } from '@/types/query-config'
 
 import { ChartRowSummary } from './chart-row-summary'
+import { ChartViewportBoundary } from './chart-viewport-boundary'
 import { DynamicChart } from './dynamic-chart'
 import { Suspense } from 'react'
 import { ChartSkeleton } from '@/components/skeletons'
@@ -94,7 +95,7 @@ export const ChartRow = function ChartRow({
                   const colSpan = (chartProps as { colSpan?: number }).colSpan
 
                   return (
-                    <div
+                    <ChartViewportBoundary
                       key={`${chartName}-${index}`}
                       className={cn(
                         'h-full min-w-0',
@@ -114,7 +115,7 @@ export const ChartRow = function ChartRow({
                           />
                         </Suspense>
                       </div>
-                    </div>
+                    </ChartViewportBoundary>
                   )
                 })}
               </div>
