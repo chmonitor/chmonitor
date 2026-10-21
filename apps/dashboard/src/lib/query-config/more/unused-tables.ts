@@ -20,11 +20,10 @@ export const unusedTablesConfig: QueryConfig = {
   tableCheck: 'system.query_log',
   sql: `
       WITH
-        -- query_log.tables stores backQuoteIfNeed(database).backQuoteIfNeed(table)
-        x -> if(match(x, '^[a-zA-Z_][a-zA-Z0-9_]*$'), x, concat('\`', x, '\`')) AS quote_if_needed,
+        -- query_log.tables stores backQuoteIfNeed(database).backQuoteIfNeed(table); strip the backticks to compare with database.name
         read_tables AS
         (
-            SELECT DISTINCT tables AS read_name
+            SELECT DISTINCT replaceAll(tables, '\`', '') AS read_name
             FROM merge('system', '^query_log')
             ARRAY JOIN tables
             WHERE (query_kind = 'Select')
@@ -51,7 +50,7 @@ export const unusedTablesConfig: QueryConfig = {
       WHERE (engine LIKE '%MergeTree')
         AND (database NOT IN ('system', 'INFORMATION_SCHEMA', 'information_schema'))
         AND (total_bytes > 0)
-        AND (concat(quote_if_needed(database), '.', quote_if_needed(name)) NOT IN read_tables)
+        AND (concat(database, '.', name) NOT IN read_tables)
       ORDER BY total_bytes DESC
       LIMIT 200`,
   columns: [
