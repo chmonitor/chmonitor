@@ -5,3 +5,6 @@
 packages:
   - ../../packages/site-nav
   - ../../packages/types
+
+overrides:
+  sharp: ^0.35.5
