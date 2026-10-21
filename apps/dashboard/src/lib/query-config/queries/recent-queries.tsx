@@ -139,12 +139,6 @@ export const recentQueriesConfig: QueryConfig = {
     readable_result_rows: 'Rows returned to the client',
     readable_memory_usage: 'Peak memory used by the query',
   },
-  /**
-   * Click-to-expand inline detail panel below each row. The collapsed row
-   * truncates the SQL and hides several fields; the panel surfaces the full
-   * syntax-highlighted query, identity/runtime metrics, and — for failed rows
-   * — the full exception message.
-   */
   expandable: {
     renderExpanded: (row) => <RecentQueryExpandedDetails row={row} />,
   },

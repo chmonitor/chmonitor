@@ -18,8 +18,6 @@ export const settingsConfig: QueryConfig = {
       ORDER BY name
   `,
   columns: SETTINGS_COLUMNS,
-  // Expand a row to reveal the columns system.settings exposes beyond the
-  // table view: type, min, max, readonly, tier, is_obsolete, alias_for, …
   expandable: {
     renderExpanded: createConfigExpandedDetails({
       primaryColumns: SETTINGS_COLUMNS,

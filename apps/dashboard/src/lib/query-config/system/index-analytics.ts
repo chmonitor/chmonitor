@@ -3,8 +3,6 @@ import type { QueryConfig } from '@/types/query-config'
 import { ColumnFormat } from '@/types/column-format'
 
 /**
- * Data-skipping index inventory from system.data_skipping_indices.
- * Shows all indexes with storage cost, type, and expression.
  * Flags indexes that have zero compressed size (possible dead/empty).
  */
 export const indexAnalyticsConfig: QueryConfig = {

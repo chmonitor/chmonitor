@@ -20,20 +20,10 @@ import type { VersionedSql } from '@chm/sql-builder'
 import type { FeaturePermission } from '@/lib/feature-permissions/types'
 import type { FilterSchema } from '@/lib/filters/types'
 
-// Re-export the version-compat SQL primitives from the shared package so
-// `@/lib/query-config/types` consumers can import them from one place,
-// mirroring the dashboard's `@/types/query-config` re-export.
 export { getAllSqlStrings, type VersionedSql } from '@chm/sql-builder'
 
 /**
  * Foundation QueryConfig.
- *
- * Generic over the column-name tuple, exactly like the dashboard. Only the
- * fields the executor / registry need are kept:
- * - identity + SQL (name, sql, columns)
- * - version compat (sql: VersionedSql[] | string)
- * - execution knobs (defaultParams, clickhouseSettings, optional, tableCheck)
- * - validation toggle (disableSqlValidation)
  *
  * To extend with UI-formatting later (columnFormats, filterSchema, card, …),
  * add them here as the corresponding component layer is ported. Keeping them
@@ -42,7 +32,6 @@ export { getAllSqlStrings, type VersionedSql } from '@chm/sql-builder'
 export interface QueryConfig<TColumns extends readonly string[] = string[]> {
   /** Unique registry key. */
   name: string
-  /** Optional human description. */
   description?: string
   /**
    * SQL — a plain string (version-independent) or VersionedSql[] (ordered
@@ -56,7 +45,6 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
    * `WHERE database = {database:String}`. Merged under URL search params.
    */
   defaultParams?: Record<string, string | number | boolean>
-  /** Per-query ClickHouse settings (e.g. result limits, timezone). */
   clickhouseSettings?: ClickHouseSettings
   /**
    * Opt out of the ClickHouse query-cache settings (#2182) that
@@ -92,7 +80,6 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
   filterSchema?: FilterSchema
   /** Disable SQL validation (used by the query-config test suite). */
   disableSqlValidation?: boolean
-  /** Optional docs URL surfaced on query error. */
   docs?: string
   /**
    * Deployment-level feature gate. The table / data API routes pass it to
@@ -102,12 +89,10 @@ export interface QueryConfig<TColumns extends readonly string[] = string[]> {
   permission?: FeaturePermission
 }
 
-/** Map a column-name tuple to a permissive row-data shape. */
 export type QueryConfigRowData<T extends readonly string[]> = {
   [K in T[number]]: unknown
 }
 
-/** Extract the row-data shape from a QueryConfig. */
 export type QueryConfigToRowData<T extends QueryConfig> = QueryConfigRowData<
   T['columns']
 >

@@ -14,22 +14,6 @@
  * `rowStyle`, compiled into a RowClassNameFn), FeaturePermission (plain data,
  * via `permission`), and the factory-based expandable panels (via `expandable`,
  * compiled into an ExpandableConfig).
- *
- * Serializable fields carried here:
- *   identity:       name, description, docs, suggestion
- *   sql:            string | VersionedSql[]
- *   columns:        string[]
- *   columnFormats:  record of column → format spec (enum or [enum, args])
- *   columnDescriptions, columnSizing, tableBehavior
- *   defaultParams, filterParamPresets (icon omitted — not serializable)
- *   optional, tableCheck, disableSqlValidation, refreshInterval
- *   clickhouseSettings:  execution-time settings (serializable primitives)
- *   relatedCharts:  string[] | [string, params][]
- *   card, defaultView, bulkActions, bulkActionKey
- *   sortingFns
- *   rowStyle:       ordered condition→className rules (compiles to rowClassName)
- *   permission:     FeaturePermission gate { feature, defaultAccess?, operation? }
- *   expandable:     row-detail panel spec (compiles to ExpandableConfig)
  */
 
 import { z } from 'zod'
@@ -43,10 +27,6 @@ const versionPattern = /^\d+\.\d+(\.\d+)*$/
 const versionStringSchema = z
   .string()
   .regex(versionPattern, 'version must match X.Y or X.Y.Z format (e.g. "23.8")')
-
-// ---------------------------------------------------------------------------
-// SQL: plain string or versioned array
-// ---------------------------------------------------------------------------
 
 export const versionedSqlEntrySchema = z.object({
   since: versionStringSchema,
@@ -171,19 +151,11 @@ const columnFormatSpecSchema = z.union([
   columnFormatTupleWithArrayArgsSchema,
 ])
 
-// ---------------------------------------------------------------------------
-// columnSizing
-// ---------------------------------------------------------------------------
-
 const columnSizingEntrySchema = z.object({
   size: z.number().positive().optional(),
   minSize: z.number().positive().optional(),
   maxSize: z.number().positive().optional(),
 })
-
-// ---------------------------------------------------------------------------
-// tableBehavior
-// ---------------------------------------------------------------------------
 
 const tableBehaviorSchema = z.object({
   enableColumnResizing: z.boolean().optional(),
@@ -203,10 +175,6 @@ const filterParamPresetSchema = z.object({
   // icon intentionally excluded — not serializable (React component reference)
 })
 
-// ---------------------------------------------------------------------------
-// card config
-// ---------------------------------------------------------------------------
-
 const cardConfigSchema = z.object({
   primary: z.string().optional(),
   badges: z.array(z.string()).optional(),
@@ -214,18 +182,10 @@ const cardConfigSchema = z.object({
   hidden: z.array(z.string()).optional(),
 })
 
-// ---------------------------------------------------------------------------
-// relatedCharts: string names or [name, params] tuples
-// ---------------------------------------------------------------------------
-
 const relatedChartSchema = z.union([
   z.string().min(1),
   z.tuple([z.string().min(1), z.record(z.string(), z.unknown())]),
 ])
-
-// ---------------------------------------------------------------------------
-// sortingFns
-// ---------------------------------------------------------------------------
 
 const sortingFnValues = [
   'sort_column_using_pct',
@@ -370,7 +330,6 @@ export type DeclarativeExpandableSpec = z.infer<typeof expandableSpecSchema>
 // ---------------------------------------------------------------------------
 
 export const declarativeQueryConfigSchema = z.object({
-  // Identity
   name: z.string().min(1, 'name is required'),
   description: z.string().optional(),
   // docs is help text shown when a table is missing — often a full sentence
@@ -379,57 +338,43 @@ export const declarativeQueryConfigSchema = z.object({
   docs: z.string().optional(),
   suggestion: z.string().optional(),
 
-  // SQL
   sql: sqlSchema,
 
-  // Columns
   columns: z
     .array(z.string().min(1))
     .min(1, 'columns must have at least one entry'),
 
-  // Column display
   columnFormats: z.record(z.string(), columnFormatSpecSchema).optional(),
   columnDescriptions: z.record(z.string(), z.string()).optional(),
   columnSizing: z.record(z.string(), columnSizingEntrySchema).optional(),
 
-  // Table behavior
   tableBehavior: tableBehaviorSchema.optional(),
 
-  // Query parameters
   defaultParams: z
     .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
     .optional(),
 
-  // Filters
   filterParamPresets: z.array(filterParamPresetSchema).optional(),
   // filterSchema intentionally excluded — FilterField.icon is a React component
   // and FilterFieldDynamicOptions contains Icon refs; the loader wires it from TS.
 
-  // Optional table handling
   optional: z.boolean().default(false),
   tableCheck: z.union([z.string(), z.array(z.string())]).optional(),
 
-  // Validation toggle
   disableSqlValidation: z.boolean().optional(),
 
-  // Refresh
   refreshInterval: z.number().positive().optional(),
 
-  // Execution-time ClickHouse settings (applied per query)
   clickhouseSettings: clickhouseSettingsSchema.optional(),
 
-  // Related charts
   relatedCharts: z.array(relatedChartSchema).optional(),
 
-  // Card / view
   card: cardConfigSchema.optional(),
   defaultView: z.enum(['table', 'cards', 'auto']).optional(),
 
-  // Bulk actions
   bulkActions: z.array(z.string()).optional(),
   bulkActionKey: z.string().optional(),
 
-  // Sorting
   sortingFns: sortingFnsSchema.optional(),
 
   // Row styling — declarative replacement for rowClassName (loader compiles it)

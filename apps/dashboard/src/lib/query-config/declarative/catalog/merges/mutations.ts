@@ -11,7 +11,6 @@ export const mutationsDeclarative: DeclarativeQueryConfig = {
   refreshInterval: 30_000,
   description:
     'Information about mutations of MergeTree tables and their progress',
-  // Version-aware queries (oldest → newest)
   // 25.12 adds parts_in_progress_names: names of parts currently being mutated.
   // 26.2 adds parts_postpone_reasons: why parts were postponed from mutating.
   // The expanded row panel surfaces both fields (expandable below).
@@ -132,10 +131,6 @@ export const mutationsDeclarative: DeclarativeQueryConfig = {
       'latest_fail_reason',
     ],
   },
-  // Replaces the legacy rowClassName:
-  //   is_stuck truthy           -> red
-  //   !is_done AND elapsed > 300 -> amber
-  // default '' matches the legacy no-match return.
   rowStyle: {
     rules: [
       {

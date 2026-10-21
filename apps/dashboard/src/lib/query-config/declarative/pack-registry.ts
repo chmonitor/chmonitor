@@ -55,11 +55,6 @@ import { error, warn } from '@chm/logger'
 import { parse as parseYaml } from 'yaml'
 import { createHostValidationFetch } from '@/lib/browser-connections/host-url'
 
-/**
- * Parse `CHM_PACK_REGISTRY_URL` into a trimmed URL list, or `[]` when unset.
- * Pure — pass any env getter (mirrors `getConfigDirectory`'s runtimeEnv-first
- * convention).
- */
 export function parsePackRegistryUrls(
   runtimeEnv?: Record<string, string | undefined>
 ): string[] {

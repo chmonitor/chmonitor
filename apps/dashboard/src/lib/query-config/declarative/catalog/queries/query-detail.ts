@@ -45,7 +45,6 @@ export const queryDetailDeclarative: DeclarativeQueryConfig = {
   defaultView: 'auto',
   card: { primary: 'query', badges: ['type', 'query_kind'] },
   description: 'Detailed information about a specific query execution',
-  // Inlined from table-notes QUERY_LOG (docs is now a plain string)
   docs: `The required table 'query_log' may be missing. Please follow the documentation at https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#query-log and https://clickhouse.com/docs/en/operations/system-tables/query_log to ensure the necessary table is available.`,
   permission: { feature: 'queries' },
   tableCheck: 'system.query_log',

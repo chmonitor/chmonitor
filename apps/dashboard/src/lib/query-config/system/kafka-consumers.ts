@@ -86,7 +86,6 @@ export const kafkaConsumersConfig: QueryConfig = {
     // Amber: missing MV pipeline targets (broken Kafka→MV pipeline, CH 25.12+)
     const missingDeps = String(row.missing_dependencies || '')
     if (missingDeps !== '') return 'bg-amber-50 dark:bg-amber-950/20'
-    // Red: consumer exception
     const lastException = String(row.last_exception || '')
     if (lastException !== '') return 'bg-red-50 dark:bg-red-950/20'
     return ''

@@ -82,7 +82,6 @@ export const kafkaConsumersDeclarative: DeclarativeQueryConfig = {
     missing_dependencies: 'colored-badge',
   },
   // Amber: missing MV pipeline targets (broken Kafka→MV pipeline, CH 25.12+)
-  // Red: consumer exception
   rowStyle: {
     rules: [
       {

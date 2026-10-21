@@ -44,7 +44,6 @@ export const backgroundSchedulePoolLogDeclarative: DeclarativeQueryConfig = {
     readable_duration: 'background-bar',
     exception: 'code-dialog',
   },
-  // Highlight rows with a non-empty exception
   rowStyle: {
     rules: [
       {

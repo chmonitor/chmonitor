@@ -7,7 +7,6 @@ export const partInfoDeclarative: DeclarativeQueryConfig = {
   description:
     'Information about currently active parts and levels for a table',
 
-  // Version-aware SQL queries (oldest → newest)
   // Note: 'marks' is the correct column (NOT 'marks_count')
   // BackgroundBar requires pct_{column} for percentage-based rendering
   sql: [

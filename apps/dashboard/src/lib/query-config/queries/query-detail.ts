@@ -4,8 +4,6 @@ import { QUERY_LOG } from '@/lib/table-notes'
 import { ColumnFormat } from '@/types/column-format'
 
 /**
- * query-detail: detailed information about a specific query execution.
- *
  * Version boundaries:
  * - 23.8+: oldest variant; `exception` is aliased to `exception_text`
  * - 24.1+: `query_cache_usage` (real column; stub empty string on older variants)

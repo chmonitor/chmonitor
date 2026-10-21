@@ -3,8 +3,6 @@ import type { QueryConfig } from '@/types/query-config'
 import { ColumnFormat } from '@/types/column-format'
 
 /**
- * Projection parts inventory from system.projection_parts.
- * Shows all projections with storage cost, row count, and compression ratio.
  * Flags projections with zero rows as candidates for removal.
  */
 export const projectionAnalyticsConfig: QueryConfig = {

@@ -130,11 +130,6 @@ export const explorerDependenciesUpstreamConfig: QueryConfig = {
   defaultParams: { database: 'default', table: '' },
 }
 
-/**
- * Unified query combining ALL dependency types for a database.
- * Includes: standard dependencies, dictGet/joinGet usage, MV targets, dictionary sources, external engines, and standalone tables.
- * Used for comprehensive dependency graph visualization.
- */
 export const explorerAllDependenciesConfig: QueryConfig = {
   name: 'explorer-all-dependencies',
   description:
@@ -292,11 +287,6 @@ export const explorerAllDependenciesConfig: QueryConfig = {
   defaultParams: { database: 'default' },
 }
 
-/**
- * Unified query for TABLE-level dependencies (filtered to a specific table).
- * Returns all edges where the source OR target is the specified table.
- * Same detection logic as explorerAllDependenciesConfig but filtered.
- */
 export const explorerTableDependenciesConfig: QueryConfig = {
   name: 'explorer-table-dependencies',
   description:

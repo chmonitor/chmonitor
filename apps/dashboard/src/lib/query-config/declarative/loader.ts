@@ -26,10 +26,6 @@ import { compileExpandable } from './expandable'
 import { compileRowStyle } from './row-style'
 import { validateDeclarativeConfig } from './validate'
 
-// ---------------------------------------------------------------------------
-// Config source flag
-// ---------------------------------------------------------------------------
-
 export type ConfigSource = 'ts' | 'declarative'
 
 /**
@@ -55,10 +51,6 @@ export function getConfigSource(
     import.meta.env.VITE_CONFIG_SOURCE
   return value === 'declarative' ? 'declarative' : 'ts'
 }
-
-// ---------------------------------------------------------------------------
-// Loader
-// ---------------------------------------------------------------------------
 
 /**
  * Load a declarative config object into the in-memory QueryConfig shape.
@@ -95,12 +87,10 @@ export function loadDeclarativeConfig(input: unknown): QueryConfig {
     columns: d.columns as string[],
   }
 
-  // Identity / display
   if (d.description !== undefined) config.description = d.description
   if (d.docs !== undefined) config.docs = d.docs
   if (d.suggestion !== undefined) config.suggestion = d.suggestion
 
-  // Execution knobs
   if (d.optional !== undefined) config.optional = d.optional
   if (d.tableCheck !== undefined) config.tableCheck = d.tableCheck
   if (d.disableSqlValidation !== undefined)
@@ -115,7 +105,6 @@ export function loadDeclarativeConfig(input: unknown): QueryConfig {
       d.clickhouseSettings as QueryConfig['clickhouseSettings']
   }
 
-  // Column display
   if (d.columnFormats !== undefined) {
     // DeclarativeQueryConfig.columnFormats uses the same string-enum values as
     // ColumnFormat (the enum values ARE those strings). Cast is safe — schema
@@ -127,7 +116,6 @@ export function loadDeclarativeConfig(input: unknown): QueryConfig {
   if (d.columnSizing !== undefined) config.columnSizing = d.columnSizing
   if (d.tableBehavior !== undefined) config.tableBehavior = d.tableBehavior
 
-  // Filters
   if (d.filterParamPresets !== undefined)
     config.filterParamPresets = d.filterParamPresets
 
@@ -137,15 +125,12 @@ export function loadDeclarativeConfig(input: unknown): QueryConfig {
     config.relatedCharts = d.relatedCharts as QueryConfig['relatedCharts']
   }
 
-  // Card / view
   if (d.card !== undefined) config.card = d.card as QueryConfig['card']
   if (d.defaultView !== undefined) config.defaultView = d.defaultView
 
-  // Bulk actions
   if (d.bulkActions !== undefined) config.bulkActions = d.bulkActions
   if (d.bulkActionKey !== undefined) config.bulkActionKey = d.bulkActionKey
 
-  // Sorting
   if (d.sortingFns !== undefined) {
     config.sortingFns = d.sortingFns as QueryConfig['sortingFns']
   }

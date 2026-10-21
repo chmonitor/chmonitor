@@ -19,7 +19,6 @@ import type { RowStyleCondition } from './schema'
 
 type Row = Record<string, unknown>
 
-// A declarative rowStyle as validated by the schema.
 export interface RowStyle {
   rules: { when: RowStyleCondition; className: string }[]
   default?: string
