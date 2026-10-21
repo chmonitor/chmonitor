@@ -11,7 +11,7 @@ import {
 import { requirePlanCapability } from '@/lib/billing/plan-capability'
 
 /**
- * In-process MCP endpoint — thin re-point of the Next `app/api/mcp/route.ts`.
+ * In-process MCP endpoint.
  *
  * Transport/auth/CORS live in `@chm/mcp-server/http`, shared with the standalone
  * Cloudflare MCP Worker (`apps/mcp`). Each method forwards the Web `Request` to

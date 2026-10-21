@@ -1,6 +1,4 @@
-// Barrel for the data-fetching helpers. NOTE: the directory name `swr` is
-// legacy — the app uses TanStack Query (see ../query). These are generic fetch
-// helpers + the router-based host hook, not SWR-specific.
+// Barrel for the data-fetching helpers. The `swr` directory name is legacy; these are TanStack Query hooks.
 
 // Re-export TanStack Query hooks + types from ../query so that components
 // importing from '@/lib/swr' (the legacy path) find them.

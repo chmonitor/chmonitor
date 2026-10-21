@@ -3,7 +3,7 @@
  *
  * Deliberately runtime-agnostic — just `fetch` + the Clerk secret key — so the
  * SAME verifier runs in the standalone Cloudflare Worker (which has no
- * @clerk/nextjs) AND the in-process Next.js route. This is what lets Clerk MCP
+ * @clerk/nextjs) AND the in-process dashboard route. This is what lets Clerk MCP
  * auth work identically across Docker and Cloudflare instead of being an
  * in-process-only feature.
  *

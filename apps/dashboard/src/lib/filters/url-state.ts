@@ -19,8 +19,7 @@ import {
   isRangeOperator,
 } from '@/lib/filters/operators'
 
-/** Minimal read interface satisfied by both URLSearchParams and the Next.js
- *  ReadonlyURLSearchParams. */
+/** Minimal read interface satisfied by URLSearchParams. */
 export type ReadableParams = Pick<URLSearchParams, 'get' | 'has'>
 
 /** Split a stored value into individual entries based on the operator arity. */

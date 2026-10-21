@@ -3,7 +3,7 @@
  *
  * Used by both the data-table CSV export button (column/row based, driven by
  * a TanStack table) and the chart card CSV export button (array-of-objects
- * based, driven by the SWR chart data array).
+ * based, driven by the chart data array).
  */
 
 /**
