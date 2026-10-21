@@ -34,6 +34,7 @@ const DASHBOARD_ROUTES = [
   '/clusters/replicas-status',
   '/common-errors',
   '/detached-parts',
+  '/detached-parts-triage',
   '/dictionaries',
   '/disks',
   '/distributed-ddl-queue',

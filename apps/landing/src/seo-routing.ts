@@ -16,6 +16,7 @@ export const DASHBOARD_PREFIXES = new Set([
   'common-errors',
   'dashboard',
   'detached-parts',
+  'detached-parts-triage',
   'device',
   'dictionaries',
   'disks',

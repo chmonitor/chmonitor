@@ -125,6 +125,7 @@ import { ttlPartitionHealthConfig } from './system/ttl-partition-health'
 import { warningsConfig } from './system/warnings'
 import { workloadsConfig } from './system/workloads'
 import { detachedPartsConfig } from './tables/detached-parts'
+import { detachedPartsTriageConfig } from './tables/detached-parts-triage'
 import { distributedDdlQueueConfig } from './tables/distributed-ddl-queue'
 import { droppedTablesConfig } from './tables/dropped-tables'
 import { movesConfig } from './tables/moves'
@@ -166,6 +167,7 @@ export const queries: Array<QueryConfig> = [
   readOnlyTablesConfig,
   droppedTablesConfig,
   detachedPartsConfig,
+  detachedPartsTriageConfig,
   partInfoConfig,
   projectionsConfig,
   viewRefreshesConfig,

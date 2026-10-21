@@ -179,6 +179,17 @@ export const dataStorageItems: MenuItem[] = [
         tableCheck: 'system.detached_parts',
         permission: { feature: 'tables' },
       },
+      {
+        subgroup: 'Merges & Parts',
+        title: 'Detached Parts Triage',
+        href: '/detached-parts-triage',
+        description:
+          'Detached parts by table and reason, with same-replica coverage to review',
+        icon: UnplugIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/detached_parts',
+        tableCheck: 'system.detached_parts',
+        permission: { feature: 'tables' },
+      },
       // Table health
       {
         subgroup: 'Table Health',
