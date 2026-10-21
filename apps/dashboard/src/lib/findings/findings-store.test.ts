@@ -5,7 +5,16 @@
  * clamp, and the best-effort degrade-on-failure contract — without a DB.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from 'bun:test'
+import { ErrorLogger } from '@chm/logger'
 
 // ── Mutable hooks the mock reads, so each test controls behavior. ──
 let commandImpl: () => Promise<unknown> = async () => ({})
@@ -48,9 +57,11 @@ mock.module('@chm/clickhouse-client', () => ({
   },
 }))
 
-const { recordFinding, listRecentFindings } = await import('./findings-store')
+const { recordFinding, listRecentFindings, resetFindingsStoreForTests } =
+  await import('./findings-store')
 
 beforeEach(() => {
+  resetFindingsStoreForTests()
   commandImpl = async () => ({})
   insertImpl = async () => ({})
   fetchDataImpl = async () => ({ data: [] })
@@ -154,6 +165,97 @@ describe('recordFinding', () => {
     })
     expect(getClientCalls).toBe(2)
     expect(releaseClientCalls).toBe(getClientCalls)
+  })
+})
+
+describe('ensureTable negative cache', () => {
+  const finding = {
+    severity: 'info' as const,
+    category: 'x',
+    source: 'y',
+    title: 'z',
+  }
+  let clock = 0
+  let commandCalls = 0
+  let warnings: string[] = []
+  let warnSpy: ReturnType<typeof spyOn>
+
+  beforeEach(() => {
+    clock = 1_000
+    commandCalls = 0
+    warnings = []
+    resetFindingsStoreForTests({ now: () => clock, failureTtlMs: 600_000 })
+    warnSpy = spyOn(ErrorLogger, 'logWarning').mockImplementation(((
+      msg: string
+    ) => {
+      warnings.push(msg)
+    }) as never)
+    commandImpl = async () => {
+      commandCalls++
+      throw new Error('READONLY')
+    }
+  })
+
+  afterEach(() => {
+    warnSpy.mockRestore()
+  })
+
+  const ensureWarnings = () =>
+    warnings.filter((m) => m.includes('could not ensure'))
+
+  test('concurrent writes on a failing host issue one CREATE and one warning', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () => recordFinding(7, finding))
+    )
+    expect(results).toEqual([false, false, false, false, false])
+    expect(commandCalls).toBe(1)
+    expect(ensureWarnings()).toHaveLength(1)
+    expect(releaseClientCalls).toBe(getClientCalls)
+  })
+
+  test('a later write within the TTL does not re-issue CREATE', async () => {
+    expect(await recordFinding(7, finding)).toBe(false)
+    clock += 599_000
+    expect(await recordFinding(7, finding)).toBe(false)
+    expect(commandCalls).toBe(1)
+    expect(ensureWarnings()).toHaveLength(1)
+  })
+
+  test('retries after the TTL and caches a success', async () => {
+    expect(await recordFinding(7, finding)).toBe(false)
+    clock += 600_001
+    commandImpl = async () => {
+      commandCalls++
+    }
+    expect(await recordFinding(7, finding)).toBe(true)
+    expect(commandCalls).toBe(2)
+    expect(await recordFinding(7, finding)).toBe(true)
+    expect(commandCalls).toBe(2)
+  })
+
+  test('a failure on one host does not block another host', async () => {
+    expect(await recordFinding(7, finding)).toBe(false)
+    commandImpl = async () => {
+      commandCalls++
+    }
+    expect(await recordFinding(8, finding)).toBe(true)
+  })
+
+  test('an INSERT failure is not negative-cached and keeps warning', async () => {
+    commandImpl = async () => {
+      commandCalls++
+    }
+    insertImpl = async () => {
+      throw new Error('insert blew up')
+    }
+    expect(await recordFinding(9, finding)).toBe(false)
+    expect(await recordFinding(9, finding)).toBe(false)
+    expect(
+      warnings.filter((m) => m.includes('failed to record finding'))
+    ).toHaveLength(2)
+    insertImpl = async () => ({})
+    expect(await recordFinding(9, finding)).toBe(true)
+    expect(commandCalls).toBe(1)
   })
 })
 
