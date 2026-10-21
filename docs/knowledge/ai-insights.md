@@ -600,8 +600,40 @@ makes ClickHouse rewrite the oldest partition's parts every
   server without `merge_reason`).
 - Tests: `ttl-rewrite.test.ts`. The SQL was also run on `clickhouse local`
   26.5 against fake `part_log`/`tables` Memory tables.
-- Still open in #4069: repeated `OPTIMIZE FINAL` on static data, per-table
-  retention forecast, the `/ttl-partition-health` section and the agent tool.
+- Still open in #4069: repeated `OPTIMIZE FINAL` on static data, the
+  `/ttl-partition-health` section and the agent tool. (Retention forecast is
+  the next section.)
+
+## Per-table retention forecast (#4069 slice 2)
+
+`collectRetentionForecast` (`retention-forecast-collector.ts`, called from
+`collectStorage`; pure thresholds and mapping in
+`retention-forecast-classifier.ts`) flags the one table that accounts for
+>= 50% of the ingest on this host, holds >= 100 GiB on disk, and has no TTL
+(`engine_full` has no ` TTL `). One `info` insight at most.
+
+- **Evidence.** `system.part_log` `NewPart` `size_in_bytes` over the last 30
+  days (per replica; `part_log` retention may hold less, so the detail uses the
+  days actually present). Share is over all non-system tables, computed before
+  the 50% filter. Current size and age buckets come from active
+  `system.parts`.
+- **Freed bytes are conservative.** "Older than 12/24/36 months" sums parts
+  whose newest row (`max_date`) is that old, so a part that still holds recent
+  rows is never counted. These are bytes on disk, not a recommendation.
+- **Identity.** Table in the metric (`retention_forecast:<db.table>`), count-free
+  title, numbers only in `detail`/`value`: the dismissal survives changing
+  numbers. `deriveAction` matches the prefix (links to `/ttl-partition-health`).
+- **Recommend-only.** No DDL, never says "safe to drop"; the detail says it is a
+  forecast from the part_log window and the decision belongs to the table owner.
+  Fails open to `[]` (no part_log, missing column, any error). Not fed into
+  `disk-time-to-full` (a separate design call).
+- **SQL portability.** Plain CTEs, a window `sum() OVER ()`, no lambda aliases in
+  `WITH` (a query config that used one broke main under `enable_analyzer=0`).
+  Run on `clickhouse local` 26.5 over fake `part_log`/`parts`/`tables` tables
+  under both `enable_analyzer=0` and `=1`: identical rows for a dominant no-TTL
+  table (flagged), a dominant table with a TTL, a small dominant table, and a
+  45% share table (none flagged).
+- Tests: `retention-forecast.test.ts`.
 
 ## Follow-ups
 
