@@ -3,7 +3,7 @@ id: ai-insights
 title: AI Insights Engine
 type: spec
 status: active
-updated: 2026-10-11
+updated: 2026-10-22
 tags:
   - insights
   - findings
@@ -568,6 +568,40 @@ documented in their own sections above (see **PeerDB findings are page-local**):
   by a process-global `mock.module('./collectors')` in
   `generate-insights.throttle.test.ts` (pre-existing; those 6 collector tests
   pass in isolation).
+
+## TTL rewrite amplification (#4069 slice 1)
+
+`collectTtlRewriteAmplification` (`ttl-rewrite-collector.ts`, called from
+`collectStorage`) flags a table whose TTL is expensive to apply: a row TTL on a
+coarse `PARTITION BY` (typically `toYYYYMM(ts)`) without `ttl_only_drop_parts`
+makes ClickHouse rewrite the oldest partition's parts every
+`merge_with_ttl_timeout`. Evidence is `system.part_log` for this host
+(per replica) over 14 days: `TTLDeleteMerge` `read_bytes` >= 1 TiB and >= 4x the
+`NewPart` bytes ingested. Pure thresholds and row mapping are in
+`ttl-rewrite-classifier.ts`.
+
+- **Reads `system.tables.engine_full`**, not `create_table_query`: the TTL clause
+  and `SETTINGS ttl_only_drop_parts = N` are regexed out of it (a heuristic), with
+  `system.merge_tree_settings` as the fallback default. `ttl_only_drop_parts = 1`
+  is excluded in SQL and again in the classifier.
+- **Partition-key exemption is about granularity, not mere containment.** A key
+  that holds the TTL column at day granularity or finer (`toDate(ts)`,
+  `toYYYYMMDD(ts)`) is excluded; `toYYYYMM(ts)` / `toMonday(ts)` on the TTL
+  column is exactly the problem case and stays flagged.
+- **One warning, never critical**, for the table with the most TTL bytes read.
+  Identity: the table is in the **metric** (`ttl_rewrite:<db.table>`), the title
+  is count-free, bytes and ratio live in `detail`/`value`, so the dismissal
+  survives byte-count changes. `deriveAction` matches the `ttl_rewrite:` prefix
+  (a literal case is impossible, and the metric scan in
+  `read-insights.derive-action.test.ts` only sees literals).
+- Recommend-only: the detail names `ttl_only_drop_parts = 1` and a finer
+  partition key as options to evaluate, and says it is a cost issue, not an
+  outage. No DDL is emitted. Fails open to `[]` on any error (no part_log, old
+  server without `merge_reason`).
+- Tests: `ttl-rewrite.test.ts`. The SQL was also run on `clickhouse local`
+  26.5 against fake `part_log`/`tables` Memory tables.
+- Still open in #4069: repeated `OPTIMIZE FINAL` on static data, per-table
+  retention forecast, the `/ttl-partition-health` section and the agent tool.
 
 ## Follow-ups
 
