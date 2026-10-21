@@ -208,6 +208,12 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       ),
       minConsecutiveBreaches: ruleHysteresis.minConsecutiveBreaches,
       minConsecutiveClears: ruleHysteresis.minConsecutiveClears,
+      value,
+      repeatMinDelta: resolvePerRuleOverride(
+        ctx.repeatMinDelta.byRule,
+        ruleId,
+        ctx.repeatMinDelta.default
+      ),
     })
     const isRecovery = decision.kind === 'recovery'
 

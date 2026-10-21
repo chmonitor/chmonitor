@@ -568,6 +568,38 @@ export function getServerAlertCooldownConfig(ruleIds: readonly string[]): {
   return { defaultMs, byRule }
 }
 
+function parseMinDeltaEnv(value: string | undefined): number | null {
+  const raw = value?.trim()
+  if (raw === undefined || raw === '') return null
+  const delta = Number(raw)
+  if (!Number.isFinite(delta) || delta < 0) return null
+  return delta
+}
+
+/**
+ * Minimum absolute value change needed for a REMINDER to be sent (#4049).
+ *
+ * `HEALTH_ALERT_REPEAT_MIN_DELTA` is the global value; unset (the default) =
+ * off, every reminder is sent as before. Per-rule override:
+ * `HEALTH_ALERT_REPEAT_MIN_DELTA_<RULE_ID>` (uppercased, dashes → underscores).
+ * Invalid / negative values count as unset. `byRule` holds the resolved value
+ * (override, else global) with `null` meaning off.
+ */
+export function getServerRepeatMinDeltaConfig(ruleIds: readonly string[]): {
+  default: number | null
+  byRule: Record<string, number | null>
+} {
+  const defaultDelta = parseMinDeltaEnv(
+    process.env.HEALTH_ALERT_REPEAT_MIN_DELTA
+  )
+  const byRule: Record<string, number | null> = {}
+  for (const id of ruleIds) {
+    const key = `HEALTH_ALERT_REPEAT_MIN_DELTA_${id.toUpperCase().replace(/-/g, '_')}`
+    byRule[id] = parseMinDeltaEnv(process.env[key]) ?? defaultDelta
+  }
+  return { default: defaultDelta, byRule }
+}
+
 /**
  * Rule ids (or `*`/`?` globs) whose notifications are muted on every channel
  * (#3869): `HEALTH_ALERT_MUTED_RULES`, comma-separated. The rules still run

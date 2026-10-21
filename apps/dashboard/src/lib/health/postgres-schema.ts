@@ -70,8 +70,10 @@ CREATE TABLE IF NOT EXISTS alert_state (
   first_fired_at   BIGINT,
   pending_severity TEXT,
   pending_count    INTEGER,
+  last_notified_value DOUBLE PRECISION,
   PRIMARY KEY (host_id, rule_id)
 );
+ALTER TABLE alert_state ADD COLUMN IF NOT EXISTS last_notified_value DOUBLE PRECISION;
 
 CREATE TABLE IF NOT EXISTS alert_events (
   id            TEXT PRIMARY KEY,

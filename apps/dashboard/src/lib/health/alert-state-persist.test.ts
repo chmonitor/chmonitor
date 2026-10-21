@@ -23,6 +23,7 @@ interface Row {
   first_fired_at: number | null
   pending_severity: string | null
   pending_count: number | null
+  last_notified_value?: number | null
 }
 
 /** Minimal fake D1: DDL is a no-op, SELECT returns `rows`, batch upserts. */
@@ -50,8 +51,27 @@ function makeFakeD1(rows: Row[]) {
   async function batch(stmts: ReturnType<typeof prepare>[]) {
     for (const s of stmts) {
       if (!s.sql.trim().startsWith('INSERT')) continue
-      const [host_id, rule_id, severity, updated_at, notified_at, ff, ps, pc] =
-        s.args as [number, string, string, number, number, null, null, null]
+      const [
+        host_id,
+        rule_id,
+        severity,
+        updated_at,
+        notified_at,
+        ff,
+        ps,
+        pc,
+        lnv,
+      ] = s.args as [
+        number,
+        string,
+        string,
+        number,
+        number,
+        number | null,
+        string | null,
+        number | null,
+        number | null,
+      ]
       rows.push({
         host_id,
         rule_id,
@@ -61,6 +81,7 @@ function makeFakeD1(rows: Row[]) {
         first_fired_at: ff,
         pending_severity: ps,
         pending_count: pc,
+        last_notified_value: lnv,
       })
     }
     return []
@@ -167,5 +188,49 @@ describe('alert state on first metadata-DB attach (#3534: discard)', () => {
     await hydrateAlertState(store)
     expect(store.get(freshKey)).toEqual(memoryOnly)
     expect(store.get(dbKey)?.firstFiredAt).toBe(1_500)
+  })
+
+  test('lastNotifiedValue round-trips through flush and hydrate', async () => {
+    const withValue: AlertStateRecord = {
+      severity: 'critical',
+      updatedAt: 2_000,
+      notifiedAt: 2_000,
+      lastNotifiedValue: 87.5,
+    }
+    const db = makeFakeD1([])
+    currentDb = db
+    const writer = new MemoryAlertStateStore()
+    await hydrateAlertState(writer) // attach
+    writer.set(alertStateKey(2, 'disk-usage'), withValue)
+    await flushAlertState(writer)
+    expect(db.rows[0]?.last_notified_value).toBe(87.5)
+
+    resetAlertStateAttachForTests()
+    const reader = new MemoryAlertStateStore()
+    await hydrateAlertState(reader)
+    expect(reader.get(alertStateKey(2, 'disk-usage'))).toEqual(withValue)
+  })
+
+  test('a row without a stored value hydrates with no lastNotifiedValue', async () => {
+    currentDb = makeFakeD1([
+      {
+        host_id: 3,
+        rule_id: 'parts',
+        severity: 'warning',
+        updated_at: 1,
+        notified_at: 1,
+        first_fired_at: null,
+        pending_severity: null,
+        pending_count: null,
+        last_notified_value: null,
+      },
+    ])
+    const store = new MemoryAlertStateStore()
+    await hydrateAlertState(store)
+    expect(store.get(alertStateKey(3, 'parts'))).toEqual({
+      severity: 'warning',
+      updatedAt: 1,
+      notifiedAt: 1,
+    })
   })
 })

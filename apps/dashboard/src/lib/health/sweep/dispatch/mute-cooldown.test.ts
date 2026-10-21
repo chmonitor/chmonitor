@@ -110,6 +110,7 @@ function makeCtx(overrides: Partial<SweepContext> = {}): SweepContext {
     channelSettings: {},
     alertingEnabled: true,
     cooldown: { defaultMs: HOUR, byRule: {} },
+    repeatMinDelta: { default: null, byRule: {} },
     mutedRules: [],
     rules: [],
     thresholdOverrides: {} as SweepContext['thresholdOverrides'],
@@ -262,6 +263,52 @@ describe('per-rule cooldown', () => {
     await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
     setSystemTime(new Date(t0 + 61 * 60_000))
     await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(2)
+  })
+})
+
+describe('repeat min delta (#4049)', () => {
+  async function sweepValue(
+    ctx: SweepContext,
+    hostId: number,
+    ruleId: string,
+    value: number
+  ) {
+    const d = await createDispatcher(ctx)
+    await d.dispatchFinding({
+      hostId,
+      hostName: 'ch-1',
+      ruleId,
+      ruleType: 'threshold',
+      ruleTitle: ruleId,
+      severity: 'warning',
+      value,
+      label: 'too high',
+    })
+    await d.flushDigests()
+    await d.flushBusEvents()
+  }
+
+  test('skips a reminder when the value barely moved, sends once it moves enough', async () => {
+    const hostId = nextHostId++
+    const ruleId = 'delta-rule'
+    const ctx = makeCtx({
+      repeatMinDelta: { default: null, byRule: { [ruleId]: 5 } },
+    })
+    const t0 = Date.now()
+
+    setSystemTime(new Date(t0))
+    await sweepValue(ctx, hostId, ruleId, 90)
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+
+    // Cooldown elapsed, value moved 2 < 5: no reminder.
+    setSystemTime(new Date(t0 + 61 * 60_000))
+    await sweepValue(ctx, hostId, ruleId, 92)
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+
+    // Compared against the last SENT value (90), so 96 is a move of 6.
+    setSystemTime(new Date(t0 + 62 * 60_000))
+    await sweepValue(ctx, hostId, ruleId, 96)
     expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(2)
   })
 })

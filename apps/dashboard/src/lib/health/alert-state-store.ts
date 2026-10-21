@@ -82,6 +82,8 @@ export interface AlertStateRecord {
   pendingSeverity?: AlertRuleSeverity
   /** Consecutive sweeps observed at {@link pendingSeverity}. */
   pendingCount?: number
+  /** Observed value at the last notification actually dispatched. */
+  lastNotifiedValue?: number
 }
 
 /** What kind of transition the current evaluation represents. */
@@ -171,6 +173,13 @@ export interface DecideOptions {
    * Values below 1 are clamped to 1.
    */
   minConsecutiveClears?: number
+  /** Observed value this sweep; recorded when a notification is sent. */
+  value?: number | null
+  /**
+   * Suppress a REMINDER when the value moved less than this (absolute) since
+   * the last notification. Unset = off. Fails open without a stored value.
+   */
+  repeatMinDelta?: number | null
 }
 
 /**
@@ -206,8 +215,22 @@ export function decideNotification(
   const streakFor = (target: AlertRuleSeverity): number =>
     prev?.pendingSeverity === target ? (prev.pendingCount ?? 0) + 1 : 1
 
-  const withFired = (rec: AlertStateRecord): AlertStateRecord =>
-    firstFiredAt !== undefined ? { ...rec, firstFiredAt } : rec
+  const value =
+    typeof opts.value === 'number' && Number.isFinite(opts.value)
+      ? opts.value
+      : undefined
+  const prevValue = prev?.lastNotifiedValue
+
+  const withFired = (rec: AlertStateRecord): AlertStateRecord => ({
+    ...rec,
+    ...(firstFiredAt !== undefined && { firstFiredAt }),
+  })
+
+  // Record the value only on a send; a suppressed sweep keeps the old one.
+  const sent = (rec: AlertStateRecord): AlertStateRecord =>
+    value !== undefined ? { ...rec, lastNotifiedValue: value } : rec
+  const kept = (rec: AlertStateRecord): AlertStateRecord =>
+    prevValue !== undefined ? { ...rec, lastNotifiedValue: prevValue } : rec
 
   // A "hold" keeps the confirmed state exactly as-is (so the cooldown clock and
   // incident timer are untouched) while recording the in-flight pending streak.
@@ -221,13 +244,15 @@ export function decideNotification(
       severity: current,
       previousSeverity: confirmed,
     },
-    next: withFired({
-      severity: confirmed,
-      updatedAt: prev?.updatedAt ?? now,
-      notifiedAt: prev?.notifiedAt ?? (confirmed === 'ok' ? 0 : now),
-      pendingSeverity,
-      pendingCount,
-    }),
+    next: kept(
+      withFired({
+        severity: confirmed,
+        updatedAt: prev?.updatedAt ?? now,
+        notifiedAt: prev?.notifiedAt ?? (confirmed === 'ok' ? 0 : now),
+        pendingSeverity,
+        pendingCount,
+      })
+    ),
   })
 
   // (A) Steady at the confirmed severity — any pending streak is cleared.
@@ -247,6 +272,31 @@ export function decideNotification(
     // Firing steady: re-notify only once the cooldown has elapsed.
     const elapsed = now - (prev?.notifiedAt ?? 0)
     if (cooldownMs > 0 && elapsed >= cooldownMs) {
+      const minDelta = opts.repeatMinDelta
+      if (
+        typeof minDelta === 'number' &&
+        value !== undefined &&
+        prevValue !== undefined &&
+        Math.abs(value - prevValue) < minDelta
+      ) {
+        // Cooldown elapsed but the value barely moved: skip the reminder and
+        // keep `notifiedAt` so the next sweep re-checks.
+        return {
+          decision: {
+            notify: false,
+            kind: 'suppressed',
+            severity: current,
+            previousSeverity: confirmed,
+          },
+          next: kept(
+            withFired({
+              severity: current,
+              updatedAt: prev?.updatedAt ?? now,
+              notifiedAt: prev?.notifiedAt ?? now,
+            })
+          ),
+        }
+      }
       return {
         decision: {
           notify: true,
@@ -257,11 +307,13 @@ export function decideNotification(
             incidentDurationMs: Math.max(0, now - firstFiredAt),
           }),
         },
-        next: withFired({
-          severity: current,
-          updatedAt: prev?.updatedAt ?? now,
-          notifiedAt: now,
-        }),
+        next: sent(
+          withFired({
+            severity: current,
+            updatedAt: prev?.updatedAt ?? now,
+            notifiedAt: now,
+          })
+        ),
       }
     }
     return {
@@ -271,11 +323,13 @@ export function decideNotification(
         severity: current,
         previousSeverity: confirmed,
       },
-      next: withFired({
-        severity: current,
-        updatedAt: prev?.updatedAt ?? now,
-        notifiedAt: prev?.notifiedAt ?? now,
-      }),
+      next: kept(
+        withFired({
+          severity: current,
+          updatedAt: prev?.updatedAt ?? now,
+          notifiedAt: prev?.notifiedAt ?? now,
+        })
+      ),
     }
   }
 
@@ -292,12 +346,12 @@ export function decideNotification(
         severity: current,
         previousSeverity: confirmed,
       },
-      next: {
+      next: sent({
         severity: current,
         updatedAt: now,
         notifiedAt: now,
         firstFiredAt: started,
-      },
+      }),
     }
   }
 
@@ -328,11 +382,13 @@ export function decideNotification(
       severity: current,
       previousSeverity: confirmed,
     },
-    next: withFired({
-      severity: current,
-      updatedAt: now,
-      notifiedAt: prev?.notifiedAt ?? now,
-    }),
+    next: kept(
+      withFired({
+        severity: current,
+        updatedAt: now,
+        notifiedAt: prev?.notifiedAt ?? now,
+      })
+    ),
   }
 }
 
@@ -353,6 +409,8 @@ export function evaluateAlert(
     now?: number
     minConsecutiveBreaches?: number
     minConsecutiveClears?: number
+    value?: number | null
+    repeatMinDelta?: number | null
   }
 ): { decision: AlertDecision; commit: () => void } {
   const key = alertStateKey(params.hostId, params.ruleId)
@@ -362,6 +420,8 @@ export function evaluateAlert(
     now: params.now,
     minConsecutiveBreaches: params.minConsecutiveBreaches,
     minConsecutiveClears: params.minConsecutiveClears,
+    value: params.value,
+    repeatMinDelta: params.repeatMinDelta,
   })
   const commit = () => {
     if (next === null) {
