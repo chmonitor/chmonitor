@@ -106,6 +106,7 @@ import { replicatedMergeTreeSettingsDeclarative } from './system/replicated-merg
 import { schedulerDeclarative } from './system/scheduler'
 import { workloadsDeclarative } from './system/workloads'
 import { detachedPartsDeclarative } from './tables/detached-parts'
+import { detachedPartsTriageDeclarative } from './tables/detached-parts-triage'
 import { distributedDdlQueueDeclarative } from './tables/distributed-ddl-queue'
 import { droppedTablesDeclarative } from './tables/dropped-tables'
 import { movesDeclarative } from './tables/moves'
@@ -211,6 +212,7 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   projectionAnalyticsDeclarative,
 
   detachedPartsDeclarative,
+  detachedPartsTriageDeclarative,
   distributedDdlQueueDeclarative,
   droppedTablesDeclarative,
   movesDeclarative,

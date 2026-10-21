@@ -37,6 +37,7 @@ export const ROUTE_TITLE_MAP: Record<string, string> = {
   '/unused-tables': 'Unread Tables',
   '/view-refreshes': 'View Refreshes',
   '/detached-parts': 'Detached Parts',
+  '/detached-parts-triage': 'Detached Parts Triage',
   '/part-info': 'Part Info',
   '/part-log': 'Part Log',
   '/merges': 'Merge Operations',

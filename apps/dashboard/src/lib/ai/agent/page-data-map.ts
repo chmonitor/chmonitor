@@ -283,6 +283,9 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
   '/part-log': p('Part Log', DATA, ['part-log'], ['part-log-lifecycle']),
   '/part-info': p('Part Info', DATA, ['part-info']),
   '/detached-parts': p('Detached Parts', DATA, ['detached_parts']),
+  '/detached-parts-triage': p('Detached Parts Triage', DATA, [
+    'detached-parts-triage',
+  ]),
   '/ttl-partition-health': p(
     'TTL & Partitions',
     DATA,

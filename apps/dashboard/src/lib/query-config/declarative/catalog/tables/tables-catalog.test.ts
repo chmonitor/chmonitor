@@ -15,6 +15,7 @@
 
 import { loadDeclarativeConfig } from '../../loader'
 import { detachedPartsDeclarative } from './detached-parts'
+import { detachedPartsTriageDeclarative } from './detached-parts-triage'
 import { distributedDdlQueueDeclarative } from './distributed-ddl-queue'
 import { droppedTablesDeclarative } from './dropped-tables'
 import { movesDeclarative } from './moves'
@@ -28,6 +29,7 @@ import { userProcessesDeclarative } from './user-processes'
 import { viewRefreshesDeclarative } from './view-refreshes'
 import { describe, expect, test } from 'bun:test'
 import { detachedPartsConfig } from '@/lib/query-config/tables/detached-parts'
+import { detachedPartsTriageConfig } from '@/lib/query-config/tables/detached-parts-triage'
 import { distributedDdlQueueConfig } from '@/lib/query-config/tables/distributed-ddl-queue'
 import { droppedTablesConfig } from '@/lib/query-config/tables/dropped-tables'
 import { movesConfig } from '@/lib/query-config/tables/moves'
@@ -145,6 +147,12 @@ assertDeclarativeMatchesLegacy(
   detachedPartsDeclarative,
   detachedPartsConfig as unknown as Record<string, unknown>,
   'detached-parts'
+)
+
+assertDeclarativeMatchesLegacy(
+  detachedPartsTriageDeclarative,
+  detachedPartsTriageConfig as unknown as Record<string, unknown>,
+  'detached-parts-triage'
 )
 
 // ---------------------------------------------------------------------------

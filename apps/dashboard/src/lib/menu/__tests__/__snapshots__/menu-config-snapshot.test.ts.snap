@@ -249,6 +249,13 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/detached-parts-triage",
+    "section": undefined,
+    "subgroup": "Merges & Parts",
+    "title": "Detached Parts Triage",
+  },
+  {
+    "depth": 1,
     "href": "/ttl-partition-health",
     "section": undefined,
     "subgroup": "Table Health",

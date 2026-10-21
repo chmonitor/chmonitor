@@ -307,6 +307,12 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'Detached Parts',
     description: 'Detached MergeTree parts and the reason each was detached.',
   },
+  'detached-parts-triage': {
+    eyebrow: 'PARTS',
+    title: 'Detached Parts Triage',
+    description:
+      'Detached parts by table and reason, with same-replica coverage to review.',
+  },
   dictionaries: {
     eyebrow: 'TABLES',
     title: 'Dictionaries',

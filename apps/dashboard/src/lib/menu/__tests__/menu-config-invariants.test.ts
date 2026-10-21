@@ -356,6 +356,7 @@ describe('task-group layout (#3565)', () => {
       '/moves',
       '/part-log',
       '/detached-parts',
+      '/detached-parts-triage',
       '/ttl-partition-health',
       '/dropped-tables',
       '/readonly-tables',
