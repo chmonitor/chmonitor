@@ -79,6 +79,10 @@ beforeEach(() => {
 // `system.clusters` swapped for a fixture table when rows are given.
 const CH =
   spawnSync('which', ['clickhouse'], { encoding: 'utf8' }).stdout.trim() || null
+// Each case spawns the 775 MB `clickhouse` binary. Warm that is ~150 ms; when
+// the page cache is cold or the host is swapping (a busy full `test:unit` run)
+// the first spawn alone can exceed bun's 5 s default (#4072).
+const SPAWN_TEST_TIMEOUT_MS = 30_000
 function runCountsLocally(
   query: string,
   clusters: [string, string, number][] | null
@@ -107,33 +111,45 @@ async function clusterNodesFor(clusters: [string, string, number][] | null) {
 }
 
 describe.skipIf(!CH)('clusterNodes (#3893), run in clickhouse local', () => {
-  test('counts hosts only from clusters this node belongs to', async () => {
-    // A node in `main` that also defines a foreign `a_test_other`: the
-    // unscoped count was 3, the right answer is 2.
-    expect(
-      await clusterNodesFor([
-        ['main', 'self', 1],
-        ['main', 'peer', 0],
-        ['a_test_other', 'stranger', 0],
-      ])
-    ).toBe(2)
-  })
+  test(
+    'counts hosts only from clusters this node belongs to',
+    async () => {
+      // A node in `main` that also defines a foreign `a_test_other`: the
+      // unscoped count was 3, the right answer is 2.
+      expect(
+        await clusterNodesFor([
+          ['main', 'self', 1],
+          ['main', 'peer', 0],
+          ['a_test_other', 'stranger', 0],
+        ])
+      ).toBe(2)
+    },
+    SPAWN_TEST_TIMEOUT_MS
+  )
 
-  test('falls back to every cluster when no row is is_local', async () => {
-    // Hostname mismatch in a container: is_local is 0 everywhere. Counting
-    // local clusters only would report 0 nodes.
-    expect(
-      await clusterNodesFor([
-        ['main', 'self', 0],
-        ['main', 'peer', 0],
-        ['other', 'stranger', 0],
-      ])
-    ).toBe(3)
-  })
+  test(
+    'falls back to every cluster when no row is is_local',
+    async () => {
+      // Hostname mismatch in a container: is_local is 0 everywhere. Counting
+      // local clusters only would report 0 nodes.
+      expect(
+        await clusterNodesFor([
+          ['main', 'self', 0],
+          ['main', 'peer', 0],
+          ['other', 'stranger', 0],
+        ])
+      ).toBe(3)
+    },
+    SPAWN_TEST_TIMEOUT_MS
+  )
 
-  test('no clusters at all stays 0, as before', async () => {
-    expect(await clusterNodesFor(null)).toBe(0)
-  })
+  test(
+    'no clusters at all stays 0, as before',
+    async () => {
+      expect(await clusterNodesFor(null)).toBe(0)
+    },
+    SPAWN_TEST_TIMEOUT_MS
+  )
 })
 
 describe('GET /api/v1/host-status?fleet=1 — concurrent Fleet blocks', () => {
