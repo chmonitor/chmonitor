@@ -27,6 +27,7 @@
     "test": "turbo run test",
     "test:unit": "cd apps/dashboard && pnpm run test",
     "test:query-config": "cd apps/dashboard && pnpm run test:query-config",
+    "test:query-config:live": "bash scripts/test-query-config-live.sh",
     "test:coverage": "(cd apps/dashboard && pnpm run test:coverage) && pnpm run test:packages",
     "test:packages": "bun test packages --isolate --coverage --coverage-reporter=lcov --coverage-reporter=text",
     "test:packages:ci": "bun test packages --isolate --coverage --coverage-reporter=lcov",

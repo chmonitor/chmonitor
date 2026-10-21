@@ -34,7 +34,29 @@ Detail and examples live in
 
 ## Verify
 
-CI runs `test-queries-config` against real ClickHouse 25.8 and 26.8. Locally,
-from `apps/dashboard`: `bun test src/lib/query-config/background-bar-companions.test.ts`
-plus the touched config's tests, then `pnpm run type-check` (the root
-type-check skips `apps/dashboard`).
+CI runs `test-queries-config` against real ClickHouse 25.8 and 26.8. That job
+is **not a required check**, so auto-merge can land a PR while it is running or
+red, and the `*-live` tests skip themselves when `CLICKHOUSE_HOST` is unset.
+For any SQL change, run the live suite yourself:
+
+```sh
+pnpm run test:query-config:live          # scripts/test-query-config-live.sh
+pnpm run test:query-config:live -t unused-tables   # extra args go to bun test
+```
+
+It starts a throwaway local ClickHouse (system logs enabled like the stock
+image, torn down on exit) and runs the same tests as CI. Then, from
+`apps/dashboard`: `bun test src/lib/query-config/background-bar-companions.test.ts`
+plus the touched config's tests, and `pnpm run type-check` (the root
+type-check skips `apps/dashboard`). Before merging a PR that touches SQL, wait
+for both `test-queries-config` jobs to finish green.
+
+SQL rules the live suite enforces:
+
+- It runs every config with `enable_analyzer=0` as well as the default. A
+  lambda alias in `WITH` (`x -> ... AS name`) is not visible from `WHERE` in the
+  old analyzer (`Code: 46 Unknown function`; #4081, fixed in #4084). Inline the
+  expression instead.
+- Qualify columns and avoid output aliases that shadow source columns.
+- A config whose `tableCheck` table is missing is skipped, not tested, so make
+  sure the server really has that table before trusting a green run.

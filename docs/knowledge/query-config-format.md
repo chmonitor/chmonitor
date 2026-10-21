@@ -3,7 +3,7 @@ id: query-config-format
 title: QueryConfig Format
 type: spec
 status: active
-updated: 2026-10-18
+updated: 2026-10-22
 tags:
   - query-config
   - clickhouse
@@ -80,6 +80,19 @@ export const backupsConfig: QueryConfig = {
   sql: 'SELECT * FROM system.backup_log',
 }
 ```
+
+## Verifying SQL
+
+CI's `test-queries-config` job runs every config against a real ClickHouse
+(25.8 and 26.8) but is not a required check, and its `*-live` tests self-skip
+without `CLICKHOUSE_HOST`. Incident: #4081 merged an `unused-tables` config
+whose `WITH x -> ... AS quote_if_needed` lambda failed under
+`enable_analyzer=0`; main went red until #4084. `pnpm run test:query-config:live`
+(`scripts/test-query-config-live.sh`) reproduces that failure locally: it starts
+a throwaway ClickHouse with the stock system logs enabled and runs the CI test
+set. Verified both ways on 26.5: the buggy config fails the live
+output-columns test, the fixed one passes 1238 of 1238. Do not use the
+default-analyzer-only result of an ad hoc `clickhouse local` run as proof.
 
 ## Key Files
 

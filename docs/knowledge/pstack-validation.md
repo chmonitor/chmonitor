@@ -3,7 +3,7 @@ id: pstack-validation
 title: Project-local pstack validation
 type: workflow
 status: active
-updated: 2026-10-18
+updated: 2026-10-22
 tags:
   - verification
   - pstack
@@ -140,7 +140,7 @@ regenerate or edit `apps/dashboard/src/lib/ai/agent/skills/registry.ts`.
 | Dashboard accessibility | `a11y.yml` `axe-core` on PR/push | Checked routes and WCAG findings | Non-required; representative routes only |
 | API/auth/security | `test.yml` `unit-tests`; `cloudflare.yml` `dashboard` verify step | Route, method, status class, auth posture, redacted response shape | Mocked unit evidence is not an external service proof |
 | PeerDB | `test.yml` `unit-tests`; `agent-eval.yml` only on its path filter | Mocked versus live source, tool gate, status/metrics shape, ownership/cache result | No real PeerDB is assumed |
-| Query configs | `test.yml` `unit-tests` (static); `test-queries-config` (live, ClickHouse 26.7) on every PR/push | Config name, ClickHouse version, server error for a failure | Non-required live job; one ClickHouse version only |
+| Query configs | `test.yml` `unit-tests` (static); `test-queries-config` (live, ClickHouse 25.8 and 26.8) on every PR/push; locally `pnpm run test:query-config:live` | Config name, ClickHouse version, server error for a failure | Non-required live job, so auto-merge does not wait for it: watch it by hand on SQL PRs (#4081 merged a broken config this way) |
 | Custom webhooks | `test.yml` `unit-tests`; `k8s-lint.yml` `helm` fixture | Preview/send distinction, masked target, SSRF/auth result, Helm render | No third-party delivery is assumed |
 | Helm/GitOps | `k8s-lint.yml` on `deploy/helm/**` or `deploy/kubernetes/**`; `helm-release.yml` on `main` | Chart/overlay path, rendered kinds, Kubernetes version, release result | Render is not cluster rollout |
 | Cloudflare/Docker deploy | `cloudflare.yml` `dashboard`; `ci.yml` Docker jobs | Base URL or artifact, build/deploy conclusion, verify step | Build/deploy is not proof of every user feature |
