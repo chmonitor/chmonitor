@@ -294,7 +294,6 @@ async function handlePost(request: Request): Promise<Response> {
       updatedAt: storedConversation.updatedAt,
     }
 
-    // Create response with standardized builder (201 Created)
     const response = createSuccessResponse(
       responseData,
       {

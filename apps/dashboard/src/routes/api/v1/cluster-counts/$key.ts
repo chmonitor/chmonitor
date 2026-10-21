@@ -190,7 +190,6 @@ async function handler(
       hostId,
     })
 
-    // Get the pre-defined query from registry
     const clusterCount = getClusterCountQuery(countKey)
     if (!clusterCount) {
       error('[GET /api/v1/cluster-counts] Count query not found:', undefined, {

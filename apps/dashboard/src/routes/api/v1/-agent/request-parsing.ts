@@ -435,7 +435,6 @@ export async function parseAgentRequest(
   // provider account. Parsed once here; never logged.
   const byokApiKey = parseByokApiKey(body.apiKey)
 
-  // Parse and validate custom MCP servers from the request body.
   const rawMcpServers = Array.isArray(body.mcpServers)
     ? body.mcpServers.slice(0, 5)
     : []

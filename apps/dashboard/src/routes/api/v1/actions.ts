@@ -50,8 +50,6 @@ const ActionSchema = z.discriminatedUnion('action', [
 
 type Action = z.infer<typeof ActionSchema>
 
-// --- Helpers ---
-
 /**
  * Valid SQL identifier pattern for table names.
  * Allows: database.table, table, `quoted.table`
@@ -159,8 +157,6 @@ async function handleQuerySettings(
 
   return { success: true, message: JSON.stringify(data), data }
 }
-
-// --- Route ---
 
 export const Route = createFileRoute('/api/v1/actions')({
   server: {

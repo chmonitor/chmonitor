@@ -303,7 +303,6 @@ export function createAgentStreamResponse(options: {
         : classified.message
     },
     onEnd: () => {
-      // Close any connected custom MCP servers now that the stream is done.
       if (mcpCloseAll) {
         mcpCloseAll().catch((e) => {
           console.error('[Agent API] MCP closeAll error:', e)

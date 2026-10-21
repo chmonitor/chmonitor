@@ -29,9 +29,6 @@ import {
   type PrivilegeTarget,
 } from '@/lib/security/management-ddl'
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-
 type ManagementOperation =
   | 'create_user'
   | 'alter_user'
@@ -45,9 +42,6 @@ interface ManagementRequest {
   operation: ManagementOperation
   params: Record<string, unknown>
 }
-
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 
 function isManagementEnabled(): boolean {
   try {
@@ -209,9 +203,6 @@ function isValidOperation(op: unknown): op is ManagementOperation {
     typeof op === 'string' && VALID_OPERATIONS.has(op as ManagementOperation)
   )
 }
-
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 
 export const Route = createFileRoute('/api/v1/management')({
   server: {

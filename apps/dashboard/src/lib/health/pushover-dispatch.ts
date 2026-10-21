@@ -22,7 +22,6 @@ import type { ServerPushoverConfig } from './server-alert-config'
 import { buildPushoverBody } from './adapters/pushover'
 import { error } from '@chm/logger'
 
-/** Fixed Pushover Messages API endpoint. */
 export const PUSHOVER_MESSAGES_API_URL =
   'https://api.pushover.net/1/messages.json'
 

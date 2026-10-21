@@ -51,7 +51,6 @@ export async function handler(
   request: Request,
   name: string
 ): Promise<Response> {
-  // Rate-limit by client IP before doing any work
   const ip = clientIpKey(request)
   const rlResult = await checkRateLimitDurable(
     `charts:ip:${ip}`,
@@ -149,7 +148,6 @@ export async function handler(
       typeof parsed === 'object' &&
       !Array.isArray(parsed)
     ) {
-      // Validate/sanitize before forwarding to the chart executor
       const validation = validateChartParams(parsed as Record<string, unknown>)
       if (validation.type === 'validation') {
         return Response.json(
@@ -278,7 +276,6 @@ export async function handler(
       })
     }
 
-    // Single-query chart
     const result = await executeChartQuery(
       name,
       queryDef.sql ?? queryDef.query,
@@ -370,7 +367,6 @@ export async function handler(
       )
     }
 
-    // Build API URL for metadata
     const apiQueryParams = new URLSearchParams()
     apiQueryParams.set('hostId', String(hostId))
     if (interval) apiQueryParams.set('interval', interval)
