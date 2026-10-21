@@ -71,6 +71,8 @@ export async function readOnlyQuery(options: {
   useCache?: boolean
   /** Extra per-request settings (e.g. `max_execution_time`); `readonly` always wins. */
   clickhouse_settings?: { max_execution_time?: number }
+  /** Best-effort query: the caller logs a failure itself (see `fetchData`). */
+  quiet?: boolean
 }): Promise<unknown> {
   const {
     query,
@@ -79,6 +81,7 @@ export async function readOnlyQuery(options: {
     query_params,
     useCache = false,
     clickhouse_settings,
+    quiet,
   } = options
 
   // A user's own connection, bound to this tool call by the agent route. The
@@ -115,6 +118,7 @@ export async function readOnlyQuery(options: {
     format,
     query_params,
     clickhouse_settings: { ...clickhouse_settings, readonly: '1' },
+    quiet,
   })
 
   if (result.error) {

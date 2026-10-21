@@ -37,6 +37,7 @@ export const fetchData = async <
   hostId,
   queryConfig,
   database,
+  quiet = false,
 }: QueryParams & {
   hostId: number | string
   clickhouse_settings?: QueryParams['clickhouse_settings'] & {
@@ -49,6 +50,11 @@ export const fetchData = async <
    * client per database; omit for the server's own default.
    */
   database?: string
+  /**
+   * Best-effort query whose caller logs the failure itself. Demotes the
+   * `Query failed` / `[Error Details]` logs to debug; the result is unchanged.
+   */
+  quiet?: boolean
 }): Promise<FetchDataResult<T>> => {
   const start = new Date()
 
@@ -214,6 +220,7 @@ export const fetchData = async <
         originalError,
         host: redactHostCredentials(clientConfig.host),
         start,
+        quiet,
       }),
     }
   }

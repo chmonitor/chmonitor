@@ -8,6 +8,7 @@
  * anomaly and table-insight tools so the panel matches what the agent reports.
  */
 
+import type { ExplainIndexesInfo } from '@chm/query-advisor-core'
 import type { Baseline } from './statistical-baseline'
 import type { InsightCandidate, InsightSeverity } from './types'
 
@@ -45,6 +46,7 @@ import { refitBaselineIfStale, scoreAnomaly } from './statistical-baseline'
 import { collectTtlPartitionHealth } from './ttl-partition-collector'
 import { collectTtlRewriteAmplification } from './ttl-rewrite-collector'
 import { warn } from '@chm/logger'
+import { parseExplainIndexes } from '@chm/query-advisor-core'
 import { validateSqlQuery } from '@chm/sql-builder'
 
 function extractValue(result: unknown): number | null {
@@ -708,13 +710,20 @@ const failedProbes = createFailedProbeMemory()
  * so a sample that cannot be explained is detected here first, once.
  */
 type ExplainProbe =
-  | { ok: true }
+  | { ok: true; explain: ExplainIndexesInfo | null }
   | { ok: false; deterministic: boolean; message: string }
 
 async function canExplain(hostId: number, sql: string): Promise<ExplainProbe> {
   try {
-    await readOnlyQuery({ query: `EXPLAIN PLAN indexes = 1 ${sql}`, hostId })
-    return { ok: true }
+    const rows = (await readOnlyQuery({
+      query: `EXPLAIN PLAN indexes = 1 ${sql}`,
+      hostId,
+      quiet: true,
+    })) as Array<{ explain: string }>
+    return {
+      ok: true,
+      explain: parseExplainIndexes(rows.map((r) => r.explain)),
+    }
   } catch (err) {
     return {
       ok: false,
@@ -779,7 +788,11 @@ export async function collectSchemaOptimizations(
             )
             return null
           }
-          const res = await analyzeQuery({ hostId, sql })
+          const res = await analyzeQuery({
+            hostId,
+            sql,
+            explain: probe.explain,
+          })
           if (!res.ok || res.recommendations.length === 0) return null
           return {
             database: res.database,
