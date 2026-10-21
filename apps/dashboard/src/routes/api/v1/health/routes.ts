@@ -29,6 +29,7 @@ import {
   resolveConfigOwner,
 } from '@/lib/health/alert-routing-auth'
 import { redactWebhookUrl } from '@/lib/health/custom-webhook-targets'
+import { noBackendOrWriteFailedMessage } from '@/lib/health/no-backend-message'
 import { PAGERDUTY_EVENTS_API_URL } from '@/lib/health/pagerduty-config'
 
 function jsonError(message: string, status: number): Response {
@@ -208,7 +209,7 @@ async function handlePost(request: Request): Promise<Response> {
 
     if (!created) {
       return jsonError(
-        'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
+        noBackendOrWriteFailedMessage('Alert routing storage'),
         501
       )
     }
@@ -251,7 +252,7 @@ async function handlePost(request: Request): Promise<Response> {
 
     if (!created) {
       return jsonError(
-        'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
+        noBackendOrWriteFailedMessage('Alert routing storage'),
         501
       )
     }
@@ -295,7 +296,7 @@ async function handlePost(request: Request): Promise<Response> {
 
     if (!created) {
       return jsonError(
-        'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
+        noBackendOrWriteFailedMessage('Alert routing storage'),
         501
       )
     }
@@ -336,7 +337,7 @@ async function handlePost(request: Request): Promise<Response> {
 
     if (!created) {
       return jsonError(
-        'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
+        noBackendOrWriteFailedMessage('Alert routing storage'),
         501
       )
     }
@@ -377,7 +378,7 @@ async function handlePost(request: Request): Promise<Response> {
 
   if (!created) {
     return jsonError(
-      'Alert routing storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
+      noBackendOrWriteFailedMessage('Alert routing storage'),
       501
     )
   }

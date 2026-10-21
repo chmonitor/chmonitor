@@ -24,6 +24,8 @@ mock.module('@/lib/health/custom-rules-auth', () => ({
 }))
 installHealthPlatformMock(() => undefined)
 
+const { noBackendMessage } = await import('@/lib/health/no-backend-message')
+
 type Handlers = Record<string, (ctx: { request: Request }) => Promise<Response>>
 const { Route } = (await import('./custom-rules')) as unknown as {
   Route: { options: { server: { handlers: Handlers } } }
@@ -87,6 +89,8 @@ describe('custom-rules without a state backend', () => {
     expect(msg.indexOf('DATABASE_URL')).toBeLessThan(
       msg.indexOf('CHM_CLOUD_D1')
     )
+    expect(msg).toBe(noBackendMessage('Custom alert rules'))
+    expect(msg).not.toContain('wrangler')
     expect(errorSpy).toHaveBeenCalled()
   })
 })
