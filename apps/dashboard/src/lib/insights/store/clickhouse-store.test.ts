@@ -12,6 +12,7 @@
 
 import type { Finding, FindingRow } from './types'
 
+import { peerdbInsightStoreHostId, pgInsightStoreHostId } from '../types'
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // Mutable hooks the mock reads so each test controls behavior.
@@ -30,6 +31,15 @@ mock.module('@/lib/findings/findings-store', () => ({
   listRecentFindings: (hostId: number, opts: unknown) => {
     listCalls.push({ hostId, opts })
     return listImpl()
+  },
+}))
+
+const warnings: string[] = []
+mock.module('@chm/logger', () => ({
+  ErrorLogger: {
+    logWarning: (msg: string) => {
+      warnings.push(msg)
+    },
   },
 }))
 
@@ -106,5 +116,38 @@ describe('ClickHouseInsightsStore', () => {
     expect(listCalls).toEqual([
       { hostId: 0, opts: { since: '6 HOUR', limit: 50 } },
     ])
+  })
+
+  test('reserved PeerDB/Postgres keys never reach the ClickHouse delegate and warn once', async () => {
+    warnings.length = 0
+    const store = new ClickHouseInsightsStore()
+    const peerdb = peerdbInsightStoreHostId(0)
+    const pg = pgInsightStoreHostId(3)
+
+    expect(await store.record(peerdb, [finding(), finding()])).toBe(false)
+    expect(await store.record(peerdb, [finding()])).toBe(false)
+    expect(await store.list(peerdb)).toEqual([])
+    expect(await store.record(pg, [finding()])).toBe(false)
+    expect(await store.list(pg)).toEqual([])
+
+    expect(recordCalls).toHaveLength(0)
+    expect(listCalls).toHaveLength(0)
+    // One notice per engine, each naming the backend that can persist them.
+    expect(warnings).toHaveLength(2)
+    expect(warnings[0]).toContain('peerdb')
+    expect(warnings[1]).toContain('postgres')
+    for (const w of warnings) {
+      expect(w).toContain('INSIGHTS_STORE_BACKEND=postgres|d1')
+    }
+  })
+
+  test('a normal host index is unaffected and logs no decline notice', async () => {
+    warnings.length = 0
+    const store = new ClickHouseInsightsStore()
+    expect(await store.record(1, [finding()])).toBe(true)
+    await store.list(1)
+    expect(recordCalls).toHaveLength(1)
+    expect(listCalls).toHaveLength(1)
+    expect(warnings).toHaveLength(0)
   })
 })
