@@ -69,3 +69,24 @@ export function mapCustomRuleApiError(
     context
   )
 }
+
+/**
+ * GET-only: the 501 "not available on this deployment" answer for a list read
+ * with no backend. Same status and body shape as {@link mapCustomRuleApiError}
+ * (the rule builder reads the 501 as `unavailable`), but NOT logged: a valid
+ * deployment without a metadata DB is not an error. Returns `null` for any
+ * other error so the caller falls through to the loud mapper; writes never
+ * use this.
+ */
+export function quietNotConfiguredResponse(error: unknown): Response | null {
+  if (!(error instanceof CustomRuleStoreError)) return null
+  if (error.code !== 'NOT_CONFIGURED') return null
+  return Response.json(
+    {
+      success: false,
+      metadata: { queryId: '', duration: 0, rows: 0, host: 'unknown' },
+      error: { type: ApiErrorType.PermissionError, message: error.message },
+    },
+    { status: 501, headers: { 'Content-Type': 'application/json' } }
+  )
+}

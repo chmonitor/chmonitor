@@ -17,7 +17,10 @@ import { createErrorResponse as createApiErrorResponse } from '@/lib/api/error-h
 import { createSuccessResponse } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { isAuthenticatedRequest } from '@/lib/auth/api-guard'
-import { mapCustomRuleApiError } from '@/lib/health/custom-rules-api-errors'
+import {
+  mapCustomRuleApiError,
+  quietNotConfiguredResponse,
+} from '@/lib/health/custom-rules-api-errors'
 import { resolveCustomRuleOwnerId } from '@/lib/health/custom-rules-auth'
 import {
   createCustomRule,
@@ -61,7 +64,10 @@ async function handleGet(request: Request): Promise<Response> {
     const rules = await listCustomRules(ownerId)
     return createSuccessResponse(rules.map(toPublicRule))
   } catch (error) {
-    return mapCustomRuleApiError(error, ROUTE_GET)
+    return (
+      quietNotConfiguredResponse(error) ??
+      mapCustomRuleApiError(error, ROUTE_GET)
+    )
   }
 }
 

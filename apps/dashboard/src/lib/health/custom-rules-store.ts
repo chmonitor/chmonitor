@@ -77,7 +77,7 @@ function getDb(): HealthSqlDb {
   const db = getHealthDb()
   if (!db) {
     throw new CustomRuleStoreError(
-      'No alert state backend configured. Custom alert rules require a D1 binding (CHM_CLOUD_D1) or a Postgres DATABASE_URL.',
+      'No alert state backend configured. Custom alert rules require a Postgres DATABASE_URL (self-hosted) or, on Cloudflare Workers, a D1 binding (CHM_CLOUD_D1).',
       'NOT_CONFIGURED'
     )
   }
