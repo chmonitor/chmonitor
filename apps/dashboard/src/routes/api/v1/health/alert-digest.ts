@@ -27,6 +27,7 @@ import {
   resolveConfigOwner,
   SINGLE_TENANT_OWNER_ID,
 } from '@/lib/health/alert-routing-auth'
+import { noBackendOrWriteFailedMessage } from '@/lib/health/no-backend-message'
 import { getServerDigestWindowMinutes } from '@/lib/health/server-alert-config'
 
 /** Same cap the store enforces — kept here so the API rejects loudly, too. */
@@ -96,7 +97,7 @@ async function handlePut(request: Request): Promise<Response> {
   const saved = await setDigestSettings(ownerId, { enabled, windowMinutes })
   if (!saved) {
     return jsonError(
-      'Digest settings storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
+      noBackendOrWriteFailedMessage('Digest settings storage'),
       501
     )
   }

@@ -12,3 +12,11 @@ export function noBackendMessage(
 ): string {
   return `No alert state backend configured. ${feature} requires a Postgres DATABASE_URL (self-hosted) or, on Cloudflare Workers, a D1 binding (${d1Bindings}).`
 }
+
+/**
+ * For routes whose store reports "no backend" and "the write failed" as the
+ * same `null`, so the caller cannot tell them apart and the 501 says both.
+ */
+export function noBackendOrWriteFailedMessage(feature: string): string {
+  return `${noBackendMessage(feature)} If a backend is configured, the write itself failed.`
+}

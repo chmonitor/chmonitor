@@ -34,6 +34,7 @@ import {
   sanitizeSecretHeaders,
   validateCustomWebhookDraft,
 } from '@/lib/health/custom-webhook-targets'
+import { noBackendOrWriteFailedMessage } from '@/lib/health/no-backend-message'
 import { postWebhook } from '@/lib/health/sweep/dispatch/webhook-post'
 
 function jsonError(message: string, status: number): Response {
@@ -170,7 +171,7 @@ async function handlePut(request: Request): Promise<Response> {
   })
   if (!saved) {
     return jsonError(
-      'Custom webhook storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
+      noBackendOrWriteFailedMessage('Custom webhook storage'),
       501
     )
   }

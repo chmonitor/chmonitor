@@ -24,6 +24,7 @@ import type { HealthSqlDb } from './sql-db'
 
 import { mergeSources } from './declarative/merge'
 import { readHealthConfigLayers } from './declarative/sources'
+import { noBackendMessage } from './no-backend-message'
 import { getHealthDb } from './resolve-store'
 import { compileCustomRule, customRuleInputSchema } from './rule-builder-schema'
 import { debug } from '@chm/logger'
@@ -77,7 +78,7 @@ function getDb(): HealthSqlDb {
   const db = getHealthDb()
   if (!db) {
     throw new CustomRuleStoreError(
-      'No alert state backend configured. Custom alert rules require a Postgres DATABASE_URL (self-hosted) or, on Cloudflare Workers, a D1 binding (CHM_CLOUD_D1).',
+      noBackendMessage('Custom alert rules'),
       'NOT_CONFIGURED'
     )
   }

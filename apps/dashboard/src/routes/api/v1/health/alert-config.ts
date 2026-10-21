@@ -39,6 +39,7 @@ import {
   requiresSignInForWrite,
   resolveConfigOwner,
 } from '@/lib/health/alert-routing-auth'
+import { noBackendOrWriteFailedMessage } from '@/lib/health/no-backend-message'
 import {
   getServerEmailConfig,
   getServerHealthchecksUrl,
@@ -214,7 +215,7 @@ async function handlePut(request: Request): Promise<Response> {
 
   if (!saved) {
     return jsonError(
-      'Alert channel storage is not configured (no D1 binding or Postgres DATABASE_URL) or the write failed.',
+      noBackendOrWriteFailedMessage('Alert channel storage'),
       501
     )
   }
