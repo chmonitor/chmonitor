@@ -108,7 +108,7 @@ function getDb(): D1Database {
   const db = getPlatformBindings().getD1Database(D1_BINDING_NAME)
   if (!db) {
     throw new WebhookSubscriptionStoreError(
-      `${D1_BINDING_NAME} binding not found. Ensure D1 database is configured in wrangler.toml`,
+      `Webhook subscriptions are not available: no ${D1_BINDING_NAME} D1 binding. They are stored in Cloudflare D1 only (Workers deployments: add it under [[d1_databases]] in wrangler.toml); a DATABASE_URL does not enable them.`,
       'NOT_CONFIGURED'
     )
   }
@@ -251,7 +251,12 @@ export async function listInstanceScopedSubscriptionsForEvent(
       (s.eventTypes as readonly string[]).includes(eventType)
     )
   } catch (error) {
-    if (error instanceof WebhookSubscriptionStoreError) throw error
+    if (error instanceof WebhookSubscriptionStoreError) {
+      // No backend means no subscribers can exist, so there is nothing to
+      // deliver: not an error. Real storage failures still throw.
+      if (error.code === 'NOT_CONFIGURED') return []
+      throw error
+    }
     throw new WebhookSubscriptionStoreError(
       `Failed to list instance-scoped webhook subscriptions: ${error instanceof Error ? error.message : 'Unknown error'}`,
       'STORAGE_ERROR',
