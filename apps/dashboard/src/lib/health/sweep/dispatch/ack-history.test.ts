@@ -52,7 +52,7 @@ function makeCtx(acks: AlertAck[]): SweepContext {
     },
     channelSettings: {},
     alertingEnabled: true,
-    cooldown: { defaultMs: 60_000, byRule: {} },
+    cooldown: { defaultMs: 60_000, bySeverity: {}, byRule: {} },
     repeatMinDelta: { default: null, byRule: {} },
     mutedRules: [],
     rules: [],

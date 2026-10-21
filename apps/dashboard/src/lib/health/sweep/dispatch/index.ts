@@ -197,6 +197,10 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       ruleId,
       ctx.hysteresis.defaults
     )
+    // Per-rule > per-severity (of the alert as it is NOW) > global.
+    const severityCooldownMs =
+      (effective === 'ok' ? undefined : ctx.cooldown.bySeverity[effective]) ??
+      ctx.cooldown.defaultMs
     const { decision, commit } = evaluateAlert(alertStateStore, {
       hostId,
       ruleId,
@@ -204,7 +208,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       cooldownMs: resolvePerRuleOverride(
         ctx.cooldown.byRule,
         ruleId,
-        ctx.cooldown.defaultMs
+        severityCooldownMs
       ),
       minConsecutiveBreaches: ruleHysteresis.minConsecutiveBreaches,
       minConsecutiveClears: ruleHysteresis.minConsecutiveClears,

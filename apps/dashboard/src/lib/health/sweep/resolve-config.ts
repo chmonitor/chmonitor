@@ -76,7 +76,7 @@ export interface SweepContext {
   channelSettings: ChannelSettingsMap
   /** Master switch for dispatch (dedup + every channel incl. the event bus). */
   alertingEnabled: boolean
-  /** Re-notify cooldown: global default + per-rule override (#3869). */
+  /** Re-notify cooldown: global default, per-severity (#4049) and per-rule (#3869) overrides. */
   cooldown: ReturnType<typeof getServerAlertCooldownConfig>
   /** Min value change for a reminder (#4049); `null` = off. */
   repeatMinDelta: ReturnType<typeof getServerRepeatMinDeltaConfig>

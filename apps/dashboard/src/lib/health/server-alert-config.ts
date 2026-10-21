@@ -546,12 +546,21 @@ function parseCooldownMinutesEnv(value: string | undefined): number | null {
  * `0` disables reminders entirely (a persistent condition alerts once until it
  * escalates or recovers). Invalid / negative values fall back to the default.
  *
- * Per-rule override (#3869): `HEALTH_ALERT_COOLDOWN_<RULE_ID>_MINUTES`, with
- * the same id mangling as hysteresis (uppercased, dashes → underscores). `0`
- * is allowed; invalid / negative values fall back to the global value.
+ * Precedence (most specific wins): per-rule
+ * `HEALTH_ALERT_COOLDOWN_<RULE_ID>_MINUTES` (#3869; id uppercased, dashes →
+ * underscores) > per-severity `HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES` /
+ * `HEALTH_ALERT_COOLDOWN_WARNING_MINUTES` (#4049) > global
+ * `HEALTH_ALERT_COOLDOWN_MINUTES`. `0` is allowed at every level; invalid /
+ * negative values count as unset and fall through to the next level.
+ *
+ * `byRule` and `bySeverity` hold ONLY explicit overrides, in ms. The caller
+ * picks the severity of the alert being evaluated, then resolves
+ * `byRule` > `bySeverity[severity]` > `defaultMs`. The severity cannot be
+ * folded in here because it changes between sweeps (escalation).
  */
 export function getServerAlertCooldownConfig(ruleIds: readonly string[]): {
   defaultMs: number
+  bySeverity: Partial<Record<'warning' | 'critical', number>>
   byRule: Record<string, number>
 } {
   const defaultMinutes =
@@ -559,13 +568,23 @@ export function getServerAlertCooldownConfig(ruleIds: readonly string[]): {
     DEFAULT_ALERT_COOLDOWN_MINUTES
   const defaultMs = defaultMinutes * 60 * 1000
 
+  const bySeverity: Partial<Record<'warning' | 'critical', number>> = {}
+  const criticalMinutes = parseCooldownMinutesEnv(
+    process.env.HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES
+  )
+  if (criticalMinutes !== null) bySeverity.critical = criticalMinutes * 60_000
+  const warningMinutes = parseCooldownMinutesEnv(
+    process.env.HEALTH_ALERT_COOLDOWN_WARNING_MINUTES
+  )
+  if (warningMinutes !== null) bySeverity.warning = warningMinutes * 60_000
+
   const byRule: Record<string, number> = {}
   for (const id of ruleIds) {
     const key = `HEALTH_ALERT_COOLDOWN_${id.toUpperCase().replace(/-/g, '_')}_MINUTES`
     const minutes = parseCooldownMinutesEnv(process.env[key])
-    byRule[id] = minutes === null ? defaultMs : minutes * 60 * 1000
+    if (minutes !== null) byRule[id] = minutes * 60 * 1000
   }
-  return { defaultMs, byRule }
+  return { defaultMs, bySeverity, byRule }
 }
 
 function parseMinDeltaEnv(value: string | undefined): number | null {

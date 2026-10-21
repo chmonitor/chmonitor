@@ -90,7 +90,7 @@ function makeCtx(): SweepContext {
     },
     channelSettings: {},
     alertingEnabled: true,
-    cooldown: { defaultMs: HOUR, byRule: {} },
+    cooldown: { defaultMs: HOUR, bySeverity: {}, byRule: {} },
     repeatMinDelta: { default: null, byRule: {} },
     mutedRules: [],
     rules: [],
