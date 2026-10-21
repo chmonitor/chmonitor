@@ -925,6 +925,90 @@ describe('defaultReader via mocked peerdbFetch', () => {
   })
 })
 
+// #4051 — `/v1/peers/list` `items` is ALL peers. Destination peers answer the
+// slots call with 400 unsupported operation, so they must never be asked.
+describe('defaultReader source-peer selection (#4051)', () => {
+  const URL = 'http://flow-api:8113'
+  let origUrl: string | undefined
+  let origTtl: string | undefined
+  let origFetch: typeof globalThis.fetch
+
+  beforeEach(() => {
+    origUrl = process.env.PEERDB_API_URL
+    origTtl = process.env.PEERDB_CACHE_TTL_MS
+    origFetch = globalThis.fetch
+    process.env.PEERDB_API_URL = URL
+    // The response cache is module-level: without this every test after the
+    // first would read the first test's `/v1/peers/list`.
+    process.env.PEERDB_CACHE_TTL_MS = '0'
+  })
+  afterEach(() => {
+    globalThis.fetch = origFetch
+    if (origUrl === undefined) delete process.env.PEERDB_API_URL
+    else process.env.PEERDB_API_URL = origUrl
+    if (origTtl === undefined) delete process.env.PEERDB_CACHE_TTL_MS
+    else process.env.PEERDB_CACHE_TTL_MS = origTtl
+  })
+
+  async function slotPathsRequested(peersList: unknown): Promise<string[]> {
+    const paths: string[] = []
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const path = String(input).slice(URL.length)
+      paths.push(path)
+      if (path === '/v1/mirrors/list') {
+        return new Response(
+          JSON.stringify({ mirrors: [{ name: 'm', sourceName: 'pg-a' }] }),
+          { status: 200 }
+        )
+      }
+      if (path === '/v1/peers/list') {
+        return new Response(JSON.stringify(peersList), { status: 200 })
+      }
+      if (path.startsWith('/v1/peers/slots/')) {
+        return new Response(JSON.stringify({ slotData: [{ lagInMb: 1 }] }), {
+          status: 200,
+        })
+      }
+      return new Response('{}', { status: 200 })
+    }) as typeof globalThis.fetch
+    await collectPeerDBSignals(undefined)
+    return paths.filter((p) => p.startsWith('/v1/peers/slots/')).sort()
+  }
+
+  test('destination peers in `items` are never asked for slots', async () => {
+    const slots = await slotPathsRequested({
+      items: [
+        { name: 'pg-a', type: 'POSTGRES' },
+        { name: 'ch-dest', type: 'CLICKHOUSE' },
+        { name: 'bq-dest', type: 8 },
+      ],
+      sourceItems: [{ name: 'pg-a', type: 'POSTGRES' }],
+      destinationItems: [{ name: 'ch-dest', type: 'CLICKHOUSE' }],
+    })
+    expect(slots).toEqual(['/v1/peers/slots/pg-a'])
+  })
+
+  test('POSTGRES-typed `items` (name or ordinal) are asked when sourceItems is absent', async () => {
+    const slots = await slotPathsRequested({
+      items: [
+        { name: 'pg-a', type: 'POSTGRES' },
+        { name: 'pg-b', type: 3 },
+        { name: 'ch-dest', type: 'CLICKHOUSE' },
+        { name: 'untyped' },
+      ],
+    })
+    expect(slots).toEqual(['/v1/peers/slots/pg-a', '/v1/peers/slots/pg-b'])
+  })
+
+  test('a peer in both lists is asked once', async () => {
+    const slots = await slotPathsRequested({
+      items: [{ name: 'pg-a', type: 'POSTGRES' }],
+      sourceItems: [{ name: 'pg-a' }],
+    })
+    expect(slots).toEqual(['/v1/peers/slots/pg-a'])
+  })
+})
+
 // ---------------------------------------------------------------------------
 // #4029 — the health list call retries once inside the same sweep, and gives
 // the retry up for failures a retry cannot fix. Without the retry a single
