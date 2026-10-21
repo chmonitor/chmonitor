@@ -58,6 +58,7 @@ import {
   mirrorLogsRequestBody,
   normalizeLogLevel,
 } from './mirror-logs'
+import { isBackoffFailure, peerSlotBackoff } from './peer-slot-backoff'
 import { summarizeSweepCoverage } from './sweep-coverage'
 import {
   mapWithPool,
@@ -66,6 +67,7 @@ import {
   resolvePeerDBSweepMaxMirrors,
   startSweepBudget,
 } from './sweep-pool'
+import { warn } from '@chm/logger'
 
 /**
  * Read-only PeerDB snapshot source. The default implementation talks to the
@@ -309,13 +311,33 @@ async function defaultReader(
         },
         { count: 0, source: 'unavailable' as const }
       ),
-    peerSlots: (peer) =>
-      safe(async () => {
+    peerSlots: async (peer) => {
+      // A peer that keeps timing out / refusing is skipped for a growing
+      // window. `[]` is what a failed read returns, so the mirror's slot lag
+      // stays unknown (null), never a healthy zero.
+      if (peerSlotBackoff.shouldSkip(peer)) return []
+      try {
         const res = await fetchFn<PeerSlotResponse>(
           `/v1/peers/slots/${encodeURIComponent(peer)}`
         )
+        peerSlotBackoff.recordSuccess(peer)
         return Array.isArray(res?.slotData) ? res.slotData : []
-      }, []),
+      } catch (err) {
+        const kind = mod?.classifyPeerDBFetchFailure(err)
+        if (kind && isBackoffFailure(kind)) {
+          const f = peerSlotBackoff.recordFailure(peer)
+          if (f.backoffStarted) {
+            warn('[PeerDB] source peer unreachable, skipping slot reads', {
+              peer,
+              kind,
+              consecutiveFailures: f.failures,
+              backoffMs: f.windowMs,
+            })
+          }
+        }
+        return []
+      }
+    },
     listSourcePeers: () =>
       safe(async () => {
         const res = await fetchFn<ListPeersResponse>('/v1/peers/list')
