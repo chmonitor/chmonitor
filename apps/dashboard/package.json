@@ -107,7 +107,7 @@
     "dayjs": "^1.11.21",
     "dedent": "^1.7.2",
     "highlight.js": "^11.11.1",
-    "ip-address": "^10.5.1",
+    "ip-address": "^10.7.1",
     "lru-cache": "^11.5.0",
     "lucide-react": "^1.21.0",
     "next-themes": "^0.4.6",
