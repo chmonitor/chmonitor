@@ -47,7 +47,11 @@ import {
   resolveTargets,
   resolveTelegramTargets,
 } from './../../alert-routing'
-import { alertStateStore, evaluateAlert } from './../../alert-state-store'
+import {
+  alertStateKey,
+  alertStateStore,
+  evaluateAlert,
+} from './../../alert-state-store'
 import { dispatchDedupedAlertEvent } from './../../alert-webhook-events'
 import {
   groupableCustomFormat,
@@ -201,6 +205,10 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     const severityCooldownMs =
       (effective === 'ok' ? undefined : ctx.cooldown.bySeverity[effective]) ??
       ctx.cooldown.defaultMs
+    // Read before evaluateAlert: a reminder shows previous -> current value.
+    const previousValue = alertStateStore.get(
+      alertStateKey(hostId, ruleId)
+    )?.lastNotifiedValue
     const { decision, commit } = evaluateAlert(alertStateStore, {
       hostId,
       ruleId,
@@ -588,6 +596,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       ...(decision.kind === 'reminder' &&
         decision.incidentDurationMs !== undefined && {
           stillOpenMs: decision.incidentDurationMs,
+          ...(previousValue !== undefined && { previousValue }),
         }),
     }
 

@@ -50,6 +50,19 @@ import { debug } from '@chm/logger'
 import { buildAlertBlocksWithAck } from '@/lib/slack/blocks'
 import { isSlackAppConfigured } from '@/lib/slack/config'
 
+/**
+ * A lone reminder renders through the digest builder, which already prints a
+ * reminder as one `still open, 5 h (a -> b)` line, instead of a full new
+ * card. A lone Slack send with ack buttons keeps its card: the button is the
+ * reason to keep the message actionable.
+ */
+function isCompactReminder(entry: {
+  payload: AlertPayload
+  slackAck?: unknown
+}): boolean {
+  return entry.payload.stillOpenMs !== undefined && !entry.slackAck
+}
+
 /** Deferred dedup-commit + dispatch accounting for one grouped finding. */
 interface PendingDigestCommit {
   decision: AlertDecision
@@ -407,7 +420,7 @@ export async function createDigestPipeline(
     for (const [url, entries] of byUrl) {
       const adapterId = detectAdapter(url).id
       let body: unknown
-      if (entries.length === 1) {
+      if (entries.length === 1 && !isCompactReminder(entries[0])) {
         const only = entries[0]
         // A lone Slack send keeps its native-app ack blocks (plan 37); a digest
         // of many cannot carry per-finding acks, so it stays plain.
@@ -472,7 +485,7 @@ export async function createDigestPipeline(
       const first = entries[0]
       const config = { token: first.botToken, chatId: first.chatId }
       const body =
-        entries.length === 1
+        entries.length === 1 && !isCompactReminder(first)
           ? buildTelegramBody(first.payload, config)
           : buildTelegramDigestBody(
               entries.map((e) => e.payload),
@@ -512,7 +525,7 @@ export async function createDigestPipeline(
     for (const entries of byTarget.values()) {
       const first = entries[0]
       const body =
-        entries.length === 1
+        entries.length === 1 && !isCompactReminder(first)
           ? buildCustomTargetBody(first.target, first.payload, first.text).body
           : buildCustomTargetDigestBody(
               first.format,

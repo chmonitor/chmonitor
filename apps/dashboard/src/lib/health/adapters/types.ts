@@ -82,6 +82,11 @@ export interface AlertPayload {
    * open, in ms. Digests render such a finding as one short line.
    */
   stillOpenMs?: number
+  /**
+   * Value at the previous notification of this condition. Set with
+   * {@link stillOpenMs} so a reminder can show how the value moved.
+   */
+  previousValue?: number
 }
 
 /**
