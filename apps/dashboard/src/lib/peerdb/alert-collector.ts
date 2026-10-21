@@ -43,6 +43,7 @@ import type {
   ListPeersResponse,
   MirrorListItem,
   MirrorStatusResponse,
+  PeerListItem,
   PeerSlotResponse,
   SlotInfo,
 } from './types'
@@ -318,13 +319,26 @@ async function defaultReader(
     listSourcePeers: () =>
       safe(async () => {
         const res = await fetchFn<ListPeersResponse>('/v1/peers/list')
+        // `items` lists ALL peers; destination peers answer the slots call
+        // with 400 unsupported operation, so only `sourceItems` and
+        // Postgres-typed `items` are asked for slots (#4051).
         const names = [
           ...(res?.sourceItems ?? []).map((p) => p?.name),
-          ...(res?.items ?? []).map((p) => p?.name),
+          ...(res?.items ?? []).filter(isPostgresPeer).map((p) => p?.name),
         ]
         return [...new Set(names.filter((n) => typeof n === 'string' && n))]
       }, []),
   }
+}
+
+/** proto `DBType.POSTGRES` ordinal. */
+const POSTGRES_DB_TYPE = 3
+
+function isPostgresPeer(p: PeerListItem | undefined): boolean {
+  const t = p?.type
+  return typeof t === 'number'
+    ? t === POSTGRES_DB_TYPE
+    : typeof t === 'string' && t.toUpperCase() === 'POSTGRES'
 }
 
 /**
