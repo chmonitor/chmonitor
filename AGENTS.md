@@ -421,6 +421,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Operations | [core-memory.md](docs/knowledge/core-memory.md) | Automation memory: code-smell scans, dead-code rules |
 | Operations | [issue-desk.md](docs/knowledge/issue-desk.md) | The nine desk jobs and what each owns, repo-owned playbooks, the EISDIR outage that silenced 24 fires, worktree rules |
 | Operations | [secret-rotation.md](docs/knowledge/secret-rotation.md) | Redeploy after `wrangler secret put` |
+| Operations | [lockfile-security.md](docs/knowledge/lockfile-security.md) | Red `Dependabot Updates` = unpatched advisories; `scripts/audit-lockfiles.sh`, targeted lockfile refresh, pnpm 12 vs pinned 10.18 `libc` trap |
 | Operations | [k8s-health-probes.md](docs/knowledge/k8s-health-probes.md) | /healthz (liveness, static) vs /api/healthz (readiness, CH-gated); startupProbe; :latest stale-image CrashLoop incident; non-helm manifest + migration prompt |
 | Specs | [cloud-saas-mode.md](docs/knowledge/cloud-saas-mode.md) | One codebase, two products: cloud-mode flag, demo hosts for anon, welcome/setup, per-user D1 connections, connection-error classifier |
 | Design | [product-design.md](docs/knowledge/product-design.md) | Design system + UX conventions: OKLCH tokens, shadcn rules, ChartCard/Container, EmptyState, graceful errors, ?host routing, file org (source of truth for the `product-design` skill) |
