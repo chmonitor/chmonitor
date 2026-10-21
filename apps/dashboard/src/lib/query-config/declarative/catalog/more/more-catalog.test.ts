@@ -37,6 +37,8 @@ import { rolesDeclarative } from './roles'
 import { settingsDeclarative } from './settings'
 import { topUsageColumnsDeclarative } from './top-usage-columns'
 import { topUsageTablesDeclarative } from './top-usage-tables'
+import { unusedColumnsDeclarative } from './unused-columns'
+import { unusedProjectionsDeclarative } from './unused-projections'
 import { unusedTablesDeclarative } from './unused-tables'
 import { usersDeclarative } from './users'
 import { zookeeperDeclarative } from './zookeeper'
@@ -52,6 +54,8 @@ import { rolesConfig } from '@/lib/query-config/more/roles'
 import { settingsConfig } from '@/lib/query-config/more/settings'
 import { topUsageColumnsConfig } from '@/lib/query-config/more/top-usage-columns'
 import { topUsageTablesConfig } from '@/lib/query-config/more/top-usage-tables'
+import { unusedColumnsConfig } from '@/lib/query-config/more/unused-columns'
+import { unusedProjectionsConfig } from '@/lib/query-config/more/unused-projections'
 import { unusedTablesConfig } from '@/lib/query-config/more/unused-tables'
 import { usersConfig } from '@/lib/query-config/more/users'
 import { zookeeperConfig } from '@/lib/query-config/more/zookeeper'
@@ -241,6 +245,34 @@ describe('top-usage-tables declarative', () => {
     if (Array.isArray(loaded.sql) && Array.isArray(legacySql)) {
       expect(loaded.sql.length).toBe(legacySql.length)
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// unused-columns / unused-projections
+// ---------------------------------------------------------------------------
+
+describe('unused-columns declarative', () => {
+  test('loads without error', () => {
+    expect(() => loadDeclarativeConfig(unusedColumnsDeclarative)).not.toThrow()
+  })
+
+  test('serializable fields match legacy', () => {
+    const loaded = loadDeclarativeConfig(unusedColumnsDeclarative)
+    compareSerializable(loaded, unusedColumnsConfig)
+  })
+})
+
+describe('unused-projections declarative', () => {
+  test('loads without error', () => {
+    expect(() =>
+      loadDeclarativeConfig(unusedProjectionsDeclarative)
+    ).not.toThrow()
+  })
+
+  test('serializable fields match legacy', () => {
+    const loaded = loadDeclarativeConfig(unusedProjectionsDeclarative)
+    compareSerializable(loaded, unusedProjectionsConfig)
   })
 })
 

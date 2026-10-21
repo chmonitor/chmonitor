@@ -57,6 +57,8 @@ import { rolesDeclarative } from './more/roles'
 import { settingsDeclarative } from './more/settings'
 import { topUsageColumnsDeclarative } from './more/top-usage-columns'
 import { topUsageTablesDeclarative } from './more/top-usage-tables'
+import { unusedColumnsDeclarative } from './more/unused-columns'
+import { unusedProjectionsDeclarative } from './more/unused-projections'
 import { unusedTablesDeclarative } from './more/unused-tables'
 import { usersDeclarative } from './more/users'
 import { zookeeperDeclarative } from './more/zookeeper'
@@ -168,6 +170,8 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   topUsageColumnsDeclarative,
   topUsageTablesDeclarative,
   unusedTablesDeclarative,
+  unusedColumnsDeclarative,
+  unusedProjectionsDeclarative,
   usersDeclarative,
   zookeeperDeclarative,
 

@@ -628,6 +628,18 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'Top Usage Tables',
     description: 'Most-queried tables from system.query_log.',
   },
+  'unused-columns': {
+    eyebrow: 'USAGE',
+    title: 'Unread Columns',
+    description:
+      "Columns of one table with no SELECT in this replica's query log window.",
+  },
+  'unused-projections': {
+    eyebrow: 'USAGE',
+    title: 'Unused Projections',
+    description:
+      "Projections no SELECT used in this replica's query log window.",
+  },
   'unused-tables': {
     eyebrow: 'USAGE',
     title: 'Unread Tables',

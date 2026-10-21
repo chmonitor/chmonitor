@@ -59,6 +59,8 @@ import { rolesConfig } from './more/roles'
 import { settingsConfig } from './more/settings'
 import { topUsageColumnsConfig } from './more/top-usage-columns'
 import { topUsageTablesConfig } from './more/top-usage-tables'
+import { unusedColumnsConfig } from './more/unused-columns'
+import { unusedProjectionsConfig } from './more/unused-projections'
 import { unusedTablesConfig } from './more/unused-tables'
 import { usersConfig } from './more/users'
 import { zookeeperConfig } from './more/zookeeper'
@@ -207,6 +209,8 @@ export const queries: Array<QueryConfig> = [
   topUsageTablesConfig,
   topUsageColumnsConfig,
   unusedTablesConfig,
+  unusedColumnsConfig,
+  unusedProjectionsConfig,
 
   backupsConfig,
   metricsConfig,
