@@ -10,7 +10,6 @@
  * guarded: if the monitoring user is read-only or the table cannot be created,
  * we log and return false instead of throwing so callers degrade silently.
  *
- * Ported from apps/dashboard/lib/findings/findings-store.ts.
  * `import 'server-only'` removed — not a Next.js concept in TanStack Start.
  * This module must only be imported by server route handlers (src/routes/api/**).
  */

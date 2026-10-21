@@ -1,13 +1,13 @@
 /**
  * Standalone Cloudflare Worker for the MCP endpoint.
  *
- * Split out of the main Next.js worker because @modelcontextprotocol/server +
+ * Split out of the main dashboard worker because @modelcontextprotocol/server +
  * lib/mcp/tools accounted for ~390 KB of the main bundle. Cloudflare Workers
  * Routes deliver dash.chmonitor.dev/api/mcp* + /api/v1/mcp/info* to this
  * worker directly; the dashboard worker never sees those paths in production.
  *
  * All transport/auth/CORS glue lives in @chm/mcp-server/http so this Worker and
- * the in-process Next.js route (apps/dashboard/app/api/mcp/route.ts) share one
+ * the in-process route (apps/dashboard/src/routes/api/mcp.ts) share one
  * implementation and cannot drift.
  *
  * Bindings: shares ClickHouse env vars + CHM_API_KEY_SECRET secret, plus the

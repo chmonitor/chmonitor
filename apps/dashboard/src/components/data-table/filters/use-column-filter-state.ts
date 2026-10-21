@@ -17,7 +17,7 @@ import { splitHref } from '@/lib/url/url-builder'
 /**
  * Reads/writes a single field's active filter via URL params. The filter bar
  * and per-column header popovers both consume this — keeping URL params the
- * single source of truth so SWR re-fetches automatically.
+ * single source of truth so the queries re-fetch automatically.
  */
 export function useColumnFilterState(schema: FilterSchema | undefined) {
   const searchParams = useUrlSearchParams()

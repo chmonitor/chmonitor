@@ -23,7 +23,7 @@
  *                                                back to the LOCAL node only.
  *
  * Caching: structure is slow-moving → Cache-Control: MEDIUM (s-maxage=60). The fast
- * (~8s) live tick stays a separate client SWR call so this document is not refetched
+ * (~8s) live tick stays a separate client query so this document is not refetched
  * on every tick.
  *
  * SECURITY: No raw SQL is accepted from clients — only the pre-defined configs run.

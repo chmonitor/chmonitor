@@ -1,6 +1,6 @@
 /**
  * Maps routes to the chart/table names they fetch data for.
- * Used by prefetchRoute() to pre-populate SWR cache on nav link hover.
+ * Used by prefetchRoute() to pre-populate the query cache on nav link hover.
  *
  * Only covers frequently navigated routes with predictable data needs.
  * Chart names must match the `chartName` param used in useChartData().

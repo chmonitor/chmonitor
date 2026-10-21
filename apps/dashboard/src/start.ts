@@ -1,8 +1,8 @@
 /**
  * TanStack Start server configuration.
  *
- * Registers the global request middleware that ports the Next.js
- * `apps/dashboard/middleware.ts` security posture (#1397): API-key auth for
+ * Registers the global request middleware that carries over the security
+ * posture of the retired Next.js middleware (#1397): API-key auth for
  * `/api/v1/*` routes and the cloud→dash 301 redirect. See
  * `@/lib/auth/api-guard` for the ported logic and the rationale for what is
  * (and is not) reproduced from the Next middleware.

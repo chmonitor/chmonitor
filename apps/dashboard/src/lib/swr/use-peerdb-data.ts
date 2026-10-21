@@ -11,7 +11,7 @@ import { PEERDB_CONNECTION_PARAM } from '@/lib/peerdb/peerdb-auth'
 
 /**
  * `path` is the PeerDB API path WITHOUT the `/v1` prefix (the proxy adds it),
- * e.g. `/mirrors/list`. Pass `null` to disable fetching (conditional SWR).
+ * e.g. `/mirrors/list`. Pass `null` to disable fetching (conditional query).
  * When `body` is provided the request is POSTed (PeerDB uses POST for status,
  * graph, batches, logs, and lag_history); otherwise GET.
  *

@@ -43,7 +43,7 @@ let firstChartRenderTracked = false
 export interface ChartContainerProps<
   TData extends ChartDataPoint = ChartDataPoint,
 > {
-  /** SWR response from useChartData hook */
+  /** Query result from useChartData hook */
   swr: UseChartResult<TData>
   /** Chart title for skeleton/error/empty states */
   title?: string

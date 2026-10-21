@@ -144,7 +144,7 @@ function PeerDBMirrorsPage() {
     try {
       await Promise.all([refreshMirrors(), refreshPeers(), refreshStatus()])
     } catch {
-      // SWR surfaces per-hook errors in the UI; swallow here so the manual
+      // The hooks surface per-hook errors in the UI; swallow here so the manual
       // refresh click never produces an unhandled rejection.
     }
   }
