@@ -1740,6 +1740,15 @@ describe('runHealthSweep — digest grouping (#2663)', () => {
 // deployment delivering through named targets reported `false` while alerts
 // were being dispatched.
 describe('runHealthSweep — webhookConfigured / webhookTargets (#4054)', () => {
+  const routeRow = (id: string, channel_url: string): FakeRouteRow => ({
+    id,
+    owner_id: '',
+    match_rule: '*',
+    match_host: '*',
+    channel_url,
+    enabled: 1,
+    created_at: 0,
+  })
   let configDir: string | null = null
 
   beforeEach(() => {
@@ -1818,9 +1827,49 @@ describe('runHealthSweep — webhookConfigured / webhookTargets (#4054)', () => 
     expect(summary.webhookTargets).toBe(2)
   })
 
+  test('routes only (no legacy URL, no targets): configured, counted as routes', async () => {
+    fakeDb = makeFakeD1([
+      routeRow('r1', 'https://hooks.slack.com/services/ROUTE/CHANNEL/AAA'),
+      routeRow('r2', 'https://discord.com/api/webhooks/1/abc'),
+      routeRow('dup', 'https://discord.com/api/webhooks/1/abc'),
+      { ...routeRow('off', 'https://off.example.com/h'), enabled: 0 },
+      { ...routeRow('pd', ''), provider: 'pagerduty', routing_key: 'k' },
+    ])
+    const summary = await runHealthSweep()
+    expect(summary.webhookConfigured).toBe(true)
+    expect(summary.webhookTargets).toBe(0)
+    expect(summary.webhookRoutes).toBe(2)
+  })
+
+  test('routes plus targets: a route URL already a target is not double counted', async () => {
+    process.env.HEALTH_ALERT_WEBHOOK_TARGETS = JSON.stringify([
+      { name: 'chat', urlEnv: 'CHAT_WEBHOOK_URL' },
+    ])
+    process.env.CHAT_WEBHOOK_URL = 'https://chat.example.com/hooks/abc'
+    fakeDb = makeFakeD1([
+      routeRow('same', 'https://chat.example.com/hooks/abc'),
+      routeRow('other', 'https://discord.com/api/webhooks/1/abc'),
+    ])
+    const summary = await runHealthSweep()
+    expect(summary.webhookConfigured).toBe(true)
+    expect(summary.webhookTargets).toBe(1)
+    expect(summary.webhookRoutes).toBe(1)
+  })
+
+  test('only disabled or non-webhook routes: not configured', async () => {
+    fakeDb = makeFakeD1([
+      { ...routeRow('off', 'https://off.example.com/h'), enabled: 0 },
+      { ...routeRow('pd', ''), provider: 'pagerduty', routing_key: 'k' },
+    ])
+    const summary = await runHealthSweep()
+    expect(summary.webhookConfigured).toBe(false)
+    expect(summary.webhookRoutes).toBe(0)
+  })
+
   test('nothing configured: false and 0', async () => {
     const summary = await runHealthSweep()
     expect(summary.webhookConfigured).toBe(false)
     expect(summary.webhookTargets).toBe(0)
+    expect(summary.webhookRoutes).toBe(0)
   })
 })
