@@ -2,6 +2,7 @@ import { LabelList, RadialBar, RadialBarChart } from 'recharts'
 
 import type { RadialChartProps } from '@/types/charts'
 
+import { useMemo } from 'react'
 import {
   type ChartConfig,
   ChartContainer,
@@ -23,8 +24,7 @@ export const RadialChart = function RadialChart({
   onClick,
   className,
 }: RadialChartProps) {
-  // Memoize chartConfig to prevent expensive recalculation on every render
-  const chartConfig = (() => {
+  const chartConfig = useMemo(() => {
     return data
       .map((row) => row[nameKey])
       .reduce(
@@ -44,7 +44,7 @@ export const RadialChart = function RadialChart({
           },
         } as ChartConfig
       )
-  })()
+  }, [data, nameKey, colors, colorLabel])
 
   const handleClick = onClick
     ? (

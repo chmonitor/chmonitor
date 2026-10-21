@@ -15,6 +15,7 @@ import {
   sanitizeCssVarName,
   sortCategoriesByTotal,
 } from './utils'
+import { useMemo } from 'react'
 import { useChartScaleValue } from '@/components/charts/chart-scale-context'
 import {
   InteractiveLegendContent,
@@ -77,7 +78,10 @@ export const BarChart = function BarChart({
     resolvedScale === 'log'
   )
 
-  const chartConfig = generateChartConfig(categories, colors, colorLabel)
+  const chartConfig = useMemo(
+    () => generateChartConfig(categories, colors, colorLabel),
+    [categories, colors, colorLabel]
+  )
 
   // Must be a render function (not a component) for Recharts to detect it
   const tooltip = renderBarTooltip({

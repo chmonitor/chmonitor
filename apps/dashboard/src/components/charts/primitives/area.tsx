@@ -13,6 +13,7 @@ import {
   PinnedBreakdownTooltip,
   renderChartTooltip,
 } from './area-chart-tooltip'
+import { useMemo } from 'react'
 import { useChartScaleValue } from '@/components/charts/chart-scale-context'
 import {
   InteractiveLegendContent,
@@ -185,15 +186,27 @@ export const AreaChart = function AreaChart({
     statsSettings.showThreshold &&
     statsSettings.threshold != null
 
-  const augmented = bandEnabled
-    ? augmentWithBand(
-        data as Record<string, unknown>[],
-        index as string,
-        (overlay as { category: string }).category,
-        statsSettings.maWindow,
-        statsSettings.bandMultiplier
-      )
-    : null
+  const overlayCategory = overlay?.category
+  const augmented = useMemo(
+    () =>
+      bandEnabled
+        ? augmentWithBand(
+            data as Record<string, unknown>[],
+            index as string,
+            overlayCategory as string,
+            statsSettings.maWindow,
+            statsSettings.bandMultiplier
+          )
+        : null,
+    [
+      bandEnabled,
+      data,
+      index,
+      overlayCategory,
+      statsSettings.maWindow,
+      statsSettings.bandMultiplier,
+    ]
+  )
   const chartData = augmented ? augmented.rows : data
 
   // Use prop if provided, otherwise use context, otherwise 'linear'
@@ -230,11 +243,17 @@ export const AreaChart = function AreaChart({
   // slivers around every such point — visually the fill vanishes and only
   // isolated stroke marks remain. Floor those values to the domain minimum
   // so the area renders as one continuous shape (see LOG_SCALE_MIN).
-  const renderData =
-    resolvedScale === 'log'
-      ? clampDataForLogScale(chartData as Record<string, unknown>[], categories)
-      : chartData
-  const chartConfig = (() => {
+  const renderData = useMemo(
+    () =>
+      resolvedScale === 'log'
+        ? clampDataForLogScale(
+            chartData as Record<string, unknown>[],
+            categories
+          )
+        : chartData,
+    [resolvedScale, chartData, categories]
+  )
+  const chartConfig = useMemo(() => {
     const config = categories.reduce(
       (acc, category, index) => {
         acc[category] = {
@@ -255,7 +274,7 @@ export const AreaChart = function AreaChart({
       ...config,
       ...(customChartConfig || {}),
     }
-  })()
+  }, [categories, colors, colorLabel, customChartConfig])
 
   // Snap each deployment to its nearest bucket on the `index` axis so
   // ReferenceLine's category-axis `x` matches an actual data point.
