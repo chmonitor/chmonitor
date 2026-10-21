@@ -568,7 +568,19 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "HEALTH_ALERT_COOLDOWN_MINUTES",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_COOLDOWN_WARNING_MINUTES",
       "prefix": "HEALTH"
     },
     {

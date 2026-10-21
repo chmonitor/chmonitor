@@ -1026,6 +1026,8 @@ describe('getServerAlertCooldownConfig (#3869)', () => {
   const KEYS = [
     'HEALTH_ALERT_COOLDOWN_MINUTES',
     'HEALTH_ALERT_COOLDOWN_DISK_USAGE_MINUTES',
+    'HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES',
+    'HEALTH_ALERT_COOLDOWN_WARNING_MINUTES',
   ] as const
   let saved: Record<string, string | undefined> = {}
   const MIN = 60_000
@@ -1045,9 +1047,13 @@ describe('getServerAlertCooldownConfig (#3869)', () => {
   })
 
   it('defaults to 60 minutes globally and per rule', () => {
-    const { defaultMs, byRule } = getServerAlertCooldownConfig(['disk-usage'])
+    const { defaultMs, byRule, bySeverity } = getServerAlertCooldownConfig([
+      'disk-usage',
+    ])
     expect(defaultMs).toBe(60 * MIN)
-    expect(byRule['disk-usage']).toBe(60 * MIN)
+    // byRule / bySeverity carry explicit overrides only.
+    expect(byRule).toEqual({})
+    expect(bySeverity).toEqual({})
   })
 
   it('a per-rule override wins over the global value, with id mangling', () => {
@@ -1059,7 +1065,7 @@ describe('getServerAlertCooldownConfig (#3869)', () => {
     ])
     expect(defaultMs).toBe(30 * MIN)
     expect(byRule['disk-usage']).toBe(240 * MIN)
-    expect(byRule.cpu).toBe(30 * MIN)
+    expect(byRule.cpu).toBeUndefined()
   })
 
   it('a per-rule 0 is honoured (alert once until resolved or escalated)', () => {
@@ -1076,8 +1082,42 @@ describe('getServerAlertCooldownConfig (#3869)', () => {
   ])('an invalid per-rule value %p falls back to the global value', (value) => {
     process.env.HEALTH_ALERT_COOLDOWN_MINUTES = '15'
     process.env.HEALTH_ALERT_COOLDOWN_DISK_USAGE_MINUTES = value
-    const { byRule } = getServerAlertCooldownConfig(['disk-usage'])
-    expect(byRule['disk-usage']).toBe(15 * MIN)
+    const { byRule, defaultMs } = getServerAlertCooldownConfig(['disk-usage'])
+    expect(byRule['disk-usage']).toBeUndefined()
+    expect(defaultMs).toBe(15 * MIN)
+  })
+
+  it('reads per-severity cooldowns in ms, 0 included', () => {
+    process.env.HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES = '10'
+    process.env.HEALTH_ALERT_COOLDOWN_WARNING_MINUTES = '0'
+    const { bySeverity } = getServerAlertCooldownConfig([])
+    expect(bySeverity).toEqual({ critical: 10 * MIN, warning: 0 })
+  })
+
+  it.each([
+    '-5',
+    'abc',
+    '',
+    '  ',
+  ])('an invalid per-severity value %p is treated as unset', (value) => {
+    process.env.HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES = value
+    process.env.HEALTH_ALERT_COOLDOWN_WARNING_MINUTES = value
+    const { bySeverity } = getServerAlertCooldownConfig([])
+    expect(bySeverity).toEqual({})
+  })
+
+  it('a per-severity value does not change the global default', () => {
+    process.env.HEALTH_ALERT_COOLDOWN_MINUTES = '30'
+    process.env.HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES = '5'
+    expect(getServerAlertCooldownConfig([]).defaultMs).toBe(30 * MIN)
+  })
+
+  it('keeps a per-rule value next to a per-severity one', () => {
+    process.env.HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES = '5'
+    process.env.HEALTH_ALERT_COOLDOWN_DISK_USAGE_MINUTES = '0'
+    const { byRule, bySeverity } = getServerAlertCooldownConfig(['disk-usage'])
+    expect(byRule['disk-usage']).toBe(0)
+    expect(bySeverity.critical).toBe(5 * MIN)
   })
 })
 

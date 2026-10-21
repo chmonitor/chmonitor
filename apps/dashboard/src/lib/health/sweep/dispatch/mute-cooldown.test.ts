@@ -109,7 +109,7 @@ function makeCtx(overrides: Partial<SweepContext> = {}): SweepContext {
     },
     channelSettings: {},
     alertingEnabled: true,
-    cooldown: { defaultMs: HOUR, byRule: {} },
+    cooldown: { defaultMs: HOUR, bySeverity: {}, byRule: {} },
     repeatMinDelta: { default: null, byRule: {} },
     mutedRules: [],
     rules: [],
@@ -224,7 +224,7 @@ describe('per-rule cooldown', () => {
     const hostId = nextHostId++
     const ruleId = 'once-rule'
     const ctx = makeCtx({
-      cooldown: { defaultMs: HOUR, byRule: { [ruleId]: 0 } },
+      cooldown: { defaultMs: HOUR, bySeverity: {}, byRule: { [ruleId]: 0 } },
     })
     const t0 = Date.now()
 
@@ -255,7 +255,11 @@ describe('per-rule cooldown', () => {
     const hostId = nextHostId++
     const ruleId = 'global-rule'
     const ctx = makeCtx({
-      cooldown: { defaultMs: HOUR, byRule: { 'other-rule': 0 } },
+      cooldown: {
+        defaultMs: HOUR,
+        bySeverity: {},
+        byRule: { 'other-rule': 0 },
+      },
     })
     const t0 = Date.now()
 
@@ -264,6 +268,75 @@ describe('per-rule cooldown', () => {
     setSystemTime(new Date(t0 + 61 * 60_000))
     await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
     expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(2)
+  })
+})
+
+describe('per-severity cooldown (#4049)', () => {
+  const MIN = 60_000
+
+  test('warning 0 sends once, but the critical reminder still uses the global cooldown', async () => {
+    const hostId = nextHostId++
+    const ruleId = 'sev-warn-once'
+    const ctx = makeCtx({
+      cooldown: { defaultMs: HOUR, bySeverity: { warning: 0 }, byRule: {} },
+    })
+    const t0 = Date.now()
+
+    setSystemTime(new Date(t0))
+    await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
+    setSystemTime(new Date(t0 + 125 * MIN))
+    await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+
+    // Escalation switches to the CURRENT severity's cooldown.
+    setSystemTime(new Date(t0 + 126 * MIN))
+    await sweep(ctx, [{ hostId, ruleId, severity: 'critical' }])
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(2)
+    setSystemTime(new Date(t0 + 126 * MIN + 61 * MIN))
+    await sweep(ctx, [{ hostId, ruleId, severity: 'critical' }])
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(3)
+  })
+
+  test('critical 10 min reminds sooner than the global cooldown; warning does not', async () => {
+    const crit = { hostId: nextHostId++, ruleId: 'sev-crit-fast' }
+    const warn = { hostId: nextHostId++, ruleId: 'sev-warn-global' }
+    const ctx = makeCtx({
+      cooldown: {
+        defaultMs: HOUR,
+        bySeverity: { critical: 10 * MIN },
+        byRule: {},
+      },
+    })
+    const t0 = Date.now()
+
+    setSystemTime(new Date(t0))
+    await sweep(ctx, [{ ...crit, severity: 'critical' }])
+    await sweep(ctx, [{ ...warn, severity: 'warning' }])
+    setSystemTime(new Date(t0 + 11 * MIN))
+    await sweep(ctx, [{ ...crit, severity: 'critical' }])
+    await sweep(ctx, [{ ...warn, severity: 'warning' }])
+
+    expect(postsTo(WEBHOOK_URL, crit.ruleId)).toHaveLength(2)
+    expect(postsTo(WEBHOOK_URL, warn.ruleId)).toHaveLength(1)
+  })
+
+  test('a per-rule cooldown beats the per-severity one', async () => {
+    const hostId = nextHostId++
+    const ruleId = 'sev-rule-wins'
+    const ctx = makeCtx({
+      cooldown: {
+        defaultMs: HOUR,
+        bySeverity: { warning: 10 * MIN },
+        byRule: { [ruleId]: 0 },
+      },
+    })
+    const t0 = Date.now()
+
+    setSystemTime(new Date(t0))
+    await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
+    setSystemTime(new Date(t0 + 30 * MIN))
+    await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
+    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
   })
 })
 
