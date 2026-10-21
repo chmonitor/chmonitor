@@ -21,6 +21,7 @@
 
 import type { HealthSqlDb } from './sql-db'
 
+import { noBackendMessage } from './no-backend-message'
 import { getHealthDb } from './resolve-store'
 import { isPostgresHealthDb } from './sql-db'
 import { debug } from '@chm/logger'
@@ -105,7 +106,7 @@ export async function dismissSuggestion(
   const db = getDb()
   if (!db) {
     throw new SuggestionDismissalStoreError(
-      'No alert state backend configured. Dismissing suggestions requires a D1 binding (CHM_CLOUD_D1) or a Postgres DATABASE_URL.',
+      noBackendMessage('Dismissing suggestions'),
       'NOT_CONFIGURED'
     )
   }

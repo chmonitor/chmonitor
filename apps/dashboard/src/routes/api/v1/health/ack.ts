@@ -37,6 +37,7 @@ import {
   isAckDurationKey,
   listActiveAcks,
 } from '@/lib/health/alert-ack-store'
+import { noBackendMessage } from '@/lib/health/no-backend-message'
 import { resolveHealthBackend } from '@/lib/health/resolve-store'
 
 const ROUTE_CONTEXT = { route: '/api/v1/health/ack' } as const
@@ -105,8 +106,7 @@ function notConfiguredResponse(method: 'POST' | 'DELETE'): Response | null {
   return createErrorResponse(
     {
       type: ApiErrorType.PermissionError,
-      message:
-        'No alert state backend configured. Acknowledging alerts requires a D1 binding (CHM_CLOUD_D1) or a Postgres DATABASE_URL.',
+      message: noBackendMessage('Acknowledging alerts'),
     },
     501,
     { ...ROUTE_CONTEXT, method }
