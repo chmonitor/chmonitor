@@ -1,4 +1,8 @@
-import { classifyFetchError, handleFetchError } from '../fetch-errors'
+import {
+  classifyFetchError,
+  extractHttpStatusCode,
+  handleFetchError,
+} from '../fetch-errors'
 import { describe, expect, test } from 'bun:test'
 
 describe('classifyFetchError permission errors', () => {
@@ -90,5 +94,46 @@ describe('handleFetchError classifies by ClickHouse error type', () => {
     expect(run(new Error('fetch failed: ECONNREFUSED 127.0.0.1:8123'))).toBe(
       'network_error'
     )
+  })
+})
+
+describe('extractHttpStatusCode', () => {
+  // #4052: the syntax error position was reported as an HTTP status.
+  test('does not read "position N" as an HTTP code', () => {
+    expect(
+      extractHttpStatusCode('Syntax error: failed at position 514 ')
+    ).toBeUndefined()
+  })
+
+  test('does not read "line N, col N" as an HTTP code', () => {
+    expect(
+      extractHttpStatusCode('Syntax error (Multi-statements): line 3, col 450')
+    ).toBeUndefined()
+    expect(extractHttpStatusCode('failed at line 478, col 120')).toBeUndefined()
+  })
+
+  test('does not read a ClickHouse Code: clause as an HTTP code', () => {
+    expect(
+      extractHttpStatusCode('Code: 62. DB::Exception: Syntax error')
+    ).toBeUndefined()
+    expect(
+      extractHttpStatusCode('Code: 210. Connection refused')
+    ).toBeUndefined()
+  })
+
+  test('still extracts keyword-anchored HTTP statuses', () => {
+    expect(extractHttpStatusCode('HTTP status 403 Forbidden')).toBe(403)
+    expect(extractHttpStatusCode('HTTP/1.1 502 Bad Gateway')).toBe(502)
+    expect(extractHttpStatusCode('request failed, status: 500')).toBe(500)
+  })
+
+  test('keyword match wins even next to a position', () => {
+    expect(
+      extractHttpStatusCode('HTTP status 400: failed at position 514')
+    ).toBe(400)
+  })
+
+  test('bare 3-digit code without ClickHouse wording still counts', () => {
+    expect(extractHttpStatusCode('Bad Gateway 502')).toBe(502)
   })
 })

@@ -20,6 +20,12 @@ import {
   projectHoursToThreshold,
 } from '../health/parts-pressure'
 import {
+  createFailedProbeMemory,
+  type FailedProbeMemory,
+  isDeterministicQueryError,
+  prepareSampleSql,
+} from './explain-probe-memory'
+import {
   checkBrokenDetachedParts,
   checkDetachedParts,
   checkFailedDictionaries,
@@ -37,6 +43,8 @@ import {
 } from './schema-optimizations'
 import { refitBaselineIfStale, scoreAnomaly } from './statistical-baseline'
 import { collectTtlPartitionHealth } from './ttl-partition-collector'
+import { warn } from '@chm/logger'
+import { validateSqlQuery } from '@chm/sql-builder'
 
 function extractValue(result: unknown): number | null {
   if (Array.isArray(result) && result.length > 0) {
@@ -671,7 +679,8 @@ const SCHEMA_OPT_MAX_QUERIES = 3
  * the fix rather than qualifying `query_log.query`, because this string has a
  * single in-module reader (below) and nothing else keys off the column name.
  */
-const HEAVY_QUERIES_SQL = `SELECT any(query) AS sample_query
+const HEAVY_QUERIES_SQL = `SELECT any(query) AS sample_query,
+    toString(normalized_query_hash) AS query_hash
   FROM system.query_log
   WHERE type = 'QueryFinish'
     AND event_time > now() - INTERVAL 24 HOUR
@@ -685,8 +694,44 @@ const HEAVY_QUERIES_SQL = `SELECT any(query) AS sample_query
 /** Cap on advisor recommendations included in a weekly health report. */
 export const ADVISOR_WEEKLY_REPORT_MAX = 5
 
-async function collectSchemaOptimizations(
-  hostId: number
+/** Query hashes whose EXPLAIN failed; skipped until the entry expires. */
+const failedProbes = createFailedProbeMemory()
+
+/**
+ * EXPLAIN-only pre-flight for a sampled query. The advisor's own EXPLAINs
+ * swallow failures after `fetchData` has already logged them at error level,
+ * so a sample that cannot be explained is detected here first, once.
+ */
+type ExplainProbe =
+  | { ok: true }
+  | { ok: false; deterministic: boolean; message: string }
+
+async function canExplain(hostId: number, sql: string): Promise<ExplainProbe> {
+  try {
+    await readOnlyQuery({ query: `EXPLAIN PLAN indexes = 1 ${sql}`, hostId })
+    return { ok: true }
+  } catch (err) {
+    return {
+      ok: false,
+      deterministic: isDeterministicQueryError(err),
+      message: err instanceof Error ? err.message : String(err),
+    }
+  }
+}
+
+/** The advisor's own guard; a sample it rejects is never sent to the cluster. */
+function passesSqlValidator(sql: string): boolean {
+  try {
+    validateSqlQuery(sql)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function collectSchemaOptimizations(
+  hostId: number,
+  memory: FailedProbeMemory = failedProbes
 ): Promise<InsightCandidate[]> {
   try {
     const rows = await readOnlyQuery({
@@ -695,18 +740,40 @@ async function collectSchemaOptimizations(
     }).catch(() => null)
     if (!Array.isArray(rows) || rows.length === 0) return []
 
-    const queries = rows
-      .map((r) => (r as Record<string, unknown>)?.sample_query)
-      .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
-    if (queries.length === 0) return []
+    const samples: Array<{ key: string | null; sql: string }> = []
+    for (const row of rows) {
+      const { sample_query, query_hash } = (row ?? {}) as Record<
+        string,
+        unknown
+      >
+      if (typeof sample_query !== 'string') continue
+      const sql = prepareSampleSql(sample_query)
+      if (!sql) continue
+      if (!passesSqlValidator(sql)) continue
+      // No hash, no safe key: probe it every sweep rather than key on the SQL.
+      const key =
+        typeof query_hash === 'string' ? `${hostId}:${query_hash}` : null
+      if (key && memory.has(key)) continue
+      samples.push({ key, sql })
+    }
+    if (samples.length === 0) return []
 
     // Dynamic import (like advisor-tools.ts) keeps the heavy recommendation
     // engine out of anything that merely imports the collectors module.
     const { analyzeQuery } = await import('../ai/advisor/recommendation-engine')
 
     const analyzed = await Promise.all(
-      queries.map(async (sql): Promise<AnalyzedQuery | null> => {
+      samples.map(async ({ key, sql }): Promise<AnalyzedQuery | null> => {
         try {
+          const probe = await canExplain(hostId, sql)
+          if (!probe.ok) {
+            const remember = probe.deterministic && key !== null
+            if (probe.deterministic && key !== null) memory.add(key)
+            warn(
+              `[insights] schema optimizations: EXPLAIN failed for a sampled query (${probe.message.slice(0, 200)}); ${remember ? 'skipping it for 24h' : 'retrying next sweep'}`
+            )
+            return null
+          }
           const res = await analyzeQuery({ hostId, sql })
           if (!res.ok || res.recommendations.length === 0) return null
           return {
