@@ -134,6 +134,145 @@ describe('ruleCompressionCodec', () => {
       ])
     ).toEqual([])
   })
+
+  describe('explicit codecs', () => {
+    test('does not question a sensible explicit codec on an integer', () => {
+      expect(
+        ruleCompressionCodec([
+          makeColumn({
+            type: 'UInt64',
+            compressionCodec: 'CODEC(Delta(8), ZSTD(1))',
+          }),
+        ])
+      ).toEqual([])
+    })
+    test('does not question DoubleDelta on a DateTime or Nullable integer', () => {
+      expect(
+        ruleCompressionCodec([
+          makeColumn({
+            type: 'DateTime',
+            compressionCodec: 'CODEC(DoubleDelta, ZSTD(1))',
+          }),
+          makeColumn({
+            type: 'Nullable(Int32)',
+            compressionCodec: 'CODEC(DoubleDelta, LZ4)',
+          }),
+        ])
+      ).toEqual([])
+    })
+    test('flags Delta on a Float column and proposes Gorilla', () => {
+      const findings = ruleCompressionCodec([
+        makeColumn({
+          type: 'Float64',
+          compressionCodec: 'CODEC(Delta(8), LZ4)',
+        }),
+      ])
+      expect(findings).toHaveLength(1)
+      expect(findings[0].title).toContain('Review')
+      expect(findings[0].rationale).toContain('Gorilla')
+      expect(findings[0].ddl).toContain('CODEC(Gorilla, ZSTD(1))')
+    })
+    test('flags DoubleDelta on Float32 even inside the sorting key', () => {
+      const findings = ruleCompressionCodec([
+        makeColumn({
+          type: 'Float32',
+          compressionCodec: 'CODEC(DoubleDelta, ZSTD(1))',
+          isInSortingKey: true,
+        }),
+      ])
+      expect(findings).toHaveLength(1)
+    })
+    test('flags DoubleDelta on a non-integer column outside the sorting key', () => {
+      const col = {
+        type: "Enum8('a' = 1, 'b' = 2)",
+        compressionCodec: 'CODEC(DoubleDelta, ZSTD(1))',
+      }
+      expect(
+        ruleCompressionCodec([makeColumn({ ...col, isInSortingKey: false })])
+      ).toHaveLength(1)
+      expect(ruleCompressionCodec([makeColumn(col)])).toHaveLength(1)
+      expect(
+        ruleCompressionCodec([makeColumn({ ...col, isInSortingKey: true })])
+      ).toEqual([])
+    })
+    test('claims no saving when the questioned column already compresses well', () => {
+      const [f] = ruleCompressionCodec([
+        makeColumn({
+          type: 'Float64',
+          compressionCodec: 'CODEC(Delta(8), LZ4)',
+          compressedBytes: 10_000_000,
+          uncompressedBytes: 80_000_000,
+        }),
+      ])
+      expect(f.estimatedBytesSaved).toBe(0)
+      expect(f.estimatedBenefit).toContain('already compresses at 8.0x')
+    })
+  })
+
+  describe('measured compression ratio', () => {
+    test('saved bytes follow the column ratio, not a fixed fraction', () => {
+      // ratio 2x vs target 6x -> headroom 0.67, capped at 0.4 of on-disk size.
+      const [low] = ruleCompressionCodec([
+        makeColumn({
+          type: 'DateTime',
+          compressedBytes: 12_000_000,
+          uncompressedBytes: 24_000_000,
+        }),
+      ])
+      expect(low.estimatedBytesSaved).toBe(4_800_000)
+      // ratio 4x -> 1 - 4/6 = 0.333 of on-disk size.
+      const [high] = ruleCompressionCodec([
+        makeColumn({
+          type: 'DateTime',
+          compressedBytes: 12_000_000,
+          uncompressedBytes: 48_000_000,
+        }),
+      ])
+      expect(high.estimatedBytesSaved).toBe(4_000_000)
+      const [higher] = ruleCompressionCodec([
+        makeColumn({
+          type: 'DateTime',
+          compressedBytes: 12_000_000,
+          uncompressedBytes: 60_000_000,
+        }),
+      ])
+      // ratio 5x -> 1/6 of size.
+      expect(higher.estimatedBytesSaved).toBe(2_000_000)
+    })
+    test('labels the figure an ESTIMATE based on the current ratio', () => {
+      const [f] = ruleCompressionCodec([
+        makeColumn({
+          type: 'String',
+          compressedBytes: 30_000_000,
+          uncompressedBytes: 45_000_000,
+        }),
+      ])
+      expect(f.estimatedBenefit).toContain('ESTIMATE')
+      expect(f.estimatedBenefit).toContain('current 1.5x compression ratio')
+    })
+    test('skips a default-codec timeseries column already at the target ratio', () => {
+      expect(
+        ruleCompressionCodec([
+          makeColumn({
+            type: 'DateTime',
+            compressedBytes: 10_000_000,
+            uncompressedBytes: 70_000_000,
+          }),
+        ])
+      ).toEqual([])
+    })
+    test('falls back to the fixed heuristic when byte counts are missing', () => {
+      const [f] = ruleCompressionCodec([
+        makeColumn({
+          type: 'DateTime',
+          compressedBytes: 10_000_000,
+          uncompressedBytes: 0,
+        }),
+      ])
+      expect(f.estimatedBytesSaved).toBe(4_000_000)
+      expect(f.estimatedBenefit).toContain('no byte counts were available')
+    })
+  })
   test('skips a well-compressing generic column', () => {
     // String, ratio 4x (>= 3), not timeseries → no finding.
     expect(

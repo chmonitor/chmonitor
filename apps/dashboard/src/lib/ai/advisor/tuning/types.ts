@@ -40,6 +40,8 @@ export interface ColumnProfile {
   compressionCodec: string
   compressedBytes: number
   uncompressedBytes: number
+  /** `is_in_sorting_key` from system.columns; undefined when not read. */
+  isInSortingKey?: boolean
   /** Active rows in the owning table (0 when unknown). */
   rows: number
 }

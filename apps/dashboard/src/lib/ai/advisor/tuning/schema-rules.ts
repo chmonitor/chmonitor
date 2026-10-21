@@ -160,13 +160,112 @@ function usesDefaultCodec(c: ColumnProfile): boolean {
   return c.compressionCodec.trim() === ''
 }
 
+// Conservative ceilings for what a better codec typically reaches. They only
+// bound the headroom above the column's MEASURED current ratio; real gains
+// depend on the data.
+const TIMESERIES_TARGET_RATIO = 6
+const GENERIC_TARGET_RATIO = 4
+const MAX_SAVED_FRACTION = 0.4
+const MIN_SAVED_FRACTION = 0.05
+// Used only when the column has no byte counts to measure a ratio from.
+const FALLBACK_TIMESERIES_FRACTION = 0.4
+const FALLBACK_GENERIC_FRACTION = 0.25
+
+const INTEGER_LIKE_TYPE =
+  /^(U?Int(8|16|32|64|128|256)|Date|Date32|DateTime|DateTime64|Decimal\d*|IPv4)\b/i
+
+/** Strip `Nullable(...)` / `LowCardinality(...)` wrappers to the storage type. */
+function baseType(type: string): string {
+  let t = type.trim()
+  for (;;) {
+    const inner = unwrapType(t, 'Nullable') ?? unwrapType(t, 'LowCardinality')
+    if (inner === null) return t
+    t = inner
+  }
+}
+
 /**
- * Flag columns that would benefit from an explicit codec:
- *  - Date/DateTime/metric columns on the default codec → DoubleDelta/Gorilla
- *    (+ ZSTD) which are purpose-built for monotonic timestamps / slowly-moving
- *    numerics.
- *  - Any sizable column compressing poorly (ratio < 3x) on the default codec
- *    → ZSTD, which usually beats LZ4 on ratio.
+ * Fraction of the current on-disk size a better codec might save, derived from
+ * the column's measured ratio (`uncompressed / compressed`): headroom up to a
+ * conservative target ratio, capped. Falls back to a fixed guess only when the
+ * column has no byte counts. `measured` tells the caller which one it got.
+ */
+function projectedSavedFraction(
+  c: ColumnProfile,
+  isTimeseries: boolean
+): { fraction: number; measured: boolean } {
+  const ratio = compressionRatio(c)
+  if (ratio <= 0) {
+    return {
+      fraction: isTimeseries
+        ? FALLBACK_TIMESERIES_FRACTION
+        : FALLBACK_GENERIC_FRACTION,
+      measured: false,
+    }
+  }
+  const target = isTimeseries ? TIMESERIES_TARGET_RATIO : GENERIC_TARGET_RATIO
+  return {
+    fraction: Math.min(MAX_SAVED_FRACTION, Math.max(0, 1 - ratio / target)),
+    measured: true,
+  }
+}
+
+function benefitText(
+  c: ColumnProfile,
+  saved: number,
+  fraction: number,
+  measured: boolean
+): string {
+  const basis = measured
+    ? `based on this column's current ${compressionRatio(c).toFixed(1)}x compression ratio and a conservative target`
+    : `a conservative ${Math.round(fraction * 100)}% of current size, because no byte counts were available to measure the ratio`
+  return `Estimated: up to ~${formatBytes(saved)} on-disk saved (${basis}). This is an ESTIMATE — real codec gains depend on the data; measure on a copy before rolling out.`
+}
+
+/**
+ * Explicit codecs that deserve a second look. Returns the reason and a
+ * replacement codec, or null when the codec looks sensible.
+ *  - Delta/DoubleDelta on a Float: these subtract neighbouring values as
+ *    integers; Gorilla is the float-specific codec.
+ *  - DoubleDelta on a column that is neither integer/time-like nor in the
+ *    sorting key: it needs smoothly-changing integer sequences to pay off.
+ */
+function suspiciousExplicitCodec(
+  c: ColumnProfile
+): { reason: string; codec: string } | null {
+  const base = baseType(c.type)
+  const hasDelta = /\bDelta\b/i.test(c.compressionCodec)
+  const hasDoubleDelta = /\bDoubleDelta\b/i.test(c.compressionCodec)
+  if (FLOAT_TYPE.test(base) && (hasDelta || hasDoubleDelta)) {
+    return {
+      reason: `\`${c.name}\` is \`${c.type}\` with an explicit \`${c.compressionCodec}\`. ${hasDoubleDelta ? 'DoubleDelta' : 'Delta'} works on integer-like sequences and usually helps floats little; Gorilla is the float-specific codec.`,
+      codec: 'CODEC(Gorilla, ZSTD(1))',
+    }
+  }
+  if (
+    hasDoubleDelta &&
+    !INTEGER_LIKE_TYPE.test(base) &&
+    c.isInSortingKey !== true
+  ) {
+    return {
+      reason: `\`${c.name}\` is \`${c.type}\` with an explicit \`${c.compressionCodec}\`, but is not a timestamp or integer-like column and is not in the sorting key. DoubleDelta only pays off on smoothly-changing integer sequences.`,
+      codec: 'CODEC(ZSTD(1))',
+    }
+  }
+  return null
+}
+
+const CODEC_RISK_NOTE =
+  'Changing a codec only affects newly written/merged parts unless you rewrite existing data (OPTIMIZE ... FINAL or a mutation), which is I/O-heavy. Results are unchanged; codec choice never affects correctness.'
+
+/**
+ * Compression codec advice, two cases:
+ *  - Default codec (LZ4): Date/DateTime/Float columns → DoubleDelta/Gorilla
+ *    (+ ZSTD); any sizable column compressing poorly (ratio < 3x) → ZSTD.
+ *  - Explicit codec: left alone unless it looks mismatched with the type
+ *    (see `suspiciousExplicitCodec`); a sensible explicit codec is never
+ *    second-guessed.
+ * The saved-bytes figure is an ESTIMATE from the column's measured ratio.
  * Ranked by on-disk bytes (the pool a better codec shrinks).
  */
 export function ruleCompressionCodec(
@@ -176,7 +275,34 @@ export function ruleCompressionCodec(
   const findings: TuningFinding[] = []
   for (const c of columns) {
     if (c.compressedBytes < minBytes) continue
-    if (!usesDefaultCodec(c)) continue
+
+    if (!usesDefaultCodec(c)) {
+      const suspicious = suspiciousExplicitCodec(c)
+      if (!suspicious) continue
+      const { fraction, measured } = projectedSavedFraction(c, true)
+      const estimatedBytesSaved =
+        measured && fraction < MIN_SAVED_FRACTION
+          ? 0
+          : Math.round(c.compressedBytes * fraction)
+      findings.push({
+        ruleId: 'compression_codec',
+        category: 'schema',
+        title: `Review the compression codec on ${c.database}.${c.table}.${c.name}`,
+        target: `${c.database}.${c.table}.${c.name}`,
+        rationale: suspicious.reason,
+        evidence: bytesEvidence(c),
+        estimatedBenefit:
+          estimatedBytesSaved > 0
+            ? benefitText(c, estimatedBytesSaved, fraction, measured)
+            : `The column already compresses at ${compressionRatio(c).toFixed(1)}x, so a codec change may save little. This is an ESTIMATE — measure on a copy before changing it.`,
+        estimatedBytesSaved,
+        severity: 'low',
+        ddl: `ALTER TABLE ${fullTable(c)} MODIFY COLUMN ${quoteIdentifier(c.name)} ${c.type} ${suspicious.codec};`,
+        risk: 'low',
+        riskNote: CODEC_RISK_NOTE,
+      })
+      continue
+    }
 
     const ratio = compressionRatio(c)
     const isTimeseries = TIMESERIES_TYPE.test(c.type) || FLOAT_TYPE.test(c.type)
@@ -184,16 +310,16 @@ export function ruleCompressionCodec(
 
     if (!isTimeseries && !poorlyCompressed) continue
 
+    const { fraction, measured } = projectedSavedFraction(c, isTimeseries)
+    // Already at or above the target ratio: no headroom worth a finding.
+    if (measured && fraction < MIN_SAVED_FRACTION) continue
+
     const codec = isTimeseries
       ? FLOAT_TYPE.test(c.type)
         ? 'CODEC(Gorilla, ZSTD(1))'
         : 'CODEC(DoubleDelta, ZSTD(1))'
       : 'CODEC(ZSTD(3))'
-    // Conservative projected win: timeseries codecs commonly reach 2-4x beyond
-    // LZ4; ZSTD-over-poorly-compressing ~1.3-2x. Take a modest fraction of the
-    // current on-disk size as the ranking figure (labelled an estimate).
-    const savedFraction = isTimeseries ? 0.4 : 0.25
-    const estimatedBytesSaved = Math.round(c.compressedBytes * savedFraction)
+    const estimatedBytesSaved = Math.round(c.compressedBytes * fraction)
 
     findings.push({
       ruleId: 'compression_codec',
@@ -204,18 +330,16 @@ export function ruleCompressionCodec(
         ? `\`${c.name}\` is \`${c.type}\` on the default codec (LZ4). ${FLOAT_TYPE.test(c.type) ? 'Gorilla' : 'Delta/DoubleDelta'} + ZSTD is purpose-built for ${FLOAT_TYPE.test(c.type) ? 'slowly-changing numeric' : 'monotonic timestamp'} data and typically compresses it far better than LZ4.`
         : `\`${c.name}\` compresses at only ${ratio.toFixed(1)}x on the default codec (LZ4). ZSTD usually reaches a higher ratio for the same data at read cost that is negligible for a monitoring workload.`,
       evidence: bytesEvidence(c),
-      estimatedBenefit: `Estimated: ~${formatBytes(estimatedBytesSaved)} on-disk saved (a conservative ${Math.round(savedFraction * 100)}% of current size). This is an ESTIMATE — real codec gains depend on the data; measure on a copy before rolling out.`,
+      estimatedBenefit: benefitText(c, estimatedBytesSaved, fraction, measured),
       estimatedBytesSaved,
       severity: 'low',
       ddl: `ALTER TABLE ${fullTable(c)} MODIFY COLUMN ${quoteIdentifier(c.name)} ${c.type} ${codec};`,
       risk: 'low',
-      riskNote:
-        'Changing a codec only affects newly written/merged parts unless you rewrite existing data (OPTIMIZE ... FINAL or a mutation), which is I/O-heavy. Results are unchanged; codec choice never affects correctness.',
+      riskNote: CODEC_RISK_NOTE,
     })
   }
   return findings
 }
-
 /**
  * Flag plain `String` / `FixedString` columns (not already LowCardinality) as
  * LowCardinality candidates. The real win depends on the distinct ratio, which
