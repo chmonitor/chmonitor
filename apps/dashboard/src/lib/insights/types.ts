@@ -200,6 +200,20 @@ export function peerdbInsightStoreHostId(sourceId = 0): number {
 }
 
 /**
+ * Name of the non-ClickHouse engine a reserved store-host key belongs to, or
+ * `null` for a real ClickHouse host index. Such keys are partition labels for
+ * the InsightsStore, never indexes into `CLICKHOUSE_HOST`, so a ClickHouse
+ * client must never receive them as a `hostId`.
+ */
+export function reservedInsightStoreEngine(
+  hostId: number
+): 'peerdb' | 'postgres' | null {
+  if (hostId >= PEERDB_INSIGHT_STORE_HOST_OFFSET) return 'peerdb'
+  if (hostId >= POSTGRES_INSIGHT_STORE_HOST_OFFSET) return 'postgres'
+  return null
+}
+
+/**
  * Build the stable dismissal key for an insight.
  *
  * ClickHouse (default): `host:category:metric:title` — unchanged, so existing
