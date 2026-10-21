@@ -9,6 +9,7 @@ import type {
 import { flushAlertState } from './alert-state-persist'
 import { alertStateStore } from './alert-state-store'
 import { createDispatcher } from './sweep/dispatch'
+import { loadSweepCustomTargets } from './sweep/dispatch/channels/custom-targets'
 import { resolveSweepContext } from './sweep/resolve-config'
 import { hostLabel, runHostSweep } from './sweep/run-host'
 import { debug } from '@chm/logger'
@@ -32,7 +33,14 @@ export { buildAlertEventRecord } from './sweep/dispatch'
 export interface SweepSummary {
   ranAt: string
   enabled: boolean
+  /**
+   * True when ANY webhook delivery path is active: the legacy
+   * `HEALTH_ALERT_WEBHOOK_URL` or at least one enabled named target (env,
+   * declarative config, or DB).
+   */
   webhookConfigured: boolean
+  /** Enabled named webhook targets the dispatcher fans out to (excludes the legacy URL). */
+  webhookTargets: number
   /** Whether `HEALTH_ALERT_EMAIL_*` env vars resolve to a usable email config. */
   emailConfigured: boolean
   minSeverity: 'warning' | 'critical'
@@ -143,10 +151,16 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   // after flushDigests so deferred commits are already applied. Best-effort.
   if (ctx.alertingEnabled) await flushAlertState(alertStateStore)
 
+  // Same loader the dispatcher fans out to, so the summary matches delivery.
+  const webhookTargets = (await loadSweepCustomTargets()).filter(
+    (t) => t.enabled && t.url
+  ).length
+
   return {
     ranAt,
     enabled: ctx.alertingEnabled,
-    webhookConfigured: Boolean(ctx.channels.webhookUrl),
+    webhookConfigured: Boolean(ctx.channels.webhookUrl) || webhookTargets > 0,
+    webhookTargets,
     emailConfigured: ctx.channels.email !== null,
     minSeverity: ctx.settings.minSeverity,
     hostsChecked: ctx.configs.length,
