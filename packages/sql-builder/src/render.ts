@@ -37,6 +37,7 @@ import type {
   SqlBuilderLike,
   SqlCondition,
   SqlExpression,
+  SqlFragment,
   SqlJoin,
   SqlOrder,
   WhereGroup,
@@ -231,7 +232,7 @@ function formatValue(value: unknown): string {
     return String(value)
   }
   if (typeof value === 'object' && 'toSql' in value) {
-    return (value as any).toSql()
+    return (value as SqlFragment).toSql()
   }
   return String(value)
 }
