@@ -3,7 +3,6 @@ import type { DeclarativeQueryConfig } from '../../schema'
 export const mergePerformanceDeclarative: DeclarativeQueryConfig = {
   name: 'merge-performance',
   description: 'Merge performance over day, avg duration, avg rows read',
-  // Inlined from table-notes PART_LOG (docs is now a plain string)
   docs: `The required table 'part_log' may be missing. Please follow the documentation at https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#part-log to ensure the necessary table is available.`,
   tableCheck: 'system.part_log',
   optional: true,

@@ -3,15 +3,6 @@ import type { QueryConfig } from '@/types/query-config'
 import { ColumnFormat } from '@/types/column-format'
 
 /**
- * Per-table compression and storage cost analysis.
- *
- * Uses system.parts (active parts only) to compute:
- * - Compressed / uncompressed bytes and compression ratio
- * - Total bytes on disk (may exceed uncompressed due to metadata / indices)
- * - Top tables by storage cost
- *
- * Higher compression_ratio means data compresses well (less disk needed).
- *
  * The `compression_ratio` numerator/denominator are qualified as
  * `parts.data_uncompressed_bytes` / `parts.data_compressed_bytes`. The bare
  * spelling is substituted with the sibling aliases of the same names, which
@@ -101,12 +92,6 @@ export const storageCompressionConfig: QueryConfig = {
   },
 }
 
-/**
- * Storage policy and volume tier configuration.
- *
- * Uses system.storage_policies to show which disks are assigned to each
- * volume and what limits apply, enabling tiered-storage audits.
- */
 export const storagePoliciesConfig: QueryConfig = {
   name: 'storage-policies',
   description:

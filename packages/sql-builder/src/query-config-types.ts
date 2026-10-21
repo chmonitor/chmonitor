@@ -12,9 +12,7 @@ export interface VersionedSql {
    * Supports major.minor (e.g., "24.1") or full version (e.g., "24.1.2.3").
    */
   since: string
-  /** SQL query to use for this version and above */
   sql: string
-  /** Description of what changed in this version */
   description?: string
   /** Columns available in this version (for type safety) */
   columns?: string[]

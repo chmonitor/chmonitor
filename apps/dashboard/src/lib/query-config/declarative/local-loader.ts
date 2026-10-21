@@ -32,11 +32,6 @@ import { parse as parseYaml } from 'yaml'
 
 const DEFAULT_CONFIG_DIRECTORY = '/etc/chmonitor/queries.d'
 
-/**
- * Resolve the CHM_CONFIG_DIRECTORY env var (falls back to the default path).
- * Server-only; pass the Cloudflare Worker `env` binding or `process.env`
- * (mirrors `getConfigSource`'s runtimeEnv-first convention).
- */
 export function getConfigDirectory(
   runtimeEnv?: Record<string, string | undefined>
 ): string {
@@ -137,10 +132,6 @@ export function loadLocalConfigs(dir: string): LoadLocalConfigsResult {
 
 let cachedCatalog: Record<string, DeclarativeQueryConfig> | undefined
 
-/**
- * The local catalog, name-keyed like DECLARATIVE_CATALOG. Computed once per
- * process and memoized.
- */
 export function getLocalConfigCatalog(
   runtimeEnv?: Record<string, string | undefined>
 ): Record<string, DeclarativeQueryConfig> {

@@ -13,7 +13,6 @@ function isNodeRuntime(): boolean {
   ) {
     return false
   }
-  // Runtime detection as fallback
   if (
     typeof globalThis !== 'undefined' &&
     hasWorkersGlobals() &&

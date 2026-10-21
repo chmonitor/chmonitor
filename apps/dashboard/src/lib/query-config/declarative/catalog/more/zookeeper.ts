@@ -6,7 +6,6 @@ export const zookeeperDeclarative: DeclarativeQueryConfig = {
   card: { primary: '_path' },
   description:
     'Exposes data from the Keeper cluster defined in the config. https://clickhouse.com/docs/en/operations/system-tables/zookeeper',
-  // Inlined from table-notes ZOOKEEPER (docs is now a plain string)
   docs: `Make sure that ZooKeeper or clickhouse-keeper has been configured. Please follow the documentation at https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#server-settings_zookeeper`,
   optional: true,
   tableCheck: 'system.zookeeper',

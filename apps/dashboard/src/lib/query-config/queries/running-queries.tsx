@@ -269,7 +269,6 @@ export const runningQueriesConfig: QueryConfig = {
     return undefined
   },
 
-  // Bulk actions for selected rows (shown in toolbar)
   bulkActions: ['kill-query'],
   columnFormats: {
     action: [
@@ -280,10 +279,6 @@ export const runningQueriesConfig: QueryConfig = {
     client_agent: ColumnFormat.ColoredBadge,
   },
 
-  /**
-   * Click-to-expand inline detail panel below each row. Renders identity,
-   * runtime metrics and a formatted ProfileEvents grid for the selected query.
-   */
   expandable: {
     renderExpanded: (row) => <RunningQueryExpandedDetails row={row} />,
   },

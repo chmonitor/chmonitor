@@ -4,8 +4,6 @@ import { ColumnFormat } from '@/types/column-format'
 
 /**
  * system.workloads — available since ClickHouse 25.4.
- * Shows the WORKLOAD hierarchy for SQL resource scheduling:
- * the workload name, parent, and its CREATE WORKLOAD definition.
  */
 export const workloadsConfig: QueryConfig = {
   name: 'workloads',

@@ -3,8 +3,6 @@ import type { QueryConfig } from '@/types/query-config'
 import { QUERY_LOG } from '@/lib/table-notes'
 
 /**
- * query-children: queries spawned by a given root query.
- *
  * ClickHouse links a distributed/parallel query's leaves to their root via
  * `initial_query_id`: every leaf row has the root's id in `initial_query_id`
  * and its own `query_id`. This config lists the leaves for a given root —

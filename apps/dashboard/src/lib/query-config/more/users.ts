@@ -28,8 +28,6 @@ export const usersConfig: QueryConfig = {
     `,
   columns: USERS_COLUMNS,
   columnFormats: {},
-  // Expand a row to reveal the host/grantee/role-restriction columns that
-  // system.users exposes beyond the table view (grantees_*, host_regexp, …).
   expandable: {
     renderExpanded: createConfigExpandedDetails({
       primaryColumns: USERS_COLUMNS,

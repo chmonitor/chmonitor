@@ -4,8 +4,6 @@ import { ColumnFormat } from '@/types/column-format'
 
 /**
  * system.scheduler — available since ClickHouse 25.4.
- * Shows real-time state of the resource scheduler nodes:
- * in-flight requests, queued work, throttling, and budget per workload.
  */
 export const schedulerConfig: QueryConfig = {
   name: 'scheduler',

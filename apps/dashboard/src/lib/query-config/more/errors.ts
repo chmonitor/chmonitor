@@ -2,7 +2,6 @@ import type { QueryConfig, VersionedSql } from '@/types/query-config'
 
 import { ColumnFormat } from '@/types/column-format'
 
-/** Base WHERE predicate shared across all version variants. */
 const errorsTail = `
       FROM system.error_log
       WHERE if({error: String} != '', error = {error: String}, true)
@@ -59,8 +58,6 @@ export const errorsConfig: QueryConfig = {
     remote: ColumnFormat.Boolean,
   },
   defaultParams: { error: '' },
-  // Common ClickHouse error types for quick filtering
-  // These are frequently occurring errors in production environments
   // Future improvement: fetch distinct error types dynamically from system.error_log
   filterParamPresets: [
     ...[

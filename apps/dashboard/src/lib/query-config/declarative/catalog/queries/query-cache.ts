@@ -18,7 +18,6 @@ SET query_cache_min_query_duration_ms = 1000;
 
 Learn more:
 https://clickhouse.com/docs/en/operations/query-cache`,
-  // Inlined from table-notes QUERY_CACHE (docs is now a plain string)
   docs: `The required table 'query_cache' may be missing. Please follow the documentation at https://clickhouse.com/docs/en/operations/query-cache to ensure the necessary table is available.`,
   tableCheck: 'system.query_cache',
   // system.query_cache.compressed (and query_cache_compress_entries) arrive in

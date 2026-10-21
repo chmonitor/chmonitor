@@ -7,13 +7,10 @@ export interface SentryMeta {
   issueUrl?: string
   /** Severity level: error | warning | fatal | info */
   level?: 'error' | 'warning' | 'fatal' | 'info'
-  /** Sentry project slug */
   project?: string
-  /** Deployment environment (production, staging, …) */
   environment?: string
   /** Short ID or culprit string, e.g. "CHMONITOR-1A2B" or "app/views.py in get" */
   shortId?: string
-  /** Human-readable culprit location */
   culprit?: string
 }
 

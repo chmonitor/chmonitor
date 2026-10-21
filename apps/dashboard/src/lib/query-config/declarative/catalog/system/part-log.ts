@@ -6,7 +6,6 @@ export const partLogDeclarative: DeclarativeQueryConfig = {
   card: { primary: 'part_name', badges: ['event_type', 'merge_reason'] },
   description:
     'Part lifecycle timeline: creation, merges, mutations, downloads, and removals from system.part_log',
-  // Inlined from table-notes PART_LOG (docs is a plain string)
   docs: `The required table 'part_log' may be missing. Please follow the documentation at https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#part-log to ensure the necessary table is available.`,
   refreshInterval: 30_000,
   // system.part_log is opt-in and may not exist on every server / version
@@ -81,8 +80,6 @@ export const partLogDeclarative: DeclarativeQueryConfig = {
     readable_duration: 'background-bar',
     exception: 'code-dialog',
   },
-  // Replaces the legacy rowClassName: highlight rows with a non-zero error.
-  // default '' matches the legacy no-match return.
   rowStyle: {
     rules: [
       {
