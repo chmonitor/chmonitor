@@ -32,6 +32,7 @@ import type {
   SqlBuilderLike,
   SqlCondition,
   SqlExpression,
+  SqlFragment,
   SqlJoin,
   SqlValue,
 } from './types'
@@ -561,17 +562,13 @@ export class ExtendedBuilder {
     if (typeof column === 'string') {
       return column
     }
-    if ('alias' in column && typeof (column as any).alias === 'string') {
-      return (column as any).alias as string
-    }
-    if (
-      'expression' in column &&
-      typeof (column as any).expression === 'string'
-    ) {
-      return (column as any).expression as string
-    }
-    if ('sql' in column && typeof (column as any).sql === 'string') {
-      return (column as any).sql as string
+    const fields = column as SqlFragment &
+      Partial<Record<'alias' | 'expression' | 'sql', unknown>>
+    for (const key of ['alias', 'expression', 'sql'] as const) {
+      const value = fields[key]
+      if (typeof value === 'string') {
+        return value
+      }
     }
     return String(column)
   }
