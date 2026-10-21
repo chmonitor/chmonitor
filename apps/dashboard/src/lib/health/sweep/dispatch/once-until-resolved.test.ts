@@ -115,6 +115,7 @@ async function sweepAt(
     ruleId: string
     severity: 'ok' | 'warning' | 'critical'
     label?: string
+    value?: number | null
   }[]
 ) {
   setSystemTime(new Date(at))
@@ -128,7 +129,7 @@ async function sweepAt(
       ruleType: 'threshold',
       ruleTitle: f.ruleId,
       severity: f.severity,
-      value: 99,
+      value: f.value === undefined ? 99 : f.value,
       label: f.label ?? 'too high',
     })
   }
@@ -227,5 +228,51 @@ describe('reminder inside a digest', () => {
     expect(body.html).toContain(`ch-${old.hostId} · still open, 3 h`)
     expect(body.text).not.toContain('OLD-DETAIL')
     expect(body.text).toContain('NEW-DETAIL')
+  })
+
+  test('shows how the value moved: previous -> current', async () => {
+    setTargets([
+      { name: 'room', format: 'hookshot', urlEnv: 'CHM_TEST_ROOM_URL' },
+    ])
+    const f = { hostId: nextHostId++, ruleId: 'moving' }
+
+    await sweepAt(T0, [{ ...f, severity: 'warning', value: 82.8 }])
+    await sweepAt(T0 + 5 * HOUR, [{ ...f, severity: 'warning', value: 82.9 }])
+
+    const body = JSON.parse(posts[0].body) as { text: string; html: string }
+    expect(body.text).toContain(
+      `ch-${f.hostId} · still open, 5 h (82.8 -> 82.9)`
+    )
+    expect(body.html).toContain('(82.8 -&gt; 82.9)')
+  })
+
+  test('omits the arrow when no previous value was stored', async () => {
+    setTargets([
+      { name: 'room', format: 'hookshot', urlEnv: 'CHM_TEST_ROOM_URL' },
+    ])
+    const f = { hostId: nextHostId++, ruleId: 'no-prev' }
+
+    await sweepAt(T0, [{ ...f, severity: 'warning', value: null }])
+    await sweepAt(T0 + 2 * HOUR, [{ ...f, severity: 'warning', value: 70 }])
+
+    const body = JSON.parse(posts[0].body) as { text: string }
+    expect(body.text).toContain(`ch-${f.hostId} · still open, 2 h`)
+    expect(body.text).not.toContain('->')
+  })
+
+  test('a new alert in the same digest carries no arrow', async () => {
+    setTargets([
+      { name: 'room', format: 'hookshot', urlEnv: 'CHM_TEST_ROOM_URL' },
+    ])
+    const f = { hostId: nextHostId++, ruleId: 'fresh-only' }
+
+    await sweepAt(T0, [
+      { ...f, severity: 'warning', value: 10, label: 'NEW-DETAIL' },
+    ])
+
+    const body = JSON.parse(posts[0].body) as { text: string }
+    expect(body.text).toContain('NEW-DETAIL')
+    expect(body.text).not.toContain('->')
+    expect(body.text).not.toContain('still open')
   })
 })

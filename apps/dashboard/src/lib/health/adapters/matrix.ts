@@ -17,7 +17,7 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
-import { MAX_DIGEST_LINES, stillOpenText, summarizeDigest } from './digest'
+import { MAX_DIGEST_LINES, stillOpenLine, summarizeDigest } from './digest'
 import { identityLine, instancePrefix } from './identity'
 
 /** Matrix `m.room.message` event carrying an `m.notice`. */
@@ -109,9 +109,9 @@ export function renderMatrixDigest(payloads: readonly AlertPayload[]): {
     for (const p of list) {
       const style = SEVERITY_STYLE[p.severity]
       if (p.stillOpenMs !== undefined) {
-        const open = stillOpenText(p.stillOpenMs)
+        const open = stillOpenLine(p)
         textLines.push(`- ${style.emoji} ${p.hostLabel} · ${open}`)
-        html += `<li>${style.emoji} ${escapeMatrixHtml(p.hostLabel)} · ${open}</li>`
+        html += `<li>${style.emoji} ${escapeMatrixHtml(p.hostLabel)} · ${escapeMatrixHtml(open)}</li>`
         continue
       }
       const value = p.value === null ? 'n/a' : String(p.value)

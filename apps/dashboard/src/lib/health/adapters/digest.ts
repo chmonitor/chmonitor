@@ -42,14 +42,29 @@ export function stillOpenText(ms: number): string {
 }
 
 /**
+ * `"still open, 3 h (82.8 -> 82.9)"` for a reminder payload. The arrow is
+ * left out unless both the previous and the current value are numbers.
+ */
+export function stillOpenLine(
+  payload: Pick<AlertPayload, 'stillOpenMs' | 'previousValue' | 'value'>
+): string {
+  const open = stillOpenText(payload.stillOpenMs ?? 0)
+  const { previousValue, value } = payload
+  return typeof previousValue === 'number' &&
+    Number.isFinite(previousValue) &&
+    typeof value === 'number' &&
+    Number.isFinite(value)
+    ? `${open} (${previousValue} -> ${value})`
+    : open
+}
+
+/**
  * One finding's one-line description, mirroring the single-alert `text`. A
  * reminder (`stillOpenMs` set) replaces the label with how long it is open.
  */
 export function digestFindingLine(payload: AlertPayload): string {
   const detail =
-    payload.stillOpenMs === undefined
-      ? payload.label
-      : stillOpenText(payload.stillOpenMs)
+    payload.stillOpenMs === undefined ? payload.label : stillOpenLine(payload)
   return `[${findingHeading(payload.severity)}] ${payload.title} — ${detail} (host ${payload.hostLabel})`
 }
 
