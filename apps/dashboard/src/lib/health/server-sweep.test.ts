@@ -31,6 +31,9 @@ import {
   test,
 } from 'bun:test'
 import { createHmac } from 'node:crypto'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 // --- fake D1 (captures INSERTs from recordAlertEvent) -----------------------
 interface FakeRow {
@@ -476,6 +479,11 @@ ruleRegistry.register({
 const ENV_KEYS = [
   'HEALTH_ALERT_ENABLED',
   'HEALTH_ALERT_WEBHOOK_URL',
+  'HEALTH_ALERT_WEBHOOK_TARGETS',
+  'CHAT_WEBHOOK_URL',
+  'OPS_WEBHOOK_URL',
+  'CHM_HEALTH_CONFIG_DIRECTORY',
+  'SSR',
   'HEALTH_ALERT_MIN_SEVERITY',
   'HEALTH_ALERT_PAGERDUTY_ROUTING_KEY',
   'HEALTH_ALERT_EMAIL_PROVIDER_URL',
@@ -515,6 +523,10 @@ beforeEach(() => {
   delete process.env.HEALTH_ALERT_DIGEST_MINUTES
   delete process.env.PEERDB_API_URL
   delete process.env.CHM_FEATURE_PEERDB_ENABLED
+  delete process.env.HEALTH_ALERT_WEBHOOK_TARGETS
+  delete process.env.CHAT_WEBHOOK_URL
+  delete process.env.OPS_WEBHOOK_URL
+  delete process.env.CHM_HEALTH_CONFIG_DIRECTORY
 
   alertStateStore.clear()
   fakeDb = makeFakeD1()
@@ -1721,5 +1733,94 @@ describe('runHealthSweep — digest grouping (#2663)', () => {
       const { peerdb } = await peerdbCalls(undefined)
       expect(peerdb.length).toBeGreaterThan(0)
     })
+  })
+})
+
+// #4054: `webhookConfigured` used to read only the legacy single URL, so a
+// deployment delivering through named targets reported `false` while alerts
+// were being dispatched.
+describe('runHealthSweep — webhookConfigured / webhookTargets (#4054)', () => {
+  let configDir: string | null = null
+
+  beforeEach(() => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL = ''
+    process.env.SSR = 'true'
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 200 })
+    ) as unknown as typeof fetch
+  })
+
+  afterEach(() => {
+    if (configDir) rmSync(configDir, { recursive: true, force: true })
+    configDir = null
+  })
+
+  test('legacy URL only: configured, no named targets', async () => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL =
+      'https://hooks.slack.com/services/T000/B000/XXXX'
+    const summary = await runHealthSweep()
+    expect(summary.webhookConfigured).toBe(true)
+    expect(summary.webhookTargets).toBe(0)
+  })
+
+  test('env target only (issue example, urlEnv): configured with 1 target', async () => {
+    process.env.HEALTH_ALERT_WEBHOOK_TARGETS = JSON.stringify([
+      {
+        name: 'chat',
+        format: 'hookshot',
+        minSeverity: 'warning',
+        urlEnv: 'CHAT_WEBHOOK_URL',
+      },
+    ])
+    process.env.CHAT_WEBHOOK_URL = 'https://chat.example.com/hooks/abc'
+    const summary = await runHealthSweep()
+    expect(summary.webhookConfigured).toBe(true)
+    expect(summary.webhookTargets).toBe(1)
+  })
+
+  test('env target whose urlEnv is unset does not count', async () => {
+    process.env.HEALTH_ALERT_WEBHOOK_TARGETS = JSON.stringify([
+      { name: 'chat', format: 'hookshot', urlEnv: 'CHAT_WEBHOOK_URL' },
+    ])
+    const summary = await runHealthSweep()
+    expect(summary.webhookConfigured).toBe(false)
+    expect(summary.webhookTargets).toBe(0)
+  })
+
+  test('declarative channels.yaml target only: configured with 1 target', async () => {
+    configDir = mkdtempSync(join(tmpdir(), 'chm-sweep-wh-'))
+    process.env.CHM_HEALTH_CONFIG_DIRECTORY = configDir
+    process.env.OPS_WEBHOOK_URL = 'https://ops.example.com/hooks/xyz'
+    writeFileSync(
+      join(configDir, 'channels.yaml'),
+      'webhookTargets:\n  - id: ops\n    name: Ops\n    format: slack\n    urlEnv: OPS_WEBHOOK_URL\n'
+    )
+    const { _resetHealthConfigCache } = await import('./declarative/loader')
+    _resetHealthConfigCache()
+    const summary = await runHealthSweep()
+    _resetHealthConfigCache()
+    expect(summary.webhookConfigured).toBe(true)
+    expect(summary.webhookTargets).toBe(1)
+  })
+
+  test('legacy URL plus env target: configured, count covers named targets only', async () => {
+    process.env.HEALTH_ALERT_WEBHOOK_URL =
+      'https://hooks.slack.com/services/T000/B000/XXXX'
+    process.env.HEALTH_ALERT_WEBHOOK_TARGETS = JSON.stringify([
+      { name: 'a', urlEnv: 'CHAT_WEBHOOK_URL' },
+      { name: 'b', urlEnv: 'OPS_WEBHOOK_URL' },
+      { name: 'off', enabled: false, urlEnv: 'OPS_WEBHOOK_URL' },
+    ])
+    process.env.CHAT_WEBHOOK_URL = 'https://chat.example.com/hooks/abc'
+    process.env.OPS_WEBHOOK_URL = 'https://ops.example.com/hooks/xyz'
+    const summary = await runHealthSweep()
+    expect(summary.webhookConfigured).toBe(true)
+    expect(summary.webhookTargets).toBe(2)
+  })
+
+  test('nothing configured: false and 0', async () => {
+    const summary = await runHealthSweep()
+    expect(summary.webhookConfigured).toBe(false)
+    expect(summary.webhookTargets).toBe(0)
   })
 })
