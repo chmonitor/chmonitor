@@ -37,6 +37,7 @@ import { rolesDeclarative } from './roles'
 import { settingsDeclarative } from './settings'
 import { topUsageColumnsDeclarative } from './top-usage-columns'
 import { topUsageTablesDeclarative } from './top-usage-tables'
+import { unusedTablesDeclarative } from './unused-tables'
 import { usersDeclarative } from './users'
 import { zookeeperDeclarative } from './zookeeper'
 import { describe, expect, test } from 'bun:test'
@@ -51,6 +52,7 @@ import { rolesConfig } from '@/lib/query-config/more/roles'
 import { settingsConfig } from '@/lib/query-config/more/settings'
 import { topUsageColumnsConfig } from '@/lib/query-config/more/top-usage-columns'
 import { topUsageTablesConfig } from '@/lib/query-config/more/top-usage-tables'
+import { unusedTablesConfig } from '@/lib/query-config/more/unused-tables'
 import { usersConfig } from '@/lib/query-config/more/users'
 import { zookeeperConfig } from '@/lib/query-config/more/zookeeper'
 
@@ -239,6 +241,21 @@ describe('top-usage-tables declarative', () => {
     if (Array.isArray(loaded.sql) && Array.isArray(legacySql)) {
       expect(loaded.sql.length).toBe(legacySql.length)
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// unused-tables
+// ---------------------------------------------------------------------------
+
+describe('unused-tables declarative', () => {
+  test('loads without error', () => {
+    expect(() => loadDeclarativeConfig(unusedTablesDeclarative)).not.toThrow()
+  })
+
+  test('serializable fields match legacy', () => {
+    const loaded = loadDeclarativeConfig(unusedTablesDeclarative)
+    compareSerializable(loaded, unusedTablesConfig)
   })
 })
 

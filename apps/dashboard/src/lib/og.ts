@@ -622,6 +622,12 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'Top Usage Tables',
     description: 'Most-queried tables from system.query_log.',
   },
+  'unused-tables': {
+    eyebrow: 'USAGE',
+    title: 'Unread Tables',
+    description:
+      "MergeTree tables with no SELECT in this replica's query log window.",
+  },
   'user-processes': {
     eyebrow: 'SYSTEM',
     title: 'User Processes',

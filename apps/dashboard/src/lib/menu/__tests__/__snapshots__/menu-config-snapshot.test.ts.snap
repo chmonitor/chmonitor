@@ -193,6 +193,13 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/unused-tables",
+    "section": undefined,
+    "subgroup": "Tables",
+    "title": "Unread Tables",
+  },
+  {
+    "depth": 1,
     "href": "/top-usage-columns",
     "section": undefined,
     "subgroup": "Tables",

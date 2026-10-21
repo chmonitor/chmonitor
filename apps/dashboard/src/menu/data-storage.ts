@@ -94,6 +94,16 @@ export const dataStorageItems: MenuItem[] = [
       },
       {
         subgroup: 'Tables',
+        title: 'Unread Tables',
+        href: '/unused-tables',
+        description: 'Tables with no SELECT in the query log window',
+        icon: TableIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+        permission: { feature: 'tables' },
+      },
+      {
+        subgroup: 'Tables',
         title: 'Top Usage Columns',
         href: '/top-usage-columns',
         description: 'Most queried columns in the query log',

@@ -348,6 +348,7 @@ describe('task-group layout (#3565)', () => {
       '/explorer',
       '/dictionaries',
       '/top-usage-tables',
+      '/unused-tables',
       '/top-usage-columns',
       '/merges',
       '/merge-performance',

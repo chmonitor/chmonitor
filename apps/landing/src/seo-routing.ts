@@ -93,6 +93,7 @@ export const DASHBOARD_PREFIXES = new Set([
   'top-usage-tables',
   'traffic',
   'ttl-partition-health',
+  'unused-tables',
   'user-processes',
   'users',
   'view-refreshes',
