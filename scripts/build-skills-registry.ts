@@ -6,8 +6,13 @@
  * Usage: bun run scripts/build-skills-registry.ts
  */
 
+import { execFileSync } from 'node:child_process'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+
+const REPO_ROOT = resolve(import.meta.dirname, '..')
+export const REGISTRY_RELATIVE_PATH =
+  'apps/dashboard/src/lib/ai/agent/skills/registry.ts'
 
 interface SkillEntry {
   name: string
@@ -78,19 +83,24 @@ function parseFrontmatter(raw: string): {
   }
 }
 
-async function main() {
-  const skillsDir = join(process.cwd(), '.agents', 'skills')
-  const outputFile = join(
-    process.cwd(),
-    'apps',
-    'dashboard',
-    'src',
-    'lib',
-    'ai',
-    'agent',
-    'skills',
-    'registry.ts'
+/**
+ * Run the repo formatter (biome) over generated source so the committed file
+ * is exactly what `biome format` would produce. Without this the raw template
+ * output (long description lines) differs from the formatted commit.
+ */
+function formatWithBiome(source: string, repoRoot: string): string {
+  return execFileSync(
+    join(repoRoot, 'node_modules', '.bin', 'biome'),
+    ['format', `--stdin-file-path=${REGISTRY_RELATIVE_PATH}`],
+    { cwd: repoRoot, input: source, encoding: 'utf-8' }
   )
+}
+
+/** Build the registry source from `.agents/skills/` without writing it. */
+export async function generateSkillsRegistry(
+  repoRoot: string = REPO_ROOT
+): Promise<{ output: string; count: number }> {
+  const skillsDir = join(repoRoot, '.agents', 'skills')
 
   const skills: SkillEntry[] = []
 
@@ -121,7 +131,9 @@ async function main() {
       `  Allowlisted skill dir(s) not found under .agents/skills/: ${missing.join(', ')}`
     )
   }
-  dirNames = dirNames.filter((d) => allowed.has(d))
+  // Allowlist order, not readdir order: readdir order is filesystem-dependent
+  // and made the output differ between machines.
+  dirNames = DOMAIN_SKILLS.filter((d) => dirNames.includes(d))
 
   for (const dirName of dirNames) {
     const skillFile = join(skillsDir, dirName, 'SKILL.md')
@@ -178,11 +190,19 @@ export function loadSkillContent(name: string): Skill | null {
 }
 `
 
-  await writeFile(outputFile, output, 'utf-8')
-  console.log(`\nGenerated ${outputFile} with ${skills.length} skill(s)`)
+  return { output: formatWithBiome(output, repoRoot), count: skills.length }
 }
 
-main().catch((err) => {
-  console.error('Failed to build skills registry:', err)
-  process.exit(1)
-})
+async function main() {
+  const outputFile = join(REPO_ROOT, REGISTRY_RELATIVE_PATH)
+  const { output, count } = await generateSkillsRegistry()
+  await writeFile(outputFile, output, 'utf-8')
+  console.log(`\nGenerated ${outputFile} with ${count} skill(s)`)
+}
+
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error('Failed to build skills registry:', err)
+    process.exit(1)
+  })
+}
