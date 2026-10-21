@@ -9,6 +9,7 @@ import {
   getServerNtfyConfig,
   getServerOpsgenieConfig,
   getServerPushoverConfig,
+  getServerRepeatMinDeltaConfig,
   getServerTelegramConfig,
   getServerTwilioConfig,
   isAnyAlertChannelEnabled,
@@ -1077,6 +1078,78 @@ describe('getServerAlertCooldownConfig (#3869)', () => {
     process.env.HEALTH_ALERT_COOLDOWN_DISK_USAGE_MINUTES = value
     const { byRule } = getServerAlertCooldownConfig(['disk-usage'])
     expect(byRule['disk-usage']).toBe(15 * MIN)
+  })
+})
+
+describe('getServerRepeatMinDeltaConfig (#4049)', () => {
+  const KEYS = [
+    'HEALTH_ALERT_REPEAT_MIN_DELTA',
+    'HEALTH_ALERT_REPEAT_MIN_DELTA_DISK_USAGE',
+    'HEALTH_ALERT_REPEAT_MIN_DELTA_PEERDB_API_HEALTH',
+  ] as const
+  let saved: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of KEYS) {
+      saved[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+  afterEach(() => {
+    for (const key of KEYS) {
+      if (saved[key] === undefined) delete process.env[key]
+      else process.env[key] = saved[key]
+    }
+    saved = {}
+  })
+
+  it('is off (null) when unset', () => {
+    const { default: d, byRule } = getServerRepeatMinDeltaConfig(['disk-usage'])
+    expect(d).toBeNull()
+    expect(byRule['disk-usage']).toBeNull()
+  })
+
+  it('a per-rule override wins over the global value, with id mangling', () => {
+    process.env.HEALTH_ALERT_REPEAT_MIN_DELTA = '2.5'
+    process.env.HEALTH_ALERT_REPEAT_MIN_DELTA_DISK_USAGE = '10'
+    const { default: d, byRule } = getServerRepeatMinDeltaConfig([
+      'disk-usage',
+      'cpu',
+    ])
+    expect(d).toBe(2.5)
+    expect(byRule['disk-usage']).toBe(10)
+    expect(byRule.cpu).toBe(2.5)
+  })
+
+  it('a per-rule 0 is honoured', () => {
+    process.env.HEALTH_ALERT_REPEAT_MIN_DELTA = '5'
+    process.env.HEALTH_ALERT_REPEAT_MIN_DELTA_DISK_USAGE = '0'
+    const { byRule } = getServerRepeatMinDeltaConfig(['disk-usage'])
+    expect(byRule['disk-usage']).toBe(0)
+  })
+
+  it.each([
+    '-1',
+    'abc',
+    '',
+    '  ',
+    'Infinity',
+  ])('an invalid value %p is treated as unset', (value) => {
+    process.env.HEALTH_ALERT_REPEAT_MIN_DELTA = value
+    process.env.HEALTH_ALERT_REPEAT_MIN_DELTA_DISK_USAGE = '4'
+    const { default: d, byRule } = getServerRepeatMinDeltaConfig([
+      'disk-usage',
+      'cpu',
+    ])
+    expect(d).toBeNull()
+    expect(byRule.cpu).toBeNull()
+    expect(byRule['disk-usage']).toBe(4)
+  })
+
+  it('resolves the PeerDB override by static base id', () => {
+    process.env.HEALTH_ALERT_REPEAT_MIN_DELTA_PEERDB_API_HEALTH = '3'
+    const { byRule } = getServerRepeatMinDeltaConfig(PEERDB_ALERT_RULE_IDS)
+    expect(byRule['peerdb-api-health']).toBe(3)
   })
 })
 

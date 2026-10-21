@@ -377,3 +377,105 @@ describe('evaluateAlert + MemoryAlertStateStore', () => {
     expect(third.decision.notify).toBe(false)
   })
 })
+
+describe('decideNotification: repeat min delta (#4049)', () => {
+  const HOUR = DEFAULT_ALERT_COOLDOWN_MS
+  const past = rec({ notifiedAt: 0, lastNotifiedValue: 90 })
+  const opts = { now: HOUR + 1, repeatMinDelta: 5 }
+
+  test('suppresses a reminder when the value moved less than the delta, keeping notifiedAt', () => {
+    const { decision, next } = decideNotification(past, 'warning', {
+      ...opts,
+      value: 92,
+    })
+    expect(decision.notify).toBe(false)
+    expect(decision.kind).toBe('suppressed')
+    expect(next?.notifiedAt).toBe(0)
+    expect(next?.lastNotifiedValue).toBe(90)
+  })
+
+  test('reminds when the delta is met or exceeded, and records the new value', () => {
+    const { decision, next } = decideNotification(past, 'warning', {
+      ...opts,
+      value: 95,
+    })
+    expect(decision.kind).toBe('reminder')
+    expect(next?.notifiedAt).toBe(HOUR + 1)
+    expect(next?.lastNotifiedValue).toBe(95)
+
+    const down = decideNotification(past, 'warning', { ...opts, value: 80 })
+    expect(down.decision.kind).toBe('reminder')
+  })
+
+  test('is off when repeatMinDelta is unset', () => {
+    const { decision } = decideNotification(past, 'warning', {
+      now: HOUR + 1,
+      value: 90,
+    })
+    expect(decision.kind).toBe('reminder')
+  })
+
+  test('fails open without a stored value or with a non-finite value', () => {
+    const noStored = decideNotification(rec({ notifiedAt: 0 }), 'warning', {
+      ...opts,
+      value: 90,
+    })
+    expect(noStored.decision.kind).toBe('reminder')
+
+    for (const value of [null, undefined, Number.NaN]) {
+      const { decision } = decideNotification(past, 'warning', {
+        ...opts,
+        value,
+      })
+      expect(decision.kind).toBe('reminder')
+    }
+  })
+
+  test('never suppresses new, escalated or recovery', () => {
+    const fresh = decideNotification(undefined, 'warning', {
+      ...opts,
+      value: 90,
+    })
+    expect(fresh.decision.kind).toBe('new')
+    expect(fresh.next?.lastNotifiedValue).toBe(90)
+
+    const esc = decideNotification(
+      rec({ notifiedAt: HOUR, lastNotifiedValue: 90 }),
+      'critical',
+      { ...opts, value: 90.1 }
+    )
+    expect(esc.decision.kind).toBe('escalated')
+    expect(esc.next?.lastNotifiedValue).toBe(90.1)
+
+    const rcv = decideNotification(past, 'ok', { ...opts, value: 90 })
+    expect(rcv.decision.kind).toBe('recovery')
+    expect(rcv.next).toBeNull()
+  })
+
+  test('a sweep inside the cooldown does not overwrite the stored value', () => {
+    const { next } = decideNotification(
+      rec({ notifiedAt: 1_000, lastNotifiedValue: 90 }),
+      'warning',
+      { now: 2_000, value: 99, repeatMinDelta: 5 }
+    )
+    expect(next?.lastNotifiedValue).toBe(90)
+  })
+
+  test('evaluateAlert threads value and delta through commit', () => {
+    const store = new MemoryAlertStateStore()
+    const base = { hostId: 1, ruleId: 'cpu', severity: 'warning' as const }
+    evaluateAlert(store, {
+      ...base,
+      now: 0,
+      value: 90,
+      repeatMinDelta: 5,
+    }).commit()
+    const r = evaluateAlert(store, {
+      ...base,
+      now: HOUR + 1,
+      value: 91,
+      repeatMinDelta: 5,
+    })
+    expect(r.decision.kind).toBe('suppressed')
+  })
+})

@@ -57,6 +57,7 @@ function makeCtx(overrides: Partial<SweepContext> = {}): SweepContext {
     channelSettings: {},
     alertingEnabled: true,
     cooldown: { defaultMs: 60_000, byRule: {} },
+    repeatMinDelta: { default: null, byRule: {} },
     mutedRules: [],
     rules: [],
     thresholdOverrides: {} as SweepContext['thresholdOverrides'],

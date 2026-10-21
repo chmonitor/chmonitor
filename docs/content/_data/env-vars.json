@@ -748,6 +748,12 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "HEALTH_ALERT_REPEAT_MIN_DELTA",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "HEALTH_ALERT_TELEGRAM_BOT_TOKEN",
       "prefix": "HEALTH"
     },
