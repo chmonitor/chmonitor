@@ -105,6 +105,22 @@
         Settings are recommendations. Does not claim it already changed
         server config.
 
+- description: 'Coverage — unread tables and projections'
+  tags: [extended]
+  metadata:
+    covers: [get_usage_findings]
+  vars:
+    prompt: 'Which large tables has nobody queried recently, and are there projections nothing uses?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        Reports what the query log shows as unread, states that this covers
+        one replica and a limited window, and that unread is not the same as
+        unused. Recommend-only. Does not claim anything was dropped or is
+        safe to drop.
+
 - description: 'Coverage — materialized view design'
   tags: [extended]
   metadata:
