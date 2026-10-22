@@ -19,6 +19,7 @@ const USER_FILTER = 'user = {user:String}'
 
 export const userUsageDailyConfig: QueryConfig = {
   name: 'user-usage-daily',
+  permission: { feature: 'queries' },
   defaultView: 'table',
   card: { primary: 'day' },
   description:
@@ -54,6 +55,7 @@ export const userUsageDailyConfig: QueryConfig = {
 
 export const userUsageHoursConfig: QueryConfig = {
   name: 'user-usage-hours',
+  permission: { feature: 'queries' },
   defaultView: 'table',
   card: { primary: 'weekday' },
   description:
@@ -81,6 +83,7 @@ export const userUsageHoursConfig: QueryConfig = {
 
 export const userUsageTablesConfig: QueryConfig = {
   name: 'user-usage-tables',
+  permission: { feature: 'queries' },
   defaultView: 'table',
   card: { primary: 'table' },
   description:
@@ -112,6 +115,7 @@ export const userUsageTablesConfig: QueryConfig = {
 
 export const userUsageShapesConfig: QueryConfig = {
   name: 'user-usage-shapes',
+  permission: { feature: 'queries' },
   defaultView: 'table',
   card: { primary: 'normalized_query_hash' },
   description:
@@ -156,6 +160,7 @@ export const userUsageShapesConfig: QueryConfig = {
 
 export const userUsageErrorsConfig: QueryConfig = {
   name: 'user-usage-errors',
+  permission: { feature: 'queries' },
   defaultView: 'table',
   card: { primary: 'exception_code' },
   description:
@@ -169,6 +174,7 @@ export const userUsageErrorsConfig: QueryConfig = {
           count() AS failures,
           max(event_time) AS last_seen,
           argMax(query_id, event_time) AS latest_query_id,
+          encodeURLComponent(latest_query_id) AS query_id_param,
           substring(argMax(exception, event_time), 1, 300) AS latest_message
       FROM merge('system', '^query_log')
       WHERE (${USER_FILTER})
@@ -190,7 +196,7 @@ export const userUsageErrorsConfig: QueryConfig = {
     last_seen: ColumnFormat.RelatedTime,
     latest_query_id: [
       ColumnFormat.Link,
-      { href: '/query?query_id=[latest_query_id]&host=[ctx.hostId]' },
+      { href: '/query?query_id=[query_id_param]&host=[ctx.hostId]' },
     ],
   },
   defaultParams: { user: '', days: '7' },
@@ -199,6 +205,7 @@ export const userUsageErrorsConfig: QueryConfig = {
 
 export const userUsageClientsConfig: QueryConfig = {
   name: 'user-usage-clients',
+  permission: { feature: 'queries' },
   defaultView: 'table',
   card: { primary: 'client_name' },
   description:

@@ -32,6 +32,7 @@ export const USAGE_DAYS_PRESETS: NonNullable<
 
 export const usageByUserConfig: QueryConfig = {
   name: 'usage-by-user',
+  permission: { feature: 'queries' },
   defaultView: 'auto',
   card: { primary: 'user' },
   description:
@@ -101,6 +102,7 @@ export const usageByUserConfig: QueryConfig = {
  */
 export const usageInactiveUsersConfig: QueryConfig = {
   name: 'usage-inactive-users',
+  permission: { feature: 'queries' },
   defaultView: 'auto',
   card: { primary: 'name' },
   description:
