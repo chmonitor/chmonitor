@@ -391,18 +391,23 @@ export function resolveReadonly(
           }
       }
     }
-    for (const p of profiles) {
-      const applies = truthy(p.apply_to_all)
-        ? !p.apply_to_except.includes(holder.name)
-        : p.apply_to_list.includes(holder.name)
-      if (!applies) continue
-      const v = profileReadonly(p.name, elements)
-      if (v)
-        return {
-          value: v,
-          reason: `profile ${p.name}${label} sets readonly = ${v}`,
-        }
-    }
+  }
+
+  // Like ClickHouse, match a profile's TO list against the user and its
+  // active roles together: a role in EXCEPT excludes every user holding it.
+  const names = holders.map((h) => h.name)
+  for (const p of profiles) {
+    if (names.some((n) => p.apply_to_except.includes(n))) continue
+    const via = truthy(p.apply_to_all)
+      ? grantee.name
+      : names.find((n) => p.apply_to_list.includes(n))
+    if (via === undefined) continue
+    const v = profileReadonly(p.name, elements)
+    if (v)
+      return {
+        value: v,
+        reason: `profile ${p.name}${via === grantee.name ? '' : ` of role ${via}`} sets readonly = ${v}`,
+      }
   }
   return null
 }
