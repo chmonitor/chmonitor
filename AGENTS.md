@@ -390,6 +390,15 @@ leak into the agent bundle). Current dev skills:
   stable/LTS tags, `system.columns` diff between official binaries, `EXPLAIN`
   every query config, support matrix, one issue per broken config. Backs the
   `local:ch-version` desk job. Backed by `docs/knowledge/ch-version-onboarding.md`.
+- **`verify-agent`** — drive the AI agent (`POST /api/v1/agent`) with one
+  question-bank case via `ask-agent.ts` and compare the called tools with the
+  case; feature map for tool routing, skill loading, discovery, write refusal.
+  Backed by `docs/knowledge/agent-verification.md`.
+- **`verify-agent-tool-gates`** — exhaustive check (every request shape, real
+  code) that control tools never reach anonymous cloud / unpermitted callers,
+  integration tools follow their gates, and `search_tools` only advertises
+  callable tools; records a `disabledTools` finding. Backed by
+  `docs/knowledge/agent-tool-gates-formal.md`.
 
 **Auto-improve project skills (standing instruction).** These skills are living
 documents — keep them accurate as the codebase evolves, without being asked:
@@ -440,6 +449,8 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Operations | [install-sh-bot-fight.md](docs/knowledge/install-sh-bot-fight.md) | curl install.sh 403 from Bot Fight Mode; GitHub raw workaround; `cf:allow-install-sh` |
 | Design | [release-screenshots.md](docs/knowledge/release-screenshots.md) | Release images: privacy gate, one idea per image, branded frames, `render.mjs` to 2000x1250 WebP |
 | Operations | [ch-version-onboarding.md](docs/knowledge/ch-version-onboarding.md) | New ClickHouse release audit: binary `system.columns` diff, `EXPLAIN` every config, scraper and `LTS_VERSIONS` traps, first dry run (26.9) |
+| Specs | [agent-verification.md](docs/knowledge/agent-verification.md) | Question bank (`cases/questions.yaml`) + offline gate `question-bank.test.ts`; live drive via the `verify-agent` skill |
+| Specs | [agent-tool-gates-formal.md](docs/knowledge/agent-tool-gates-formal.md) | Exhaustive tool-gate check over the real route composition; `disabledTools` vs `search_tools` finding |
 
 ### When to Write to Knowledge vs Memory
 

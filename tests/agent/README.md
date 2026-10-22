@@ -57,6 +57,14 @@ Prefer deterministic assertions: `file://./assertions.js:toolCalled` with
 
 When you change tool-first or recommend-only wording, add a golden here.
 
+### Question bank
+
+`cases/questions.yaml` maps realistic user questions to the expected tool(s)
+(`metadata.covers`) and skill (`metadata.skills`). When you add, rename, or
+remove a tool or skill, update it: `bun test tests/agent/question-bank.test.ts`
+fails on a name the catalog/registry no longer has, and on a core tool with no
+question. Drive one case live with `.claude/skills/verify-agent/ask-agent.ts`.
+
 ## CI
 
 `.github/workflows/agent-eval.yml` runs on PRs that touch agent prompts,
