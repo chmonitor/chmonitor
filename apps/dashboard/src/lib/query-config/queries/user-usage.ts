@@ -1,6 +1,11 @@
 import type { QueryConfig } from '@/types/query-config'
 
-import { USAGE_DATE_BOUND, USAGE_DAYS_PRESETS, USAGE_END_EVENTS } from './usage'
+import {
+  USAGE_DATE_BOUND,
+  USAGE_DAYS_PRESETS,
+  USAGE_END_EVENTS,
+  USAGE_MAX_DAYS,
+} from './usage'
 import { QUERY_LOG } from '@/lib/table-notes'
 import { ColumnFormat } from '@/types/column-format'
 
@@ -16,6 +21,17 @@ import { ColumnFormat } from '@/types/column-format'
 export const USER_DAILY_MAX_DAYS = 365
 
 const USER_FILTER = 'user = {user:String}'
+
+/**
+ * `/usage/user` window presets (days). Only the daily table and the activity
+ * calendar read past 30 days; every other config caps at `USAGE_MAX_DAYS`.
+ */
+export const USER_USAGE_DAY_OPTIONS = [
+  '7',
+  '30',
+  '90',
+  String(USER_DAILY_MAX_DAYS),
+]
 
 export const userUsageDailyConfig: QueryConfig = {
   name: 'user-usage-daily',
@@ -49,6 +65,7 @@ export const userUsageDailyConfig: QueryConfig = {
   defaultParams: { user: '', days: '7' },
   filterParamPresets: [
     ...USAGE_DAYS_PRESETS,
+    { name: 'Last 90d', key: 'days', value: '90' },
     { name: 'Last 1y', key: 'days', value: String(USER_DAILY_MAX_DAYS) },
   ],
 }
@@ -243,11 +260,172 @@ export const userUsageClientsConfig: QueryConfig = {
   filterParamPresets: USAGE_DAYS_PRESETS,
 }
 
+export const userUsageKindsConfig: QueryConfig = {
+  name: 'user-usage-kinds',
+  permission: { feature: 'queries' },
+  defaultView: 'table',
+  card: { primary: 'kind' },
+  description:
+    "This user's queries by query_kind (Select, Insert, Create, ...): count, failures, p95 duration and bytes read (default 7 days, at most 30). THIS REPLICA ONLY.",
+  docs: QUERY_LOG,
+  tableCheck: 'system.query_log',
+  sql: `
+      SELECT
+          if(toString(query_kind) = '', 'Unknown', toString(query_kind)) AS kind,
+          count() AS queries,
+          countIf(type != 'QueryFinish') AS failed,
+          round(quantile(0.95)(query_duration_ms)) AS p95_ms,
+          formatReadableSize(sum(read_bytes)) AS bytes_read,
+          round(queries * 100.0 / nullIf(max(queries) OVER (), 0), 2) AS pct_queries
+      FROM merge('system', '^query_log')
+      WHERE (${USER_FILTER})
+        AND (${USAGE_END_EVENTS})
+        AND (${USAGE_DATE_BOUND})
+      GROUP BY kind
+      ORDER BY queries DESC
+      LIMIT 50`,
+  columns: ['kind', 'queries', 'failed', 'p95_ms', 'bytes_read'],
+  columnFormats: {
+    queries: ColumnFormat.BackgroundBar,
+    failed: ColumnFormat.Number,
+  },
+  defaultParams: { user: '', days: '7' },
+  filterParamPresets: USAGE_DAYS_PRESETS,
+}
+
+/**
+ * query_log `interface` is a UInt8 code. The names follow ClickHouse's
+ * ClientInfo::Interface enum; an unknown code shows as its number.
+ */
+export const userUsageInterfacesConfig: QueryConfig = {
+  name: 'user-usage-interfaces',
+  permission: { feature: 'queries' },
+  defaultView: 'table',
+  card: { primary: 'interface_name' },
+  description:
+    "This user's queries by client interface (TCP, HTTP, gRPC, MySQL, PostgreSQL, ...): count, failures, p95 duration and bytes read (default 7 days, at most 30). THIS REPLICA ONLY.",
+  docs: QUERY_LOG,
+  tableCheck: 'system.query_log',
+  sql: `
+      SELECT
+          transform(toUInt8(interface), [1, 2, 3, 4, 5, 6, 7, 8, 9], ['TCP', 'HTTP', 'gRPC', 'MySQL', 'PostgreSQL', 'Local', 'TCP interserver', 'Prometheus', 'Background'], toString(interface)) AS interface_name,
+          count() AS queries,
+          countIf(type != 'QueryFinish') AS failed,
+          round(quantile(0.95)(query_duration_ms)) AS p95_ms,
+          formatReadableSize(sum(read_bytes)) AS bytes_read,
+          round(queries * 100.0 / nullIf(max(queries) OVER (), 0), 2) AS pct_queries
+      FROM merge('system', '^query_log')
+      WHERE (${USER_FILTER})
+        AND (${USAGE_END_EVENTS})
+        AND (${USAGE_DATE_BOUND})
+      GROUP BY interface_name
+      ORDER BY queries DESC
+      LIMIT 50`,
+  columns: ['interface_name', 'queries', 'failed', 'p95_ms', 'bytes_read'],
+  columnFormats: {
+    queries: ColumnFormat.BackgroundBar,
+    failed: ColumnFormat.Number,
+  },
+  defaultParams: { user: '', days: '7' },
+  filterParamPresets: USAGE_DAYS_PRESETS,
+}
+
+/**
+ * One-row totals for the KPI tiles on `/usage/user`. It is not a table, so it
+ * stays out of `userUsageConfigs`. `window_days` is the window the SQL really
+ * read (the 30-day cap applies), so the tiles never claim a longer one.
+ */
+export const userUsageSummaryConfig: QueryConfig = {
+  name: 'user-usage-summary',
+  permission: { feature: 'queries' },
+  description:
+    "This user's totals in the window (default 7 days, at most 30): queries, failed share, p95 duration, bytes read. THIS REPLICA ONLY.",
+  docs: QUERY_LOG,
+  tableCheck: 'system.query_log',
+  sql: `
+      SELECT
+          count() AS queries,
+          countIf(type != 'QueryFinish') AS failed,
+          round(failed * 100.0 / nullIf(queries, 0), 2) AS failed_pct,
+          if(queries = 0, 0, round(quantile(0.95)(query_duration_ms))) AS p95_ms,
+          sum(read_bytes) AS bytes_read,
+          formatReadableSize(bytes_read) AS readable_bytes_read,
+          least({days:UInt16}, ${USAGE_MAX_DAYS}) AS window_days
+      FROM merge('system', '^query_log')
+      WHERE (${USER_FILTER})
+        AND (${USAGE_END_EVENTS})
+        AND (${USAGE_DATE_BOUND})
+      LIMIT 1`,
+  columns: [
+    'queries',
+    'failed',
+    'failed_pct',
+    'p95_ms',
+    'readable_bytes_read',
+    'window_days',
+  ],
+  defaultParams: { user: '', days: '7' },
+}
+
+/**
+ * Header for `/usage/user`: how the user is defined, its default and granted
+ * roles, and its settings profiles. It reads access-control tables, so it is
+ * gated on the security feature like the users and roles pages (#4134), not
+ * on queries. These tables have no event_date; it returns one row.
+ */
+export const userUsageProfileConfig: QueryConfig = {
+  name: 'user-usage-profile',
+  permission: { feature: 'security' },
+  optional: true,
+  description:
+    'How this user is defined (system.users), the roles granted to it (system.role_grants) and its settings profiles (system.settings_profile_elements). Empty for a user not defined on this server, such as an LDAP user who has not logged in.',
+  docs: 'https://clickhouse.com/docs/en/operations/access-rights',
+  tableCheck: [
+    'system.users',
+    'system.role_grants',
+    'system.settings_profile_elements',
+  ],
+  sql: `
+      SELECT
+          name,
+          storage,
+          toString(auth_type) AS auth_type,
+          default_database,
+          default_roles_all,
+          arrayStringConcat(default_roles_list, ', ') AS default_roles,
+          (
+              SELECT arrayStringConcat(arraySort(groupArray(granted_role_name)), ', ')
+              FROM system.role_grants
+              WHERE user_name = {user:String}
+          ) AS granted_roles,
+          (
+              SELECT arrayStringConcat(arraySort(groupUniqArray(assumeNotNull(inherit_profile))), ', ')
+              FROM system.settings_profile_elements
+              WHERE user_name = {user:String} AND inherit_profile IS NOT NULL
+          ) AS profiles
+      FROM system.users
+      WHERE name = {user:String}
+      LIMIT 1`,
+  columns: [
+    'name',
+    'storage',
+    'auth_type',
+    'default_database',
+    'default_roles_all',
+    'default_roles',
+    'granted_roles',
+    'profiles',
+  ],
+  defaultParams: { user: '' },
+}
+
 export const userUsageConfigs: QueryConfig[] = [
   userUsageDailyConfig,
   userUsageHoursConfig,
   userUsageTablesConfig,
   userUsageShapesConfig,
+  userUsageKindsConfig,
+  userUsageInterfacesConfig,
   userUsageErrorsConfig,
   userUsageClientsConfig,
 ]

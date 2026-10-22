@@ -86,7 +86,11 @@ import { threadAnalysisConfig } from './queries/thread-analysis'
 import { topCpuQueriesConfig } from './queries/top-cpu-queries'
 import { topMemoryQueriesLiveConfig } from './queries/top-memory-queries-live'
 import { usageByUserConfig, usageInactiveUsersConfig } from './queries/usage'
-import { userUsageConfigs } from './queries/user-usage'
+import {
+  userUsageConfigs,
+  userUsageProfileConfig,
+  userUsageSummaryConfig,
+} from './queries/user-usage'
 import { accessMatrixConfigs } from './security/access-matrix'
 import { loginAttemptsConfig } from './security/login-attempts'
 import { sessionsConfig } from './security/sessions'
@@ -281,6 +285,8 @@ export const queries: Array<QueryConfig> = [
   usageByUserConfig,
   usageInactiveUsersConfig,
   ...userUsageConfigs,
+  userUsageSummaryConfig,
+  userUsageProfileConfig,
 
   dictionariesConfig,
 

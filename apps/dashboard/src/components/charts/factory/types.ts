@@ -54,7 +54,8 @@ export interface CustomChartFactoryConfig extends BaseChartFactoryConfig {
     data: unknown[],
     sql: string | undefined,
     hostId: number,
-    lastHours: number | undefined
+    lastHours: number | undefined,
+    params?: Record<string, string>
   ) => React.ReactNode
   chartCardClassName?: string
   contentClassName?: string
