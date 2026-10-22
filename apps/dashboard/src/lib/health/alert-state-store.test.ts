@@ -644,3 +644,26 @@ describe('repeat back-off (#4049)', () => {
     ).toBe(false)
   })
 })
+
+describe('first value of an incident (#4049)', () => {
+  const T0 = 1_000_000
+  test('is recorded on the first fire and kept through reminders and escalation', () => {
+    const fired = decideNotification(undefined, 'warning', {
+      now: T0,
+      value: 80,
+    })
+    expect(fired.next?.firstValue).toBe(80)
+    const reminder = decideNotification(fired.next ?? undefined, 'warning', {
+      now: T0 + 2 * 3_600_000,
+      value: 85,
+    })
+    expect(reminder.decision.kind).toBe('reminder')
+    expect(reminder.next?.firstValue).toBe(80)
+    const escalated = decideNotification(
+      reminder.next ?? undefined,
+      'critical',
+      { now: T0 + 3 * 3_600_000, value: 95 }
+    )
+    expect(escalated.next?.firstValue).toBe(80)
+  })
+})

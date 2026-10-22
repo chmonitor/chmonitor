@@ -1,6 +1,6 @@
 /**
  * Effective reminder pacing for the sweep (#4049): per-severity cooldown,
- * per-rule min delta, and the back-off cap, from `alerts.yaml` `repeat:` and
+ * per-rule min delta, the back-off cap, and the long-firing digest age, from `alerts.yaml` `repeat:` and
  * the `HEALTH_ALERT_*` env vars.
  *
  * Like thresholds there is no D1 layer, so the chain is `file > env > default`
@@ -22,6 +22,8 @@ export interface ResolvedRepeatConfig {
   }
   /** Back-off cap in ms; `null` = off. */
   repeatBackoffMaxMs: number | null
+  /** Age in ms at which an open alert joins the daily digest; `null` = off. */
+  longFiringDigestMs: number | null
 }
 
 export async function resolveRepeatConfig(
@@ -38,6 +40,7 @@ export async function resolveRepeatConfig(
   let globalDelta: number | null = null
   const ruleDelta: Record<string, number> = {}
   let backoffMinutes: number | null = null
+  let digestHours: number | null = null
   for (const repeat of layers) {
     const { warning, critical } = repeat.cooldownMinutes ?? {}
     if (warning !== undefined) bySeverity.warning = warning * 60_000
@@ -54,6 +57,8 @@ export async function resolveRepeatConfig(
     }
     if (repeat.backoffMaxMinutes !== undefined)
       backoffMinutes = repeat.backoffMaxMinutes
+    if (repeat.longFiringDigestHours !== undefined)
+      digestHours = repeat.longFiringDigestHours
   }
 
   const byRule: Record<string, number | null> = {}
@@ -63,5 +68,6 @@ export async function resolveRepeatConfig(
     repeatMinDelta: { default: globalDelta, byRule },
     repeatBackoffMaxMs:
       backoffMinutes === null ? null : backoffMinutes * 60_000,
+    longFiringDigestMs: digestHours === null ? null : digestHours * 3_600_000,
   }
 }

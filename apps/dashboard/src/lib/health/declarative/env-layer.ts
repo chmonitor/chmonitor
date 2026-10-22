@@ -15,6 +15,7 @@ import { loadEnvCustomWebhookTargets } from '../custom-webhook-env'
 import {
   getServerAlertCooldownConfig,
   getServerDigestWindowMinutes,
+  getServerLongFiringDigestMs,
   getServerRepeatBackoffMaxMs,
   getServerRepeatMinDeltaConfig,
   getServerThresholdOverrides,
@@ -95,6 +96,9 @@ function loadEnvRepeat(
 
   const backoffMs = getServerRepeatBackoffMaxMs()
   if (backoffMs !== null) repeat.backoffMaxMinutes = backoffMs / 60_000
+
+  const digestMs = getServerLongFiringDigestMs()
+  if (digestMs !== null) repeat.longFiringDigestHours = digestMs / 3_600_000
 
   return Object.keys(repeat).length > 0 ? repeat : undefined
 }

@@ -96,6 +96,7 @@ import {
   partitionWebhookTargets,
 } from './channels/webhook-fanout'
 import { createDigestPipeline } from './digest'
+import { createLongFiringDigest } from './long-firing'
 import { debug } from '@chm/logger'
 import { formatDuration } from '@/lib/utils'
 
@@ -165,6 +166,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
   // Digest grouping (#2663) — Slack/generic-webhook/Telegram sends buffer here
   // and flush once per tick; see `./digest.ts`.
   const digest = await createDigestPipeline(ctx, counters)
+  const longFiring = createLongFiringDigest(ctx)
   const customTargets = await loadSweepCustomTargets()
   const identity = getServerAlertIdentity()
   // In-flight bus deliveries: not awaited inline (a slow subscriber must not
@@ -229,6 +231,20 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       backoffMaxMs: ctx.repeatBackoffMaxMs,
     })
     const isRecovery = decision.kind === 'recovery'
+
+    // Opt-in daily digest of long-firing alerts (#4049): a no-op unless set.
+    longFiring.collect({
+      hostId,
+      hostName: name,
+      ruleId,
+      ruleType,
+      ruleTitle,
+      label,
+      effective,
+      value,
+      previous: previousState,
+      identity: buildFindingIdentity(identity, hostId),
+    })
 
     if (decision.notify && isRuleMuted(ctx.mutedRules, ruleId)) {
       // Muted rule (#3869): skip every channel, including the bus and custom
@@ -728,7 +744,10 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
 
   return {
     dispatchFinding,
-    flushDigests: digest.flushDigests,
+    flushDigests: async () => {
+      await digest.flushDigests()
+      await longFiring.flush()
+    },
     flushBusEvents,
     counters,
   }

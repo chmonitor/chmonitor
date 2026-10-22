@@ -85,6 +85,8 @@ export interface SweepContext {
   >['repeatMinDelta']
   /** Cap in ms for reminder back-off (#4049); `null` = off. */
   repeatBackoffMaxMs: number | null
+  /** Age in ms at which an open alert joins the daily digest (#4049); `null`/unset = off. */
+  longFiringDigestMs?: number | null
   /** Rule ids / globs muted on every channel (#3869). */
   mutedRules: string[]
   /** Opt-in ids / globs for rules shipped with `defaultEnabled: false` (#4070). */
@@ -161,7 +163,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
     ...getServerAlertCooldownConfig(ruleIds),
     bySeverity: repeat.bySeverity,
   }
-  const { repeatMinDelta, repeatBackoffMaxMs } = repeat
+  const { repeatMinDelta, repeatBackoffMaxMs, longFiringDigestMs } = repeat
 
   // Durable state (#2767): hydrate the in-memory transition/hysteresis store
   // from D1 so streaks + incident timers survive worker restarts. Best-effort —
@@ -219,6 +221,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
     cooldown,
     repeatMinDelta,
     repeatBackoffMaxMs,
+    longFiringDigestMs,
     mutedRules,
     enabledRules,
     rules,
