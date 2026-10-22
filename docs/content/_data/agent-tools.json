@@ -266,6 +266,14 @@
       "summary": "Ranked schema and settings lint for a database or table: needless Nullable, oversized ints, codecs, LowCardinality, TTL/PARTITION BY bloat, risky server settings."
     },
     {
+      "category": "advisor",
+      "core": false,
+      "description": "List what the query log shows is NOT being read: the largest MergeTree tables no finished SELECT read, the unused projections (largest first), and, when `database` and `table` are both given, that table's columns no SELECT referenced. Use for \"which tables are never queried\", \"what is unused\", \"what can we clean up\" questions. Every result states the log window start (window.start) and carries caveats: it sees THIS replica only, unread is NOT the same as unused (jobs rarer than the log retention, views and INSERT ... SELECT are invisible), and columns read only through SELECT * look unread. Read-only: it never changes anything and never says an object is safe to drop. Report the window and caveats with the findings and leave the decision to the owner.",
+      "envGate": null,
+      "name": "get_usage_findings",
+      "summary": "Tables, projections, and (for one table) columns that the query log shows no SELECT read, with the log window start and the caveats: this replica only, unread is not unused."
+    },
+    {
       "category": "control",
       "core": false,
       "description": "Cancel a running mutation on a table. DESTRUCTIVE — confirm with user before executing.",

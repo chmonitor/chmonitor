@@ -635,6 +635,52 @@ makes ClickHouse rewrite the oldest partition's parts every
   45% share table (none flagged).
 - Tests: `retention-forecast.test.ts`.
 
+## Unread tables and unused projections (#4067 slices 4 and 5)
+
+`collectUsage` (`usage-collector.ts`, called from `collectStorage`; pure
+thresholds and mapping in `usage-classifier.ts`; SQL builders in
+`usage-findings-sql.ts`, shared with the `get_usage_findings` agent tool) emits
+at most two `info` cards: the single largest unread table and the single
+largest unused projection. Unread columns are deliberately not collected: they
+are per table and misleading without a table choice (the tool serves them).
+
+- **Gates.** Size >= 10 GiB (tables and projections, same constant) and a log
+  window of >= 7 days (`dateDiff('day', min(event_date), today())`). A shorter
+  or empty log returns nothing: a short log proves nothing. `minOrNull`, not
+  `min`, so an empty log gives a NULL window and not 1970-01-01 (the
+  `unused-tables` config still uses `min`; that only affects its displayed
+  `log_window_start`).
+- **Wording.** The detail states: unread in the query_log window on THIS replica
+  only, the window start (`min(event_date)`) and its length so short retention
+  is visible, the size, and that unread is not the same as unused. It never
+  emits DDL and never says "safe to drop"; tests assert both.
+- **Identity.** Object in the metric (`usage:unread_table:<db.table>`,
+  `usage:unused_projection:<db.table.projection>`), count-free titles, numbers
+  and window only in `detail`/`value`, so the dismissal key survives changing
+  sizes and window. `deriveAction` matches both prefixes (links to
+  `/unused-tables` and `/unused-projections`).
+- **Two queries, each fails open.** A server without `system.projections` (or
+  `projection_parts`) still reports its unread table, and the reverse. Read-only,
+  `event_date` bound, LIMIT, `max_execution_time` client setting (the #4082
+  constant), `LOCAL_DATABASES_FILTER` so remote-engine databases are never
+  scanned.
+- **SQL portability.** Plain CTEs and scalar subqueries; no lambda in `WITH`
+  (#4084), no backslash (`[[:space:]]` in the column query). Run on
+  `clickhouse local` over fake `query_log`/`tables`/`projections`/
+  `projection_parts`/`columns` Memory tables under `enable_analyzer=0` and `=1`:
+  identical rows. A large unread table flagged; a table read through backticked
+  names not; a 400-day-old read ignored; failed SELECTs and INSERTs do not count
+  as reads; a used projection and inactive projection parts excluded; a 2-day
+  log gives `log_window_days = 2` (classifier returns nothing); an empty log
+  gives NULLs.
+- **Agent tool.** `get_usage_findings` (`tools/usage-tools.ts`, category
+  `advisor`) returns the three lists with `window`, `scope`, `caveats` and a
+  `warning` when the log is under 7 days, so the model cannot present a short
+  log as a finding. It runs through `readOnlyQuery`, so it also works on a
+  user's own connection (not in `CONNECTION_UNSUPPORTED_TOOLS`: it has no
+  `checkTableExists` dependency).
+- Tests: `usage.test.ts`, `tools/__tests__/usage-tools.test.ts`.
+
 ## Follow-ups
 
 - **Schema-optimization suggestions — done.** The advisor engine is now wired

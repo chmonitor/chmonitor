@@ -36,6 +36,12 @@ export function deriveAction(
     metric.startsWith('retention_forecast:')
   )
     return { label: 'View TTL inventory', href: '/ttl-partition-health' }
+  // `usage:unread_table:<db.table>` and `usage:unused_projection:<db.table.name>`
+  // carry the object in the metric for the same reason.
+  if (metric.startsWith('usage:unread_table:'))
+    return { label: 'View unread tables', href: '/unused-tables' }
+  if (metric.startsWith('usage:unused_projection:'))
+    return { label: 'View unused projections', href: '/unused-projections' }
   switch (metric) {
     case 'error_rate':
     case 'query_duration_p95':

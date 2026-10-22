@@ -25,6 +25,7 @@ import { createReportTools } from './report-tools'
 import { createSchemaTools } from './schema-tools'
 import { createSkillTools } from './skill-tools'
 import { createStorageTools } from './storage-tools'
+import { createUsageTools } from './usage-tools'
 import { createVisualizationTools } from './visualization-tools'
 import { parseBool } from '@/lib/config/parse-bool'
 
@@ -122,6 +123,7 @@ export function createAllTools(
     ...createReportTools(hostId),
 
     ...createAdvisorTools(hostId),
+    ...createUsageTools(hostId),
     ...createMvDesignerTools(hostId),
 
     ...createDashboardTools(),

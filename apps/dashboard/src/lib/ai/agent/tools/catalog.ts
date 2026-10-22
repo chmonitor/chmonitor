@@ -264,6 +264,21 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
       'schema review',
     ]
   ),
+  get_usage_findings: e(
+    'get_usage_findings',
+    'advisor',
+    'Tables, projections, and (for one table) columns that the query log shows no SELECT read, with the log window start and the caveats: this replica only, unread is not unused.',
+    [
+      'unused',
+      'unread',
+      'never queried',
+      'not read',
+      'cleanup',
+      'dead table',
+      'unused projection',
+      'unused column',
+    ]
+  ),
   recommend_materialized_view: e(
     'recommend_materialized_view',
     'advisor',
