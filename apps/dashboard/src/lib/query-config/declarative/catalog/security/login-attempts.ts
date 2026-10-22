@@ -2,6 +2,7 @@ import type { DeclarativeQueryConfig } from '../../schema'
 
 export const loginAttemptsDeclarative: DeclarativeQueryConfig = {
   name: 'login-attempts',
+  permission: { feature: 'security' },
   description: 'Login success and failure tracking',
   optional: true,
   tableCheck: 'system.session_log',

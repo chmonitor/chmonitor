@@ -2,6 +2,7 @@ import type { DeclarativeQueryConfig } from '../../schema'
 
 export const rolesDeclarative: DeclarativeQueryConfig = {
   name: 'roles',
+  permission: { feature: 'security' },
   defaultView: 'auto',
   card: { primary: 'name', badges: ['storage'] },
   description: 'Roles',
