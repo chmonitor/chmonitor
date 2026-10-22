@@ -232,3 +232,184 @@ describe('privilege levels', () => {
     expect(cell(user('admin2'), 'other').level).toBe('none')
   })
 })
+
+const grant = (over: Partial<GrantRow>): GrantRow => ({
+  user_name: null,
+  role_name: null,
+  access_type: 'SELECT',
+  database: null,
+  table: null,
+  column: null,
+  is_partial_revoke: 0,
+  grant_option: 0,
+  ...over,
+})
+
+const only = (grantRows: GrantRow[], roleGrantRows: RoleGrantRow[] = []) => ({
+  grants: grantRows,
+  roleGrants: roleGrantRows,
+  profiles: [],
+  profileElements: [],
+})
+
+// Rows as 26.9 returns them for `GRANT SELECT ON d1.t* TO u13`,
+// `GRANT SELECT ON d*.* TO u14` and `REVOKE SELECT ON d1.t* FROM u14`.
+describe('wildcard grants (is_wildcard, 26.7+)', () => {
+  const u13 = only([
+    grant({ user_name: 'u13', database: 'd1', table: 't', is_wildcard: 1 }),
+  ])
+
+  test('d1.t* reads every table with the prefix, not only `t`', () => {
+    expect(cell(user('u13'), 'd1', 't1', u13).level).toBe('read')
+    expect(cell(user('u13'), 'd1', 'tx', u13).level).toBe('read')
+    expect(cell(user('u13'), 'd1', 'other', u13).level).toBe('none')
+  })
+
+  test('d1.t* is narrower than the whole of d1', () => {
+    const db = cell(user('u13'), 'd1', undefined, u13)
+    expect(db.level).toBe('none')
+    expect(db.narrowerGrants).toBe(true)
+  })
+
+  test('d*.* covers every database with the prefix', () => {
+    const u14 = only([
+      grant({ user_name: 'u14', database: 'd', is_wildcard: 1 }),
+    ])
+    expect(cell(user('u14'), 'd1', undefined, u14).level).toBe('read')
+    expect(cell(user('u14'), 'other', undefined, u14).level).toBe('none')
+  })
+
+  test('a wildcard revoke carves out every table with the prefix', () => {
+    const u14 = only([
+      grant({ user_name: 'u14', database: 'd', is_wildcard: 1 }),
+      grant({
+        user_name: 'u14',
+        database: 'd1',
+        table: 't',
+        is_partial_revoke: 1,
+        is_wildcard: 1,
+      }),
+    ])
+    expect(cell(user('u14'), 'd1', 'tb', u14).level).toBe('none')
+    expect(cell(user('u14'), 'd1', 'other', u14).level).toBe('read')
+    expect(cell(user('u14'), 'd1', undefined, u14).partialRevoke).toBe(true)
+  })
+
+  test('without is_wildcard (before 26.7) the row is the exact table', () => {
+    const old = only([grant({ user_name: 'u13', database: 'd1', table: 't' })])
+    expect(cell(user('u13'), 'd1', 't1', old).level).toBe('none')
+    expect(cell(user('u13'), 'd1', 't', old).level).toBe('read')
+  })
+})
+
+// Rows as 26.9 returns them for `GRANT r5 TO u5; SET DEFAULT ROLE NONE TO u5`.
+describe('non-default roles', () => {
+  const u5 = only(
+    [
+      grant({ role_name: 'r5', database: 'd1' }),
+      grant({ role_name: 'r5b', access_type: 'INSERT', database: 'd1' }),
+    ],
+    [
+      {
+        user_name: 'u5',
+        role_name: null,
+        granted_role_name: 'r5',
+        granted_role_is_default: 0,
+      },
+      {
+        user_name: null,
+        role_name: 'r5',
+        granted_role_name: 'r5b',
+        granted_role_is_default: 1,
+      },
+    ]
+  )
+
+  test('a grant only through a non-default role does not count', () => {
+    const c = cell(user('u5'), 'd1', undefined, u5)
+    expect(c.level).toBe('none')
+    expect(c.privileges).toEqual([])
+    expect(c.setRoleLevel).toBe('write')
+    expect(c.availableViaSetRole.map((p) => p.source)).toEqual([
+      ['u5', 'r5'],
+      ['u5', 'r5', 'r5b'],
+    ])
+    expect(summarizeCell(c)).toBe(
+      'no access. write is available via SET ROLE of a non-default role.'
+    )
+  })
+
+  test('the role itself has the access (roles of a role are always active)', () => {
+    const c = cell({ kind: 'role', name: 'r5' }, 'd1', undefined, u5)
+    expect(c.level).toBe('write')
+    expect(c.availableViaSetRole).toEqual([])
+  })
+
+  test('a role also reachable through a default role counts', () => {
+    // u → x (non-default) → shared, u → y (default) → z → shared: the
+    // non-default path is shorter, but the default one makes shared active.
+    const diamond = only(
+      [grant({ role_name: 'shared', database: 'd1' })],
+      [
+        {
+          user_name: 'u',
+          role_name: null,
+          granted_role_name: 'x',
+          granted_role_is_default: 0,
+        },
+        {
+          user_name: 'u',
+          role_name: null,
+          granted_role_name: 'y',
+          granted_role_is_default: 1,
+        },
+        {
+          user_name: null,
+          role_name: 'x',
+          granted_role_name: 'shared',
+          granted_role_is_default: 1,
+        },
+        {
+          user_name: null,
+          role_name: 'y',
+          granted_role_name: 'z',
+          granted_role_is_default: 1,
+        },
+        {
+          user_name: null,
+          role_name: 'z',
+          granted_role_name: 'shared',
+          granted_role_is_default: 1,
+        },
+      ]
+    )
+    expect(cell(user('u'), 'd1', undefined, diamond).level).toBe('read')
+  })
+
+  test('a readonly profile on a non-default role does not cap the cell', () => {
+    const i: AccessInputs = {
+      ...only(
+        [grant({ user_name: 'u', access_type: 'INSERT', database: 'd1' })],
+        [
+          {
+            user_name: 'u',
+            role_name: null,
+            granted_role_name: 'ro_role',
+            granted_role_is_default: 0,
+          },
+        ]
+      ),
+      profileElements: [
+        {
+          profile_name: null,
+          user_name: null,
+          role_name: 'ro_role',
+          setting_name: 'readonly',
+          value: '1',
+          inherit_profile: null,
+        },
+      ],
+    }
+    expect(cell(user('u'), 'd1', undefined, i).level).toBe('write')
+  })
+})

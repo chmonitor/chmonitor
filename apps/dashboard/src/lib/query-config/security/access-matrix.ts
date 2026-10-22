@@ -7,22 +7,23 @@
  * tested, and so a missing `SHOW ...` privilege fails one section, not the
  * page. Every config is `optional` so a server without the table degrades.
  *
- * `system.grants.access_object` is avoided: it only exists on recent
- * releases. The columns used here are present on every supported version.
+ * `system.grants.access_object` is not read: it holds source types, table
+ * engines and SET DEFINER users, not data scopes. `is_wildcard` (26.7+)
+ * marks a prefix grant such as `d1.t*`; before 26.7 system.grants shows that
+ * grant as table `t` with nothing to tell it apart, so older servers still
+ * under-report wildcard access (only SHOW GRANTS has it).
  */
 
 import type { QueryConfig } from '@/types/query-config'
 
 const DOCS = 'https://clickhouse.com/docs/en/operations/access-rights'
 
-export const accessGrantsConfig: QueryConfig = {
-  name: 'access-grants',
-  description:
-    'Privileges granted to users and roles (system.grants). A NULL database or table means all.',
-  optional: true,
-  tableCheck: 'system.grants',
-  docs: DOCS,
-  sql: `
+const SECURITY = { feature: 'security' } as const
+
+/** Row cap of one expanded database column; the UI says when it is hit. */
+export const ACCESS_TABLES_LIMIT = 500
+
+const grantsSql = (isWildcard: string) => `
     SELECT
       user_name,
       role_name,
@@ -31,10 +32,24 @@ export const accessGrantsConfig: QueryConfig = {
       table,
       column,
       is_partial_revoke,
-      grant_option
+      grant_option,
+      ${isWildcard}
     FROM system.grants
     ORDER BY user_name, role_name, database, table, column, access_type
-  `,
+  `
+
+export const accessGrantsConfig: QueryConfig = {
+  name: 'access-grants',
+  description:
+    'Privileges granted to users and roles (system.grants). A NULL database or table means all.',
+  optional: true,
+  tableCheck: 'system.grants',
+  docs: DOCS,
+  permission: SECURITY,
+  sql: [
+    { since: '23.8', sql: grantsSql('toUInt8(0) AS is_wildcard') },
+    { since: '26.7', sql: grantsSql('is_wildcard') },
+  ],
   columns: [
     'user_name',
     'role_name',
@@ -44,6 +59,7 @@ export const accessGrantsConfig: QueryConfig = {
     'column',
     'is_partial_revoke',
     'grant_option',
+    'is_wildcard',
   ],
 }
 
@@ -54,6 +70,7 @@ export const accessRoleGrantsConfig: QueryConfig = {
   optional: true,
   tableCheck: 'system.role_grants',
   docs: DOCS,
+  permission: SECURITY,
   sql: `
     SELECT
       user_name,
@@ -79,6 +96,7 @@ export const accessUsersConfig: QueryConfig = {
   optional: true,
   tableCheck: 'system.users',
   docs: DOCS,
+  permission: SECURITY,
   sql: `
     SELECT
       name,
@@ -112,6 +130,7 @@ export const accessRolesConfig: QueryConfig = {
   optional: true,
   tableCheck: 'system.roles',
   docs: DOCS,
+  permission: SECURITY,
   sql: `
     SELECT name, storage
     FROM system.roles
@@ -127,6 +146,7 @@ export const accessSettingsProfilesConfig: QueryConfig = {
   optional: true,
   tableCheck: 'system.settings_profiles',
   docs: DOCS,
+  permission: SECURITY,
   sql: `
     SELECT name, storage, apply_to_all, apply_to_list, apply_to_except
     FROM system.settings_profiles
@@ -148,6 +168,7 @@ export const accessProfileElementsConfig: QueryConfig = {
   optional: true,
   tableCheck: 'system.settings_profile_elements',
   docs: DOCS,
+  permission: SECURITY,
   sql: `
     SELECT
       profile_name,
@@ -176,6 +197,7 @@ export const accessDatabasesConfig: QueryConfig = {
   optional: true,
   tableCheck: 'system.databases',
   docs: DOCS,
+  permission: SECURITY,
   sql: `
     SELECT name
     FROM system.databases
@@ -191,12 +213,13 @@ export const accessTablesConfig: QueryConfig = {
   optional: true,
   tableCheck: 'system.tables',
   docs: DOCS,
+  permission: SECURITY,
   sql: `
     SELECT name
     FROM system.tables
     WHERE database = {database:String}
     ORDER BY name
-    LIMIT 500
+    LIMIT ${ACCESS_TABLES_LIMIT}
   `,
   columns: ['name'],
   defaultParams: { database: '' },

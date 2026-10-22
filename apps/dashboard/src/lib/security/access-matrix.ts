@@ -13,6 +13,11 @@
  * - Partial revokes are per grantee: a user's REVOKE does not remove a
  *   privilege that comes from one of their roles.
  * - A `readonly = 1 | 2` settings profile caps write and admin at read.
+ * - `is_wildcard` (26.7+) makes the table (or, with a NULL table, the
+ *   database) a name prefix: `d1.t*` covers d1.t1 and d1.tx, not all of d1.
+ * - Only a user's default roles are active at login. A grant reachable only
+ *   through a non-default role is listed as "available via SET ROLE" and
+ *   does not count toward the level or the readonly cap.
  */
 
 export type AccessLevel = 'none' | 'read' | 'write' | 'admin'
@@ -28,6 +33,8 @@ export interface GrantRow {
   column: string | null
   is_partial_revoke: number | boolean
   grant_option: number | boolean
+  /** 26.7+: `table` (or `database` when table is NULL) is a name prefix. */
+  is_wildcard?: number | boolean
 }
 
 export interface RoleGrantRow {
@@ -75,6 +82,7 @@ export interface AppliedPrivilege {
   database: string | null
   table: string | null
   column: string | null
+  wildcard: boolean
   /** 'direct', or the role path (grantee first). */
   source: 'direct' | string[]
 }
@@ -100,6 +108,10 @@ export interface CellAccess {
   privileges: AppliedPrivilege[]
   /** Privileges that are carved out at a narrower scope (shown in detail). */
   revokes: AppliedPrivilege[]
+  /** Level the grantee would get after SET ROLE of a non-default role. */
+  setRoleLevel: AccessLevel
+  /** Covering privileges reachable only through non-default roles. */
+  availableViaSetRole: AppliedPrivilege[]
 }
 
 export interface AccessInputs {
@@ -199,33 +211,53 @@ export interface Scope {
   table?: string
 }
 
+interface ScopedGrant {
+  database: string | null
+  table: string | null
+  column: string | null
+  wildcard: boolean
+}
+
+const scoped = (row: GrantRow): ScopedGrant => ({
+  database: row.database,
+  table: row.table,
+  column: row.column,
+  wildcard: truthy(row.is_wildcard),
+})
+
+/** `d*.*` matches by prefix; anything else names one database (NULL: all). */
+function databaseMatches(g: ScopedGrant, database: string): boolean {
+  if (g.database === null) return true
+  return g.wildcard && g.table === null
+    ? database.startsWith(g.database)
+    : g.database === database
+}
+
+function tableMatches(g: ScopedGrant, table: string): boolean {
+  return g.wildcard ? table.startsWith(g.table ?? '') : g.table === table
+}
+
 /** The grant covers the whole scope (NULL means all). */
-function coversScope(
-  g: { database: string | null; table: string | null; column: string | null },
-  scope: Scope
-): boolean {
+function coversScope(g: ScopedGrant, scope: Scope): boolean {
   if (g.column !== null) return false
-  if (g.database !== null && g.database !== scope.database) return false
+  if (!databaseMatches(g, scope.database)) return false
   if (g.table === null) return true
-  return scope.table !== undefined && g.table === scope.table
+  return scope.table !== undefined && tableMatches(g, scope.table)
 }
 
 /** The grant applies to only part of the scope (a table or column inside it). */
-function insideScope(
-  g: { database: string | null; table: string | null; column: string | null },
-  scope: Scope
-): boolean {
+function insideScope(g: ScopedGrant, scope: Scope): boolean {
   if (coversScope(g, scope)) return false
-  if (g.database !== null && g.database !== scope.database) return false
-  if (g.database === null) return false
+  if (g.database === null || !databaseMatches(g, scope.database)) return false
   if (scope.table === undefined) return g.table !== null || g.column !== null
-  return g.table === scope.table && g.column !== null
+  return g.column !== null && tableMatches(g, scope.table)
 }
 
 // ── Role closure ────────────────────────────────────────────────────────
 
 /**
  * Every role reachable from a grantee, breadth first, with the shortest path.
+ * Roles reachable from a default role are walked first and marked default.
  * Cycles (r1 ← r2 ← r1) stop at the first visit.
  */
 export function roleClosure(
@@ -236,7 +268,7 @@ export function roleClosure(
   const visited = new Set<string>()
   if (grantee.kind === 'role') visited.add(grantee.name)
 
-  let frontier: RoleReach[] = roleGrants
+  const roots: RoleReach[] = roleGrants
     .filter((rg) =>
       grantee.kind === 'user'
         ? rg.user_name === grantee.name
@@ -245,27 +277,34 @@ export function roleClosure(
     .map((rg) => ({
       role: rg.granted_role_name,
       path: [grantee.name, rg.granted_role_name],
-      isDefault: truthy(rg.granted_role_is_default),
+      // Default roles are a user setting; every role of a role is active.
+      isDefault: grantee.kind === 'role' || truthy(rg.granted_role_is_default),
     }))
 
-  while (frontier.length > 0) {
-    const next: RoleReach[] = []
-    for (const reach of frontier) {
-      if (visited.has(reach.role)) continue
-      visited.add(reach.role)
-      out.push(reach)
-      for (const rg of roleGrants) {
-        if (rg.role_name === reach.role && !visited.has(rg.granted_role_name)) {
-          next.push({
-            role: rg.granted_role_name,
-            path: [...reach.path, rg.granted_role_name],
-            isDefault: reach.isDefault,
-          })
+  const walk = (start: RoleReach[]) => {
+    let frontier = start
+    while (frontier.length > 0) {
+      const next: RoleReach[] = []
+      for (const reach of frontier) {
+        if (visited.has(reach.role)) continue
+        visited.add(reach.role)
+        out.push(reach)
+        for (const rg of roleGrants) {
+          if (rg.role_name === reach.role && !visited.has(rg.granted_role_name))
+            next.push({
+              role: rg.granted_role_name,
+              path: [...reach.path, rg.granted_role_name],
+              isDefault: reach.isDefault,
+            })
         }
       }
+      frontier = next
     }
-    frontier = next
   }
+  // Every role active at login first, so a role that is also reachable
+  // through a non-default role still counts as active.
+  walk(roots.filter((r) => r.isDefault))
+  walk(roots.filter((r) => !r.isDefault))
   return out
 }
 
@@ -373,6 +412,8 @@ export function resolveReadonly(
 export interface Sourced {
   row: GrantRow
   source: 'direct' | string[]
+  /** False when the grant comes only through a non-default role. */
+  active: boolean
 }
 
 /** Grant rows held by the grantee and each role in its closure. */
@@ -387,11 +428,11 @@ export function sourcedGrants(
         ? g.user_name === grantee.name
         : g.role_name === grantee.name
     )
-    .map((row) => ({ row, source: 'direct' as const }))
+    .map((row) => ({ row, source: 'direct' as const, active: true }))
   const viaRoles = closure.flatMap((reach) =>
     grants
       .filter((g) => g.role_name === reach.role)
-      .map((row) => ({ row, source: reach.path }))
+      .map((row) => ({ row, source: reach.path, active: reach.isDefault }))
   )
   return [...own, ...viaRoles]
 }
@@ -405,6 +446,7 @@ const toApplied = ({ row, source }: Sourced): AppliedPrivilege => ({
   database: row.database,
   table: row.table,
   column: row.column,
+  wildcard: truthy(row.is_wildcard),
   source,
 })
 
@@ -421,6 +463,8 @@ export function computeCell(
 ): CellAccess {
   const privileges: AppliedPrivilege[] = []
   const revokes: AppliedPrivilege[] = []
+  const availableViaSetRole: AppliedPrivilege[] = []
+  let setRoleLevel: AccessLevel = 'none'
   let grantedLevel: AccessLevel = 'none'
   let partialRevoke = false
   let narrowerGrants = false
@@ -434,8 +478,9 @@ export function computeCell(
 
   for (const s of sourced) {
     if (truthy(s.row.is_partial_revoke)) continue
-    const covers = coversScope(s.row, scope)
-    const inside = insideScope(s.row, scope)
+    const g = scoped(s.row)
+    const covers = coversScope(g, scope)
+    const inside = insideScope(g, scope)
     if (!covers && !inside) continue
 
     const ownRevokes = revokesBySource.get(sourceKey(s.source)) ?? []
@@ -443,7 +488,20 @@ export function computeCell(
       revokeCovers(r.row.access_type, s.row.access_type)
     )
     // A revoke that covers this whole scope removes the privilege here.
-    if (covers && relevant.some((r) => coversScope(r.row, scope))) continue
+    if (covers && relevant.some((r) => coversScope(scoped(r.row), scope)))
+      continue
+
+    // A non-default role is off until SET ROLE: shown, never counted.
+    if (!s.active) {
+      if (covers) {
+        availableViaSetRole.push(toApplied(s))
+        setRoleLevel = maxLevel(
+          setRoleLevel,
+          privilegeLevel(s.row.access_type, truthy(s.row.grant_option))
+        )
+      }
+      continue
+    }
 
     privileges.push(toApplied(s))
     if (covers) {
@@ -451,7 +509,7 @@ export function computeCell(
         grantedLevel,
         privilegeLevel(s.row.access_type, truthy(s.row.grant_option))
       )
-      const carved = relevant.filter((r) => insideScope(r.row, scope))
+      const carved = relevant.filter((r) => insideScope(scoped(r.row), scope))
       if (carved.length > 0) {
         partialRevoke = true
         revokes.push(...carved.map(toApplied))
@@ -475,6 +533,8 @@ export function computeCell(
     readonly: capped ? readonly : null,
     privileges,
     revokes,
+    setRoleLevel,
+    availableViaSetRole,
   }
 }
 
@@ -494,9 +554,10 @@ export function granteeAccess(
   return {
     grantee,
     closure,
+    // A readonly profile on a role that is not active does not apply.
     readonly: resolveReadonly(
       grantee,
-      closure,
+      closure.filter((r) => r.isDefault),
       inputs.profiles,
       inputs.profileElements
     ),
@@ -519,10 +580,17 @@ export function summarizeCell(cell: CellAccess): string {
       : ''
     return `read only: ${write?.accessType ?? 'a write privilege'} is granted${via}, but ${cell.readonly.reason}.`
   }
+  const setRole =
+    cell.availableViaSetRole.length > 0 &&
+    ACCESS_LEVELS.indexOf(cell.setRoleLevel) > ACCESS_LEVELS.indexOf(cell.level)
+      ? ` ${cell.setRoleLevel} is available via SET ROLE of a non-default role.`
+      : ''
   if (cell.level === 'none') {
-    return cell.narrowerGrants
-      ? 'no access to the whole scope; some tables or columns are granted.'
-      : 'no access.'
+    return `${
+      cell.narrowerGrants
+        ? 'no access to the whole scope; some tables or columns are granted.'
+        : 'no access.'
+    }${setRole}`
   }
   const parts = [`${cell.level} access`]
   if (cell.direct && cell.viaRole)
@@ -530,7 +598,7 @@ export function summarizeCell(cell: CellAccess): string {
   else if (cell.viaRole) parts.push('granted through roles')
   else parts.push('granted directly')
   if (cell.partialRevoke) parts.push('with a narrower REVOKE carved out')
-  return `${parts.join(', ')}.`
+  return `${parts.join(', ')}.${setRole}`
 }
 
 export function formatSource(source: 'direct' | string[]): string {

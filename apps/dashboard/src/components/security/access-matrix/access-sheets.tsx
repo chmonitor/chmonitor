@@ -73,8 +73,12 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
   )
 }
 
-const scopeOf = (p: AppliedPrivilege) =>
-  `${p.database ?? '*'}.${p.table ?? '*'}${p.column ? ` (${p.column})` : ''}`
+const scopeOf = (p: AppliedPrivilege) => {
+  const star = p.wildcard ? '*' : ''
+  const db = p.database === null ? '*' : `${p.database}${p.table ? '' : star}`
+  const table = p.table === null ? '*' : `${p.table}${star}`
+  return `${db}.${table}${p.column ? ` (${p.column})` : ''}`
+}
 
 function PrivilegeTable({ rows }: { rows: AppliedPrivilege[] }) {
   if (rows.length === 0) return <p className="text-muted-foreground">None.</p>
@@ -125,6 +129,16 @@ export function CellDetail({ cell }: { cell: CellAccess }) {
         <section>
           <Heading>Carved out (partial revokes)</Heading>
           <PrivilegeTable rows={cell.revokes} />
+        </section>
+      )}
+      {cell.availableViaSetRole.length > 0 && (
+        <section>
+          <Heading>Available via SET ROLE (not counted)</Heading>
+          <p className="mb-2 text-muted-foreground">
+            These come through a role that is not a default role, so they apply
+            only after <span className="font-mono">SET ROLE</span> in a session.
+          </p>
+          <PrivilegeTable rows={cell.availableViaSetRole} />
         </section>
       )}
       {cell.readonly && (
@@ -293,12 +307,20 @@ export function GranteeSheet({
           )}
           <section>
             <Heading>Grants, direct and through roles</Heading>
+            {access.closure.some((r) => !r.isDefault) && (
+              <p className="mb-2 text-muted-foreground">
+                Grants through a role that is not a default role apply only
+                after <span className="font-mono">SET ROLE</span> and are not
+                counted in the matrix.
+              </p>
+            )}
             <PrivilegeTable
               rows={access.sourced
                 .filter((s) => !s.row.is_partial_revoke)
                 .map((s) => ({
                   accessType: s.row.access_type,
                   grantOption: Boolean(s.row.grant_option),
+                  wildcard: Boolean(s.row.is_wildcard),
                   database: s.row.database,
                   table: s.row.table,
                   column: s.row.column,

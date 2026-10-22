@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ACCESS_TABLES_LIMIT } from '@/lib/query-config/security/access-matrix'
 import { computeCell } from '@/lib/security/access-matrix'
 import {
   buildRows,
@@ -67,6 +68,23 @@ function SectionNotice({
       </li>
     )
   return null
+}
+
+/** The table list of an expanded database stops at the SQL LIMIT. */
+export function TablesCapNotice({
+  database,
+  count,
+}: {
+  database: string
+  count: number
+}) {
+  if (count < ACCESS_TABLES_LIMIT) return null
+  return (
+    <p className="text-xs text-muted-foreground">
+      Only the first {ACCESS_TABLES_LIMIT} tables of {database} (by name) are
+      shown; access to the rest is in the database column.
+    </p>
+  )
 }
 
 function MatrixSkeleton() {
@@ -350,6 +368,12 @@ export function AccessMatrixView() {
             </tbody>
           </table>
         </div>
+      )}
+      {expanded && (
+        <TablesCapNotice
+          database={expanded}
+          count={expandedTables.tables.length}
+        />
       )}
       {expanded && expandedTables.error && (
         <p className="text-xs text-muted-foreground">
