@@ -29,6 +29,7 @@ import { listRoutes } from './../alert-routing'
 import { hydrateAlertState } from './../alert-state-persist'
 import { alertStateStore } from './../alert-state-store'
 import { loadCustomRulesIntoRegistry } from './../custom-rules-store'
+import { resolveRepeatConfig } from './../declarative/repeat'
 import { resolveThresholdOverrides } from './../declarative/thresholds'
 import { listWindows } from './../maintenance-windows'
 import { getPagerDutyFallbackRoutingKey } from './../pagerduty-config'
@@ -39,8 +40,6 @@ import {
   getServerEnabledRules,
   getServerHysteresisConfig,
   getServerMutedRules,
-  getServerRepeatBackoffMaxMs,
-  getServerRepeatMinDeltaConfig,
   isAnyAlertChannelEnabled,
 } from './../server-alert-config'
 import { resolveServerChannels } from './../server-channel-resolve'
@@ -81,7 +80,9 @@ export interface SweepContext {
   /** Re-notify cooldown: global default, per-severity (#4049) and per-rule (#3869) overrides. */
   cooldown: ReturnType<typeof getServerAlertCooldownConfig>
   /** Min value change for a reminder (#4049); `null` = off. */
-  repeatMinDelta: ReturnType<typeof getServerRepeatMinDeltaConfig>
+  repeatMinDelta: Awaited<
+    ReturnType<typeof resolveRepeatConfig>
+  >['repeatMinDelta']
   /** Cap in ms for reminder back-off (#4049); `null` = off. */
   repeatBackoffMaxMs: number | null
   /** Rule ids / globs muted on every channel (#3869). */
@@ -154,9 +155,13 @@ export async function resolveSweepContext(): Promise<SweepContext> {
   ]
   const hysteresis = getServerHysteresisConfig(ruleIds)
   // Re-notify cooldown (#3869): same resolution shape as hysteresis.
-  const cooldown = getServerAlertCooldownConfig(ruleIds)
-  const repeatMinDelta = getServerRepeatMinDeltaConfig(ruleIds)
-  const repeatBackoffMaxMs = getServerRepeatBackoffMaxMs()
+  // Reminder pacing (#4049): `alerts.yaml` `repeat:` over env, per key.
+  const repeat = await resolveRepeatConfig(ruleIds)
+  const cooldown = {
+    ...getServerAlertCooldownConfig(ruleIds),
+    bySeverity: repeat.bySeverity,
+  }
+  const { repeatMinDelta, repeatBackoffMaxMs } = repeat
 
   // Durable state (#2767): hydrate the in-memory transition/hysteresis store
   // from D1 so streaks + incident timers survive worker restarts. Best-effort —

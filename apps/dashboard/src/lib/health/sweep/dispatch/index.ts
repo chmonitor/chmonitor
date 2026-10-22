@@ -77,6 +77,7 @@ import {
   isRuleMuted,
   meetsMinSeverity,
 } from './../suppression'
+import { buildAlertDetails } from './alert-details'
 import {
   dispatchCustomWebhookTargets,
   eligibleGroupableCustomTargets,
@@ -206,9 +207,8 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       (effective === 'ok' ? undefined : ctx.cooldown.bySeverity[effective]) ??
       ctx.cooldown.defaultMs
     // Read before evaluateAlert: a reminder shows previous -> current value.
-    const previousValue = alertStateStore.get(
-      alertStateKey(hostId, ruleId)
-    )?.lastNotifiedValue
+    const previousState = alertStateStore.get(alertStateKey(hostId, ruleId))
+    const previousValue = previousState?.lastNotifiedValue
     const { decision, commit } = evaluateAlert(alertStateStore, {
       hostId,
       ruleId,
@@ -629,6 +629,13 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       text,
       globalMinSeverity: settings.minSeverity,
       severity: deliverSeverity,
+      details: buildAlertDetails({
+        kind: decision.kind,
+        value,
+        previousValue,
+        previousState,
+        now: webhookTimestamp,
+      }),
     })
     if (customDelivered) anyDelivered = true
     // Grouped custom targets count as groupable (in settleFinding), and a

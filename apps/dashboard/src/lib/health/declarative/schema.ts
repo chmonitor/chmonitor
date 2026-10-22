@@ -5,6 +5,7 @@
  *
  *   alerts.yaml       custom rules (`id`) + threshold overrides (rule name)
  *                     + PeerDB mirror rules (`peerdbRules`, `id`)
+ *                     + reminder pacing (`repeat`, single value)
  *   routing.yaml      alert routes (`id`)
  *   channels.yaml     channel config (`channel`) + custom webhook targets (`id`)
  *   quiet-hours.yaml  quiet-hours windows (`id`)
@@ -194,10 +195,38 @@ export const declarativeWebhookTargetSchema = z.strictObject({
     }),
   /** `false` = first alert and recovery only, no reminders. */
   repeat: z.boolean().default(true),
+  /** `true` = raw JSON body also carries `details` (trend, repeatCount, firstFiredAt). */
+  details: z.boolean().default(false),
   /** Env var holding the HTTPS webhook URL (credential-bearing). */
   urlEnv: envNameSchema,
   /** Env var holding a JSON object of secret headers. */
   headersEnv: envNameSchema.optional(),
+})
+
+/** A non-negative minute count / value delta (0 is allowed). */
+const nonNegativeSchema = z.number().finite().min(0)
+
+/**
+ * Reminder pacing (#4049), the declarative form of
+ * `HEALTH_ALERT_COOLDOWN_<SEVERITY>_MINUTES`,
+ * `HEALTH_ALERT_REPEAT_MIN_DELTA[_<RULE>]` and
+ * `HEALTH_ALERT_BACKOFF_MAX_MINUTES`. Every field is optional: an absent
+ * field says nothing, so env keeps applying to it.
+ */
+export const declarativeRepeatSchema = z.strictObject({
+  /** Per-severity re-notify cooldown in minutes; `0` = no reminders. */
+  cooldownMinutes: z
+    .strictObject({
+      warning: nonNegativeSchema.optional(),
+      critical: nonNegativeSchema.optional(),
+    })
+    .optional(),
+  /** Min absolute value change for a reminder; the global value. */
+  minDelta: nonNegativeSchema.optional(),
+  /** Per-rule min delta, keyed by rule id. */
+  minDeltaByRule: z.record(z.string(), nonNegativeSchema).optional(),
+  /** Back-off cap in minutes while a value stays flat; must be positive. */
+  backoffMaxMinutes: z.number().finite().positive().optional(),
 })
 
 export const declarativeQuietHoursSchema = z.strictObject({
@@ -241,6 +270,7 @@ export type DeclarativeChannel = z.infer<typeof declarativeChannelSchema>
 export type DeclarativeWebhookTarget = z.infer<
   typeof declarativeWebhookTargetSchema
 >
+export type DeclarativeRepeat = z.infer<typeof declarativeRepeatSchema>
 export type DeclarativeQuietHours = z.infer<typeof declarativeQuietHoursSchema>
 export type DeclarativeMaintenanceWindow = z.infer<
   typeof declarativeMaintenanceWindowSchema
@@ -257,6 +287,8 @@ export const HEALTH_CONFIG_FILE_SCHEMAS = {
     rules: list,
     peerdbRules: list,
     thresholds: z.record(z.string(), z.unknown()).default({}),
+    /** Validated by the loader (`declarativeRepeatSchema`), not here. */
+    repeat: z.unknown().optional(),
   }),
   routing: z.strictObject({ routes: list }),
   channels: z.strictObject({ channels: list, webhookTargets: list }),
@@ -283,6 +315,8 @@ export interface HealthConfigData {
   maintenanceWindows: Record<string, DeclarativeMaintenanceWindow>
   /** Single value (merge key `__digest__`); `undefined` = not set here. */
   digest?: DeclarativeDigest
+  /** Reminder pacing (#4049); `undefined` = not set here. */
+  repeat?: DeclarativeRepeat
 }
 
 /**
