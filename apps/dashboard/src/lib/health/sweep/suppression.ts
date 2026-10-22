@@ -14,7 +14,10 @@
  * sweep's cooldown behaviour is therefore expressed as `decision.notify`.
  */
 
-import type { AlertRuleSeverity } from '@/lib/alerting/rule-registry'
+import type {
+  AlertRuleDef,
+  AlertRuleSeverity,
+} from '@/lib/alerting/rule-registry'
 import type { AlertAck } from './../alert-ack-store'
 import type { MaintenanceWindow } from './../maintenance-windows'
 import type { QuietHours } from './../quiet-hours'
@@ -121,4 +124,19 @@ export function isRuleMuted(
   ruleId: string
 ): boolean {
   return mutedRules.some((pattern) => globToRegExp(pattern).test(ruleId))
+}
+
+/**
+ * Whether `rule` runs (#4070). A rule runs unless it ships with
+ * `defaultEnabled: false` and no entry of `HEALTH_ALERT_ENABLE_RULES` names it
+ * (exact id or `*`/`?` glob, case-insensitive). Every evaluation path asks
+ * this one question so a default-off rule cannot be run by one path and
+ * skipped by another.
+ */
+export function isRuleEnabled(
+  rule: Pick<AlertRuleDef, 'id' | 'defaultEnabled'>,
+  optInList: readonly string[] = []
+): boolean {
+  if (rule.defaultEnabled !== false) return true
+  return optInList.some((pattern) => globToRegExp(pattern).test(rule.id))
 }

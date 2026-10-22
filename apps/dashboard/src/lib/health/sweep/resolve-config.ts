@@ -36,6 +36,7 @@ import { listQuietHours } from './../quiet-hours'
 import {
   getServerAlertConfig,
   getServerAlertCooldownConfig,
+  getServerEnabledRules,
   getServerHysteresisConfig,
   getServerMutedRules,
   getServerRepeatBackoffMaxMs,
@@ -85,6 +86,8 @@ export interface SweepContext {
   repeatBackoffMaxMs: number | null
   /** Rule ids / globs muted on every channel (#3869). */
   mutedRules: string[]
+  /** Opt-in ids / globs for rules shipped with `defaultEnabled: false` (#4070). */
+  enabledRules: string[]
   rules: AlertRuleDef[]
   thresholdOverrides: Awaited<ReturnType<typeof resolveThresholdOverrides>>
   hysteresis: ReturnType<typeof getServerHysteresisConfig>
@@ -124,6 +127,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
   // `dispatchFinding` already no-op cleanly (empty target lists).
   const alertingEnabled = isAnyAlertChannelEnabled()
   const mutedRules = getServerMutedRules()
+  const enabledRules = getServerEnabledRules()
 
   // Re-sync custom alert rules (plan 32) every sweep tick: unregisters stale
   // `custom:*` ids first, then loads whatever is currently enabled in D1.
@@ -211,6 +215,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
     repeatMinDelta,
     repeatBackoffMaxMs,
     mutedRules,
+    enabledRules,
     rules,
     thresholdOverrides,
     hysteresis,

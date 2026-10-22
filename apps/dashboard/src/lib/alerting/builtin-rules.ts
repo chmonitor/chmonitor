@@ -720,6 +720,44 @@ LIMIT 50`,
   },
 
   {
+    id: 'detached-parts-review',
+    type: 'detached-parts-review',
+    title: 'Detached Parts To Review',
+    description:
+      'Off by default; enable with HEALTH_ALERT_ENABLE_RULES=detached-parts-review. Detached parts hold disk space until someone reviews them. The value is the larger of two ratios: detached bytes against 1% of total disk space, and the oldest detached part against 30 days. 1 means one limit is reached. Coverage is per replica: this host only, a part detached here says nothing about the other replicas, so check each replica. Open the Detached Parts Triage page (/detached-parts-triage) to review each part before acting.',
+    // Both ratios are 1.0 exactly at the limit (1% of disk, 30 days). `count()
+    // = 0` is needed because min() over no rows is the epoch, not NULL.
+    // NULL bytes / times (older servers) fall back to 0 per half.
+    sql: `SELECT if(count() = 0, 0, greatest(
+  ifNull(sum(bytes_on_disk) * 100.0 / nullIf((SELECT sum(total_space) FROM system.disks), 0), 0),
+  ifNull((toUnixTimestamp(now()) - toUnixTimestamp(min(modification_time))) / 86400.0 / 30, 0)
+)) AS review_ratio
+FROM system.detached_parts`,
+    valueKey: 'review_ratio',
+    // Warning only: nothing here is urgent. The critical bound is far above
+    // any real ratio so the severity never reaches 'critical'.
+    defaults: { warning: 1, critical: 1_000_000 },
+    defaultEnabled: false,
+    formatLabel: (v) =>
+      `detached parts at ${(v ?? 0).toFixed(2)}x the review limit (1% of disk or 30 days)`,
+    optional: true,
+    tableCheck: 'system.detached_parts',
+    remediationActions: [
+      {
+        id: 'detached-parts-review-detail',
+        label: 'List detached parts to review',
+        kind: 'diagnostic',
+        description:
+          'Detached parts on this host, oldest first. Review each part before acting; other replicas are not covered.',
+        sql: `SELECT database, table, name, reason, bytes_on_disk, modification_time
+FROM system.detached_parts
+ORDER BY modification_time ASC, bytes_on_disk DESC
+LIMIT 50`,
+      },
+    ],
+  },
+
+  {
     id: 'fatal-log-entries',
     type: 'custom',
     title: 'Fatal Log Entries',

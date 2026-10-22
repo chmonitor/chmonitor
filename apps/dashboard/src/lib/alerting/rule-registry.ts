@@ -40,6 +40,7 @@ export type AlertRuleType =
   | 'rejected-inserts'
   | 'memory-pressure'
   | 'broken-detached-parts'
+  | 'detached-parts-review'
   | 'custom'
 
 /**
@@ -96,6 +97,14 @@ export interface AlertRuleDef {
   defaults: { warning: number; critical: number }
   /** Human-readable label for the triggered value. */
   formatLabel?: (value: number | null) => string
+  /**
+   * Whether the rule runs without an explicit opt-in. Absent means `true`, so
+   * every rule written before this field existed is unchanged. A rule with
+   * `defaultEnabled: false` is skipped by the sweep and the current-findings
+   * snapshot unless an operator names it in `HEALTH_ALERT_ENABLE_RULES`; the
+   * single decision lives in `isRuleEnabled` (`lib/health/sweep/suppression`).
+   */
+  defaultEnabled?: boolean
   /** When true, skip this rule if the required table is missing. */
   optional?: boolean
   /** Table to check before running the SQL (e.g. 'system.backup_log'). */
