@@ -128,6 +128,8 @@ const DASHBOARD_ROUTES = [
   '/unused-columns',
   '/unused-projections',
   '/unused-tables',
+  '/usage',
+  '/usage/user',
   '/user-processes',
   '/users',
   '/view-refreshes',

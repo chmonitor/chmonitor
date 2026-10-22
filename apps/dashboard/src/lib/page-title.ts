@@ -27,6 +27,8 @@ export const ROUTE_TITLE_MAP: Record<string, string> = {
   '/expensive-queries-by-memory': 'Expensive Queries (Memory)',
   '/query-cache': 'Query Cache',
   '/queries/parallelization': 'Query Parallelization',
+  '/usage': 'Usage by User',
+  '/usage/user': 'User Usage',
   '/queries/thread-analysis': 'Query Thread Analysis',
   '/tables': 'Tables',
   '/tables-overview': 'Tables Overview',
