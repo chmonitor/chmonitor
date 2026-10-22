@@ -19,6 +19,20 @@
 export type AlertSeverity = 'warning' | 'critical' | 'recovery'
 
 /**
+ * Opt-in structured context for a still-open or new incident. Only the
+ * generic JSON body carries it, and only for a custom target with
+ * `details: true`; every other body is unchanged.
+ */
+export interface AlertDetails {
+  /** Value movement since the previous notification; `null` = no baseline. */
+  trend: 'rising' | 'falling' | 'flat' | null
+  /** Reminders already sent at a flat value (tracked while back-off is on). */
+  repeatCount: number
+  /** ISO-8601 time the incident began firing; `null` when unknown. */
+  firstFiredAt: string | null
+}
+
+/**
  * Channel-agnostic alert payload.
  *
  * Field names intentionally track the health subsystem's existing shapes
@@ -87,6 +101,8 @@ export interface AlertPayload {
    * {@link stillOpenMs} so a reminder can show how the value moved.
    */
   previousValue?: number
+  /** Opt-in per custom target (`details: true`); see {@link AlertDetails}. */
+  details?: AlertDetails
 }
 
 /**
