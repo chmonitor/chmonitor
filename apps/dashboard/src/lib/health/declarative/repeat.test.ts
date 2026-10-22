@@ -60,6 +60,7 @@ describe('alerts.yaml repeat', () => {
         byRule: { 'disk-usage': null, 'replication-lag': null },
       },
       repeatBackoffMaxMs: null,
+      longFiringDigestMs: null,
     })
   })
 
@@ -106,5 +107,33 @@ describe('alerts.yaml repeat', () => {
       'disk-usage': null,
       'replication-lag': null,
     })
+  })
+})
+
+describe('long-firing digest setting', () => {
+  test('is off by default', async () => {
+    expect((await resolveRepeatConfig(IDS)).longFiringDigestMs).toBeNull()
+  })
+
+  test('env alone turns it on, in hours', async () => {
+    process.env.HEALTH_ALERT_LONG_FIRING_DIGEST_HOURS = '24'
+    expect((await resolveRepeatConfig(IDS)).longFiringDigestMs).toBe(
+      24 * 3_600_000
+    )
+  })
+
+  test('invalid env values leave it off', async () => {
+    for (const bad of ['0', '-3', 'abc', '']) {
+      process.env.HEALTH_ALERT_LONG_FIRING_DIGEST_HOURS = bad
+      expect((await resolveRepeatConfig(IDS)).longFiringDigestMs).toBeNull()
+    }
+  })
+
+  test('alerts.yaml beats env', async () => {
+    write('repeat:\n  longFiringDigestHours: 6\n')
+    process.env.HEALTH_ALERT_LONG_FIRING_DIGEST_HOURS = '48'
+    expect((await resolveRepeatConfig(IDS)).longFiringDigestMs).toBe(
+      6 * 3_600_000
+    )
   })
 })

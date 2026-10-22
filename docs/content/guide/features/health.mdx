@@ -204,7 +204,11 @@ file form of `HEALTH_ALERT_COOLDOWN_WARNING_MINUTES` /
 `HEALTH_ALERT_COOLDOWN_CRITICAL_MINUTES` (`cooldownMinutes`),
 `HEALTH_ALERT_REPEAT_MIN_DELTA` and `HEALTH_ALERT_REPEAT_MIN_DELTA_<RULE>`
 (`minDelta`, `minDeltaByRule`), and `HEALTH_ALERT_BACKOFF_MAX_MINUTES`
-(`backoffMaxMinutes`, must be above `0`). Every key is optional and the file
+(`backoffMaxMinutes`, must be above `0`), and
+`HEALTH_ALERT_LONG_FIRING_DIGEST_HOURS` (`longFiringDigestHours`, must be above
+`0`; off by default). The last one sends one summary per day per channel of
+alerts that have been open at least that many hours, with the first and the
+current value. Every key is optional and the file
 wins over env per key. A per-rule min delta (file, then env) still beats the
 global one. An invalid block is skipped with a warning and env keeps applying.
 
@@ -217,6 +221,7 @@ repeat:
   minDeltaByRule:
     disk-usage: 10
   backoffMaxMinutes: 240
+  longFiringDigestHours: 24
 ```
 
 `alerts.yaml` also accepts `peerdbRules:`, per-mirror PeerDB thresholds and

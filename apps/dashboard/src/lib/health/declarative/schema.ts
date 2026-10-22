@@ -210,7 +210,8 @@ const nonNegativeSchema = z.number().finite().min(0)
  * Reminder pacing (#4049), the declarative form of
  * `HEALTH_ALERT_COOLDOWN_<SEVERITY>_MINUTES`,
  * `HEALTH_ALERT_REPEAT_MIN_DELTA[_<RULE>]` and
- * `HEALTH_ALERT_BACKOFF_MAX_MINUTES`. Every field is optional: an absent
+ * `HEALTH_ALERT_BACKOFF_MAX_MINUTES` and
+ * `HEALTH_ALERT_LONG_FIRING_DIGEST_HOURS`. Every field is optional: an absent
  * field says nothing, so env keeps applying to it.
  */
 export const declarativeRepeatSchema = z.strictObject({
@@ -227,6 +228,8 @@ export const declarativeRepeatSchema = z.strictObject({
   minDeltaByRule: z.record(z.string(), nonNegativeSchema).optional(),
   /** Back-off cap in minutes while a value stays flat; must be positive. */
   backoffMaxMinutes: z.number().finite().positive().optional(),
+  /** Opt-in daily digest of alerts open this many hours; must be positive. */
+  longFiringDigestHours: z.number().finite().positive().optional(),
 })
 
 export const declarativeQuietHoursSchema = z.strictObject({
