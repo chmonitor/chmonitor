@@ -3,7 +3,7 @@ id: agent-tool-catalog
 title: Agent tool catalog, core set, and search_tools
 type: spec
 status: active
-updated: 2026-10-11
+updated: 2026-10-23
 tags:
   - ai
   - agent
@@ -16,6 +16,7 @@ related:
   - agent-eval
   - agent-model-discovery
   - product-design
+  - agent-verification
 ---
 
 # Agent tool catalog
@@ -46,6 +47,7 @@ there is one source per fact.
 | `tools/skills-tool-names.test.ts` | a backticked tool-like name in `.agents/skills/*/SKILL.md` prose that `createAllTools(0, true)` does not expose |
 | `prompts/__tests__/clickhouse-instructions.test.ts` | prompt behavior regressions, and the default / gated-on counts |
 | `tests/agent/coverage.test.ts` (repo root) | a default-gate tool with no promptfoo golden case `metadata.covers` entry |
+| `tests/agent/question-bank.test.ts` (repo root) | an eval case naming a tool not in `TOOL_CATALOG` or a skill not in the registry (catches a consistent rename), and a core tool with no question-bank case |
 
 That last one lives **outside** `apps/dashboard` and scans `tools/*.ts` with
 `/^\s+([a-z][a-z0-9_]+):\s*dynamicTool\(/gm`, so a new tool factory is picked

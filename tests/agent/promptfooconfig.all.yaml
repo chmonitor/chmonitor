@@ -63,6 +63,7 @@ tests:
   - file://./cases/quality.yaml
   - file://./cases/extended.yaml
   - file://./cases/coverage.yaml
+  - file://./cases/questions.yaml
 
 evaluateOptions:
   maxConcurrency: 1
