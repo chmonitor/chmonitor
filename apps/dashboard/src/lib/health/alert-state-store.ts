@@ -89,6 +89,12 @@ export interface AlertStateRecord {
    * back-off. Absent = 0; dropped on any state change.
    */
   repeatCount?: number
+  /**
+   * Observed value when the current incident began firing (#4049). Carried
+   * through escalation/de-escalation; feeds the long-firing digest's
+   * first-versus-current line. Absent when unknown.
+   */
+  firstValue?: number
 }
 
 /** What kind of transition the current evaluation represents. */
@@ -260,6 +266,7 @@ export function decideNotification(
   const withFired = (rec: AlertStateRecord): AlertStateRecord => ({
     ...rec,
     ...(firstFiredAt !== undefined && { firstFiredAt }),
+    ...(prev?.firstValue !== undefined && { firstValue: prev.firstValue }),
   })
 
   // Record the value only on a send; a suppressed sweep keeps the old one.
@@ -394,6 +401,7 @@ export function decideNotification(
     if (count < minBreaches) return hold(current, count)
     // Confirmed: NEW or ESCALATED — always notify regardless of cooldown.
     const started = confirmed === 'ok' ? now : (firstFiredAt ?? now)
+    const startedValue = confirmed === 'ok' ? value : prev?.firstValue
     return {
       decision: {
         notify: true,
@@ -406,6 +414,7 @@ export function decideNotification(
         updatedAt: now,
         notifiedAt: now,
         firstFiredAt: started,
+        ...(startedValue !== undefined && { firstValue: startedValue }),
       }),
     }
   }

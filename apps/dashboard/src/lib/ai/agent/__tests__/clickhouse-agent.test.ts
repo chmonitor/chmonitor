@@ -167,3 +167,30 @@ describe('createClickHouseAgent tool integration', () => {
     expect(Object.keys(agent.tools).length).toBeGreaterThanOrEqual(0)
   })
 })
+
+describe('createClickHouseAgent disabledTools and search_tools', () => {
+  const search = async (disabledTools: string[]) => {
+    const agent = createClickHouseAgent({ hostId: 0, disabledTools })
+    const tools = agent.tools as Record<string, any>
+    const result = (await tools.search_tools.execute(
+      { query: 'run a SQL query' },
+      { toolCallId: 't', messages: [] }
+    )) as any
+    return { tools, result }
+  }
+
+  test('does not advertise a disabled tool and counts only callable tools', async () => {
+    const base = await search([])
+    const off = await search(['query'])
+
+    expect(off.tools.query).toBeUndefined()
+    expect(base.result.results.map((r: any) => r.name)).toContain('query')
+    expect(off.result.results.map((r: any) => r.name)).not.toContain('query')
+    expect(off.result.unavailable_due_to_gates).toContain('query')
+    // search_tools is in the map it reports, so the count matches exactly.
+    expect(off.result.callable_tool_count).toBe(Object.keys(off.tools).length)
+    expect(off.result.callable_tool_count).toBe(
+      base.result.callable_tool_count - 1
+    )
+  })
+})

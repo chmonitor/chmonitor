@@ -505,6 +505,18 @@ export const OG_PAGES: Record<string, OgPage> = {
     description:
       'Query performance dashboards: latency, memory, cache hit ratio, errors and hot tables.',
   },
+  usage: {
+    eyebrow: 'QUERIES',
+    title: 'Usage by User',
+    description:
+      'Who uses this replica, how much and for what, from the query log.',
+  },
+  'usage/user': {
+    eyebrow: 'QUERIES',
+    title: 'User Usage',
+    description:
+      'One user: daily activity, hours, top tables, query shapes, errors and clients.',
+  },
   'queries/parallelization': {
     eyebrow: 'PERFORMANCE',
     title: 'Query Parallelization',
@@ -571,6 +583,11 @@ export const OG_PAGES: Record<string, OgPage> = {
     eyebrow: 'ACCESS',
     title: 'Audit Log',
     description: 'Audit trail of user and admin actions.',
+  },
+  'security/access-matrix': {
+    eyebrow: 'ACCESS',
+    title: 'Access Matrix',
+    description: 'Effective grants per user and role, by database and table.',
   },
   'security/login-attempts': {
     eyebrow: 'ACCESS',

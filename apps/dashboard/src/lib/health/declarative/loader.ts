@@ -37,6 +37,7 @@ import {
   declarativeMaintenanceWindowSchema,
   declarativePeerDBRuleSchema,
   declarativeQuietHoursSchema,
+  declarativeRepeatSchema,
   declarativeRouteSchema,
   declarativeThresholdSchema,
   declarativeWebhookTargetSchema,
@@ -135,10 +136,16 @@ function applyConcern(
   const v = envelope.data
   switch (concern) {
     case 'alerts': {
-      const { rules, peerdbRules, thresholds } = v as {
+      const { rules, peerdbRules, thresholds, repeat } = v as {
         rules: unknown[]
         peerdbRules: unknown[]
         thresholds: Record<string, unknown>
+        repeat?: unknown
+      }
+      if (repeat !== undefined) {
+        const result = declarativeRepeatSchema.safeParse(repeat)
+        if (result.success) data.repeat = result.data
+        else skip(skipped, file, formatIssues(result.error), 'repeat')
       }
       data.customRules = collect(
         rules,

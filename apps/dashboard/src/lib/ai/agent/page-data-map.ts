@@ -234,6 +234,21 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     ['thread-analysis'],
     ['thread-utilization', 'parallelization-efficiency']
   ),
+  '/usage': p('Usage by User', QUERIES, [
+    'usage-by-user',
+    'usage-inactive-users',
+  ]),
+  '/usage/user': p('User Usage', QUERIES, [
+    'user-usage-daily',
+    'user-usage-hours',
+    'user-usage-tables',
+    'user-usage-shapes',
+    'user-usage-kinds',
+    'user-usage-interfaces',
+    'user-usage-summary',
+    'user-usage-errors',
+    'user-usage-clients',
+  ]),
   '/queries/parallelization': p(
     'Parallelization',
     QUERIES,
@@ -427,6 +442,19 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
   ),
   '/users': p('Users', SERVER, ['users']),
   '/roles': p('Roles', SERVER, ['roles']),
+  '/security/access-matrix': p('Access Matrix', SERVER, [
+    'access-grants',
+    'access-role-grants',
+    'access-users',
+    'access-roles',
+    'access-settings-profiles',
+    'access-profile-elements',
+    'access-databases',
+    'access-row-policies',
+    'access-quotas',
+    'access-quota-limits',
+    'access-quotas-usage',
+  ]),
   '/security/sessions': p(
     'Sessions',
     SERVER,

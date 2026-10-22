@@ -13,4 +13,6 @@ export interface ChartProps extends Partial<AreaChartProps> {
   colSpan?: number
   /** Navigation target URL when clicked */
   href?: string
+  /** Chart query params sent as bound ClickHouse params (e.g. `{ user }`). */
+  params?: Record<string, string>
 }

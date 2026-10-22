@@ -60,6 +60,13 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/usage",
+    "section": undefined,
+    "subgroup": "History",
+    "title": "Usage by User",
+  },
+  {
+    "depth": 1,
     "href": "/failed-queries",
     "section": undefined,
     "subgroup": "History",
@@ -603,6 +610,13 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "section": undefined,
     "subgroup": "Access Control",
     "title": "Roles",
+  },
+  {
+    "depth": 1,
+    "href": "/security/access-matrix",
+    "section": undefined,
+    "subgroup": "Access Control",
+    "title": "Access Matrix",
   },
   {
     "depth": 1,

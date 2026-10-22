@@ -1,0 +1,374 @@
+# Question bank: realistic user questions mapped to the tool(s) and skill
+# the agent should reach for. `metadata.covers` is the expected primary tool(s);
+# `metadata.skills` the skill `load_skill` should load. `toolCalled` accepts the
+# covers plus listed fallbacks. Structural gate: tests/agent/question-bank.test.ts.
+# The live SSE parser emits `[tool:load_skill]` without the skill name, so the
+# skill mapping is checked structurally only. Tag `tools` (runs in test:agent:all).
+- description: 'Question — discover tools'
+  tags: [tools]
+  metadata:
+    covers: [search_tools]
+  vars:
+    prompt: 'What can you actually do for me on this cluster? List your capabilities.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [search_tools]
+
+- description: 'Question — which tool for skip indexes'
+  tags: [tools]
+  metadata:
+    covers: [search_tools]
+  vars:
+    prompt: 'Is there a tool that can recommend a skip index for a slow table?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [search_tools, get_optimization_recommendations]
+
+- description: 'Question — ad-hoc SQL'
+  tags: [tools]
+  metadata:
+    covers: [query]
+  vars:
+    prompt: 'Run this for me: SELECT count() FROM system.tables WHERE database = ''system'''
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [query]
+
+- description: 'Question — databases by engine'
+  tags: [tools]
+  metadata:
+    covers: [list_databases]
+  vars:
+    prompt: 'Which databases exist here and what engine does each one use?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [list_databases, query]
+
+- description: 'Question — tables in a database'
+  tags: [tools]
+  metadata:
+    covers: [list_tables]
+  vars:
+    prompt: 'Show me every table in the default database with its row count.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [list_tables, query]
+
+- description: 'Question — columns of a table'
+  tags: [tools]
+  metadata:
+    covers: [get_table_schema]
+  vars:
+    prompt: 'What columns and types does system.parts have?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_table_schema, explore_table_schema, query]
+
+- description: 'Question — sorting key and indexes'
+  tags: [tools]
+  metadata:
+    covers: [explore_table_schema]
+  vars:
+    prompt: 'What is the sorting key and are there any data-skipping indexes on system.query_log?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [explore_table_schema, get_table_schema, query]
+
+- description: 'Question — server uptime and memory'
+  tags: [tools]
+  metadata:
+    covers: [get_metrics]
+  vars:
+    prompt: 'How long has the server been up and how much memory is it using right now?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_metrics, query]
+
+- description: 'Question — disk free space'
+  tags: [tools]
+  metadata:
+    covers: [get_disk_usage]
+  vars:
+    prompt: 'Are any disks close to full?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_disk_usage, query]
+
+- description: 'Question — replica lag'
+  tags: [tools]
+  metadata:
+    covers: [get_replication_status]
+  vars:
+    prompt: 'Is any replica lagging behind or stuck read-only?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_replication_status, query]
+
+- description: 'Question — multi-step health check plan'
+  tags: [tools]
+  metadata:
+    covers: [update_plan]
+    skills: [plan-and-verify]
+  vars:
+    prompt: 'Make a step-by-step plan to audit this cluster''s health, then work through it.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [update_plan, load_skill, get_metrics, get_disk_usage, get_replication_status, query]
+
+- description: 'Question — vague request asks back'
+  tags: [tools]
+  metadata:
+    covers: [ask_user]
+  vars:
+    prompt: 'Fix it.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [ask_user]
+
+- description: 'Question — reference query for top tables'
+  tags: [tools]
+  metadata:
+    covers: [find_reference_query]
+  vars:
+    prompt: 'Do you have a ready-made query for the biggest tables by compressed size?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [find_reference_query, list_tables, query]
+
+- description: 'Question — running queries right now'
+  tags: [tools]
+  metadata:
+    covers: [get_running_queries]
+  vars:
+    prompt: 'What queries are running right now and who started them?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_running_queries, query]
+
+- description: 'Question — errors today'
+  tags: [tools]
+  metadata:
+    covers: [get_failed_queries]
+  vars:
+    prompt: 'Which queries failed today and with what errors?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_failed_queries, query]
+
+- description: 'Question — slowest query shapes'
+  tags: [tools]
+  metadata:
+    covers: [list_slow_query_patterns]
+  vars:
+    prompt: 'Group the slow queries from the last day by pattern and show the worst ones.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [list_slow_query_patterns, get_slow_queries, query]
+
+- description: 'Question — explain a query plan'
+  tags: [tools]
+  metadata:
+    covers: [explain_query]
+  vars:
+    prompt: 'Explain the plan for SELECT * FROM system.parts WHERE active LIMIT 10'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [explain_query, query]
+
+- description: 'Question — merges in flight'
+  tags: [tools]
+  metadata:
+    covers: [get_merge_status]
+  vars:
+    prompt: 'Are there merges or mutations running right now?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_merge_status, query]
+
+- description: 'Question — detached parts'
+  tags: [tools]
+  metadata:
+    covers: [get_detached_parts_triage]
+  vars:
+    prompt: 'Are there detached parts I should look at?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_detached_parts_triage, query]
+
+- description: 'Question — chart query count'
+  tags: [tools]
+  metadata:
+    covers: [query_and_visualize]
+  vars:
+    prompt: 'Chart the number of queries per hour over the last 24 hours.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [query_and_visualize]
+
+- description: 'Question — what does a page show'
+  tags: [tools]
+  metadata:
+    covers: [get_page_data]
+  vars:
+    prompt: 'What does the Merges page show for this host right now?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [get_page_data, get_merge_status]
+
+- description: 'Question — explain a function'
+  tags: [tools]
+  metadata:
+    covers: [explain_clickhouse_symbol]
+    skills: [concept-explainer]
+  vars:
+    prompt: 'What does the uniqCombined function do and when should I use it instead of uniqExact?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [explain_clickhouse_symbol, load_skill]
+
+- description: 'Question — cluster report'
+  tags: [tools]
+  metadata:
+    covers: [generate_cluster_report]
+  vars:
+    prompt: 'Write me a short health report for this cluster.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [generate_cluster_report, get_metrics, get_disk_usage, query]
+
+- description: 'Question — schema design skill'
+  tags: [tools]
+  metadata:
+    covers: [load_skill]
+    skills: [schema-design-advisor]
+  vars:
+    prompt: 'I''m designing a table for 1B events a day keyed by user and time. How should I pick the ORDER BY and partitioning?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [load_skill]
+
+- description: 'Question — replication skill'
+  tags: [tools]
+  metadata:
+    covers: [load_skill]
+    skills: [replication-guide]
+  vars:
+    prompt: 'How do I safely recover a ReplicatedMergeTree replica that went read-only?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [load_skill, get_replication_status]
+
+- description: 'Question — incident skill'
+  tags: [tools]
+  metadata:
+    covers: [load_skill]
+    skills: [incident-response]
+  vars:
+    prompt: 'Production is on fire: queries are timing out everywhere. Walk me through triage.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [load_skill, get_running_queries, get_metrics, get_slow_queries]
+
+- description: 'Question — query optimization skill'
+  tags: [tools]
+  metadata:
+    covers: [load_skill]
+    skills: [query-optimization]
+  vars:
+    prompt: 'My dashboards query is slow. What general rules should I follow to make ClickHouse queries faster?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [load_skill, get_slow_queries, list_slow_query_patterns]
+
+- description: 'Question — settings audit skill'
+  tags: [tools]
+  metadata:
+    covers: [load_skill]
+    skills: [settings-audit]
+  vars:
+    prompt: 'Audit the server settings and tell me which ones look risky or non-default.'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [load_skill, query, get_tuning_suggestions]
+
+- description: 'Question — security hardening skill'
+  tags: [tools]
+  metadata:
+    covers: [load_skill]
+    skills: [security-hardening]
+  vars:
+    prompt: 'What should I check to harden this ClickHouse server''s security?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [load_skill, query]
+
+- description: 'Question — upgrade advisor skill'
+  tags: [tools]
+  metadata:
+    covers: [load_skill]
+    skills: [version-upgrade-advisor]
+  vars:
+    prompt: 'I want to upgrade ClickHouse to the next LTS. What should I check first?'
+  assert:
+    - type: javascript
+      value: file://./assertions.js:toolCalled
+      config:
+        tools: [load_skill, get_metrics, query]

@@ -8,18 +8,6 @@ import { withCachedInputSchemas } from './tool-schema-cache'
 import { createAllTools } from './tools'
 import { isStepCount, type LanguageModel, ToolLoopAgent } from 'ai'
 
-function filterTools<T extends Record<string, unknown>>(
-  tools: T,
-  disabledTools: string[]
-): T {
-  if (disabledTools.length === 0) return tools
-  const filtered = { ...tools }
-  for (const name of disabledTools) {
-    delete filtered[name as keyof T]
-  }
-  return filtered
-}
-
 export const DEFAULT_MAX_STEPS = 10
 
 /** Per-step output cap so one runaway completion cannot drive cost. */
@@ -79,13 +67,12 @@ export function createClickHouseAgent(options: {
     hostId,
     includeControlTools,
     connection,
-    integrations
+    integrations,
+    disabledTools
   )
   // Built-in schemas are static per tool name: reuse their JSON Schema across
   // steps and requests instead of re-converting zod every step.
-  const filteredTools = withCachedInputSchemas(
-    filterTools(allTools, disabledTools)
-  )
+  const filteredTools = withCachedInputSchemas(allTools)
   // Built-in tools take precedence over MCP tools on key collision (mcp_ prefix
   // prevents collisions in practice).
   const mergedTools = extraTools

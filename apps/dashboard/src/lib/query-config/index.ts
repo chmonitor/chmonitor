@@ -85,6 +85,13 @@ import { slowQueryPatternsConfig } from './queries/slow-query-patterns'
 import { threadAnalysisConfig } from './queries/thread-analysis'
 import { topCpuQueriesConfig } from './queries/top-cpu-queries'
 import { topMemoryQueriesLiveConfig } from './queries/top-memory-queries-live'
+import { usageByUserConfig, usageInactiveUsersConfig } from './queries/usage'
+import {
+  userUsageConfigs,
+  userUsageProfileConfig,
+  userUsageSummaryConfig,
+} from './queries/user-usage'
+import { accessMatrixConfigs } from './security/access-matrix'
 import { loginAttemptsConfig } from './security/login-attempts'
 import { sessionsConfig } from './security/sessions'
 import { asynchronousInsertLogConfig } from './system/asynchronous-insert-log'
@@ -265,6 +272,7 @@ export const queries: Array<QueryConfig> = [
 
   sessionsConfig,
   loginAttemptsConfig,
+  ...accessMatrixConfigs,
 
   textLogConfig,
   stackTracesConfig,
@@ -273,6 +281,12 @@ export const queries: Array<QueryConfig> = [
   threadAnalysisConfig,
   parallelizationConfig,
   profilerConfig,
+
+  usageByUserConfig,
+  usageInactiveUsersConfig,
+  ...userUsageConfigs,
+  userUsageSummaryConfig,
+  userUsageProfileConfig,
 
   dictionariesConfig,
 

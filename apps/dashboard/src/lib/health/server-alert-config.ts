@@ -587,6 +587,20 @@ export function getServerAlertCooldownConfig(ruleIds: readonly string[]): {
   return { defaultMs, bySeverity, byRule }
 }
 
+/**
+ * Opt-in daily digest of long-firing alerts (#4049):
+ * `HEALTH_ALERT_LONG_FIRING_DIGEST_HOURS`. An alert open at least this many
+ * hours is listed in one summary message per day per channel. Unset (the
+ * default), empty, invalid, zero or negative = `null` (off).
+ */
+export function getServerLongFiringDigestMs(): number | null {
+  const raw = process.env.HEALTH_ALERT_LONG_FIRING_DIGEST_HOURS?.trim()
+  if (raw === undefined || raw === '') return null
+  const hours = Number(raw)
+  if (!Number.isFinite(hours) || hours <= 0) return null
+  return hours * 3_600_000
+}
+
 function parseMinDeltaEnv(value: string | undefined): number | null {
   const raw = value?.trim()
   if (raw === undefined || raw === '') return null

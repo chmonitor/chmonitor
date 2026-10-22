@@ -357,3 +357,283 @@ describe('createQueryTools', () => {
     })
   })
 })
+
+// ---------------------------------------------------------------------------
+// list_slow_query_patterns
+//
+// The tool delegates to the table registry + executor. Those modules pull in
+// UI helpers that shared-mocks stubs out, so they are mocked here: the tests
+// assert what the tool hands them (filters, host, row cap) and what it returns.
+// ---------------------------------------------------------------------------
+import type { AgentConnectionBinding } from '../../host-query'
+
+import { mock as bunMock } from 'bun:test'
+
+const fakeConfig = { name: 'slow-query-patterns', sql: 'SELECT 1' }
+
+const mockGetTableQuery = bunMock(
+  (_name: string, _params: { hostId: number; searchParams?: unknown }) =>
+    ({ queryConfig: fakeConfig, queryParams: { p: 1 } }) as unknown
+) as any
+const mockExecuteTableConfig = bunMock(
+  async (_cfg: unknown, _host: number, _params: unknown) => ({
+    result: {
+      data: [] as unknown[] | null,
+      error: null as null | { message: string },
+    },
+  })
+) as any
+const mockExecuteConnection = bunMock(
+  async (_cfg: unknown, _creds: unknown, _params: unknown) => ({
+    data: [] as unknown[],
+  })
+) as any
+
+bunMock.module('@/lib/api/table-registry', () => ({
+  getTableQuery: mockGetTableQuery,
+}))
+bunMock.module('@/lib/api/query-executor', () => ({
+  executeTableConfig: mockExecuteTableConfig,
+}))
+bunMock.module('@/lib/connection-query/execute-connection-table', () => ({
+  executeConnectionTableConfig: mockExecuteConnection,
+}))
+
+const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ i }))
+
+type Schema = { safeParse: (v: unknown) => { success: boolean; data?: any } }
+
+describe('list_slow_query_patterns', () => {
+  const run = (hostId: number, input: Record<string, unknown>) =>
+    (createQueryTools(hostId) as any).list_slow_query_patterns.execute(input)
+
+  const schema = () =>
+    (createQueryTools(0) as any).list_slow_query_patterns.inputSchema as Schema
+
+  const resetMocks = () => {
+    mockFetchData.mockClear()
+    mockGetTableQuery.mockClear()
+    mockGetTableQuery.mockImplementation(
+      () => ({ queryConfig: fakeConfig, queryParams: { p: 1 } }) as unknown
+    )
+    mockExecuteTableConfig.mockClear()
+    mockExecuteTableConfig.mockImplementation(async () => ({
+      result: { data: rows(5), error: null },
+    }))
+    mockExecuteConnection.mockClear()
+    mockExecuteConnection.mockImplementation(async () => ({ data: rows(5) }))
+  }
+
+  describe('input validation', () => {
+    test('applies defaults: limit 10, lastHours 24', () => {
+      const parsed = schema().safeParse({})
+      expect(parsed.success).toBe(true)
+      expect(parsed.data.limit).toBe(10)
+      expect(parsed.data.lastHours).toBe(24)
+    })
+
+    test.each([
+      [{ limit: 0 }],
+      [{ limit: 101 }],
+      [{ limit: 1.5 }],
+      [{ lastHours: 0 }],
+      [{ lastHours: 721 }],
+      [{ hostId: -1 }],
+      [{ user: 42 }],
+    ])('rejects out-of-range input %j', (input) => {
+      expect(schema().safeParse(input).success).toBe(false)
+    })
+
+    test('accepts the boundary values', () => {
+      expect(
+        schema().safeParse({ limit: 100, lastHours: 720, hostId: 0 }).success
+      ).toBe(true)
+      expect(schema().safeParse({ limit: 1, lastHours: 1 }).success).toBe(true)
+    })
+  })
+
+  describe('filters (never interpolated into SQL)', () => {
+    test('with no filters only the time window is requested', async () => {
+      resetMocks()
+      await run(0, {})
+      expect(mockGetTableQuery).toHaveBeenCalledWith('slow-query-patterns', {
+        hostId: 0,
+        searchParams: { event_time: 'withinHours:24' },
+      })
+    })
+
+    test('passes lastHours, user, queryKind and database as eq: filters', async () => {
+      resetMocks()
+      await run(0, {
+        lastHours: 6,
+        user: 'analyst',
+        queryKind: 'Select',
+        database: 'analytics',
+      })
+      expect(mockGetTableQuery.mock.calls[0][1].searchParams).toEqual({
+        event_time: 'withinHours:6',
+        user: 'eq:analyst',
+        query_kind: 'eq:Select',
+        database: 'eq:analytics',
+      })
+    })
+
+    test('a hostile user value stays a filter value; the tool builds no SQL', async () => {
+      resetMocks()
+      const evil = "x' OR 1=1; DROP TABLE system.query_log --"
+      await run(0, { user: evil })
+      expect(mockGetTableQuery.mock.calls[0][1].searchParams.user).toBe(
+        `eq:${evil}`
+      )
+      // The config handed to the executor is the registry's, untouched.
+      expect(mockExecuteTableConfig.mock.calls[0][0]).toBe(fakeConfig)
+      expect(mockFetchData).not.toHaveBeenCalled()
+    })
+
+    test('empty-string filters are ignored', async () => {
+      resetMocks()
+      await run(0, { user: '', queryKind: '', database: '' })
+      expect(mockGetTableQuery.mock.calls[0][1].searchParams).toEqual({
+        event_time: 'withinHours:24',
+      })
+    })
+  })
+
+  describe('host scoping', () => {
+    test('uses the factory hostId when the input has none', async () => {
+      resetMocks()
+      await run(3, {})
+      expect(mockGetTableQuery.mock.calls[0][1].hostId).toBe(3)
+      expect(mockExecuteTableConfig.mock.calls[0][1]).toBe(3)
+    })
+
+    test('an input hostId overrides the factory hostId', async () => {
+      resetMocks()
+      await run(3, { hostId: 7 })
+      expect(mockGetTableQuery.mock.calls[0][1].hostId).toBe(7)
+      expect(mockExecuteTableConfig.mock.calls[0][1]).toBe(7)
+    })
+
+    test('hostId 0 as an explicit override is honoured (not treated as unset)', async () => {
+      resetMocks()
+      await run(3, { hostId: 0 })
+      expect(mockExecuteTableConfig.mock.calls[0][1]).toBe(0)
+    })
+  })
+
+  describe('results', () => {
+    test('caps the returned rows at limit', async () => {
+      resetMocks()
+      const out = await run(0, { limit: 2 })
+      expect(out).toEqual(rows(2))
+    })
+
+    test('defaults the cap to 10 rows', async () => {
+      resetMocks()
+      mockExecuteTableConfig.mockImplementation(async () => ({
+        result: { data: rows(25), error: null },
+      }))
+      expect(await run(0, {})).toHaveLength(10)
+    })
+
+    test('returns an empty array when the result has no data', async () => {
+      resetMocks()
+      mockExecuteTableConfig.mockImplementation(async () => ({
+        result: { data: null, error: null },
+      }))
+      expect(await run(0, {})).toEqual([])
+    })
+  })
+
+  describe('error paths', () => {
+    test('throws when the query config is not registered', async () => {
+      resetMocks()
+      mockGetTableQuery.mockImplementation(() => null)
+      await expect(run(0, {})).rejects.toThrow(
+        'slow-query-patterns query config not found'
+      )
+      expect(mockExecuteTableConfig).not.toHaveBeenCalled()
+    })
+
+    test('surfaces the ClickHouse error message instead of returning rows', async () => {
+      resetMocks()
+      mockExecuteTableConfig.mockImplementation(async () => ({
+        result: { data: null, error: { message: 'query_log is disabled' } },
+      }))
+      await expect(run(0, {})).rejects.toThrow('query_log is disabled')
+    })
+
+    test('propagates executor rejections', async () => {
+      resetMocks()
+      mockExecuteTableConfig.mockImplementation(async () => {
+        throw new Error('connection refused')
+      })
+      await expect(run(0, {})).rejects.toThrow('connection refused')
+    })
+  })
+
+  describe('bound user connection', () => {
+    const binding: AgentConnectionBinding = {
+      hostId: -1001,
+      userId: 'u1',
+      connectionId: 'c1',
+      credentials: { url: 'https://ch.example' } as any,
+    }
+
+    test('runs on the bound connection, never the env host, and caps rows', async () => {
+      resetMocks()
+      const { runWithAgentConnection } = await import('../../host-query')
+      const out = await runWithAgentConnection(binding, () =>
+        run(-1001, { limit: 3 })
+      )
+      expect(out).toEqual(rows(3))
+      expect(mockExecuteConnection).toHaveBeenCalledTimes(1)
+      expect(mockExecuteConnection.mock.calls[0][0]).toBe(fakeConfig)
+      expect(mockExecuteConnection.mock.calls[0][1]).toBe(binding.credentials)
+      expect(mockExecuteConnection.mock.calls[0][2]).toEqual({ p: 1 })
+      expect(mockExecuteTableConfig).not.toHaveBeenCalled()
+    })
+
+    test('refuses a hostId override that is not the bound connection', async () => {
+      resetMocks()
+      const { runWithAgentConnection } = await import('../../host-query')
+      await expect(
+        runWithAgentConnection(binding, () => run(-1001, { hostId: 0 }))
+      ).rejects.toThrow('not available here')
+      expect(mockExecuteConnection).not.toHaveBeenCalled()
+      expect(mockExecuteTableConfig).not.toHaveBeenCalled()
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// estimate_query_cost: input validation and host scoping
+// ---------------------------------------------------------------------------
+describe('estimate_query_cost host scoping', () => {
+  test('rejects a missing sql input', () => {
+    const schema = (createQueryTools(0) as any).estimate_query_cost
+      .inputSchema as Schema
+    expect(schema.safeParse({}).success).toBe(false)
+    expect(schema.safeParse({ sql: 'SELECT 1' }).success).toBe(true)
+  })
+
+  test('sends the EXPLAIN to the factory host, or the input override', async () => {
+    const hosts: Array<number | undefined> = []
+    mockFetchData.mockImplementation(async (p: { hostId?: number }) => {
+      hosts.push(p.hostId)
+      return { data: [], error: null }
+    })
+    const tools = createQueryTools(4) as any
+    await tools.estimate_query_cost
+      .execute({ sql: 'SELECT 1' })
+      .catch(() => undefined)
+    const afterDefault = hosts.length
+    await tools.estimate_query_cost
+      .execute({ sql: 'SELECT 1', hostId: 9 })
+      .catch(() => undefined)
+    expect(afterDefault).toBeGreaterThan(0)
+    expect(hosts.slice(0, afterDefault).every((h) => h === 4)).toBe(true)
+    expect(hosts.length).toBeGreaterThan(afterDefault)
+    expect(hosts.slice(afterDefault).every((h) => h === 9)).toBe(true)
+  })
+})

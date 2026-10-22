@@ -116,6 +116,12 @@ export interface CustomWebhookTarget {
    * Declarative (env / `channels.yaml`) targets only.
    */
   repeat?: boolean
+  /**
+   * `true` = the raw JSON body also carries `details` (trend, repeatCount,
+   * firstFiredAt). Unset/`false` = body identical to before. Declarative
+   * targets only.
+   */
+  details?: boolean
   updatedAt: number
 }
 

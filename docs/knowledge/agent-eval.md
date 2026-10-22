@@ -3,11 +3,12 @@ id: agent-eval
 title: Live agent eval (promptfoo)
 type: spec
 status: active
-updated: 2026-10-02
+updated: 2026-10-23
 related:
   - ai-insights
   - agentstate-conversation-store
   - conventions
+  - agent-verification
 tags:
   - ai-agent
   - promptfoo
@@ -32,6 +33,8 @@ this suite measures live tool-first + recommend-only behavior.
 | `tests/agent/assertions.js` | Shared deterministic assertions: `toolCalled` (any-of tools, infra-tolerant), `noToolCalled` |
 | `tests/agent/select-cases.ts` | `--tags a,b` → the cases carrying any of those tags |
 | `tests/agent/cases.test.ts` | Unit gate: every case has a prompt, tags, a deterministic assertion; default suite ≤ 20 |
+| `tests/agent/cases/questions.yaml` | Question bank: realistic questions → expected tools (`metadata.covers`) and skills (`metadata.skills`), tag `tools` |
+| `tests/agent/question-bank.test.ts` | Unit gate: every referenced tool/skill exists in the catalog/registry; every core tool has a question |
 | `scripts/agent-eval.ts` | Expand env, run promptfoo |
 | `scripts/agent-eval-improve.ts` | Eval, then AnyRouter notes (no prompt rewrite) |
 | `scripts/agent-eval-comment.ts` | Format + upsert a sticky PR comment |

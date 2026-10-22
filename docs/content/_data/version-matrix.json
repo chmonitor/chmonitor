@@ -1,6 +1,18 @@
 {
   "configs": [
     {
+      "name": "access-grants",
+      "since": ["23.8", "26.7"]
+    },
+    {
+      "name": "access-quota-limits",
+      "since": ["23.8", "24.8", "26.5"]
+    },
+    {
+      "name": "access-quotas-usage",
+      "since": ["23.8", "24.8", "26.5"]
+    },
+    {
       "name": "background-schedule-pool",
       "since": ["25.12"]
     },

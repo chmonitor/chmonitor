@@ -9,11 +9,15 @@
  * would be an evaluation-order cycle.
  */
 
-import type { HealthConfigEnvData } from './schema'
+import type { DeclarativeRepeat, HealthConfigEnvData } from './schema'
 
 import { loadEnvCustomWebhookTargets } from '../custom-webhook-env'
 import {
+  getServerAlertCooldownConfig,
   getServerDigestWindowMinutes,
+  getServerLongFiringDigestMs,
+  getServerRepeatBackoffMaxMs,
+  getServerRepeatMinDeltaConfig,
   getServerThresholdOverrides,
 } from '../server-alert-config'
 
@@ -56,5 +60,45 @@ export function loadHealthConfigEnv(
     const windowMinutes = getServerDigestWindowMinutes()
     data.digest = { enabled: windowMinutes > 0, windowMinutes }
   }
+  const repeat = loadEnvRepeat(options.ruleIds ?? [])
+  if (repeat) data.repeat = repeat
   return data
+}
+
+/**
+ * Reminder pacing from env (#4049), in the declarative shape. Only values an
+ * env var explicitly set appear, so the merge can tell "env says X" from
+ * "nobody said anything". `undefined` when no pacing env var is set.
+ */
+function loadEnvRepeat(
+  ruleIds: readonly string[]
+): DeclarativeRepeat | undefined {
+  const repeat: DeclarativeRepeat = {}
+  const { bySeverity } = getServerAlertCooldownConfig([])
+  const cooldownMinutes: NonNullable<DeclarativeRepeat['cooldownMinutes']> = {}
+  if (bySeverity.warning !== undefined)
+    cooldownMinutes.warning = bySeverity.warning / 60_000
+  if (bySeverity.critical !== undefined)
+    cooldownMinutes.critical = bySeverity.critical / 60_000
+  if (Object.keys(cooldownMinutes).length > 0)
+    repeat.cooldownMinutes = cooldownMinutes
+
+  const minDelta = getServerRepeatMinDeltaConfig(ruleIds)
+  if (minDelta.default !== null) repeat.minDelta = minDelta.default
+  // `byRule` already folds in the global value; keep only real overrides.
+  const minDeltaByRule: Record<string, number> = {}
+  for (const [rule, delta] of Object.entries(minDelta.byRule)) {
+    if (delta !== null && delta !== minDelta.default)
+      minDeltaByRule[rule] = delta
+  }
+  if (Object.keys(minDeltaByRule).length > 0)
+    repeat.minDeltaByRule = minDeltaByRule
+
+  const backoffMs = getServerRepeatBackoffMaxMs()
+  if (backoffMs !== null) repeat.backoffMaxMinutes = backoffMs / 60_000
+
+  const digestMs = getServerLongFiringDigestMs()
+  if (digestMs !== null) repeat.longFiringDigestHours = digestMs / 3_600_000
+
+  return Object.keys(repeat).length > 0 ? repeat : undefined
 }

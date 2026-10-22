@@ -657,6 +657,12 @@
     },
     {
       "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "HEALTH_ALERT_LONG_FIRING_DIGEST_HOURS",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
       "inEnvExample": true,
       "name": "HEALTH_ALERT_METADATA",
       "prefix": "HEALTH"

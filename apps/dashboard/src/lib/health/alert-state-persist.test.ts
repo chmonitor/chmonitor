@@ -25,6 +25,7 @@ interface Row {
   pending_count: number | null
   last_notified_value?: number | null
   repeat_count?: number | null
+  first_value?: number | null
 }
 
 /** Minimal fake D1: DDL is a no-op, SELECT returns `rows`, batch upserts. */
@@ -63,6 +64,7 @@ function makeFakeD1(rows: Row[]) {
         pc,
         lnv,
         rc,
+        fv,
       ] = s.args as [
         number,
         string,
@@ -71,6 +73,7 @@ function makeFakeD1(rows: Row[]) {
         number,
         number | null,
         string | null,
+        number | null,
         number | null,
         number | null,
         number | null,
@@ -86,6 +89,7 @@ function makeFakeD1(rows: Row[]) {
         pending_count: pc,
         last_notified_value: lnv,
         repeat_count: rc,
+        first_value: fv,
       })
     }
     return []
@@ -234,6 +238,28 @@ describe('alert state on first metadata-DB attach (#3534: discard)', () => {
     const reader = new MemoryAlertStateStore()
     await hydrateAlertState(reader)
     expect(reader.get(alertStateKey(4, 'disk-usage'))).toEqual(backedOff)
+  })
+
+  test('firstValue round-trips through flush and hydrate', async () => {
+    const withFirst: AlertStateRecord = {
+      severity: 'critical',
+      updatedAt: 2_000,
+      notifiedAt: 2_000,
+      firstFiredAt: 1_000,
+      firstValue: 82.8,
+    }
+    const db = makeFakeD1([])
+    currentDb = db
+    const writer = new MemoryAlertStateStore()
+    await hydrateAlertState(writer) // attach
+    writer.set(alertStateKey(5, 'disk-usage'), withFirst)
+    await flushAlertState(writer)
+    expect(db.rows[0]?.first_value).toBe(82.8)
+
+    resetAlertStateAttachForTests()
+    const reader = new MemoryAlertStateStore()
+    await hydrateAlertState(reader)
+    expect(reader.get(alertStateKey(5, 'disk-usage'))).toEqual(withFirst)
   })
 
   test('a row without repeat_count hydrates with no repeatCount', async () => {

@@ -4,6 +4,7 @@ import { ColumnFormat } from '@/types/column-format'
 
 export const loginAttemptsConfig: QueryConfig = {
   name: 'login-attempts',
+  permission: { feature: 'security' },
   description: 'Login success and failure tracking',
   optional: true,
   tableCheck: 'system.session_log',

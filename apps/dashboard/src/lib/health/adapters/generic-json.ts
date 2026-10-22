@@ -6,7 +6,7 @@
  * no channel-specific adapter matches the webhook URL.
  */
 
-import type { AlertPayload, NotificationAdapter } from './types'
+import type { AlertDetails, AlertPayload, NotificationAdapter } from './types'
 
 import { digestFindingLine, summarizeDigest } from './digest'
 import { instancePrefix } from './identity'
@@ -31,6 +31,8 @@ export interface GenericJsonBody {
   dashboardUrl?: string
   /** Operator key/values (`HEALTH_ALERT_METADATA`), when configured. */
   metadata?: Record<string, string>
+  /** Structured incident context; only for a custom target with `details: true`. */
+  details?: AlertDetails
 }
 
 /**
@@ -64,6 +66,7 @@ export function buildGenericJsonBody(payload: AlertPayload): GenericJsonBody {
   if (payload.instanceName) body.instance = payload.instanceName
   if (payload.dashboardUrl) body.dashboardUrl = payload.dashboardUrl
   if (payload.metadata) body.metadata = { ...payload.metadata }
+  if (payload.details) body.details = { ...payload.details }
 
   return body
 }
