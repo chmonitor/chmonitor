@@ -1,17 +1,17 @@
 /**
  * Page-render sweep parity — every dashboard route file must appear in the
  * Cypress sweep list (or in SWEEP_EXCLUDED_ROUTES with a documented reason).
+ * Lives in tests/repo so the required `unit-tests` job runs it (`bun test
+ * tests/repo --isolate`); the dashboard's own `bun test src/` never saw it.
  */
 
 import { describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
-const DASHBOARD_ROUTES_DIR = join(import.meta.dir, '../src/routes/(dashboard)')
-const SWEEP_FILE = join(
-  import.meta.dir,
-  '../cypress/e2e/page-render-sweep.cy.ts'
-)
+const DASHBOARD = resolve(import.meta.dir, '../../apps/dashboard')
+const DASHBOARD_ROUTES_DIR = join(DASHBOARD, 'src/routes/(dashboard)')
+const SWEEP_FILE = join(DASHBOARD, 'cypress/e2e/page-render-sweep.cy.ts')
 
 /** Routes intentionally omitted from the render sweep. */
 export const SWEEP_EXCLUDED_ROUTES = [] as const
