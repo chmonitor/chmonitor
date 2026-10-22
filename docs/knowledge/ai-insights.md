@@ -117,6 +117,15 @@ is fragmented", "replication is lagging" — generated and **cached server-side*
   (`isProviderConfigured(resolveProvider(DEFAULT_MODEL).providerId)`), candidates
   pass through one `generateObject` call that tightens wording. With no key (or
   on any error) candidates are returned unchanged — the "if available" half.
+  The call sends `maxOutputTokens` (default 4096, `INSIGHTS_ENRICH_MAX_OUTPUT_TOKENS`,
+  clamped to 16384; readers in `enrich-config.ts`) so providers do not reserve the
+  model's full output limit for a short JSON answer (#4114). The health sweep
+  calls `generateInsights(hostId, sweepInsightOptions())`
+  (`lib/health/sweep/run-host.ts`); `INSIGHTS_SWEEP_ENRICH=false` makes it pass
+  `enrich: false` (deterministic text only, like the UI auto path). Manual/UI
+  generation ignores that env. Not done: skipping enrichment when the candidate
+  set is unchanged, because the stored key hashes the enriched title and the 5 min
+  regen throttle already covers repeat runs.
 - **Persistence goes through the pluggable `InsightsStore`**
   (`src/lib/insights/store/`). The default backend is the ClickHouse findings
   store (`src/lib/findings/findings-store.ts`, `FINDINGS_TABLE`, 30-day TTL),

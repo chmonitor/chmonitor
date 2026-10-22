@@ -40,6 +40,7 @@ import {
   parseAffectedNames,
   ruleLabel,
 } from '@/lib/alerting/rule-registry'
+import { sweepInsightOptions } from '@/lib/insights/enrich-config'
 import { generateInsights } from '@/lib/insights/generate-insights'
 
 export interface SweepFinding {
@@ -385,7 +386,7 @@ export async function runHostSweep(
 
   // Generate + persist AI insights for this host (best-effort; never throws).
   try {
-    const insights = await generateInsights(config.id)
+    const insights = await generateInsights(config.id, sweepInsightOptions())
     insightsGenerated += insights.length
   } catch (err) {
     debug(
