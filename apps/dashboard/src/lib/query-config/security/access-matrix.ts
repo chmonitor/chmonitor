@@ -225,6 +225,239 @@ export const accessTablesConfig: QueryConfig = {
   defaultParams: { database: '' },
 }
 
+export const accessRowPoliciesConfig: QueryConfig = {
+  name: 'access-row-policies',
+  description:
+    'Row policies: the row filter and who it applies to (system.row_policies). An empty table means every table of the database.',
+  optional: true,
+  tableCheck: 'system.row_policies',
+  docs: 'https://clickhouse.com/docs/en/sql-reference/statements/create/row-policy',
+  permission: SECURITY,
+  sql: `
+    SELECT
+      name,
+      short_name,
+      database,
+      table,
+      select_filter,
+      is_restrictive,
+      apply_to_all,
+      apply_to_list,
+      apply_to_except
+    FROM system.row_policies
+    ORDER BY database, table, short_name
+  `,
+  columns: [
+    'name',
+    'short_name',
+    'database',
+    'table',
+    'select_filter',
+    'is_restrictive',
+    'apply_to_all',
+    'apply_to_list',
+    'apply_to_except',
+  ],
+}
+
+const QUOTAS_DOCS = 'https://clickhouse.com/docs/en/operations/quotas'
+
+export const accessQuotasConfig: QueryConfig = {
+  name: 'access-quotas',
+  description: 'Quotas and who they apply to (system.quotas).',
+  optional: true,
+  tableCheck: 'system.quotas',
+  docs: QUOTAS_DOCS,
+  permission: SECURITY,
+  sql: `
+    SELECT
+      name,
+      storage,
+      keys,
+      durations,
+      apply_to_all,
+      apply_to_list,
+      apply_to_except
+    FROM system.quotas
+    ORDER BY name
+  `,
+  columns: [
+    'name',
+    'storage',
+    'keys',
+    'durations',
+    'apply_to_all',
+    'apply_to_list',
+    'apply_to_except',
+  ],
+}
+
+/**
+ * Limit columns of system.quota_limits. `max_failed_sequential_authentications`
+ * is on 24.8 and not on 23.8; `max_queries_per_normalized_hash` is on 26.5 and
+ * not on 24.8. The `since` values are those checked releases, not the exact
+ * release that added each column, so a server in between reads NULL.
+ */
+const quotaLimitsSql = (failedAuth: string, perHash: string) => `
+    SELECT
+      quota_name,
+      duration,
+      is_randomized_interval,
+      max_queries,
+      max_query_selects,
+      max_query_inserts,
+      max_errors,
+      max_result_rows,
+      max_result_bytes,
+      max_read_rows,
+      max_read_bytes,
+      max_execution_time,
+      max_written_bytes,
+      ${failedAuth},
+      ${perHash}
+    FROM system.quota_limits
+    ORDER BY quota_name, duration
+  `
+
+const QUOTA_METRIC_COLUMNS = [
+  'queries',
+  'query_selects',
+  'query_inserts',
+  'errors',
+  'result_rows',
+  'result_bytes',
+  'read_rows',
+  'read_bytes',
+  'execution_time',
+  'written_bytes',
+  'failed_sequential_authentications',
+  'queries_per_normalized_hash',
+]
+
+export const accessQuotaLimitsConfig: QueryConfig = {
+  name: 'access-quota-limits',
+  description:
+    'Limits of each quota interval (system.quota_limits). NULL means no limit.',
+  optional: true,
+  tableCheck: 'system.quota_limits',
+  docs: QUOTAS_DOCS,
+  permission: SECURITY,
+  sql: [
+    {
+      since: '23.8',
+      sql: quotaLimitsSql(
+        'NULL AS max_failed_sequential_authentications',
+        'NULL AS max_queries_per_normalized_hash'
+      ),
+    },
+    {
+      since: '24.8',
+      sql: quotaLimitsSql(
+        'max_failed_sequential_authentications',
+        'NULL AS max_queries_per_normalized_hash'
+      ),
+    },
+    {
+      since: '26.5',
+      sql: quotaLimitsSql(
+        'max_failed_sequential_authentications',
+        'max_queries_per_normalized_hash'
+      ),
+    },
+  ],
+  columns: [
+    'quota_name',
+    'duration',
+    'is_randomized_interval',
+    ...QUOTA_METRIC_COLUMNS.map((m) => `max_${m}`),
+  ],
+}
+
+/**
+ * system.quotas_usage (plural) has every quota key of every user, where
+ * system.quota_usage only has the current user. Same version split as
+ * quota_limits.
+ */
+const quotasUsageSql = (failedAuth: string, perHash: string) => `
+    SELECT
+      quota_name,
+      quota_key,
+      is_current,
+      end_time,
+      duration,
+      queries,
+      max_queries,
+      query_selects,
+      max_query_selects,
+      query_inserts,
+      max_query_inserts,
+      errors,
+      max_errors,
+      result_rows,
+      max_result_rows,
+      result_bytes,
+      max_result_bytes,
+      read_rows,
+      max_read_rows,
+      read_bytes,
+      max_read_bytes,
+      execution_time,
+      max_execution_time,
+      written_bytes,
+      max_written_bytes,
+      ${failedAuth},
+      ${perHash}
+    FROM system.quotas_usage
+    ORDER BY quota_name, quota_key, duration
+  `
+
+export const accessQuotasUsageConfig: QueryConfig = {
+  name: 'access-quotas-usage',
+  description:
+    'Current quota consumption of every quota key (system.quotas_usage).',
+  optional: true,
+  tableCheck: 'system.quotas_usage',
+  docs: QUOTAS_DOCS,
+  permission: SECURITY,
+  sql: [
+    {
+      since: '23.8',
+      sql: quotasUsageSql(
+        `NULL AS failed_sequential_authentications,
+      NULL AS max_failed_sequential_authentications`,
+        `NULL AS queries_per_normalized_hash,
+      NULL AS max_queries_per_normalized_hash`
+      ),
+    },
+    {
+      since: '24.8',
+      sql: quotasUsageSql(
+        `failed_sequential_authentications,
+      max_failed_sequential_authentications`,
+        `NULL AS queries_per_normalized_hash,
+      NULL AS max_queries_per_normalized_hash`
+      ),
+    },
+    {
+      since: '26.5',
+      sql: quotasUsageSql(
+        `failed_sequential_authentications,
+      max_failed_sequential_authentications`,
+        `queries_per_normalized_hash,
+      max_queries_per_normalized_hash`
+      ),
+    },
+  ],
+  columns: [
+    'quota_name',
+    'quota_key',
+    'is_current',
+    'end_time',
+    'duration',
+    ...QUOTA_METRIC_COLUMNS.flatMap((m) => [m, `max_${m}`]),
+  ],
+}
+
 export const accessMatrixConfigs: QueryConfig[] = [
   accessGrantsConfig,
   accessRoleGrantsConfig,
@@ -234,4 +467,8 @@ export const accessMatrixConfigs: QueryConfig[] = [
   accessProfileElementsConfig,
   accessDatabasesConfig,
   accessTablesConfig,
+  accessRowPoliciesConfig,
+  accessQuotasConfig,
+  accessQuotaLimitsConfig,
+  accessQuotasUsageConfig,
 ]

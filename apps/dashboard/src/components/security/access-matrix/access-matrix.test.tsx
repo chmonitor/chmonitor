@@ -193,3 +193,65 @@ test('the expanded table list says when it stops at the LIMIT', async () => {
   )
   expect(under.textContent).toBe('')
 })
+
+async function policyFixtures(grantee: {
+  kind: 'user' | 'role'
+  name: string
+}) {
+  const { granteeAccess } = await import('@/lib/security/access-matrix')
+  const fx = await import('@/lib/security/__fixtures__/access-policy-rows')
+  const access = granteeAccess(grantee, {
+    grants: [],
+    roleGrants: fx.roleGrants,
+    profiles: [],
+    profileElements: [],
+  })
+  return { access, fx }
+}
+
+test('the cell sheet lists each row policy with its condition and kind', async () => {
+  const { createElement } = await import('react')
+  const { CellDetail } = await import('./access-sheets')
+  const { computeCell } = await import('@/lib/security/access-matrix')
+  const { policiesForCell } = await import('@/lib/security/access-policies')
+  const { access, fx } = await policyFixtures({ kind: 'user', name: 'alice' })
+  const scope = { database: 'db1', table: 't' }
+  const el = await render(
+    createElement(CellDetail, {
+      cell: computeCell(access.sourced, scope, access.readonly),
+      policies: policiesForCell(access, fx.rowPolicies, scope),
+    })
+  )
+  const text = el.textContent ?? ''
+  expect(text).toContain("tenant = 'a'")
+  expect(text).toContain('permissive')
+  expect(text).toContain('Row policies after SET ROLE')
+  expect(text).toContain('a > 10')
+  expect(text).not.toContain('p_ex')
+})
+
+test('the grantee sheet lists quota limits, usage and the no-stacking note', async () => {
+  const { createElement } = await import('react')
+  const { QuotaList } = await import('./quota-list')
+  const { quotasForGrantee } = await import('@/lib/security/access-policies')
+  const { access, fx } = await policyFixtures({ kind: 'user', name: 'alice' })
+  const el = await render(
+    createElement(QuotaList, {
+      quotas: quotasForGrantee(
+        access,
+        fx.quotas,
+        fx.quotaLimits,
+        fx.quotasUsage
+      ),
+      isUser: true,
+    })
+  )
+  const text = el.textContent ?? ''
+  expect(text).toContain('the limits do not add up')
+  expect(text).toContain('usage is shared')
+  const row = [...el.querySelectorAll('tr')].find((tr) =>
+    tr.textContent?.startsWith('1hQueries')
+  )
+  expect(row?.textContent).toBe('1hQueries1003')
+  expect(text).toContain('1d (randomized)')
+})

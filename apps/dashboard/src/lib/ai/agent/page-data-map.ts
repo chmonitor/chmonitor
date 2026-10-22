@@ -447,6 +447,10 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     'access-settings-profiles',
     'access-profile-elements',
     'access-databases',
+    'access-row-policies',
+    'access-quotas',
+    'access-quota-limits',
+    'access-quotas-usage',
   ]),
   '/security/sessions': p(
     'Sessions',
