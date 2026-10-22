@@ -31,6 +31,7 @@ import { asynchronousMetricsDeclarative } from './asynchronous-metrics'
 import { backupsDeclarative } from './backups'
 import { dictionariesDeclarative } from './dictionaries'
 import { errorsDeclarative } from './errors'
+import { hotQueryShapesDeclarative } from './hot-query-shapes'
 import { mergeTreeSettingsDeclarative } from './mergetree-settings'
 import { metricsDeclarative } from './metrics'
 import { rolesDeclarative } from './roles'
@@ -48,6 +49,7 @@ import { asynchronousMetricsConfig } from '@/lib/query-config/more/asynchronous-
 import { backupsConfig } from '@/lib/query-config/more/backups'
 import { dictionariesConfig } from '@/lib/query-config/more/dictionaries'
 import { errorsConfig } from '@/lib/query-config/more/errors'
+import { hotQueryShapesConfig } from '@/lib/query-config/more/hot-query-shapes'
 import { mergeTreeSettingsConfig } from '@/lib/query-config/more/mergetree-settings'
 import { metricsConfig } from '@/lib/query-config/more/metrics'
 import { rolesConfig } from '@/lib/query-config/more/roles'
@@ -245,6 +247,17 @@ describe('top-usage-tables declarative', () => {
     if (Array.isArray(loaded.sql) && Array.isArray(legacySql)) {
       expect(loaded.sql.length).toBe(legacySql.length)
     }
+  })
+})
+
+describe('hot-query-shapes declarative', () => {
+  test('loads without error', () => {
+    expect(() => loadDeclarativeConfig(hotQueryShapesDeclarative)).not.toThrow()
+  })
+
+  test('serializable fields match legacy', () => {
+    const loaded = loadDeclarativeConfig(hotQueryShapesDeclarative)
+    compareSerializable(loaded, hotQueryShapesConfig)
   })
 })
 

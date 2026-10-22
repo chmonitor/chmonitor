@@ -36,6 +36,7 @@ export const ROUTE_TITLE_MAP: Record<string, string> = {
   '/top-usage-columns': 'Top Usage Columns',
   '/unused-tables': 'Unread Tables',
   '/unused-columns': 'Unread Columns',
+  '/hot-query-shapes': 'Hot Query Shapes',
   '/unused-projections': 'Unused Projections',
   '/view-refreshes': 'View Refreshes',
   '/detached-parts': 'Detached Parts',

@@ -628,6 +628,12 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'Top Usage Tables',
     description: 'Most-queried tables from system.query_log.',
   },
+  'hot-query-shapes': {
+    eyebrow: 'USAGE',
+    title: 'Hot Query Shapes',
+    description:
+      "The query shapes that read one table most in this replica's query log, next to its sorting key.",
+  },
   'unused-columns': {
     eyebrow: 'USAGE',
     title: 'Unread Columns',

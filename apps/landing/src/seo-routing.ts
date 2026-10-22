@@ -33,6 +33,7 @@ export const DASHBOARD_PREFIXES = new Set([
   'health-settings',
   'histogram-metrics',
   'history-queries',
+  'hot-query-shapes',
   'inbound-events',
   'index-analytics',
   'insights',

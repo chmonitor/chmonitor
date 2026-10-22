@@ -351,6 +351,7 @@ describe('task-group layout (#3565)', () => {
       '/unused-tables',
       '/top-usage-columns',
       '/unused-columns',
+      '/hot-query-shapes',
       '/merges',
       '/merge-performance',
       '/mutations',

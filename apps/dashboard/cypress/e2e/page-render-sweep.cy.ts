@@ -50,6 +50,7 @@ const DASHBOARD_ROUTES = [
   '/health-settings',
   '/histogram-metrics',
   '/history-queries',
+  '/hot-query-shapes',
   '/hub/cluster-replication',
   '/hub/data-storage',
   '/hub/queries',

@@ -12,6 +12,7 @@ import type { QueryConfig } from '@/types/query-config'
 
 import { DECLARATIVE_CATALOG } from '../declarative/catalog'
 import { mergePerformanceConfig } from '../merges/merge-performance'
+import { hotQueryShapesConfig } from '../more/hot-query-shapes'
 import { topUsageColumnsConfig } from '../more/top-usage-columns'
 import { topUsageTablesConfig } from '../more/top-usage-tables'
 import { unusedColumnsConfig } from '../more/unused-columns'
@@ -37,6 +38,7 @@ const daysBounded: [QueryConfig, string][] = [
   [topUsageTablesConfig, '7'],
   [unusedTablesConfig, '30'],
   [unusedColumnsConfig, '30'],
+  [hotQueryShapesConfig, '30'],
   [unusedProjectionsConfig, '30'],
   [mergePerformanceConfig, '30'],
   [queryDetailConfig, '30'],
@@ -143,6 +145,68 @@ describe('unused-columns / unused-projections: bounded, replica-only, never a ve
     expect(unusedProjectionsConfig.description).toMatch(
       /not the same as unneeded/
     )
+  })
+})
+
+describe('hot-query-shapes: bounded, replica-only, data only, never a verdict', () => {
+  const [sql] = sqlsOf(hotQueryShapesConfig)
+
+  test('LIMIT 50, one query_log read with the event_date bound, only finished SELECTs', () => {
+    expect(sql).toMatch(/LIMIT 50\s*$/)
+    expect((sql.match(/merge\('system', '\^query_log'\)/g) ?? []).length).toBe(
+      1
+    )
+    expect(
+      (sql.match(/event_date >= today\(\) - \{days:UInt16\}/g) ?? []).length
+    ).toBe(1)
+    expect(sql).toContain("query_kind = 'Select'")
+    expect(sql).toContain("type = 'QueryFinish'")
+    expect(hotQueryShapesConfig.defaultParams?.days).toBe('30')
+    expect(hotQueryShapesConfig.defaultParams?.table).toBe('')
+    expect(
+      hotQueryShapesConfig.filterParamPresets?.map((p) => p.value)
+    ).toEqual(['7', '30', '90'])
+  })
+
+  test('never returns the raw query: only truncated normalizeQuery text', () => {
+    expect(sql).toContain(
+      'substring(normalizeQuery(any(query)), 1, 300) AS sample'
+    )
+    expect(sql).not.toMatch(/SELECT\s+query\b|,\s*query\s*[,\n]/)
+  })
+
+  test('multi-table bytes are split evenly and the table param is the only filter', () => {
+    expect(sql).toContain('sum(read_bytes / length(tables))')
+    expect(sql).toContain('{table:String}')
+    expect(hotQueryShapesConfig.description).toMatch(/split evenly/)
+  })
+
+  test('no lambda alias in WITH (#4084), no DDL, no verdict wording', () => {
+    expect(sql).not.toMatch(/->[^\n]*\sAS\s+\w+\s*,\s*$/m)
+    expect(sql).not.toMatch(/\b(DROP|ALTER)\b/i)
+    expect(sql).not.toMatch(/\b(verdict|recommend|misses)\b/i)
+    const d = hotQueryShapesConfig.description ?? ''
+    expect(d).toContain('THIS REPLICA ONLY')
+    expect(d).toContain('a hash read on another replica or shard is not shown')
+    expect(d).toContain('No judgement is made')
+    expect(d).not.toMatch(/safe to drop|\bDROP\b|\bALTER\b/i)
+  })
+
+  test('sorting_key and partition_key are context columns; BackgroundBar has its companions', () => {
+    expect(hotQueryShapesConfig.columns).toEqual(
+      expect.arrayContaining([
+        'sorting_key',
+        'partition_key',
+        'p50_ms',
+        'p95_ms',
+      ])
+    )
+    expect(hotQueryShapesConfig.columnFormats?.readable_bytes).toBe(
+      ColumnFormat.BackgroundBar
+    )
+    expect(sql).toContain('AS readable_bytes')
+    expect(sql).toContain('AS pct_bytes')
+    expect(sql).toMatch(/AS bytes\b/)
   })
 })
 
