@@ -46,6 +46,7 @@ import {
 import { refitBaselineIfStale, scoreAnomaly } from './statistical-baseline'
 import { collectTtlPartitionHealth } from './ttl-partition-collector'
 import { collectTtlRewriteAmplification } from './ttl-rewrite-collector'
+import { collectUsage } from './usage-collector'
 import { warn } from '@chm/logger'
 import { parseExplainIndexes } from '@chm/query-advisor-core'
 import { validateSqlQuery } from '@chm/sql-builder'
@@ -386,6 +387,7 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
     ttlSettled,
     ttlRewriteSettled,
     retentionSettled,
+    usageSettled,
   ] = await Promise.allSettled([
     firstRow(
       `SELECT database, table, count() AS value,
@@ -410,6 +412,7 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
     collectTtlPartitionHealth(hostId),
     collectTtlRewriteAmplification(hostId),
     collectRetentionForecast(hostId),
+    collectUsage(hostId),
   ])
 
   const parts = partsSettled.status === 'fulfilled' ? partsSettled.value : null
@@ -456,6 +459,9 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
   }
   if (retentionSettled.status === 'fulfilled') {
     out.push(...retentionSettled.value)
+  }
+  if (usageSettled.status === 'fulfilled') {
+    out.push(...usageSettled.value)
   }
 
   return out
