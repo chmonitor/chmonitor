@@ -14,6 +14,8 @@ import { DECLARATIVE_CATALOG } from '../declarative/catalog'
 import { mergePerformanceConfig } from '../merges/merge-performance'
 import { topUsageColumnsConfig } from '../more/top-usage-columns'
 import { topUsageTablesConfig } from '../more/top-usage-tables'
+import { unusedColumnsConfig } from '../more/unused-columns'
+import { unusedProjectionsConfig } from '../more/unused-projections'
 import { unusedTablesConfig } from '../more/unused-tables'
 import { queryChildrenConfig } from '../queries/query-children'
 import { queryDetailConfig } from '../queries/query-detail'
@@ -23,6 +25,7 @@ import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ColumnFormat } from '@/types/column-format'
 
 const sqlsOf = (c: { sql: QueryConfig['sql'] }): string[] =>
   typeof c.sql === 'string' ? [c.sql] : c.sql.map((v) => v.sql)
@@ -33,6 +36,8 @@ const daysBounded: [QueryConfig, string][] = [
   [topUsageColumnsConfig, '7'],
   [topUsageTablesConfig, '7'],
   [unusedTablesConfig, '30'],
+  [unusedColumnsConfig, '30'],
+  [unusedProjectionsConfig, '30'],
   [mergePerformanceConfig, '30'],
   [queryDetailConfig, '30'],
   [queryChildrenConfig, '30'],
@@ -68,6 +73,76 @@ describe('unused-tables: both query_log scans are bounded', () => {
     expect(sql).toContain('log_window_start')
     expect(unusedTablesConfig.description).toContain('This replica only')
     expect(unusedTablesConfig.description).not.toMatch(/safe to drop/i)
+  })
+})
+
+describe('unused-columns / unused-projections: bounded, replica-only, never a verdict', () => {
+  const LOG_READ = /merge\('system', '\^query_log'\)/g
+  const BOUND = /event_date >= today\(\) - \{days:UInt16\}/g
+  const cases: [QueryConfig, string][] = [
+    [unusedColumnsConfig, 'unused-columns'],
+    [unusedProjectionsConfig, 'unused-projections'],
+  ]
+
+  for (const [config, name] of cases) {
+    test(`${name}: LIMITed, every query_log read has the event_date bound`, () => {
+      for (const sql of sqlsOf(config)) {
+        expect(sql).toMatch(/LIMIT 200\s*$/)
+        const reads = sql.match(LOG_READ) ?? []
+        expect(reads.length).toBe(2)
+        expect((sql.match(BOUND) ?? []).length).toBe(reads.length)
+      }
+      expect(config.defaultParams?.days).toBe('30')
+      expect(config.filterParamPresets?.map((p) => p.value)).toEqual([
+        '7',
+        '30',
+        '90',
+      ])
+    })
+
+    test(`${name}: only finished SELECTs, exposes log_window_start, no verdict wording`, () => {
+      for (const sql of sqlsOf(config)) {
+        expect(sql).toContain("query_kind = 'Select'")
+        expect(sql).toContain("type = 'QueryFinish'")
+        expect(sql).toContain('log_window_start')
+        // #4084: a lambda alias in WITH breaks under enable_analyzer=0
+        expect(sql).not.toMatch(/->[^\n]*\sAS\s+\w+\s*,\s*$/m)
+        expect(sql).not.toMatch(/\b(DROP|ALTER)\b/i)
+      }
+      expect(config.description).toContain('This replica only')
+      expect(config.description).not.toMatch(/safe to drop|\bDROP\b|\bALTER\b/i)
+    })
+
+    test(`${name}: BackgroundBar column has its pct_ and raw companions`, () => {
+      const [sql] = sqlsOf(config)
+      expect(config.columnFormats?.readable_bytes).toBe(
+        ColumnFormat.BackgroundBar
+      )
+      expect(sql).toContain('AS readable_bytes')
+      expect(sql).toContain('AS pct_bytes')
+      expect(sql).toMatch(/AS bytes\b/)
+    })
+  }
+
+  test('unused-columns: SELECT * queries are excluded server-side and the caveat is stated', () => {
+    const [sql] = sqlsOf(unusedColumnsConfig)
+    expect(sql).toContain("NOT match(query, '(?i)select\\\\s+\\\\*')")
+    expect(sql).toContain('{table:String}')
+    expect(sql).not.toMatch(/SELECT\s+query\b|,\s*query\s*[,\n]/)
+    expect(unusedColumnsConfig.description).toContain('SELECT *')
+    expect(unusedColumnsConfig.description).toMatch(/not the same as unused/)
+    expect(unusedColumnsConfig.defaultParams?.table).toBe('')
+  })
+
+  test('unused-projections: gated by since and by both tables it reads', () => {
+    expect(Array.isArray(unusedProjectionsConfig.sql)).toBe(true)
+    expect(unusedProjectionsConfig.tableCheck).toEqual([
+      'system.query_log',
+      'system.projections',
+    ])
+    expect(unusedProjectionsConfig.description).toMatch(
+      /not the same as unneeded/
+    )
   })
 })
 

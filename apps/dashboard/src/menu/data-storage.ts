@@ -112,6 +112,17 @@ export const dataStorageItems: MenuItem[] = [
         tableCheck: 'system.query_log',
         permission: { feature: 'tables' },
       },
+      {
+        subgroup: 'Tables',
+        title: 'Unread Columns',
+        href: '/unused-columns',
+        description:
+          'Columns of one table no SELECT referenced in the log window',
+        icon: TableIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+        permission: { feature: 'tables' },
+      },
       // Merges & parts
       {
         subgroup: 'Merges & Parts',
@@ -267,6 +278,16 @@ export const dataStorageItems: MenuItem[] = [
         icon: LayersIcon,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/projection_parts',
         tableCheck: 'system.projection_parts',
+        permission: { feature: 'tables' },
+      },
+      {
+        subgroup: 'Table Health',
+        title: 'Unused Projections',
+        href: '/unused-projections',
+        description: 'Projections no SELECT used in the query log window',
+        icon: LayersIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: ['system.query_log', 'system.projections'],
         permission: { feature: 'tables' },
       },
       // Ingestion

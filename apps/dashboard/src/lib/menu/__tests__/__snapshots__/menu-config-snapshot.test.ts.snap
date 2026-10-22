@@ -207,6 +207,13 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/unused-columns",
+    "section": undefined,
+    "subgroup": "Tables",
+    "title": "Unread Columns",
+  },
+  {
+    "depth": 1,
     "href": "/merges",
     "section": undefined,
     "subgroup": "Merges & Parts",
@@ -295,6 +302,13 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
     "section": undefined,
     "subgroup": "Table Health",
     "title": "Projections",
+  },
+  {
+    "depth": 1,
+    "href": "/unused-projections",
+    "section": undefined,
+    "subgroup": "Table Health",
+    "title": "Unused Projections",
   },
   {
     "depth": 1,
