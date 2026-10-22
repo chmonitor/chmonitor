@@ -387,6 +387,11 @@ function fleetReader(opts: {
     errorMessage?: string
   }
   countFromLogs?: (i: number) => number
+  /**
+   * Charge each call one logical tick instead of a real timer, so a test can
+   * count rounds (`ticks`) without measuring wall-clock time.
+   */
+  logicalClock?: boolean
 }) {
   const latencyMs = opts.latencyMs ?? 0
   const logsLatencyMs = opts.logsLatencyMs ?? latencyMs
@@ -394,11 +399,25 @@ function fleetReader(opts: {
   const inFlight = { status: 0, logs: 0 }
   const peak = { status: 0, logs: 0 }
   const logsFor: string[] = []
+  // Logical clock: a call starts at the current tick and the clock only moves
+  // forward when a call finishes, so calls issued together share a start tick
+  // and calls awaited in turn line up end to start.
+  let clock = 0
+  const ticks: Array<{ start: number; end: number }> = []
 
   const track = (kind: 'status' | 'logs', delay: number) => {
     calls[kind]++
     inFlight[kind]++
     peak[kind] = Math.max(peak[kind], inFlight[kind])
+    if (opts.logicalClock) {
+      const start = clock
+      return Promise.resolve().then(() => {
+        inFlight[kind]--
+        const end = start + 1
+        clock = Math.max(clock, end)
+        ticks.push({ start, end })
+      })
+    }
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         inFlight[kind]--
@@ -430,7 +449,7 @@ function fleetReader(opts: {
     peerSlots: async () => [],
     listSourcePeers: async () => [],
   }
-  return { reader, calls, peak, logsFor }
+  return { reader, calls, peak, logsFor, ticks }
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -466,29 +485,31 @@ describe('collectPeerDBSignals concurrency bound (#3677)', () => {
     expect(peak.logs).toBe(1)
   })
 
-  test('the pool bounds wall time — sequential-equivalent work is parallelised, not serialised', async () => {
-    // 16 mirrors x 100ms. Serial execution would need 1.6s (and 3.2s with
-    // logs). A pool of 8 must finish well inside the 3.2s serial bound, and
-    // inside the budget. This is the assertion that the fix is a POOL and not
-    // "144 sequential timeouts".
-    const { reader } = fleetReader({
+  test('the pool bounds the rounds — sequential-equivalent work is parallelised, not serialised', async () => {
+    // 16 mirrors, each read once for status and once for logs: 32 reads. Serial
+    // execution would need 32 rounds. A pool of 8 runs 16/8 = 2 waves per stage,
+    // so 4 rounds. This is the assertion that the fix is a POOL and not "144
+    // sequential timeouts". Rounds are logical ticks, never wall-clock time.
+    const { reader, calls, ticks } = fleetReader({
       count: 16,
-      latencyMs: 100,
       statusOf: () => ({ currentFlowState: 'STATUS_FAILED' }),
+      logicalClock: true,
     })
 
-    const started = Date.now()
     const out = await collectPeerDBSignals(reader, {
       concurrency: 8,
       budgetMs: 10_000,
     })
-    const elapsed = Date.now() - started
 
     expect(out.metrics.mirrorsChecked).toBe(16)
     expect(out.metrics.budgetDeferred).toBe(0)
-    // 2 waves of status + 2 waves of logs = ~400ms. Well under the 3.2s a
-    // fully serial fan-out would need, with headroom for a loaded host.
-    expect(elapsed).toBeLessThan(1_500)
+    const serialRounds = calls.status + calls.logs
+    expect(serialRounds).toBe(32)
+    const rounds =
+      Math.max(...ticks.map((t) => t.end)) -
+      Math.min(...ticks.map((t) => t.start))
+    expect(rounds).toBe(4)
+    expect(rounds).toBeLessThanOrEqual(serialRounds / 8)
   })
 
   test('a pool alone still overruns — the budget bounds total wall time', async () => {

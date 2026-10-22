@@ -4,8 +4,9 @@ import { describe, expect, mock, test } from 'bun:test'
  * `get_metrics` must answer one health snapshot from ONE read, with a payload
  * deep-equal to the old three-read path (pinned below, not derived from the
  * current code). The invocation count distinguishes "batched" from
- * "uncoordinated"; the makespan ceiling catches the three reads being re-issued
- * sequentially.
+ * "uncoordinated"; the logical-round ceiling catches the three reads being
+ * re-issued sequentially. Time is a logical clock (one tick per read), never
+ * wall-clock, so a loaded runner cannot flip the outcome.
  */
 
 type MetricsRow = { metric: string; value: number }
@@ -25,8 +26,8 @@ const BASELINE_METRICS_SQL =
 
 const BASELINE_READ_COUNT = 3
 
-/** Sized well above `setTimeout` granularity so the makespan ceiling has headroom. */
-const UNIT_DELAY_MS = 30
+/** Each read costs one logical tick. No wall-clock time is ever measured. */
+const READ_TICKS = 1
 
 /**
  * `MemoryTracking` sits above 2^32 on a real node, so it proves a `value`
@@ -53,8 +54,10 @@ interface RecordedFetch {
   args: FetchArgs
   requestBytes: number
   responseBytes: number
-  /** Wall time this invocation actually cost, measured — never assumed. */
-  observedMs: number
+  /** Logical tick at which the read started. */
+  start: number
+  /** Logical tick at which the read finished. */
+  end: number
 }
 
 type FetchOutcome =
@@ -63,9 +66,6 @@ type FetchOutcome =
 type FetchImpl = (args: FetchArgs) => Promise<FetchOutcome>
 
 const encoder = new TextEncoder()
-
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 /**
  * Stand-in for ClickHouse. A query naming one thing gets the old narrow shape;
@@ -106,15 +106,17 @@ function createRecordingFetch(
   outcome?: (args: FetchArgs) => FetchOutcome
 ) {
   const calls: RecordedFetch[] = []
+  // Logical clock: a read starts at the current tick and the clock only moves
+  // forward when a read finishes. Reads awaited one after another therefore
+  // line up end to start; reads issued together share the same start tick.
+  let clock = 0
 
   const fetchImpl: FetchImpl = async (args) => {
     const requestBytes = encoder.encode(args.query).length
-    const started = performance.now()
-    await sleep(UNIT_DELAY_MS)
-    // Measured, not the nominal constant: a loaded machine makes `setTimeout`
-    // overshoot, and every ceiling below is derived from this so a correct
-    // implementation can never fail because of timer jitter.
-    const observedMs = performance.now() - started
+    const start = clock
+    await Promise.resolve()
+    const end = start + READ_TICKS
+    clock = Math.max(clock, end)
     const resolved = outcome
       ? outcome(args)
       : { data: respondTo(args.query, fixture), error: null }
@@ -123,7 +125,8 @@ function createRecordingFetch(
       requestBytes,
       responseBytes: encoder.encode(JSON.stringify(resolved.data ?? null))
         .length,
-      observedMs,
+      start,
+      end,
     })
     return resolved
   }
@@ -160,7 +163,6 @@ interface ToolRun {
   isError: boolean
   errorText: string | undefined
   calls: RecordedFetch[]
-  makespanMs: number
 }
 
 async function runTool(
@@ -175,13 +177,11 @@ async function runTool(
   registerMetricsTool(server)
   const handler = getToolHandler(server, 'get_metrics')
 
-  const started = performance.now()
   const result = (await handler(args)) as {
     content: Array<{ type: string; text: string }>
     structuredContent?: Record<string, unknown>
     isError?: boolean
   }
-  const makespanMs = performance.now() - started
 
   const text = result.content[0].text
   return {
@@ -191,7 +191,6 @@ async function runTool(
     isError: result.isError === true,
     errorText: result.isError ? text : undefined,
     calls,
-    makespanMs,
   }
 }
 
@@ -199,13 +198,11 @@ async function runTool(
 async function runUncoordinatedBaseline() {
   const { calls, fetchImpl } = createRecordingFetch(FIXTURE)
 
-  const started = performance.now()
   const [versionResult, uptimeResult, metricsResult] = await Promise.all([
     fetchImpl({ query: BASELINE_VERSION_SQL }),
     fetchImpl({ query: BASELINE_UPTIME_SQL }),
     fetchImpl({ query: BASELINE_METRICS_SQL }),
   ])
-  const makespanMs = performance.now() - started
 
   const versionRow = (
     Array.isArray(versionResult.data)
@@ -223,7 +220,6 @@ async function runUncoordinatedBaseline() {
       metrics: metricsResult.data,
     } as Record<string, unknown>,
     calls,
-    makespanMs,
   }
 }
 
@@ -235,33 +231,38 @@ const INVOCATION_CEILING = 0.5 * BASELINE_READ_COUNT
 const SEQUENTIAL_COST_FRACTION = 0.5
 
 /**
- * Half the sum of three unit delays, with the unit measured in this run to
- * survive timer jitter. Throws on an empty run: a ceiling of 0 would let a tool
- * that read nothing pass.
+ * Logical makespan: ticks from the first read starting to the last one ending.
+ * Throws on an empty run: a ceiling check on 0 rounds would let a tool that
+ * read nothing pass.
  */
-function makespanCeilingMs(calls: RecordedFetch[]): number {
-  const unitMs = calls[0]?.observedMs
-  if (unitMs === undefined) {
+function rounds(calls: RecordedFetch[]): number {
+  if (calls.length === 0) {
     throw new Error(
-      'no fetchData invocation was recorded, so there is nothing to time'
+      'no fetchData invocation was recorded, so there is nothing to count'
     )
   }
-  return SEQUENTIAL_COST_FRACTION * BASELINE_READ_COUNT * unitMs
+  return (
+    Math.max(...calls.map((call) => call.end)) -
+    Math.min(...calls.map((call) => call.start))
+  )
 }
+
+/** Rounds the three reads cost when awaited one after another. */
+const SEQUENTIAL_ROUNDS = BASELINE_READ_COUNT * READ_TICKS
 
 describe('get_metrics batched into one read (#3644)', () => {
   test('baseline sanity: the pinned three-read path really does cost 3 reads', () => {
     expect(BASELINE.calls.length).toBe(BASELINE_READ_COUNT)
     expect(
-      BASELINE.calls.every((call) => call.observedMs >= UNIT_DELAY_MS * 0.5),
-      'the mock must actually charge a delay, or every ceiling below is vacuous'
+      BASELINE.calls.every((call) => call.end - call.start === READ_TICKS),
+      'the mock must actually charge a tick, or every ceiling below is vacuous'
     ).toBe(true)
   })
 
   // Two independent runs: the win has to hold on a repeat call, not just the
   // first one (no warm-cache or one-off artifact carrying it).
   for (const run of [1, 2] as const) {
-    test(`run ${run}: one invocation, half the sequential makespan, identical payload`, async () => {
+    test(`run ${run}: one invocation, half the sequential rounds, identical payload`, async () => {
       const result = await runTool()
 
       expect(
@@ -273,12 +274,13 @@ describe('get_metrics batched into one read (#3644)', () => {
       // falsifiable: 3 (the regression) and 0 (a degenerate no-op) both fail.
       expect(result.calls.length).toBe(1)
 
-      const ceiling = makespanCeilingMs(result.calls)
+      // One read, so one round, at most half the three-read sequential rounds.
+      const batchedRounds = rounds(result.calls)
+      expect(batchedRounds).toBe(READ_TICKS)
       expect(
-        result.makespanMs,
-        `makespan ${result.makespanMs.toFixed(1)}ms exceeded half of the ` +
-          `${(ceiling / SEQUENTIAL_COST_FRACTION).toFixed(1)}ms three-read cost`
-      ).toBeLessThanOrEqual(ceiling)
+        batchedRounds,
+        `${batchedRounds} rounds exceeded half of the ${SEQUENTIAL_ROUNDS} three-read rounds`
+      ).toBeLessThanOrEqual(SEQUENTIAL_COST_FRACTION * SEQUENTIAL_ROUNDS)
 
       // The crux: one read must not change the answer the model receives.
       expect(result.payload).toEqual(BASELINE.payload)
@@ -286,14 +288,12 @@ describe('get_metrics batched into one read (#3644)', () => {
     })
   }
 
-  test('the makespan ceiling is a real gate: three sequential reads blow it', async () => {
-    // Proves the assertion above has teeth. A batched read lands near one
-    // unit; re-issuing the three one after another costs three, which the
-    // 1.5-unit ceiling must reject. Both numbers come from the same mock, so
-    // this holds regardless of how loaded the machine is.
+  test('the rounds ceiling is a real gate: three sequential reads blow it', async () => {
+    // Proves the assertion above has teeth. A batched read is one round;
+    // re-issuing the three one after another costs three, which the 1.5-round
+    // ceiling must reject. Both numbers come from the same logical clock.
     const { calls, fetchImpl } = createRecordingFetch(FIXTURE)
 
-    const started = performance.now()
     for (const query of [
       BASELINE_VERSION_SQL,
       BASELINE_UPTIME_SQL,
@@ -301,10 +301,12 @@ describe('get_metrics batched into one read (#3644)', () => {
     ]) {
       await fetchImpl({ query })
     }
-    const sequentialMs = performance.now() - started
 
     expect(calls.length).toBe(BASELINE_READ_COUNT)
-    expect(sequentialMs).toBeGreaterThan(makespanCeilingMs(calls))
+    expect(rounds(calls)).toBe(SEQUENTIAL_ROUNDS)
+    expect(rounds(calls)).toBeGreaterThan(
+      SEQUENTIAL_COST_FRACTION * SEQUENTIAL_ROUNDS
+    )
   })
 
   test('the single read selects version, uptime and system.metrics together', async () => {

@@ -2,16 +2,22 @@ import { afterAll, expect, mock, test } from 'bun:test'
 
 const DATABASE = 'analytics'
 const TABLE = 'events_raw'
-const CALL_DELAY_MS = 80
+/** Each read costs one logical tick. No wall-clock time is ever measured. */
+const READ_TICKS = 1
 
 type FetchCall = {
   query: string
   query_params?: Record<string, unknown>
-  delayMs: number
+  start: number
+  end: number
   bytes: number
 }
 
 const calls: FetchCall[] = []
+// Logical clock: a read starts at the current tick and the clock only moves
+// forward when a read finishes. Reads awaited one after another therefore line
+// up end to start; reads issued together share the same start tick.
+let clock = 0
 
 const tableRow = {
   partition_key: 'toYYYYMM(event_date)',
@@ -128,14 +134,17 @@ async function runReadonlyFetch(options: {
   hostId?: number
   query_params?: Record<string, unknown>
 }): Promise<{ data: unknown[]; error: null }> {
-  const started = performance.now()
-  await Bun.sleep(CALL_DELAY_MS)
+  const start = clock
+  await Promise.resolve()
+  const end = start + READ_TICKS
+  clock = Math.max(clock, end)
   const data = rowsFor(options.query)
   const bytes = new TextEncoder().encode(JSON.stringify(data)).byteLength
   calls.push({
     query: options.query,
     query_params: options.query_params,
-    delayMs: performance.now() - started,
+    start,
+    end,
     bytes,
   })
   return { data, error: null }
@@ -156,6 +165,17 @@ const helpers = await import('../tools/helpers')
 afterAll(() => {
   mock.module('../tools/helpers', () => ({ ...realHelpers }))
 })
+
+/** Logical makespan: ticks from the first read starting to the last one ending. */
+function rounds(readCalls: FetchCall[]): number {
+  if (readCalls.length === 0) {
+    throw new Error('no read was recorded, so there is nothing to count')
+  }
+  return (
+    Math.max(...readCalls.map((call) => call.end)) -
+    Math.min(...readCalls.map((call) => call.start))
+  )
+}
 
 function truthy(v: number | string) {
   return Number(v) === 1
@@ -224,27 +244,30 @@ test('fetchTableSchema reads one table schema in a single read-only query', asyn
   const baseline = await threeReadBaseline()
   const baselineCalls = calls.splice(0, calls.length)
   expect(baselineCalls).toHaveLength(3)
-  const unitDelaySum = baselineCalls.reduce(
-    (sum, call) => sum + call.delayMs,
+  // Uncoordinated path: three reads issued together, but each one is a unit of
+  // work the batch has to beat, so the cost to beat is the sum of their ticks.
+  const unitTickSum = baselineCalls.reduce(
+    (sum, call) => sum + (call.end - call.start),
     0
   )
+  expect(unitTickSum).toBe(3 * READ_TICKS)
   expect(baselineCalls.every((call) => call.bytes > 0)).toBe(true)
 
-  const ratios: Array<{ invocationRatio: number; makespanRatio: number }> = []
+  const ratios: Array<{ invocationRatio: number; roundsRatio: number }> = []
   for (const run of [1, 2]) {
-    const started = performance.now()
     const schema = await fetchTableSchema(0, DATABASE, TABLE)
-    const makespan = performance.now() - started
     const runCalls = calls.splice(0, calls.length)
     const invocationRatio = runCalls.length / 3
-    const makespanRatio = makespan / unitDelaySum
-    ratios.push({ invocationRatio, makespanRatio })
+    const batchedRounds = rounds(runCalls)
+    const roundsRatio = batchedRounds / unitTickSum
+    ratios.push({ invocationRatio, roundsRatio })
     console.log(
-      `table-schema batch run ${run} invocationRatio=${invocationRatio} makespanRatio=${makespanRatio} calls=${runCalls.length} bytes=${runCalls.map((call) => call.bytes).join(',')} delaysMs=${runCalls.map((call) => call.delayMs.toFixed(1)).join(',')}`
+      `table-schema batch run ${run} invocationRatio=${invocationRatio} roundsRatio=${roundsRatio} calls=${runCalls.length} bytes=${runCalls.map((call) => call.bytes).join(',')}`
     )
 
     expect(invocationRatio).toBeLessThanOrEqual(0.5)
-    expect(makespanRatio).toBeLessThanOrEqual(0.5)
+    expect(batchedRounds).toBe(READ_TICKS)
+    expect(roundsRatio).toBeLessThanOrEqual(0.5)
     expect(schema).toEqual(baseline)
     expect(runCalls).toHaveLength(1)
     expect(runCalls[0]?.query_params).toEqual({
@@ -257,7 +280,7 @@ test('fetchTableSchema reads one table schema in a single read-only query', asyn
   }
 
   console.log(
-    `table-schema batch ratios ${JSON.stringify(ratios)} unitDelaySumMs=${unitDelaySum.toFixed(1)}`
+    `table-schema batch ratios ${JSON.stringify(ratios)} unitTickSum=${unitTickSum}`
   )
 })
 

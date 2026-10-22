@@ -8,7 +8,7 @@
  *
  * It drives the shipped `createHealthTools` through its real `execute` path
  * (`helpers.readOnlyQuery` → `fetchData`) with a querier that records each
- * call's delay and bytes, and compares that against an in-test replica of the
+ * call's logical start/end tick and bytes, and compares that against an in-test replica of the
  * old three-read path fed by the SAME fake server — so the deep-equal compares
  * two pipelines over one source of truth, not two hand-written expectations.
  */
@@ -20,10 +20,8 @@ import { describe, expect, test } from 'bun:test'
 const { createHealthTools } = await import('../health-tools')
 const { readOnlyQuery } = await import('../helpers')
 
-/** Simulated fixed cost of one ClickHouse round trip, in ms. */
-const UNIT_DELAY_MS = 20
-/** Simulated per-byte cost (ms), so payload size is priced into the timing. */
-const PER_BYTE_MS = 0.001
+/** Each read costs one logical tick. No wall-clock time is ever measured. */
+const READ_TICKS = 1
 
 /** The old three reads, verbatim — the uncoordinated baseline. */
 const BASELINE_VERSION_SQL = 'SELECT version() AS version'
@@ -44,37 +42,32 @@ type FakeServer = {
 type RecordedCall = {
   query: string
   bytes: number
-  /** The delay the mock was asked to charge. */
-  delayMs: number
-  /** What that delay actually cost in wall-clock terms this run. */
-  observedMs: number
+  /** Logical tick at which the read started. */
+  start: number
+  /** Logical tick at which the read finished. */
+  end: number
 }
 
 const byName = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 function createFakeServer(metricRows: MetricRow[]): FakeServer {
   return { version: '24.8.4.13', uptimeSeconds: 864000, metricRows }
 }
 
 /**
- * Ceiling for the batched makespan: half the cost of the three reads it
- * replaced, where one read is what a read actually cost *in this run*
- * (`observedMs`), not what the mock was asked to charge. Sourcing the ceiling
- * from the same run keeps the bound honest under timer jitter — a loaded CI box
- * inflates the read and the ceiling together, so the ratio still has to hold,
- * and three reads re-issued one after another cost three units against a
- * 1.5-unit bar.
+ * Logical makespan: ticks from the first read starting to the last one ending.
  *
- * Throws on an empty run rather than returning 0: a `makespan <= 0` ceiling
+ * Throws on an empty run rather than returning 0: a `rounds <= ceiling` check
  * would let a tool that read *nothing at all* sail through.
  */
-function makespanCeilingMs(calls: RecordedCall[]): number {
-  const observedMs = calls[0]?.observedMs
-  if (observedMs === undefined)
-    throw new Error('no read was recorded, so there is nothing to time')
+function rounds(calls: RecordedCall[]): number {
+  if (calls.length === 0)
+    throw new Error('no read was recorded, so there is nothing to count')
 
-  return 0.5 * BASELINE_READ_COUNT * observedMs
+  return (
+    Math.max(...calls.map((call) => call.end)) -
+    Math.min(...calls.map((call) => call.start))
+  )
 }
 
 /**
@@ -112,26 +105,25 @@ function routeQuery(query: string, server: FakeServer): unknown[] {
 
 /**
  * Install the recording querier in place of `fetchData` and hand back the call
- * log. Each call sleeps for its own recorded delay, so a wall-clock measurement
- * of a tool call reflects the fan-out it caused.
+ * log. Logical clock: a read starts at the current tick and the clock only moves
+ * forward when a read finishes. Reads awaited one after another therefore line
+ * up end to start; reads issued together share the same start tick. So the
+ * rounds a tool call takes reflect the fan-out it caused, with no timers.
  */
 function installRecordingQuerier(server: FakeServer) {
   const calls: RecordedCall[] = []
+  let clock = 0
 
   mockFetchData.mockImplementation(async (params: Record<string, unknown>) => {
     const query = String(params.query)
     const bytes = JSON.stringify(params).length
-    const delayMs = UNIT_DELAY_MS + bytes * PER_BYTE_MS
 
-    const startedAt = performance.now()
-    await sleep(delayMs)
+    const start = clock
+    await Promise.resolve()
+    const end = start + READ_TICKS
+    clock = Math.max(clock, end)
 
-    calls.push({
-      query,
-      bytes,
-      delayMs,
-      observedMs: performance.now() - startedAt,
-    })
+    calls.push({ query, bytes, start, end })
     return { data: routeQuery(query, server), error: null }
   })
 
@@ -193,10 +185,13 @@ describe('get_metrics — one read for the health snapshot (#3643)', () => {
     const baselineMetrics = await runThreeReadBaseline()
 
     expect(baselineCalls).toHaveLength(BASELINE_READ_COUNT)
-    const baselineUnitDelaySum = baselineCalls.reduce(
-      (total, call) => total + call.delayMs,
+    // The three reads cost three ticks between them: the unit-delay sum the
+    // batched path has to beat by half.
+    const baselineUnitTickSum = baselineCalls.reduce(
+      (total, call) => total + (call.end - call.start),
       0
     )
+    expect(baselineUnitTickSum).toBe(BASELINE_READ_COUNT * READ_TICKS)
     const baselineBytes = baselineCalls.reduce(
       (total, call) => total + call.bytes,
       0
@@ -208,22 +203,25 @@ describe('get_metrics — one read for the health snapshot (#3643)', () => {
       const toolCalls = installRecordingQuerier(server)
       const tools = makeTools()
 
-      const startedAt = performance.now()
       const metrics = (await tools.get_metrics.execute({})) as Record<
         string,
         unknown
       >
-      const makespan = performance.now() - startedAt
 
       expect(
         toolCalls.length,
         `run ${run}: expected at most half of the ${BASELINE_READ_COUNT} baseline reads`
       ).toBeLessThanOrEqual(0.5 * BASELINE_READ_COUNT)
+      // One read, so one round, at most half of the three-read tick sum.
+      const batchedRounds = rounds(toolCalls)
+      expect(batchedRounds, `run ${run}: one read is one round`).toBe(
+        READ_TICKS
+      )
       expect(
-        makespan,
-        `run ${run}: makespan ${makespan.toFixed(1)}ms must stay under half of the ` +
-          `${(0.5 * baselineUnitDelaySum).toFixed(1)}ms three-read unit-delay sum`
-      ).toBeLessThanOrEqual(makespanCeilingMs(toolCalls))
+        batchedRounds,
+        `run ${run}: rounds ${batchedRounds} must stay under half of the ` +
+          `${0.5 * baselineUnitTickSum} three-read tick sum`
+      ).toBeLessThanOrEqual(0.5 * baselineUnitTickSum)
       // The batched request is also a smaller payload than the three it
       // replaces — the per-call request overhead was paid three times.
       expect(
