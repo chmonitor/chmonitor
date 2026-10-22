@@ -169,6 +169,10 @@
       "since": ["23.8", "24.1"]
     },
     {
+      "name": "unused-projections",
+      "since": ["23.8"]
+    },
+    {
       "name": "workloads",
       "since": ["25.4"]
     }

@@ -25,6 +25,7 @@ import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ColumnFormat } from '@/types/column-format'
 
 const sqlsOf = (c: { sql: QueryConfig['sql'] }): string[] =>
   typeof c.sql === 'string' ? [c.sql] : c.sql.map((v) => v.sql)
@@ -114,7 +115,9 @@ describe('unused-columns / unused-projections: bounded, replica-only, never a ve
 
     test(`${name}: BackgroundBar column has its pct_ and raw companions`, () => {
       const [sql] = sqlsOf(config)
-      expect(config.columnFormats?.readable_bytes).toBe('background-bar')
+      expect(config.columnFormats?.readable_bytes).toBe(
+        ColumnFormat.BackgroundBar
+      )
       expect(sql).toContain('AS readable_bytes')
       expect(sql).toContain('AS pct_bytes')
       expect(sql).toMatch(/AS bytes\b/)
