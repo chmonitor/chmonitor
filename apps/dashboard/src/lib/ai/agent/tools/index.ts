@@ -75,7 +75,12 @@ export function createAllTools(
    * agent route probes reachability and pins the result per conversation.
    * Off when omitted.
    */
-  integrations?: { peerdb?: boolean; postgres?: boolean }
+  integrations?: { peerdb?: boolean; postgres?: boolean },
+  /**
+   * The request's disabled tool names. Removed BEFORE `search_tools` is bound,
+   * so discovery and `callable_tool_count` describe the map the model gets.
+   */
+  disabledTools: readonly string[] = []
 ) {
   if (connection && connection.hostId !== hostId) {
     throw new Error('Agent connection binding does not match hostId')
@@ -92,7 +97,7 @@ export function createAllTools(
     parseBool(process.env.CHM_FEATURE_PEERDB_AGENT) !== false &&
     parseBool(process.env.CHM_FEATURE_PEERDB_ENABLED) !== false
 
-  const tools = {
+  const registered = {
     ...createSchemaTools(hostId),
 
     ...createQueryTools(hostId),
@@ -156,9 +161,15 @@ export function createAllTools(
     ...(enablePeerDBTools ? createPeerDBTools() : {}),
   }
 
-  // `search_tools` is added LAST, and bound to the map built above, so it can
-  // only ever advertise a tool that is actually registered this request — the
-  // Postgres / PeerDB / control gates are inherited rather than re-checked.
+  const tools: Partial<typeof registered> = { ...registered }
+  for (const name of disabledTools) {
+    delete tools[name as keyof typeof registered]
+  }
+
+  // `search_tools` is added LAST, and bound to the post-`disabledTools` map, so
+  // it can only ever advertise a tool that is actually callable this request —
+  // the Postgres / PeerDB / control gates and `disabledTools` are inherited
+  // rather than re-checked.
   // It is not a gate: the whole tool set is still sent (see catalog.ts).
   const all = { ...tools, ...createSearchTools(tools) }
   return connection

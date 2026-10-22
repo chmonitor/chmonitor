@@ -25,9 +25,8 @@ are:
 1. resolver;
 2. `actions` permission;
 3. `createClickHouseAgent`;
-4. `createAllTools`;
-5. `filterTools`;
-6. `agent.tools`.
+4. `createAllTools` (removes `disabledTools`, then binds `search_tools`);
+5. `agent.tools`.
 
 The domain has 5,632 shapes for write and integration safety and 2,048 for
 search honesty. The owning skill is
@@ -46,13 +45,11 @@ The gate is a pure function of a finite request shape, with no concurrency.
 Running the real functions over every shape checks the code itself. A TLA+
 model would check a hand copy of it.
 
-## Finding (2026-10-23)
+## Finding (2026-10-23, fixed)
 
-`search_tools` is bound inside `createAllTools()`, before `filterTools()`
-applies the request's `disabledTools`. So a disabled tool is still advertised
-as callable, and `callable_tool_count` is one too high per disabled tool.
-
-- Counterexample: `disabledTools: ['query']`.
-- The finding is encoded as `test.failing`. The test turns red when the
-  finding is fixed.
-- Product code was not changed.
+`search_tools` was bound inside `createAllTools()` before `filterTools()`
+applied the request's `disabledTools`, so a disabled tool was still advertised
+as callable and `callable_tool_count` was one too high per disabled tool
+(counterexample: `disabledTools: ['query']`). Fixed by passing `disabledTools`
+into `createAllTools()` so the filter runs before binding; the check is now a
+plain `test`.

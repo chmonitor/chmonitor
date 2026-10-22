@@ -7,7 +7,7 @@ description: >-
   search_tools only advertises tools that are really callable. Use when a
   change touches control-tools-gate.ts, tools/index.ts (createAllTools),
   catalog-tools.ts, host-query.ts bindToolsToConnection, clickhouse-agent.ts
-  filterTools, integration gates, or the agent route's control-tool wiring.
+  disabledTools, integration gates, or the agent route's control-tool wiring.
 ---
 
 # Verify agent tool gates
@@ -79,22 +79,10 @@ cd apps/dashboard && bun test ./src/lib/ai/agent/__tests__/tool-gate.formal-chec
 
 ## Findings (current code)
 
-**S fails whenever `disabledTools` removes a callable tool.**
-
-- Counterexample: a request with `disabledTools: ['query']`.
-  1. The route calls `createClickHouseAgent`.
-  2. `createAllTools()` builds the map and binds `search_tools` to it, with
-     `query` still present.
-  3. `filterTools()` (`clickhouse-agent.ts`) deletes `query`.
-  4. `search_tools` still advertises `query` as callable and reports
-     `callable_tool_count` one too high.
-- The same happens for `['kill_query']` (an OSS caller with control on) and
-  for `['get_peerdb_metrics']` (PeerDB on).
-- This is encoded as `test.failing`. It stays green while the finding exists
-  and turns red when someone fixes it, for example by applying `disabledTools`
-  before `createSearchTools` binds. At that point, change it to a plain
-  `test`.
-- Product code was not changed.
+None open. A past finding (S failed under `disabledTools` because `search_tools`
+was bound before the filter) was fixed by removing disabled tools inside
+`createAllTools()` before `search_tools` binds. The S check now runs as a
+plain `test` over those shapes.
 
 ## Covered code (sync commit `2ed07db0c`)
 
@@ -105,7 +93,7 @@ cd apps/dashboard && bun test ./src/lib/ai/agent/__tests__/tool-gate.formal-chec
 | W, I, S | `apps/dashboard/src/lib/ai/agent/tools/index.ts` `createAllTools` (env kill switches, integration spreads, `createSearchTools(tools)` last, `bindToolsToConnection`) |
 | W | `apps/dashboard/src/lib/ai/agent/host-query.ts` `bindToolsToConnection`, `CONNECTION_UNSUPPORTED_TOOLS` |
 | S | `apps/dashboard/src/lib/ai/agent/tools/catalog-tools.ts` `createSearchTools` (`registered`, `unavailable_due_to_gates`, `callable_tool_count`) |
-| S, W | `apps/dashboard/src/lib/ai/agent/clickhouse-agent.ts` `createClickHouseAgent`, `filterTools`, `agent.tools` |
+| S, W | `apps/dashboard/src/lib/ai/agent/clickhouse-agent.ts` `createClickHouseAgent`, `agent.tools`; `tools/index.ts` `createAllTools` (disabledTools) |
 | domain | `lib/config/parse-bool.ts`, `lib/auth/auth-providers.ts` `AUTH_PROVIDERS`, `tools/catalog.ts` categories `postgres` / `peerdb` |
 
 **Does my change touch this?** Run:
