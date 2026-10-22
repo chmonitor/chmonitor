@@ -266,3 +266,21 @@ test('explorer query-log lookup is bounded by event_date', () => {
     'query_params: { queryId, days: QUERY_LOG_LOOKBACK_DAYS }'
   )
 })
+
+describe('unused-* configs: an empty query log shows no window start', () => {
+  // `min()` over zero rows is 1970-01-01, which reads as a 56-year-old log.
+  // `minOrNull()` gives NULL, which the table renders as empty.
+  const all: [QueryConfig, string][] = [
+    [unusedTablesConfig, 'unused-tables'],
+    [unusedColumnsConfig, 'unused-columns'],
+    [unusedProjectionsConfig, 'unused-projections'],
+  ]
+  for (const [config, name] of all) {
+    test(`${name}: log_window_start uses minOrNull, not min`, () => {
+      for (const sql of sqlsOf(config)) {
+        expect(sql).toContain('minOrNull(event_date)')
+        expect(sql).not.toMatch(/\bmin\(event_date\)/)
+      }
+    })
+  }
+})
