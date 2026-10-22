@@ -328,6 +328,7 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
   '/top-usage-columns': p('Top Usage Columns', DATA, ['top-usage-columns']),
   '/unused-tables': p('Unread Tables', DATA, ['unused-tables']),
   '/unused-columns': p('Unread Columns', DATA, ['unused-columns']),
+  '/hot-query-shapes': p('Hot Query Shapes', DATA, ['hot-query-shapes']),
   '/unused-projections': p('Unused Projections', DATA, ['unused-projections']),
 
   '/clusters': p('Clusters', CLUSTER, ['clusters']),

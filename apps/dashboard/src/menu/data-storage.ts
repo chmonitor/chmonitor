@@ -123,6 +123,17 @@ export const dataStorageItems: MenuItem[] = [
         tableCheck: 'system.query_log',
         permission: { feature: 'tables' },
       },
+      {
+        subgroup: 'Tables',
+        title: 'Hot Query Shapes',
+        href: '/hot-query-shapes',
+        description:
+          "Query shapes reading one table most, next to the table's sorting key",
+        icon: TableIcon,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+        permission: { feature: 'tables' },
+      },
       // Merges & parts
       {
         subgroup: 'Merges & Parts',

@@ -51,6 +51,7 @@ import { asynchronousMetricsDeclarative } from './more/asynchronous-metrics'
 import { backupsDeclarative } from './more/backups'
 import { dictionariesDeclarative } from './more/dictionaries'
 import { errorsDeclarative } from './more/errors'
+import { hotQueryShapesDeclarative } from './more/hot-query-shapes'
 import { mergeTreeSettingsDeclarative } from './more/mergetree-settings'
 import { metricsDeclarative } from './more/metrics'
 import { rolesDeclarative } from './more/roles'
@@ -171,6 +172,7 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   topUsageTablesDeclarative,
   unusedTablesDeclarative,
   unusedColumnsDeclarative,
+  hotQueryShapesDeclarative,
   unusedProjectionsDeclarative,
   usersDeclarative,
   zookeeperDeclarative,

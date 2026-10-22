@@ -52,6 +52,7 @@ import { asynchronousMetricsConfig } from './more/asynchronous-metrics'
 import { backupsConfig } from './more/backups'
 import { dictionariesConfig } from './more/dictionaries'
 import { errorsConfig } from './more/errors'
+import { hotQueryShapesConfig } from './more/hot-query-shapes'
 import { mergeTreeSettingsConfig } from './more/mergetree-settings'
 import { metricsConfig } from './more/metrics'
 import { pageViewsConfig } from './more/page-views'
@@ -210,6 +211,7 @@ export const queries: Array<QueryConfig> = [
   topUsageColumnsConfig,
   unusedTablesConfig,
   unusedColumnsConfig,
+  hotQueryShapesConfig,
   unusedProjectionsConfig,
 
   backupsConfig,
