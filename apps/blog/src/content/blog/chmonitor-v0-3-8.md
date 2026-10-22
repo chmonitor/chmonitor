@@ -13,7 +13,10 @@ changes** since v0.3.7. The advisor finds data nobody reads, detached parts get
 a careful triage, storage shows which queries hit a table, and alert reminders
 are quieter.
 
-<img src="/posts/v0.3.8/poster.webp" alt="chmonitor v0.3.8 launch video title card with 34 features, 96 fixes and 6 performance changes" width="1920" height="1080" loading="eager" />
+<figure class="video">
+  <video src="/posts/v0.3.8/launch.mp4" poster="/posts/v0.3.8/poster.webp" controls preload="metadata" playsinline></video>
+  <figcaption>chmonitor v0.3.8 launch film. Unread data, detached parts triage, hot query shapes, insights and quieter reminders. Table names and numbers in the panels are illustrative.</figcaption>
+</figure>
 
 ## What's new in v0.3.8
 
