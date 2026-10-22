@@ -71,6 +71,7 @@ export const ROUTE_TITLE_MAP: Record<string, string> = {
   '/users': 'Users',
   '/roles': 'Roles',
   '/security/sessions': 'Sessions',
+  '/security/access-matrix': 'Access Matrix',
   '/security/login-attempts': 'Login Attempts',
   '/security/audit-log': 'Audit Log',
   '/logs/crashes': 'Crash Log',

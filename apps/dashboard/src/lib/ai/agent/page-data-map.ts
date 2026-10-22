@@ -439,6 +439,15 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
   ),
   '/users': p('Users', SERVER, ['users']),
   '/roles': p('Roles', SERVER, ['roles']),
+  '/security/access-matrix': p('Access Matrix', SERVER, [
+    'access-grants',
+    'access-role-grants',
+    'access-users',
+    'access-roles',
+    'access-settings-profiles',
+    'access-profile-elements',
+    'access-databases',
+  ]),
   '/security/sessions': p(
     'Sessions',
     SERVER,

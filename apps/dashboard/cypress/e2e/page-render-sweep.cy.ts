@@ -105,6 +105,7 @@ const DASHBOARD_ROUTES = [
   '/roles',
   '/running-queries',
   '/schema-diff',
+  '/security/access-matrix',
   '/security/audit-log',
   '/security/login-attempts',
   '/security/management',

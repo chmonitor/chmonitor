@@ -613,6 +613,13 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/security/access-matrix",
+    "section": undefined,
+    "subgroup": "Access Control",
+    "title": "Access Matrix",
+  },
+  {
+    "depth": 1,
     "href": "/security/management",
     "section": undefined,
     "subgroup": "Access Control",

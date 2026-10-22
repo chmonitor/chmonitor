@@ -1,6 +1,10 @@
 {
   "configs": [
     {
+      "name": "access-grants",
+      "since": ["23.8", "26.7"]
+    },
+    {
       "name": "background-schedule-pool",
       "since": ["25.12"]
     },
