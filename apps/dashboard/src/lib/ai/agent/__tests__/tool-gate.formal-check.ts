@@ -21,10 +21,8 @@
  *   S  search honesty: the set search_tools reports as callable equals the set
  *      of catalog tools in the final map, and its count equals the map size.
  *
- * S is split: with no disabledTools it must hold; with disabledTools it is a
- * KNOWN FINDING (search_tools is bound before filterTools runs, so it still
- * advertises a disabled tool). That case is `test.failing` so this file stays
- * green and flips red the day the finding is fixed.
+ * S is checked with and without disabledTools; createAllTools removes disabled
+ * tools before binding search_tools.
  */
 
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
@@ -302,11 +300,8 @@ describe('agent tool gates — exhaustive over the request domain', () => {
   // KNOWN FINDING: search_tools is bound inside createAllTools(), before
   // filterTools() applies the request's disabledTools, so it still reports a
   // disabled tool as callable and overstates callable_tool_count.
-  // Counterexample: disabledTools=['query'] → search_tools omits `query` from
-  // unavailable_due_to_gates although agent.tools has no `query`.
-  test.failing('S holds when disabledTools removes a callable tool (finding)', async () => {
+  test('S holds when disabledTools removes a callable tool', async () => {
     const { bad } = await sweep(DISABLED_FINDING, checkSearchHonesty, S_FLAGS)
-    // test.failing: green while any shape breaks S, red once the finding is fixed.
     expect(bad.length).toBe(0)
   }, 120_000)
 })
