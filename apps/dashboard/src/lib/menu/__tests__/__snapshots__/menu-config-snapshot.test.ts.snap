@@ -60,6 +60,13 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/usage",
+    "section": undefined,
+    "subgroup": "History",
+    "title": "Usage by User",
+  },
+  {
+    "depth": 1,
     "href": "/failed-queries",
     "section": undefined,
     "subgroup": "History",

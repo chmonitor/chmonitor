@@ -20,6 +20,17 @@ import { unusedProjectionsConfig } from '../more/unused-projections'
 import { unusedTablesConfig } from '../more/unused-tables'
 import { queryChildrenConfig } from '../queries/query-children'
 import { queryDetailConfig } from '../queries/query-detail'
+import {
+  USAGE_MAX_DAYS,
+  usageByUserConfig,
+  usageInactiveUsersConfig,
+} from '../queries/usage'
+import {
+  USER_DAILY_MAX_DAYS,
+  userUsageConfigs,
+  userUsageDailyConfig,
+  userUsageShapesConfig,
+} from '../queries/user-usage'
 import { partLogConfig } from '../system/part-log'
 import { ttlStorageMovesConfig } from '../system/storage-economics'
 import { describe, expect, test } from 'bun:test'
@@ -210,6 +221,76 @@ describe('hot-query-shapes: bounded, replica-only, data only, never a verdict', 
   })
 })
 
+describe('usage pages (#4125): capped window, end events only, LIMITed', () => {
+  // URL search params reach ClickHouse unchanged, so the cap must live in the
+  // SQL: `?days=9999` must still read at most the capped number of days.
+  const capped = (max: number) =>
+    `event_date >= today() - least({days:UInt16}, ${max})`
+  const all = [usageByUserConfig, usageInactiveUsersConfig, ...userUsageConfigs]
+  const aggregate = all.filter((c) => c !== userUsageDailyConfig)
+
+  test('aggregate tables cap the window at 30 days, default 7', () => {
+    expect(USAGE_MAX_DAYS).toBe(30)
+    for (const c of aggregate) {
+      const [sql] = sqlsOf(c)
+      expect(sql).toContain(capped(30))
+      expect(c.defaultParams?.days).toBe('7')
+      expect(sql).toMatch(/LIMIT \d+\s*$/)
+    }
+  })
+
+  test('daily activity (one row per day) is the only config allowed a year', () => {
+    const [sql] = sqlsOf(userUsageDailyConfig)
+    expect(USER_DAILY_MAX_DAYS).toBe(365)
+    expect(sql).toContain(capped(365))
+    expect(sql).toContain('GROUP BY day')
+    expect(sql).toMatch(/LIMIT 366\s*$/)
+  })
+
+  test('every scan reads one merged query log and never counts QueryStart', () => {
+    for (const c of all) {
+      const [sql] = sqlsOf(c)
+      expect(
+        (sql.match(/merge\('system', '\^query_log'\)/g) ?? []).length
+      ).toBe(1)
+      expect(sql).not.toContain('QueryStart')
+      expect(c.description).toContain('THIS REPLICA ONLY')
+    }
+  })
+
+  test('detail configs filter on the user param', () => {
+    for (const c of userUsageConfigs) {
+      expect(sqlsOf(c)[0]).toContain('user = {user:String}')
+      expect(c.defaultParams?.user).toBe('')
+    }
+  })
+
+  test('user link is URL-encoded server-side (names may contain & or spaces)', () => {
+    expect(sqlsOf(usageByUserConfig)[0]).toContain(
+      'encodeURLComponent(user) AS user_param'
+    )
+    expect(usageByUserConfig.columnFormats?.user).toEqual([
+      ColumnFormat.Link,
+      { href: '/usage/user?user=[user_param]&host=[ctx.hostId]' },
+    ])
+  })
+
+  test('query shapes return only truncated normalized text, never the raw query', () => {
+    const [sql] = sqlsOf(userUsageShapesConfig)
+    expect(sql).toContain(
+      'substring(normalizeQuery(any(query)), 1, 300) AS sample'
+    )
+    expect(sql).not.toMatch(/SELECT\s+query\b|,\s*query\s*[,\n]/)
+  })
+
+  test('no lambda alias in WITH (#4084), no writes', () => {
+    for (const c of all) {
+      const [sql] = sqlsOf(c)
+      expect(sql).not.toMatch(/\bWITH\b/)
+      expect(sql).not.toMatch(/\b(DROP|ALTER|INSERT INTO|KILL)\b/)
+    }
+  })
+})
 describe('part_log window queries bound rows before the window function', () => {
   const cases: [QueryConfig, number][] = [
     [partLogConfig, 1000],

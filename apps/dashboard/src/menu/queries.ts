@@ -73,6 +73,17 @@ export const queriesItems: MenuItem[] = [
       },
       {
         subgroup: 'History',
+        title: 'Usage by User',
+        href: '/usage',
+        description:
+          'Per-user queries, failures, bytes read, CPU and memory, with a detail view per user',
+        icon: UsersIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
+        tableCheck: 'system.query_log',
+      },
+      {
+        subgroup: 'History',
         title: 'Failed Queries',
         href: '/failed-queries',
         description:

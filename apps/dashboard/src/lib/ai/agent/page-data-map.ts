@@ -234,6 +234,18 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     ['thread-analysis'],
     ['thread-utilization', 'parallelization-efficiency']
   ),
+  '/usage': p('Usage by User', QUERIES, [
+    'usage-by-user',
+    'usage-inactive-users',
+  ]),
+  '/usage/user': p('User Usage', QUERIES, [
+    'user-usage-daily',
+    'user-usage-hours',
+    'user-usage-tables',
+    'user-usage-shapes',
+    'user-usage-errors',
+    'user-usage-clients',
+  ]),
   '/queries/parallelization': p(
     'Parallelization',
     QUERIES,

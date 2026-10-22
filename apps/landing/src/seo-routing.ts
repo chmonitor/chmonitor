@@ -98,6 +98,7 @@ export const DASHBOARD_PREFIXES = new Set([
   'unused-columns',
   'unused-projections',
   'unused-tables',
+  'usage',
   'user-processes',
   'users',
   'view-refreshes',
