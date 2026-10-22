@@ -9,9 +9,11 @@ import type {
   CellAccess,
   GranteeAccess,
 } from '@/lib/security/access-matrix'
-import type { AccessData, UserRow } from './use-access-data'
+import type { CellPolicies } from '@/lib/security/access-policies'
+import type { AccessData, Section, UserRow } from './use-access-data'
 
 import { AccessChip } from './access-chip'
+import { QuotaList } from './quota-list'
 import {
   Sheet,
   SheetContent,
@@ -24,6 +26,10 @@ import {
   roleMembers,
   summarizeCell,
 } from '@/lib/security/access-matrix'
+import {
+  policiesForCell,
+  quotasForGrantee,
+} from '@/lib/security/access-policies'
 
 function DetailSheet({
   open,
@@ -118,7 +124,14 @@ export interface CellSelection {
 }
 
 /** Body of the cell sheet: the privileges, carve-outs and readonly cap. */
-export function CellDetail({ cell }: { cell: CellAccess }) {
+export function CellDetail({
+  cell,
+  policies,
+}: {
+  cell: CellAccess
+  /** Omitted when row policies are not loaded. */
+  policies?: CellPolicies
+}) {
   return (
     <>
       <section>
@@ -151,18 +164,90 @@ export function CellDetail({ cell }: { cell: CellAccess }) {
           </p>
         </section>
       )}
+      {policies && (
+        <section>
+          <Heading>Row policies</Heading>
+          <PolicyTable rows={policies.applied} />
+        </section>
+      )}
+      {policies && policies.viaSetRole.length > 0 && (
+        <section>
+          <Heading>Row policies after SET ROLE (not in effect)</Heading>
+          <PolicyTable rows={policies.viaSetRole} />
+        </section>
+      )}
     </>
+  )
+}
+
+function PolicyTable({ rows }: { rows: CellPolicies['applied'] }) {
+  if (rows.length === 0)
+    return <p className="text-muted-foreground">None, rows are not filtered.</p>
+  return (
+    <table className="w-full text-xs">
+      <thead className="text-left text-muted-foreground">
+        <tr>
+          <th className="py-1 pr-2 font-medium">Policy</th>
+          <th className="py-1 pr-2 font-medium">On</th>
+          <th className="py-1 pr-2 font-medium">Condition</th>
+          <th className="py-1 font-medium">Kind</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((p) => (
+          <tr
+            key={`${p.name}:${p.database}.${p.table}`}
+            className="border-t border-border/60"
+          >
+            <td className="py-1 pr-2 font-mono">{p.name}</td>
+            <td className="py-1 pr-2 font-mono">
+              {p.database}.{p.table ?? '*'}
+              {p.narrower && (
+                <span className="ml-1 font-sans text-muted-foreground">
+                  (this table only)
+                </span>
+              )}
+            </td>
+            <td className="break-all py-1 pr-2 font-mono">
+              {p.condition ?? '—'}
+            </td>
+            <td className="py-1">{p.kind}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+function SectionError({
+  label,
+  section,
+}: {
+  label: string
+  section: Section<unknown>
+}) {
+  if (!section.error) return null
+  return (
+    <p className="text-muted-foreground">
+      {label} not available: {section.error.message}
+    </p>
   )
 }
 
 export function CellSheet({
   selection,
+  data,
   onClose,
 }: {
   selection: CellSelection | null
+  data: AccessData
   onClose: () => void
 }) {
   const s = selection
+  const policies =
+    s && !data.rowPolicies.error
+      ? policiesForCell(s.access, data.rowPolicies.data, s.scope)
+      : undefined
   return (
     <DetailSheet
       open={s !== null}
@@ -182,7 +267,8 @@ export function CellSheet({
       }
       description={s ? summarizeCell(s.cell) : ''}
     >
-      {s && <CellDetail cell={s.cell} />}
+      {s && <CellDetail cell={s.cell} policies={policies} />}
+      <SectionError label="Row policies" section={data.rowPolicies} />
     </DetailSheet>
   )
 }
@@ -305,6 +391,21 @@ export function GranteeSheet({
               </ul>
             </section>
           )}
+          <section>
+            <Heading>Quotas</Heading>
+            <SectionError label="Quotas" section={data.quotas} />
+            {!data.quotas.error && (
+              <QuotaList
+                quotas={quotasForGrantee(
+                  access,
+                  data.quotas.data,
+                  data.quotaLimits.data,
+                  data.quotasUsage.data
+                )}
+                isUser={g.kind === 'user'}
+              />
+            )}
+          </section>
           <section>
             <Heading>Grants, direct and through roles</Heading>
             {access.closure.some((r) => !r.isDefault) && (

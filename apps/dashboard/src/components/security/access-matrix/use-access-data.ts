@@ -4,6 +4,12 @@ import type {
   RoleGrantRow,
   SettingsProfileRow,
 } from '@/lib/security/access-matrix'
+import type {
+  QuotaLimitRow,
+  QuotaRow,
+  QuotaUsageRow,
+  RowPolicyRow,
+} from '@/lib/security/access-policies'
 
 import { useTableData } from '@/lib/query/use-table-data'
 import { useHostId } from '@/lib/swr'
@@ -72,6 +78,10 @@ export function useAccessData() {
       hostId
     ),
     databases: useSection<{ name: string }>('access-databases', hostId),
+    rowPolicies: useSection<RowPolicyRow>('access-row-policies', hostId),
+    quotas: useSection<QuotaRow>('access-quotas', hostId),
+    quotaLimits: useSection<QuotaLimitRow>('access-quota-limits', hostId),
+    quotasUsage: useSection<QuotaUsageRow>('access-quotas-usage', hostId),
   }
 }
 

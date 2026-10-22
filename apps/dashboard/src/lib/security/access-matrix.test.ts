@@ -412,4 +412,46 @@ describe('non-default roles', () => {
     }
     expect(cell(user('u'), 'd1', undefined, i).level).toBe('write')
   })
+
+  // 26.9: `CREATE SETTINGS PROFILE p SETTINGS readonly=1 TO ALL EXCEPT r_ro`
+  // gives getSetting('readonly') = 0 to a user whose default role is r_ro,
+  // and 1 to a user without it.
+  test('a profile TO ALL EXCEPT a default role does not cap its holders', () => {
+    const i: AccessInputs = {
+      ...only(
+        [
+          grant({ user_name: 'u', access_type: 'INSERT', database: 'd1' }),
+          grant({ user_name: 'v', access_type: 'INSERT', database: 'd1' }),
+        ],
+        [
+          {
+            user_name: 'u',
+            role_name: null,
+            granted_role_name: 'r_ro',
+            granted_role_is_default: 1,
+          },
+        ]
+      ),
+      profiles: [
+        {
+          name: 'p',
+          apply_to_all: 1,
+          apply_to_list: [],
+          apply_to_except: ['r_ro'],
+        },
+      ],
+      profileElements: [
+        {
+          profile_name: 'p',
+          user_name: null,
+          role_name: null,
+          setting_name: 'readonly',
+          value: '1',
+          inherit_profile: null,
+        },
+      ],
+    }
+    expect(cell(user('u'), 'd1', undefined, i).level).toBe('write')
+    expect(cell(user('v'), 'd1', undefined, i).readonly?.value).toBe('1')
+  })
 })

@@ -164,6 +164,10 @@ export function AccessMatrixView() {
     ['Settings profiles (SHOW SETTINGS PROFILES)', data.profiles],
     ['Profile settings', data.profileElements],
     ['Databases', data.databases],
+    ['Row policies (SHOW ROW POLICIES)', data.rowPolicies],
+    ['Quotas (SHOW QUOTAS)', data.quotas],
+    ['Quota limits', data.quotaLimits],
+    ['Quota usage', data.quotasUsage],
   ] as const
 
   const columnsFor = (database: string) =>
@@ -383,6 +387,7 @@ export function AccessMatrixView() {
 
       <CellSheet
         selection={cellSelection}
+        data={data}
         onClose={() => setCellSelection(null)}
       />
       <GranteeSheet
