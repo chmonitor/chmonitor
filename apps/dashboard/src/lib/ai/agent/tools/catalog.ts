@@ -279,6 +279,20 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
       'unused column',
     ]
   ),
+  get_detached_parts_triage: e(
+    'get_detached_parts_triage',
+    'advisor',
+    'Detached parts per table and reason with a review class, sizes, age and same-replica coverage; this replica only, no class means safe to remove.',
+    [
+      'detached',
+      'detached parts',
+      'broken part',
+      'broken parts',
+      'unexpected part',
+      'orphan parts',
+      'detached data',
+    ]
+  ),
   recommend_materialized_view: e(
     'recommend_materialized_view',
     'advisor',

@@ -138,6 +138,14 @@
       "summary": "Deterministic cluster health report over a weekly or monthly window, as structured summary plus markdown to narrate."
     },
     {
+      "category": "advisor",
+      "core": false,
+      "description": "List detached parts grouped by database, table and reason (largest first, top 50) with a review class, part and byte counts, partitions, oldest/newest modification time and covered_by_active. Use for \"why is there detached data\", \"what are these detached parts\", \"are detached parts a problem\" questions. Optional `database` and `table` narrow it. THIS REPLICA ONLY: covered_by_active means a detached part sits inside an active part on this replica, which does not prove other replicas hold the data. Classes: cannot_drop_via_sql (attaching_, deleting_, tmp-fetch_ parts ClickHouse still owns), needs_attention (broken, broken-on-start, unexpected, noquorum), review_after_coverage_check, review. No class means safe to remove. Read-only: it never changes anything and never produces a command to remove or attach a part. Report the scope and caveats and tell the user to review each part before any removal.",
+      "envGate": null,
+      "name": "get_detached_parts_triage",
+      "summary": "Detached parts per table and reason with a review class, sizes, age and same-replica coverage; this replica only, no class means safe to remove."
+    },
+    {
       "category": "health",
       "core": true,
       "description": "Get per-disk space usage including free and total space.",
