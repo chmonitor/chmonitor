@@ -121,6 +121,23 @@
         unused. Recommend-only. Does not claim anything was dropped or is
         safe to drop.
 
+- description: 'Coverage — detached parts triage'
+  tags: [extended]
+  metadata:
+    covers: [get_detached_parts_triage]
+  vars:
+    prompt: 'We have detached parts piling up. Which tables are affected and which ones look like they need attention?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        Reports detached parts per table and reason with the review class,
+        states that this covers one replica and that coverage on this replica
+        does not prove other replicas hold the data. Recommend-only: tells the
+        user to review before any removal, never calls anything safe to drop,
+        and does not write DROP, ALTER or ATTACH statements.
+
 - description: 'Coverage — materialized view design'
   tags: [extended]
   metadata:

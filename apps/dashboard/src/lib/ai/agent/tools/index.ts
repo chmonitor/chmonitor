@@ -7,6 +7,7 @@ import { createAskUserTools } from './ask-user-tools'
 import { createSearchTools } from './catalog-tools'
 import { createControlTools } from './control-tools'
 import { createDashboardTools } from './dashboard-tools'
+import { createDetachedPartsTools } from './detached-parts-tools'
 import { createDocsLookupTools } from './docs-lookup-tools'
 import { createHealthTools } from './health-tools'
 import { createInsightTools } from './insight-tools'
@@ -124,6 +125,7 @@ export function createAllTools(
 
     ...createAdvisorTools(hostId),
     ...createUsageTools(hostId),
+    ...createDetachedPartsTools(hostId),
     ...createMvDesignerTools(hostId),
 
     ...createDashboardTools(),
