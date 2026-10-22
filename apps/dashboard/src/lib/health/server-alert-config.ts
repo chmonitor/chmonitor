@@ -632,16 +632,31 @@ export function getServerRepeatMinDeltaConfig(ruleIds: readonly string[]): {
   return { default: defaultDelta, byRule }
 }
 
+/** Comma-separated env list of rule ids / `*`/`?` globs; empty entries dropped. */
+function parseRuleIdList(raw: string | undefined): string[] {
+  return (raw ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+}
+
 /**
  * Rule ids (or `*`/`?` globs) whose notifications are muted on every channel
  * (#3869): `HEALTH_ALERT_MUTED_RULES`, comma-separated. The rules still run
  * and their findings are still collected; only delivery is skipped.
  */
 export function getServerMutedRules(): string[] {
-  return (process.env.HEALTH_ALERT_MUTED_RULES ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s !== '')
+  return parseRuleIdList(process.env.HEALTH_ALERT_MUTED_RULES)
+}
+
+/**
+ * Rule ids (or `*`/`?` globs) that opt in rules shipped with
+ * `defaultEnabled: false` (#4070): `HEALTH_ALERT_ENABLE_RULES`,
+ * comma-separated, empty by default. Unlike muting, a rule that is not opted
+ * in does not run at all.
+ */
+export function getServerEnabledRules(): string[] {
+  return parseRuleIdList(process.env.HEALTH_ALERT_ENABLE_RULES)
 }
 
 /**

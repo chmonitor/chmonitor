@@ -38,6 +38,7 @@ import {
   REPLICATION_QUEUE_STUCK_AGE_SECONDS,
   REPLICATION_QUEUE_STUCK_TRIES,
 } from './operational-checks'
+import { collectOptimizeUnchanged } from './optimize-unchanged-collector'
 import { collectRetentionForecast } from './retention-forecast-collector'
 import {
   type AnalyzedQuery,
@@ -387,6 +388,7 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
     ttlSettled,
     ttlRewriteSettled,
     retentionSettled,
+    optimizeUnchangedSettled,
     usageSettled,
   ] = await Promise.allSettled([
     firstRow(
@@ -412,6 +414,7 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
     collectTtlPartitionHealth(hostId),
     collectTtlRewriteAmplification(hostId),
     collectRetentionForecast(hostId),
+    collectOptimizeUnchanged(hostId),
     collectUsage(hostId),
   ])
 
@@ -459,6 +462,9 @@ async function collectStorage(hostId: number): Promise<InsightCandidate[]> {
   }
   if (retentionSettled.status === 'fulfilled') {
     out.push(...retentionSettled.value)
+  }
+  if (optimizeUnchangedSettled.status === 'fulfilled') {
+    out.push(...optimizeUnchangedSettled.value)
   }
   if (usageSettled.status === 'fulfilled') {
     out.push(...usageSettled.value)

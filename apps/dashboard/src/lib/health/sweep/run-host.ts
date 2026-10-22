@@ -31,6 +31,7 @@ import {
   partitionRulesForSweep,
 } from '../batch-kpi'
 import { getExistingTables } from '../capability-cache'
+import { isRuleEnabled } from './suppression'
 import { fetchData } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { debug } from '@chm/logger'
@@ -253,13 +254,18 @@ export async function runHostSweep(
   }
 
   // Split this tick once: batched / own-statement / skipped-by-capability.
+  // A rule shipped with `defaultEnabled: false` is neither queried nor counted
+  // unless opted in via `HEALTH_ALERT_ENABLE_RULES` (#4070).
+  const activeRules = ctx.rules.filter((rule) =>
+    isRuleEnabled(rule, ctx.enabledRules)
+  )
   const {
     batched,
     individual,
     skipped: skippedRules,
-  } = partitionRulesForSweep(ctx.rules, tables)
+  } = partitionRulesForSweep(activeRules, tables)
   skipped += skippedRules.length
-  const rulesById = new Map(ctx.rules.map((rule) => [rule.id, rule]))
+  const rulesById = new Map(activeRules.map((rule) => [rule.id, rule]))
 
   // One statement for the batchable rules, then classify each result. If the
   // batch could not be read at all, every one of them falls back to its own

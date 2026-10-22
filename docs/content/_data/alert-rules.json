@@ -623,6 +623,32 @@
       "title": "Broken Detached Parts"
     },
     {
+      "category": "other",
+      "commonCauses": [],
+      "description": "Off by default; enable with HEALTH_ALERT_ENABLE_RULES=detached-parts-review. Detached parts hold disk space until someone reviews them. The value is the larger of two ratios: detached bytes against 1% of total disk space, and the oldest detached part against 30 days. 1 means one limit is reached. Coverage is per replica: this host only, a part detached here says nothing about the other replicas, so check each replica. Open the Detached Parts Triage page (/detached-parts-triage) to review each part before acting.",
+      "fix": [
+        {
+          "description": "Detached parts on this host, oldest first. Review each part before acting; other replicas are not covered.",
+          "id": "detached-parts-review-detail",
+          "kind": "diagnostic",
+          "label": "List detached parts to review",
+          "sql": "SELECT database, table, name, reason, bytes_on_disk, modification_time\nFROM system.detached_parts\nORDER BY modification_time ASC, bytes_on_disk DESC\nLIMIT 50",
+          "url": null
+        }
+      ],
+      "id": "detached-parts-review",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "detached parts at 1.00x the review limit (1% of disk or 30 days)",
+      "sql": "SELECT if(count() = 0, 0, greatest(\n  ifNull(sum(bytes_on_disk) * 100.0 / nullIf((SELECT sum(total_space) FROM system.disks), 0), 0),\n  ifNull((toUnixTimestamp(now()) - toUnixTimestamp(min(modification_time))) / 86400.0 / 30, 0)\n)) AS review_ratio\nFROM system.detached_parts",
+      "tableCheck": "system.detached_parts",
+      "thresholds": {
+        "critical": 1000000,
+        "warning": 1
+      },
+      "title": "Detached Parts To Review"
+    },
+    {
       "category": "logs",
       "commonCauses": [],
       "description": "Fatal errors in the server text log in the last hour.",

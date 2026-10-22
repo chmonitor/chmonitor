@@ -94,6 +94,7 @@ function makeCtx(): SweepContext {
     repeatMinDelta: { default: null, byRule: {} },
     repeatBackoffMaxMs: null,
     mutedRules: [],
+    enabledRules: [],
     rules: [],
     thresholdOverrides: {} as SweepContext['thresholdOverrides'],
     hysteresis: {
