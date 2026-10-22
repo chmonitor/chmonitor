@@ -20,7 +20,10 @@ import { TimezoneProvider } from '@/lib/context/timezone-context'
 import { FeaturePermissionsProvider } from '@/lib/feature-permissions/context'
 import { UserConnectionsCacheGuard } from '@/lib/hooks/user-connections-cache-guard'
 import { QueryProvider } from '@/lib/query/provider'
-import { getDeployTarget } from '@/lib/telemetry/environment'
+import {
+  DEPLOY_TARGET_META,
+  getDeployTarget,
+} from '@/lib/telemetry/environment'
 import { ThemeProvider } from '@/lib/theme/theme-provider'
 
 // schema.org JSON-LD. `alternateName` lists the brand's keyword variations so
@@ -57,6 +60,11 @@ export const Route = createRootRoute({
       // lives on chmonitor.dev; indexing parameterized explorer URLs created
       // hundreds of GSC 404s when those paths still resolved on the apex.
       { name: 'robots', content: 'noindex, follow' },
+      // Deploy target for telemetry (`getDeployTarget`). A <meta> is matched by
+      // lookup during hydration; an inline <script> in <head> is claimed by
+      // position, so any text or script a proxy, extension or test runner puts
+      // at the start of <head> broke hydration (React #418, #4103).
+      { name: DEPLOY_TARGET_META, content: getDeployTarget() },
       { title: 'chmonitor — ClickHouse Monitoring Dashboard & UI' },
       {
         name: 'description',
@@ -164,11 +172,6 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.__CHM_DEPLOY_TARGET__ = "${getDeployTarget()}";`,
-          }}
-        />
       </head>
       <body className="bg-background font-sans antialiased">
         <StructuredData />

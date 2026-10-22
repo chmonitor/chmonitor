@@ -15,6 +15,9 @@
 export type DeployTarget = 'docker' | 'helm' | 'cf' | 'dev' | 'unknown'
 export type ChFlavor = 'oss' | 'altinity' | 'cloud' | 'unknown'
 
+/** `<meta name>` carrying the server's deploy target to the browser. */
+export const DEPLOY_TARGET_META = 'chm-deploy-target'
+
 const INJECTED_TARGETS: readonly string[] = [
   'docker',
   'helm',
@@ -33,10 +36,13 @@ function isInjectedDeployTarget(value: string): value is DeployTarget {
  * set, or a Docker build that doesn't set it yet).
  */
 export function getDeployTarget(): DeployTarget {
-  // 1. Check if server-injected target is available in the browser window
-  if (typeof window !== 'undefined' && window.__CHM_DEPLOY_TARGET__) {
-    const injected = window.__CHM_DEPLOY_TARGET__
-    if (isInjectedDeployTarget(injected)) return injected
+  // 1. Check if the server-rendered <meta> (see `routes/__root.tsx`) is in the
+  // document
+  if (typeof document !== 'undefined') {
+    const injected = document
+      .querySelector(`meta[name="${DEPLOY_TARGET_META}"]`)
+      ?.getAttribute('content')
+    if (injected && isInjectedDeployTarget(injected)) return injected
   }
 
   // 2. Build-time env variable override. 'unknown' is treated as unset so a
@@ -163,11 +169,4 @@ export function detectPlatform(): string {
   if (ua.includes('linux')) return 'linux'
 
   return 'unknown'
-}
-
-declare global {
-  interface Window {
-    /** Set by the inline script in `routes/__root.tsx`. */
-    __CHM_DEPLOY_TARGET__?: string
-  }
 }
