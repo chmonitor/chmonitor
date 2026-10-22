@@ -22,7 +22,7 @@ export const unusedTablesDeclarative: DeclarativeQueryConfig = {
               AND (event_date >= today() - {days:UInt16})
         ),
         (
-            SELECT min(event_date)
+            SELECT minOrNull(event_date)
             FROM merge('system', '^query_log')
             WHERE (event_date >= today() - {days:UInt16})
         ) AS log_window_start
