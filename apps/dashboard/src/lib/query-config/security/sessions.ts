@@ -4,6 +4,7 @@ import { ColumnFormat } from '@/types/column-format'
 
 export const sessionsConfig: QueryConfig = {
   name: 'sessions',
+  permission: { feature: 'security' },
   description: 'Active and historical user sessions',
   optional: true,
   tableCheck: 'system.session_log',

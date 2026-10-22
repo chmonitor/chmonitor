@@ -2,6 +2,7 @@ import type { DeclarativeQueryConfig } from '../../schema'
 
 export const sessionsDeclarative: DeclarativeQueryConfig = {
   name: 'sessions',
+  permission: { feature: 'security' },
   description: 'Active and historical user sessions',
   optional: true,
   tableCheck: 'system.session_log',

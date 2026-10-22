@@ -15,6 +15,7 @@ const USERS_COLUMNS = [
 
 export const usersDeclarative: DeclarativeQueryConfig = {
   name: 'users',
+  permission: { feature: 'security' },
   optional: false,
   defaultView: 'auto',
   card: { primary: 'name' },
