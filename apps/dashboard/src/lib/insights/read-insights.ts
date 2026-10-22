@@ -29,13 +29,16 @@ export function deriveAction(
   category: string
 ): InsightAction | undefined {
   // Per-table metric (`ttl_rewrite:<db.table>`,
-  // `retention_forecast:<db.table>`): the table is in the metric so
-  // each table keeps its own stable dismissal, so it cannot be a literal case.
+  // `retention_forecast:<db.table>`, `optimize_unchanged:<db.table>`): the
+  // table is in the metric so each table keeps its own stable dismissal, so it
+  // cannot be a literal case.
   if (
     metric.startsWith('ttl_rewrite:') ||
     metric.startsWith('retention_forecast:')
   )
     return { label: 'View TTL inventory', href: '/ttl-partition-health' }
+  if (metric.startsWith('optimize_unchanged:'))
+    return { label: 'View merges', href: '/merges' }
   // `usage:unread_table:<db.table>` and `usage:unused_projection:<db.table.name>`
   // carry the object in the metric for the same reason.
   if (metric.startsWith('usage:unread_table:'))

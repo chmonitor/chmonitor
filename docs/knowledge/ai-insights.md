@@ -600,9 +600,9 @@ makes ClickHouse rewrite the oldest partition's parts every
   server without `merge_reason`).
 - Tests: `ttl-rewrite.test.ts`. The SQL was also run on `clickhouse local`
   26.5 against fake `part_log`/`tables` Memory tables.
-- Still open in #4069: repeated `OPTIMIZE FINAL` on static data, the
-  `/ttl-partition-health` section and the agent tool. (Retention forecast is
-  the next section.)
+- Still open in #4069: the `/ttl-partition-health` section and the agent
+  tool. (Retention forecast and OPTIMIZE-on-unchanged-data are the next
+  sections.)
 
 ## Per-table retention forecast (#4069 slice 2)
 
@@ -634,6 +634,61 @@ makes ClickHouse rewrite the oldest partition's parts every
   table (flagged), a dominant table with a TTL, a small dominant table, and a
   45% share table (none flagged).
 - Tests: `retention-forecast.test.ts`.
+
+## OPTIMIZE FINAL on unchanged data (#4069 slice 3)
+
+`collectOptimizeUnchanged` (`optimize-unchanged-collector.ts`, called from
+`collectStorage`; pure thresholds and mapping in
+`optimize-unchanged-classifier.ts`) flags a table on which `OPTIMIZE TABLE ...
+FINAL` ran at least 3 times in the last 14 days with no new data inserted
+between the runs. One `info` insight per flagged table, capped at the three with the most unchanged runs (the SQL returns at most 20 tables; the cap keeps a cluster of cron-driven tables from flooding the feed). The
+maintainer approved the defaults on #4069: single node first (no
+`clusterAllReplicas`, so a replicated table is judged by this host's logs only
+and the detail says "single replica"), "unchanged" means zero `NewPart` events
+between consecutive runs, threshold 3 runs.
+
+- **What OPTIMIZE looks like in `query_log` (observed on ClickHouse 26.5, a
+  scratch server with `query_log` and `part_log` enabled).** One
+  `type = 'QueryFinish'` row per statement with `query_kind = 'Optimize'`.
+  `tables` is always `['db.table']` and `databases` is `['db']`, even after
+  `USE db` and when the statement names the table without a database. The text
+  is in `query`, so FINAL is told from plain `OPTIMIZE TABLE t` by the text
+  (plain OPTIMIZE has the same `query_kind`). A statement with trailing
+  `SETTINGS ...` keeps its `FINAL`.
+- **What it looks like in `part_log`.** Each `OPTIMIZE ... FINAL` produces
+  `MergePartsStart` + `MergeParts` with `merge_reason = 'RegularMerge'` (a
+  one-part table is still rewritten). Inserts are `NewPart` with
+  `merge_reason = 'NotAMerge'`. So `NewPart` is exactly "new data", and the
+  merges an OPTIMIZE causes never count as new data.
+- **Microsecond ordering.** A run and the insert before it commonly share the
+  same second (all of the test statements above landed in one second), so the
+  SQL orders by `event_time_microseconds`, not `event_time`.
+- **How the SQL decides.** `query_log` runs and `part_log` `NewPart` rows are
+  merged into one stream per table; a running count of new parts is read at each
+  run, and a run is unchanged when it equals the count at the previous run. The
+  first run has nothing to compare against and never counts. No range join.
+  The SQL returns only `runs` and `unchanged_runs` per table (bounded), the
+  classifier applies the same threshold again (it clamps `unchanged_runs` to
+  `runs - 1`).
+- **Identity.** Table in the metric (`optimize_unchanged:<db.table>`),
+  count-free title, numbers only in `detail`/`value`. `deriveAction` matches the
+  prefix (links to `/merges`).
+- **Recommend-only.** No DDL, never says "safe"; the detail suggests reviewing
+  whether the schedule is needed. Fails open to `[]` (no query_log or part_log,
+  missing column, any error).
+- **SQL portability.** CTEs and window functions, no lambda aliases in `WITH`.
+  Two traps found while verifying: under `enable_analyzer=0` a literal aliased
+  `kind` collided with the window sum (renamed to `is_run`/`is_part`), and
+  `any(x) AS x` inside another aggregate is illegal under the analyzer (group by
+  the column instead). Verified on the real server's `system.query_log` /
+  `system.part_log` and over fake Memory tables, under both analyzer modes with
+  identical output: a table optimised 4 times with no inserts between (flagged),
+  4 times with an insert before each (not), 2 runs (not), 4 runs 20 days ago
+  (not), plain OPTIMIZE without FINAL (not), failed runs (not), merges between
+  runs (still flagged), and a same-second burst (flagged).
+- **Known limit.** A table literally named `final` (`OPTIMIZE TABLE final`)
+  matches the FINAL pattern; a `NewPart` on another replica is invisible here.
+- Tests: `optimize-unchanged.test.ts`.
 
 ## Unread tables and unused projections (#4067 slices 4 and 5)
 
