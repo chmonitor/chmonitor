@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-
 import { getQueryConfigByName } from '@/lib/query-config'
 
 const SECURITY_CONFIGS = ['users', 'roles', 'sessions', 'login-attempts']
