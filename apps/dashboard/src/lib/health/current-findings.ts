@@ -17,6 +17,8 @@ import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 
 import { getExistingTables } from './capability-cache'
 import { resolveThresholdOverrides } from './declarative/thresholds'
+import { getServerEnabledRules } from './server-alert-config'
+import { isRuleEnabled } from './sweep/suppression'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
@@ -80,7 +82,10 @@ async function runRuleQuery(
  * server the same question on the same tick.
  */
 export async function getCurrentFindings(): Promise<CurrentFinding[]> {
-  const rules = ruleRegistry.getAll()
+  const enabledRules = getServerEnabledRules()
+  const rules = ruleRegistry
+    .getAll()
+    .filter((rule) => isRuleEnabled(rule, enabledRules))
   const thresholdOverrides = await resolveThresholdOverrides(
     rules.map((r) => r.id)
   )

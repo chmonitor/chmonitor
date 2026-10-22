@@ -56,6 +56,7 @@ function makeCtx(acks: AlertAck[]): SweepContext {
     repeatMinDelta: { default: null, byRule: {} },
     repeatBackoffMaxMs: null,
     mutedRules: [],
+    enabledRules: [],
     rules: [],
     thresholdOverrides: {},
     hysteresis: {

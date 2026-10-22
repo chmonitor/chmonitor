@@ -640,6 +640,12 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "HEALTH_ALERT_ENABLE_RULES",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "HEALTH_ALERT_HEALTHCHECKS_URL",
       "prefix": "HEALTH"
     },
