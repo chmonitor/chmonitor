@@ -7,6 +7,58 @@ import {
   fillStep,
   nowOrToday,
 } from './types'
+import { USAGE_END_EVENTS } from '@/lib/query-config/queries/usage'
+
+const QUERIES_PERMISSION = { feature: 'queries' } as const
+
+/** Max window of the per-user activity calendar: one row per day. */
+export const USER_CALENDAR_MAX_DAYS = 365
+/** Max window of the weekday x hour heatmap, same as the usage aggregates. */
+export const HOUR_HEATMAP_MAX_DAYS = 30
+
+/** The `user` chart param, or null when absent or empty. */
+function chartUserParam(params: Record<string, unknown> | undefined) {
+  const user = params?.user
+  return typeof user === 'string' && user !== '' ? user : null
+}
+
+/** Whole days covered by `lastHours`, clamped to [1, max]. */
+function windowDays(lastHours: number | undefined, max: number): number {
+  const hours = Number.isFinite(lastHours) ? Number(lastHours) : max * 24
+  return Math.min(max, Math.max(1, Math.ceil(hours / 24)))
+}
+
+/**
+ * One user's activity calendar: the same columns as the server-wide calendar,
+ * filtered on a bound `user` param, bounded by `event_date` (at most a year)
+ * and gated on the queries feature because it names a user.
+ */
+function userCalendarQuery(user: string, lastHours: number | undefined) {
+  return {
+    clickhouseSettings: CHART_QUERY_SETTINGS,
+    permission: QUERIES_PERMISSION,
+    queryParams: {
+      user,
+      days: windowDays(lastHours, USER_CALENDAR_MAX_DAYS),
+    },
+    query: `
+    SELECT
+        toString(event_date) AS date,
+        countIf(type = 'QueryFinish') AS query_count,
+        countIf(type != 'QueryFinish') AS failed_count,
+        max(memory_usage) AS memory_peak,
+        round(avgIf(query_duration_ms, type = 'QueryFinish'), 2) AS avg_duration_ms,
+        sumIf(written_bytes, type = 'QueryFinish') AS written_bytes
+    FROM merge('system', '^query_log')
+    WHERE (${USAGE_END_EVENTS})
+      AND (user = {user:String})
+      AND (event_date >= today() - least({days:UInt16}, ${USER_CALENDAR_MAX_DAYS}))
+    GROUP BY date
+    ORDER BY date ASC
+    LIMIT ${USER_CALENDAR_MAX_DAYS + 1}
+  `,
+  }
+}
 
 export const queryCharts: Record<string, ChartQueryBuilder> = {
   'query-count-today': () => ({
@@ -370,7 +422,9 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   // response timeout (~30s). Without it, a slow full-year scan on a busy server
   // drops the connection mid-stream, returning an empty body (error 1016 —
   // RECEIVED_EMPTY_DATA) instead of a clean ClickHouse timeout error (159).
-  'query-count-heatmap': ({ lastHours = 24 * 365 * 2 }) => {
+  'query-count-heatmap': ({ lastHours = 24 * 365 * 2, params }) => {
+    const user = chartUserParam(params)
+    if (user !== null) return userCalendarQuery(user, lastHours)
     const timeFilter = buildTimeFilter(lastHours)
     return {
       clickhouseSettings: CHART_QUERY_SETTINGS,
@@ -392,6 +446,30 @@ export const queryCharts: Record<string, ChartQueryBuilder> = {
   `,
     }
   },
+
+  // Weekday x hour query counts for the hour heatmap (#4125). Optional
+  // `user` param narrows to one user; the window is capped at 30 days in SQL.
+  'query-hour-heatmap': ({ lastHours = 24 * 7, params }) => ({
+    clickhouseSettings: CHART_QUERY_SETTINGS,
+    permission: QUERIES_PERMISSION,
+    queryParams: {
+      user: chartUserParam(params) ?? '',
+      days: windowDays(lastHours, HOUR_HEATMAP_MAX_DAYS),
+    },
+    query: `
+    SELECT
+        toDayOfWeek(event_time) AS weekday,
+        toHour(event_time) AS hour,
+        count() AS queries
+    FROM merge('system', '^query_log')
+    WHERE (${USAGE_END_EVENTS})
+      AND ({user:String} = '' OR user = {user:String})
+      AND (event_date >= today() - least({days:UInt16}, ${HOUR_HEATMAP_MAX_DAYS}))
+    GROUP BY weekday, hour
+    ORDER BY weekday, hour
+    LIMIT 168
+  `,
+  }),
 
   /**
    * Slow query regression detection.

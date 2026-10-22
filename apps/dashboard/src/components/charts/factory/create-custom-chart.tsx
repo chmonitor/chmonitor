@@ -21,6 +21,7 @@ function CustomChartBody({
   swr,
   hostId,
   lastHours,
+  params,
   title = config.defaultTitle,
   className,
   chartCardContentClassName,
@@ -42,7 +43,7 @@ function CustomChartBody({
           data-testid={config.dataTestId}
           href={href}
         >
-          {config.render(dataArray, sql, hostId, lastHours)}
+          {config.render(dataArray, sql, hostId, lastHours, params)}
         </ChartCard>
       )}
     </ChartContainer>
@@ -82,6 +83,7 @@ export function createCustomChart(
       hostId,
       interval: props.interval ?? config.defaultInterval,
       lastHours,
+      params: props.params,
       refreshInterval: config.refreshInterval,
     })
 

@@ -54,6 +54,10 @@ export const CHART_FRESHNESS = {
     refreshInterval: REFRESH_INTERVAL.VERY_SLOW_5M,
     cachePolicy: 'historical',
   },
+  'query-hour-heatmap': {
+    refreshInterval: REFRESH_INTERVAL.VERY_SLOW_5M,
+    cachePolicy: 'historical',
+  },
   'query-duration': {
     refreshInterval: REFRESH_INTERVAL.VERY_SLOW_5M,
     cachePolicy: 'historical',

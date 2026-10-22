@@ -97,6 +97,11 @@ export const ChartQueryCountHeatmap = lazy(() =>
     default: mod.ChartQueryCountHeatmap,
   }))
 )
+export const ChartQueryHourHeatmap = lazy(() =>
+  import('@/components/charts/query/query-hour-heatmap').then((mod) => ({
+    default: mod.ChartQueryHourHeatmap,
+  }))
+)
 export const ChartQueryDuration = lazy(() =>
   import('@/components/charts/query/query-duration').then((mod) => ({
     default: mod.ChartQueryDuration,

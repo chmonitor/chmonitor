@@ -65,17 +65,26 @@ interface HoverState {
   y: number
 }
 
-/** Drill into the day's queries. Failed mode jumps straight to /failed-queries. */
-function buildDrilldownHref(
+/**
+ * Drill into the day's queries. Failed mode jumps straight to /failed-queries.
+ * A per-user calendar (`user` set) keeps the user: it links to
+ * /history-queries with a `user` filter, because /failed-queries has none.
+ */
+export function buildDrilldownHref(
   hostId: number,
-  day: CalendarDay,
-  metricKey: MetricKey
+  day: Pick<CalendarDay, 'iso'>,
+  metricKey: MetricKey,
+  user?: string
 ): string {
   // Whole-day window. BETWEEN is inclusive on both ends in ClickHouse, so end
   // at 23:59:59 to keep the next day out of this cell's drilldown.
   const params = new URLSearchParams()
   params.set('host', String(hostId))
   params.set('event_time', `between:${day.iso} 00:00:00,${day.iso} 23:59:59`)
+  if (user) {
+    params.set('user', `eq:${user}`)
+    return `/history-queries?${params.toString()}`
+  }
   const path = metricKey === 'failed' ? '/failed-queries' : '/history-queries'
   return `${path}?${params.toString()}`
 }
@@ -157,9 +166,11 @@ function StatCardView({
 function CalendarBody({
   data,
   hostId,
+  user,
 }: {
   data: HeatmapDayRow[]
   hostId: number
+  user?: string
 }) {
   const [mode, setMode] = useState<MetricKey>('queries')
   const [hover, setHover] = useState<HoverState | null>(null)
@@ -489,7 +500,7 @@ function CalendarBody({
                   })}
                 </div>
                 <Link
-                  to={buildDrilldownHref(hostId, selectedDay, mode)}
+                  to={buildDrilldownHref(hostId, selectedDay, mode, user)}
                   onClick={() => setSelectedDay(null)}
                   className="border-border bg-card hover:bg-accent inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors"
                 >
@@ -516,8 +527,12 @@ export const ChartQueryCountHeatmap = createCustomChart({
   defaultLastHours: 24 * 365 * 2,
   dataTestId: 'query-count-heatmap-chart',
   contentClassName: 'overflow-hidden',
-  render: (dataArray, _sql, hostId) => (
-    <CalendarBody data={dataArray as HeatmapDayRow[]} hostId={hostId} />
+  render: (dataArray, _sql, hostId, _lastHours, params) => (
+    <CalendarBody
+      data={dataArray as HeatmapDayRow[]}
+      hostId={hostId}
+      user={params?.user || undefined}
+    />
   ),
 })
 

@@ -23,11 +23,58 @@ export const USAGE_END_EVENTS =
 /** `event_date` bound shared by every aggregate usage config. */
 export const USAGE_DATE_BOUND = `event_date >= today() - least({days:UInt16}, ${USAGE_MAX_DAYS})`
 
+/**
+ * Service accounts hidden by the "Hide system users" toggle: the same
+ * `CLICKHOUSE_EXCLUDE_USER_DEFAULT` list history-queries excludes by default,
+ * plus the empty user name. Read on the server, where the SQL is built.
+ */
+export const USAGE_SYSTEM_USERS =
+  process.env.CLICKHOUSE_EXCLUDE_USER_DEFAULT || ''
+
+/**
+ * `/usage` list filters, all bound params: a case-insensitive substring on the
+ * user name (not LIKE, so `%` and `_` match literally) and the system-user
+ * toggle. `column` is `user` in query_log and `name` in system.users.
+ */
+export const usageUserFilters = (column: string) =>
+  `({name_filter:String} = '' OR positionCaseInsensitive(${column}, {name_filter:String}) > 0)
+        AND ({hide_system:String} != '1' OR NOT has(arrayMap(x -> trimBoth(x), splitByChar(',', {system_users:String})), ${column}))`
+
+/** Defaults for the `/usage` list filters: every param must be bound. */
+export const USAGE_FILTER_DEFAULTS = {
+  name_filter: '',
+  hide_system: '',
+  system_users: USAGE_SYSTEM_USERS,
+}
+
+/**
+ * The `/usage` URL params forwarded to both tables. `system_users` is not
+ * forwarded: the server's own default (the env list) applies.
+ */
+export function usageListSearchParams(url: {
+  get(key: string): string | null
+}): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const key of ['days', 'name_filter', 'hide_system']) {
+    const value = url.get(key)
+    if (value) out[key] = value
+  }
+  return out
+}
+
 export const USAGE_DAYS_PRESETS: NonNullable<
   QueryConfig['filterParamPresets']
 > = [
   { name: 'Last 7d', key: 'days', value: '7' },
   { name: 'Last 30d', key: 'days', value: '30' },
+]
+
+/** `/usage` presets: the window plus the system-user toggle. */
+export const USAGE_LIST_PRESETS: NonNullable<
+  QueryConfig['filterParamPresets']
+> = [
+  ...USAGE_DAYS_PRESETS,
+  { name: 'Hide system users', key: 'hide_system', value: '1' },
 ]
 
 export const usageByUserConfig: QueryConfig = {
@@ -36,7 +83,7 @@ export const usageByUserConfig: QueryConfig = {
   defaultView: 'auto',
   card: { primary: 'user' },
   description:
-    'One row per user that ran a query in the window (default 7 days, at most 30): queries, failures, p50/p95 duration, rows and bytes read, CPU time, peak memory, distinct tables, first and last seen. Click a user for the detail view. THIS REPLICA ONLY: queries served by another replica are not counted.',
+    'One row per user that ran a query in the window (default 7 days, at most 30): queries, failures, p50/p95 duration, rows and bytes read, CPU time, peak memory, distinct tables, first and last seen. Filter by name, or hide the service users listed in CLICKHOUSE_EXCLUDE_USER_DEFAULT (and the empty internal user). Click a user for the detail view. THIS REPLICA ONLY: queries served by another replica are not counted.',
   docs: QUERY_LOG,
   tableCheck: 'system.query_log',
   sql: `
@@ -60,6 +107,7 @@ export const usageByUserConfig: QueryConfig = {
       FROM merge('system', '^query_log')
       WHERE (${USAGE_END_EVENTS})
         AND (${USAGE_DATE_BOUND})
+        AND ${usageUserFilters('user')}
       GROUP BY user
       ORDER BY queries DESC
       LIMIT 500`,
@@ -90,8 +138,8 @@ export const usageByUserConfig: QueryConfig = {
     first_seen: ColumnFormat.RelatedTime,
     last_seen: ColumnFormat.RelatedTime,
   },
-  defaultParams: { days: '7' },
-  filterParamPresets: USAGE_DAYS_PRESETS,
+  defaultParams: { days: '7', ...USAGE_FILTER_DEFAULTS },
+  filterParamPresets: USAGE_LIST_PRESETS,
 }
 
 /**
@@ -120,9 +168,10 @@ export const usageInactiveUsersConfig: QueryConfig = {
           WHERE (${USAGE_END_EVENTS})
             AND (${USAGE_DATE_BOUND})
       )
+        AND ${usageUserFilters('name')}
       ORDER BY name
       LIMIT 500`,
   columns: ['name', 'storage'],
-  defaultParams: { days: '7' },
-  filterParamPresets: USAGE_DAYS_PRESETS,
+  defaultParams: { days: '7', ...USAGE_FILTER_DEFAULTS },
+  filterParamPresets: USAGE_LIST_PRESETS,
 }

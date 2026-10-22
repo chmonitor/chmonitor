@@ -1,37 +1,51 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { Suspense } from 'react'
-import { PageSkeleton, TableSkeleton } from '@/components/skeletons'
+import {
+  ChartSkeleton,
+  PageSkeleton,
+  TableSkeleton,
+} from '@/components/skeletons'
 import { TableClient } from '@/components/tables/table-client'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { EmptyState } from '@/components/ui/empty-state'
+import {
+  UserUsageKpis,
+  UserUsageProfile,
+} from '@/components/usage/user-usage-header'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { pageOgHead } from '@/lib/og'
 import {
   USER_DAILY_MAX_DAYS,
+  USER_USAGE_DAY_OPTIONS,
   userUsageConfigs,
   userUsageDailyConfig,
 } from '@/lib/query-config/queries/user-usage'
 import { useHostId } from '@/lib/swr'
 import { cn } from '@/lib/utils'
+import {
+  ChartQueryCountHeatmap,
+  ChartQueryHourHeatmap,
+} from '@/routes/(dashboard)/-charts-lazy'
 
 const TITLES: Record<string, string> = {
   'user-usage-daily': 'Daily Activity',
   'user-usage-hours': 'Weekday x Hour',
   'user-usage-tables': 'Top Tables',
   'user-usage-shapes': 'Top Query Shapes',
+  'user-usage-kinds': 'Query Kinds',
+  'user-usage-interfaces': 'Interfaces',
   'user-usage-errors': 'Errors',
   'user-usage-clients': 'Clients',
 }
-
-const DAY_OPTIONS = ['7', '30', String(USER_DAILY_MAX_DAYS)]
 
 function UserUsageContent() {
   const searchParams = useUrlSearchParams()
   const hostId = useHostId()
   const user = searchParams.get('user') ?? ''
   const days =
-    searchParams.get('days') ?? userUsageDailyConfig.defaultParams?.days ?? '7'
+    searchParams.get('days') ??
+    String(userUsageDailyConfig.defaultParams?.days ?? '7')
 
   const usageUrl = `/usage?host=${hostId}`
 
@@ -63,7 +77,7 @@ function UserUsageContent() {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-semibold">Usage: {user}</h1>
         <div className="ml-auto flex items-center gap-1 text-sm">
-          {DAY_OPTIONS.map((d) => (
+          {USER_USAGE_DAY_OPTIONS.map((d) => (
             <Link
               key={d}
               href={`/usage/user?user=${userParam}&days=${d}&host=${hostId}`}
@@ -79,9 +93,27 @@ function UserUsageContent() {
           ))}
         </div>
       </div>
+      <UserUsageProfile user={user} />
+      <UserUsageKpis user={user} days={days} />
       <p className="text-muted-foreground text-xs">
-        Tables other than Daily Activity cover at most 30 days.
+        The activity calendar always shows the last year and Daily Activity
+        follows the window up to a year; every other total and table covers at
+        most 30 days.
       </p>
+      <Suspense fallback={<ChartSkeleton />}>
+        <ChartQueryCountHeatmap
+          title="Activity Calendar"
+          lastHours={24 * USER_DAILY_MAX_DAYS}
+          params={{ user }}
+        />
+      </Suspense>
+      <Suspense fallback={<ChartSkeleton />}>
+        <ChartQueryHourHeatmap
+          title="Hour Heatmap"
+          lastHours={Number(days) * 24}
+          params={{ user }}
+        />
+      </Suspense>
       {userUsageConfigs.map((config) => (
         <Suspense key={config.name} fallback={<TableSkeleton />}>
           <TableClient
