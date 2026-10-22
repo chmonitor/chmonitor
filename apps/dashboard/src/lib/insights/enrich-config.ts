@@ -3,8 +3,6 @@
  * health sweep imports it without linking the AI SDK.
  */
 
-import type { GenerateInsightsOptions } from './generate-insights'
-
 import { parseBool } from '../config/parse-bool'
 
 /** Output cap for one enrichment call; same convention as the agent. */
@@ -40,7 +38,9 @@ export function isSweepEnrichEnabled(
 /**
  * Options the health sweep passes to `generateInsights`. When sweep enrichment
  * is off the sweep stores the deterministic text only, like the UI auto path.
+ * The return type is structural (assignable to `GenerateInsightsOptions`)
+ * because importing that type would close a cycle through `llm-enrich.ts`.
  */
-export function sweepInsightOptions(): GenerateInsightsOptions {
+export function sweepInsightOptions(): { enrich?: false } {
   return isSweepEnrichEnabled() ? {} : { enrich: false }
 }
