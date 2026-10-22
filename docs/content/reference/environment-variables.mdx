@@ -634,6 +634,14 @@ AgentState backends reuse the conversation-store env above.
 `postgres` reuses `DATABASE_URL`; `agentstate` reuses `AGENTSTATE_API_KEY` (+
 optional `AGENTSTATE_BASE_URL`).
 
+When an LLM key is configured, insights are rewritten by one short model call per
+generation. These two variables bound its cost:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `INSIGHTS_ENRICH_MAX_OUTPUT_TOKENS` | `4096` | Output token cap sent with every enrichment call, so providers do not default to the model's full output limit. Positive integer, clamped to `16384`; empty, invalid or non-positive values use the default. |
+| `INSIGHTS_SWEEP_ENRICH` | `true` | Set `false` (`0`, `no`, `off`) so the health sweep stores the deterministic insight text and makes no LLM call. Manual and UI generation are not affected. |
+
 See [AI agent — AI Insights persistence](/guide/ai-agent#ai-insights-persistence)
 for setup and fallback behavior. `GET /api/v1/insights/backend` reports the active
 backend.

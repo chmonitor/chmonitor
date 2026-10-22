@@ -874,6 +874,18 @@
     {
       "exampleDefault": null,
       "inEnvExample": false,
+      "name": "INSIGHTS_ENRICH_MAX_OUTPUT_TOKENS",
+      "prefix": "INSIGHTS"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
+      "name": "INSIGHTS_SWEEP_ENRICH",
+      "prefix": "INSIGHTS"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": false,
       "name": "LLM_API_BASE",
       "prefix": "LLM"
     },

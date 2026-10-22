@@ -18,6 +18,7 @@ import {
   resolveAgentChatModel,
 } from '../ai/agent/provider-chat-model'
 import { isProviderConfigured, resolveProvider } from '../ai/providers'
+import { resolveEnrichMaxOutputTokens } from './enrich-config'
 import { promptSystemFor } from './prompts'
 import { ErrorLogger } from '@chm/logger'
 import { generateObject } from 'ai'
@@ -83,6 +84,7 @@ export async function enrichInsights(
       model,
       schema: EnrichedSchema,
       maxRetries: 1,
+      maxOutputTokens: resolveEnrichMaxOutputTokens(),
       abortSignal: AbortSignal.timeout(20_000),
       system: promptSystemFor(opts.promptStyle),
       prompt: JSON.stringify(
