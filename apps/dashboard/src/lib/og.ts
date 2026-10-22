@@ -584,6 +584,11 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'Audit Log',
     description: 'Audit trail of user and admin actions.',
   },
+  'security/access-matrix': {
+    eyebrow: 'ACCESS',
+    title: 'Access Matrix',
+    description: 'Effective grants per user and role, by database and table.',
+  },
   'security/login-attempts': {
     eyebrow: 'ACCESS',
     title: 'Login Attempts',

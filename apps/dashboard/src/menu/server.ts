@@ -201,6 +201,18 @@ export const serverItems: MenuItem[] = [
       },
       {
         subgroup: 'Access Control',
+        title: 'Access Matrix',
+        href: '/security/access-matrix',
+        description:
+          'Who can read or write what: effective grants per user and role, through nested roles, partial revokes and readonly profiles',
+        icon: KeyIcon,
+        isNew: true,
+        docs: 'https://clickhouse.com/docs/en/operations/access-rights',
+        tableCheck: 'system.grants',
+        permission: { feature: 'security' },
+      },
+      {
+        subgroup: 'Access Control',
         title: 'RBAC Management',
         href: '/security/management',
         description:

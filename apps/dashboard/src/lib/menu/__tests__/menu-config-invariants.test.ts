@@ -411,6 +411,7 @@ describe('task-group layout (#3565)', () => {
       '/page-views',
       '/users',
       '/roles',
+      '/security/access-matrix',
       '/security/management',
       '/security/sessions',
       '/security/login-attempts',
