@@ -674,6 +674,16 @@ export function getServerEnabledRules(): string[] {
 }
 
 /**
+ * Rule ids (or `*`/`?` globs) of signal-only rules that should still be
+ * delivered to channels: `HEALTH_ALERT_NOTIFY_RULES`, comma-separated, empty
+ * by default. A signal-only rule (e.g. `long-running-queries`) is shown on
+ * /health and feeds compound rules, but pages only when named here.
+ */
+export function getServerNotifyRules(): string[] {
+  return parseRuleIdList(process.env.HEALTH_ALERT_NOTIFY_RULES)
+}
+
+/**
  * The static prefix of a rule id: everything before the first `:` (#4029).
  *
  * `peerdb-mirror-health:pg-to-ch-orders` → `peerdb-mirror-health`. An env var

@@ -681,6 +681,12 @@
     },
     {
       "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "HEALTH_ALERT_NOTIFY_RULES",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
       "inEnvExample": false,
       "name": "HEALTH_ALERT_NTFY_ENABLED",
       "prefix": "HEALTH"

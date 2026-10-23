@@ -56,7 +56,7 @@ const { BUILTIN_RULES } = await import('@/lib/alerting/builtin-rules')
 const { resetHostCapabilities } = await import('../capability-cache')
 const { getCurrentFindings } = await import('../current-findings')
 const { runHostSweep } = await import('./run-host')
-const { isRuleEnabled } = await import('./suppression')
+const { isRuleEnabled, isSignalOnly } = await import('./suppression')
 
 const config = { id: 0, host: 'test-host', user: 'default', password: '' }
 const reviewRule = BUILTIN_RULES.find((r) => r.id === 'detached-parts-review')!
@@ -181,5 +181,45 @@ describe('getCurrentFindings', () => {
     expect(queries.some((q) => q.includes(SNAPSHOT_MARK))).toBe(true)
     const found = findings.find((f) => f.ruleId === 'detached-parts-review')
     expect(found?.severity).toBe('warning')
+  })
+})
+
+describe('isSignalOnly', () => {
+  test('a rule without signalOnly is never signal-only', () => {
+    expect(isSignalOnly({ id: 'x' }, [])).toBe(false)
+  })
+
+  test('a signalOnly rule stays signal-only unless HEALTH_ALERT_NOTIFY_RULES names it', () => {
+    const rule = { id: 'long-running-queries', signalOnly: true }
+    expect(isSignalOnly(rule)).toBe(true)
+    expect(isSignalOnly(rule, ['heavy-query-memory'])).toBe(true)
+    expect(isSignalOnly(rule, ['long-running-queries'])).toBe(false)
+    expect(isSignalOnly(rule, ['*-QUERIES'])).toBe(false)
+  })
+
+  test('the built-in query signals ship signal-only', () => {
+    for (const id of ['long-running-queries', 'heavy-query-memory']) {
+      const rule = BUILTIN_RULES.find((r) => r.id === id)
+      expect(rule && isSignalOnly(rule)).toBe(true)
+    }
+  })
+})
+
+describe('getServerNotifyRules', () => {
+  test('parses HEALTH_ALERT_NOTIFY_RULES like the other rule lists', async () => {
+    const { getServerNotifyRules } = await import('../server-alert-config')
+    const saved = process.env.HEALTH_ALERT_NOTIFY_RULES
+    try {
+      delete process.env.HEALTH_ALERT_NOTIFY_RULES
+      expect(getServerNotifyRules()).toEqual([])
+      process.env.HEALTH_ALERT_NOTIFY_RULES = ' long-running-queries, ,heavy-* '
+      expect(getServerNotifyRules()).toEqual([
+        'long-running-queries',
+        'heavy-*',
+      ])
+    } finally {
+      if (saved === undefined) delete process.env.HEALTH_ALERT_NOTIFY_RULES
+      else process.env.HEALTH_ALERT_NOTIFY_RULES = saved
+    }
   })
 })

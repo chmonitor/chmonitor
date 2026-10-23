@@ -28,6 +28,8 @@ import type { AlertRuleSeverity } from './rule-registry'
 export interface CompoundRuleInput {
   value: number | null
   severity: AlertRuleSeverity
+  /** The base rule's `affectedKey` names, when it declares one. */
+  affected?: readonly string[]
 }
 
 export interface CompoundRuleDef {
@@ -37,6 +39,11 @@ export interface CompoundRuleDef {
   description: string
   /** Base rule ids (from `ruleRegistry`) this compound rule reads. Must have length ≥ 2. */
   depends: string[]
+  /**
+   * Evaluate with whichever dependencies ran on the host; a missing one is
+   * absent from `inputs`. Default: a missing dependency skips the rule.
+   */
+  partialInputs?: boolean
   /**
    * Pure predicate over the per-host base rule results (keyed by base rule
    * id) → this compound rule's own severity. Must not throw for well-formed

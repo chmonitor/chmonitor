@@ -65,6 +65,8 @@ export interface SweepSummary {
   ackedSuppressed: number
   /** Notify-worthy alerts suppressed because the rule is muted (#3869). */
   mutedSuppressed: number
+  /** Notify-worthy alerts of signal-only rules, never delivered (see `HEALTH_ALERT_NOTIFY_RULES`). */
+  signalOnlySuppressed: number
   /** Recovery notifications sent for conditions that returned to ok. */
   recoveries: number
   /**
@@ -194,6 +196,7 @@ export async function runHealthSweep(): Promise<SweepSummary> {
     quietHoursSuppressed: counters.quietHoursSuppressed,
     ackedSuppressed: counters.ackedSuppressed,
     mutedSuppressed: counters.mutedSuppressed,
+    signalOnlySuppressed: counters.signalOnlySuppressed,
     recoveries: counters.recoveries,
     digestBuffered: counters.digestBuffered,
     digestFlushed: counters.digestFlushed,

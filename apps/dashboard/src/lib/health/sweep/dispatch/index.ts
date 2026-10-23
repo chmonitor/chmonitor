@@ -157,6 +157,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     quietHoursSuppressed: 0,
     ackedSuppressed: 0,
     mutedSuppressed: 0,
+    signalOnlySuppressed: 0,
     recoveries: 0,
     emailsDispatched: 0,
     digestBuffered: 0,
@@ -193,6 +194,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       label,
       warnThreshold,
       critThreshold,
+      signalOnly,
     } = params
     const effective = effectiveSeverity(severity, settings.minSeverity)
     // Per-rule hysteresis/cooldown (#4029): exact rule id first, then the
@@ -245,6 +247,16 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       previous: previousState,
       identity: buildFindingIdentity(identity, hostId),
     })
+
+    if (decision.notify && signalOnly) {
+      // Signal-only rule: dropped exactly like a muted rule below (no
+      // channel, no history row, firing state not committed), but counted
+      // apart so the summary does not report it as an operator mute.
+      if (isRecovery) commit()
+      counters.alertsSuppressed++
+      counters.signalOnlySuppressed++
+      return
+    }
 
     if (decision.notify && isRuleMuted(ctx.mutedRules, ruleId)) {
       // Muted rule (#3869): skip every channel, including the bus and custom

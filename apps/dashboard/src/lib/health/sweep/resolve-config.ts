@@ -40,6 +40,7 @@ import {
   getServerEnabledRules,
   getServerHysteresisConfig,
   getServerMutedRules,
+  getServerNotifyRules,
   isAnyAlertChannelEnabled,
 } from './../server-alert-config'
 import { resolveServerChannels } from './../server-channel-resolve'
@@ -91,6 +92,8 @@ export interface SweepContext {
   mutedRules: string[]
   /** Opt-in ids / globs for rules shipped with `defaultEnabled: false` (#4070). */
   enabledRules: string[]
+  /** Opt-in ids / globs that deliver `signalOnly` rules to channels. */
+  notifyRules: string[]
   rules: AlertRuleDef[]
   thresholdOverrides: Awaited<ReturnType<typeof resolveThresholdOverrides>>
   hysteresis: ReturnType<typeof getServerHysteresisConfig>
@@ -131,6 +134,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
   const alertingEnabled = isAnyAlertChannelEnabled()
   const mutedRules = getServerMutedRules()
   const enabledRules = getServerEnabledRules()
+  const notifyRules = getServerNotifyRules()
 
   // Re-sync custom alert rules (plan 32) every sweep tick: unregisters stale
   // `custom:*` ids first, then loads whatever is currently enabled in D1.
@@ -224,6 +228,7 @@ export async function resolveSweepContext(): Promise<SweepContext> {
     longFiringDigestMs,
     mutedRules,
     enabledRules,
+    notifyRules,
     rules,
     thresholdOverrides,
     hysteresis,

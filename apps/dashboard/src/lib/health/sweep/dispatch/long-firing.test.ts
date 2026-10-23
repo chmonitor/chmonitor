@@ -64,6 +64,7 @@ function makeCtx(overrides: Partial<SweepContext> = {}): SweepContext {
     longFiringDigestMs: 24 * HOUR,
     mutedRules: [],
     enabledRules: [],
+    notifyRules: [],
     rules: [],
     thresholdOverrides: {} as SweepContext['thresholdOverrides'],
     hysteresis: {

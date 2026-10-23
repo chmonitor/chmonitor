@@ -31,7 +31,7 @@ import {
   partitionRulesForSweep,
 } from '../batch-kpi'
 import { getExistingTables } from '../capability-cache'
-import { isRuleEnabled } from './suppression'
+import { isRuleEnabled, isSignalOnly } from './suppression'
 import { fetchData } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { debug } from '@chm/logger'
@@ -223,7 +223,9 @@ export async function runHostSweep(
     const severity = rule.classify
       ? rule.classify(value, thresholds)
       : classifyValue(value, thresholds)
-    perHostResults[rule.id] = { value, severity }
+    perHostResults[rule.id] = rule.affectedKey
+      ? { value, severity, affected }
+      : { value, severity }
     const label = ruleLabel(rule, value, affected)
 
     if (severity !== 'ok') {
@@ -250,6 +252,7 @@ export async function runHostSweep(
         label,
         warnThreshold: thresholds.warning,
         critThreshold: thresholds.critical,
+        ...(isSignalOnly(rule, ctx.notifyRules) ? { signalOnly: true } : {}),
       })
     }
   }
@@ -339,11 +342,12 @@ export async function runHostSweep(
     let missingDependency = false
     for (const dep of compound.depends) {
       const input = perHostResults[dep]
-      if (!input) {
+      if (input) {
+        inputs[dep] = input
+      } else if (!compound.partialInputs) {
         missingDependency = true
         break
       }
-      inputs[dep] = input
     }
     // A dependency didn't run on this host (skipped optional table, or
     // errored) — nothing to correlate; skip silently, not an error.
