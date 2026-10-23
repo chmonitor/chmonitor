@@ -49,6 +49,17 @@ function fakeClient() {
   return { client, calls }
 }
 
+/** Shape of `ClickHouseError` from @clickhouse/client-common: `code` is a string. */
+function chError(code: string, message: string): Error {
+  return Object.assign(new Error(message), { code })
+}
+
+const readonlyRefusal = () =>
+  chError(
+    '164',
+    "Code: 164. DB::Exception: Cannot modify 'log_comment' setting in readonly mode. (READONLY)"
+  )
+
 const principal = async () => ({ subject: 'jane', email: 'jane@example.com' })
 
 describe('withQueryAttribution', () => {
@@ -146,9 +157,7 @@ describe('withQueryAttribution', () => {
       query: async (params: Params) => {
         calls.push(params)
         if (params.clickhouse_settings?.log_comment) {
-          throw new Error(
-            "Code: 164. DB::Exception: Cannot modify 'log_comment' setting in readonly mode. (READONLY)"
-          )
+          throw readonlyRefusal()
         }
         return { ok: true }
       },
@@ -183,6 +192,90 @@ describe('withQueryAttribution', () => {
     withQueryAttribution(client as any, 'ch-0')
     await expect(client.query()).rejects.toThrow('readonly mode')
     expect(sent).toBe(1)
+  })
+
+  it('does not retry or downgrade when a query raises the refusal text itself', async () => {
+    const calls: Params[] = []
+    const client = {
+      query: async (params: Params) => {
+        calls.push(params)
+        if (params.query.includes('throwIf')) {
+          throw chError(
+            '395',
+            "Code: 395. DB::Exception: Cannot modify 'log_comment' setting in readonly mode: while executing 'FUNCTION throwIf(1)'. (FUNCTION_THROW_IF_VALUE_IS_NON_ZERO)"
+          )
+        }
+        return { ok: true }
+      },
+    }
+    withQueryAttribution(client as any, 'ch-0')
+
+    await expect(
+      client.query({
+        query:
+          "SELECT throwIf(1, 'Cannot modify ''log_comment'' setting in readonly mode')",
+      })
+    ).rejects.toThrow('log_comment')
+    await client.query({ query: 'SELECT 1' })
+
+    expect(calls).toHaveLength(2)
+    expect(calls[1].clickhouse_settings?.log_comment).toBeDefined()
+    expect(calls[1].query).toBe('SELECT 1')
+  })
+
+  it('never resends a refused command, and uses the SQL comment from the next call', async () => {
+    const calls: Params[] = []
+    const client = {
+      command: async (params: Params) => {
+        calls.push(params)
+        if (params.clickhouse_settings?.log_comment) throw readonlyRefusal()
+        return { ok: true }
+      },
+    }
+    withQueryAttribution(client as any, 'ch-0')
+
+    await expect(
+      client.command({ query: 'INSERT INTO t VALUES (1)' })
+    ).rejects.toThrow('log_comment')
+    expect(calls).toHaveLength(1)
+
+    await client.command({ query: 'INSERT INTO t VALUES (2)' })
+    expect(calls).toHaveLength(2)
+    expect(calls[1].clickhouse_settings).toBeUndefined()
+    expect(calls[1].query).toStartWith('/* chmonitor v=1 ')
+  })
+
+  it('records no user or email for a demo host, and never resolves the principal', async () => {
+    process.env.CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL = 'true'
+    let resolved = 0
+    const calls: Params[] = []
+    const client = {
+      query: async (params: Params) => {
+        calls.push(params)
+        return { ok: true }
+      },
+    }
+    withQueryAttribution(client as any, 'demo', { anonymous: () => true })
+
+    await runWithAttribution(
+      {
+        principal: async () => {
+          resolved++
+          return principal()
+        },
+        source: 'console',
+      },
+      () => client.query({ query: 'SELECT 1' })
+    )
+
+    const record = JSON.parse(String(calls[0].clickhouse_settings?.log_comment))
+    expect(record).toMatchObject({
+      user: null,
+      host: 'demo',
+      source: 'console',
+    })
+    expect(record.email ?? null).toBeNull()
+    expect(resolved).toBe(0)
   })
 
   it('keeps a log_comment the caller set explicitly', async () => {

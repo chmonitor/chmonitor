@@ -81,16 +81,46 @@ export function getAttributionConfig(): AttributionConfig {
   }
 }
 
+let envHostsAreDemo: () => boolean = () => false
+
+/**
+ * Set once at startup by the app: whether the env-configured hosts are a
+ * public demo (cloud mode). The package cannot see the deployment mode.
+ * Read per call, like the config, because env lands on `process.env` late.
+ */
+export function setEnvHostsAreDemo(resolve: () => boolean): void {
+  envHostsAreDemo = resolve
+}
+
+export function isEnvHostDemo(): boolean {
+  try {
+    return envHostsAreDemo()
+  } catch {
+    return false
+  }
+}
+
+export interface AttributionOptions {
+  /**
+   * True when the target host is a public demo. Its `system.query_log` is
+   * readable by every visitor, so the record leaves out `user` and `email`.
+   */
+  readonly anonymous?: () => boolean
+}
+
 export async function resolveAttributionRecord(
   host: string | null,
-  config: AttributionConfig = getAttributionConfig()
+  config: AttributionConfig = getAttributionConfig(),
+  options: AttributionOptions = {}
 ): Promise<AttributionRecord> {
   const scope = storage.getStore()
   let principal: AttributionPrincipal | null = null
-  try {
-    principal = (await scope?.principal?.()) ?? null
-  } catch {
-    // Attribution must never fail a query; an unresolvable principal is anonymous.
+  if (!options.anonymous?.()) {
+    try {
+      principal = (await scope?.principal?.()) ?? null
+    } catch {
+      // Attribution must never fail a query; an unresolvable principal is anonymous.
+    }
   }
   return buildAttributionRecord({
     version: config.version,
@@ -122,13 +152,14 @@ export type AttributionCarriers = 'configured' | 'sqlCommentOnly'
 export async function attributeParams<T>(
   params: T,
   host: string | null,
-  carriers: AttributionCarriers = 'configured'
+  carriers: AttributionCarriers = 'configured',
+  options: AttributionOptions = {}
 ): Promise<T> {
   if (params === null || typeof params !== 'object') return params
   const config = getAttributionConfig()
   if (!config.enabled) return params
 
-  const record = await resolveAttributionRecord(host, config)
+  const record = await resolveAttributionRecord(host, config, options)
   const p = params as QueryLikeParams
   const withComment = config.sqlComment || carriers === 'sqlCommentOnly'
   return {
@@ -150,9 +181,23 @@ export async function attributeParams<T>(
 const LOG_COMMENT_REFUSED =
   /Cannot modify 'log_comment' setting in readonly mode/
 
-/** True only for the readonly refusal that names `log_comment` itself. */
+/** ClickHouse `READONLY` error code; `ClickHouseError.code` carries it as a string. */
+const READONLY_CODE = '164'
+
+/**
+ * True only for the server's readonly refusal of `log_comment`: the error
+ * object carries code 164 and the message names `log_comment`. The message
+ * alone is not enough, because a query can raise any text it likes
+ * (`throwIf(1, 'Cannot modify ''log_comment''...')`).
+ */
 export function isLogCommentRefused(err: unknown): boolean {
-  return LOG_COMMENT_REFUSED.test(String((err as Error)?.message ?? err))
+  if (err === null || typeof err !== 'object') return false
+  const { code, message } = err as { code?: unknown; message?: unknown }
+  return (
+    String(code) === READONLY_CODE &&
+    typeof message === 'string' &&
+    LOG_COMMENT_REFUSED.test(message)
+  )
 }
 
 type RequestMethods = {
@@ -166,21 +211,21 @@ type RequestMethods = {
  * Mutates in place for the same reason as `withReadonlyEnforcement`: the pool
  * and `releaseClient()` key on this exact instance.
  *
- * When the server refuses `log_comment` (a `readonly = 1` profile), the request
- * is resent once with the SQL comment instead, and the client remembers it.
- * The retry keys on the error naming `log_comment`, so a refused write or a
- * refusal of any other setting is never retried.
+ * When the server refuses `log_comment` (a `readonly = 1` profile), the client
+ * switches to the SQL comment for every later request. A refused `query()` is
+ * resent once; a refused `command()` is not, because a command is not
+ * idempotent, so that one call fails and the next one uses the SQL comment.
  */
 export function withQueryAttribution<
   T extends ClickHouseClient | WebClickHouseClient,
->(client: T, host: string | null): T {
+>(client: T, host: string | null, options: AttributionOptions = {}): T {
   const target = client as unknown as RequestMethods
   let carriers: AttributionCarriers = 'configured'
   for (const method of ['query', 'command'] as const) {
     const original = target[method]
     if (typeof original !== 'function') continue
     const send = async (params: unknown, mode: AttributionCarriers) =>
-      original.call(client, await attributeParams(params, host, mode))
+      original.call(client, await attributeParams(params, host, mode, options))
     target[method] = async (params: unknown) => {
       if (carriers === 'sqlCommentOnly') return send(params, carriers)
       try {
@@ -188,6 +233,7 @@ export function withQueryAttribution<
       } catch (err) {
         if (!isLogCommentRefused(err)) throw err
         carriers = 'sqlCommentOnly'
+        if (method === 'command') throw err
         return send(params, carriers)
       }
     }

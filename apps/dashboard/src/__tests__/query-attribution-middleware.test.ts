@@ -1,7 +1,10 @@
 import { queryAttributionHandler } from '@/start'
 
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { withQueryAttribution } from '@chm/clickhouse-client/attribution'
+import {
+  isEnvHostDemo,
+  withQueryAttribution,
+} from '@chm/clickhouse-client/attribution'
 
 /**
  * #4164 acceptance: a page load by a trusted-auth user writes a record with
@@ -18,6 +21,8 @@ const ENV = {
 const saved: Record<string, string | undefined> = {}
 
 beforeEach(() => {
+  saved.CHM_CLOUD_MODE = process.env.CHM_CLOUD_MODE
+  delete process.env.CHM_CLOUD_MODE
   for (const [k, v] of Object.entries(ENV)) {
     saved[k] = process.env[k]
     process.env[k] = v
@@ -25,13 +30,13 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  for (const k of Object.keys(ENV)) {
+  for (const k of [...Object.keys(ENV), 'CHM_CLOUD_MODE']) {
     if (saved[k] === undefined) delete process.env[k]
     else process.env[k] = saved[k]
   }
 })
 
-async function recordFor(request: Request) {
+async function recordFor(request: Request, host = 'ch-0') {
   const sent: Array<{ clickhouse_settings?: { log_comment?: string } }> = []
   const client = withQueryAttribution(
     {
@@ -40,7 +45,8 @@ async function recordFor(request: Request) {
         return {}
       },
     } as never,
-    'ch-0'
+    host,
+    { anonymous: isEnvHostDemo }
   ) as unknown as { query: (p: { query: string }) => Promise<unknown> }
 
   await queryAttributionHandler({
@@ -100,5 +106,21 @@ describe('queryAttributionHandler', () => {
       })
     )
     expect(record).toMatchObject({ user: null, source: 'table:merges' })
+  })
+
+  test('cloud mode records no user for the env hosts, which are the public demo', async () => {
+    process.env.CHM_CLOUD_MODE = 'true'
+    const record = await recordFor(
+      new Request('https://dash.example/api/v1/explorer/query', {
+        headers: {
+          'X-Chm-Proxy-Secret': 'proxy-secret',
+          'X-Forwarded-User': 'jane',
+          'X-Forwarded-Email': 'jane@example.com',
+        },
+      }),
+      'duet-ubuntu'
+    )
+    expect(record).toMatchObject({ user: null, host: 'duet-ubuntu' })
+    expect(record.email ?? null).toBeNull()
   })
 })

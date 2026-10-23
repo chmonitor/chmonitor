@@ -19,6 +19,7 @@ import { env } from 'cloudflare:workers'
 import {
   runWithAttribution,
   setAttributionVersion,
+  setEnvHostsAreDemo,
 } from '@chm/clickhouse-client/attribution'
 import { setVersionCacheL2Provider } from '@chm/clickhouse-client/clickhouse-version'
 import { setTableExistenceL2Provider } from '@chm/clickhouse-client/table-existence-cache'
@@ -34,6 +35,7 @@ import {
 } from '@/lib/auth/api-guard'
 import { getAuthProvider, isClerkAuthProvider } from '@/lib/auth/provider'
 import { resolveServerAuthProvider } from '@/lib/auth/providers'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { resolveServerSentryOptions } from '@/lib/observability/sentry.server'
 import { forceFlushOtel, getOtelTracer } from '@/lib/otel/exporter'
 import { withSpan } from '@/lib/otel/with-span'
@@ -99,6 +101,9 @@ export function queryAttributionHandler<T>({
   next: () => T
   request: Request
 }): T {
+  // In cloud mode the env hosts are the public demo (`source: 'demo'`), whose
+  // query_log any visitor can read, so their records carry no user.
+  setEnvHostsAreDemo(isCloudModeServer)
   const scope = requestAttributionScope(request, async () => {
     const provider = getAuthProvider()
     if (provider === 'none') return null
