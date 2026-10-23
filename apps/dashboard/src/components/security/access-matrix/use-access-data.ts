@@ -1,4 +1,9 @@
 import type {
+  ClusterMemberRow,
+  ReplicaGrantRow,
+  ReplicaRoleGrantRow,
+} from '@/lib/security/access-drift'
+import type {
   GrantRow,
   ProfileElementRow,
   RoleGrantRow,
@@ -41,15 +46,25 @@ export interface Section<T> {
   refresh: () => Promise<void>
 }
 
-function useSection<T>(name: string, hostId: number): Section<T> {
+function useSection<T>(
+  name: string,
+  hostId: number,
+  params?: Record<string, string>,
+  enabled = true
+): Section<T> {
   const { data, metadata, error, isPending, refresh } = useTableData<T>(
     name,
-    hostId
+    hostId,
+    params,
+    undefined,
+    undefined,
+    undefined,
+    enabled
   )
   return {
     data,
     error,
-    isLoading: isPending && !error,
+    isLoading: enabled && isPending && !error,
     truncated:
       (metadata as { resultRowsTruncated?: boolean } | undefined)
         ?.resultRowsTruncated === true,
@@ -82,10 +97,43 @@ export function useAccessData() {
     quotas: useSection<QuotaRow>('access-quotas', hostId),
     quotaLimits: useSection<QuotaLimitRow>('access-quota-limits', hostId),
     quotasUsage: useSection<QuotaUsageRow>('access-quotas-usage', hostId),
+    clusters: useSection<ClusterMemberRow>('access-clusters', hostId),
   }
 }
 
 export type AccessData = ReturnType<typeof useAccessData>
+
+/**
+ * Grants of every replica of `cluster`. Nothing is fetched until a cluster
+ * is given, so the page stays on one node unless the reader opts in.
+ */
+export function useReplicaData(cluster: string | null) {
+  const hostId = useHostId()
+  const params = { cluster: cluster ?? '' }
+  const enabled = cluster !== null
+  return {
+    grants: useSection<ReplicaGrantRow>(
+      'access-replica-grants',
+      hostId,
+      params,
+      enabled
+    ),
+    roleGrants: useSection<ReplicaRoleGrantRow>(
+      'access-replica-role-grants',
+      hostId,
+      params,
+      enabled
+    ),
+    replicas: useSection<{ replica: string; grants: number }>(
+      'access-replicas',
+      hostId,
+      params,
+      enabled
+    ),
+  }
+}
+
+export type ReplicaData = ReturnType<typeof useReplicaData>
 
 /** Table names of one database, for an expanded matrix column. */
 export function useDatabaseTables(database: string | null) {
