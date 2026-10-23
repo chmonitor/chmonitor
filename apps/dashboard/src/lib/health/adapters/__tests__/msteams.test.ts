@@ -87,10 +87,40 @@ describe('msteams adapter', () => {
   })
 
   test('FactSet carries host, metric, value, thresholds', () => {
-    expect(factValue(CRITICAL, 'Host')).toBe('prod\\-1 (id 2)')
-    expect(factValue(CRITICAL, 'Metric')).toBe('failed\\-mutations')
+    expect(factValue(CRITICAL, 'Host')).toBe('prod-1 (id 2)')
+    expect(factValue(CRITICAL, 'Metric')).toBe('failed-mutations')
     expect(factValue(CRITICAL, 'Value')).toBe('7')
     expect(factValue(CRITICAL, 'Thresholds')).toBe('warn 1 | crit 5')
+  })
+
+  test('plain hostnames and metric names appear verbatim', () => {
+    for (const [hostLabel, metric] of [
+      ['prod-1', 'disk-usage'],
+      ['verify-host-1', 'disk_usage'],
+    ]) {
+      const text = JSON.stringify(card({ ...CRITICAL, hostLabel, metric }))
+      expect(text).toContain(hostLabel)
+      expect(text).toContain(metric)
+    }
+  })
+
+  test('markup is broken with zero-width spaces, not backslashes', () => {
+    const text = JSON.stringify(
+      card({
+        ...CRITICAL,
+        hostLabel: '*bold* [x](http://e) _it_',
+        metric: '- item\n1. item',
+      })
+    )
+    expect(text).not.toContain('\\\\')
+    expect(text).not.toContain('*bold*')
+    expect(text).not.toContain('](')
+    expect(text).not.toContain('_it_')
+    const metric = factValue(
+      { ...CRITICAL, metric: '- item\n1. item' },
+      'Metric'
+    )
+    expect(metric?.split('\n').every((l) => l.startsWith('\u200B'))).toBe(true)
   })
 
   test('null value renders n/a in the FactSet', () => {

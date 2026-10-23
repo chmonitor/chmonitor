@@ -24,11 +24,11 @@ exports[`msteams adapter snapshot 1`] = `
             "facts": [
               {
                 "title": "Host",
-                "value": "prod\\-1 (id 2)",
+                "value": "prod-1 (id 2)",
               },
               {
                 "title": "Metric",
-                "value": "failed\\-mutations",
+                "value": "failed-mutations",
               },
               {
                 "title": "Value",
