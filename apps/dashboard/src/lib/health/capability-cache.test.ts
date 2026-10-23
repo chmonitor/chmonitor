@@ -96,7 +96,7 @@ describe('the probe statement', () => {
     expect(sql).toContain("database IN ('system', {appDatabase: String})")
     // One statement, not two: the two halves are UNION ALL-ed.
     expect(sql).toContain('UNION ALL')
-    expect(sql.match(/UNION ALL/g)).toHaveLength(1)
+    expect(sql.match(/UNION ALL/g)).toHaveLength(2)
   })
 
   test('scopes the catalog scan to local database engines (#3686)', () => {
@@ -266,5 +266,23 @@ describe('a stale snapshot is replaced, not merged', () => {
     const caps = await getHostCapabilities(0)
     expect(hasTable(caps, 'system.view_refreshes')).toBe(true)
     expect(fetchCalls).toHaveLength(2)
+  })
+})
+
+describe('replicationUsed (#4044)', () => {
+  test('is false when the probe returns no replication row', async () => {
+    expect((await getHostCapabilities(0)).replicationUsed).toBe(false)
+  })
+
+  test('is true when the probe reports a replicated table', async () => {
+    probeRows = [...healthyRows(), { kind: 'replication', name: 'used' }]
+    const caps = await getHostCapabilities(0)
+    expect(caps.replicationUsed).toBe(true)
+    expect(caps.tables.has('used')).toBe(false)
+  })
+
+  test('is true (unknown) when the probe fails', async () => {
+    probeError = { type: 'x', message: 'down' }
+    expect((await getHostCapabilities(0)).replicationUsed).toBe(true)
   })
 })
