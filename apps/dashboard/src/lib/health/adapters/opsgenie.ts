@@ -14,7 +14,7 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
-import { incidentLine } from './digest'
+import { firedForLine, incidentLine } from './digest'
 import { valueText } from './facts'
 import { instancePrefix } from './identity'
 
@@ -47,6 +47,23 @@ export interface OpsgenieCreateBody {
   description?: string
 }
 
+/** Opsgenie rejects a create-alert `message` longer than this (Alert API docs: "130 characters maximum"). */
+export const OPSGENIE_MESSAGE_MAX = 130
+
+function truncateMessage(message: string): string {
+  const chars = Array.from(message)
+  return chars.length <= OPSGENIE_MESSAGE_MAX
+    ? message
+    : `${chars.slice(0, OPSGENIE_MESSAGE_MAX - 1).join('')}…`
+}
+
+/** Close-alert note: the resolved message plus how long the incident fired. */
+export function opsgenieCloseNote(payload: AlertPayload): string {
+  const firedFor = firedForLine(payload)
+  const note = `${instancePrefix(payload)}[RESOLVED] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
+  return firedFor ? `${note}, ${firedFor}` : note
+}
+
 /** Stable alias so repeat firings collapse to one Opsgenie alert. */
 export function opsgenieAlias(payload: AlertPayload): string {
   return `chmonitor:${payload.hostId}:${payload.metric}`
@@ -58,12 +75,14 @@ export function opsgenieAlias(payload: AlertPayload): string {
  * Used as-is for `warning`/`critical` (trigger) severities. For `recovery`,
  * the dispatch layer reads `payload.severity` to route to the close-alias
  * endpoint (`POST /v2/alerts/{alias}/close?identifierType=alias`) instead of
- * creating a new alert; only this body's `.message` is reused there.
+ * creating a new alert, with {@link opsgenieCloseNote} as the note.
  */
 export function buildOpsgenieBody(payload: AlertPayload): OpsgenieCreateBody {
   const incident = incidentLine(payload)
   const body: OpsgenieCreateBody = {
-    message: `${instancePrefix(payload)}${payload.severity === 'recovery' ? '[RESOLVED] ' : ''}${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
+    message: truncateMessage(
+      `${instancePrefix(payload)}${payload.severity === 'recovery' ? '[RESOLVED] ' : ''}${payload.title} — ${payload.label} (host ${payload.hostLabel})`
+    ),
     alias: opsgenieAlias(payload),
     priority: SEVERITY_MAP[payload.severity],
     source: 'chmonitor',

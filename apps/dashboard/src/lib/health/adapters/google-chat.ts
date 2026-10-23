@@ -72,6 +72,11 @@ export interface GoogleChatWebhookBody {
   cardsV2: GoogleChatCardsV2Entry[]
 }
 
+/** The fallback `text` is parsed by Google Chat (`<users/all>` pings everyone), so angle brackets are swapped for look-alikes. */
+function plainChatText(raw: string): string {
+  return raw.replace(/</g, '\u2039').replace(/>/g, '\u203a')
+}
+
 function heading(severity: AlertSeverity): string {
   return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
 }
@@ -83,16 +88,23 @@ export function buildGoogleChatBody(
   payload: AlertPayload
 ): GoogleChatWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
-  const text = `${instancePrefix(payload)}[${heading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
+  const text = plainChatText(
+    `${instancePrefix(payload)}[${heading(payload.severity)}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
+  )
 
   const widgets: GoogleChatWidget[] = [
     {
       decoratedText: {
         topLabel: 'Host',
-        text: `${payload.hostLabel} (id ${payload.hostId})`,
+        text: `${escapeMatrixHtml(payload.hostLabel)} (id ${payload.hostId})`,
       },
     },
-    { decoratedText: { topLabel: 'Metric', text: payload.metric } },
+    {
+      decoratedText: {
+        topLabel: 'Metric',
+        text: escapeMatrixHtml(payload.metric),
+      },
+    },
     {
       decoratedText: {
         topLabel: 'Value',
@@ -115,7 +127,10 @@ export function buildGoogleChatBody(
     widgets.push({
       textParagraph: {
         text: `<b>Runbooks:</b><br>${payload.runbookUrls
-          .map((u) => `• <a href="${u}">${u}</a>`)
+          .map(
+            (u) =>
+              `• <a href="${escapeMatrixHtml(u)}">${escapeMatrixHtml(u)}</a>`
+          )
           .join('<br>')}`,
       },
     })

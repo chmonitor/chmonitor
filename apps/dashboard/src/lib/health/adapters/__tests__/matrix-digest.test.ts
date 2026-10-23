@@ -95,7 +95,7 @@ describe('buildHookshotDigestBody', () => {
       body.html.indexOf('<b>Replica lag</b>')
     )
     expect(disk).toContain('c · disk-usage = 95')
-    expect(disk).toContain('RECOVERY')
+    expect(disk).toContain('RESOLVED')
     expect(body.text).toContain('Disk usage\n- ')
   })
 

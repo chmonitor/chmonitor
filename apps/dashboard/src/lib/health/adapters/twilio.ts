@@ -43,9 +43,9 @@ export function truncateSmsBody(
   return text.slice(0, maxLength - TRUNCATION_MARKER.length) + TRUNCATION_MARKER
 }
 
-/** `RECOVERY` for a resolved incident, otherwise the uppercased severity. */
+/** `RESOLVED` for a resolved incident, otherwise the uppercased severity. */
 function heading(severity: AlertPayload['severity']): string {
-  return severity === 'recovery' ? 'RECOVERY' : severity.toUpperCase()
+  return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
 }
 
 /**

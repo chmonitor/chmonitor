@@ -27,7 +27,7 @@ const WARNING: AlertPayload = {
   value: 85,
   label: '85%',
 }
-const RECOVERY: AlertPayload = {
+const RESOLVED: AlertPayload = {
   ...CRITICAL,
   severity: 'recovery',
   value: 40,
@@ -47,9 +47,9 @@ describe('buildTwilioMessage', () => {
     )
   })
 
-  test('renders RECOVERY heading for a resolved incident', () => {
-    expect(buildTwilioMessage(RECOVERY)).toBe(
-      '[RECOVERY] disk-usage on prod-1: recovered (value 40)'
+  test('renders RESOLVED heading for a resolved incident', () => {
+    expect(buildTwilioMessage(RESOLVED)).toBe(
+      '[RESOLVED] disk-usage on prod-1: recovered (value 40)'
     )
   })
 

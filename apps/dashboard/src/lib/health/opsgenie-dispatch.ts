@@ -22,7 +22,11 @@ import type { ResolveHostAddresses } from '@/lib/browser-connections/host-url'
 import type { AlertPayload } from './adapters/types'
 import type { OpsgenieRegion } from './server-alert-config'
 
-import { buildOpsgenieBody, opsgenieAlias } from './adapters/opsgenie'
+import {
+  buildOpsgenieBody,
+  opsgenieAlias,
+  opsgenieCloseNote,
+} from './adapters/opsgenie'
 import { error } from '@chm/logger'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
 
@@ -70,7 +74,7 @@ export async function dispatchOpsgenie(
     }
 
     const body = isClose
-      ? { source: 'chmonitor', note: buildOpsgenieBody(payload).message }
+      ? { source: 'chmonitor', note: opsgenieCloseNote(payload) }
       : buildOpsgenieBody(payload)
 
     const doFetch = deps.fetchImpl ?? fetch

@@ -22,7 +22,7 @@ const CRITICAL: AlertPayload = {
 }
 
 const WARNING: AlertPayload = { ...CRITICAL, severity: 'warning', value: 3 }
-const RECOVERY: AlertPayload = {
+const RESOLVED: AlertPayload = {
   ...CRITICAL,
   severity: 'recovery',
   value: 0,
@@ -44,11 +44,11 @@ describe('buildNtfyMessage — severity → priority/tags', () => {
     expect(msg.title).toBe('[WARNING] Failed mutations')
   })
 
-  test('recovery maps to priority 3 + check-mark tag and RECOVERY heading', () => {
-    const msg = buildNtfyMessage(RECOVERY)
+  test('recovery maps to priority 3 + check-mark tag and RESOLVED heading', () => {
+    const msg = buildNtfyMessage(RESOLVED)
     expect(msg.priority).toBe('3')
     expect(msg.tags).toBe('white_check_mark')
-    expect(msg.title).toBe('[RECOVERY] Failed mutations')
+    expect(msg.title).toBe('[RESOLVED] Failed mutations')
   })
 })
 

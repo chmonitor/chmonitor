@@ -47,7 +47,7 @@ export interface GenericJsonBody {
 export function buildGenericJsonBody(payload: AlertPayload): GenericJsonBody {
   const heading =
     payload.severity === 'recovery'
-      ? 'RECOVERY'
+      ? 'RESOLVED'
       : payload.severity.toUpperCase()
 
   const incident = incidentLine(payload)
