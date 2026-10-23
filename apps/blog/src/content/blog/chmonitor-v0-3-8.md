@@ -108,8 +108,19 @@ repeat-reminder back-off is off until you turn it on.
 docker pull ghcr.io/chmonitor/chmonitor:0.3.8
 ```
 
+On Kubernetes, Helm chart 0.2.18 ships with this release. It carries the
+alert changes above: the deployment name and dashboard link in alerts, the
+Matrix hookshot format, grouped hookshot and Matrix alerts per sweep, and
+once-until-resolved custom targets.
+
+```bash
+helm repo update
+helm upgrade my-chm chmonitor/chmonitor --version 0.2.18
+```
+
 ## Read more
 
 - [chmonitor v0.3.7](/v0.3.7/) — an agent that reads your page
+- [Deploy chmonitor on Kubernetes with Helm](/self-hosting-chmonitor-helm/)
 - [AI agent docs](https://docs.chmonitor.dev/guide/ai-agent)
 - [GitHub release v0.3.8](https://github.com/chmonitor/chmonitor/releases/tag/v0.3.8)
