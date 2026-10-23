@@ -107,6 +107,12 @@ describe('users list cost and gating', () => {
     }
   })
 
+  test('variants reading a log table are optional so a host without it answers empty, not 404', () => {
+    expect(usersConfig.optional).toBe(true)
+    expect(usersWithLoginConfig.optional).toBe(true)
+    expect(usersBasicConfig.optional).toBe(false)
+  })
+
   test('counts 24h and 7d in one pass without distinct counts', () => {
     const sql = versions(usersConfig.sql)[1].sql
     expect(sql.match(/merge\('system', '\^query_log'\)/g)).toHaveLength(1)

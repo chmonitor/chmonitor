@@ -209,6 +209,8 @@ function buildUsersConfig(name: string, variant: UsersVariant): QueryConfig {
     ]
       .filter(Boolean)
       .join(' '),
+    // The page only picks a variant whose tables exist; a direct API call on a host without them gets an empty result, not a 404.
+    optional: tableCheck.length > 1,
     tableCheck: tableCheck.length === 1 ? tableCheck[0] : tableCheck,
     sql,
     columns,
