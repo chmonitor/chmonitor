@@ -30,6 +30,7 @@ export const ROUTE_TITLE_MAP: Record<string, string> = {
   '/usage': 'Usage by User',
   '/usage/user': 'User Usage',
   '/dashboard-usage': 'Dashboard Usage',
+  '/dashboard-usage/user': 'Dashboard User',
   '/queries/thread-analysis': 'Query Thread Analysis',
   '/tables': 'Tables',
   '/tables-overview': 'Tables Overview',

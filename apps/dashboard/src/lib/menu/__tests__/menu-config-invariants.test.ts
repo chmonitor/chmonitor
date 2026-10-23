@@ -159,6 +159,8 @@ describe('menu.ts hrefs resolve to a real route file', () => {
     '/peerdb/mirror': 'detail page opened from the PeerDB Mirrors list',
     '/peerdb/peer': 'detail page opened from the PeerDB Peers list',
     '/usage/user': 'detail page opened from the Usage by User list',
+    '/dashboard-usage/user':
+      'detail page opened from the Dashboard Usage By User table',
     '/zookeeper': 'no menu entry yet; the Keeper group covers it (follow-up)',
     '/hub/queries': 'reached via the group hubHref',
     '/hub/data-storage': 'reached via the group hubHref',

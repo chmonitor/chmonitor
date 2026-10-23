@@ -1,6 +1,11 @@
 import type { QueryConfig } from '@/types/query-config'
 
-import { USAGE_DATE_BOUND, USAGE_DAYS_PRESETS, USAGE_END_EVENTS } from './usage'
+import {
+  USAGE_DATE_BOUND,
+  USAGE_DAYS_PRESETS,
+  USAGE_END_EVENTS,
+  USAGE_MAX_DAYS,
+} from './usage'
 import { QUERY_LOG } from '@/lib/table-notes'
 import { ColumnFormat } from '@/types/column-format'
 
@@ -27,16 +32,41 @@ const LEADING_COMMENT_JSON = `extract(query, '^[[:space:]]*/[*] *([{][^*]*[}]) *
 /** The attribution record JSON of a query_log row, or '' when it has none. */
 export const ATTRIBUTION_JSON = `if(${LOG_COMMENT_RECORD}, log_comment, ${LEADING_COMMENT_JSON})`
 
-function attr(key: string): string {
+/** One field of the attribution record, '' when absent. */
+export function dashboardUsageAttr(key: string): string {
   return `JSONExtractString(${ATTRIBUTION_JSON}, '${key}')`
 }
+const attr = dashboardUsageAttr
+
+/** Longest window any dashboard usage table or chart scans. */
+export const DASHBOARD_USAGE_MAX_DAYS = USAGE_MAX_DAYS
 
 const DASHBOARD_FILTER = `${attr('app')} = 'chmonitor'`
+
+/**
+ * Optional filter to one dashboard user, a bound param; '' means everyone.
+ * It is the record's `user`, not query_log.user (the ClickHouse account).
+ */
+const USER_FILTER = `({dashboard_user:String} = '' OR ${attr('user')} = {dashboard_user:String})`
 
 const WHERE = `
       WHERE (${USAGE_END_EVENTS})
         AND (${USAGE_DATE_BOUND})
-        AND ${DASHBOARD_FILTER}`
+        AND ${DASHBOARD_FILTER}
+        AND ${USER_FILTER}`
+
+/**
+ * WHERE for the dashboard usage charts, bounded in hours: `event_date` for
+ * partition pruning, `event_time` for the exact window, both capped in SQL.
+ */
+export const dashboardUsageWhere = `WHERE (${USAGE_END_EVENTS})
+      AND event_date >= toDate(now() - toIntervalHour(least({hours:UInt32}, ${USAGE_MAX_DAYS * 24})))
+      AND event_time >= now() - toIntervalHour(least({hours:UInt32}, ${USAGE_MAX_DAYS * 24}))
+      AND ${DASHBOARD_FILTER}
+      AND ${USER_FILTER}`
+
+/** Params every dashboard usage config binds; `dashboard_user` '' is everyone. */
+const DEFAULT_PARAMS = { days: '7', dashboard_user: '' }
 
 const METRICS = `
           count() AS queries,
@@ -96,7 +126,12 @@ function breakdownConfig({
     tableCheck: 'system.query_log',
     sql: `
       SELECT
-          if(${attr(key)} = '', '${empty}', ${attr(key)}) AS ${alias},${METRICS},
+          if(${attr(key)} = '', '${empty}', ${attr(key)}) AS ${alias},${
+            key === 'user'
+              ? `
+          encodeURLComponent(any(${attr('user')})) AS user_param,`
+              : ''
+          }${METRICS},
           round(queries * 100.0 / nullIf(max(queries) OVER (), 0), 2) AS pct_queries,
           round(bytes_read * 100.0 / nullIf(max(bytes_read) OVER (), 0), 2) AS pct_bytes_read
       FROM merge('system', '^query_log')${WHERE}
@@ -104,8 +139,19 @@ function breakdownConfig({
       ORDER BY queries DESC
       LIMIT 100`,
     columns: [alias, ...METRIC_COLUMNS],
-    columnFormats: METRIC_FORMATS,
-    defaultParams: { days: '7' },
+    columnFormats:
+      key === 'user'
+        ? {
+            ...METRIC_FORMATS,
+            dashboard_user: [
+              ColumnFormat.Link,
+              {
+                href: '/dashboard-usage/user?user=[user_param]&days=[ctx.days]&host=[ctx.hostId]',
+              },
+            ],
+          }
+        : METRIC_FORMATS,
+    defaultParams: DEFAULT_PARAMS,
     filterParamPresets: USAGE_DAYS_PRESETS,
   }
 }
@@ -137,7 +183,7 @@ export const dashboardUsageDailyConfig: QueryConfig = {
     errors: ColumnFormat.Number,
     last_seen: ColumnFormat.RelatedTime,
   },
-  defaultParams: { days: '7' },
+  defaultParams: DEFAULT_PARAMS,
   filterParamPresets: USAGE_DAYS_PRESETS,
 }
 
@@ -187,12 +233,139 @@ export const dashboardUsageExpensiveConfig: QueryConfig = {
     query_duration_ms: ColumnFormat.Number,
     sample: ColumnFormat.Code,
   },
-  defaultParams: { days: '7' },
+  defaultParams: DEFAULT_PARAMS,
   filterParamPresets: USAGE_DAYS_PRESETS,
 }
 
+/**
+ * One-row totals for the KPI tiles. `email` is filled only for a single
+ * dashboard user and only when a record carried it: the encoder writes it to
+ * `log_comment` alone, and only when the operator opted in.
+ */
+export const dashboardUsageSummaryConfig: QueryConfig = {
+  name: 'dashboard-usage-summary',
+  permission: { feature: 'operations' },
+  defaultView: 'table',
+  description:
+    'Totals of the queries this dashboard sent: queries, distinct signed-in users, error rate, p95 duration, bytes read (default 7 days, at most 30). THIS REPLICA ONLY.',
+  docs: QUERY_LOG,
+  tableCheck: 'system.query_log',
+  sql: `
+      SELECT
+          count() AS queries,
+          uniqExactIf(${attr('user')}, ${attr('user')} != '') AS users,
+          countIf(type != 'QueryFinish') AS errors,
+          round(errors * 100.0 / nullIf(queries, 0), 2) AS error_pct,
+          round(quantile(0.95)(query_duration_ms)) AS p95_ms,
+          formatReadableSize(sum(read_bytes)) AS readable_bytes_read,
+          if({dashboard_user:String} = '', '',
+             anyIf(JSONExtractString(log_comment, 'email'), JSONExtractString(log_comment, 'email') != '')) AS email,
+          least({days:UInt16}, ${USAGE_MAX_DAYS}) AS window_days
+      FROM merge('system', '^query_log')${WHERE}`,
+  columns: [
+    'queries',
+    'users',
+    'errors',
+    'error_pct',
+    'p95_ms',
+    'readable_bytes_read',
+    'email',
+    'window_days',
+  ],
+  defaultParams: DEFAULT_PARAMS,
+}
+
+/** One dashboard user's latest queries, normalized (literals become `?`). */
+export const dashboardUsageRecentConfig: QueryConfig = {
+  name: 'dashboard-usage-recent',
+  permission: { feature: 'operations' },
+  defaultView: 'table',
+  card: { primary: 'sample' },
+  description:
+    'Latest queries this dashboard sent for the user, normalized so literal values are hidden (100 rows, default 7 days, at most 30). THIS REPLICA ONLY.',
+  docs: QUERY_LOG,
+  tableCheck: 'system.query_log',
+  sql: `
+      SELECT
+          query_id,
+          encodeURLComponent(query_id) AS query_id_param,
+          event_time,
+          ${attr('source')} AS source,
+          ${attr('page')} AS page,
+          query_duration_ms,
+          formatReadableSize(read_bytes) AS readable_read_bytes,
+          if(type = 'QueryFinish', '', errorCodeToName(exception_code)) AS error,
+          substring(normalizeQuery(query), 1, 300) AS sample
+      FROM merge('system', '^query_log')${WHERE}
+      ORDER BY event_time DESC
+      LIMIT 100`,
+  columns: [
+    'event_time',
+    'source',
+    'page',
+    'query_duration_ms',
+    'readable_read_bytes',
+    'error',
+    'sample',
+    'query_id',
+  ],
+  columnFormats: {
+    query_id: [
+      ColumnFormat.Link,
+      { href: '/query?query_id=[query_id_param]&host=[ctx.hostId]' },
+    ],
+    event_time: ColumnFormat.RelatedTime,
+    query_duration_ms: ColumnFormat.Number,
+    sample: ColumnFormat.Code,
+  },
+  defaultParams: DEFAULT_PARAMS,
+  filterParamPresets: USAGE_DAYS_PRESETS,
+}
+
+/** Failed dashboard queries grouped by error and query shape. */
+export const dashboardUsageErrorsConfig: QueryConfig = {
+  name: 'dashboard-usage-errors',
+  permission: { feature: 'operations' },
+  defaultView: 'table',
+  card: { primary: 'error' },
+  description:
+    'Failed queries this dashboard sent, by error and normalized query shape (top 50, default 7 days, at most 30). THIS REPLICA ONLY.',
+  docs: QUERY_LOG,
+  tableCheck: 'system.query_log',
+  sql: `
+      SELECT
+          errorCodeToName(exception_code) AS error,
+          any(${attr('source')}) AS source,
+          count() AS failures,
+          max(event_time) AS last_seen,
+          substring(any(normalizeQuery(query)), 1, 300) AS sample,
+          substring(any(exception), 1, 300) AS message
+      FROM merge('system', '^query_log')${WHERE}
+        AND type != 'QueryFinish'
+      GROUP BY error, normalized_query_hash
+      ORDER BY failures DESC, last_seen DESC
+      LIMIT 50`,
+  columns: ['error', 'source', 'failures', 'last_seen', 'message', 'sample'],
+  columnFormats: {
+    failures: ColumnFormat.Number,
+    last_seen: ColumnFormat.RelatedTime,
+    sample: ColumnFormat.Code,
+  },
+  defaultParams: DEFAULT_PARAMS,
+  filterParamPresets: USAGE_DAYS_PRESETS,
+}
+
+/** The tables on the global Dashboard Usage page, in page order. */
 export const dashboardUsageConfigs: QueryConfig[] = [
   dashboardUsageDailyConfig,
   ...dashboardUsageBreakdownConfigs,
   dashboardUsageExpensiveConfig,
+]
+
+/** Every dashboard usage config, for the central registry. */
+export const allDashboardUsageConfigs: QueryConfig[] = [
+  dashboardUsageSummaryConfig,
+  ...dashboardUsageConfigs,
+  dashboardUsageRecentConfig,
+  dashboardUsageErrorsConfig,
 ]

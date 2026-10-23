@@ -157,7 +157,12 @@ two places: the `log_comment` setting (compact JSON, in
 `system.query_log.log_comment`) and one leading SQL comment, which shows in
 `system.processes.query`, `system.query_log.query`, and server logs. The
 **Dashboard Usage** page (`/dashboard-usage`) reads `log_comment` first and
-falls back to the leading comment.
+falls back to the leading comment. It shows totals, queries and errors over
+time, p95 duration, and the top users, sources, pages, versions and labels.
+Click a user for their detail page (`/dashboard-usage/user?user=<name>`):
+the same charts for that user, their recent queries (normalized, so literal
+values are hidden) and their errors. The email shows there only when
+`CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL` put it in the record.
 
 | Variable | Default | Purpose |
 |---|---|---|

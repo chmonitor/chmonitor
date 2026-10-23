@@ -54,6 +54,15 @@ export const CHART_FRESHNESS = {
     refreshInterval: REFRESH_INTERVAL.VERY_SLOW_5M,
     cachePolicy: 'historical',
   },
+  // Dashboard Usage tables never poll; its charts match them.
+  'dashboard-usage-over-time': {
+    refreshInterval: REFRESH_INTERVAL.NEVER,
+    cachePolicy: 'historical',
+  },
+  'dashboard-usage-top': {
+    refreshInterval: REFRESH_INTERVAL.NEVER,
+    cachePolicy: 'historical',
+  },
   'query-hour-heatmap': {
     refreshInterval: REFRESH_INTERVAL.VERY_SLOW_5M,
     cachePolicy: 'historical',

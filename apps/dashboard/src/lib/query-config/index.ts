@@ -71,7 +71,7 @@ import {
 } from './more/users'
 import { zookeeperConfig } from './more/zookeeper'
 import { commonErrorsConfig } from './queries/common-errors'
-import { dashboardUsageConfigs } from './queries/dashboard-usage'
+import { allDashboardUsageConfigs } from './queries/dashboard-usage'
 import { expensiveQueriesConfig } from './queries/expensive-queries'
 import { expensiveQueriesByMemoryConfig } from './queries/expensive-queries-by-memory'
 import { failedQueriesConfig } from './queries/failed-queries'
@@ -294,7 +294,7 @@ export const queries: Array<QueryConfig> = [
   usageByUserConfig,
   usageInactiveUsersConfig,
   ...userUsageConfigs,
-  ...dashboardUsageConfigs,
+  ...allDashboardUsageConfigs,
   userUsageSummaryConfig,
   userUsageProfileConfig,
 

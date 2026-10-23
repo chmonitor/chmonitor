@@ -4,6 +4,7 @@ import type { ClickHouseInterval } from './query-executor'
 
 import { connectionCharts } from './charts/connection-charts'
 import { dashboardCharts } from './charts/dashboard-charts'
+import { dashboardUsageCharts } from './charts/dashboard-usage-charts'
 import { dictionaryCharts } from './charts/dictionary-charts'
 import { insightCharts } from './charts/insight-charts'
 import { logsCharts } from './charts/logs-charts'
@@ -168,4 +169,5 @@ registerChartQueries({
   ...insightCharts,
   ...queryInsightsCharts,
   ...trafficCharts,
+  ...dashboardUsageCharts,
 })

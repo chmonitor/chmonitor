@@ -84,6 +84,7 @@ function AreaChartBody({
   href,
   rangeOverride,
   setRangeOverride,
+  params: _params,
   ...props
 }: AreaChartBodyProps) {
   const userTimezone = useTimezone()
@@ -258,6 +259,7 @@ export function createAreaChart(
       interval: effectiveInterval,
       lastHours: effectiveLastHours,
       refreshInterval: config.refreshInterval,
+      params: props.params,
     })
 
     return (

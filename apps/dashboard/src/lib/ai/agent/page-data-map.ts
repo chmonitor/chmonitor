@@ -239,11 +239,18 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     'usage-inactive-users',
   ]),
   '/dashboard-usage': p('Dashboard Usage', QUERIES, [
+    'dashboard-usage-summary',
     'dashboard-usage-daily',
     'dashboard-usage-by-user',
     'dashboard-usage-by-source',
     'dashboard-usage-by-version',
     'dashboard-usage-by-label',
+    'dashboard-usage-expensive',
+  ]),
+  '/dashboard-usage/user': p('Dashboard User', QUERIES, [
+    'dashboard-usage-summary',
+    'dashboard-usage-recent',
+    'dashboard-usage-errors',
     'dashboard-usage-expensive',
   ]),
   '/usage/user': p('User Usage', QUERIES, [
