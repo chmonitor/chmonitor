@@ -80,7 +80,7 @@ export const dashboardUsageCharts: Record<string, ChartQueryBuilder> = {
 
   // Top 10 values of one attribution field by query count.
   'dashboard-usage-top': (args) => {
-    const dimension = args.params?.dimension
+    const dimension = args.params?.dimension ?? 'user'
     if (!isDimension(dimension)) {
       throw new Error(
         `dashboard-usage-top: dimension must be one of ${Object.keys(DASHBOARD_USAGE_DIMENSIONS).join(', ')}`

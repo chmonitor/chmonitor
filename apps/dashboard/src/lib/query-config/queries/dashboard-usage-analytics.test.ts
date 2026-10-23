@@ -78,7 +78,13 @@ describe('dashboard usage charts', () => {
 
   test('the top chart refuses a field outside the record', () => {
     expect(() => chart('dashboard-usage-top', { dimension: 'query' })).toThrow()
-    expect(() => chart('dashboard-usage-top', {})).toThrow()
+  })
+
+  test('the top chart answers default params, so the live chart sweep can run it', () => {
+    const built = chart('dashboard-usage-top', {})
+    expect(built.query).toBe(
+      chart('dashboard-usage-top', { dimension: 'user' }).query
+    )
   })
 })
 
