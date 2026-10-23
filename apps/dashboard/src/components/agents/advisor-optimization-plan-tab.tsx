@@ -250,7 +250,8 @@ export function AdvisorOptimizationPlanTab() {
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           Ranks the findings the usage, detached-parts, merge-cost and schema
-          advisors already stored. Nothing is scanned or applied.
+          advisors already stored. No system table is scanned and nothing is
+          applied.
         </p>
         <Button
           onClick={() => (requested ? refetch() : setRequested(true))}

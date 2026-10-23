@@ -64,4 +64,22 @@ describe('advisor page source', () => {
     expect(src).not.toMatch(/\bApply DDL\b/i)
     expect(src).not.toMatch(/\bexecuteDdl\b/)
   })
+
+  test('Optimization plan tab is recommend-only: no apply or run control, GET only', () => {
+    const src = readFileSync(
+      fileURLToPath(
+        new URL(
+          '../../../../components/agents/advisor-optimization-plan-tab.tsx',
+          import.meta.url
+        )
+      ),
+      'utf-8'
+    )
+    expect(src).toContain('NOT_APPLIED_BANNER')
+    expect(src).toContain('RecommendDdlBlocks')
+    expect(src).not.toMatch(/>\s*(Apply|Run)\b/i)
+    expect(src).not.toMatch(/method:\s*['"](POST|PUT|PATCH|DELETE)/i)
+    expect(src.match(/apiFetch\(/g)?.length).toBe(1)
+    expect(src).toContain('/api/v1/advisor/optimization-plan?host=')
+  })
 })

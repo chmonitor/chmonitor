@@ -2,7 +2,8 @@
  * GET /api/v1/advisor/optimization-plan?host=0[&rewriteMBps=50]
  *
  * Recommend-only optimization plan (#4071) built from the findings the
- * advisors already stored. Reads the insights store only; nothing is applied.
+ * advisors already stored. Reads the insights store only (one SELECT on the
+ * findings table); nothing is applied.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
@@ -32,9 +33,13 @@ export const Route = createFileRoute('/api/v1/advisor/optimization-plan')({
         try {
           const searchParams = new URL(request.url).searchParams
           const hostId = parseHostIdParam(searchParams.get('host') ?? '0')
-          if (!Number.isInteger(hostId)) {
+          // Same contract as GET /api/v1/insights: findings are stored per
+          // env host, and the store is keyed by host id alone.
+          if (!Number.isInteger(hostId) || hostId < 0) {
             return Response.json(
-              { error: 'Invalid host parameter: must be an integer' },
+              {
+                error: 'Invalid host parameter: must be a non-negative integer',
+              },
               { status: 400, headers }
             )
           }
