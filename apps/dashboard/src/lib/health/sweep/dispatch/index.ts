@@ -86,7 +86,7 @@ import {
 } from './channels/custom-targets'
 import { dispatchEmailChannel } from './channels/email'
 import { dispatchHealthchecksChannel } from './channels/healthchecks'
-import { dispatchMatrixChannel } from './channels/matrix'
+import { matrixChannelEntries } from './channels/matrix'
 import { dispatchNtfyChannel } from './channels/ntfy'
 import { dispatchOpsgenieChannel } from './channels/opsgenie'
 import { dispatchPagerDutyChannel } from './channels/pagerduty'
@@ -741,12 +741,11 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     )
     if (pushoverDelivered) anyDelivered = true
 
-    const matrixDelivered = await dispatchMatrixChannel(
-      finding,
+    // Matrix is digest-capable: the grouped flush sends one message per room.
+    const groupableMatrixTargets = matrixChannelEntries(
       matrixTargets,
       matrixFallback
     )
-    if (matrixDelivered) anyDelivered = true
 
     if (healthchecksEligible) {
       const ok = await dispatchHealthchecksChannel(finding, healthchecksUrl)
@@ -761,7 +760,6 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       pagerDutyTargets.length +
       ntfyTargets.length +
       pushoverTargets.length +
-      matrixTargets.length +
       (opsgenieEligible ? 1 : 0) +
       (emailEligible ? 1 : 0) +
       (twilio.eligible ? 1 : 0) +
@@ -774,6 +772,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       groupableWebhookTargets,
       findingTelegramTargets,
       groupableCustomTargets,
+      groupableMatrixTargets,
       immediateTargetCount,
       webhookPayload,
     })
