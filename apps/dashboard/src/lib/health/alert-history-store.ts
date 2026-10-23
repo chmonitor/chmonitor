@@ -230,6 +230,12 @@ export const FIRST_SEEN_IN_EPISODE_SQL = `SELECT MIN(event_time) AS first_seen
           AND event_time < ?4),
        '')`
 
+/**
+ * Known limit: SQLite `LIKE` is case-insensitive, so a digest ref differing
+ * only in case can match. Rule ids are lowercase and no function both
+ * dialects share (`instr` vs `strpos`) makes it exact, so a stray match can
+ * only move `firstSeenAt` earlier.
+ */
 /** `LIKE` pattern matching `"hostId:rule"` inside a `finding_refs` JSON array. */
 export function findingRefLikePattern(hostId: number, rule: string): string {
   const ref = JSON.stringify(`${hostId}:${rule}`).replace(/[\\%_]/g, '\\$&')

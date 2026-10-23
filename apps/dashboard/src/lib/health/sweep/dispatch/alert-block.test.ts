@@ -133,12 +133,31 @@ describe('createAlertBlockResolver', () => {
       },
     })
     expect(firstSeenCalls + contributorCalls).toBe(0)
-    const [a, b] = await Promise.all([resolve(), resolve()])
+    const [a, b] = await Promise.all([resolve.forTarget(), resolve.forTarget()])
     expect(a).toBe(b)
     expect(firstSeenCalls).toBe(1)
     expect(contributorCalls).toBe(1)
     expect(a.firstSeenAt).toBe('2026-01-01T09:00:00.000Z')
     expect(a.untrusted.topContributors).toHaveLength(1)
+  })
+
+  test('a subscription block never reads or carries contributors', async () => {
+    let contributorCalls = 0
+    const resolve = createAlertBlockResolver(params, {
+      firstSeen: async () => '2026-01-01T09:00:00.000Z',
+      contributors: async () => {
+        contributorCalls++
+        return [{ kind: 'table', database: 'db', table: 't', bytesOnDisk: 1 }]
+      },
+    })
+    const sub = await resolve.forSubscription()
+    expect(contributorCalls).toBe(0)
+    expect('topContributors' in sub.untrusted).toBe(false)
+    expect(sub.firstSeenAt).toBe('2026-01-01T09:00:00.000Z')
+    // A custom target on the same finding still gets them.
+    const target = await resolve.forTarget()
+    expect(target.untrusted.topContributors).toHaveLength(1)
+    expect(contributorCalls).toBe(1)
   })
 
   test('a recovery reads no contributors; failed reads degrade to unknown', async () => {
@@ -154,7 +173,7 @@ describe('createAlertBlockResolver', () => {
           return undefined
         },
       }
-    )()
+    ).forTarget()
     expect(contributorCalls).toBe(0)
     expect(block.firstSeenAt).toBeNull()
     expect('topContributors' in block.untrusted).toBe(false)

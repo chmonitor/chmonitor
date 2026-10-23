@@ -137,33 +137,56 @@ const defaultReads: AlertBlockReads = {
   contributors: (ruleId, hostId) => fetchTopContributors(ruleId, hostId),
 }
 
+export interface AlertBlockResolver {
+  /** Operator-configured custom webhook targets: with `topContributors`. */
+  forTarget: () => Promise<AlertBlock>
+  /**
+   * User-created webhook subscriptions: never `topContributors`. Those are
+   * other users' normalized SQL, user names and query ids from the operator's
+   * hosts, which a signed-in user must not receive.
+   */
+  forSubscription: () => Promise<AlertBlock>
+}
+
 /**
- * A memoized, lazy builder for one finding: nothing is read until a target or
- * subscription with `details: true` asks, and both ask the same promise.
- * Contributors are not read for a recovery. Never rejects: both reads are
- * best-effort and resolve to "unknown".
+ * Memoized, lazy builders for one finding: nothing is read until a target or
+ * subscription with `details: true` asks, and callers share the reads.
+ * Contributors are read only for `forTarget`, never for a recovery. Never
+ * rejects: both reads are best-effort and resolve to "unknown".
  */
 export function createAlertBlockResolver(
   params: Omit<AlertBlockParams, 'firstSeenAt' | 'topContributors'> & {
     hostId: number
   },
   reads: AlertBlockReads = defaultReads
-): () => Promise<AlertBlock> {
-  let pending: Promise<AlertBlock> | undefined
-  return () => {
-    pending ??= (async () => {
-      const [firstSeenAt, topContributors] = await Promise.all([
-        reads
-          .firstSeen(params.hostId, params.ruleId, params.now)
-          .catch(() => null),
-        params.kind === 'recovery'
-          ? undefined
-          : reads
-              .contributors(params.ruleId, params.hostId)
-              .catch(() => undefined),
-      ])
-      return buildAlertBlock({ ...params, firstSeenAt, topContributors })
-    })()
-    return pending
+): AlertBlockResolver {
+  let firstSeen: Promise<string | null> | undefined
+  let contributors: Promise<AlertContributor[] | undefined> | undefined
+  let target: Promise<AlertBlock> | undefined
+  let subscription: Promise<AlertBlock> | undefined
+  const readFirstSeen = () =>
+    (firstSeen ??= reads
+      .firstSeen(params.hostId, params.ruleId, params.now)
+      .catch(() => null))
+  const readContributors = () =>
+    (contributors ??=
+      params.kind === 'recovery'
+        ? Promise.resolve(undefined)
+        : reads
+            .contributors(params.ruleId, params.hostId)
+            .catch(() => undefined))
+  return {
+    forTarget: () =>
+      (target ??= (async () => {
+        const [firstSeenAt, topContributors] = await Promise.all([
+          readFirstSeen(),
+          readContributors(),
+        ])
+        return buildAlertBlock({ ...params, firstSeenAt, topContributors })
+      })()),
+    forSubscription: () =>
+      (subscription ??= readFirstSeen().then((firstSeenAt) =>
+        buildAlertBlock({ ...params, firstSeenAt })
+      )),
   }
 }

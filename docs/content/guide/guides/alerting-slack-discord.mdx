@@ -137,6 +137,11 @@ unchanged. Subscriptions carry it as `data.alert` on `alert.fired` and
   rule last recovered on that host). Breaches still waiting on hysteresis write
   no history, so the condition may be up to `minConsecutiveBreaches` sweeps
   older. It is `null` when the deployment has no alert-history store.
+- `topContributors` is sent only to custom targets you configure (env,
+  `routing.yaml`, alert routes). Webhook subscriptions are created by signed-in
+  users and never receive it, because it carries other users' normalized SQL,
+  ClickHouse user names and query ids. Subscriptions get the rest of the block,
+  including `affected`.
 - `untrusted` holds strings read from your cluster (table names, users,
   normalized queries). They are truncated to 200 characters and passed through
   the same secret redaction as agent errors. If you feed the block to an LLM,

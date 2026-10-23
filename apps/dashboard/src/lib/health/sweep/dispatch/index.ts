@@ -489,7 +489,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
         decision,
         value,
         label,
-        alert: alertBlock,
+        alert: alertBlock.forSubscription,
       })
     )
 
@@ -715,7 +715,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       text,
       globalMinSeverity: settings.minSeverity,
       severity: deliverSeverity,
-      alert: alertBlock,
+      alert: alertBlock.forTarget,
     })
     if (customDelivered) anyDelivered = true
     // Grouped custom targets count as groupable (in settleFinding), and a

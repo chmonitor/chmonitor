@@ -89,6 +89,17 @@ async function handlePatch(
     }
   }
 
+  if (body.details !== undefined && typeof body.details !== 'boolean') {
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.ValidationError,
+        message: 'Invalid "details": expected a boolean',
+      },
+      400,
+      ROUTE_PATCH
+    )
+  }
+
   let eventTypes: ReturnType<typeof parseEventTypes> | undefined
   if (body.eventTypes !== undefined) {
     eventTypes = parseEventTypes(body.eventTypes)
