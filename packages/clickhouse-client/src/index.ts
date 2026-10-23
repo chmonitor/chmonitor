@@ -61,4 +61,5 @@ export {
 export {
   DEFAULT_CLICKHOUSE_MAX_EXECUTION_TIME,
   QUERY_COMMENT,
+  QUERY_COMMENT_FINGERPRINT,
 } from './clickhouse/constants'

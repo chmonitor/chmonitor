@@ -150,6 +150,92 @@ See [Multiple hosts](/operate/advanced/multiple-hosts) and
 | `CLICKHOUSE_DATABASE` | `system` | Database used for app-owned tables (self-tracking events, dashboards). |
 | `EVENTS_TABLE_NAME` | `system.monitoring_events` | Full table name override for self-tracking events. |
 
+### Query attribution
+
+Every query the dashboard sends carries a record of who and what sent it, in
+two places: the `log_comment` setting (compact JSON, in
+`system.query_log.log_comment`) and one leading SQL comment, which shows in
+`system.processes.query`, `system.query_log.query`, and server logs. The
+**Dashboard Usage** page (`/dashboard-usage`) reads `log_comment` first and
+falls back to the leading comment.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CHM_QUERY_ATTRIBUTION` | `true` | Set `false` to send no record. Queries keep the minimal `/* {"client":"clickhouse-monitoring"} */` comment. |
+| `CHM_QUERY_ATTRIBUTION_LABEL` | — | Free-form deployment label, e.g. `region=eu-west,env=prod`. |
+| `CHM_QUERY_ATTRIBUTION_SQL_COMMENT` | `true` | Write the record into the leading SQL comment. Set `false` to keep only the minimal `/* {"client":"clickhouse-monitoring"} */` comment and the `log_comment` record. |
+| `CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL` | `false` | Add the signed-in user's email to the record. Off by default so PII stays out of the query log. |
+
+The record (`v` is the schema version):
+
+```json
+{"app":"chmonitor","v":1,"version":"0.3.7+f679398","user":"jane","host":"ch-0","source":"chart:query-count","page":"/overview","label":"env=prod"}
+```
+
+The leading SQL comment carries the same record without `page` and `email`,
+with `"client":"clickhouse-monitoring"` first so filters that skip the
+dashboard's own queries keep matching:
+
+```sql
+/* {"client":"clickhouse-monitoring","app":"chmonitor","v":1,"version":"0.3.7+f679398","user":"jane","source":"chart:query-count","host":"ch-0","label":"env=prod"} */
+SELECT ...
+```
+
+Each value in the comment is cut to 64 characters from `A-Z a-z 0-9 . _ : / = , + -`
+(anything else becomes `_`), so it cannot close the comment, add a quote, or
+break the line. An email-shaped `user` is cut to the part before `@`; the
+email is never written to the comment. To skip the dashboard's own queries,
+match on `position(query, '"client":"clickhouse-monitoring"') = 0`.
+
+The comment does not split ClickHouse caches: `normalized_query_hash` and the
+query cache key ignore comments, so users who open the same chart still
+share one cache entry. `log_comment` is part of the query cache key before
+ClickHouse 25.x, so a query sent with `use_query_cache = 1` leaves
+`log_comment` out while the comment carries the record.
+
+- `user` is the principal subject from the auth provider (`trusted`, `proxy`,
+  `clerk`), and `null` for anonymous visitors and cron jobs. In cloud mode
+  the env hosts are the public demo, so their records never carry `user` or
+  `email`.
+- `host` is the `CLICKHOUSE_NAME` entry for the host, or `host-<id>`.
+- `source` is what sent the query: `chart:<name>`, `chart-group:<id>`,
+  `table:<name>`, `console`, `explorer:<route>`, `agent`, `mcp`,
+  `cron:<job>`, or `api:<path>`.
+- `page` is the dashboard page the request came from.
+- Each field is capped at 200 characters with control characters removed,
+  and the whole record at 1 KB.
+
+The record is self-asserted: any ClickHouse client can set `log_comment`. For
+an audit, read it next to `query_log.user` (the ClickHouse account that ran
+the query) and the client address, not on its own. The version and table-existence probes are shared by
+concurrent requests, so a probe carries the record of the request that
+started it, not of every request that waited on it.
+
+A ClickHouse user whose profile sets `readonly = 1` refuses `log_comment`.
+The dashboard then resends that query once with the SQL comment instead,
+and uses the SQL comment for every later request to that host. A refused
+command (an `INSERT` or DDL) is not resent, because it may already have run;
+that one command fails and the next one carries the SQL comment. (That profile also refuses
+`CLICKHOUSE_MAX_EXECUTION_TIME` on env hosts; use `readonly = 2`.)
+
+Usage by user and source over the last 7 days:
+
+```sql
+SELECT
+    JSONExtractString(log_comment, 'user') AS user,
+    JSONExtractString(log_comment, 'source') AS source,
+    count() AS queries,
+    countIf(type != 'QueryFinish') AS errors,
+    quantile(0.95)(query_duration_ms) AS p95_ms,
+    formatReadableSize(sum(read_bytes)) AS read
+FROM system.query_log
+WHERE event_date >= today() - 7
+  AND type != 'QueryStart'
+  AND JSONExtractString(log_comment, 'app') = 'chmonitor'
+GROUP BY user, source
+ORDER BY queries DESC
+```
+
 ### Connection pool
 
 | Variable | Default | Purpose |

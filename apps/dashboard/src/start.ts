@@ -16,6 +16,11 @@
 import { createMiddleware, createStart } from '@tanstack/react-start'
 
 import { env } from 'cloudflare:workers'
+import {
+  runWithAttribution,
+  setAttributionVersion,
+  setEnvHostsAreDemo,
+} from '@chm/clickhouse-client/attribution'
 import { setVersionCacheL2Provider } from '@chm/clickhouse-client/clickhouse-version'
 import { setTableExistenceL2Provider } from '@chm/clickhouse-client/table-existence-cache'
 import { clerkMiddleware } from '@clerk/tanstack-react-start/server'
@@ -28,13 +33,17 @@ import {
   bridgePublicReadEnv,
   resolveApiGuard,
 } from '@/lib/auth/api-guard'
-import { isClerkAuthProvider } from '@/lib/auth/provider'
+import { getAuthProvider, isClerkAuthProvider } from '@/lib/auth/provider'
+import { resolveServerAuthProvider } from '@/lib/auth/providers'
+import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
 import { resolveServerSentryOptions } from '@/lib/observability/sentry.server'
 import { forceFlushOtel, getOtelTracer } from '@/lib/otel/exporter'
 import { withSpan } from '@/lib/otel/with-span'
+import { requestAttributionScope } from '@/lib/query-attribution/request-scope'
 import { withSecurityHeaders } from '@/lib/security-headers'
 import { getTableExistenceCache } from '@/lib/table-existence-kv-cache'
 import { getVersionCache } from '@/lib/version-cache'
+import { APP_VERSION } from '@/lib/whats-new/app-version'
 
 // Returning a Response from a request middleware short-circuits the chain and
 // sends that Response without running the route handler (same mechanism the
@@ -57,6 +66,8 @@ function wireVersionCacheKvOnce(): void {
 
   setVersionCacheL2Provider(() => getVersionCache())
   setTableExistenceL2Provider(() => getTableExistenceCache())
+  const sha = import.meta.env.VITE_GIT_SHA?.slice(0, 7)
+  setAttributionVersion(sha ? `${APP_VERSION}+${sha}` : APP_VERSION)
 }
 
 const apiAuthMiddleware = createMiddleware().server(
@@ -75,6 +86,38 @@ const apiAuthMiddleware = createMiddleware().server(
 
     return next()
   }
+)
+
+/**
+ * Opens the query attribution scope (#4164) around the rest of the request,
+ * so every ClickHouse query it sends, streamed agent tool calls included,
+ * carries who and what sent it. The principal is resolved lazily: requests
+ * that never query ClickHouse never pay for a session verify (#2186).
+ */
+export function queryAttributionHandler<T>({
+  next,
+  request,
+}: {
+  next: () => T
+  request: Request
+}): T {
+  // In cloud mode the env hosts are the public demo (`source: 'demo'`), whose
+  // query_log any visitor can read, so their records carry no user.
+  setEnvHostsAreDemo(isCloudModeServer)
+  const scope = requestAttributionScope(request, async () => {
+    const provider = getAuthProvider()
+    if (provider === 'none') return null
+    const result =
+      await resolveServerAuthProvider(provider).authenticateRequest(request)
+    const subject = result.principal?.subject ?? result.subject
+    if (!result.authenticated || !subject) return null
+    return { subject, email: result.principal?.email }
+  })
+  return runWithAttribution(scope, next)
+}
+
+const queryAttributionMiddleware = createMiddleware().server(
+  queryAttributionHandler
 )
 
 // ---------------------------------------------------------------------------
@@ -632,7 +675,7 @@ export const startInstance = createStart(() => {
     middleware.push(clerkMiddleware())
   }
 
-  middleware.push(apiAuthMiddleware)
+  middleware.push(apiAuthMiddleware, queryAttributionMiddleware)
 
   return { requestMiddleware: middleware }
 })

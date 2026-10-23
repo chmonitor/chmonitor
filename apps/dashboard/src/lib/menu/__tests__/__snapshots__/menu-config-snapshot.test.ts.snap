@@ -67,6 +67,13 @@ exports[`menuItemsConfig snapshot flattened menu structure (titles, hrefs, order
   },
   {
     "depth": 1,
+    "href": "/dashboard-usage",
+    "section": undefined,
+    "subgroup": "History",
+    "title": "Dashboard Usage",
+  },
+  {
+    "depth": 1,
     "href": "/failed-queries",
     "section": undefined,
     "subgroup": "History",
