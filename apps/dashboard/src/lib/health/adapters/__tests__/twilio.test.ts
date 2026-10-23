@@ -49,7 +49,7 @@ describe('buildTwilioMessage', () => {
 
   test('renders RECOVERY heading for a resolved incident', () => {
     expect(buildTwilioMessage(RECOVERY)).toBe(
-      '[RECOVERY] disk-usage on prod-1: recovered'
+      '[RECOVERY] disk-usage on prod-1: recovered (value 40)'
     )
   })
 

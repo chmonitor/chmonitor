@@ -17,8 +17,15 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
-import { MAX_DIGEST_LINES, stillOpenLine, summarizeDigest } from './digest'
-import { identityLine, instancePrefix } from './identity'
+import {
+  firedForLine,
+  incidentLine,
+  MAX_DIGEST_LINES,
+  stillOpenLine,
+  summarizeDigest,
+} from './digest'
+import { thresholdParts } from './facts'
+import { digestDashboardUrl, identityLine, instancePrefix } from './identity'
 
 /** Matrix `m.room.message` event carrying an `m.notice`. */
 export interface MatrixMessageBody {
@@ -60,26 +67,6 @@ export function colorHtml(severity: AlertSeverity, html: string): string {
 }
 
 /**
- * One dashboard link for a whole digest. `dashboardUrl` is per host
- * (`<base>/health?host=<id>`), so a digest spanning several hosts links to the
- * same page without the `host` param; a single-host digest keeps the link.
- */
-export function digestDashboardUrl(
-  payloads: readonly AlertPayload[]
-): string | undefined {
-  const first = payloads.find((p) => p.dashboardUrl)?.dashboardUrl
-  if (!first) return undefined
-  if (new Set(payloads.map((p) => p.hostId)).size <= 1) return first
-  try {
-    const url = new URL(first)
-    url.searchParams.delete('host')
-    return url.toString()
-  } catch {
-    return first
-  }
-}
-
-/**
  * Shared Matrix/Hookshot digest renderer (#3869): a coloured summary header,
  * findings grouped by rule (bold rule name + list of host / metric = value /
  * severity), an "…and N more" line past {@link MAX_DIGEST_LINES}, and ONE
@@ -116,11 +103,13 @@ export function renderMatrixDigest(payloads: readonly AlertPayload[]): {
       }
       const value = p.value === null ? 'n/a' : String(p.value)
       const line = `${p.hostLabel} · ${p.metric} = ${value} · ${style.label}`
-      textLines.push(`- ${style.emoji} ${line} — ${p.label}`)
+      const firedFor = firedForLine(p)
+      const detail = firedFor ? `${p.label}, ${firedFor}` : p.label
+      textLines.push(`- ${style.emoji} ${line} — ${detail}`)
       html +=
         `<li>${style.emoji} ${escapeMatrixHtml(p.hostLabel)} · ` +
         `${escapeMatrixHtml(p.metric)} = ${escapeMatrixHtml(value)} · ` +
-        `${colorHtml(p.severity, style.label)} — ${escapeMatrixHtml(p.label)}</li>`
+        `${colorHtml(p.severity, style.label)} — ${escapeMatrixHtml(detail)}</li>`
     }
     html += '</ul>'
   }
@@ -134,6 +123,45 @@ export function renderMatrixDigest(payloads: readonly AlertPayload[]): {
     html += `<br><a href="${escapeMatrixHtml(link)}">Open dashboard</a>`
   }
   return { text: textLines.join('\n'), html }
+}
+
+/**
+ * The facts the one-line Matrix/Hookshot summary cannot hold: thresholds, the
+ * incident timeline (still open / fired for) and runbook links. `text` is one
+ * entry per line (plain), `html` the escaped `<br>`-joined mirror; both are
+ * empty when the payload has none of them.
+ */
+export function factsBlock(payload: AlertPayload): {
+  text: string[]
+  html: string
+} {
+  const text: string[] = []
+  let html = ''
+  const thresholds = thresholdParts(payload)
+  if (thresholds.length > 0) {
+    const line = `thresholds ${thresholds.join(' | ')}`
+    text.push(line)
+    html += `<br>${escapeMatrixHtml(line)}`
+  }
+  const incident = incidentLine(payload)
+  if (incident) {
+    text.push(incident)
+    html += `<br>${escapeMatrixHtml(incident)}`
+  }
+  const urls = payload.runbookUrls ?? []
+  if (urls.length > 0) {
+    text.push('runbooks:', ...urls.map((u) => `- ${u}`))
+    html +=
+      '<br>runbooks:<ul>' +
+      urls
+        .map(
+          (u) =>
+            `<li><a href="${escapeMatrixHtml(u)}">${escapeMatrixHtml(u)}</a></li>`
+        )
+        .join('') +
+      '</ul>'
+  }
+  return { text, html }
 }
 
 /**
@@ -156,9 +184,11 @@ export function buildMatrixBody(payload: AlertPayload): MatrixMessageBody {
   const style = SEVERITY_STYLE[payload.severity]
   const value = payload.value === null ? 'n/a' : String(payload.value)
   const identity = identityLine(payload)
+  const facts = factsBlock(payload)
   const body =
     `${instancePrefix(payload)}${style.emoji} [${style.label}] ${payload.title} — ${payload.label} ` +
     `(host ${payload.hostLabel}, ${payload.metric} = ${value})` +
+    facts.text.map((line) => `\n${line}`).join('') +
     (identity ? `\n${identity}` : '') +
     (payload.dashboardUrl ? `\n${payload.dashboardUrl}` : '')
   const formatted_body =
@@ -167,6 +197,7 @@ export function buildMatrixBody(payload: AlertPayload): MatrixMessageBody {
     `<i>host ${escapeMatrixHtml(payload.hostLabel)} · ` +
     `${escapeMatrixHtml(payload.metric)} = ${escapeMatrixHtml(value)} · ` +
     `${escapeMatrixHtml(payload.timestamp)}</i>` +
+    facts.html +
     identityHtml(payload, identity)
   return {
     msgtype: 'm.notice',

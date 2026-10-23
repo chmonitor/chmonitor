@@ -33,12 +33,39 @@ function findingHeading(severity: AlertSeverity): string {
   return severity === 'recovery' ? 'RECOVERY' : severity.toUpperCase()
 }
 
+/** `"3 h"`; minutes under an hour. */
+export function spanText(ms: number): string {
+  const minutes = Math.max(1, Math.round(ms / 60_000))
+  return minutes < 60 ? `${minutes} min` : `${Math.round(minutes / 60)} h`
+}
+
 /** `"still open, 3 h"` for a reminder; minutes under an hour. */
 export function stillOpenText(ms: number): string {
-  const minutes = Math.max(1, Math.round(ms / 60_000))
-  return minutes < 60
-    ? `still open, ${minutes} min`
-    : `still open, ${Math.round(minutes / 60)} h`
+  return `still open, ${spanText(ms)}`
+}
+
+/** `"fired for 3 h"` for a recovery whose incident length is known, else ''. */
+export function firedForLine(
+  payload: Pick<AlertPayload, 'severity' | 'firedForMs'>
+): string {
+  return payload.severity === 'recovery' && payload.firedForMs !== undefined
+    ? `fired for ${spanText(payload.firedForMs)}`
+    : ''
+}
+
+/**
+ * The incident timeline fact every channel shows: `still open, 3 h (82.8 ->
+ * 82.9)` on a reminder, `fired for 3 h` on a recovery, '' otherwise.
+ */
+export function incidentLine(
+  payload: Pick<
+    AlertPayload,
+    'severity' | 'stillOpenMs' | 'previousValue' | 'value' | 'firedForMs'
+  >
+): string {
+  return payload.stillOpenMs !== undefined
+    ? stillOpenLine(payload)
+    : firedForLine(payload)
 }
 
 /**
@@ -63,8 +90,13 @@ export function stillOpenLine(
  * reminder (`stillOpenMs` set) replaces the label with how long it is open.
  */
 export function digestFindingLine(payload: AlertPayload): string {
+  const firedFor = firedForLine(payload)
   const detail =
-    payload.stillOpenMs === undefined ? payload.label : stillOpenLine(payload)
+    payload.stillOpenMs !== undefined
+      ? stillOpenLine(payload)
+      : firedFor
+        ? `${payload.label}, ${firedFor}`
+        : payload.label
   return `[${findingHeading(payload.severity)}] ${payload.title} — ${detail} (host ${payload.hostLabel})`
 }
 

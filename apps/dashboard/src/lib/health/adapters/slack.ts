@@ -9,8 +9,9 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
-import { summarizeDigest } from './digest'
-import { identityLine, instancePrefix } from './identity'
+import { incidentLine, summarizeDigest } from './digest'
+import { thresholdText, valueText } from './facts'
+import { digestDashboardUrl, identityLine, instancePrefix } from './identity'
 
 /** Escape operator-controlled text before putting it in Slack mrkdwn. */
 export function escapeSlackMrkdwn(raw: string): string {
@@ -60,17 +61,6 @@ function heading(severity: AlertSeverity): string {
   return severity === 'recovery' ? 'RECOVERY' : severity.toUpperCase()
 }
 
-function thresholdText(payload: AlertPayload): string {
-  const parts: string[] = []
-  if (payload.warnThreshold !== undefined && payload.warnThreshold !== null) {
-    parts.push(`warn ${payload.warnThreshold}`)
-  }
-  if (payload.critThreshold !== undefined && payload.critThreshold !== null) {
-    parts.push(`crit ${payload.critThreshold}`)
-  }
-  return parts.length > 0 ? parts.join(' | ') : '—'
-}
-
 /**
  * Build the Slack webhook body for a payload.
  */
@@ -78,6 +68,7 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
   const summary = `${escapeSlackMrkdwn(instancePrefix(payload))}[${heading(payload.severity)}] ${payload.title} — ${escapeSlackMrkdwn(payload.label)} (host ${payload.hostLabel})`
 
+  const incident = incidentLine(payload)
   const blocks: SlackBlock[] = [
     {
       type: 'header',
@@ -97,7 +88,7 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
         { type: 'mrkdwn', text: `*Metric:*\n${payload.metric}` },
         {
           type: 'mrkdwn',
-          text: `*Value:*\n${payload.value === null ? 'n/a' : payload.value}`,
+          text: `*Value:*\n${valueText(payload)}`,
         },
         { type: 'mrkdwn', text: `*Thresholds:*\n${thresholdText(payload)}` },
       ],
@@ -106,7 +97,7 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*Detail:* ${escapeSlackMrkdwn(payload.label)}`,
+        text: `*Detail:* ${escapeSlackMrkdwn(payload.label)}${incident ? `\n*Status:* ${escapeSlackMrkdwn(incident)}` : ''}`,
       },
     },
   ]
@@ -224,6 +215,20 @@ export function buildSlackDigestBody(
       text: { type: 'mrkdwn', text: listLines.join('\n') },
     },
   ]
+
+  const dashboardUrl = digestDashboardUrl(payloads)
+  if (dashboardUrl) {
+    blocks.push({
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: 'Open dashboard', emoji: true },
+          url: dashboardUrl,
+        },
+      ],
+    })
+  }
 
   return {
     text: summary,

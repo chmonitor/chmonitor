@@ -186,6 +186,7 @@ https://docs.example.com/runbook/mutations"
     "critThreshold": "5",
     "hostId": "2",
     "metric": "failed-mutations",
+    "severity": "critical",
     "timestamp": "2026-07-02T10:00:00.000Z",
     "value": "7",
     "warnThreshold": "1",

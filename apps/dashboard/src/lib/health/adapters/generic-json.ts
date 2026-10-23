@@ -8,7 +8,7 @@
 
 import type { AlertDetails, AlertPayload, NotificationAdapter } from './types'
 
-import { digestFindingLine, summarizeDigest } from './digest'
+import { digestFindingLine, incidentLine, summarizeDigest } from './digest'
 import { instancePrefix } from './identity'
 
 /** Normalized JSON body for generic webhook receivers. */
@@ -25,6 +25,12 @@ export interface GenericJsonBody {
   /** A ready-to-render one-line summary, mirroring the sweep/webhook text. */
   text: string
   snapshot?: unknown
+  /** Reminder: how long the incident has been open, in ms. */
+  stillOpenMs?: number
+  /** Reminder: value at the previous notification. */
+  previousValue?: number
+  /** Recovery: how long the incident fired, in ms. */
+  firedForMs?: number
   /** Deployment label (`HEALTH_ALERT_INSTANCE_NAME`), when configured. */
   instance?: string
   /** Deep link to this host's dashboard page, when configured. */
@@ -44,6 +50,7 @@ export function buildGenericJsonBody(payload: AlertPayload): GenericJsonBody {
       ? 'RECOVERY'
       : payload.severity.toUpperCase()
 
+  const incident = incidentLine(payload)
   const body: GenericJsonBody = {
     severity: payload.severity,
     title: payload.title,
@@ -57,11 +64,20 @@ export function buildGenericJsonBody(payload: AlertPayload): GenericJsonBody {
     label: payload.label,
     runbookUrls: payload.runbookUrls ? [...payload.runbookUrls] : [],
     timestamp: payload.timestamp,
-    text: `${instancePrefix(payload)}[${heading}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
+    text: `${instancePrefix(payload)}[${heading}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})${incident ? ` — ${incident}` : ''}`,
   }
 
   if (payload.snapshot !== undefined) {
     body.snapshot = payload.snapshot
+  }
+  if (payload.stillOpenMs !== undefined) {
+    body.stillOpenMs = payload.stillOpenMs
+    if (payload.previousValue !== undefined) {
+      body.previousValue = payload.previousValue
+    }
+  }
+  if (payload.severity === 'recovery' && payload.firedForMs !== undefined) {
+    body.firedForMs = payload.firedForMs
   }
   if (payload.instanceName) body.instance = payload.instanceName
   if (payload.dashboardUrl) body.dashboardUrl = payload.dashboardUrl

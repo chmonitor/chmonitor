@@ -323,8 +323,21 @@ and `metadata`.
 A target can set `titleTemplate` and `textTemplate`. Available variables:
 `{{severity}}`, `{{title}}`, `{{label}}`, `{{host}}`, `{{hostId}}`,
 `{{checkId}}`, `{{value}}` and `{{timestamp}}`, plus `{{instance}}`,
-`{{dashboardUrl}}` and `{{meta.<key>}}`. An unknown name is left as written, so
-a typo is easy to spot in **Preview**.
+`{{dashboardUrl}}` and `{{meta.<key>}}`. These facts are empty when they do
+not apply:
+
+| Variable | Value |
+| --- | --- |
+| `{{warn}}`, `{{crit}}` | The warning and critical thresholds. |
+| `{{thresholds}}` | Both thresholds, e.g. `warn 80 \| crit 90`. |
+| `{{runbook}}` | The first runbook URL. |
+| `{{status}}` | Reminder: `still open, 3 h (82.8 -> 82.9)`. Recovery: `fired for 3 h`. |
+| `{{stillOpen}}` | Reminder only: how long the incident has been open, e.g. `3 h`. |
+| `{{previousValue}}` | Reminder only: the value at the previous notification. |
+| `{{firedFor}}` | Recovery only: how long the incident fired, e.g. `3 h`. |
+| `{{firstFired}}` | When the incident began, as an ISO time. Needs `details: true` on the target. |
+
+An unknown name is left as written, so a typo is easy to spot in **Preview**.
 
 ```yaml
 alertWebhooks:

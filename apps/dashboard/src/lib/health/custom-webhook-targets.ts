@@ -44,6 +44,8 @@ import {
   detectAdapter,
   summarizeDigest,
 } from './adapters'
+import { incidentLine, spanText } from './adapters/digest'
+import { thresholdText } from './adapters/facts'
 import { escapeMatrixHtml } from './adapters/matrix'
 import { escapeSlackMrkdwn } from './adapters/slack'
 
@@ -205,7 +207,9 @@ const SECRET_FORBIDDEN_HEADER_NAMES: ReadonlySet<string> = new Set([
 /**
  * Allowlisted template variables and their resolvers. Every value is coerced
  * to a short plain string; unknown `{{names}}` are left verbatim so a typo is
- * visible instead of silently empty.
+ * visible instead of silently empty. A fact that does not apply (no
+ * threshold, not a reminder) renders as an empty string. `firstFired` needs
+ * the target's `details: true`.
  */
 const TEMPLATE_VARS: Record<string, (p: AlertPayload) => string> = {
   severity: (p) =>
@@ -219,6 +223,21 @@ const TEMPLATE_VARS: Record<string, (p: AlertPayload) => string> = {
   timestamp: (p) => p.timestamp,
   instance: (p) => p.instanceName ?? '',
   dashboardUrl: (p) => p.dashboardUrl ?? '',
+  warn: (p) => (p.warnThreshold == null ? '' : String(p.warnThreshold)),
+  crit: (p) => (p.critThreshold == null ? '' : String(p.critThreshold)),
+  thresholds: (p) =>
+    p.warnThreshold == null && p.critThreshold == null ? '' : thresholdText(p),
+  runbook: (p) => p.runbookUrls?.[0] ?? '',
+  status: (p) => incidentLine(p),
+  stillOpen: (p) =>
+    p.stillOpenMs === undefined ? '' : spanText(p.stillOpenMs),
+  previousValue: (p) =>
+    p.previousValue === undefined ? '' : String(p.previousValue),
+  firedFor: (p) =>
+    p.severity === 'recovery' && p.firedForMs !== undefined
+      ? spanText(p.firedForMs)
+      : '',
+  firstFired: (p) => p.details?.firstFiredAt ?? '',
 }
 
 /** `{{meta.<key>}}` resolves a `HEALTH_ALERT_METADATA` value by key. */
