@@ -15,6 +15,8 @@
 import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 import type { HostCapabilities } from './capability-cache'
 
+import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
+
 /** `SharedSet` / `SharedJoin` are not replicated, so match the MergeTree family. */
 export const REPLICATED_ENGINE_PREDICATE = `(engine LIKE 'Replicated%' OR engine LIKE 'Shared%MergeTree')`
 
@@ -22,7 +24,9 @@ export const REPLICATED_ENGINE_PREDICATE = `(engine LIKE 'Replicated%' OR engine
 export const REPLICATION_USAGE_SQL = `
     SELECT count() > 0 AS used
     FROM (
-      SELECT 1 FROM system.tables WHERE ${REPLICATED_ENGINE_PREDICATE} LIMIT 1
+      SELECT 1 FROM system.tables
+      WHERE ${REPLICATED_ENGINE_PREDICATE} AND ${LOCAL_DATABASES_FILTER}
+      LIMIT 1
     )`
 
 export function usesReplication(
