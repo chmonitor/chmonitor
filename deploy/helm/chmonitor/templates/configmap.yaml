@@ -11,6 +11,14 @@ data:
   CLICKHOUSE_HOST: {{ .Values.clickhouse.host | quote }}
   CLICKHOUSE_USER: {{ .Values.clickhouse.user | quote }}
   CLICKHOUSE_MAX_EXECUTION_TIME: {{ .Values.clickhouse.maxExecutionTime | quote }}
+  {{- with .Values.queryAttribution }}
+  CHM_QUERY_ATTRIBUTION: {{ .enabled | toString | quote }}
+  CHM_QUERY_ATTRIBUTION_SQL_COMMENT: {{ .sqlComment | toString | quote }}
+  CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL: {{ .includeEmail | toString | quote }}
+  {{- if .label }}
+  CHM_QUERY_ATTRIBUTION_LABEL: {{ .label | quote }}
+  {{- end }}
+  {{- end }}
   {{- range $key, $val := .Values.features }}
   {{- if $val }}
   {{ $key }}: {{ $val | quote }}
