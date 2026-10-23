@@ -61,6 +61,7 @@ export const userDetailRecentConfig: QueryConfig = {
           WHERE (${USER_FILTER})
             AND (${USAGE_END_EVENTS})
             AND (event_date >= today() - 7)
+            AND (event_time >= now() - INTERVAL 7 DAY)
           ORDER BY event_time DESC
           LIMIT 5
       ) AS recent

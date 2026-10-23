@@ -2,6 +2,9 @@ import type { VersionedSql } from '@/types/query-config'
 
 import {
   pickUsersConfig,
+  resolveUsersVariant,
+  USERS_LIMIT,
+  USERS_MAX_EXECUTION_TIME,
   USERS_VALID_UNTIL_SINCE,
   usersBasicConfig,
   usersConfig,
@@ -86,5 +89,45 @@ describe('users config variants', () => {
     for (const config of VARIANTS) {
       expect(getQueryConfigByName(config.name)?.name).toBe(config.name)
     }
+  })
+})
+describe('users list cost and gating', () => {
+  test('does not poll: each refresh rescans the query log', () => {
+    for (const config of VARIANTS) expect(config.refreshInterval).toBe(0)
+  })
+
+  test('the scan is time-boxed and the row cap is documented on the page', () => {
+    for (const config of VARIANTS) {
+      expect(config.clickhouseSettings?.max_execution_time).toBe(
+        USERS_MAX_EXECUTION_TIME
+      )
+      expect(config.description).toContain(`at most ${USERS_LIMIT} accounts`)
+      for (const { sql } of versions(config.sql))
+        expect(sql).toContain(`LIMIT ${USERS_LIMIT}`)
+    }
+  })
+
+  test('counts 24h and 7d in one pass without distinct counts', () => {
+    const sql = versions(usersConfig.sql)[1].sql
+    expect(sql.match(/merge\('system', '\^query_log'\)/g)).toHaveLength(1)
+    expect(sql).not.toMatch(/uniq/)
+  })
+
+  const on = { features: {} }
+  const off = { features: { queries: { enabled: false } } } as never
+  const tables = { queryLog: true, sessionLog: true }
+
+  test('activity needs both the query log and the queries feature', () => {
+    expect(resolveUsersVariant(tables, on).activity).toBe(true)
+    expect(resolveUsersVariant(tables, off).activity).toBe(false)
+    expect(
+      resolveUsersVariant({ ...tables, queryLog: false }, on).activity
+    ).toBe(false)
+  })
+
+  test('with queries disabled the page gets the accounts-only list', () => {
+    expect(pickUsersConfig(resolveUsersVariant(tables, off))).toBe(
+      usersBasicConfig
+    )
   })
 })

@@ -3,7 +3,11 @@ import { useIsTableAvailable } from '@/components/menu/hooks/use-table-availabil
 import { PageSkeleton } from '@/components/skeletons'
 import { UserLinkGroup } from '@/components/users/user-link-group'
 import { buildUsersRelatedLinks } from '@/components/users/user-links'
-import { pickUsersConfig } from '@/lib/query-config/more/users'
+import { useFeaturePermissions } from '@/lib/feature-permissions/context'
+import {
+  pickUsersConfig,
+  resolveUsersVariant,
+} from '@/lib/query-config/more/users'
 import { useHostId } from '@/lib/swr'
 
 /**
@@ -15,12 +19,17 @@ export function UsersPage() {
   const queryLog = useIsTableAvailable('system.query_log', hostId)
   const sessionLog = useIsTableAvailable('system.session_log', hostId)
 
-  if (queryLog.isLoading || sessionLog.isLoading) return <PageSkeleton />
+  const { config, isLoading: featuresLoading } = useFeaturePermissions()
 
-  const queryConfig = pickUsersConfig({
-    activity: queryLog.available,
-    login: sessionLog.available,
-  })
+  if (queryLog.isLoading || sessionLog.isLoading || featuresLoading)
+    return <PageSkeleton />
+
+  const queryConfig = pickUsersConfig(
+    resolveUsersVariant(
+      { queryLog: queryLog.available, sessionLog: sessionLog.available },
+      config
+    )
+  )
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-3">

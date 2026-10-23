@@ -1,7 +1,9 @@
+import type { PublicFeaturePermissionConfig } from '@/lib/feature-permissions/types'
 import type { QueryConfig, VersionedSql } from '@/types/query-config'
 
 import { createUserExpandedDetails } from '@/components/users/create-user-expanded-details'
 import { EXPIRY_TONES, STATUS_TONES } from '@/components/users/user-status'
+import { resolveFeatureState } from '@/lib/feature-permissions/shared'
 import { USAGE_END_EVENTS } from '@/lib/query-config/queries/usage'
 import { ColumnFormat } from '@/types/column-format'
 
@@ -17,6 +19,16 @@ import { ColumnFormat } from '@/types/column-format'
 
 /** Activity window (days) for the list counts and the status badge. */
 export const USERS_ACTIVITY_DAYS = 7
+
+/** Most accounts the list returns, busiest first when activity is on. */
+export const USERS_LIMIT = 1000
+
+/**
+ * The activity join scans the query log, so it must not run away on a busy
+ * host. Over the limit the query fails loudly instead of returning partial
+ * counts that would read as real ones.
+ */
+export const USERS_MAX_EXECUTION_TIME = 30
 
 /** Window (days) searched for the last successful login. */
 export const USERS_LOGIN_DAYS = 30
@@ -101,7 +113,7 @@ SELECT
     u.default_database AS default_database
 FROM system.users AS u${variant.activity ? ACTIVITY_JOIN : ''}${variant.login ? LOGIN_JOIN : ''}
 ORDER BY ${variant.activity ? 'queries_7d DESC, ' : ''}name
-LIMIT 1000`
+LIMIT ${USERS_LIMIT}`
 }
 
 function buildUsersColumns(variant: UsersVariant): string[] {
@@ -174,6 +186,9 @@ function buildUsersConfig(name: string, variant: UsersVariant): QueryConfig {
   return {
     name,
     permission: { feature: 'security' },
+    // Polling would rescan the query log every cycle: load once, refresh by hand.
+    refreshInterval: 0,
+    clickhouseSettings: { max_execution_time: USERS_MAX_EXECUTION_TIME },
     defaultView: 'auto',
     card: {
       primary: 'name',
@@ -190,6 +205,7 @@ function buildUsersConfig(name: string, variant: UsersVariant): QueryConfig {
         ? `Last login is the latest LoginSuccess in system.session_log (last ${USERS_LOGIN_DAYS} days).`
         : '',
       'valid_until "never" means the account does not expire.',
+      `Shows at most ${USERS_LIMIT} accounts${variant.activity ? ', most active first' : ''}.`,
     ]
       .filter(Boolean)
       .join(' '),
@@ -226,4 +242,20 @@ export const usersBasicConfig = buildUsersConfig('users-basic', {
 export function pickUsersConfig(variant: UsersVariant): QueryConfig {
   if (!variant.activity) return usersBasicConfig
   return variant.login ? usersWithLoginConfig : usersConfig
+}
+
+/**
+ * Activity columns come from the query log, so they also need the `queries`
+ * feature: with it off the list falls back to accounts only.
+ */
+export function resolveUsersVariant(
+  tables: { queryLog: boolean; sessionLog: boolean },
+  features: Pick<PublicFeaturePermissionConfig, 'features'>
+): UsersVariant {
+  return {
+    activity:
+      tables.queryLog &&
+      resolveFeatureState({ feature: 'queries' }, features).enabled,
+    login: tables.sessionLog,
+  }
 }
