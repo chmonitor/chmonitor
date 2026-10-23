@@ -7,8 +7,8 @@
  * job), and `withQueryAttribution` reads it on every `query()` / `command()`.
  *
  * Server-side: the scope needs `node:async_hooks`. The browser bundle reaches
- * this module through the package index, so nothing here touches it at load
- * time (see `scopeStorage`).
+ * this module through the package index, so the storage comes from the
+ * `#attribution-storage` subpath import, whose `browser` condition has none.
  */
 
 import type { ClickHouseClient } from '@clickhouse/client'
@@ -21,7 +21,7 @@ import {
   encodeLogComment,
   encodeSqlComment,
 } from './record'
-import { AsyncLocalStorage } from 'node:async_hooks'
+import { createScopeStorage, type ScopeStorage } from '#attribution-storage'
 
 export interface AttributionPrincipal {
   readonly subject: string
@@ -47,21 +47,15 @@ export interface AttributionConfig {
   readonly version: string | null
 }
 
-let storage: AsyncLocalStorage<AttributionScope> | null | undefined
-
 /**
- * Created on first use, not at module load: the package index reaches this
- * module, so it lands in the browser bundle too, where `node:async_hooks` is
- * an empty stub and `new AsyncLocalStorage()` would throw on page load.
- * Without it there is no scope, and queries go out anonymous.
+ * `AsyncLocalStorage` on the server; `null` in the browser, where the
+ * `#attribution-storage` import resolves to a stub. Without storage there is
+ * no scope, and queries go out anonymous.
  */
-function scopeStorage(): AsyncLocalStorage<AttributionScope> | null {
-  if (storage === undefined) {
-    storage =
-      typeof AsyncLocalStorage === 'function'
-        ? new AsyncLocalStorage<AttributionScope>()
-        : null
-  }
+const storage: ScopeStorage<AttributionScope> | null =
+  createScopeStorage<AttributionScope>()
+
+function scopeStorage(): ScopeStorage<AttributionScope> | null {
   return storage
 }
 

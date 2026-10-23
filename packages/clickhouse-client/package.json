@@ -5,6 +5,14 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "imports": {
+    "#attribution-storage": {
+      "workerd": "./src/attribution/storage.ts",
+      "node": "./src/attribution/storage.ts",
+      "browser": "./src/attribution/storage.browser.ts",
+      "default": "./src/attribution/storage.ts"
+    }
+  },
   "exports": {
     ".": "./src/index.ts",
     "./attribution": "./src/attribution/scope.ts",
