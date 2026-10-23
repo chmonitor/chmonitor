@@ -3,6 +3,27 @@ entries:
   chmonitor:
   - apiVersion: v2
     appVersion: latest
+    created: "2026-10-23T12:03:05.700630064Z"
+    description: A Helm chart for the chmonitor dashboard
+    digest: dbdc55aa677b6ee3cf516b295bfaceb0a258b5a2c04984295b8943a0a431b255
+    home: https://github.com/chmonitor/chmonitor
+    keywords:
+    - clickhouse
+    - monitoring
+    - dashboard
+    - observability
+    maintainers:
+    - email: bot@duyet.net
+      name: duyet
+    name: chmonitor
+    sources:
+    - https://github.com/chmonitor/chmonitor
+    type: application
+    urls:
+    - https://github.com/chmonitor/chmonitor/releases/download/helm-chmonitor-0.2.18/chmonitor-0.2.18.tgz
+    version: 0.2.18
+  - apiVersion: v2
+    appVersion: latest
     created: "2026-10-11T08:57:32.443148792Z"
     description: A Helm chart for the chmonitor dashboard
     digest: 405f7387358d0b6a315d1b6f4fe5d29d945bd53ec8c0485d622ea8e6777d00f0
@@ -190,4 +211,4 @@ entries:
     urls:
     - https://github.com/duyet/clickhouse-monitoring/releases/download/helm-chmonitor-0.2.9/chmonitor-0.2.9.tgz
     version: 0.2.9
-generated: "2026-10-11T08:57:32.443188677Z"
+generated: "2026-10-23T12:03:05.700666833Z"
