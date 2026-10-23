@@ -27,7 +27,11 @@ import type {
   AlertChannelId,
   AlertSeverityFloor,
 } from './../../alert-channel-settings'
-import type { AlertRoute, AlertRouteProvider } from './../../alert-routing'
+import type {
+  AlertRoute,
+  AlertRouteProvider,
+  WebhookTarget,
+} from './../../alert-routing'
 import type { ServerAlertIdentity } from './../../server-alert-config'
 import type { SweepContext } from './../resolve-config'
 import type { FindingContext } from './finding-context'
@@ -144,7 +148,10 @@ function buildFindingIdentity(
  */
 export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
   const { settings, routes, channelSettings, windows, quietHours, acks } = ctx
-  const webhookUrl = ctx.channels.webhookUrl
+  const webhookTarget: WebhookTarget = {
+    url: ctx.channels.webhookUrl,
+    trusted: ctx.channels.webhookUrlTrusted,
+  }
   const opsgenieConfig = ctx.channels.opsgenie
   const emailConfig = ctx.channels.email
   const telegramFallback = ctx.channels.telegram
@@ -541,7 +548,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     const targets = resolveTargets(
       routes,
       { ruleId, ruleType, hostId, hostName: name },
-      channelPasses('webhook') ? webhookUrl : '',
+      channelPasses('webhook') ? webhookTarget : null,
       matchOptions
     )
 

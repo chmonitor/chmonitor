@@ -37,6 +37,7 @@ import type {
   AlertChannelId,
   ChannelSettingsMap,
 } from './alert-channel-settings'
+import type { Sourced } from './declarative/merge'
 import type {
   ServerMatrixConfig,
   ServerNtfyConfig,
@@ -64,6 +65,12 @@ import {
 export interface ResolvedServerChannels {
   /** Legacy global webhook URL (D1 override or `HEALTH_ALERT_WEBHOOK_URL`). */
   webhookUrl: string
+  /**
+   * Whether `webhookUrl` is operator-configured (env, or a routing.yaml channel
+   * that passed `isAllowedDeclaredUrl`). A URL saved through the API is not,
+   * and is re-checked against the SSRF guard at send time.
+   */
+  webhookUrlTrusted: boolean
   /** healthchecks.io ping URL (D1 override or `HEALTH_ALERT_HEALTHCHECKS_URL`). */
   healthchecksUrl: string
   opsgenie: ServerOpsgenieConfig | null
@@ -174,7 +181,7 @@ export async function resolveServerChannels(
   ownerId = ''
 ): Promise<ResolvedServerChannels> {
   const rows = await listChannelConfigs(ownerId)
-  const byChannel = new Map<AlertConfigChannel, AlertChannelConfig>(
+  const byChannel = new Map<AlertConfigChannel, Sourced<AlertChannelConfig>>(
     rows.map((r) => [r.channel, r])
   )
   const row = (c: AlertConfigChannel) => byChannel.get(c)
@@ -192,6 +199,7 @@ export async function resolveServerChannels(
     webhookUrl: webhookRow
       ? webhookRow.target.url?.trim() || ''
       : process.env.HEALTH_ALERT_WEBHOOK_URL?.trim() || '',
+    webhookUrlTrusted: webhookRow ? webhookRow.source !== 'd1' : true,
     healthchecksUrl: healthchecksRow
       ? healthchecksRow.target.url?.trim() || ''
       : getServerHealthchecksUrl(),

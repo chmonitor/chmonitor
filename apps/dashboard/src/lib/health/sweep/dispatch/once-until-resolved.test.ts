@@ -79,6 +79,7 @@ function makeCtx(): SweepContext {
     pagerDutyFallbackKey: '',
     channels: {
       webhookUrl: '',
+      webhookUrlTrusted: true,
       healthchecksUrl: '',
       opsgenie: null,
       email: null,
