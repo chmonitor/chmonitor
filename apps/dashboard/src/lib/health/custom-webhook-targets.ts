@@ -46,6 +46,7 @@ import {
 } from './adapters'
 import { incidentLine, spanText } from './adapters/digest'
 import { thresholdText } from './adapters/facts'
+import { withDashboardLink } from './adapters/identity'
 import { escapeMatrixHtml } from './adapters/matrix'
 import { escapeSlackMrkdwn } from './adapters/slack'
 
@@ -531,7 +532,8 @@ export function buildCustomTargetBody(
       const summary =
         text ??
         `[${payload.severity === 'recovery' ? 'RESOLVED' : payload.severity.toUpperCase()}] ${payload.title} — ${payload.label} (host ${payload.hostLabel})`
-      body = { text: summary, content: summary }
+      const linked = withDashboardLink(summary, payload)
+      body = { text: linked, content: linked }
     }
   }
 

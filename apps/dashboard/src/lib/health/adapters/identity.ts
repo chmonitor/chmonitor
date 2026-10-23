@@ -19,6 +19,20 @@ export function instancePrefix(payload: IdentityFields): string {
   return payload.instanceName ? `[${payload.instanceName}] ` : ''
 }
 
+/**
+ * Append the dashboard deep link to a one-line `{ text, content }` summary so
+ * the plain wrapper carries the same link the rich bodies do. Unchanged when no
+ * link is configured or the text already has it.
+ */
+export function withDashboardLink(
+  text: string,
+  payload: Pick<AlertPayload, 'dashboardUrl'>
+): string {
+  const url = payload.dashboardUrl
+  if (!url || text.includes(url)) return text
+  return `${text}\n${url}`
+}
+
 /** `key=value` strings for the payload metadata, in insertion order. */
 export function metadataPairs(payload: IdentityFields): string[] {
   return Object.entries(payload.metadata ?? {}).map(([k, v]) => `${k}=${v}`)
