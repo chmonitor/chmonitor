@@ -330,6 +330,7 @@ describe('task-group layout (#3565)', () => {
       '/history-queries',
       '/recent-queries',
       '/usage',
+      '/dashboard-usage',
       '/failed-queries',
       '/query-views-log',
       '/query-metric-log',
