@@ -80,7 +80,7 @@ export interface DeclaredWebhookTarget {
   headers?: unknown
   /** `false` = no reminders for this target (once until resolved). */
   repeat?: boolean
-  /** `true` = add structured `details` to the raw JSON body. */
+  /** `true` = add the structured `alert` block to the raw JSON body. */
   details?: boolean
 }
 

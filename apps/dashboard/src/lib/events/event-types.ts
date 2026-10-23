@@ -1,3 +1,5 @@
+import type { AlertBlock } from '@/lib/health/adapters'
+
 /**
  * Event taxonomy for the outbound webhook bus.
  *
@@ -60,6 +62,11 @@ export interface AlertEventData {
   label: string
   resolved: boolean
   occurredAt: string
+  /**
+   * Structured alert block (#3998); present only for a subscription with
+   * `details: true`.
+   */
+  alert?: AlertBlock
 }
 
 /**

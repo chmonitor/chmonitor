@@ -16,6 +16,8 @@ export interface WebhookSubscriptionInfo {
    * also eligible for alert.fired/alert.resolved (env/operator hosts, no
    * per-user owner) — see event-types.ts's docblock. */
   scope: 'user' | 'instance'
+  /** Alert events carry the structured `alert` block (#3998). */
+  details: boolean
   createdAt: number
   updatedAt: number
 }
@@ -105,6 +107,7 @@ export function useWebhookSubscriptionsMutations() {
     url: string
     eventTypes: string[]
     scope?: 'user' | 'instance'
+    details?: boolean
   }): Promise<WebhookSubscriptionCreated> => {
     const response = await apiFetch('/api/v1/webhooks/subscriptions', {
       method: 'POST',
@@ -122,7 +125,12 @@ export function useWebhookSubscriptionsMutations() {
 
   const updateSubscription = async (
     id: string,
-    patch: { url?: string; eventTypes?: string[]; enabled?: boolean }
+    patch: {
+      url?: string
+      eventTypes?: string[]
+      enabled?: boolean
+      details?: boolean
+    }
   ): Promise<WebhookSubscriptionInfo> => {
     const response = await apiFetch(`/api/v1/webhooks/subscriptions/${id}`, {
       method: 'PATCH',

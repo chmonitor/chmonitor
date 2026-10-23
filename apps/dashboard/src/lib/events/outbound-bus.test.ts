@@ -34,6 +34,7 @@ function makeSubscription(
     eventTypes: ['connection.created'],
     enabled: true,
     scope: 'user',
+    details: false,
     createdAt: 1_700_000_000_000,
     updatedAt: 1_700_000_000_000,
     ...overrides,
@@ -515,6 +516,90 @@ describe('emitInstanceEvent', () => {
       listInstanceSubscriptionsForEvent: async () => [],
     })
     expect(recordDelivery).not.toHaveBeenCalled()
+  })
+})
+
+describe('emitInstanceEvent alert block (#3998)', () => {
+  test('only a details subscription gets data.alert; the others get the old body byte for byte, signed', async () => {
+    const subs = [
+      makeSubscription({
+        id: 'plain',
+        scope: 'instance',
+        eventTypes: ['alert.fired'],
+      }),
+      makeSubscription({
+        id: 'agent',
+        scope: 'instance',
+        eventTypes: ['alert.fired'],
+        url: 'https://agent.example.com/hook',
+        details: true,
+      }),
+    ]
+    const bodies = new Map<string, string>()
+    const signatures = new Map<string, string>()
+    const fetchImpl = mock(async (url: string, init: RequestInit) => {
+      bodies.set(url.toString(), String(init.body))
+      signatures.set(
+        url.toString(),
+        (init.headers as Record<string, string>)['X-Chmonitor-Signature']
+      )
+      return new Response(null, { status: 200 })
+    })
+    const evt = makeEvent({ type: 'alert.fired' })
+    let built = 0
+
+    await emitInstanceEvent(
+      evt,
+      {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        delay: noDelay,
+        recordDelivery: async () => {},
+        resolveHostAddresses: publicResolver,
+        listInstanceSubscriptionsForEvent: async () => subs,
+      },
+      {
+        withDetails: async (e) => {
+          built++
+          return {
+            ...e,
+            data: { ...(e.data as object), alert: { ruleId: 'r' } },
+          }
+        },
+      }
+    )
+
+    expect(built).toBe(1)
+    const plain = bodies.get('https://example.com/hook')
+    const agent = bodies.get('https://agent.example.com/hook')
+    expect(plain).toBe(JSON.stringify(evt))
+    expect(JSON.parse(agent ?? '{}').data.alert).toEqual({ ruleId: 'r' })
+    expect(signatures.get('https://agent.example.com/hook')).toBe(
+      `sha256=${await signPayload('test-secret', agent ?? '')}`
+    )
+  })
+
+  test('no details subscription: the block is never built', async () => {
+    let built = 0
+    await emitInstanceEvent(
+      makeEvent({ type: 'alert.fired' }),
+      {
+        fetchImpl: (async () =>
+          new Response(null, { status: 200 })) as unknown as typeof fetch,
+        delay: noDelay,
+        recordDelivery: async () => {},
+        resolveHostAddresses: publicResolver,
+        listInstanceSubscriptionsForEvent: async () => [
+          makeSubscription({ scope: 'instance', eventTypes: ['alert.fired'] }),
+        ],
+      },
+      {
+        withDetails: async (e) => {
+          built++
+          return e
+        },
+      }
+    )
+    expect(built).toBe(0)
   })
 })
 

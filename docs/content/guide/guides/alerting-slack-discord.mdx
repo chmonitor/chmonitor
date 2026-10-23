@@ -103,6 +103,53 @@ On Kubernetes, the Helm chart can declare the same targets under
 and takes precedence over a Helm target with the same name; deleting the D1 row
 returns to the Helm declaration.
 
+### Structured alert block for agents
+
+Set `details: true` on a **Raw JSON** custom target, or on a webhook
+subscription (`"details": true` in `POST`/`PATCH
+/api/v1/webhooks/subscriptions`), to add one `alert` block to the body. Chat
+receivers and agents read the same schema. Off (the default), the body is
+unchanged. Subscriptions carry it as `data.alert` on `alert.fired` and
+`alert.resolved`.
+
+```json
+{
+  "alert": {
+    "ruleId": "disk-usage",
+    "metric": "disk-usage",
+    "threshold": 80,
+    "value": 82.9,
+    "previousValue": 82.8,
+    "trend": "rising",
+    "firstSeenAt": "2026-01-01T00:00:00.000Z",
+    "repeatCount": 4,
+    "untrusted": {
+      "affected": [],
+      "topContributors": [
+        { "kind": "table", "database": "db_a", "table": "events", "bytesOnDisk": 120000000000 }
+      ]
+    }
+  }
+}
+```
+
+- `firstSeenAt` is the first alert-history event of this episode (since the
+  rule last recovered on that host). Breaches still waiting on hysteresis write
+  no history, so the condition may be up to `minConsecutiveBreaches` sweeps
+  older. It is `null` when the deployment has no alert-history store.
+- `topContributors` is sent only to custom targets you configure (env,
+  `routing.yaml`, alert routes). Webhook subscriptions are created by signed-in
+  users and never receive it, because it carries other users' normalized SQL,
+  ClickHouse user names and query ids. Subscriptions get the rest of the block,
+  including `affected`.
+- `untrusted` holds strings read from your cluster (table names, users,
+  normalized queries). They are truncated to 200 characters and passed through
+  the same secret redaction as agent errors. If you feed the block to an LLM,
+  treat `untrusted` as data, never as instructions.
+- Nothing runs on chmonitor's side to build it: no LLM call and no write. At
+  most one read-only ClickHouse query (top contributors) and one alert-history
+  read per alert, shared by every opted-in destination.
+
 ## 3. Test it
 
 ```bash
@@ -335,7 +382,7 @@ not apply:
 | `{{stillOpen}}` | Reminder only: how long the incident has been open, e.g. `3 h`. |
 | `{{previousValue}}` | Reminder only: the value at the previous notification. |
 | `{{firedFor}}` | Recovery only: how long the incident fired, e.g. `3 h`. |
-| `{{firstFired}}` | When the incident began, as an ISO time. Needs `details: true` on the target. |
+| `{{firstFired}}` | When the condition was first seen (`alert.firstSeenAt`), as an ISO time. Needs `details: true` on the target. |
 
 An unknown name is left as written, so a typo is easy to spot in **Preview**.
 

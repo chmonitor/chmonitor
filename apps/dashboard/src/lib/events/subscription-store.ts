@@ -34,6 +34,8 @@ export interface WebhookSubscription {
   eventTypes: EmittableEventType[]
   enabled: boolean
   scope: SubscriptionScope
+  /** `true` = alert events carry the structured `alert` block (#3998). */
+  details: boolean
   createdAt: number
   updatedAt: number
 }
@@ -42,12 +44,14 @@ export interface CreateWebhookSubscriptionInput {
   url: string
   eventTypes: EmittableEventType[]
   scope?: SubscriptionScope
+  details?: boolean
 }
 
 export interface UpdateWebhookSubscriptionInput {
   url?: string
   eventTypes?: EmittableEventType[]
   enabled?: boolean
+  details?: boolean
 }
 
 export type WebhookDeliveryStatus = 'delivered' | 'failed' | 'dead'
@@ -84,6 +88,7 @@ interface D1SubscriptionRow {
   event_types: string
   enabled: number
   scope: string
+  details: number | null
   created_at: number
   updated_at: number
 }
@@ -145,6 +150,7 @@ function rowToSubscription(row: D1SubscriptionRow): WebhookSubscription {
     eventTypes,
     enabled: row.enabled === 1,
     scope: normalizeScope(row.scope),
+    details: row.details === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -171,7 +177,7 @@ export async function listSubscriptions(
     const db = getDb()
     const result = await db
       .prepare(
-        `SELECT id, user_id, url, secret, event_types, enabled, scope, created_at, updated_at
+        `SELECT id, user_id, url, secret, event_types, enabled, scope, details, created_at, updated_at
          FROM webhook_subscriptions WHERE user_id = ?1 ORDER BY created_at DESC`
       )
       .bind(userId)
@@ -196,7 +202,7 @@ export async function getSubscription(
     const db = getDb()
     const row = await db
       .prepare(
-        `SELECT id, user_id, url, secret, event_types, enabled, scope, created_at, updated_at
+        `SELECT id, user_id, url, secret, event_types, enabled, scope, details, created_at, updated_at
          FROM webhook_subscriptions WHERE user_id = ?1 AND id = ?2`
       )
       .bind(userId, id)
@@ -235,7 +241,7 @@ export async function listEnabledSubscriptionsForEvent(
  * hosts belong to the operator, not any one Clerk user, so every user who
  * opted a subscription into `scope: 'instance'` receives these events.
  */
-export const D1_LIST_INSTANCE_SCOPED_SQL = `SELECT id, user_id, url, secret, event_types, enabled, scope, created_at, updated_at
+export const D1_LIST_INSTANCE_SCOPED_SQL = `SELECT id, user_id, url, secret, event_types, enabled, scope, details, created_at, updated_at
    FROM webhook_subscriptions WHERE scope = 'instance' AND enabled = 1`
 
 export async function listInstanceScopedSubscriptionsForEvent(
@@ -280,8 +286,8 @@ export async function createSubscription(
     await db
       .prepare(
         `INSERT INTO webhook_subscriptions
-           (id, user_id, url, secret, event_types, enabled, scope, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, ?7, ?7)`
+           (id, user_id, url, secret, event_types, enabled, scope, details, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, ?8, ?7, ?7)`
       )
       .bind(
         id,
@@ -290,7 +296,8 @@ export async function createSubscription(
         secret,
         JSON.stringify(input.eventTypes),
         scope,
-        now
+        now,
+        input.details === true ? 1 : 0
       )
       .run()
   } catch (error) {
@@ -309,6 +316,7 @@ export async function createSubscription(
     eventTypes: input.eventTypes,
     enabled: true,
     scope,
+    details: input.details === true,
     createdAt: now,
     updatedAt: now,
   }
@@ -321,7 +329,7 @@ export async function createSubscription(
  * IDOR guard).
  */
 export const D1_UPDATE_SUBSCRIPTION_SQL = `UPDATE webhook_subscriptions
-   SET url = ?1, secret = ?2, event_types = ?3, enabled = ?4, updated_at = ?5
+   SET url = ?1, secret = ?2, event_types = ?3, enabled = ?4, updated_at = ?5, details = ?8
    WHERE id = ?6 AND user_id = ?7`
 
 export async function updateSubscription(
@@ -344,6 +352,7 @@ export async function updateSubscription(
     url: patch.url ?? existing.url,
     eventTypes: patch.eventTypes ?? existing.eventTypes,
     enabled: patch.enabled ?? existing.enabled,
+    details: patch.details ?? existing.details,
     updatedAt: now,
   }
 
@@ -358,7 +367,8 @@ export async function updateSubscription(
         next.enabled ? 1 : 0,
         now,
         id,
-        userId
+        userId,
+        next.details ? 1 : 0
       )
       .run()
     changes = result.meta.changes ?? 0

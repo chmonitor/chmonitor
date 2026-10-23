@@ -208,3 +208,60 @@ export async function queryAlertEvents(
     return []
   }
 }
+
+/**
+ * Earliest non-recovery row of the current episode for `(hostId, rule)`: rows
+ * after that pair's latest recovery row, including multi-finding digest rows
+ * that reference it in `finding_refs`. Only rows strictly before `?4` (the
+ * current dispatch's time) count, so the rows this dispatch writes during its
+ * own fan-out never move the boundary, whichever finishes first. Exported so
+ * the SQL runs against real SQLite in `alert-history-store.sql.test.ts`.
+ * Binds: host_id, rule, the {@link findingRefLikePattern} of the pair, before.
+ */
+export const FIRST_SEEN_IN_EPISODE_SQL = `SELECT MIN(event_time) AS first_seen
+   FROM ${TABLE}
+   WHERE ((host_id = ?1 AND rule = ?2)
+          OR (rule = 'digest' AND finding_refs LIKE ?3 ESCAPE '\\'))
+     AND severity <> 'recovery'
+     AND event_time < ?4
+     AND event_time > COALESCE(
+       (SELECT MAX(event_time) FROM ${TABLE}
+        WHERE host_id = ?1 AND rule = ?2 AND severity = 'recovery'
+          AND event_time < ?4),
+       '')`
+
+/**
+ * Known limit: SQLite `LIKE` is case-insensitive, so a digest ref differing
+ * only in case can match. Rule ids are lowercase and no function both
+ * dialects share (`instr` vs `strpos`) makes it exact, so a stray match can
+ * only move `firstSeenAt` earlier.
+ */
+/** `LIKE` pattern matching `"hostId:rule"` inside a `finding_refs` JSON array. */
+export function findingRefLikePattern(hostId: number, rule: string): string {
+  const ref = JSON.stringify(`${hostId}:${rule}`).replace(/[\\%_]/g, '\\$&')
+  return `%${ref}%`
+}
+
+/**
+ * ISO time of the first recorded alert event of the current episode for this
+ * host and rule, counting only rows before `before` (ISO), or `null` when
+ * there is none or no history store. Never throws.
+ */
+export async function queryFirstSeenInEpisode(
+  hostId: number,
+  rule: string,
+  before: string
+): Promise<string | null> {
+  try {
+    const db = getDb()
+    if (!db) return null
+    const row = await db
+      .prepare(FIRST_SEEN_IN_EPISODE_SQL)
+      .bind(hostId, rule, findingRefLikePattern(hostId, rule), before)
+      .first<{ first_seen: string | null }>()
+    return row?.first_seen ?? null
+  } catch (err) {
+    warn(`failed to query first-seen time: ${err}`)
+    return null
+  }
+}

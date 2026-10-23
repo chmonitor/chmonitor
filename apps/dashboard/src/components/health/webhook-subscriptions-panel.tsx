@@ -102,6 +102,20 @@ function SubscriptionRow({
     }
   }
 
+  const handleDetails = async (checked: boolean) => {
+    setBusy(true)
+    try {
+      await updateSubscription(subscription.id, { details: checked })
+      onToggled()
+    } catch (err) {
+      toast.error('Failed to update subscription', {
+        description: describeError(err),
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const handleDelete = async () => {
     setBusy(true)
     try {
@@ -157,6 +171,18 @@ function SubscriptionRow({
               </Badge>
             ))}
           </div>
+          <label
+            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            htmlFor={`details-${subscription.id}`}
+          >
+            <Checkbox
+              id={`details-${subscription.id}`}
+              checked={subscription.details}
+              disabled={busy}
+              onCheckedChange={(checked) => handleDetails(checked === true)}
+            />
+            Include the structured alert block for agents
+          </label>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button
@@ -228,6 +254,7 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
   const [url, setUrl] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [instanceScoped, setInstanceScoped] = useState(false)
+  const [details, setDetails] = useState(false)
   const [busy, setBusy] = useState(false)
   const { createSubscription } = useWebhookSubscriptionsMutations()
 
@@ -251,6 +278,7 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
         url: url.trim(),
         eventTypes: Array.from(selected),
         scope: instanceScoped ? 'instance' : 'user',
+        details,
       })
       toast.success('Subscription created', {
         description: `Secret (shown once): ${created.secret}`,
@@ -259,6 +287,7 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
       setUrl('')
       setSelected(new Set())
       setInstanceScoped(false)
+      setDetails(false)
       onCreated()
     } catch (err) {
       toast.error('Failed to create subscription', {
@@ -314,6 +343,17 @@ function AddSubscriptionForm({ onCreated }: { onCreated: () => void }) {
         />
         Instance-scoped (required for alert.fired / alert.resolved — these come
         from the operator&apos;s env-configured hosts, not your own connections)
+      </label>
+      <label
+        className="flex items-center gap-1.5 text-sm"
+        htmlFor="subscription-details"
+      >
+        <Checkbox
+          id="subscription-details"
+          checked={details}
+          onCheckedChange={(checked) => setDetails(checked === true)}
+        />
+        Include the structured alert block for agents
       </label>
       <Button
         size="sm"

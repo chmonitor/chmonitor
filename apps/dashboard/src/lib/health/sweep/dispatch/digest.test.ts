@@ -38,6 +38,7 @@ mock.module('../../alert-digest-buffer-store', () => ({
 }))
 mock.module('../../alert-history-store', () => ({
   recordAlertEvent: async () => {},
+  queryFirstSeenInEpisode: async () => null,
 }))
 mock.module('@/lib/slack/config', () => ({
   isSlackAppConfigured: () => false,

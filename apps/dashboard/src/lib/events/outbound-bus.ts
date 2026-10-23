@@ -76,6 +76,16 @@ export interface EmitInstanceEventDeps extends DeliverDeps {
   ) => Promise<WebhookSubscription[]>
 }
 
+export interface EmitInstanceEventOptions<T> {
+  /**
+   * Builds the richer event a subscription with `details: true` receives
+   * (#3998). Called at most once per emit, and only when such a subscription
+   * exists; every other subscription gets `evt` unchanged. A rejection falls
+   * back to `evt`.
+   */
+  withDetails?: (evt: EventPayload<T>) => Promise<EventPayload<T>>
+}
+
 async function defaultDelay(ms: number): Promise<void> {
   if (ms <= 0) return
   await new Promise((resolve) => setTimeout(resolve, ms))
@@ -318,9 +328,10 @@ export async function emitEvent(
  * no per-user owner to pass to {@link emitEvent}. Same fire-and-forget /
  * never-throws contract as `emitEvent` — see the module docblock.
  */
-export async function emitInstanceEvent(
-  evt: EventPayload,
-  deps: EmitInstanceEventDeps = {}
+export async function emitInstanceEvent<T>(
+  evt: EventPayload<T>,
+  deps: EmitInstanceEventDeps = {},
+  options: EmitInstanceEventOptions<T> = {}
 ): Promise<void> {
   try {
     const listInstanceSubscriptionsForEvent =
@@ -329,8 +340,15 @@ export async function emitInstanceEvent(
     const subs = await listInstanceSubscriptionsForEvent(evt.type)
     if (subs.length === 0) return
 
+    const { withDetails } = options
+    const detailed =
+      withDetails && subs.some((sub) => sub.details)
+        ? withDetails(evt).catch(() => evt)
+        : undefined
     const results = await Promise.allSettled(
-      subs.map((sub) => deliver(sub, evt, deps))
+      subs.map(async (sub) =>
+        deliver(sub, sub.details && detailed ? await detailed : evt, deps)
+      )
     )
     for (const result of results) {
       if (result.status === 'rejected') {

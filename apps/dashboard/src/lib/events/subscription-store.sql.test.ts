@@ -31,10 +31,11 @@ function seed() {
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, url TEXT NOT NULL,
     secret TEXT NOT NULL, event_types TEXT NOT NULL,
     enabled INTEGER NOT NULL DEFAULT 1, scope TEXT NOT NULL DEFAULT 'user',
-    created_at INTEGER, updated_at INTEGER)`)
+    created_at INTEGER, updated_at INTEGER,
+    details INTEGER NOT NULL DEFAULT 0)`)
   db.run(
     `INSERT INTO webhook_subscriptions VALUES
-     ('sub-1','user-1','https://orig.example.com/hook','orig-secret','["connection.created"]',1,'user',1,1)`
+     ('sub-1','user-1','https://orig.example.com/hook','orig-secret','["connection.created"]',1,'user',1,1,0)`
   )
   return db
 }
@@ -50,7 +51,8 @@ describe('webhook_subscriptions UPDATE guard (real SQL)', () => {
       0,
       2,
       'sub-1',
-      'user-2' // attacker's own id, not the owner's
+      'user-2', // attacker's own id, not the owner's
+      1
     )
     expect(res.changes).toBe(0)
 
@@ -81,14 +83,19 @@ describe('webhook_subscriptions UPDATE guard (real SQL)', () => {
         0,
         2,
         'sub-1',
-        'user-1'
+        'user-1',
+        1
       )
     expect(res.changes).toBe(1)
     const row = db
-      .query(`SELECT url, enabled FROM webhook_subscriptions WHERE id='sub-1'`)
-      .get() as { url: string; enabled: number }
+      .query(
+        `SELECT url, enabled, details FROM webhook_subscriptions WHERE id='sub-1'`
+      )
+      .get() as { url: string; enabled: number; details: number }
     expect(row.url).toBe('https://new.example.com/hook')
     expect(row.enabled).toBe(0)
+    // #3998: the opt-in `alert` block flag is persisted by the same UPDATE.
+    expect(row.details).toBe(1)
   })
 })
 
@@ -118,16 +125,16 @@ describe('D1_LIST_INSTANCE_SCOPED_SQL (real SQL, #2664)', () => {
     const db = seed() // sub-1: scope='user', user-1 — must NOT be returned
     db.run(
       `INSERT INTO webhook_subscriptions VALUES
-       ('sub-2','user-2','https://b.example.com/hook','secret-b','["alert.fired"]',1,'instance',2,2)`
+       ('sub-2','user-2','https://b.example.com/hook','secret-b','["alert.fired"]',1,'instance',2,2,0)`
     )
     db.run(
       `INSERT INTO webhook_subscriptions VALUES
-       ('sub-3','user-3','https://c.example.com/hook','secret-c','["alert.fired","alert.resolved"]',1,'instance',3,3)`
+       ('sub-3','user-3','https://c.example.com/hook','secret-c','["alert.fired","alert.resolved"]',1,'instance',3,3,0)`
     )
     // Disabled instance-scoped row — must NOT be returned.
     db.run(
       `INSERT INTO webhook_subscriptions VALUES
-       ('sub-4','user-4','https://d.example.com/hook','secret-d','["alert.fired"]',0,'instance',4,4)`
+       ('sub-4','user-4','https://d.example.com/hook','secret-d','["alert.fired"]',0,'instance',4,4,0)`
     )
 
     const rows = db.query(D1_LIST_INSTANCE_SCOPED_SQL).all() as {
