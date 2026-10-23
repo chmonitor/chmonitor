@@ -105,6 +105,15 @@ interface TelegramDigestEntry {
 }
 
 /**
+ * Dispatch-count guard for a buffered finding that no immediate channel
+ * delivered. Its custom and Matrix entries share one record, so the first
+ * successful in-pass send counts the finding once.
+ */
+interface BufferedCount {
+  counted: boolean
+}
+
+/**
  * A groupable custom target (hookshot / matrix, no templates; #3869). Grouped
  * by target id and sent in THIS pass only: these entries are never written to
  * the D1 time-window buffer because the target carries secret headers.
@@ -117,6 +126,11 @@ interface CustomDigestEntry {
   text: string
   /** `null` when the finding was committed at buffer time (time-window mode). */
   pending: PendingDigestCommit | null
+  /**
+   * Set only for a buffered finding no immediate channel delivered: the first
+   * successful send of any of its custom entries counts it once.
+   */
+  bufferedCount: BufferedCount | null
 }
 
 /**
@@ -128,6 +142,7 @@ interface MatrixDigestEntry extends MatrixChannelEntry {
   finding: FindingContext
   payload: AlertPayload
   pending: PendingDigestCommit | null
+  bufferedCount: BufferedCount | null
 }
 
 /** What one finding contributes to the digest, once its inline channels ran. */
@@ -223,23 +238,35 @@ export async function createDigestPipeline(
       groupableCustomTargets.length +
       groupableMatrixTargets.length
     const customEntries = (
-      pending: PendingDigestCommit | null
+      pending: PendingDigestCommit | null,
+      bufferedCount: BufferedCount | null = null
     ): CustomDigestEntry[] =>
       groupableCustomTargets.flatMap((target) => {
         const format = groupableCustomFormat(target)
         return format
-          ? [{ target, format, payload: webhookPayload, text, pending }]
+          ? [
+              {
+                target,
+                format,
+                payload: webhookPayload,
+                text,
+                pending,
+                bufferedCount,
+              },
+            ]
           : []
       })
 
     const matrixEntries = (
-      pending: PendingDigestCommit | null
+      pending: PendingDigestCommit | null,
+      bufferedCount: BufferedCount | null = null
     ): MatrixDigestEntry[] =>
       groupableMatrixTargets.map((m) => ({
         ...m,
         finding,
         payload: webhookPayload,
         pending,
+        bufferedCount,
       }))
 
     if (groupableTargetCount === 0) {
@@ -310,9 +337,12 @@ export async function createDigestPipeline(
       if (buffered) {
         counters.digestBuffered += bufferable
         // The finding is committed now (it is queued), so its custom entries
-        // carry no pending record: they deliver in this flush only.
-        customDigestEntries.push(...customEntries(null))
-        matrixDigestEntries.push(...matrixEntries(null))
+        // carry no pending record: they deliver in this flush only. Unless an
+        // immediate channel already counted the finding, a delivered custom or
+        // Matrix send counts it once via the shared `bufferedCount`.
+        const bufferedCount = anyDelivered ? null : { counted: false }
+        customDigestEntries.push(...customEntries(null, bufferedCount))
+        matrixDigestEntries.push(...matrixEntries(null, bufferedCount))
         commit()
         if (anyDelivered) {
           counters.alertsDispatched++
@@ -439,6 +469,11 @@ export async function createDigestPipeline(
    * gated on whether ANY of its channels — immediate or grouped — delivered.
    */
   async function flushDigests(): Promise<void> {
+    const countBuffered = (record: BufferedCount | null) => {
+      if (!record || record.counted) return
+      record.counted = true
+      counters.alertsDispatched++
+    }
     // Time-window entries were already removed from the buffer (and their
     // findings' dedup committed) when they were parked, so a failed send here
     // would drop them for good. Collect them and park them again, due now, so
@@ -570,6 +605,7 @@ export async function createDigestPipeline(
       if (result.ok) {
         for (const e of entries) {
           if (e.pending) e.pending.groupableDelivered = true
+          countBuffered(e.bufferedCount)
         }
       }
       await recordDigestHistory(entries, `custom:${first.format}`, result)
@@ -605,6 +641,7 @@ export async function createDigestPipeline(
       if (result.ok) {
         for (const e of entries) {
           if (e.pending) e.pending.groupableDelivered = true
+          countBuffered(e.bufferedCount)
         }
       }
       const error = matrixSendError(result)

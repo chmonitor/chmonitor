@@ -331,3 +331,123 @@ describe('grouped custom webhook targets', () => {
     expect(committed).toBe(0)
   })
 })
+
+/**
+ * A time-window warning is parked in D1 and committed at once, but its custom
+ * targets still send in this pass's flush. The sweep summary must count the
+ * finding when that send is the only delivery, and never twice.
+ */
+describe('buffered finding dispatch counting', () => {
+  const makeTarget = (id: string, format: 'hookshot' | 'matrix') =>
+    ({
+      id,
+      name: id,
+      url: `https://93.184.216.34/${id}`,
+      enabled: true,
+      format,
+      minSeverity: null,
+      titleTemplate: '',
+      bodyTemplate: '',
+      headers: {},
+      secretHeaders: { Authorization: 'Bearer s3cret' },
+      updatedAt: 0,
+      source: 'env',
+      editable: false,
+    }) as never as EffectiveCustomWebhookTarget
+  const hookshot = makeTarget('cwt_hook', 'hookshot')
+  const matrix = makeTarget('cwt_matrix', 'matrix')
+
+  const failing = new Set<string>()
+  beforeEach(() => {
+    failing.clear()
+    globalThis.fetch = (async (input: RequestInfo | URL) =>
+      new Response(null, {
+        status: [...failing].some((u) => String(input).startsWith(u))
+          ? 500
+          : 204,
+      })) as typeof fetch
+  })
+
+  const room = {
+    target: {
+      homeserverUrl: 'https://matrix.example.com',
+      accessToken: 'tok',
+      roomId: '!room:example.com',
+    },
+    trusted: true,
+  }
+
+  async function run(opts: {
+    targets?: EffectiveCustomWebhookTarget[]
+    rooms?: (typeof room)[]
+    anyDelivered?: boolean
+  }) {
+    const counters = newCounters()
+    const pipeline = await createDigestPipeline(ctx, counters)
+    await pipeline.settleFinding({
+      finding: {
+        hostId: 0,
+        hostLabel: 'h0',
+        ruleId: 'disk-usage',
+        effective: 'warning',
+        isRecovery: false,
+        decision: { kind: 'fire' },
+        text: 'disk 0',
+      } as never,
+      commit: () => {},
+      anyDelivered: opts.anyDelivered ?? false,
+      groupableWebhookTargets: [URL],
+      findingTelegramTargets: [],
+      groupableCustomTargets: opts.targets ?? [],
+      groupableMatrixTargets: opts.rooms ?? [],
+      immediateTargetCount: opts.anyDelivered ? 1 : 0,
+      webhookPayload: payload as never,
+    })
+    await pipeline.flushDigests()
+    return counters
+  }
+
+  test('counts a finding delivered only to a hookshot target', async () => {
+    expect((await run({ targets: [hookshot] })).alertsDispatched).toBe(1)
+  })
+
+  test('counts a finding delivered only to a matrix-format target', async () => {
+    expect((await run({ targets: [matrix] })).alertsDispatched).toBe(1)
+  })
+
+  test('counts a finding once when two custom targets deliver', async () => {
+    const counters = await run({ targets: [hookshot, matrix] })
+    expect(counters.alertsDispatched).toBe(1)
+  })
+
+  test('counts a finding delivered only to a native Matrix room', async () => {
+    expect((await run({ rooms: [room] })).alertsDispatched).toBe(1)
+  })
+
+  test('counts once when a custom target and a Matrix room both deliver', async () => {
+    const counters = await run({ targets: [hookshot], rooms: [room] })
+    expect(counters.alertsDispatched).toBe(1)
+  })
+
+  test('does not count a finding whose Matrix send failed', async () => {
+    failing.add(room.target.homeserverUrl)
+    expect((await run({ rooms: [room] })).alertsDispatched).toBe(0)
+  })
+
+  test('does not double count when an immediate channel delivered', async () => {
+    const counters = await run({ targets: [hookshot], anyDelivered: true })
+    expect(counters.alertsDispatched).toBe(1)
+  })
+
+  test('counts once when one custom target fails and another delivers', async () => {
+    failing.add(hookshot.url)
+    expect((await run({ targets: [hookshot, matrix] })).alertsDispatched).toBe(
+      1
+    )
+  })
+
+  test('does not count a finding whose custom send failed', async () => {
+    failing.add(hookshot.url)
+    expect((await run({ targets: [hookshot] })).alertsDispatched).toBe(0)
+  })
+})
