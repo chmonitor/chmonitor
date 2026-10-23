@@ -57,6 +57,7 @@ const DOMAIN_SKILLS: readonly string[] = [
   'storage-optimization',
   'clickhouse-best-practices',
   'settings-audit',
+  'optimization-plan',
 ]
 
 function parseFrontmatter(raw: string): {

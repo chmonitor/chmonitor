@@ -121,6 +121,22 @@
         unused. Recommend-only. Does not claim anything was dropped or is
         safe to drop.
 
+- description: 'Coverage — optimization plan'
+  tags: [extended]
+  metadata:
+    covers: [build_optimization_plan]
+  vars:
+    prompt: 'Give me an optimization plan: what should we clean up or change first to save the most?'
+  assert:
+    - type: contains
+      value: '[tool:'
+    - type: llm-rubric
+      value: >-
+        Presents a ranked plan marked as not applied, with DDL only as text to
+        review and high-risk items flagged for owner approval. Does not claim
+        anything was changed, dropped or is safe to drop, and does not invent
+        savings the plan marks as not measured.
+
 - description: 'Coverage — detached parts triage'
   tags: [extended]
   metadata:

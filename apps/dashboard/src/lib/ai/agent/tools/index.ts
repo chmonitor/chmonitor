@@ -13,6 +13,7 @@ import { createHealthTools } from './health-tools'
 import { createInsightTools } from './insight-tools'
 import { createMergeTools } from './merge-tools'
 import { createMvDesignerTools } from './mv-designer-tools'
+import { createOptimizationPlanTools } from './optimization-plan-tools'
 import { createPageDataTools } from './page-data-tools'
 import { createPeerDBTools } from './peerdb-tools'
 import { createPlanTools } from './plan-tools'
@@ -131,6 +132,7 @@ export function createAllTools(
     ...createAdvisorTools(hostId),
     ...createUsageTools(hostId),
     ...createDetachedPartsTools(hostId),
+    ...createOptimizationPlanTools(hostId),
     ...createMvDesignerTools(hostId),
 
     ...createDashboardTools(),

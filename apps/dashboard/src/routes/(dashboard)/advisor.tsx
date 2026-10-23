@@ -12,6 +12,7 @@ import {
   findAdvisorTargetTable,
 } from '@chm/query-advisor-core'
 import { lazy, Suspense, useState } from 'react'
+import { AdvisorOptimizationPlanTab } from '@/components/agents/advisor-optimization-plan-tab'
 import { AdvisorQueryPicker } from '@/components/agents/advisor-query-picker'
 import { AdvisorRecommendationsPanel } from '@/components/agents/advisor-recommendations-panel'
 import { AdvisorSchemaTab } from '@/components/agents/advisor-schema-tab'
@@ -339,6 +340,9 @@ function AdvisorPage() {
         </TabsContent>
         <TabsContent value="query" className="mt-0">
           <AdvisorContent />
+        </TabsContent>
+        <TabsContent value="plan" className="mt-0">
+          <AdvisorOptimizationPlanTab />
         </TabsContent>
       </Tabs>
     </Suspense>

@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-10-18
+updated: 2026-10-23
 tags:
   - design-system
   - ui
@@ -344,6 +344,11 @@ Prefer ONE clear signal per piece of state, not several redundant ones.
   suggested, group, and sort). Care tables use one amber `chart-yellow` dot.
   Detail is recommend-only (`TuningFindingsPanel`); the all-good empty state
   includes tips for creating new tables. Never Apply/Run DDL.
+  Optimization plan is the third tab (`?view=plan`): a fixed NOT APPLIED
+  banner, a ranked table with rows that expand to evidence, copy-only DDL
+  (`RecommendDdlBlocks`), verify and rollback SQL, and Markdown / JSON export.
+  Risk shows one `SEVERITY_META` icon colour; unmeasured savings read
+  "not measured", never a guess.
 - **Illustrations:** bespoke, theme-aware, token-driven, motion-safe inline SVGs
   in `components/illustrations/` — prefer over a lone lucide glyph for
   high-impact moments. `WelcomeIllustration` (first-run hero),

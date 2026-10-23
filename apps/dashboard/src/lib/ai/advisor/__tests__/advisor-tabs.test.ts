@@ -34,6 +34,16 @@ describe('advisor page tabs', () => {
       resolveAdvisorTab({ view: 'schema', query: 'SELECT 1 FROM events' })
     ).toBe('schema')
     expect(resolveAdvisorTab({ view: 'query' })).toBe('query')
+    expect(resolveAdvisorTab({ view: 'plan' })).toBe('plan')
+  })
+
+  test('Optimization plan is the third tab and an unknown view falls back', () => {
+    expect(ADVISOR_TABS.map((tab) => tab.value)).toEqual([
+      'schema',
+      'query',
+      'plan',
+    ])
+    expect(resolveAdvisorTab({ view: 'apply' })).toBe('schema')
   })
 })
 
@@ -49,8 +59,27 @@ describe('advisor page source', () => {
     expect(src).toContain('resolveAdvisorTab')
     expect(src).toContain('AdvisorSchemaTab')
     expect(src).toContain('AdvisorContent')
+    expect(src).toContain('AdvisorOptimizationPlanTab')
     expect(src).not.toMatch(/defaultValue=["']query["']/)
     expect(src).not.toMatch(/\bApply DDL\b/i)
     expect(src).not.toMatch(/\bexecuteDdl\b/)
+  })
+
+  test('Optimization plan tab is recommend-only: no apply or run control, GET only', () => {
+    const src = readFileSync(
+      fileURLToPath(
+        new URL(
+          '../../../../components/agents/advisor-optimization-plan-tab.tsx',
+          import.meta.url
+        )
+      ),
+      'utf-8'
+    )
+    expect(src).toContain('NOT_APPLIED_BANNER')
+    expect(src).toContain('RecommendDdlBlocks')
+    expect(src).not.toMatch(/>\s*(Apply|Run)\b/i)
+    expect(src).not.toMatch(/method:\s*['"](POST|PUT|PATCH|DELETE)/i)
+    expect(src.match(/apiFetch\(/g)?.length).toBe(1)
+    expect(src).toContain('/api/v1/advisor/optimization-plan?host=')
   })
 })

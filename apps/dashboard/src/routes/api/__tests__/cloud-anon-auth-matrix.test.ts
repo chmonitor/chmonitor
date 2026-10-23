@@ -146,6 +146,7 @@ const PUBLIC: Record<string, string> = {
   'POST /api/v1/advisor': DEMO,
   'GET /api/v1/advisor/history': DEMO,
   'GET /api/v1/advisor/tuning': DEMO,
+  'GET /api/v1/advisor/optimization-plan': DEMO,
   'GET /api/v1/charts/$name': DEMO,
   'POST /api/v1/charts/batch': DEMO,
   'GET /api/v1/cluster-counts/$key': DEMO,

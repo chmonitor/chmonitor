@@ -54,7 +54,7 @@ Open **Tools → Schema Compare**. Pick a source and target host (or two nodes o
   caption="Tools menu with the Advisor entry."
 />
 
-Open **Tools → Advisor**. Two tabs:
+Open **Tools → Advisor**. Three tabs:
 
 - **Query Advisor** — paste a `SELECT` that reads a table, pick a slow query
   (loads it and runs analysis), or look up a `query_id` from `system.query_log`.
@@ -62,6 +62,11 @@ Open **Tools → Advisor**. Two tabs:
   as a failed analysis.
 - **Schema & Settings** — scan a database or table for column lint, TTL /
   partition health, engine / Distributed pairing, and settings findings.
+- **Optimization plan** — ranks the findings the usage, detached-parts,
+  merge-cost and schema advisors already stored by savings, apply cost and
+  risk. Each item expands to its evidence, DDL to copy, and verify and
+  rollback SQL. High-risk items need owner approval. Export as Markdown or
+  JSON. Nothing is applied.
 
 The same recommend-only engine is available from the [AI agent](/guide/ai-agent) and the MCP server. There is no Apply button.
 
