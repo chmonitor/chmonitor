@@ -24,7 +24,7 @@
 import type { Baseline } from './statistical-baseline'
 import type { InsightSeverity } from './types'
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // ── Stub external I/O before importing the module under test. ─────────────
 
@@ -34,6 +34,18 @@ let handler: QueryHandler = () => []
 mock.module('../ai/agent/tools/helpers', () => ({
   readOnlyQuery: async ({ query }: { query: string }) => handler(query),
 }))
+
+// The replication probe goes through the real capability cache; only its
+// answer is stubbed so a host can be made to use or not use replication.
+let replicationUsed = false
+const realCapabilityCache = { ...(await import('../health/capability-cache')) }
+mock.module('../health/capability-cache', () => ({
+  ...realCapabilityCache,
+  getHostCapabilities: async () => ({ replicationUsed }),
+}))
+afterAll(() => {
+  mock.module('../health/capability-cache', () => ({ ...realCapabilityCache }))
+})
 
 mock.module('@chm/platform', () => ({
   getPlatformBindings: () => ({ getD1Database: () => null }),
@@ -49,6 +61,7 @@ const {
 const { fitBaseline } = await import('./statistical-baseline')
 
 beforeEach(() => {
+  replicationUsed = true
   handler = () => []
 })
 
@@ -270,5 +283,31 @@ describe('collectInsights — end-to-end cold start (no D1 baseline store)', () 
 
     const insights = await collectInsights(0)
     expect(insights.find((i) => i.metric === 'error_rate')).toBeUndefined()
+  })
+})
+
+describe('collectInsights — stuck replication queue on a host without replication (#4044)', () => {
+  const queueSql = (sql: string) => sql.includes('system.replication_queue')
+
+  test('skips the queue check when no replicated table exists', async () => {
+    replicationUsed = false
+    const seen: string[] = []
+    handler = (sql) => {
+      seen.push(sql)
+      return []
+    }
+    await collectInsights(0)
+    expect(seen.some(queueSql)).toBe(false)
+  })
+
+  test('still runs it when replication is used', async () => {
+    replicationUsed = true
+    const seen: string[] = []
+    handler = (sql) => {
+      seen.push(sql)
+      return []
+    }
+    await collectInsights(0)
+    expect(seen.some(queueSql)).toBe(true)
   })
 })

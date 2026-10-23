@@ -85,6 +85,9 @@ const { createClickHouseAgent } = await import('../clickhouse-agent')
  * that each branch's substring must not collide with another tool's query.
  */
 function routeQuery(query: string): unknown[] {
+  // Capability probe (#4044): this fixture cluster uses replicated tables.
+  if (query.includes("'replication' AS kind"))
+    return [{ kind: 'replication', name: 'used' }]
   if (query.includes('EXPLAIN')) return EXPLAIN_ROWS
   if (query.includes('QueryFinish')) return SLOW_QUERY_ROWS
   if (query.includes('ExceptionWhileProcessing')) return FAILED_QUERY_ROWS

@@ -92,6 +92,39 @@ describe('computeCheckStatus', () => {
     expect(r.value).toBe(0)
   })
 
+  test('replication check on a host without replication is not applicable, not ok (#4044)', () => {
+    const repl = {
+      ...check,
+      valueKey: 'readonly_count',
+      requiresReplication: true,
+    } as HealthCheckDef
+    const r = computeCheckStatus(
+      repl,
+      thresholds,
+      state([{ readonly_count: 0, replication_used: 0 }]),
+      false
+    )
+    expect(r.status).toBe('error')
+    expect(r.label).toBe('Replication not used on this host')
+    expect(r.displayValue).toBe('—')
+    expect(r.value).toBeNull()
+  })
+
+  test('replication check on a host with replication still classifies', () => {
+    const repl = {
+      ...check,
+      valueKey: 'readonly_count',
+      requiresReplication: true,
+    } as HealthCheckDef
+    const r = computeCheckStatus(
+      repl,
+      thresholds,
+      state([{ readonly_count: 0, replication_used: 1 }]),
+      false
+    )
+    expect(r.status).toBe('ok')
+  })
+
   test('non-finite value → error, not a misleading zero', () => {
     const r = computeCheckStatus(
       check,
