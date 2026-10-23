@@ -390,7 +390,7 @@ function splitCallArgs(text: string, open: number): ArgSpan[] {
 }
 
 function unquote(arg: string): string | null {
-  const m = /^\s*'((?:[^'\\]|\\.)*)'\s*$/s.exec(arg)
+  const m = /^\s*'((?:[^'\\]|\\[\s\S])*)'\s*$/.exec(arg)
   return m ? m[1] : null
 }
 
