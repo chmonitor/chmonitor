@@ -336,9 +336,20 @@ describe('clickhouse-fetch', () => {
 
         expect(mockClientQuery).toHaveBeenCalledWith(
           expect.objectContaining({
-            clickhouse_settings: settings,
+            clickhouse_settings: expect.objectContaining(settings),
           })
         )
+      })
+
+      it('tags the query with the attribution log_comment', async () => {
+        await fetchData(defaultParams)
+
+        const params = mockClientQuery.mock.calls.at(-1)?.[0] as {
+          clickhouse_settings: { log_comment: string }
+        }
+        expect(
+          JSON.parse(params.clickhouse_settings.log_comment)
+        ).toMatchObject({ app: 'chmonitor', v: 1, host: 'host-0' })
       })
 
       it('should support different formats', async () => {
