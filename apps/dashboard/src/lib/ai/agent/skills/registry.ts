@@ -2996,8 +2996,8 @@ or Obsolete settings in use.`,
     content: `# Optimization Plan
 
 Call \`build_optimization_plan\` once, then present its result. The tool reads
-the findings the advisors already stored. It runs no query and applies
-nothing. **Never run any DDL from the plan yourself, and never offer to.**
+the findings the advisors already stored with one SELECT on the findings
+table. It scans no system table and applies nothing. **Never run any DDL from the plan yourself, and never offer to.**
 
 ## Present the plan
 

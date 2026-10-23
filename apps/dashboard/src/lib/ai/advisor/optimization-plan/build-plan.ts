@@ -1,6 +1,7 @@
 /**
  * Build an optimization plan from the findings the advisors already persisted.
- * Reads the insights store only: no ClickHouse scan, no write, no DDL run.
+ * Reads the insights store only (one SELECT on the findings table, never a
+ * system-table scan, never a write): nothing is applied.
  */
 
 import type { FindingRow } from '@/lib/findings/findings-store'

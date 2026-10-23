@@ -1,7 +1,8 @@
 /**
  * Optimization plan tool (#4071): ranks the findings the advisors already
- * persisted into one recommend-only plan. It reads the insights store, never
- * scans or writes to ClickHouse, and nothing in the plan is ever applied.
+ * persisted into one recommend-only plan. It reads the insights store (one
+ * SELECT on the findings table, no system-table scan, no write), and nothing
+ * in the plan is ever applied.
  *
  * `buildOptimizationPlan` is imported inside `execute`, like
  * `generate_cluster_report`, so building the tool map never loads the
