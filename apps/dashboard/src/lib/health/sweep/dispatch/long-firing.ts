@@ -38,7 +38,7 @@ import {
   isRuleMuted,
 } from './../suppression'
 import { partitionWebhookTargets } from './channels/webhook-fanout'
-import { postWebhook } from './webhook-post'
+import { postWebhook, postWebhookTarget } from './webhook-post'
 import { debug } from '@chm/logger'
 
 /**
@@ -208,18 +208,23 @@ export function createLongFiringDigest(ctx: SweepContext): LongFiringDigest {
       hostName: c.hostName,
     }
 
-    const urls = resolveTargets(
+    const webhookTargets = resolveTargets(
       ctx.routes,
       target,
-      channelPasses('webhook') ? ctx.channels.webhookUrl : '',
+      channelPasses('webhook')
+        ? {
+            url: ctx.channels.webhookUrl,
+            trusted: ctx.channels.webhookUrlTrusted,
+          }
+        : null,
       { accept }
     )
-    for (const url of partitionWebhookTargets(urls).groupable) {
-      const adapterId = detectAdapter(url).id
-      bucketFor(`webhook:${adapterId}:${shortHash(url)}`, adapterId, (list) =>
-        postWebhook(
-          url,
-          buildWebhookDigestDispatchBody({ url, payloads: list }).body
+    for (const t of partitionWebhookTargets(webhookTargets).groupable) {
+      const adapterId = detectAdapter(t.url).id
+      bucketFor(`webhook:${adapterId}:${shortHash(t.url)}`, adapterId, (list) =>
+        postWebhookTarget(
+          t,
+          buildWebhookDigestDispatchBody({ url: t.url, payloads: list }).body
         )
       ).payloads.push(payload)
     }

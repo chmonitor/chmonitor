@@ -115,7 +115,7 @@ describe('time-window digest flush', () => {
         committed++
       },
       anyDelivered: false,
-      groupableWebhookTargets: [URL],
+      groupableWebhookTargets: [{ url: URL, trusted: true }],
       findingTelegramTargets: [],
       immediateTargetCount: 0,
       webhookPayload: payload as never,
@@ -151,6 +151,7 @@ describe('time-window digest flush', () => {
       entry: {
         kind: 'webhook',
         url: URL,
+        trusted: true,
         text: 't',
         payload: payload as never,
       },
@@ -225,7 +226,10 @@ describe('grouped custom webhook targets', () => {
       } as never,
       commit: opts.onCommit,
       anyDelivered: false,
-      groupableWebhookTargets: opts.webhooks ?? [],
+      groupableWebhookTargets: (opts.webhooks ?? []).map((url) => ({
+        url,
+        trusted: true,
+      })),
       findingTelegramTargets: [],
       groupableCustomTargets: [target],
       immediateTargetCount: 0,

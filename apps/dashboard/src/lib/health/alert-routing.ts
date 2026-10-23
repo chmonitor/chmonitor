@@ -24,7 +24,11 @@
  */
 
 import type { AlertSeverityFloor } from './alert-channel-settings'
-import type { Sourced, SourceLayer } from './declarative/merge'
+import type {
+  HealthDefinitionSource,
+  Sourced,
+  SourceLayer,
+} from './declarative/merge'
 import type { HealthSqlDb } from './sql-db'
 
 import { mergeSources } from './declarative/merge'
@@ -68,6 +72,20 @@ export type AlertRouteProvider =
   | 'ntfy'
   | 'pushover'
   | 'matrix'
+
+/**
+ * One webhook destination for a finding. `trusted` marks an operator-configured
+ * URL (the env global webhook, or a routing.yaml route that already passed
+ * `isAllowedDeclaredUrl`); every other URL was saved through the API and is
+ * re-checked against the SSRF guard at send time.
+ */
+export interface WebhookTarget {
+  url: string
+  trusted: boolean
+}
+
+/** A route as listed for the sweep: carries its definition source when known. */
+export type RoutedAlertRoute = AlertRoute & { source?: HealthDefinitionSource }
 
 /** A configured alert route: match criteria → destination channel. */
 export interface AlertRoute {
@@ -406,11 +424,11 @@ export interface RouteMatchOptions {
  * (against host id OR name) both match — and that passes an optional
  * {@link RouteMatchOptions.accept} predicate. No I/O — fully unit-testable.
  */
-export function matchRoutes(
-  routes: readonly AlertRoute[],
+export function matchRoutes<R extends AlertRoute>(
+  routes: readonly R[],
   target: RouteMatchTarget,
   options?: RouteMatchOptions
-): AlertRoute[] {
+): R[] {
   return routes.filter((route) => {
     if (!route.enabled) return false
     if (options?.accept && !options.accept(route)) return false
@@ -425,10 +443,9 @@ export function matchRoutes(
 }
 
 /**
- * Resolve the channel URLs a finding should be dispatched to: every matched
- * `'webhook'`-provider route's `channelUrl` (deduplicated), or
- * `[legacyGlobalUrl]` when NO route matched at all (any provider) and a
- * global URL is configured — preserving today's single-webhook behavior for
+ * Resolve the webhook targets a finding should be dispatched to: every matched
+ * `'webhook'`-provider route's `channelUrl` (deduplicated), or `[legacy]`
+ * when NO route matched at all (any provider) and a global URL is configured — preserving today's single-webhook behavior for
  * deployments that never configure a route. Returns `[]` when there is no
  * legacy URL configured, OR when a `'pagerduty'` route matched instead: an
  * explicit route (plan 30's precedent — "matched routes take precedence, the
@@ -438,11 +455,11 @@ export function matchRoutes(
  * the legacy Slack/Discord webhook for the same finding (plan 34).
  */
 export function resolveTargets(
-  routes: readonly AlertRoute[],
+  routes: readonly RoutedAlertRoute[],
   target: RouteMatchTarget,
-  legacyGlobalUrl: string,
+  legacy: WebhookTarget | null,
   options?: RouteMatchOptions
-): string[] {
+): WebhookTarget[] {
   const matched = matchRoutes(routes, target, options)
   // 'pagerduty' routes (plan 34) are dispatched separately by
   // {@link resolvePagerDutyTargets} with a PagerDuty-shaped body, never the
@@ -451,10 +468,19 @@ export function resolveTargets(
   // below.
   const webhookMatched = matched.filter((r) => r.provider === 'webhook')
   if (webhookMatched.length > 0) {
-    return [...new Set(webhookMatched.map((r) => r.channelUrl))]
+    const byUrl = new Map<string, WebhookTarget>()
+    for (const r of webhookMatched) {
+      const trusted = r.source === 'env' || r.source === 'file'
+      const seen = byUrl.get(r.channelUrl)
+      byUrl.set(r.channelUrl, {
+        url: r.channelUrl,
+        trusted: trusted || (seen?.trusted ?? false),
+      })
+    }
+    return [...byUrl.values()]
   }
   if (matched.length > 0) return []
-  return legacyGlobalUrl ? [legacyGlobalUrl] : []
+  return legacy?.url ? [legacy] : []
 }
 
 /** One PagerDuty dispatch target: a service's display name + routing key. */

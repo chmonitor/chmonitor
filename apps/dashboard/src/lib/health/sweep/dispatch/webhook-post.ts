@@ -8,9 +8,11 @@
  */
 
 import type { PagerDutyEventBody } from './../../adapters'
+import type { WebhookTarget } from './../../alert-routing'
 
 import { PAGERDUTY_EVENTS_API_URL } from './../../pagerduty-config'
-import { error } from '@chm/logger'
+import { debug, error } from '@chm/logger'
+import { validateHostUrl } from '@/lib/browser-connections/host-url'
 
 /** Result of a webhook delivery attempt, incl. the error text for the audit log. */
 export interface WebhookResult {
@@ -35,7 +37,7 @@ export async function postWebhook(
   body: unknown,
   init?: {
     headers?: Record<string, string>
-    /** Custom targets disable redirects; legacy callers keep fetch's default. */
+    /** Redirects are refused by default; a caller may opt in explicitly. */
     redirect?: RequestRedirect
   }
 ): Promise<WebhookResult> {
@@ -54,7 +56,7 @@ export async function postWebhook(
       headers: { ...(init?.headers ?? {}), 'Content-Type': 'application/json' },
       body: serialized,
       signal: controller.signal,
-      redirect: init?.redirect,
+      redirect: init?.redirect ?? 'error',
     })
     if (!res.ok) {
       const message = `Webhook returned status ${res.status}`
@@ -74,6 +76,27 @@ export async function postWebhook(
   } finally {
     clearTimeout(timeout)
   }
+}
+
+/**
+ * POST to a resolved webhook target. A target from a saved route is
+ * re-checked against the SSRF guard right before sending (DNS can change
+ * after save) and may not redirect; an operator-configured target (`trusted`)
+ * is sent as is and may follow a redirect, as ntfy does, so an env URL behind
+ * an http-to-https hop keeps delivering. A blocked target is never fetched and
+ * its URL is never logged or returned.
+ */
+export async function postWebhookTarget(
+  target: WebhookTarget,
+  body: unknown
+): Promise<WebhookResult> {
+  if (target.trusted)
+    return postWebhook(target.url, body, { redirect: 'follow' })
+  if (await validateHostUrl(target.url)) {
+    debug('[health-sweep] skipping webhook target: blocked destination')
+    return { ok: false, error: 'Destination URL blocked' }
+  }
+  return postWebhook(target.url, body)
 }
 
 /**

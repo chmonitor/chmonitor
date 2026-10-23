@@ -15,6 +15,7 @@
 
 import type { AlertPayload } from './../../adapters'
 import type { BufferedDigestEntry } from './../../alert-digest-buffer-store'
+import type { WebhookTarget } from './../../alert-routing'
 import type { AlertDecision } from './../../alert-state-store'
 import type { EffectiveCustomWebhookTarget } from './../../custom-webhook-config'
 import type { SweepContext } from './../resolve-config'
@@ -52,7 +53,7 @@ import { SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
 import { buildAlertEventRecord, recordChannelEvent } from './alert-event-record'
 import { sendCustomTarget } from './channels/custom-targets'
 import { matrixSendError, sendMatrixChannel } from './channels/matrix'
-import { postWebhook } from './webhook-post'
+import { postWebhook, postWebhookTarget } from './webhook-post'
 import { debug } from '@chm/logger'
 import { buildAlertBlocksWithAck } from '@/lib/slack/blocks'
 import { isSlackAppConfigured } from '@/lib/slack/config'
@@ -85,6 +86,8 @@ interface PendingDigestCommit {
 
 interface WebhookDigestEntry {
   url: string
+  /** Operator-configured URL; otherwise re-checked at send time. */
+  trusted: boolean
   text: string
   payload: AlertPayload
   /** Ack-button key for a LONE Slack send (bucket size 1); Slack app only. */
@@ -138,7 +141,7 @@ export interface SettleFindingParams {
   /** Whether any inline (non-groupable) channel delivered. */
   anyDelivered: boolean
   /** Digest-capable webhook URLs this finding resolved to. */
-  groupableWebhookTargets: string[]
+  groupableWebhookTargets: WebhookTarget[]
   /** Telegram chats this finding resolved to (always groupable). */
   findingTelegramTargets: TelegramChannelEntry[]
   /** Groupable custom targets (hookshot / matrix, no templates) that admit this finding. */
@@ -180,6 +183,7 @@ export async function createDigestPipeline(
     if (entry.kind === 'webhook') {
       webhookDigestEntries.push({
         url: entry.url,
+        trusted: entry.trusted === true,
         text: entry.text,
         payload: entry.payload,
         slackAck: entry.slackAck,
@@ -267,9 +271,10 @@ export async function createDigestPipeline(
         : undefined
 
     const webhookEntries: BufferedDigestEntry[] = groupableWebhookTargets.map(
-      (url) => ({
+      ({ url, trusted }) => ({
         kind: 'webhook',
         url,
+        trusted,
         text,
         payload: webhookPayload,
         ...(detectAdapter(url).id === 'slack' && slackAckKey
@@ -338,6 +343,7 @@ export async function createDigestPipeline(
       if (entry.kind !== 'webhook') continue
       webhookDigestEntries.push({
         url: entry.url,
+        trusted: entry.trusted === true,
         text: entry.text,
         payload: entry.payload,
         slackAck: entry.slackAck,
@@ -487,7 +493,9 @@ export async function createDigestPipeline(
           payloads: entries.map((e) => e.payload),
         }).body
       }
-      const result = await postWebhook(url, body)
+      // A URL group is trusted only when every entry in it is.
+      const trusted = entries.every((e) => e.trusted)
+      const result = await postWebhookTarget({ url, trusted }, body)
       if (result.ok) {
         for (const e of entries) {
           if (e.pending) e.pending.groupableDelivered = true
@@ -498,6 +506,7 @@ export async function createDigestPipeline(
           failedBuffered.push({
             kind: 'webhook',
             url: e.url,
+            trusted: e.trusted,
             text: e.text,
             payload: e.payload,
             ...(e.slackAck ? { slackAck: e.slackAck } : {}),
