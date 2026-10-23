@@ -336,7 +336,7 @@ describe('displaySql', () => {
 })
 
 /**
- * Before ClickHouse 25.x `log_comment` is part of the query cache key
+ * On some ClickHouse versions `log_comment` is part of the query cache key
  * (measured: 24.8 misses on a different value, 26.5 hits), so a per-user
  * value would give every user their own cache entry for the same chart.
  */

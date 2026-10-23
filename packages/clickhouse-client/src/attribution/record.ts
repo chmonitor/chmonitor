@@ -66,17 +66,21 @@ function clean(value: string | null | undefined): string | null {
 export function buildAttributionRecord(
   input: AttributionInput
 ): AttributionRecord {
+  // The fields both carriers hold go through the SQL comment's charset here,
+  // once, so `log_comment` and the comment always agree and the usage page
+  // never splits one user (or label) into two rows. Only the opt-in `email`
+  // and the `page` path keep their original text, and only in `log_comment`.
   const email = clean(input.email)
   const page = clean(input.page)
-  const label = clean(input.label)
+  const label = sqlSafe(clean(input.label))
   return {
     app: ATTRIBUTION_APP,
     v: ATTRIBUTION_SCHEMA_VERSION,
-    version: clean(input.version),
-    user: clean(input.user),
+    version: sqlSafe(clean(input.version)),
+    user: safeUser(clean(input.user)),
     ...(email ? { email } : {}),
-    host: clean(input.host),
-    source: clean(input.source),
+    host: sqlSafe(clean(input.host)),
+    source: sqlSafe(clean(input.source)),
     ...(page ? { page } : {}),
     ...(label ? { label } : {}),
   }
@@ -125,8 +129,8 @@ export const ATTRIBUTION_CLIENT = 'clickhouse-monitoring'
  * (end of comment) nor `/` + `*` (a nested comment, which ClickHouse supports)
  * can form. No quotes, backslashes, or whitespace either, so `JSON.stringify`
  * never escapes anything and the JSON stays one line. No `@`: the user field
- * is cut to the part before `@` first, so an email-shaped subject never lands
- * in the comment.
+ * is cut to the part before `@` first, so an email-shaped subject reaches
+ * neither carrier as an email.
  */
 const SQL_COMMENT_UNSAFE = /[^A-Za-z0-9._:/=,+-]/g
 const MAX_SQL_COMMENT_VALUE = 64
@@ -139,7 +143,7 @@ function sqlSafe(value: string | null | undefined): string | null {
   return safe.length > 0 ? safe : null
 }
 
-function userForComment(user: string | null): string | null {
+function safeUser(user: string | null): string | null {
   if (!user) return null
   return sqlSafe(user.split('@')[0])
 }
@@ -158,7 +162,7 @@ export function encodeSqlComment(record: AttributionRecord): string {
     app: record.app,
     v: record.v,
     version: sqlSafe(record.version),
-    user: userForComment(record.user),
+    user: safeUser(record.user),
     source: sqlSafe(record.source),
     host: sqlSafe(record.host),
     label: sqlSafe(record.label),

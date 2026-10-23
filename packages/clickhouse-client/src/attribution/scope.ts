@@ -209,9 +209,9 @@ export async function attributeParams<T>(
   const record = await resolveAttributionRecord(host, config, options)
   const hasQuery = typeof p.query === 'string'
   const withComment = config.sqlComment || carriers === 'sqlCommentOnly'
-  // `log_comment` is part of the query cache key before ClickHouse 25.x
-  // (measured: 24.8 misses, 26.5 hits), so a per-user value would split one
-  // cached chart into one entry per user. When the comment carries the
+  // On some ClickHouse versions `log_comment` is part of the query cache key
+  // (measured: 24.8 misses on a different value, 26.5 hits), so a per-user
+  // value would split one cached chart into one entry per user. When the comment carries the
   // record, a cached query leaves `log_comment` out.
   const withLogComment =
     carriers === 'configured' &&

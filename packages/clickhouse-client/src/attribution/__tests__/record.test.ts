@@ -86,7 +86,43 @@ describe('encodeLogComment', () => {
         buildAttributionRecord({ ...base, user: `jane","user":"admin` })
       )
     )
-    expect(parsed.user).toBe(`jane","user":"admin`)
+    expect(parsed.user).toBe('jane_,_user_:_admin')
+  })
+
+  /**
+   * Cached and readonly=1 queries carry only the SQL comment, so the usage
+   * page reads a mix of both carriers. If they disagreed, one person would
+   * show up as two users.
+   */
+  it('holds the same user, source, host and label as the SQL comment', () => {
+    const record = buildAttributionRecord({
+      ...base,
+      user: 'Jane Doe@corp.example',
+      label: 'env=prod eu',
+      source: 'api:/api/v1/x y',
+      host: 'ch 東京',
+    })
+    const log = JSON.parse(encodeLogComment(record))
+    const comment = encodeSqlComment(record)
+    const body = JSON.parse(comment.slice(3, -4))
+    for (const key of ['version', 'user', 'source', 'host', 'label']) {
+      expect(log[key]).toBe(body[key])
+    }
+    expect(log.user).toBe('Jane_Doe')
+  })
+
+  it('keeps the email only in the opt-in email field', () => {
+    const log = JSON.parse(
+      encodeLogComment(
+        buildAttributionRecord({
+          ...base,
+          user: 'jane@corp.example',
+          email: 'jane@corp.example',
+        })
+      )
+    )
+    expect(log.user).toBe('jane')
+    expect(log.email).toBe('jane@corp.example')
   })
 })
 
