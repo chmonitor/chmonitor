@@ -10,14 +10,22 @@
  */
 
 import { Database } from 'bun:sqlite'
-import { describe, expect, mock, test } from 'bun:test'
+import { afterAll, describe, expect, mock, test } from 'bun:test'
 
 // The store imports `getPlatformBindings` from '@chm/platform', a Workers-only
 // virtual module `bun test` can't resolve — mock it before importing. The
 // binding value is irrelevant; this file only needs the exported SQL constants.
+const realModule = { ...(await import('@chm/platform')) }
+
 mock.module('@chm/platform', () => ({
+  ...realModule,
   getPlatformBindings: () => ({ getD1Database: () => undefined }),
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@chm/platform', () => ({ ...realModule }))
+})
 
 const { D1_LIST_CHANNEL_CONFIG_SQL, D1_UPSERT_CHANNEL_CONFIG_SQL } =
   await import('./alert-channel-config-store')

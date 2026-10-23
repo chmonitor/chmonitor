@@ -4,14 +4,17 @@
  * back to the 60s default.
  */
 
-import { describe, expect, mock, test } from 'bun:test'
+import { afterAll, describe, expect, mock, test } from 'bun:test'
 
 const calls: Array<{
   query: string
   clickhouse_settings?: Record<string, unknown>
 }> = []
 
+const realModule = { ...(await import('@chm/clickhouse-client')) }
+
 mock.module('@chm/clickhouse-client', () => ({
+  ...realModule,
   fetchData: async (args: {
     query: string
     clickhouse_settings?: Record<string, unknown>
@@ -32,6 +35,11 @@ mock.module('@chm/clickhouse-client', () => ({
     { id: 0, host: 'test-host', user: 'default', password: '' },
   ],
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@chm/clickhouse-client', () => ({ ...realModule }))
+})
 
 const { getCurrentFindings } = await import('./current-findings')
 const { BUILTIN_RULES } = await import('@/lib/alerting/builtin-rules')

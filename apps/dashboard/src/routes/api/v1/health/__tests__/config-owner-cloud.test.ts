@@ -5,21 +5,37 @@
  * was issued to. Anything else is a 401. Self-hosted keeps `''`.
  */
 
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from 'bun:test'
 import { issueApiKey } from '@chm/mcp-server/auth'
 
 let clerkUserId: string | null = null
 let clerkOrgId: string | null = null
+const real1 = { ...(await import('@clerk/tanstack-react-start/server')) }
+const real2 = { ...(await import('@/lib/feature-permissions/server')) }
+const real3 = { ...(await import('@/lib/health/alert-routing')) }
+const real4 = { ...(await import('@/lib/health/maintenance-windows')) }
+
 mock.module('@clerk/tanstack-react-start/server', () => ({
+  ...real1,
   auth: async () => ({ userId: clerkUserId, orgId: clerkOrgId }),
 }))
 mock.module('@/lib/feature-permissions/server', () => ({
+  ...real2,
   authorizeFeatureRequest: async () => null,
 }))
 
 const listRoutesCalls: string[] = []
 const createRouteCalls: string[] = []
 mock.module('@/lib/health/alert-routing', () => ({
+  ...real3,
   listRoutes: async (ownerId: string) => {
     listRoutesCalls.push(ownerId)
     return []
@@ -34,6 +50,7 @@ mock.module('@/lib/health/alert-routing', () => ({
 class MaintenanceStoreUnavailableError extends Error {}
 const windowCalls: Array<[string, string]> = []
 mock.module('@/lib/health/maintenance-windows', () => ({
+  ...real4,
   MaintenanceStoreUnavailableError,
   listWindows: async (ownerId: string) => {
     windowCalls.push(['list', ownerId])
@@ -48,6 +65,14 @@ mock.module('@/lib/health/maintenance-windows', () => ({
     return 1
   },
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@clerk/tanstack-react-start/server', () => ({ ...real1 }))
+  mock.module('@/lib/feature-permissions/server', () => ({ ...real2 }))
+  mock.module('@/lib/health/alert-routing', () => ({ ...real3 }))
+  mock.module('@/lib/health/maintenance-windows', () => ({ ...real4 }))
+})
 
 const { __handleGetForTests: getRoutes, __handlePostForTests: postRoute } =
   await import('../routes')

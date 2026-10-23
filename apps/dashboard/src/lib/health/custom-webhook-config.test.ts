@@ -1,10 +1,18 @@
 import type { CustomWebhookTarget } from './custom-webhook-targets'
 
-import { describe, expect, mock, test } from 'bun:test'
+import { afterAll, describe, expect, mock, test } from 'bun:test'
+
+const realModule = { ...(await import('@chm/platform')) }
 
 mock.module('@chm/platform', () => ({
+  ...realModule,
   getPlatformBindings: () => ({ getD1Database: () => undefined }),
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@chm/platform', () => ({ ...realModule }))
+})
 
 const { mergeWebhookTargets, toPublicCustomWebhookTarget } = await import(
   './custom-webhook-config'

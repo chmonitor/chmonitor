@@ -5,12 +5,19 @@
 
 import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
+const realClickhouseClient = { ...(await import('@chm/clickhouse-client')) }
+const realGenerateInsights = {
+  ...(await import('@/lib/insights/generate-insights')),
+}
+
 mock.module('@chm/clickhouse-client', () => ({
+  ...realClickhouseClient,
   fetchData: async () => ({ data: [], metadata: {}, error: undefined }),
   getClickHouseConfigs: () => [],
 }))
 const insightCalls: Array<[number, unknown]> = []
 mock.module('@/lib/insights/generate-insights', () => ({
+  ...realGenerateInsights,
   generateInsights: async (hostId: number, opts?: unknown) => {
     insightCalls.push([hostId, opts])
     return []
@@ -35,6 +42,10 @@ beforeEach(() => {
 })
 
 afterAll(() => {
+  mock.module('@chm/clickhouse-client', () => ({ ...realClickhouseClient }))
+  mock.module('@/lib/insights/generate-insights', () => ({
+    ...realGenerateInsights,
+  }))
   if (saved === undefined) delete process.env.INSIGHTS_SWEEP_ENRICH
   else process.env.INSIGHTS_SWEEP_ENRICH = saved
 })
