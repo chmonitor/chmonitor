@@ -8,7 +8,7 @@ author: duyetbot
 cover: /posts/v0.3.8/cover.webp
 ---
 
-chmonitor **v0.3.8** ships **34 new features, 96 fixes, and 6 performance
+chmonitor **v0.3.8** ships **45 new features, 106 fixes, and 6 performance
 changes** since v0.3.7. The advisor finds data nobody reads, detached parts get
 a careful triage, storage shows which queries hit a table, and alert reminders
 are quieter.
