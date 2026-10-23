@@ -2,7 +2,7 @@
  * Digest grouping + deferred commit accounting for the sweep's dispatch
  * (#2663), extracted verbatim from `sweep/dispatch.ts` in #2938.
  *
- * Slack + generic-webhook + Telegram sends, plus hookshot / matrix custom
+ * Slack + generic-webhook + Telegram + native Matrix sends, plus hookshot / matrix custom
  * targets without templates (#3869, grouped by target id, in-pass only), buffer
  * here so a delivery target
  * that receives >1 finding in this pass gets ONE combined message; every other
@@ -18,6 +18,7 @@ import type { BufferedDigestEntry } from './../../alert-digest-buffer-store'
 import type { AlertDecision } from './../../alert-state-store'
 import type { EffectiveCustomWebhookTarget } from './../../custom-webhook-config'
 import type { SweepContext } from './../resolve-config'
+import type { MatrixChannelEntry } from './channels/matrix'
 import type { TelegramChannelEntry } from './channels/telegram'
 import type { FindingContext } from './finding-context'
 import type { DispatchCounters } from './types'
@@ -31,6 +32,7 @@ import {
   detectAdapter,
   summarizeDigest,
 } from './../../adapters'
+import { buildMatrixBody, buildMatrixDigestBody } from './../../adapters/matrix'
 import {
   bufferDigestEntries,
   takeDueDigestEntries,
@@ -41,10 +43,15 @@ import {
   buildCustomTargetDigestBody,
   groupableCustomFormat,
 } from './../../custom-webhook-targets'
+import {
+  buildMatrixTxnId,
+  matrixTxnIdForPayload,
+} from './../../matrix-dispatch'
 import { telegramSendMessageUrl } from './../../telegram-dispatch'
 import { SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
-import { buildAlertEventRecord } from './alert-event-record'
+import { buildAlertEventRecord, recordChannelEvent } from './alert-event-record'
 import { sendCustomTarget } from './channels/custom-targets'
+import { matrixSendError, sendMatrixChannel } from './channels/matrix'
 import { postWebhook } from './webhook-post'
 import { debug } from '@chm/logger'
 import { buildAlertBlocksWithAck } from '@/lib/slack/blocks'
@@ -112,6 +119,17 @@ interface CustomDigestEntry {
   pending: PendingDigestCommit | null
 }
 
+/**
+ * A native Matrix room (route or env). In-pass only, like custom targets: the
+ * access token never goes to the D1 time-window buffer. Keeps its finding so
+ * every finding gets its own alert-history row, grouped or not.
+ */
+interface MatrixDigestEntry extends MatrixChannelEntry {
+  finding: FindingContext
+  payload: AlertPayload
+  pending: PendingDigestCommit | null
+}
+
 /** What one finding contributes to the digest, once its inline channels ran. */
 export interface SettleFindingParams {
   finding: FindingContext
@@ -125,6 +143,8 @@ export interface SettleFindingParams {
   findingTelegramTargets: TelegramChannelEntry[]
   /** Groupable custom targets (hookshot / matrix, no templates) that admit this finding. */
   groupableCustomTargets?: readonly EffectiveCustomWebhookTarget[]
+  /** Native Matrix rooms this finding resolved to (always groupable). */
+  groupableMatrixTargets?: readonly MatrixChannelEntry[]
   /** How many non-groupable targets this finding dispatched to inline. */
   immediateTargetCount: number
   /** The finding's shared webhook payload (one timestamp per finding). */
@@ -148,6 +168,7 @@ export async function createDigestPipeline(
   const webhookDigestEntries: WebhookDigestEntry[] = []
   const telegramDigestEntries: TelegramDigestEntry[] = []
   const customDigestEntries: CustomDigestEntry[] = []
+  const matrixDigestEntries: MatrixDigestEntry[] = []
 
   // Time-window buffered entries whose window has closed — loaded once, merged
   // into the in-pass buckets before the flush so they group with fresh
@@ -190,6 +211,7 @@ export async function createDigestPipeline(
     groupableWebhookTargets,
     findingTelegramTargets,
     groupableCustomTargets = [],
+    groupableMatrixTargets = [],
     immediateTargetCount,
     webhookPayload,
   }: SettleFindingParams): Promise<void> {
@@ -198,7 +220,8 @@ export async function createDigestPipeline(
     const groupableTargetCount =
       groupableWebhookTargets.length +
       findingTelegramTargets.length +
-      groupableCustomTargets.length
+      groupableCustomTargets.length +
+      groupableMatrixTargets.length
     const customEntries = (
       pending: PendingDigestCommit | null
     ): CustomDigestEntry[] =>
@@ -208,6 +231,16 @@ export async function createDigestPipeline(
           ? [{ target, format, payload: webhookPayload, text, pending }]
           : []
       })
+
+    const matrixEntries = (
+      pending: PendingDigestCommit | null
+    ): MatrixDigestEntry[] =>
+      groupableMatrixTargets.map((m) => ({
+        ...m,
+        finding,
+        payload: webhookPayload,
+        pending,
+      }))
 
     if (groupableTargetCount === 0) {
       // Unchanged inline gate: commit when there was nothing to deliver (not
@@ -279,6 +312,7 @@ export async function createDigestPipeline(
         // The finding is committed now (it is queued), so its custom entries
         // carry no pending record: they deliver in this flush only.
         customDigestEntries.push(...customEntries(null))
+        matrixDigestEntries.push(...matrixEntries(null))
         commit()
         if (anyDelivered) {
           counters.alertsDispatched++
@@ -319,6 +353,7 @@ export async function createDigestPipeline(
       })
     }
     customDigestEntries.push(...customEntries(pending))
+    matrixDigestEntries.push(...matrixEntries(pending))
   }
 
   /**
@@ -540,6 +575,48 @@ export async function createDigestPipeline(
       await recordDigestHistory(entries, `custom:${first.format}`, result)
     }
 
+    // Native Matrix rooms grouped by homeserver + room + token. A lone entry
+    // sends the single-alert body under its per-payload txn id; a digest's txn
+    // id covers every member's, so a retry of the same send reuses it and any
+    // other notification gets a new one. One history row per finding.
+    const byRoom = new Map<string, MatrixDigestEntry[]>()
+    for (const entry of matrixDigestEntries) {
+      const { homeserverUrl, roomId, accessToken } = entry.target
+      const key = `${homeserverUrl}\u0000${roomId}\u0000${accessToken}`
+      const list = byRoom.get(key)
+      if (list) list.push(entry)
+      else byRoom.set(key, [entry])
+    }
+    for (const entries of byRoom.values()) {
+      const first = entries[0]
+      const roomId = first.target.roomId
+      const lone = entries.length === 1 && !isCompactReminder(first)
+      const body = lone
+        ? buildMatrixBody(first.payload)
+        : buildMatrixDigestBody(entries.map((e) => e.payload))
+      const memberTxnIds = await Promise.all(
+        entries.map((e) => matrixTxnIdForPayload(e.payload, roomId))
+      )
+      const txnId =
+        entries.length === 1
+          ? memberTxnIds[0]
+          : await buildMatrixTxnId([roomId, 'digest', ...memberTxnIds])
+      const result = await sendMatrixChannel(first, body, txnId)
+      if (result.ok) {
+        for (const e of entries) {
+          if (e.pending) e.pending.groupableDelivered = true
+        }
+      }
+      const error = matrixSendError(result)
+      for (const e of entries) {
+        await recordChannelEvent(e.finding, {
+          delivered: result.ok,
+          error,
+          channel: 'matrix',
+        })
+      }
+    }
+
     if (failedBuffered.length > 0) {
       const now = Date.now()
       const rebuffered = await bufferDigestEntries(
@@ -562,6 +639,7 @@ export async function createDigestPipeline(
     for (const e of telegramDigestEntries)
       if (e.pending) pendings.add(e.pending)
     for (const e of customDigestEntries) if (e.pending) pendings.add(e.pending)
+    for (const e of matrixDigestEntries) if (e.pending) pendings.add(e.pending)
     for (const pending of pendings) {
       if (pending.committed) continue
       pending.committed = true

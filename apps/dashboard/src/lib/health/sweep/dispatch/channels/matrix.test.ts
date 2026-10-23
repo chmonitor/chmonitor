@@ -5,9 +5,7 @@
  * and trusted. Drives the real `validateHostUrl` with IP literals (no DNS).
  */
 
-import type { FindingContext } from '../finding-context'
-
-import { dispatchMatrixChannel } from './matrix'
+import { matrixChannelEntries, sendMatrixChannel } from './matrix'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
 const realFetch = globalThis.fetch
@@ -33,18 +31,16 @@ afterEach(() => {
   }
 })
 
-const finding = {
-  hostId: 1,
-  hostLabel: 'h',
-  ruleId: 'rule',
-  ruleTitle: 'T',
-  label: 'L',
-  value: 1,
-  effective: 'critical',
-  isRecovery: false,
-  decision: { kind: 'new', notify: true, severity: 'critical' },
-  text: 'x',
-} as unknown as FindingContext
+type T = ReturnType<typeof target>
+
+/** Send to each room like the digest flush does; true when any delivered. */
+async function send(targets: T[], env: T | null): Promise<boolean> {
+  let any = false
+  for (const entry of matrixChannelEntries(targets, env)) {
+    if ((await sendMatrixChannel(entry, { body: 'x' }, 'txn')).ok) any = true
+  }
+  return any
+}
 
 const target = (homeserverUrl: string) => ({
   homeserverUrl,
@@ -52,39 +48,24 @@ const target = (homeserverUrl: string) => ({
   roomId: '!abc:example.org',
 })
 
-describe('dispatchMatrixChannel send-time SSRF guard', () => {
+describe('sendMatrixChannel send-time SSRF guard', () => {
   test('control: a public saved target is sent', async () => {
-    expect(
-      await dispatchMatrixChannel(
-        finding,
-        [target('https://93.184.216.34')],
-        null
-      )
-    ).toBe(true)
+    expect(await send([target('https://93.184.216.34')], null)).toBe(true)
     expect(fetched).toHaveLength(1)
   })
 
   test('a saved target resolving to loopback is never fetched', async () => {
-    expect(
-      await dispatchMatrixChannel(finding, [target('https://127.0.0.1')], null)
-    ).toBe(false)
+    expect(await send([target('https://127.0.0.1')], null)).toBe(false)
     expect(fetched).toEqual([])
   })
 
   test('cloud metadata address is never fetched', async () => {
-    expect(
-      await dispatchMatrixChannel(
-        finding,
-        [target('https://169.254.169.254')],
-        null
-      )
-    ).toBe(false)
+    expect(await send([target('https://169.254.169.254')], null)).toBe(false)
     expect(fetched).toEqual([])
   })
 
   test('a blocked target does not stop later valid targets', async () => {
-    const ok = await dispatchMatrixChannel(
-      finding,
+    const ok = await send(
       [target('https://10.0.0.5'), target('https://93.184.216.34')],
       null
     )
@@ -95,7 +76,7 @@ describe('dispatchMatrixChannel send-time SSRF guard', () => {
 
   test('the env-configured homeserver is trusted, even on a LAN address', async () => {
     const env = target('http://10.0.0.5:8008')
-    expect(await dispatchMatrixChannel(finding, [env], env)).toBe(true)
+    expect(await send([env], env)).toBe(true)
     expect(fetched).toHaveLength(1)
   })
 })

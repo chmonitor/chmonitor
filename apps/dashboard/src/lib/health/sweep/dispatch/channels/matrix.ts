@@ -1,15 +1,21 @@
 /**
- * Native Matrix room fan-out via the Client-Server API.
+ * Native Matrix rooms via the Client-Server API. Digest-capable like Telegram
+ * and the custom Matrix format: the sweep collects one entry per resolved room
+ * and the grouped flush (`./../digest.ts`) sends one message per room.
  */
 
 import type { MatrixTarget } from './../../../alert-routing'
-import type { FindingContext } from './../finding-context'
+import type { MatrixSendResult } from './../../../matrix-dispatch'
 
-import { dispatchMatrix } from './../../../matrix-dispatch'
-import { recordChannelEvent } from './../alert-event-record'
-import { buildChannelPayload } from './../finding-context'
+import { sendMatrixEvent } from './../../../matrix-dispatch'
 import { debug } from '@chm/logger'
 import { validateHostUrl } from '@/lib/browser-connections/host-url'
+
+/** One resolved room; `trusted` = the operator-set env room (no SSRF check). */
+export interface MatrixChannelEntry {
+  target: MatrixTarget
+  trusted: boolean
+}
 
 const isSameTarget = (a: MatrixTarget, b: MatrixTarget | null) =>
   b !== null &&
@@ -18,48 +24,43 @@ const isSameTarget = (a: MatrixTarget, b: MatrixTarget | null) =>
   a.accessToken === b.accessToken
 
 /**
- * Matrix: every resolved room (matched routes, or the env-configured room when
- * nothing matched). One payload per finding, so every room's txn id derives
- * from the same timestamp. Never throws. Returns whether ANY room delivered.
- *
- * A saved route's homeserver is re-validated against the SSRF guard right
- * before sending (DNS can change after save). `envTarget` is the
- * operator-configured room, which is trusted and skips the check. A blocked
- * target is recorded as not delivered and never fetched.
+ * Tag each resolved room with whether it is the env-configured one (compared
+ * by value). Every other room is a saved route, re-validated at send time.
  */
-export async function dispatchMatrixChannel(
-  finding: FindingContext,
-  matrixTargets: MatrixTarget[],
+export function matrixChannelEntries(
+  matrixTargets: readonly MatrixTarget[],
   envTarget: MatrixTarget | null
-): Promise<boolean> {
-  if (matrixTargets.length === 0) return false
-  const payload = buildChannelPayload(finding)
-  let anyDelivered = false
+): MatrixChannelEntry[] {
+  return matrixTargets.map((target) => ({
+    target,
+    trusted: isSameTarget(target, envTarget),
+  }))
+}
 
-  for (const target of matrixTargets) {
-    const blocked = isSameTarget(target, envTarget)
-      ? null
-      : await validateHostUrl(target.homeserverUrl)
-    if (blocked) {
-      debug('[health-sweep] skipping matrix target: blocked destination')
-      await recordChannelEvent(finding, {
-        delivered: false,
-        error: 'matrix dispatch failed (destination blocked)',
-        channel: 'matrix',
-      })
-      continue
-    }
-    const result = await dispatchMatrix(payload, target)
-    if (result.ok) anyDelivered = true
-
-    await recordChannelEvent(finding, {
-      delivered: result.ok,
-      error: result.ok
-        ? undefined
-        : `matrix dispatch failed${result.errcode ? ` (${result.errcode})` : result.status ? ` (HTTP ${result.status})` : ''}`,
-      channel: 'matrix',
-    })
+/**
+ * PUT one event to a room. A saved route's homeserver is re-validated against
+ * the SSRF guard right before sending (DNS can change after save); a blocked
+ * one is never fetched. Never throws.
+ */
+export async function sendMatrixChannel(
+  entry: MatrixChannelEntry,
+  content: object,
+  txnId: string
+): Promise<MatrixSendResult & { blocked?: true }> {
+  if (!entry.trusted && (await validateHostUrl(entry.target.homeserverUrl))) {
+    debug('[health-sweep] skipping matrix target: blocked destination')
+    return { ok: false, blocked: true }
   }
+  return sendMatrixEvent(entry.target, content, txnId)
+}
 
-  return anyDelivered
+/** The alert-history error text for a failed send (no secrets). */
+export function matrixSendError(
+  result: MatrixSendResult & { blocked?: true }
+): string | undefined {
+  if (result.ok) return undefined
+  if (result.blocked) return 'matrix dispatch failed (destination blocked)'
+  if (result.errcode) return `matrix dispatch failed (${result.errcode})`
+  if (result.status) return `matrix dispatch failed (HTTP ${result.status})`
+  return 'matrix dispatch failed'
 }
