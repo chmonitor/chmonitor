@@ -109,8 +109,9 @@ describe('adapters include instance, link, and metadata when set', () => {
       metadata: { team: '*bold*' },
     }).attachments[0].content
     const texts = JSON.stringify(hostileCard.body)
-    expect(texts).toContain('\\\\[x\\\\]\\\\(https://evil\\\\)')
-    expect(texts).toContain('\\\\*bold\\\\*')
+    expect(texts).not.toContain('](')
+    expect(texts).not.toContain('*bold*')
+    expect(texts).toContain('https://evil')
     expect('actions' in buildMSTeamsBody(BASE).attachments[0].content).toBe(
       false
     )

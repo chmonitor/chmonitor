@@ -71,9 +71,23 @@ interface AdaptiveOpenUrlAction {
   url: string
 }
 
-/** Backslash-escape the markdown characters Adaptive Card TextBlocks honour. */
+const ZWSP = '\u200B'
+
+/**
+ * Break any markup Teams would render in a TextBlock or FactSet value.
+ *
+ * Teams renders only bold (`**`), italic (`_`), links (`[t](u)`) and lists
+ * (`- ` / `1. ` at line start). Neither Microsoft's docs nor the shared
+ * AdaptiveCards markdown parser define a backslash escape, so a `\-` may show
+ * the backslash. Instead a zero-width space is inserted after each opening
+ * delimiter. It is invisible, and ordinary text such as `prod-1`,
+ * `disk-usage` or `verify-host-1` is left byte for byte intact.
+ */
 function escapeCardMarkdown(raw: string): string {
-  return raw.replace(/[\\*_[\]()~`#>-]/g, '\\$&')
+  return raw
+    .replace(/[*[\]<>`]/g, `$&${ZWSP}`)
+    .replace(/(?<![\p{L}\p{N}])_|_(?![\p{L}\p{N}])/gu, `_${ZWSP}`)
+    .replace(/^([ \t]*)(?=(?:[-+]|\d+\.)[ \t])/gm, `$1${ZWSP}`)
 }
 
 interface MSTeamsAttachment {
