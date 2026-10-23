@@ -18,6 +18,11 @@ export function escapeSlackMrkdwn(raw: string): string {
   return raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+/** Make a URL safe inside Slack's `<url>` link syntax: `<`, `>` and `|` would end or split the link. */
+function slackLinkUrl(url: string): string {
+  return escapeSlackMrkdwn(url.replace(/\|/g, '%7C'))
+}
+
 /** Severity → attachment colour (hex) and header emoji. */
 const SEVERITY_STYLE: Record<AlertSeverity, { color: string; emoji: string }> =
   {
@@ -58,7 +63,7 @@ export interface SlackWebhookBody {
 }
 
 function heading(severity: AlertSeverity): string {
-  return severity === 'recovery' ? 'RECOVERY' : severity.toUpperCase()
+  return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
 }
 
 /**
@@ -66,7 +71,7 @@ function heading(severity: AlertSeverity): string {
  */
 export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
-  const summary = `${escapeSlackMrkdwn(instancePrefix(payload))}[${heading(payload.severity)}] ${payload.title} — ${escapeSlackMrkdwn(payload.label)} (host ${payload.hostLabel})`
+  const summary = `${escapeSlackMrkdwn(instancePrefix(payload))}[${heading(payload.severity)}] ${escapeSlackMrkdwn(payload.title)} — ${escapeSlackMrkdwn(payload.label)} (host ${escapeSlackMrkdwn(payload.hostLabel)})`
 
   const incident = incidentLine(payload)
   const blocks: SlackBlock[] = [
@@ -83,9 +88,12 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
       fields: [
         {
           type: 'mrkdwn',
-          text: `*Host:*\n${payload.hostLabel} (id ${payload.hostId})`,
+          text: `*Host:*\n${escapeSlackMrkdwn(payload.hostLabel)} (id ${payload.hostId})`,
         },
-        { type: 'mrkdwn', text: `*Metric:*\n${payload.metric}` },
+        {
+          type: 'mrkdwn',
+          text: `*Metric:*\n${escapeSlackMrkdwn(payload.metric)}`,
+        },
         {
           type: 'mrkdwn',
           text: `*Value:*\n${valueText(payload)}`,
@@ -107,7 +115,7 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*Runbooks:*\n${payload.runbookUrls.map((u) => `• <${u}>`).join('\n')}`,
+        text: `*Runbooks:*\n${payload.runbookUrls.map((u) => `• <${slackLinkUrl(u)}>`).join('\n')}`,
       },
     })
   }
@@ -143,7 +151,7 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*Diagnostics available:*\n${diagnosticActions.map((a) => `• ${a.label} — run from the Active Alerts panel`).join('\n')}`,
+        text: `*Diagnostics available:*\n${diagnosticActions.map((a) => `• ${escapeSlackMrkdwn(a.label)} — run from the Active Alerts panel`).join('\n')}`,
       },
     })
   }

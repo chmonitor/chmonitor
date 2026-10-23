@@ -47,7 +47,7 @@ export interface DiscordWebhookBody {
 }
 
 function heading(severity: AlertSeverity): string {
-  return severity === 'recovery' ? 'RECOVERY' : severity.toUpperCase()
+  return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
 }
 
 /**

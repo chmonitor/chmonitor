@@ -104,8 +104,21 @@ describe('dispatchOpsgenie — close (recovery)', () => {
     )
     expect(JSON.parse(String(calls[0].init.body))).toEqual({
       source: 'chmonitor',
-      note: buildOpsgenieBody(RECOVERY).message,
+      note: '[RESOLVED] Failed mutations — recovered (host prod-1)',
     })
+  })
+
+  test('the close note says how long the incident fired', async () => {
+    const { calls, fetchImpl } = stubFetch()
+    await dispatchOpsgenie(
+      { ...RECOVERY, firedForMs: 3 * 3_600_000 },
+      { apiKey: 'test-key', region: 'us' },
+      { resolveHostAddresses: resolvePublic, fetchImpl }
+    )
+
+    expect(JSON.parse(String(calls[0].init.body)).note).toBe(
+      '[RESOLVED] Failed mutations — recovered (host prod-1), fired for 3 h'
+    )
   })
 })
 

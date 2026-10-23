@@ -28,9 +28,9 @@ const SEVERITY_RANK: Record<AlertSeverity, number> = {
   critical: 2,
 }
 
-/** Notification heading for a single severity (recovery reads as "RECOVERY"). */
+/** Notification heading for a single severity (recovery reads as "RESOLVED"). */
 function findingHeading(severity: AlertSeverity): string {
-  return severity === 'recovery' ? 'RECOVERY' : severity.toUpperCase()
+  return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
 }
 
 /** `"3 h"`; minutes under an hour. */

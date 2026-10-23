@@ -46,7 +46,7 @@ const CRITICAL: AlertPayload = {
   timestamp: '2026-07-16T10:00:00.000Z',
 }
 
-const RECOVERY: AlertPayload = {
+const RESOLVED: AlertPayload = {
   ...CRITICAL,
   severity: 'recovery',
   label: 'resolved',
@@ -81,15 +81,15 @@ describe('buildWebhookDispatchBody', () => {
   test('Discord recovery variant → green recovery embed', () => {
     const result = buildWebhookDispatchBody({
       url: DISCORD_URL,
-      text: '[RECOVERY] Failed mutations — resolved (host prod-1)',
-      payload: RECOVERY,
+      text: '[RESOLVED] Failed mutations — resolved (host prod-1)',
+      payload: RESOLVED,
     })
 
     expect(result.provider).toBe('discord')
     const body = result.body as ReturnType<typeof buildDiscordBody>
-    // Recovery severity → green embed (0x16a34a) and RECOVERY heading.
+    // Recovery severity → green embed (0x16a34a) and RESOLVED heading.
     expect(body.embeds[0].color).toBe(0x16a34a)
-    expect(body.embeds[0].title).toContain('RECOVERY')
+    expect(body.embeds[0].title).toContain('RESOLVED')
   })
 
   test('Teams URL → verbatim provider + Adaptive Card', () => {

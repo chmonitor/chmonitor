@@ -165,8 +165,7 @@ function buildText(payload: AlertPayload): string {
 /**
  * Build the email `{ subject, html, text }` for a payload. PURE — no network,
  * no provider secrets. `subject` uses the uppercase severity heading, except
- * `recovery` which reads "RESOLVED" (rather than "RECOVERY", to read naturally
- * as an email subject line).
+ * `recovery` which reads "RESOLVED", the label every channel uses.
  */
 export function buildEmailBody(payload: AlertPayload): EmailBody {
   const style = SEVERITY_STYLE[payload.severity]

@@ -66,7 +66,7 @@ export function buildPagerDutyBody(
     event_action: eventAction,
     dedup_key: pagerDutyDedupKey(payload),
     payload: {
-      summary: `${instancePrefix(payload)}${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
+      summary: `${instancePrefix(payload)}${payload.severity === 'recovery' ? '[RESOLVED] ' : ''}${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
       // Readable origin for multi-deployment accounts; dedup_key stays
       // instance-independent so existing incidents keep collapsing.
       source: payload.instanceName

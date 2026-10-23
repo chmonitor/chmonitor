@@ -21,7 +21,7 @@ const CRITICAL: AlertPayload = {
 }
 
 const WARNING: AlertPayload = { ...CRITICAL, severity: 'warning', value: 3 }
-const RECOVERY: AlertPayload = {
+const RESOLVED: AlertPayload = {
   ...CRITICAL,
   severity: 'recovery',
   value: 0,
@@ -45,12 +45,12 @@ describe('buildPushoverMessage — severity → priority', () => {
     expect(msg.title).toBe('[WARNING] Failed mutations')
   })
 
-  test('recovery maps to priority -1 (low, quiet) and RECOVERY heading', () => {
-    const msg = buildPushoverMessage(RECOVERY)
+  test('recovery maps to priority -1 (low, quiet) and RESOLVED heading', () => {
+    const msg = buildPushoverMessage(RESOLVED)
     expect(msg.priority).toBe('-1')
     expect(msg.retry).toBeUndefined()
     expect(msg.expire).toBeUndefined()
-    expect(msg.title).toBe('[RECOVERY] Failed mutations')
+    expect(msg.title).toBe('[RESOLVED] Failed mutations')
   })
 })
 

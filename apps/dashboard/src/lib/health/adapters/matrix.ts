@@ -42,7 +42,7 @@ const SEVERITY_STYLE: Record<AlertSeverity, { emoji: string; label: string }> =
   {
     critical: { emoji: '🔴', label: 'CRITICAL' },
     warning: { emoji: '🟠', label: 'WARNING' },
-    recovery: { emoji: '🟢', label: 'RECOVERY' },
+    recovery: { emoji: '🟢', label: 'RESOLVED' },
   }
 
 /** HTML-escape operator-controlled text for `formatted_body`. */

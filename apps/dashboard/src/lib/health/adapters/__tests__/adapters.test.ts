@@ -121,11 +121,11 @@ describe('telegram adapter', () => {
     expect(text).toContain('_2026\\-07\\-02T10:00:00\\.000Z_')
   })
 
-  test('warning uses 🟠 and recovery uses 🟢 with RECOVERY heading', () => {
+  test('warning uses 🟠 and recovery uses 🟢 with RESOLVED heading', () => {
     expect(buildTelegramText(WARNING)).toContain('🟠')
     const rec = buildTelegramText(RECOVERY)
     expect(rec).toContain('🟢')
-    expect(rec).toContain('*RECOVERY: Failed mutations*')
+    expect(rec).toContain('*RESOLVED: Failed mutations*')
   })
 
   test('buildTelegramBody returns sendMessage body with MarkdownV2 parse_mode', () => {
@@ -389,7 +389,7 @@ describe('generic-json adapter', () => {
   })
 
   test('recovery heading in text', () => {
-    expect(buildGenericJsonBody(RECOVERY).text).toContain('[RECOVERY]')
+    expect(buildGenericJsonBody(RECOVERY).text).toContain('[RESOLVED]')
   })
 
   test('forwards snapshot when present', () => {

@@ -35,7 +35,7 @@ const CRITICAL: AlertPayload = {
   timestamp: '2026-07-02T10:00:00.000Z',
 }
 
-const RECOVERY: AlertPayload = {
+const RESOLVED: AlertPayload = {
   ...CRITICAL,
   severity: 'recovery',
   value: 0,
@@ -74,12 +74,12 @@ describe('dispatchTelegram — send', () => {
 
   test('sends a recovery message on the same endpoint', async () => {
     const { calls, fetchImpl } = stubFetch()
-    const ok = await dispatchTelegram(RECOVERY, CONFIG, { fetchImpl })
+    const ok = await dispatchTelegram(RESOLVED, CONFIG, { fetchImpl })
 
     expect(ok).toBe(true)
     const body = JSON.parse(String(calls[0].init.body)) as { text: string }
-    // MarkdownV2 header for a recovery renders RECOVERY.
-    expect(body.text).toContain('RECOVERY')
+    // MarkdownV2 header for a recovery renders RESOLVED.
+    expect(body.text).toContain('RESOLVED')
   })
 
   test('returns false when Telegram responds non-OK, without throwing', async () => {

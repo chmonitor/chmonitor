@@ -74,7 +74,7 @@ export function buildTelegramText(payload: AlertPayload): string {
   const emoji = SEVERITY_EMOJI[payload.severity]
   const heading =
     payload.severity === 'recovery'
-      ? 'RECOVERY'
+      ? 'RESOLVED'
       : payload.severity.toUpperCase()
 
   const lines: string[] = [

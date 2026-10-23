@@ -99,8 +99,11 @@ export function buildMSTeamsBody(payload: AlertPayload): MSTeamsWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
 
   const facts: AdaptiveFact[] = [
-    { title: 'Host', value: `${payload.hostLabel} (id ${payload.hostId})` },
-    { title: 'Metric', value: payload.metric },
+    {
+      title: 'Host',
+      value: `${escapeCardMarkdown(payload.hostLabel)} (id ${payload.hostId})`,
+    },
+    { title: 'Metric', value: escapeCardMarkdown(payload.metric) },
     { title: 'Value', value: valueText(payload) },
     { title: 'Thresholds', value: thresholdText(payload) },
   ]
@@ -110,7 +113,7 @@ export function buildMSTeamsBody(payload: AlertPayload): MSTeamsWebhookBody {
   const body: AdaptiveElement[] = [
     {
       type: 'TextBlock',
-      text: `${escapeCardMarkdown(instancePrefix(payload))}${style.emoji} ${heading(payload.severity)}: ${payload.title}`,
+      text: `${escapeCardMarkdown(instancePrefix(payload))}${style.emoji} ${heading(payload.severity)}: ${escapeCardMarkdown(payload.title)}`,
       weight: 'bolder',
       size: 'large',
       color: style.color,
@@ -127,7 +130,7 @@ export function buildMSTeamsBody(payload: AlertPayload): MSTeamsWebhookBody {
   if (payload.runbookUrls && payload.runbookUrls.length > 0) {
     body.push({
       type: 'TextBlock',
-      text: `**Runbooks:**\n\n${payload.runbookUrls.map((u) => `- ${u}`).join('\n\n')}`,
+      text: `**Runbooks:**\n\n${payload.runbookUrls.map((u) => `- ${escapeCardMarkdown(u)}`).join('\n\n')}`,
       wrap: true,
     })
   }

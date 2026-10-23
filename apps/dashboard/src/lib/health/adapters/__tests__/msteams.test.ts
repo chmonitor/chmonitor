@@ -87,8 +87,8 @@ describe('msteams adapter', () => {
   })
 
   test('FactSet carries host, metric, value, thresholds', () => {
-    expect(factValue(CRITICAL, 'Host')).toBe('prod-1 (id 2)')
-    expect(factValue(CRITICAL, 'Metric')).toBe('failed-mutations')
+    expect(factValue(CRITICAL, 'Host')).toBe('prod\\-1 (id 2)')
+    expect(factValue(CRITICAL, 'Metric')).toBe('failed\\-mutations')
     expect(factValue(CRITICAL, 'Value')).toBe('7')
     expect(factValue(CRITICAL, 'Thresholds')).toBe('warn 1 | crit 5')
   })

@@ -240,7 +240,8 @@ describe('a recovery says it is resolved and how long it fired', () => {
     test(channel.name, () => {
       const text = channel.render(RECOVERY)
       const missing = [
-        ['resolved', /RESOLVE|RECOVERY/i.test(text)],
+        ['resolved', text.includes('RESOLVED')],
+        ['noRecoveryLabel', !/\bRECOVERY\b/.test(text)],
         ['title', text.includes('Disk almost full')],
         ['host', text.includes('prod-eu-1')],
         ['firedFor', /fired for 3 h/.test(text)],

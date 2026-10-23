@@ -84,9 +84,9 @@ export interface NtfyConfig {
   token?: string
 }
 
-/** `RECOVERY` for a resolved incident, otherwise the uppercased severity. */
+/** `RESOLVED` for a resolved incident, otherwise the uppercased severity. */
 function heading(severity: AlertSeverity): string {
-  return severity === 'recovery' ? 'RECOVERY' : severity.toUpperCase()
+  return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
 }
 
 /**
