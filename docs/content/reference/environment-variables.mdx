@@ -189,9 +189,10 @@ match on `position(query, '"client":"clickhouse-monitoring"') = 0`.
 
 The comment does not split ClickHouse caches: `normalized_query_hash` and the
 query cache key ignore comments, so users who open the same chart still
-share one cache entry. `log_comment` is part of the query cache key before
-ClickHouse 25.x, so a query sent with `use_query_cache = 1` leaves
-`log_comment` out while the comment carries the record.
+share one cache entry. On some ClickHouse versions `log_comment` is part of
+the query cache key (24.8 is, 26.5 is not), so a query sent with
+`use_query_cache = 1` leaves `log_comment` out while the comment carries the
+record. Those rows have no `page` or `email`.
 
 - `user` is the principal subject from the auth provider (`trusted`, `proxy`,
   `clerk`), and `null` for anonymous visitors and cron jobs. In cloud mode
@@ -202,8 +203,12 @@ ClickHouse 25.x, so a query sent with `use_query_cache = 1` leaves
   `table:<name>`, `console`, `explorer:<route>`, `agent`, `mcp`,
   `cron:<job>`, or `api:<path>`.
 - `page` is the dashboard page the request came from.
-- Each field is capped at 200 characters with control characters removed,
-  and the whole record at 1 KB.
+- `version`, `user`, `host`, `source`, and `label` use the comment's safe
+  character set in both places, so `log_comment` and the comment always
+  agree. `page` and the opt-in `email` keep their text, capped at 200
+  characters with control characters removed, and the whole record at 1 KB.
+  An email-shaped `user` (the `proxy` provider's subject) becomes the part
+  before `@`; the full address is only in `email`, and only when opted in.
 
 The record is self-asserted: any ClickHouse client can set `log_comment`. For
 an audit, read it next to `query_log.user` (the ClickHouse account that ran

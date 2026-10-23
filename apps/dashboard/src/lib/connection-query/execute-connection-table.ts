@@ -3,6 +3,7 @@ import type { ConnectionCredentials } from '@/lib/connection-store/types'
 import type { QueryConfig } from '@/lib/query-config'
 
 import { getConnectionVersion, queryConnection } from './connection-client'
+import { displaySql } from '@chm/clickhouse-client/attribution'
 import {
   type ClickHouseVersion,
   parseVersion,
@@ -75,6 +76,7 @@ export async function executeConnectionTableConfig<
       rows: data.length,
       ...(queryId ? { queryId } : {}),
     },
-    executedSql,
+    // The connection client sends no host name, so the shown comment has none.
+    executedSql: displaySql(executedSql, null),
   }
 }

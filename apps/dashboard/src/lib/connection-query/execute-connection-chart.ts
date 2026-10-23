@@ -2,6 +2,7 @@ import type { VersionedSql } from '@chm/sql-builder'
 import type { ConnectionCredentials } from '@/lib/connection-store/types'
 
 import { getConnectionVersion, queryConnection } from './connection-client'
+import { displaySql } from '@chm/clickhouse-client/attribution'
 import {
   parseVersion,
   selectVersionedSql,
@@ -99,7 +100,8 @@ export async function executeConnectionChartQuery(
       ...(queryId ? { queryId } : {}),
       ...(version ? { clickhouseVersion: version } : {}),
     },
-    executedSql,
+    // The connection client sends no host name, so the shown comment has none.
+    executedSql: displaySql(executedSql, null),
     clickhouseVersion: version,
   }
 }
