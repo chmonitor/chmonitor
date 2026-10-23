@@ -3,6 +3,7 @@ import { createClient } from '@clickhouse/client-web'
 
 import type { ConnectionCredentials } from '@/lib/connection-store/types'
 
+import { withQueryAttribution } from '@chm/clickhouse-client/attribution'
 import { createHostValidationFetch } from '@/lib/browser-connections/host-url'
 
 export type ConnectionClient = ReturnType<typeof createClient>
@@ -10,12 +11,15 @@ export type ConnectionClient = ReturnType<typeof createClient>
 export function createConnectionClient(
   credentials: ConnectionCredentials
 ): ConnectionClient {
-  return createClient({
-    host: credentials.host,
-    username: credentials.user,
-    password: credentials.password,
-    fetch: createHostValidationFetch(),
-  })
+  return withQueryAttribution(
+    createClient({
+      host: credentials.host,
+      username: credentials.user,
+      password: credentials.password,
+      fetch: createHostValidationFetch(),
+    }),
+    null
+  )
 }
 
 export async function queryConnection<T = unknown>(

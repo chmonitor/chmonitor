@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { getClient } from '@chm/clickhouse-client'
 import { getClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
+import { QUERY_COMMENT } from '@chm/clickhouse-client/constants'
 import { error } from '@chm/logger'
 import { getClickHouseConfigsFromEnv } from '@/lib/api/clickhouse-config'
 import {
@@ -12,8 +13,6 @@ import {
 import { runWithQueryCache } from '@/lib/api/query-cache-settings'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env'
 import { isDemoHostBlockedForRequest } from '@/lib/cloud/reject-demo-host'
-
-const QUERY_COMMENT = '/* { "client": "clickhouse-monitoring" } */\n'
 
 /**
  * TTL (seconds) for the ClickHouse query cache on the host-status probe

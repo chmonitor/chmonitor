@@ -30,6 +30,7 @@ import { createStorageTools } from './storage-tools'
 import { createUsageTools } from './usage-tools'
 import { createVisualizationTools } from './visualization-tools'
 import { parseBool } from '@/lib/config/parse-bool'
+import { bindToolsToAttribution } from '@/lib/query-attribution/bind-tools'
 
 /**
  * Tools that cannot run on a user's own connection yet:
@@ -173,7 +174,7 @@ export function createAllTools(
   // the Postgres / PeerDB / control gates and `disabledTools` are inherited
   // rather than re-checked.
   // It is not a gate: the whole tool set is still sent (see catalog.ts).
-  const all = { ...tools, ...createSearchTools(tools) }
+  const all = bindToolsToAttribution({ ...tools, ...createSearchTools(tools) })
   return connection
     ? bindToolsToConnection(all, connection, CONNECTION_UNSUPPORTED_TOOLS)
     : all

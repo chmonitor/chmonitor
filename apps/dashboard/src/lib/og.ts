@@ -511,6 +511,12 @@ export const OG_PAGES: Record<string, OgPage> = {
     description:
       'Who uses this replica, how much and for what, from the query log.',
   },
+  'dashboard-usage': {
+    eyebrow: 'QUERIES',
+    title: 'Dashboard Usage',
+    description:
+      'What this dashboard sent to ClickHouse, by user, source, version and label.',
+  },
   'usage/user': {
     eyebrow: 'QUERIES',
     title: 'User Usage',

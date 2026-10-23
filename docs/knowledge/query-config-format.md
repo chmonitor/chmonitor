@@ -3,7 +3,7 @@ id: query-config-format
 title: QueryConfig Format
 type: spec
 status: active
-updated: 2026-10-22
+updated: 2026-10-24
 tags:
   - query-config
   - clickhouse
@@ -80,6 +80,18 @@ export const backupsConfig: QueryConfig = {
   sql: 'SELECT * FROM system.backup_log',
 }
 ```
+
+A `tableCheck` hides the whole table when the table is missing. To hide only
+some columns instead, register one config per table combination and let the
+page pick one with `useIsTableAvailable` (see `pickUsersConfig` in
+`more/users.ts`: `users-basic`, `users`, `users-with-login`). `merge('system',
+'^x_log')` throws when no table matches, so it does not degrade on its own.
+
+### Status Badges
+
+`ColumnFormat.ColoredBadge` hashes the value to a colour. When the value has a
+meaning (active, expired), pass fixed classes per value:
+`[ColumnFormat.ColoredBadge, { valueClassNames: { expired: '…' } }]`.
 
 ## Verifying SQL
 

@@ -15,8 +15,9 @@
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
 import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 
-import { getExistingTables } from './capability-cache'
+import { getExistingTables, getHostCapabilities } from './capability-cache'
 import { resolveThresholdOverrides } from './declarative/thresholds'
+import { ruleAppliesToHost } from './replication-usage'
 import { getServerEnabledRules } from './server-alert-config'
 import { isRuleEnabled } from './sweep/suppression'
 import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
@@ -96,9 +97,11 @@ export async function getCurrentFindings(): Promise<CurrentFinding[]> {
   for (const config of configs) {
     const name = hostLabel(config)
     const tables = await getExistingTables(config.id)
+    const capabilities = await getHostCapabilities(config.id)
 
     for (const rule of rules) {
       if (!rule.sql) continue
+      if (!ruleAppliesToHost(rule, capabilities)) continue
       // Same gate as the sweep: skip an optional rule only when we positively
       // know its table is absent, and run everything when the probe failed.
       if (

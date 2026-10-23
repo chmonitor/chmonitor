@@ -52,6 +52,7 @@ import { fetchData } from '@chm/clickhouse-client'
 import { debug } from '@chm/logger'
 import { APP_DATABASE } from '@/lib/app-tables'
 import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
+import { REPLICATED_ENGINE_PREDICATE } from '@/lib/health/replication-usage'
 
 /**
  * How long one host's capability snapshot is trusted.
@@ -78,6 +79,11 @@ export interface HostCapabilities {
   readonly clusters: readonly string[]
   /** The subset of `clusters` this node is a member of (`is_local = 1`), sorted. */
   readonly localClusters: readonly string[]
+  /**
+   * True when any `Replicated*` or `Shared*MergeTree` table exists. `true`
+   * when the probe failed (unknown, assume used), like {@link hasTable}.
+   */
+  readonly replicationUsed: boolean
   /** True when the probe failed; `tables` is empty and `clusters` is unknown. */
   readonly probeFailed: boolean
   /** Unix-ms when this snapshot was taken. */
@@ -96,6 +102,7 @@ const EMPTY_SNAPSHOT: HostCapabilities = {
   tables: new Set<string>(),
   clusters: [],
   localClusters: [],
+  replicationUsed: true,
   probeFailed: true,
   probedAt: 0,
 }
@@ -153,6 +160,13 @@ export function buildCapabilityProbeSql(
     UNION ALL
     SELECT if(is_local = 1, 'local_cluster', 'cluster') AS kind, cluster AS name
     FROM (SELECT cluster, max(is_local) AS is_local FROM system.clusters GROUP BY cluster)
+    UNION ALL
+    SELECT 'replication' AS kind, 'used' AS name
+    FROM (
+      SELECT 1 FROM system.tables
+      WHERE ${REPLICATED_ENGINE_PREDICATE} AND ${LOCAL_DATABASES_FILTER}
+      LIMIT 1
+    )
   `
 }
 
@@ -185,10 +199,12 @@ async function probe(hostId: number): Promise<HostCapabilities> {
   const tables = new Set<string>()
   const clusters = new Set<string>()
   const localClusters = new Set<string>()
+  let replicationUsed = false
   for (const row of result.data) {
     const name = row?.name
     if (typeof name !== 'string' || name === '') continue
-    if (row.kind === 'local_cluster') {
+    if (row.kind === 'replication') replicationUsed = true
+    else if (row.kind === 'local_cluster') {
       clusters.add(name)
       localClusters.add(name)
     } else if (row.kind === 'cluster') clusters.add(name)
@@ -199,6 +215,7 @@ async function probe(hostId: number): Promise<HostCapabilities> {
     tables,
     clusters: [...clusters].sort(),
     localClusters: [...localClusters].sort(),
+    replicationUsed,
     probeFailed: false,
     probedAt: clock(),
   }

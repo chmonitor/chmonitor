@@ -255,3 +255,24 @@ test('the grantee sheet lists quota limits, usage and the no-stacking note', asy
   expect(row?.textContent).toBe('1hQueries1003')
   expect(text).toContain('1d (randomized)')
 })
+
+test('the drift detail lists which replica has what', async () => {
+  const { createElement } = await import('react')
+  const { DriftDetail } = await import('./access-sheets')
+  const { cell: write } = await setup('writer', 'db')
+  const { cell: read } = await setup('analyst', 'db')
+  const el = await render(
+    createElement(DriftDetail, {
+      drift: {
+        drifted: true,
+        replicas: [
+          { replica: 'ch-1', cell: write, summary: 'one' },
+          { replica: 'ch-2', cell: read, summary: 'two' },
+        ],
+      },
+    })
+  )
+  expect(el.textContent).toContain('Replica drift')
+  expect(el.textContent).toContain('ch-1')
+  expect(el.textContent).toContain('ch-2')
+})

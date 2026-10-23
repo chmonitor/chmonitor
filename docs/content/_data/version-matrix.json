@@ -13,6 +13,10 @@
       "since": ["23.8", "24.8", "26.5"]
     },
     {
+      "name": "access-replica-grants",
+      "since": ["23.8", "26.7"]
+    },
+    {
       "name": "background-schedule-pool",
       "since": ["25.12"]
     },
@@ -183,6 +187,18 @@
     {
       "name": "unused-projections",
       "since": ["23.8"]
+    },
+    {
+      "name": "users",
+      "since": ["23.8", "26.2"]
+    },
+    {
+      "name": "users-basic",
+      "since": ["23.8", "26.2"]
+    },
+    {
+      "name": "users-with-login",
+      "since": ["23.8", "26.2"]
     },
     {
       "name": "workloads",

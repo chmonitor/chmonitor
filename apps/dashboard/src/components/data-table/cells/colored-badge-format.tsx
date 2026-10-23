@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils'
 
 export interface ColoredBadgeOptions {
   className?: string
+  /** Fixed classes per value, for badges whose values carry meaning. */
+  valueClassNames?: Record<string, string>
 }
 
 interface ColoredBadgeFormatProps {
@@ -22,6 +24,9 @@ export const ColoredBadgeFormat = memo(function ColoredBadgeFormat({
   const pickedColor = useMemo(() => {
     if (value == null || value === '' || typeof value === 'boolean') return ''
 
+    const fixed = options?.valueClassNames?.[String(value)]
+    if (fixed) return fixed
+
     const colors = [
       'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
       'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
@@ -39,7 +44,7 @@ export const ColoredBadgeFormat = memo(function ColoredBadgeFormat({
           .reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
       ) % colors.length
     ]
-  }, [value])
+  }, [value, options?.valueClassNames])
 
   if (value == null || value === '' || typeof value === 'boolean') {
     return null

@@ -4,6 +4,7 @@
  */
 
 import type { ReactNode } from 'react'
+import type { CellDrift, ReplicaView } from '@/lib/security/access-drift'
 import type {
   AppliedPrivilege,
   CellAccess,
@@ -21,6 +22,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { cellDrift, granteeDriftDatabases } from '@/lib/security/access-drift'
 import {
   formatSource,
   roleMembers,
@@ -121,6 +123,41 @@ export interface CellSelection {
   access: GranteeAccess
   scope: { database: string; table?: string }
   cell: CellAccess
+  /** Set when replicas are compared. */
+  drift?: CellDrift
+}
+
+/** Which replica has what, for a cell whose access differs. */
+export function DriftDetail({ drift }: { drift: CellDrift }) {
+  return (
+    <section>
+      <Heading>Replica drift</Heading>
+      <p className="mb-2 text-muted-foreground">
+        Effective access differs between replicas. Read from each replica with
+        clusterAllReplicas; nothing was changed.
+      </p>
+      <table className="w-full text-xs">
+        <thead className="text-left text-muted-foreground">
+          <tr>
+            <th className="py-1 pr-2 font-medium">Replica</th>
+            <th className="py-1 pr-2 font-medium">Access</th>
+            <th className="py-1 font-medium">Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          {drift.replicas.map((r) => (
+            <tr key={r.replica} className="border-t border-border/60">
+              <td className="py-1 pr-2 font-mono">{r.replica}</td>
+              <td className="py-1 pr-2">
+                <AccessChip cell={r.cell} />
+              </td>
+              <td className="py-1">{r.summary}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  )
 }
 
 /** Body of the cell sheet: the privileges, carve-outs and readonly cap. */
@@ -267,6 +304,7 @@ export function CellSheet({
       }
       description={s ? summarizeCell(s.cell) : ''}
     >
+      {s?.drift?.drifted && <DriftDetail drift={s.drift} />}
       {s && <CellDetail cell={s.cell} policies={policies} />}
       <SectionError label="Row policies" section={data.rowPolicies} />
     </DetailSheet>
@@ -324,13 +362,48 @@ function Inherited({ access }: { access: GranteeAccess }) {
   )
 }
 
+function GranteeDrift({
+  view,
+  grantee,
+  databases,
+}: {
+  view: ReplicaView
+  grantee: string
+  databases: string[]
+}) {
+  const differing = granteeDriftDatabases(view, grantee, databases)
+  if (differing.length === 0) return null
+  return (
+    <section>
+      <Heading>Replica drift</Heading>
+      <p className="mb-2 text-muted-foreground">
+        Access differs between replicas on:
+      </p>
+      <ul className="space-y-1">
+        {differing.map((database) => (
+          <li key={database} className="text-xs">
+            <span className="font-mono">{database}</span>:{' '}
+            {cellDrift(view, grantee, { database })
+              .replicas.map((r) => `${r.replica} ${r.cell.level}`)
+              .join(', ')}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export function GranteeSheet({
   access,
   data,
+  replicaView,
+  databases,
   onClose,
 }: {
   access: GranteeAccess | null
   data: AccessData
+  replicaView: ReplicaView | null
+  databases: string[]
   onClose: () => void
 }) {
   const g = access?.grantee
@@ -372,6 +445,13 @@ export function GranteeSheet({
               value={<Storage storage={user?.storage ?? role?.storage} />}
             />
           </dl>
+          {replicaView && (
+            <GranteeDrift
+              view={replicaView}
+              grantee={g.name}
+              databases={databases}
+            />
+          )}
           <Inherited access={access} />
           {g.kind === 'role' && (
             <section>

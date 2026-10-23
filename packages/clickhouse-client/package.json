@@ -7,6 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./attribution": "./src/attribution/scope.ts",
+    "./attribution/record": "./src/attribution/record.ts",
     "./constants": "./src/clickhouse/constants.ts",
     "./redact-host": "./src/clickhouse/redact-host.ts",
     "./clickhouse-version": "./src/clickhouse-version.ts",

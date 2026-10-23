@@ -30,7 +30,8 @@ import {
   parseBatchedKpiRows,
   partitionRulesForSweep,
 } from '../batch-kpi'
-import { getExistingTables } from '../capability-cache'
+import { getExistingTables, getHostCapabilities } from '../capability-cache'
+import { ruleAppliesToHost } from '../replication-usage'
 import { isRuleEnabled, isSignalOnly } from './suppression'
 import { fetchData } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
@@ -195,6 +196,7 @@ export async function runHostSweep(
   let insightsGenerated = 0
 
   const tables = await getExistingSystemTables(config.id)
+  const capabilities = await getHostCapabilities(config.id)
 
   // Per-host base rule results, keyed by rule id — feeds compound rules
   // below. Populated for every rule that actually ran (regardless of
@@ -260,8 +262,10 @@ export async function runHostSweep(
   // Split this tick once: batched / own-statement / skipped-by-capability.
   // A rule shipped with `defaultEnabled: false` is neither queried nor counted
   // unless opted in via `HEALTH_ALERT_ENABLE_RULES` (#4070).
-  const activeRules = ctx.rules.filter((rule) =>
-    isRuleEnabled(rule, ctx.enabledRules)
+  const activeRules = ctx.rules.filter(
+    (rule) =>
+      isRuleEnabled(rule, ctx.enabledRules) &&
+      ruleAppliesToHost(rule, capabilities)
   )
   const {
     batched,

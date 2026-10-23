@@ -29,6 +29,7 @@ export const ROUTE_TITLE_MAP: Record<string, string> = {
   '/queries/parallelization': 'Query Parallelization',
   '/usage': 'Usage by User',
   '/usage/user': 'User Usage',
+  '/dashboard-usage': 'Dashboard Usage',
   '/queries/thread-analysis': 'Query Thread Analysis',
   '/tables': 'Tables',
   '/tables-overview': 'Tables Overview',

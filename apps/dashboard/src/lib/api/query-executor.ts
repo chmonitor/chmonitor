@@ -120,6 +120,19 @@ async function selectSqlForHost(
   }
 }
 
+/**
+ * The SQL the dialog shows: the fetch layer's `displaySql` (the query with
+ * the leading comment it was sent with, user left out), or the selected SQL
+ * when the request never reached ClickHouse.
+ */
+function shownSql(
+  metadata: Record<string, string | number> | undefined,
+  executedSql: string
+): string {
+  const shown = metadata?.displaySql
+  return typeof shown === 'string' ? shown : executedSql
+}
+
 export interface ExecuteOptions {
   bindings?: ClickHouseBindings
   timezone?: string
@@ -235,7 +248,12 @@ export async function executeTableConfig<
     error(`[executeTableConfig:${queryConfig.name}]`, result.error)
   }
 
-  return { result, executedSql, clickhouseVersion: version, maxResultRows }
+  return {
+    result,
+    executedSql: shownSql(result.metadata, executedSql),
+    clickhouseVersion: version,
+    maxResultRows,
+  }
 }
 
 export interface ExecuteChartResult {
@@ -308,7 +326,7 @@ export async function executeChartQuery(
     dataJson: result.dataJson,
     metadata: result.metadata,
     error: result.error,
-    executedSql,
+    executedSql: shownSql(result.metadata, executedSql),
     clickhouseVersion: version,
   }
 }

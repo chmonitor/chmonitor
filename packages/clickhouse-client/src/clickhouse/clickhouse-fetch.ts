@@ -3,6 +3,7 @@ import type { QueryParams } from '@clickhouse/client'
 import type { QueryConfigLike } from '@chm/sql-builder'
 import type { FetchDataResult } from './types'
 
+import { attributionHostName, displaySql } from '../attribution/scope'
 import { getClient, releaseClient } from './clickhouse-client'
 import { QUERY_COMMENT } from './constants'
 import { handleFetchError } from './fetch-errors'
@@ -170,6 +171,10 @@ export const fetchData = async <
         host: redactHostCredentials(clientConfig.host),
         clickhouseVersion: clickhouseVersion?.raw ?? 'unknown',
         sql: effectiveQuery.replace(/\s+/g, ' ').trim(),
+        displaySql: displaySql(
+          effectiveQuery,
+          attributionHostName(clientConfig)
+        ),
       }
 
       // Only present when the X-ClickHouse-Summary header parses cleanly —

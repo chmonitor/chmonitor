@@ -19,6 +19,8 @@ export interface WebhookResult {
   ok: boolean
   /** Present only when `ok` is false — recorded in the alert-history store. */
   error?: string
+  /** The parsed JSON response, only when the caller asked for it and it parsed. */
+  json?: unknown
 }
 
 /**
@@ -39,6 +41,8 @@ export async function postWebhook(
     headers?: Record<string, string>
     /** Redirects are refused by default; a caller may opt in explicitly. */
     redirect?: RequestRedirect
+    /** Parse the response body as JSON into `json` (best-effort). */
+    readJson?: boolean
   }
 ): Promise<WebhookResult> {
   const controller = new AbortController()
@@ -62,6 +66,13 @@ export async function postWebhook(
       const message = `Webhook returned status ${res.status}`
       error('[health-sweep] Webhook returned non-OK status', new Error(message))
       return { ok: false, error: message }
+    }
+    if (init?.readJson) {
+      try {
+        return { ok: true, json: (await res.json()) as unknown }
+      } catch {
+        // A delivered message with an unreadable body is still delivered.
+      }
     }
     return { ok: true }
   } catch {

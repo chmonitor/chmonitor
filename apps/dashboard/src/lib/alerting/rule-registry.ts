@@ -125,6 +125,12 @@ export interface AlertRuleDef {
   /** Table to check before running the SQL (e.g. 'system.backup_log'). */
   tableCheck?: string
   /**
+   * Skip this rule on a host with no `Replicated*` / `Shared*MergeTree` table.
+   * There the queue cannot exist, so an empty result is "not applicable", not
+   * "ok" (#4044).
+   */
+  requiresReplication?: boolean
+  /**
    * Labeled runbook links / read-only diagnostic actions surfaced by
    * notification adapters (e.g. Slack buttons) to cut MTTR. NEVER a
    * destructive/DDL action — see `assertReadOnlyAction`.

@@ -403,6 +403,7 @@ describe('selectCluster', () => {
         tables: new Set<string>(),
         clusters: ['a'],
         localClusters: ['a'],
+        replicationUsed: true,
         probeFailed: true,
         probedAt: 0,
       })
@@ -415,6 +416,7 @@ describe('selectCluster', () => {
         tables: new Set<string>(),
         clusters: [],
         localClusters: [],
+        replicationUsed: true,
         probeFailed: false,
         probedAt: 0,
       })
@@ -429,6 +431,7 @@ describe('selectCluster', () => {
         tables: new Set<string>(),
         clusters: ['a_test', 'main'],
         localClusters: ['main'],
+        replicationUsed: true,
         probeFailed: false,
         probedAt: 0,
       })
@@ -441,6 +444,7 @@ describe('selectCluster', () => {
         tables: new Set<string>(),
         clusters: ['a_test', 'main'],
         localClusters: [],
+        replicationUsed: true,
         probeFailed: false,
         probedAt: 0,
       })

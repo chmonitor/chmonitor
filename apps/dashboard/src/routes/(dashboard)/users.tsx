@@ -1,15 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { createPage } from '@/lib/create-page'
+import { Suspense } from 'react'
+import { PageSkeleton } from '@/components/skeletons'
+import { UsersPage } from '@/components/users/users-page'
 import { pageOgHead } from '@/lib/og'
-import { usersConfig } from '@/lib/query-config/more/users'
 
-const UsersPage = createPage({
-  queryConfig: usersConfig,
-  title: 'Users',
-})
+function UsersRoute() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <UsersPage />
+    </Suspense>
+  )
+}
 
 export const Route = createFileRoute('/(dashboard)/users')({
-  component: UsersPage,
+  component: UsersRoute,
   head: () => pageOgHead('users'),
 })

@@ -169,6 +169,7 @@ describe('HEALTH_POSTGRES_SCHEMA_SQL', () => {
     'alert_events',
     'alert_acks',
     'alert_digest_buffer',
+    'alert_thread_roots',
     'alert_suggestion_dismissals',
     'alert_webhook_targets',
     'custom_alert_rules',
