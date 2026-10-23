@@ -171,7 +171,9 @@ The record (`v` is the schema version):
 ```
 
 - `user` is the principal subject from the auth provider (`trusted`, `proxy`,
-  `clerk`), and `null` for anonymous visitors and cron jobs.
+  `clerk`), and `null` for anonymous visitors and cron jobs. In cloud mode
+  the env hosts are the public demo, so their records never carry `user` or
+  `email`.
 - `host` is the `CLICKHOUSE_NAME` entry for the host, or `host-<id>`.
 - `source` is what sent the query: `chart:<name>`, `chart-group:<id>`,
   `table:<name>`, `console`, `explorer:<route>`, `agent`, `mcp`,
@@ -182,11 +184,15 @@ The record (`v` is the schema version):
 
 The record is self-asserted: any ClickHouse client can set `log_comment`. For
 an audit, read it next to `query_log.user` (the ClickHouse account that ran
-the query) and the client address, not on its own.
+the query) and the client address, not on its own. The version and table-existence probes are shared by
+concurrent requests, so a probe carries the record of the request that
+started it, not of every request that waited on it.
 
 A ClickHouse user whose profile sets `readonly = 1` refuses `log_comment`.
-The dashboard then resends that query once with the SQL comment instead, so
-the record still reaches the query log. (That profile also refuses
+The dashboard then resends that query once with the SQL comment instead,
+and uses the SQL comment for every later request to that host. A refused
+command (an `INSERT` or DDL) is not resent, because it may already have run;
+that one command fails and the next one carries the SQL comment. (That profile also refuses
 `CLICKHOUSE_MAX_EXECUTION_TIME` on env hosts; use `readonly = 2`.)
 
 Usage by user and source over the last 7 days:
