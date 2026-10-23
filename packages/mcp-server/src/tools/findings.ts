@@ -59,10 +59,8 @@ export function registerFindingsTool(server: McpServer) {
             },
           })),
         })
-      } catch (err) {
-        return toErrorResult(
-          `Error: ${err instanceof Error ? err.message : 'failed to read findings'}`
-        )
+      } catch {
+        return toErrorResult('Error: failed to read findings.')
       }
     }
   )

@@ -70,9 +70,10 @@ describe('get_current_findings', () => {
 
   test('provider failure becomes an error result', async () => {
     setFindingsProvider(async () => {
-      throw new Error('boom')
+      throw new Error('D1_ERROR: no such table: threshold_overrides')
     })
     const res = await getTool().handler({})
     expect(res.isError).toBe(true)
+    expect(JSON.stringify(res)).not.toContain('threshold_overrides')
   })
 })
