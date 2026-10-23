@@ -18,6 +18,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { incidentLine } from './digest'
+import { thresholdText, valueText } from './facts'
 import { identityLine, instancePrefix } from './identity'
 
 /** Adaptive Card colour vocabulary. */
@@ -90,17 +92,6 @@ function heading(severity: AlertSeverity): string {
   return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
 }
 
-function thresholdText(payload: AlertPayload): string {
-  const parts: string[] = []
-  if (payload.warnThreshold !== undefined && payload.warnThreshold !== null) {
-    parts.push(`warn ${payload.warnThreshold}`)
-  }
-  if (payload.critThreshold !== undefined && payload.critThreshold !== null) {
-    parts.push(`crit ${payload.critThreshold}`)
-  }
-  return parts.length > 0 ? parts.join(' | ') : '—'
-}
-
 /**
  * Build the Microsoft Teams Adaptive Card body for a payload.
  */
@@ -110,12 +101,11 @@ export function buildMSTeamsBody(payload: AlertPayload): MSTeamsWebhookBody {
   const facts: AdaptiveFact[] = [
     { title: 'Host', value: `${payload.hostLabel} (id ${payload.hostId})` },
     { title: 'Metric', value: payload.metric },
-    {
-      title: 'Value',
-      value: String(payload.value === null ? 'n/a' : payload.value),
-    },
+    { title: 'Value', value: valueText(payload) },
     { title: 'Thresholds', value: thresholdText(payload) },
   ]
+  const incident = incidentLine(payload)
+  if (incident) facts.push({ title: 'Status', value: incident })
 
   const body: AdaptiveElement[] = [
     {

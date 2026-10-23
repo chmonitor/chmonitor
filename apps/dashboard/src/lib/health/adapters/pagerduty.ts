@@ -10,6 +10,7 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { incidentLine } from './digest'
 import { instancePrefix } from './identity'
 
 /** PagerDuty Events API v2 severities. */
@@ -82,6 +83,7 @@ export function buildPagerDutyBody(
         warnThreshold: payload.warnThreshold ?? null,
         critThreshold: payload.critThreshold ?? null,
         label: payload.label,
+        ...(incidentLine(payload) ? { status: incidentLine(payload) } : {}),
         snapshot: payload.snapshot ?? null,
         ...(payload.instanceName ? { instanceName: payload.instanceName } : {}),
         ...(payload.dashboardUrl ? { dashboardUrl: payload.dashboardUrl } : {}),

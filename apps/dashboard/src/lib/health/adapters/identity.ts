@@ -35,3 +35,23 @@ export function identityLine(payload: IdentityFields): string {
   parts.push(...metadataPairs(payload))
   return parts.join(' · ')
 }
+
+/**
+ * One dashboard link for a whole digest. `dashboardUrl` is per host
+ * (`<base>/health?host=<id>`), so a digest spanning several hosts links to the
+ * same page without the `host` param; a single-host digest keeps the link.
+ */
+export function digestDashboardUrl(
+  payloads: readonly AlertPayload[]
+): string | undefined {
+  const first = payloads.find((p) => p.dashboardUrl)?.dashboardUrl
+  if (!first) return undefined
+  if (new Set(payloads.map((p) => p.hostId)).size <= 1) return first
+  try {
+    const url = new URL(first)
+    url.searchParams.delete('host')
+    return url.toString()
+  } catch {
+    return first
+  }
+}

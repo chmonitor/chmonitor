@@ -12,8 +12,9 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
-import { summarizeDigest } from './digest'
-import { identityLine, instancePrefix } from './identity'
+import { incidentLine, summarizeDigest } from './digest'
+import { thresholdParts, valueText } from './facts'
+import { digestDashboardUrl, identityLine, instancePrefix } from './identity'
 
 /** Characters MarkdownV2 reserves and requires escaping with a backslash. */
 const MARKDOWN_V2_SPECIALS = '_*[]()~`>#+-=|{}.!'
@@ -60,6 +61,11 @@ function esc(value: string | number): string {
   return escapeMarkdownV2(String(value))
 }
 
+/** MarkdownV2 link; inside the link URL only `)` and `\` need escaping. */
+function dashboardLink(rawUrl: string): string {
+  return `[Open dashboard](${rawUrl.replace(/[)\\]/g, '\\$&')})`
+}
+
 /**
  * Build the MarkdownV2 message text for a payload. Exported so tests (and the
  * dispatch layer) can assert the rendered text independent of the body wrapper.
@@ -76,21 +82,17 @@ export function buildTelegramText(payload: AlertPayload): string {
     '',
     `*Host:* ${esc(payload.hostLabel)} \\(id ${esc(payload.hostId)}\\)`,
     `*Metric:* ${esc(payload.metric)}`,
-    `*Value:* ${esc(payload.value === null ? 'n/a' : payload.value)}`,
+    `*Value:* ${esc(valueText(payload))}`,
   ]
 
-  const thresholds: string[] = []
-  if (payload.warnThreshold !== undefined && payload.warnThreshold !== null) {
-    thresholds.push(`warn ${esc(payload.warnThreshold)}`)
-  }
-  if (payload.critThreshold !== undefined && payload.critThreshold !== null) {
-    thresholds.push(`crit ${esc(payload.critThreshold)}`)
-  }
+  const thresholds = thresholdParts(payload).map(esc)
   if (thresholds.length > 0) {
     lines.push(`*Thresholds:* ${thresholds.join(' \\| ')}`)
   }
 
   lines.push(`*Detail:* ${esc(payload.label)}`)
+  const incident = incidentLine(payload)
+  if (incident) lines.push(`*Status:* ${esc(incident)}`)
 
   if (payload.runbookUrls && payload.runbookUrls.length > 0) {
     lines.push('')
@@ -102,11 +104,7 @@ export function buildTelegramText(payload: AlertPayload): string {
 
   const identity = identityLine(payload)
   if (identity) lines.push(esc(identity))
-  if (payload.dashboardUrl) {
-    // Inside a MarkdownV2 link URL only `)` and `\` need escaping.
-    const url = payload.dashboardUrl.replace(/[)\\]/g, '\\$&')
-    lines.push(`[Open dashboard](${url})`)
-  }
+  if (payload.dashboardUrl) lines.push(dashboardLink(payload.dashboardUrl))
 
   lines.push('')
   lines.push(`_${esc(payload.timestamp)}_`)
@@ -149,6 +147,8 @@ export function buildTelegramDigestText(
   if (digest.overflow > 0) {
     lines.push(esc(`…and ${digest.overflow} more`))
   }
+  const dashboardUrl = digestDashboardUrl(payloads)
+  if (dashboardUrl) lines.push(dashboardLink(dashboardUrl))
   return lines.join('\n')
 }
 

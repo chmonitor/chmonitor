@@ -101,6 +101,11 @@ export interface AlertPayload {
    * {@link stillOpenMs} so a reminder can show how the value moved.
    */
   previousValue?: number
+  /**
+   * Set on a recovery: how long the incident was firing, in ms. Absent when
+   * the fire time is unknown.
+   */
+  firedForMs?: number
   /** Opt-in per custom target (`details: true`); see {@link AlertDetails}. */
   details?: AlertDetails
 }

@@ -18,6 +18,7 @@ import { identityLine, instancePrefix } from './identity'
 import {
   colorHtml,
   escapeMatrixHtml,
+  factsBlock,
   identityHtml,
   renderMatrixDigest,
 } from './matrix'
@@ -43,9 +44,11 @@ export function buildHookshotBody(payload: AlertPayload): HookshotWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
   const value = payload.value === null ? 'n/a' : String(payload.value)
   const identity = identityLine(payload)
+  const facts = factsBlock(payload)
   const text =
     `${instancePrefix(payload)}${style.emoji} [${style.label}] ${payload.title} — ${payload.label}\n` +
     `host ${payload.hostLabel} · ${payload.metric} = ${value} · ${payload.timestamp}` +
+    facts.text.map((line) => `\n${line}`).join('') +
     (identity ? `\n${identity}` : '') +
     (payload.dashboardUrl ? `\n${payload.dashboardUrl}` : '')
   const html =
@@ -54,6 +57,7 @@ export function buildHookshotBody(payload: AlertPayload): HookshotWebhookBody {
     `<i>host ${escapeMatrixHtml(payload.hostLabel)} · ` +
     `${escapeMatrixHtml(payload.metric)} = ${escapeMatrixHtml(value)} · ` +
     `${escapeMatrixHtml(payload.timestamp)}</i>` +
+    facts.html +
     identityHtml(payload, identity)
   return payload.instanceName
     ? { text, html, username: payload.instanceName }

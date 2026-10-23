@@ -19,6 +19,8 @@
 
 import type { AlertPayload, NotificationAdapter } from './types'
 
+import { incidentLine } from './digest'
+import { valueText } from './facts'
 import { instancePrefix, metadataPairs } from './identity'
 
 /** Twilio's hard per-message character limit for the `Body` parameter. */
@@ -53,7 +55,11 @@ function heading(severity: AlertPayload['severity']): string {
  * character is billed and the hard cap leaves no room for a full breakdown.
  */
 export function buildTwilioMessage(payload: AlertPayload): string {
-  const head = `${instancePrefix(payload)}[${heading(payload.severity)}] ${payload.title} on ${payload.hostLabel}: ${payload.label}`
+  const value = valueText(payload)
+  // Skip the value when the label already says it ("92%").
+  const valueSuffix = payload.label.includes(value) ? '' : ` (value ${value})`
+  const incident = incidentLine(payload)
+  const head = `${instancePrefix(payload)}[${heading(payload.severity)}] ${payload.title} on ${payload.hostLabel}: ${payload.label}${valueSuffix}${incident ? `, ${incident}` : ''}`
   // Identity rides after the (truncatable) head so the cap never cuts it off.
   const tail = [...metadataPairs(payload), payload.dashboardUrl ?? '']
     .filter(Boolean)

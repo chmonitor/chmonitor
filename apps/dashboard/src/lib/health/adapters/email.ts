@@ -10,6 +10,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { incidentLine } from './digest'
+import { thresholdText, valueText } from './facts'
 import { identityLine, instancePrefix } from './identity'
 
 /** Supported email transport providers. */
@@ -74,21 +76,6 @@ function isSafeLinkUrl(url: string): boolean {
   return /^https?:\/\//i.test(url)
 }
 
-function thresholdText(payload: AlertPayload): string {
-  const parts: string[] = []
-  if (payload.warnThreshold !== undefined && payload.warnThreshold !== null) {
-    parts.push(`warn ${payload.warnThreshold}`)
-  }
-  if (payload.critThreshold !== undefined && payload.critThreshold !== null) {
-    parts.push(`crit ${payload.critThreshold}`)
-  }
-  return parts.length > 0 ? parts.join(' | ') : '—'
-}
-
-function valueText(payload: AlertPayload): string {
-  return payload.value === null ? 'n/a' : String(payload.value)
-}
-
 /** Build the HTML alert body: a coloured banner + a simple info table. */
 function buildHtml(payload: AlertPayload): string {
   const style = SEVERITY_STYLE[payload.severity]
@@ -99,6 +86,13 @@ function buildHtml(payload: AlertPayload): string {
     `<tr><td style="color:#6b7280;padding:6px 8px;">Thresholds</td><td style="padding:6px 8px;">${escapeHtml(thresholdText(payload))}</td></tr>`,
     `<tr><td style="color:#6b7280;padding:6px 8px;">Detail</td><td style="padding:6px 8px;">${escapeHtml(payload.label)}</td></tr>`,
   ]
+
+  const incident = incidentLine(payload)
+  if (incident) {
+    rows.push(
+      `<tr><td style="color:#6b7280;padding:6px 8px;">Status</td><td style="padding:6px 8px;">${escapeHtml(incident)}</td></tr>`
+    )
+  }
 
   if (payload.runbookUrls && payload.runbookUrls.length > 0) {
     const links = payload.runbookUrls
@@ -148,6 +142,9 @@ function buildText(payload: AlertPayload): string {
     `Thresholds: ${thresholdText(payload)}`,
     `Detail: ${payload.label}`,
   ]
+
+  const incident = incidentLine(payload)
+  if (incident) lines.push(`Status: ${incident}`)
 
   const identity = identityLine(payload)
   if (identity) lines.push(`Instance: ${identity}`)

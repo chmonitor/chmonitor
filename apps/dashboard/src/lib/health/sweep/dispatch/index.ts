@@ -615,6 +615,10 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
           stillOpenMs: decision.incidentDurationMs,
           ...(previousValue !== undefined && { previousValue }),
         }),
+      ...(isRecovery &&
+        decision.incidentDurationMs !== undefined && {
+          firedForMs: decision.incidentDurationMs,
+        }),
     }
 
     // Digest partition (#2663): the digest-capable URLs (Slack / generic

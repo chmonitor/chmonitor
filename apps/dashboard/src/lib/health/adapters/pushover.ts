@@ -22,6 +22,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { incidentLine } from './digest'
+import { thresholdParts, valueText } from './facts'
 import { identityLine, instancePrefix } from './identity'
 
 /** Severity → Pushover priority (`-1` low, `0` normal, `2` emergency). */
@@ -86,21 +88,17 @@ export function buildPushoverMessage(payload: AlertPayload): PushoverMessage {
   const lines: string[] = [
     `Host: ${payload.hostLabel} (id ${payload.hostId})`,
     `Metric: ${payload.metric}`,
-    `Value: ${payload.value === null ? 'n/a' : payload.value}`,
+    `Value: ${valueText(payload)}`,
   ]
 
-  const thresholds: string[] = []
-  if (payload.warnThreshold !== undefined && payload.warnThreshold !== null) {
-    thresholds.push(`warn ${payload.warnThreshold}`)
-  }
-  if (payload.critThreshold !== undefined && payload.critThreshold !== null) {
-    thresholds.push(`crit ${payload.critThreshold}`)
-  }
+  const thresholds = thresholdParts(payload)
   if (thresholds.length > 0) {
     lines.push(`Thresholds: ${thresholds.join(' | ')}`)
   }
 
   lines.push(`Detail: ${payload.label}`)
+  const incident = incidentLine(payload)
+  if (incident) lines.push(`Status: ${incident}`)
 
   const identity = identityLine(payload)
   if (identity) lines.push(`Instance: ${identity}`)

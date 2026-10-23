@@ -19,6 +19,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { incidentLine } from './digest'
+import { thresholdText, valueText } from './facts'
 import { identityLine, instancePrefix } from './identity'
 import { escapeMatrixHtml } from './matrix'
 
@@ -74,17 +76,6 @@ function heading(severity: AlertSeverity): string {
   return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
 }
 
-function thresholdText(payload: AlertPayload): string {
-  const parts: string[] = []
-  if (payload.warnThreshold !== undefined && payload.warnThreshold !== null) {
-    parts.push(`warn ${payload.warnThreshold}`)
-  }
-  if (payload.critThreshold !== undefined && payload.critThreshold !== null) {
-    parts.push(`crit ${payload.critThreshold}`)
-  }
-  return parts.length > 0 ? parts.join(' | ') : '—'
-}
-
 /**
  * Build the Google Chat cardsV2 webhook body for a payload.
  */
@@ -105,13 +96,20 @@ export function buildGoogleChatBody(
     {
       decoratedText: {
         topLabel: 'Value',
-        text: String(payload.value === null ? 'n/a' : payload.value),
+        text: valueText(payload),
       },
     },
     {
       decoratedText: { topLabel: 'Thresholds', text: thresholdText(payload) },
     },
   ]
+
+  const incident = incidentLine(payload)
+  if (incident) {
+    widgets.push({
+      decoratedText: { topLabel: 'Status', text: escapeMatrixHtml(incident) },
+    })
+  }
 
   if (payload.runbookUrls && payload.runbookUrls.length > 0) {
     widgets.push({

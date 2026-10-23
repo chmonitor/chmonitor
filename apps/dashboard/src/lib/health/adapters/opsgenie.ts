@@ -14,6 +14,8 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
+import { incidentLine } from './digest'
+import { valueText } from './facts'
 import { instancePrefix } from './identity'
 
 /** Opsgenie Alert API v2 priorities. */
@@ -59,8 +61,9 @@ export function opsgenieAlias(payload: AlertPayload): string {
  * creating a new alert; only this body's `.message` is reused there.
  */
 export function buildOpsgenieBody(payload: AlertPayload): OpsgenieCreateBody {
+  const incident = incidentLine(payload)
   const body: OpsgenieCreateBody = {
-    message: `${instancePrefix(payload)}${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
+    message: `${instancePrefix(payload)}${payload.severity === 'recovery' ? '[RESOLVED] ' : ''}${payload.title} — ${payload.label} (host ${payload.hostLabel})`,
     alias: opsgenieAlias(payload),
     priority: SEVERITY_MAP[payload.severity],
     source: 'chmonitor',
@@ -74,18 +77,21 @@ export function buildOpsgenieBody(payload: AlertPayload): OpsgenieCreateBody {
       ...payload.metadata,
       hostId: String(payload.hostId),
       metric: payload.metric,
-      value: payload.value === null ? 'n/a' : String(payload.value),
+      severity: payload.severity === 'recovery' ? 'resolved' : payload.severity,
+      value: valueText(payload),
       warnThreshold:
         payload.warnThreshold == null ? 'n/a' : String(payload.warnThreshold),
       critThreshold:
         payload.critThreshold == null ? 'n/a' : String(payload.critThreshold),
       timestamp: payload.timestamp,
+      ...(incident ? { status: incident } : {}),
       ...(payload.instanceName ? { instanceName: payload.instanceName } : {}),
       ...(payload.dashboardUrl ? { dashboardUrl: payload.dashboardUrl } : {}),
     },
   }
 
   const description = [
+    ...(incident ? [`Status: ${incident}`] : []),
     ...(payload.dashboardUrl ? [`Dashboard: ${payload.dashboardUrl}`] : []),
     ...(payload.runbookUrls && payload.runbookUrls.length > 0
       ? [`Runbooks:\n${payload.runbookUrls.join('\n')}`]
