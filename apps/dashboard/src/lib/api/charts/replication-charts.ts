@@ -1,8 +1,12 @@
 import type { ChartQueryBuilder } from './types'
 
 import { applyInterval, buildTimeFilter } from './types'
+import { REPLICATION_USAGE_SQL } from '@/lib/health/replication-usage'
 
 export const replicationCharts: Record<string, ChartQueryBuilder> = {
+  /** Hidden probe: does this host have any replicated table? (#4044) */
+  'replication-usage': () => ({ query: REPLICATION_USAGE_SQL }),
+
   'replication-queue-count': () => ({
     query: `
     SELECT COUNT() as count_all,
