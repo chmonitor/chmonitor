@@ -30,7 +30,39 @@ export interface AlertDetails {
   repeatCount: number
   /** ISO-8601 time the incident began firing; `null` when unknown. */
   firstFiredAt: string | null
+  /**
+   * Up to 5 rows behind the alert, worst first (tables by size or active
+   * parts, queries by memory or elapsed). Omitted when the rule has no
+   * contributor query or the read failed.
+   */
+  topContributors?: AlertContributor[]
 }
+
+/** A table that drives a disk or parts alert. */
+export interface TableContributor {
+  kind: 'table'
+  database: string
+  table: string
+  /** Set for disk rules. */
+  bytesOnDisk?: number
+  /** Set for parts rules. */
+  activeParts?: number
+}
+
+/**
+ * A running query behind a memory or long-running alert. Carries the
+ * normalized shape (literals replaced), never the raw query text.
+ */
+export interface QueryContributor {
+  kind: 'query'
+  queryId: string
+  user: string
+  elapsedSeconds: number
+  memoryBytes: number
+  normalizedQuery: string
+}
+
+export type AlertContributor = TableContributor | QueryContributor
 
 /**
  * Channel-agnostic alert payload.
