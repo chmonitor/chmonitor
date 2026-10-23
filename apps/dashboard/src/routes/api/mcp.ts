@@ -1,6 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { corsPreflight, handleMcp, withCors } from '@chm/mcp-server/http'
+import {
+  corsPreflight,
+  handleMcp,
+  setFindingsProvider,
+  withCors,
+} from '@chm/mcp-server/http'
 import {
   checkRateLimitDurable,
   clientIpKey,
@@ -9,6 +14,11 @@ import {
   rateLimitResponse,
 } from '@/lib/api/rate-limiter'
 import { requirePlanCapability } from '@/lib/billing/plan-capability'
+import { getCurrentFindings } from '@/lib/health/current-findings'
+
+// `get_current_findings` reads the same snapshot as GET /api/v1/health/findings.
+// Injected because @chm/mcp-server cannot import from apps/*.
+setFindingsProvider(getCurrentFindings)
 
 /**
  * In-process MCP endpoint.

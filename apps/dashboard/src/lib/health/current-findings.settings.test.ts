@@ -33,6 +33,7 @@ mock.module('@chm/clickhouse-client', () => ({
   },
   getClickHouseConfigs: () => [
     { id: 0, host: 'test-host', user: 'default', password: '' },
+    { id: 1, host: 'other-host', user: 'default', password: '' },
   ],
 }))
 
@@ -46,7 +47,8 @@ const { BUILTIN_RULES } = await import('@/lib/alerting/builtin-rules')
 
 describe('getCurrentFindings settings', () => {
   test('sends the TTL rule with its 15s cap and readonly', async () => {
-    await getCurrentFindings()
+    calls.length = 0
+    await getCurrentFindings({ hostId: 0 })
     const sql = BUILTIN_RULES.find(
       (r) => r.id === 'ttl-partition-health'
     )!.sql!.trim()
@@ -61,5 +63,17 @@ describe('getCurrentFindings settings', () => {
   test('rules without settings still send readonly only', () => {
     const plain = calls.find((c) => !c.query.includes('mergetree_tables'))
     expect(plain?.clickhouse_settings).toEqual({ readonly: '1' })
+  })
+
+  test('hostId restricts the rule queries to that host', async () => {
+    calls.length = 0
+    await getCurrentFindings({ hostId: 1 })
+    expect(calls.length).toBeGreaterThan(0)
+    expect(calls.every((c) => (c as { hostId?: number }).hostId === 1)).toBe(
+      true
+    )
+    calls.length = 0
+    expect(await getCurrentFindings({ hostId: 99 })).toEqual([])
+    expect(calls).toHaveLength(0)
   })
 })
