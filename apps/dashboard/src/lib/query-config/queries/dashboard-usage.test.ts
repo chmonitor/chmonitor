@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { dashboardUsageConfigs } from '@/lib/query-config/queries/dashboard-usage'
+import { allDashboardUsageConfigs as dashboardUsageConfigs } from '@/lib/query-config/queries/dashboard-usage'
 import { queriesItems } from '@/menu/queries'
 
 /**

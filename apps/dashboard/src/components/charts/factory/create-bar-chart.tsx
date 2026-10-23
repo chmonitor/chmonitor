@@ -44,6 +44,7 @@ export function createBarChart(config: BarChartFactoryConfig): FC<ChartProps> {
     chartCardContentClassName,
     hostId: hostIdProp,
     href,
+    params,
     ...props
   }: ChartProps) {
     const routeHostId = useHostId()
@@ -73,6 +74,7 @@ export function createBarChart(config: BarChartFactoryConfig): FC<ChartProps> {
       interval: effectiveInterval,
       lastHours: effectiveLastHours,
       refreshInterval: config.refreshInterval,
+      params,
     })
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: config is fixed for the factory instance.

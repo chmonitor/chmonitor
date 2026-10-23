@@ -12,8 +12,10 @@
  * 1. Sends queries through the real pooled `getClient` inside attribution
  *    scopes, as `default`, as readonly=2, and as readonly=1 (which refuses
  *    `log_comment` and must fall back to the SQL comment).
- * 2. Flushes logs and runs every Dashboard usage config with
- *    enable_analyzer 0 and 1, asserting the tagged rows come back.
+ * 2. Flushes logs and runs every Dashboard usage config and chart, for all
+ *    users and for one, with enable_analyzer 0 and 1, asserting the tagged
+ *    rows come back, the opt-in email shows only for the user who has it,
+ *    and the one-user filter keeps other users out.
  */
 
 import { createClient } from '@clickhouse/client-web'
@@ -25,7 +27,12 @@ import {
   withQueryAttribution,
 } from '@chm/clickhouse-client/attribution'
 import { QUERY_COMMENT } from '@chm/clickhouse-client/constants'
-import { dashboardUsageConfigs } from '@/lib/query-config/queries/dashboard-usage'
+import { getChartQuery } from '@/lib/api/chart-registry'
+import {
+  DASHBOARD_USAGE_DIMENSIONS,
+  dashboardUsageCharts,
+} from '@/lib/api/charts/dashboard-usage-charts'
+import { allDashboardUsageConfigs } from '@/lib/query-config/queries/dashboard-usage'
 
 const url = process.env.CHM_VERIFY_CLICKHOUSE_URL
 if (!url) {
@@ -74,6 +81,8 @@ async function main(): Promise<void> {
 
   setAttributionVersion('0.0.0+verify')
   process.env.CHM_QUERY_ATTRIBUTION_LABEL = `run=${run}`
+  process.env.CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL = 'true'
+  const email = `${tag('default')}@example.com`
 
   const hosts = [
     { id: 0, user: 'default', who: 'default' },
@@ -90,7 +99,10 @@ async function main(): Promise<void> {
   console.log('\nSend attributed queries through getClient')
   for (const host of hosts) {
     const client = await getClient({ hostId: host.id })
-    const principal = async () => ({ subject: tag(host.who) })
+    const principal = async () =>
+      host.who === 'default'
+        ? { subject: tag(host.who), email }
+        : { subject: tag(host.who) }
     for (const source of ['chart:verify', 'console']) {
       try {
         await runWithAttribution(
@@ -139,6 +151,28 @@ async function main(): Promise<void> {
       false,
       String(err).split('\n')[0]
     )
+  }
+
+  console.log('\nA failing attributed query')
+  try {
+    await runWithAttribution(
+      {
+        principal: async () => ({ subject: tag('default'), email }),
+        source: 'chart:fail',
+        page: '/verify-fail',
+      },
+      async () => {
+        const client = await getClient({ hostId: 0 })
+        const rs = await client.query({
+          query: "SELECT throwIf(1, 'verify failure')",
+          format: 'JSONEachRow',
+        })
+        await rs.json()
+      }
+    )
+    check('failing query fails', false)
+  } catch {
+    check('failing query fails', true)
   }
 
   console.log('\nThe leading comment in system.processes')
@@ -236,44 +270,182 @@ async function main(): Promise<void> {
   // Second flush: the usage configs below read the rows sent above.
   await admin.command({ query: 'SYSTEM FLUSH LOGS' })
 
-  console.log('\nRun every Dashboard usage config (enable_analyzer 0 and 1)')
+  const users = [tag('default'), tag('ro2'), tag('ro1')]
+  const sources = ['chart:verify', 'console', 'agent', 'chart:fail']
+
+  /** Expected substrings per config, for all users ('') or one. */
+  function expectedFor(name: string, user: string): string[] {
+    const who = user ? [user] : users
+    switch (name) {
+      case 'dashboard-usage-by-user':
+      case 'dashboard-usage-expensive':
+        return who
+      case 'dashboard-usage-by-source':
+        return user ? ['chart:verify', 'console', 'chart:fail'] : sources
+      case 'dashboard-usage-by-label':
+        return [`run=${run}`]
+      case 'dashboard-usage-by-version':
+        return ['0.0.0+verify']
+      case 'dashboard-usage-summary':
+        return user ? [email] : []
+      case 'dashboard-usage-recent':
+        return user ? ['chart:fail', '/verify-fail', 'FUNCTION_THROW'] : []
+      case 'dashboard-usage-errors':
+        return ['FUNCTION_THROW_IF_VALUE_IS_NON_ZERO']
+      default:
+        return []
+    }
+  }
+
+  async function runSql(
+    sql: string,
+    params: Record<string, unknown>,
+    analyzer: number
+  ): Promise<Record<string, unknown>[]> {
+    return (
+      await admin.query({
+        query: sql,
+        query_params: params,
+        format: 'JSONEachRow',
+        clickhouse_settings: { [analyzerSetting]: analyzer },
+      })
+    ).json<Record<string, unknown>>()
+  }
+
+  console.log(
+    '\nRun every Dashboard usage config, all users and one (enable_analyzer 0 and 1)'
+  )
   for (const analyzer of [0, 1]) {
-    for (const config of dashboardUsageConfigs) {
-      const label = `${config.name} analyzer=${analyzer}`
-      try {
-        const rows = await (
-          await admin.query({
-            query: config.sql as string,
-            query_params: { days: 7 },
-            format: 'JSONEachRow',
-            clickhouse_settings: { [analyzerSetting]: analyzer },
+    for (const user of ['', tag('default')]) {
+      for (const config of allDashboardUsageConfigs) {
+        const label = `${config.name} user=${user || '*'} analyzer=${analyzer}`
+        try {
+          const rows = await runSql(
+            config.sql as string,
+            { days: 7, dashboard_user: user },
+            analyzer
+          )
+          const text = JSON.stringify(rows)
+          const missing = expectedFor(config.name, user).filter(
+            (e) => !text.includes(e)
+          )
+          const leaked = user
+            ? [tag('ro1'), tag('ro2')].filter((u) => text.includes(u))
+            : []
+          const emailLeak =
+            config.name === 'dashboard-usage-summary' &&
+            !user &&
+            text.includes('@example.com')
+          check(
+            label,
+            rows.length > 0 &&
+              missing.length === 0 &&
+              leaked.length === 0 &&
+              !emailLeak,
+            missing.length
+              ? `missing ${missing.join(', ')}`
+              : leaked.length
+                ? `other users leaked: ${leaked.join(', ')}`
+                : emailLeak
+                  ? 'email shown for all users'
+                  : `${rows.length} rows`
+          )
+        } catch (err) {
+          check(label, false, String(err).split('\n')[0])
+        }
+      }
+    }
+    const ro2Email = await runSql(
+      allDashboardUsageConfigs[0].sql as string,
+      { days: 7, dashboard_user: tag('ro2') },
+      analyzer
+    )
+    check(
+      `summary has no email for a user without one analyzer=${analyzer}`,
+      ro2Email[0]?.email === '',
+      JSON.stringify(ro2Email[0]?.email)
+    )
+  }
+
+  console.log(
+    '\nRun every Dashboard usage chart, all users and one (enable_analyzer 0 and 1)'
+  )
+  const chartCases = [
+    ...['toStartOfHour', 'toStartOfDay'].map((interval) => ({
+      name: 'dashboard-usage-over-time',
+      interval,
+      dimension: '',
+    })),
+    ...Object.keys(DASHBOARD_USAGE_DIMENSIONS).map((dimension) => ({
+      name: 'dashboard-usage-top',
+      interval: 'toStartOfHour',
+      dimension,
+    })),
+  ]
+  check(
+    'every dashboard usage chart has a case',
+    Object.keys(dashboardUsageCharts).every((n) =>
+      chartCases.some((c) => c.name === n)
+    )
+  )
+  for (const analyzer of [0, 1]) {
+    for (const user of ['', tag('default')]) {
+      for (const c of chartCases) {
+        const label = `${c.name}${c.dimension ? `:${c.dimension}` : ''} ${c.interval} user=${user || '*'} analyzer=${analyzer}`
+        try {
+          const built = getChartQuery(c.name, {
+            interval: c.interval as 'toStartOfHour',
+            lastHours: 24,
+            params: { dashboard_user: user, dimension: c.dimension },
           })
-        ).json<Record<string, unknown>>()
-        const text = JSON.stringify(rows)
-        const expected =
-          config.name === 'dashboard-usage-by-user' ||
-          config.name === 'dashboard-usage-expensive'
-            ? [tag('default'), tag('ro2'), tag('ro1')]
-            : config.name === 'dashboard-usage-by-source'
-              ? ['chart:verify', 'console', 'agent']
-              : config.name === 'dashboard-usage-by-label'
-                ? [`run=${run}`]
-                : config.name === 'dashboard-usage-by-version'
-                  ? ['0.0.0+verify']
-                  : []
-        const missing = expected.filter((e) => !text.includes(e))
-        check(
-          label,
-          rows.length > 0 && missing.length === 0,
-          missing.length
-            ? `missing ${missing.join(', ')}`
-            : `${rows.length} rows`
-        )
-      } catch (err) {
-        check(label, false, String(err).split('\n')[0])
+          if (!built || !('query' in built)) throw new Error('no query')
+          const rows = await runSql(
+            built.query,
+            built.queryParams ?? {},
+            analyzer
+          )
+          const total = rows.reduce((n, r) => n + Number(r.queries ?? 0), 0)
+          const text = JSON.stringify(rows)
+          const want =
+            c.dimension === 'user'
+              ? // Top 10 only: earlier runs on the same server can push
+                // this run's quieter users out, but not the busiest one.
+                [user || tag('default')]
+              : c.dimension === 'page'
+                ? ['/verify']
+                : []
+          const missing = want.filter((w) => !text.includes(w))
+          const leaked =
+            user && c.dimension === 'user'
+              ? [tag('ro1'), tag('ro2')].filter((u) => text.includes(u))
+              : []
+          check(
+            label,
+            total > 0 && missing.length === 0 && leaked.length === 0,
+            missing.length
+              ? `missing ${missing.join(', ')}`
+              : leaked.length
+                ? `leaked ${leaked.join(', ')}`
+                : `${rows.length} rows, ${total} queries`
+          )
+        } catch (err) {
+          check(label, false, String(err).split('\n')[0])
+        }
       }
     }
   }
+
+  check(
+    'top chart refuses an unknown dimension',
+    (() => {
+      try {
+        getChartQuery('dashboard-usage-top', { params: { dimension: 'query' } })
+        return false
+      } catch {
+        return true
+      }
+    })()
+  )
 
   if (failures.length) {
     console.error(`\n${failures.length} check(s) failed`)

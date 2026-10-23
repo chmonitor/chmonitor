@@ -517,6 +517,12 @@ export const OG_PAGES: Record<string, OgPage> = {
     description:
       'What this dashboard sent to ClickHouse, by user, source, version and label.',
   },
+  'dashboard-usage/user': {
+    eyebrow: 'QUERIES',
+    title: 'Dashboard User',
+    description:
+      'One dashboard user: queries, errors, p95, top sources and pages, recent queries.',
+  },
   'usage/user': {
     eyebrow: 'QUERIES',
     title: 'User Usage',

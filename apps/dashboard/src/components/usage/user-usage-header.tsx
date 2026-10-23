@@ -1,6 +1,6 @@
 import { ChartError } from '@/components/charts/chart-error'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { type KpiTile, KpiTiles } from '@/components/usage/kpi-tiles'
 import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { resolveFeatureState } from '@/lib/feature-permissions/shared'
 import { formatCompactNumber } from '@/lib/format-readable'
@@ -20,10 +20,7 @@ export interface UserUsageSummaryRow {
   window_days: number
 }
 
-export interface UserUsageKpi {
-  label: string
-  value: string
-}
+export type UserUsageKpi = KpiTile
 
 /** KPI tile values; kept pure so the formatting is unit-tested. */
 export function buildUserUsageKpis(row: UserUsageSummaryRow): UserUsageKpi[] {
@@ -56,15 +53,7 @@ export function UserUsageKpis({ user, days }: UserUsageProps) {
       days,
     })
 
-  if (isLoading && !hasData) {
-    return (
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-[62px] rounded-lg" />
-        ))}
-      </div>
-    )
-  }
+  if (isLoading && !hasData) return <KpiTiles tiles={null} loadingCount={4} />
   const row = data?.[0]
   if (error && !row) {
     return <ChartError error={error} title="Totals" onRetry={() => refresh()} />
@@ -73,21 +62,7 @@ export function UserUsageKpis({ user, days }: UserUsageProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {buildUserUsageKpis(row).map((kpi) => (
-          <div
-            key={kpi.label}
-            className="border-border/60 bg-card/40 flex min-w-0 flex-col rounded-lg border px-3 py-2"
-          >
-            <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">
-              {kpi.label}
-            </span>
-            <span className="mt-1 truncate text-lg font-semibold tabular-nums leading-tight">
-              {kpi.value}
-            </span>
-          </div>
-        ))}
-      </div>
+      <KpiTiles tiles={buildUserUsageKpis(row)} loadingCount={4} />
       <p className="text-muted-foreground text-xs">
         Last {row.window_days} days, this replica only.
       </p>

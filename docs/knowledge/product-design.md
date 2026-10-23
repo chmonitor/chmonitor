@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-10-23
+updated: 2026-10-24
 tags:
   - design-system
   - ui
@@ -903,6 +903,13 @@ tabs looked unselected (`data-active:bg-background` on the page surface) while
 dark mode still showed the `bg-input/30` pill. Do not rely on `TabsList
 variant="line"`'s hanging `after` bar here: the strip is `overflow-x-auto` and
 would clip it.
+
+### KPI tile rows
+
+- Usage pages (`/usage/user`, `/dashboard-usage`, `/dashboard-usage/user`)
+  share `KpiTiles` (`components/usage/kpi-tiles.tsx`): 2 columns, 4 or 5
+  across from `lg`, skeleton tiles while loading. Build the tile values in a
+  pure function next to the page so the formatting is unit-tested.
 
 ### Responsive chrome (phones + tablets)
 

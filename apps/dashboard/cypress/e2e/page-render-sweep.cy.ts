@@ -132,6 +132,7 @@ const DASHBOARD_ROUTES = [
   '/usage',
   '/usage/user',
   '/dashboard-usage',
+  '/dashboard-usage/user',
   '/user-processes',
   '/users',
   '/view-refreshes',

@@ -128,7 +128,11 @@ describe('CHART_FRESHNESS (#2992 / #3005 item 3)', () => {
           REFRESH_INTERVAL.DEFAULT_60S
         )
       }
-      if (entry.cachePolicy === 'historical') {
+      // NEVER (0) does not poll at all, the slowest refresh there is.
+      if (
+        entry.cachePolicy === 'historical' &&
+        entry.refreshInterval !== REFRESH_INTERVAL.NEVER
+      ) {
         expect(entry.refreshInterval).toBeGreaterThanOrEqual(
           REFRESH_INTERVAL.SLOW_2M
         )
