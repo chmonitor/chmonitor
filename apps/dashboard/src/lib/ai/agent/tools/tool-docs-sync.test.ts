@@ -104,12 +104,12 @@ const MCP_SERVER_TOOL_NAMES = [
 ] as const
 
 describe('AI agent tool docs stay in sync with the code', () => {
-  test('createAllTools(0, true) exposes 33 default + 3 control + 4 Postgres + 2 PeerDB tools', () => {
+  test('createAllTools(0, true) exposes 36 default + 3 control + 4 Postgres + 2 PeerDB tools', () => {
     // Loud guard: if this drops below 40, AGENT_ENABLE_CONTROL_TOOLS,
     // CHM_FEATURE_POSTGRES_SOURCE, or CHM_FEATURE_PEERDB_AGENT was not
     // honored above and the gated-tool assertions below would silently
     // never run.
-    expect(toolNames.length).toBe(44)
+    expect(toolNames.length).toBe(45)
   })
 
   test('every agent tool is documented in ai-agent/capabilities.mdx', () => {

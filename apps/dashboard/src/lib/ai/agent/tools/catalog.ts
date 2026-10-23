@@ -293,6 +293,19 @@ export const TOOL_CATALOG: Readonly<Record<string, ToolCatalogEntry>> = {
       'detached data',
     ]
   ),
+  build_optimization_plan: e(
+    'build_optimization_plan',
+    'advisor',
+    'Rank the findings the advisors already stored into one recommend-only optimization plan: owner, saved bytes, apply cost, risk, DDL to review, verify and rollback SQL. Never applied.',
+    [
+      'optimization plan',
+      'what to optimize first',
+      'cleanup plan',
+      'rank optimizations',
+      'prioritize',
+      'savings',
+    ]
+  ),
   recommend_materialized_view: e(
     'recommend_materialized_view',
     'advisor',
