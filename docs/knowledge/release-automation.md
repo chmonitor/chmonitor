@@ -3,7 +3,7 @@ id: release-automation
 title: Release Automation Pipeline
 type: workflow
 status: active
-updated: 2026-08-20
+updated: 2026-10-23
 tags:
   - release
   - ci
@@ -28,10 +28,13 @@ from conventional commits on `main` — no manual version bumps or tagging.
    commit**). Conventional-commit type drives everything downstream.
 2. **release-please** (`.github/workflows/release-please.yml`) watches `main`
    and maintains a standing `chore(main): release X.Y.Z` PR plus the tracked
-   `CHANGELOG.md`. Config + manifest live under `.github/`:
-   `.github/release-please-config.json` and `.github/.release-please-manifest.json`
-   (moved out of repo root 2026-06-13 to keep root clean; the workflow passes
-   `config-file` / `manifest-file` explicitly).
+   `CHANGELOG.md`. Each component has its own config + manifest pair under
+   `.github/release-please/` (`dashboard-`, `cli-`, `helm-` `config.json` /
+   `manifest.json`), and the workflow runs release-please once per pair.
+   Until 2026-10-23 one shared manifest held all three versions, so every
+   release PR edited the same three-line file and merging one left the others
+   conflicting. Add a new component as a new pair and a new workflow step,
+   never as a second package in an existing config.
 3. **Merging the release PR** tags the version and publishes a GitHub Release.
 4. **`release.yml`** is **explicitly dispatched** by the release-please job
    (`gh workflow run release.yml -f tag=<tag>` when `release_created == true`,

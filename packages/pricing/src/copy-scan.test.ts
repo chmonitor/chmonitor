@@ -16,7 +16,10 @@ const readme = readFileSync(join(root, 'README.md'), 'utf8')
  * up claiming a release that had not shipped for months.
  */
 const releasedVersion: string = JSON.parse(
-  readFileSync(join(root, '.github/.release-please-manifest.json'), 'utf8')
+  readFileSync(
+    join(root, '.github/release-please/dashboard-manifest.json'),
+    'utf8'
+  )
 )['.']
 
 const userFacing = [
