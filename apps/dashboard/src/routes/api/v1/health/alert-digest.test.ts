@@ -8,7 +8,7 @@
  *   - a negative / non-numeric window is a 400; a no-D1 save is a 501
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 let authorizeFeatureRequest = mock(
   async (
@@ -17,6 +17,9 @@ let authorizeFeatureRequest = mock(
     _options?: { allowAgentBearerToken?: boolean }
   ): Promise<Response | null> => null
 )
+const realFeaturePermissions = {
+  ...(await import('@/lib/feature-permissions/server')),
+}
 mock.module('@/lib/feature-permissions/server', () => ({
   authorizeFeatureRequest: (
     permission: unknown,
@@ -26,6 +29,9 @@ mock.module('@/lib/feature-permissions/server', () => ({
 }))
 
 let requiresSignIn = false
+const realAlertRoutingAuth = {
+  ...(await import('@/lib/health/alert-routing-auth')),
+}
 mock.module('@/lib/health/alert-routing-auth', () => ({
   resolveConfigOwner: async () => '',
   SINGLE_TENANT_OWNER_ID: '',
@@ -35,6 +41,9 @@ mock.module('@/lib/health/alert-routing-auth', () => ({
 let getResult: { enabled: boolean; windowMinutes: number } | null = null
 let setResult: { enabled: boolean; windowMinutes: number } | null = null
 const setCalls: unknown[] = []
+const realAlertDigestSettingsStore = {
+  ...(await import('@/lib/health/alert-digest-settings-store')),
+}
 mock.module('@/lib/health/alert-digest-settings-store', () => ({
   getDigestSettings: async () => getResult,
   // The single-value merge itself is covered by the declarative matrix test;
@@ -52,6 +61,9 @@ mock.module('@/lib/health/alert-digest-settings-store', () => ({
 }))
 
 let envWindow = 0
+const realServerAlertConfig = {
+  ...(await import('@/lib/health/server-alert-config')),
+}
 mock.module('@/lib/health/server-alert-config', () => ({
   getServerDigestWindowMinutes: () => envWindow,
 }))
@@ -152,4 +164,20 @@ describe('PUT /api/v1/health/alert-digest', () => {
     )
     expect(res.status).toBe(501)
   })
+})
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/feature-permissions/server', () => ({
+    ...realFeaturePermissions,
+  }))
+  mock.module('@/lib/health/alert-routing-auth', () => ({
+    ...realAlertRoutingAuth,
+  }))
+  mock.module('@/lib/health/alert-digest-settings-store', () => ({
+    ...realAlertDigestSettingsStore,
+  }))
+  mock.module('@/lib/health/server-alert-config', () => ({
+    ...realServerAlertConfig,
+  }))
 })

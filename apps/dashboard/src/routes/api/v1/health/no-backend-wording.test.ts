@@ -7,17 +7,32 @@
  * codes stay 501.
  */
 
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from 'bun:test'
 import { installHealthPlatformMock } from '@/lib/health/__tests__/platform-mock'
 
+const realFeaturePermissions = {
+  ...(await import('@/lib/feature-permissions/server')),
+}
 mock.module('@/lib/feature-permissions/server', () => ({
   authorizeFeatureRequest: async () => null,
 }))
+const realAlertRoutingAuth = {
+  ...(await import('@/lib/health/alert-routing-auth')),
+}
 mock.module('@/lib/health/alert-routing-auth', () => ({
   SINGLE_TENANT_OWNER_ID: '',
   resolveConfigOwner: async () => '',
   requiresSignInForWrite: () => false,
 }))
+const realHostUrl = { ...(await import('@/lib/browser-connections/host-url')) }
 mock.module('@/lib/browser-connections/host-url', () => ({
   validateHostUrl: async () => null,
 }))
@@ -113,4 +128,15 @@ describe('shared helper', () => {
   test('still says the write may have failed on a configured backend', () => {
     expect(noBackendOrWriteFailedMessage('X')).toContain('write itself failed')
   })
+})
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/feature-permissions/server', () => ({
+    ...realFeaturePermissions,
+  }))
+  mock.module('@/lib/health/alert-routing-auth', () => ({
+    ...realAlertRoutingAuth,
+  }))
+  mock.module('@/lib/browser-connections/host-url', () => ({ ...realHostUrl }))
 })

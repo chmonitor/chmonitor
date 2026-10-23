@@ -11,7 +11,15 @@
  * test name or the comment above it.
  */
 
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from 'bun:test'
 
 interface FetchArgs {
   query: string
@@ -23,7 +31,9 @@ const fetchCalls: FetchArgs[] = []
 let probeRows: Array<{ kind: string; name: string }> = []
 let probeError: { type: string; message: string } | null = null
 
+const realClickHouseClient = { ...(await import('@chm/clickhouse-client')) }
 mock.module('@chm/clickhouse-client', () => ({
+  ...realClickHouseClient,
   fetchData: async (args: FetchArgs) => {
     fetchCalls.push(args)
     if (probeError) {
@@ -32,6 +42,11 @@ mock.module('@chm/clickhouse-client', () => ({
     return { data: probeRows, metadata: {}, error: undefined }
   },
 }))
+
+// Restore the real module so this mock never leaks into other test files.
+afterAll(() => {
+  mock.module('@chm/clickhouse-client', () => ({ ...realClickHouseClient }))
+})
 
 const {
   buildCapabilityProbeSql,

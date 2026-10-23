@@ -4,8 +4,11 @@
  * that never happened, and never touch the store. GET stays fail-open.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
+const realFeaturePermissions = {
+  ...(await import('@/lib/feature-permissions/server')),
+}
 mock.module('@/lib/feature-permissions/server', () => ({
   getAppConfig: () => ({ authProvider: 'none' as const, features: {} }),
   _resetAppConfigCache: () => {},
@@ -14,6 +17,7 @@ mock.module('@/lib/feature-permissions/server', () => ({
 }))
 
 let billingOwnerId: string | null = 'operator'
+const realBillingOwner = { ...(await import('@/lib/billing/billing-owner')) }
 mock.module('@/lib/billing/billing-owner', () => ({
   resolveBillingOwner: async () => {
     if (billingOwnerId === null) throw new Error('UNAUTHORIZED')
@@ -22,6 +26,7 @@ mock.module('@/lib/billing/billing-owner', () => ({
 }))
 
 let backend: 'd1' | 'postgres' | null = null
+const realResolveStore = { ...(await import('@/lib/health/resolve-store')) }
 mock.module('@/lib/health/resolve-store', () => ({
   resolveHealthBackend: () => backend,
   getHealthDb: () => null,
@@ -30,6 +35,7 @@ mock.module('@/lib/health/resolve-store', () => ({
 const ackCalls: unknown[] = []
 const clearCalls: unknown[] = []
 const listCalls: string[] = []
+const realAlertAckStore = { ...(await import('@/lib/health/alert-ack-store')) }
 mock.module('@/lib/health/alert-ack-store', () => ({
   isAckDurationKey: (v: unknown) =>
     v === '5m' || v === '15m' || v === '60m' || v === '240m',
@@ -160,4 +166,14 @@ describe('ACK owner scope (#3897)', () => {
     expect((ackCalls[0] as { ownerId: string }).ownerId).toBe('org_a')
     expect(clearCalls).toEqual([['org_a', 0, 'disk']])
   })
+})
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/feature-permissions/server', () => ({
+    ...realFeaturePermissions,
+  }))
+  mock.module('@/lib/billing/billing-owner', () => ({ ...realBillingOwner }))
+  mock.module('@/lib/health/resolve-store', () => ({ ...realResolveStore }))
+  mock.module('@/lib/health/alert-ack-store', () => ({ ...realAlertAckStore }))
 })

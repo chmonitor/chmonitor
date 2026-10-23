@@ -8,7 +8,7 @@
  *   - an invalid channel / non-HTTPS URL is a 400
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // Auth gate — same mock surface as webhook.test.ts / opsgenie-test.test.ts.
 let authorizeFeatureRequest = mock(
@@ -18,6 +18,9 @@ let authorizeFeatureRequest = mock(
     _options?: { allowAgentBearerToken?: boolean }
   ): Promise<Response | null> => null
 )
+const realFeaturePermissions = {
+  ...(await import('@/lib/feature-permissions/server')),
+}
 mock.module('@/lib/feature-permissions/server', () => ({
   getAppConfig: () => ({ authProvider: 'none' as const, features: {} }),
   _resetAppConfigCache: () => {},
@@ -31,6 +34,9 @@ mock.module('@/lib/feature-permissions/server', () => ({
 
 // Owner resolution — self-hosted single-tenant by default; write gate off.
 let requiresSignIn = false
+const realAlertRoutingAuth = {
+  ...(await import('@/lib/health/alert-routing-auth')),
+}
 mock.module('@/lib/health/alert-routing-auth', () => ({
   SINGLE_TENANT_OWNER_ID: '',
   resolveConfigOwner: async () => '',
@@ -51,6 +57,9 @@ const ALL_CHANNELS = [
 let listResult: unknown[] = []
 let upsertResult: unknown = null
 const upsertCalls: unknown[] = []
+const realAlertChannelConfigStore = {
+  ...(await import('@/lib/health/alert-channel-config-store')),
+}
 mock.module('@/lib/health/alert-channel-config-store', () => ({
   isAlertConfigChannel: (v: unknown) =>
     typeof v === 'string' && ALL_CHANNELS.includes(v),
@@ -262,4 +271,17 @@ describe('PUT /api/v1/health/alert-config — auth + validation', () => {
     )
     expect(res.status).toBe(501)
   })
+})
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/feature-permissions/server', () => ({
+    ...realFeaturePermissions,
+  }))
+  mock.module('@/lib/health/alert-routing-auth', () => ({
+    ...realAlertRoutingAuth,
+  }))
+  mock.module('@/lib/health/alert-channel-config-store', () => ({
+    ...realAlertChannelConfigStore,
+  }))
 })

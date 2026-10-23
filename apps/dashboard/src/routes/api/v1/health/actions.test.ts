@@ -18,7 +18,7 @@
  * all declared before the dynamic import of the Route module.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 mock.module('cloudflare:workers', () => ({
   env: {
@@ -35,6 +35,9 @@ let authorizeFeatureRequest = mock(
     _options?: { allowAgentBearerToken?: boolean }
   ): Promise<Response | null> => null
 )
+const realFeaturePermissions = {
+  ...(await import('@/lib/feature-permissions/server')),
+}
 mock.module('@/lib/feature-permissions/server', () => ({
   getAppConfig: () => ({ authProvider: 'none' as const, features: {} }),
   _resetAppConfigCache: () => {},
@@ -46,10 +49,12 @@ mock.module('@/lib/feature-permissions/server', () => ({
   ) => authorizeFeatureRequest(permission, request, options),
 }))
 
+const realServerEnv = { ...(await import('@/lib/api/server-env')) }
 mock.module('@/lib/api/server-env', () => ({
   bridgeClickHouseEnv: mock(() => undefined),
 }))
 
+const realLogger = { ...(await import('@chm/logger')) }
 mock.module('@chm/logger', () => ({
   debug: mock(() => undefined),
   error: mock(() => undefined),
@@ -63,6 +68,7 @@ const mockFetchData = mock(
     error: { message: string } | null
   }> => ({ data: [], error: null })
 )
+const realClickhouseClient = { ...(await import('@chm/clickhouse-client')) }
 mock.module('@chm/clickhouse-client', () => ({
   fetchData: mockFetchData,
 }))
@@ -244,4 +250,14 @@ describe('health actions — diagnostic', () => {
 
     ruleRegistry.unregister('bad-rule')
   })
+})
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/feature-permissions/server', () => ({
+    ...realFeaturePermissions,
+  }))
+  mock.module('@/lib/api/server-env', () => ({ ...realServerEnv }))
+  mock.module('@chm/logger', () => ({ ...realLogger }))
+  mock.module('@chm/clickhouse-client', () => ({ ...realClickhouseClient }))
 })
