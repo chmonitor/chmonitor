@@ -29,6 +29,16 @@ export const REPLICATION_USAGE_SQL = `
       LIMIT 1
     )`
 
+/** Scalar form of the same probe, for health chart queries that need the flag beside their value. */
+export const REPLICATION_USED_SCALAR_SQL = `(SELECT count() > 0 FROM (
+      SELECT 1 FROM system.tables
+      WHERE ${REPLICATED_ENGINE_PREDICATE} AND ${LOCAL_DATABASES_FILTER}
+      LIMIT 1
+    ))`
+
+/** The one neutral sentence every replication surface shows on a host without replication. */
+export const REPLICATION_NOT_USED_MESSAGE = 'Replication not used on this host'
+
 export function usesReplication(
   capabilities: Pick<HostCapabilities, 'replicationUsed'>
 ): boolean {

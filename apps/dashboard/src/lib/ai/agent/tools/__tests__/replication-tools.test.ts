@@ -2,14 +2,21 @@ import { mockFetchData } from './shared-mocks'
 import { beforeEach, describe, expect, test } from 'bun:test'
 
 const { createReplicationTools } = await import('../replication-tools')
+const { resetHostCapabilities } = await import('@/lib/health/capability-cache')
 
 /**
  * Captures the params passed to the (mocked) fetchData so we can assert on the
  * query, query_params, and resolved hostId without a live ClickHouse.
  */
-function captureFetch(rows: unknown[] = []) {
+function captureFetch(rows: unknown[] = [], replicationUsed = true) {
   const calls: Array<Record<string, unknown>> = []
   mockFetchData.mockImplementation(async (params: Record<string, unknown>) => {
+    if (String(params.query).includes("'table' AS kind")) {
+      return {
+        data: replicationUsed ? [{ kind: 'replication', name: 'used' }] : [],
+        error: null,
+      }
+    }
     calls.push(params)
     return { data: rows, error: null }
   })
@@ -19,6 +26,7 @@ function captureFetch(rows: unknown[] = []) {
 describe('createReplicationTools', () => {
   beforeEach(() => {
     mockFetchData.mockReset()
+    resetHostCapabilities()
   })
 
   test('exposes get_replication_status', () => {
@@ -69,5 +77,16 @@ describe('createReplicationTools', () => {
     const result = await tools.get_replication_status.execute({})
 
     expect(result).toEqual(rows)
+  })
+
+  test('says replication is not used, without querying system.replicas (#4044)', async () => {
+    const calls = captureFetch([], false)
+    const tools = createReplicationTools(0) as any
+    const result = await tools.get_replication_status.execute({})
+
+    expect(calls).toHaveLength(0)
+    expect(result.replicationUsed).toBe(false)
+    expect(result.message).toContain('Replication not used on this host')
+    expect(result.rows).toEqual([])
   })
 })
