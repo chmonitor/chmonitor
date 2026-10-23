@@ -31,13 +31,32 @@ jobs:
       major: ${{ steps.release.outputs.major }}
       minor: ${{ steps.release.outputs.minor }}
     steps:
-      - name: Run release-please
+      # One config + manifest per component. A shared manifest made every
+      # release PR edit the same three-line file, so merging one left the
+      # others conflicting until release-please rebuilt them.
+      - name: Run release-please (dashboard)
         id: release
         uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: .github/release-please-config.json
-          manifest-file: .github/.release-please-manifest.json
+          config-file: .github/release-please/dashboard-config.json
+          manifest-file: .github/release-please/dashboard-manifest.json
+
+      - name: Run release-please (cli)
+        id: cli
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please/cli-config.json
+          manifest-file: .github/release-please/cli-manifest.json
+
+      - name: Run release-please (helm)
+        id: helm
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please/helm-config.json
+          manifest-file: .github/release-please/helm-manifest.json
 
       # GitHub does NOT trigger other workflows from a release/tag created with
       # the default GITHUB_TOKEN (anti-recursion). So the published release does
@@ -55,10 +74,10 @@ jobs:
       # release-please creates won't fire cli-rust-release.yml's `on: push:
       # tags` by itself, so dispatch it explicitly with the tag to build.
       - name: Trigger CLI release build
-        if: steps.release.outputs['rust/ch-monitor-cli--release_created'] == 'true'
+        if: steps.cli.outputs['rust/ch-monitor-cli--release_created'] == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run cli-rust-release.yml -R ${{ github.repository }} -f tag=${{ steps.release.outputs['rust/ch-monitor-cli--tag_name'] }}
+        run: gh workflow run cli-rust-release.yml -R ${{ github.repository }} -f tag=${{ steps.cli.outputs['rust/ch-monitor-cli--tag_name'] }}
 
       # Helm: no dispatch needed. The helm-chmonitor release PR bumps
       # deploy/helm/chmonitor/Chart.yaml, and merging it fires helm-release.yml

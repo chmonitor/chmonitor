@@ -70,27 +70,6 @@
         }
       ],
       "pull-request-title-pattern": "chore(main): release dashboard v${version}"
-    },
-    "rust/ch-monitor-cli": {
-      "release-type": "rust",
-      "package-name": "chmonitor",
-      "component": "chm",
-      "include-component-in-tag": true,
-      "include-v-in-tag": true,
-      "changelog-path": "CHANGELOG.md",
-      "draft": false,
-      "prerelease": false,
-      "pull-request-title-pattern": "chore(main): release cli chm-v${version}"
-    },
-    "deploy/helm/chmonitor": {
-      "release-type": "helm",
-      "package-name": "chmonitor-chart",
-      "component": "helm-chmonitor",
-      "include-component-in-tag": true,
-      "include-v-in-tag": false,
-      "changelog-path": "CHANGELOG.md",
-      "skip-github-release": true,
-      "pull-request-title-pattern": "chore(main): release helm-chart ${version}"
     }
   }
 }
