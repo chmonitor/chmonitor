@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.18](https://github.com/chmonitor/chmonitor/compare/helm-chmonitor-0.2.17...helm-chmonitor-0.2.18) (2026-10-23)
+
+
+### Features
+
+* **alerts:** deployment name, dashboard link and metadata in alerts ([#3784](https://github.com/chmonitor/chmonitor/issues/3784)) ([49426b9](https://github.com/chmonitor/chmonitor/commit/49426b97e179bf59a607fe452de2bdfe6193e9c5)), closes [#3783](https://github.com/chmonitor/chmonitor/issues/3783)
+* **alerts:** group hookshot and matrix alerts per sweep ([#3884](https://github.com/chmonitor/chmonitor/issues/3884)) ([8410369](https://github.com/chmonitor/chmonitor/commit/8410369834aa5d65b2cf17852e6b197c92d24ced)), closes [#3869](https://github.com/chmonitor/chmonitor/issues/3869)
+* **alerts:** matrix hookshot webhook format ([#3782](https://github.com/chmonitor/chmonitor/issues/3782)) ([36522c3](https://github.com/chmonitor/chmonitor/commit/36522c3f697d95b25e78c565a963fe2ad7fd8710))
+* **alerts:** once-until-resolved custom targets and one-line digest reminders ([#3922](https://github.com/chmonitor/chmonitor/issues/3922)) ([2c3fbc3](https://github.com/chmonitor/chmonitor/commit/2c3fbc3dbd209b21bc1b7a1e8d4a6d51bc4fda0e))
+
 ## [0.2.17](https://github.com/chmonitor/chmonitor/compare/helm-chmonitor-0.2.16...helm-chmonitor-0.2.17) (2026-10-11)
 
 
