@@ -83,7 +83,7 @@ import {
   isRuleMuted,
   meetsMinSeverity,
 } from './../suppression'
-import { createAlertBlockResolver } from './alert-block'
+import { createAlertBlockResolver, incidentStartedAt } from './alert-block'
 import {
   dispatchCustomWebhookTargets,
   eligibleGroupableCustomTargets,
@@ -658,6 +658,11 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     // embeds carry host/value/thresholds; the Slack/generic wrapper carries
     // `text`). One timestamp per finding so the embed and any Slack ack block
     // agree.
+    const incidentStart = incidentStartedAt(
+      decision.kind,
+      previousState,
+      webhookTimestamp
+    )
     const webhookPayload: AlertPayload = {
       severity: isRecovery ? 'recovery' : (effective as 'warning' | 'critical'),
       hostLabel: name,
@@ -670,6 +675,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       label,
       timestamp: webhookTimestamp,
       ...findingIdentity,
+      ...(incidentStart !== undefined && { incidentStartedAt: incidentStart }),
       ...(decision.kind === 'reminder' &&
         decision.incidentDurationMs !== undefined && {
           stillOpenMs: decision.incidentDurationMs,

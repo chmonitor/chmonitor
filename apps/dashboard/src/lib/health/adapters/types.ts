@@ -170,6 +170,12 @@ export interface AlertPayload {
    * the fire time is unknown.
    */
   firedForMs?: number
+  /**
+   * ISO-8601 incident start from alert state; works without a history store.
+   * Only the `{{firstFired}}` template variable reads it (as a fallback for
+   * `alert.firstSeenAt`); it is not part of any request body.
+   */
+  incidentStartedAt?: string
   /** Opt-in per custom target (`details: true`); see {@link AlertBlock}. */
   alert?: AlertBlock
 }

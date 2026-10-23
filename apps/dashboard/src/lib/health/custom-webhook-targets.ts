@@ -209,8 +209,9 @@ const SECRET_FORBIDDEN_HEADER_NAMES: ReadonlySet<string> = new Set([
  * Allowlisted template variables and their resolvers. Every value is coerced
  * to a short plain string; unknown `{{names}}` are left verbatim so a typo is
  * visible instead of silently empty. A fact that does not apply (no
- * threshold, not a reminder) renders as an empty string. `firstFired` needs
- * the target's `details: true`.
+ * threshold, not a reminder) renders as an empty string. `firstFired` is the
+ * alert-history `firstSeenAt` when the target has `details: true` and history
+ * exists, else the alert-state incident start.
  */
 const TEMPLATE_VARS: Record<string, (p: AlertPayload) => string> = {
   severity: (p) =>
@@ -238,7 +239,7 @@ const TEMPLATE_VARS: Record<string, (p: AlertPayload) => string> = {
     p.severity === 'recovery' && p.firedForMs !== undefined
       ? spanText(p.firedForMs)
       : '',
-  firstFired: (p) => p.alert?.firstSeenAt ?? '',
+  firstFired: (p) => p.alert?.firstSeenAt ?? p.incidentStartedAt ?? '',
 }
 
 /** `{{meta.<key>}}` resolves a `HEALTH_ALERT_METADATA` value by key. */

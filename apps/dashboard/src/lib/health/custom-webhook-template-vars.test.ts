@@ -81,4 +81,41 @@ describe('custom webhook template variables for alert facts', () => {
       '2026-07-02T07:00:00.000Z'
     )
   })
+
+  const blockWith = (firstSeenAt: string | null): AlertPayload['alert'] => ({
+    ruleId: 'r',
+    metric: 'r',
+    threshold: null,
+    value: 1,
+    previousValue: null,
+    trend: null,
+    repeatCount: 0,
+    firstSeenAt,
+    untrusted: { affected: [] },
+  })
+
+  test('firstFired falls back to the alert-state incident start without history', () => {
+    const noHistory: AlertPayload = {
+      ...FIRING,
+      stillOpenMs: HOUR,
+      incidentStartedAt: '2026-07-02T09:00:00.000Z',
+    }
+    expect(render('{{firstFired}}', noHistory)).toBe('2026-07-02T09:00:00.000Z')
+    expect(
+      render('{{firstFired}}', {
+        ...noHistory,
+        alert: blockWith(null),
+      })
+    ).toBe('2026-07-02T09:00:00.000Z')
+  })
+
+  test('firstFired prefers the history firstSeenAt over the state start', () => {
+    expect(
+      render('{{firstFired}}', {
+        ...FIRING,
+        incidentStartedAt: '2026-07-02T09:00:00.000Z',
+        alert: blockWith('2026-07-02T07:00:00.000Z'),
+      })
+    ).toBe('2026-07-02T07:00:00.000Z')
+  })
 })

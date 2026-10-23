@@ -10,6 +10,7 @@ import type { AlertBlockParams } from './alert-block'
 import {
   buildAlertBlock,
   createAlertBlockResolver,
+  incidentStartedAt,
   sanitizeUntrusted,
   UNTRUSTED_STRING_MAX,
 } from './alert-block'
@@ -157,5 +158,18 @@ describe('createAlertBlockResolver', () => {
     expect(contributorCalls).toBe(0)
     expect(block.firstSeenAt).toBeNull()
     expect('topContributors' in block.untrusted).toBe(false)
+  })
+})
+
+describe('incidentStartedAt', () => {
+  test('a new incident starts now; an open one keeps the state start', () => {
+    expect(incidentStartedAt('new', undefined, now)).toBe(now)
+    expect(incidentStartedAt('reminder', base.previousState, now)).toBe(
+      '2026-01-01T12:00:00.000Z'
+    )
+  })
+
+  test('unknown when the state has no start (never invented)', () => {
+    expect(incidentStartedAt('reminder', undefined, now)).toBeUndefined()
   })
 })

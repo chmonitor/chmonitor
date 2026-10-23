@@ -51,6 +51,22 @@ function sanitizeContributor(c: AlertContributor): AlertContributor {
   }
 }
 
+/**
+ * ISO-8601 incident start from alert state (a new incident starts now; an open
+ * one keeps its recorded `firstFiredAt`), or undefined when unknown. Needs no
+ * history store, so the `{{firstFired}}` template variable can fall back to it
+ * where `alert.firstSeenAt` is null.
+ */
+export function incidentStartedAt(
+  kind: AlertDecisionKind,
+  previousState: AlertStateRecord | undefined,
+  now: string
+): string | undefined {
+  if (kind === 'new') return now
+  const started = previousState?.firstFiredAt
+  return started === undefined ? undefined : new Date(started).toISOString()
+}
+
 export interface AlertBlockParams {
   ruleId: string
   kind: AlertDecisionKind
