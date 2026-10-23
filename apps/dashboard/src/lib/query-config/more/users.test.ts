@@ -74,6 +74,12 @@ describe('users config variants', () => {
       ColumnFormat.Link,
       { href: '/usage/user?user=[name_param]&host=[ctx.hostId]' },
     ])
+    // The template reads a row column; without it the link drops the user.
+    for (const config of VARIANTS) {
+      for (const { sql } of versions(config.sql)) {
+        expect(sql).toContain('encodeURLComponent(u.name) AS name_param')
+      }
+    }
   })
 
   test('every variant is registered by name', () => {

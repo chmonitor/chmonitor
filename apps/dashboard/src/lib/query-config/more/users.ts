@@ -88,7 +88,8 @@ LEFT JOIN
 function buildUsersSql(variant: UsersVariant, validUntil: boolean): string {
   return `
 SELECT
-    u.name AS name,${variant.activity ? ACTIVITY_SQL : ''}${variant.login ? LOGIN_SQL : ''}${validUntil ? VALID_UNTIL_SQL : NO_VALID_UNTIL_SQL}
+    u.name AS name,
+    encodeURLComponent(u.name) AS name_param,${variant.activity ? ACTIVITY_SQL : ''}${variant.login ? LOGIN_SQL : ''}${validUntil ? VALID_UNTIL_SQL : NO_VALID_UNTIL_SQL}
     u.storage AS storage,
     u.auth_type AS auth_type,
     u.auth_params AS auth_params,
