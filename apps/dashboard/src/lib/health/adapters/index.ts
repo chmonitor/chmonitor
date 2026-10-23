@@ -106,6 +106,7 @@ import { buildDiscordBody, discordAdapter } from './discord'
 import { emailAdapter } from './email'
 import { buildGenericJsonDigestBody, genericJsonAdapter } from './generic-json'
 import { buildGoogleChatBody, googleChatAdapter } from './google-chat'
+import { withDashboardLink } from './identity'
 import { buildMSTeamsBody, msTeamsAdapter } from './msteams'
 import { opsgenieAdapter } from './opsgenie'
 import { pagerDutyAdapter } from './pagerduty'
@@ -228,9 +229,10 @@ export function buildWebhookDispatchBody(params: {
     }
   }
 
+  const text = withDashboardLink(params.text, params.payload)
   return {
     adapterId: adapter.id,
-    body: { text: params.text, content: params.text },
+    body: { text, content: text },
   }
 }
 

@@ -318,22 +318,6 @@ async function verifyRuleSql(ch: ChEndpoint): Promise<void> {
 
 // ---------------------------------------------------------------- Delivery
 
-/**
- * Sends that use the legacy one-line `{ text, content }` wrapper (plain or
- * Slack-URL webhook routes without the Slack app, and `auto` custom targets),
- * which carries no dashboard link. Pre-dates the 2026-10 alerting batch. A
- * listed send that gains the link fails, so the list cannot go stale.
- */
-const KNOWN_LINKLESS: ReadonlySet<string> = new Set([
-  'route-auto firing',
-  'route-auto recovery',
-  'route-slack firing',
-  'route-slack recovery',
-  'custom-auto firing',
-  'custom-auto reminder',
-  'custom-auto recovery',
-])
-
 interface Captured {
   method: string
   path: string
@@ -564,7 +548,6 @@ async function verifyDelivery(): Promise<void> {
   const failures: string[] = []
   const rows = [['target', 'tick', 'method', 'result']]
   const matrixTxns: string[] = []
-  const knownGapsSeen = new Set<string>()
 
   for (const tick of ticks) {
     const start = captured.length
@@ -632,19 +615,10 @@ async function verifyDelivery(): Promise<void> {
       const word = tick.kind === 'recovery' ? /resolved|recover/i : /critical/i
       if (!word.test(text)) problems.push(`no ${word} word`)
       if (!text.includes(hostName)) problems.push('no host')
-      const gapKey = `${target} ${tick.kind}`
-      if (!text.includes(`${DASH}/health?host=${hostId}`)) {
-        if (KNOWN_LINKLESS.has(gapKey)) knownGapsSeen.add(gapKey)
-        else problems.push('no dashboard link')
-      } else if (KNOWN_LINKLESS.has(gapKey)) {
-        problems.push('known gap is fixed: remove it from KNOWN_LINKLESS')
-      }
+      if (!text.includes(`${DASH}/health?host=${hostId}`))
+        problems.push('no dashboard link')
 
-      const result = problems.length
-        ? `FAIL (${problems.join('; ')})`
-        : knownGapsSeen.has(gapKey)
-          ? 'ok, known gap: no dashboard link'
-          : 'ok'
+      const result = problems.length ? `FAIL (${problems.join('; ')})` : 'ok'
       rows.push([target, tick.kind, req.method, result])
       if (problems.length > 0) {
         failures.push(

@@ -68,13 +68,11 @@ How the delivery step reaches the capture server:
   adapter. The script asserts `detectAdapter()` for each one before it
   dispatches.
 
-**Known gap, kept as a pinned list.** The one-line `{ text, content }`
-wrapper has no dashboard link. Plain and Slack-URL webhook routes without the
-Slack app use it for firing and recovery, and `auto` custom targets use it on
-every tick. The pinned list in the script (`KNOWN_LINKLESS`) records which
-sends have this gap, and the code path predates #4141. #4141's
-`message-completeness.test.ts` checks the adapter builders, not this wrapper.
-If a listed send gains the link, the step fails, so the list cannot go stale.
+**Dashboard link on every send.** The one-line `{ text, content }` wrapper
+(plain and Slack-URL webhook routes without the Slack app, `auto` custom
+targets) appends the dashboard link through `withDashboardLink`. The script
+fails any send without it, and `adapters/__tests__/wrapper-completeness.test.ts`
+covers the wrapper next to #4141's `message-completeness.test.ts`.
 
 ## Rules that go with it
 
