@@ -4,12 +4,18 @@
  * (the hidden demo host), while leaving OSS and anonymous-cloud callers
  * unaffected. Mirrors charts/__tests__/cloud-demo-host-guard.test.ts.
  */
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 let cloudMode = false
 let signedIn = false
 
+const realCloudflareWorkers = { ...(await import('cloudflare:workers')) }
+const realClerkServer = {
+  ...(await import('@clerk/tanstack-react-start/server')),
+}
+
 mock.module('cloudflare:workers', () => ({
+  ...realCloudflareWorkers,
   env: {
     CLICKHOUSE_HOST: 'http://localhost:8123',
     CLICKHOUSE_USER: 'default',
@@ -35,6 +41,7 @@ mock.module('@/lib/auth/provider', () => ({
 }))
 
 mock.module('@clerk/tanstack-react-start/server', () => ({
+  ...realClerkServer,
   auth: async () => (signedIn ? { userId: 'user_123' } : { userId: null }),
 }))
 
@@ -60,6 +67,20 @@ mock.module('@/lib/api/query-executor', () => ({
   ...realExecutor,
   executeChartQuery,
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('cloudflare:workers', () => ({ ...realCloudflareWorkers }))
+  mock.module('@/lib/feature-permissions/server', () => ({
+    ...realFeaturePermissions,
+  }))
+  mock.module('@/lib/auth/provider', () => ({ ...realProvider }))
+  mock.module('@clerk/tanstack-react-start/server', () => ({
+    ...realClerkServer,
+  }))
+  mock.module('@/lib/api/chart-registry', () => ({ ...realRegistry }))
+  mock.module('@/lib/api/query-executor', () => ({ ...realExecutor }))
+})
 
 type GetHandler = (ctx: { request: Request }) => Promise<Response>
 

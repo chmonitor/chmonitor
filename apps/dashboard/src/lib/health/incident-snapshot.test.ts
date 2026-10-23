@@ -7,7 +7,7 @@
  * so each sub-collector can be made to succeed or fail independently.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // ── Stub external I/O before importing the module under test. ─────────────
 
@@ -15,9 +15,17 @@ type QueryHandler = (sql: string) => unknown
 
 let handler: QueryHandler = () => []
 
+const realModule = { ...(await import('../ai/agent/tools/helpers')) }
+
 mock.module('../ai/agent/tools/helpers', () => ({
+  ...realModule,
   readOnlyQuery: async ({ query }: { query: string }) => handler(query),
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('../ai/agent/tools/helpers', () => ({ ...realModule }))
+})
 
 // ── Import AFTER the mock is registered. ──────────────────────────────────
 

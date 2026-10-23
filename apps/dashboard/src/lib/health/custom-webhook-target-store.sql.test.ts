@@ -1,9 +1,17 @@
 import { Database } from 'bun:sqlite'
-import { describe, expect, mock, test } from 'bun:test'
+import { afterAll, describe, expect, mock, test } from 'bun:test'
+
+const realModule = { ...(await import('@chm/platform')) }
 
 mock.module('@chm/platform', () => ({
+  ...realModule,
   getPlatformBindings: () => ({ getD1Database: () => undefined }),
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@chm/platform', () => ({ ...realModule }))
+})
 
 const {
   D1_DELETE_WEBHOOK_TARGET_SQL,

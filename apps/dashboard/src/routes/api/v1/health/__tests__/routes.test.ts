@@ -2,12 +2,18 @@
  * Route tests for /api/v1/health/routes CRUD, masking, and write-auth gate.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 let ownerId = ''
 let requiresSignIn = false
 
+const real1 = { ...(await import('@/lib/health/alert-routing-auth')) }
+const real2 = { ...(await import('@/lib/health/alert-routing')) }
+const real3 = { ...(await import('@/lib/browser-connections/host-url')) }
+const real4 = { ...(await import('@/lib/health/pagerduty-config')) }
+
 mock.module('@/lib/health/alert-routing-auth', () => ({
+  ...real1,
   SINGLE_TENANT_OWNER_ID: '',
   resolveConfigOwner: async () => ownerId,
   requiresSignInForWrite: (resolvedOwnerId: string) =>
@@ -22,6 +28,7 @@ let createdRoute: Record<string, unknown> | null = null
 let deleteResult = true
 
 mock.module('@/lib/health/alert-routing', () => ({
+  ...real2,
   listRoutes: async () => listedRoutes,
   createRoute: async (input: Record<string, unknown>) => {
     createdRoute = {
@@ -52,12 +59,22 @@ mock.module('@/lib/health/alert-routing', () => ({
 }))
 
 mock.module('@/lib/browser-connections/host-url', () => ({
+  ...real3,
   validateHostUrl: async () => null,
 }))
 
 mock.module('@/lib/health/pagerduty-config', () => ({
+  ...real4,
   PAGERDUTY_EVENTS_API_URL: 'https://events.pagerduty.com/v2/enqueue',
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/health/alert-routing-auth', () => ({ ...real1 }))
+  mock.module('@/lib/health/alert-routing', () => ({ ...real2 }))
+  mock.module('@/lib/browser-connections/host-url', () => ({ ...real3 }))
+  mock.module('@/lib/health/pagerduty-config', () => ({ ...real4 }))
+})
 
 const {
   __handleDeleteForTests: handleDelete,

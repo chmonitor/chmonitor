@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // Same auth-gate mock pattern as opsgenie-test.test.ts / webhook.test.ts.
 let authorizeFeatureRequest = mock(
@@ -8,7 +8,10 @@ let authorizeFeatureRequest = mock(
     _options?: { allowAgentBearerToken?: boolean }
   ): Promise<Response | null> => null
 )
+const realModule = { ...(await import('@/lib/feature-permissions/server')) }
+
 mock.module('@/lib/feature-permissions/server', () => ({
+  ...realModule,
   getAppConfig: () => ({ authProvider: 'none' as const, features: {} }),
   _resetAppConfigCache: () => {},
   publicReadEnabled: () => true,
@@ -18,6 +21,11 @@ mock.module('@/lib/feature-permissions/server', () => ({
     options?: { allowAgentBearerToken?: boolean }
   ) => authorizeFeatureRequest(permission, request, options),
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/feature-permissions/server', () => ({ ...realModule }))
+})
 
 const TELEGRAM_ENV_KEYS = [
   'HEALTH_ALERT_TELEGRAM_BOT_TOKEN',

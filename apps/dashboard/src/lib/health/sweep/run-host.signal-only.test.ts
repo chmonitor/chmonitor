@@ -12,12 +12,18 @@ import {
   BUILTIN_COMPOUND_RULES,
   BUILTIN_RULES,
 } from '../../alerting/builtin-rules'
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // Values per rule id; a missing id has no value, so its rule does not count.
 let values: Record<string, { value: string; affected?: string[] }> = {}
 
+const real1 = { ...(await import('@chm/clickhouse-client')) }
+const real2 = { ...(await import('@/lib/insights/generate-insights')) }
+const real3 = { ...(await import('@/lib/insights/generate-postgres-insights')) }
+const real4 = { ...(await import('@/lib/insights/generate-peerdb-insights')) }
+
 mock.module('@chm/clickhouse-client', () => ({
+  ...real1,
   fetchData: async ({ query }: { query: string }) => {
     if (query.includes("'table' AS kind")) {
       const data = [
@@ -41,14 +47,25 @@ mock.module('@chm/clickhouse-client', () => ({
   getClickHouseConfigs: () => [],
 }))
 mock.module('@/lib/insights/generate-insights', () => ({
+  ...real2,
   generateInsights: async () => [],
 }))
 mock.module('@/lib/insights/generate-postgres-insights', () => ({
+  ...real3,
   generatePostgresInsights: async () => [],
 }))
 mock.module('@/lib/insights/generate-peerdb-insights', () => ({
+  ...real4,
   generatePeerDBInsights: async () => [],
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@chm/clickhouse-client', () => ({ ...real1 }))
+  mock.module('@/lib/insights/generate-insights', () => ({ ...real2 }))
+  mock.module('@/lib/insights/generate-postgres-insights', () => ({ ...real3 }))
+  mock.module('@/lib/insights/generate-peerdb-insights', () => ({ ...real4 }))
+})
 
 const { runHostSweep } = await import('./run-host')
 const { resetHostCapabilities } = await import('../capability-cache')

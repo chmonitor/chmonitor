@@ -12,13 +12,21 @@
 
 import type { AlertEventRecord } from '@/lib/health/alert-history-store'
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const mockQueryAlertEvents = mock(async () => [] as AlertEventRecord[])
 
+const realModule = { ...(await import('@/lib/health/alert-history-store')) }
+
 mock.module('@/lib/health/alert-history-store', () => ({
+  ...realModule,
   queryAlertEvents: mockQueryAlertEvents,
 }))
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/health/alert-history-store', () => ({ ...realModule }))
+})
 
 const { Route } = await import('./history')
 
