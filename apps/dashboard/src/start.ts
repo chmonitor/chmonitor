@@ -92,19 +92,27 @@ const apiAuthMiddleware = createMiddleware().server(
  * carries who and what sent it. The principal is resolved lazily: requests
  * that never query ClickHouse never pay for a session verify (#2186).
  */
+export function queryAttributionHandler<T>({
+  next,
+  request,
+}: {
+  next: () => T
+  request: Request
+}): T {
+  const scope = requestAttributionScope(request, async () => {
+    const provider = getAuthProvider()
+    if (provider === 'none') return null
+    const result =
+      await resolveServerAuthProvider(provider).authenticateRequest(request)
+    const subject = result.principal?.subject ?? result.subject
+    if (!result.authenticated || !subject) return null
+    return { subject, email: result.principal?.email }
+  })
+  return runWithAttribution(scope, next)
+}
+
 const queryAttributionMiddleware = createMiddleware().server(
-  async ({ next, request }) => {
-    const scope = requestAttributionScope(request, async () => {
-      const provider = getAuthProvider()
-      if (provider === 'none') return null
-      const result =
-        await resolveServerAuthProvider(provider).authenticateRequest(request)
-      const subject = result.principal?.subject ?? result.subject
-      if (!result.authenticated || !subject) return null
-      return { subject, email: result.principal?.email }
-    })
-    return runWithAttribution(scope, () => next())
-  }
+  queryAttributionHandler
 )
 
 // ---------------------------------------------------------------------------
