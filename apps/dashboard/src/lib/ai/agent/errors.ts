@@ -298,8 +298,11 @@ function parseErrorPayload(error: unknown): {
  * Regex-shaped secrets to strip from any error text that reaches the client:
  * URL userinfo (`https://user:pass@host`), `Authorization`/`Bearer` header
  * values, and common provider API-key shapes (OpenAI-style `sk-…`, AgentState
- * `as_live_…`, Google `AIza…`). Applied in addition to exact-match redaction
- * of the deployment's own configured keys (see {@link redactSecrets}).
+ * `as_live_…`, Google `AIza…`), secret-bearing URL query parameters, named
+ * credential settings (`secret_access_key = '…'`), email addresses and IPv6
+ * addresses. Applied in addition to exact-match redaction of the deployment's
+ * own configured keys, the positional table-function pass and IPv4 handling
+ * (see {@link redactSecrets}).
  */
 const SECRET_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   [/(:\/\/)[^\s/@]+:[^\s/@]+@/g, '$1[redacted]@'],
@@ -311,7 +314,135 @@ const SECRET_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   [/\bsk-[A-Za-z0-9_-]{10,}\b/g, '[redacted]'],
   [/\bas_live_[A-Za-z0-9_-]{6,}\b/g, '[redacted]'],
   [/\bAIza[0-9A-Za-z_-]{20,}\b/g, '[redacted]'],
+  [
+    /([?&](?:x-amz-signature|x-amz-credential|x-amz-security-token|access_token|api[_-]?key|access_key|token|signature|sig|secret|password)=)[^&\s'")]+/gi,
+    '$1[redacted]',
+  ],
+  [
+    /\b((?:aws_)?(?:access_key_id|secret_access_key|session_token|secret_key|password)\s*=\s*)(?:'[^']*'|"[^"]*")/gi,
+    "$1'[redacted]'",
+  ],
+  [
+    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g,
+    '[redacted-email]',
+  ],
+  [
+    /(?<![\w:])(?:(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}|(?:[0-9a-f]{1,4}:){1,7}:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,6})?|::(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})(?![\w:])/gi,
+    '[redacted-ip]',
+  ],
 ]
+
+const IPV4_PATTERN =
+  /(?<![\w.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?!\w|\.\d)/g
+// "version 24.8.1.100", "ClickHouse 24.8.1.100", "v24.8.1.100"
+const VERSION_CONTEXT = /(?:version|clickhouse|\bv)\s*$/i
+// ClickHouse versions are YY.M.patch.build; first octet 18-27, month 1-12.
+const CLICKHOUSE_VERSION = /^(?:1[89]|2[0-7])\.(?:[1-9]|1[0-2])\.\d+\.\d+$/
+
+function redactIpv4(text: string): string {
+  return text.replace(IPV4_PATTERN, (match, offset: number) => {
+    if (CLICKHOUSE_VERSION.test(match)) return match
+    if (VERSION_CONTEXT.test(text.slice(Math.max(0, offset - 12), offset))) {
+      return match
+    }
+    return '[redacted-ip]'
+  })
+}
+
+/** Table functions whose positional arguments carry credentials. */
+const TABLE_FUNCTION_CALL =
+  /\b(s3|s3Cluster|mysql|postgresql|remote|remoteSecure)\s*\(/gi
+
+interface ArgSpan {
+  start: number
+  end: number
+}
+
+/** Split the argument list opening at `open` (just after `(`) at top-level commas. */
+function splitCallArgs(text: string, open: number): ArgSpan[] {
+  const args: ArgSpan[] = []
+  let depth = 0
+  let quote: string | null = null
+  let start = open
+  for (let i = open; i < text.length; i++) {
+    const ch = text[i]
+    if (quote) {
+      if (ch === '\\') i++
+      else if (ch === quote) quote = null
+      continue
+    }
+    if (ch === "'" || ch === '"' || ch === '`') quote = ch
+    else if (ch === '(' || ch === '[') depth++
+    else if (ch === ')' || ch === ']') {
+      if (depth === 0) {
+        args.push({ start, end: i })
+        return args
+      }
+      depth--
+    } else if (ch === ',' && depth === 0) {
+      args.push({ start, end: i })
+      start = i + 1
+    }
+  }
+  // Unterminated (truncated error text): the remainder is the last argument.
+  args.push({ start, end: text.length })
+  return args
+}
+
+function unquote(arg: string): string | null {
+  const m = /^\s*'((?:[^'\\]|\\[\s\S])*)'\s*$/.exec(arg)
+  return m ? m[1] : null
+}
+
+function credentialIndexes(
+  fn: string,
+  args: readonly string[]
+): readonly number[] {
+  switch (fn.toLowerCase()) {
+    case 'mysql':
+    case 'postgresql':
+      return [3, 4]
+    case 'remote':
+    case 'remotesecure': {
+      // remote(addr, db.table, user, password) vs remote(addr, db, table, user, password)
+      const second = unquote(args[1] ?? '') ?? args[1] ?? ''
+      return second.includes('.') ? [2, 3] : [3, 4]
+    }
+    case 's3':
+    case 's3cluster': {
+      // s3(url, key, secret[, token], format, structure) vs s3(url, format,
+      // structure): a structure has whitespace or is 'auto', a secret never.
+      const base = fn.toLowerCase() === 's3cluster' ? 1 : 0
+      const secret = unquote(args[base + 2] ?? '')
+      if (secret === null || /\s/.test(secret) || secret === 'auto') return []
+      const token = unquote(args[base + 3] ?? '')
+      const hasToken = token !== null && !/^[A-Za-z]{2,24}$/.test(token)
+      return hasToken ? [base + 1, base + 2, base + 3] : [base + 1, base + 2]
+    }
+    default:
+      return []
+  }
+}
+
+function redactTableFunctionArgs(text: string): string {
+  const edits: ArgSpan[] = []
+  for (const call of text.matchAll(TABLE_FUNCTION_CALL)) {
+    const spans = splitCallArgs(text, (call.index ?? 0) + call[0].length)
+    const raw = spans.map((s) => text.slice(s.start, s.end))
+    for (const idx of credentialIndexes(call[1], raw)) {
+      const span = spans[idx]
+      if (span && raw[idx].trim() !== '') edits.push(span)
+    }
+  }
+  let result = text
+  for (const { start, end } of edits.sort((a, b) => b.start - a.start)) {
+    const arg = result.slice(start, end)
+    const lead = /^\s*/.exec(arg)?.[0] ?? ''
+    const trail = /\s*$/.exec(arg)?.[0] ?? ''
+    result = `${result.slice(0, start)}${lead}'[redacted]'${trail}${result.slice(end)}`
+  }
+  return result
+}
 
 /**
  * Strip secrets from an error message before it reaches the client.
@@ -319,9 +450,12 @@ const SECRET_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
  * Two layers of defense: `extraSecrets` are exact-match replaced (the
  * request's BYOK key, this deployment's configured provider/DB credentials —
  * anything we know the literal value of and never want echoed back verbatim),
- * and {@link SECRET_PATTERNS} catches common credential *shapes* even when we
+ * credential arguments of ClickHouse table functions (`s3`, `mysql`,
+ * `postgresql`, `remote`, `remoteSecure`) are replaced by position, and
+ * {@link SECRET_PATTERNS} catches common credential *shapes* even when we
  * don't know the exact value (e.g. a third-party upstream error that embeds
- * its own token).
+ * its own token), plus emails and IPv6. IPv4 addresses are replaced unless
+ * they look like a ClickHouse version string.
  */
 export function redactSecrets(
   text: string,
@@ -332,10 +466,11 @@ export function redactSecrets(
     if (!secret || secret.length < 6) continue
     result = result.split(secret).join('[redacted]')
   }
+  result = redactTableFunctionArgs(result)
   for (const [pattern, replacement] of SECRET_PATTERNS) {
     result = result.replace(pattern, replacement)
   }
-  return result
+  return redactIpv4(result)
 }
 
 /** Redact secrets from every free-text field of a classified {@link AgentError}. */
