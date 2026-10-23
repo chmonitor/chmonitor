@@ -34,6 +34,16 @@ describe('advisor page tabs', () => {
       resolveAdvisorTab({ view: 'schema', query: 'SELECT 1 FROM events' })
     ).toBe('schema')
     expect(resolveAdvisorTab({ view: 'query' })).toBe('query')
+    expect(resolveAdvisorTab({ view: 'plan' })).toBe('plan')
+  })
+
+  test('Optimization plan is the third tab and an unknown view falls back', () => {
+    expect(ADVISOR_TABS.map((tab) => tab.value)).toEqual([
+      'schema',
+      'query',
+      'plan',
+    ])
+    expect(resolveAdvisorTab({ view: 'apply' })).toBe('schema')
   })
 })
 
@@ -49,6 +59,7 @@ describe('advisor page source', () => {
     expect(src).toContain('resolveAdvisorTab')
     expect(src).toContain('AdvisorSchemaTab')
     expect(src).toContain('AdvisorContent')
+    expect(src).toContain('AdvisorOptimizationPlanTab')
     expect(src).not.toMatch(/defaultValue=["']query["']/)
     expect(src).not.toMatch(/\bApply DDL\b/i)
     expect(src).not.toMatch(/\bexecuteDdl\b/)
