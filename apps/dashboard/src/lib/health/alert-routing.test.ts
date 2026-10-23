@@ -277,6 +277,8 @@ describe('matchRoutes (pure)', () => {
   })
 })
 
+const LEGACY = { url: 'https://legacy.example/hook', trusted: true }
+
 describe('matchRoutes — accept predicate (#2661)', () => {
   test('a route rejected by accept is not matched', () => {
     const r = route({ matchRule: 'disk-usage', minSeverity: 'critical' })
@@ -293,10 +295,10 @@ describe('matchRoutes — accept predicate (#2661)', () => {
     // → no route target AND the legacy global URL is used (matched === 0).
     const r = route({ matchRule: 'disk-usage', minSeverity: 'critical' })
     expect(
-      resolveTargets([r], TARGET, 'https://legacy.example/hook', {
+      resolveTargets([r], TARGET, LEGACY, {
         accept: () => false,
       })
-    ).toEqual(['https://legacy.example/hook'])
+    ).toEqual([LEGACY])
   })
 })
 
@@ -306,22 +308,19 @@ describe('resolveTargets (pure)', () => {
     const r2 = route({ id: 'b', channelUrl: 'https://b.example/hook' })
     // Duplicate URL across two matching routes should collapse to one entry.
     const r3 = route({ id: 'c', channelUrl: 'https://a.example/hook' })
-    expect(
-      resolveTargets([r1, r2, r3], TARGET, 'https://legacy.example/hook')
-    ).toEqual(['https://a.example/hook', 'https://b.example/hook'])
+    expect(resolveTargets([r1, r2, r3], TARGET, LEGACY)).toEqual([
+      { url: 'https://a.example/hook', trusted: false },
+      { url: 'https://b.example/hook', trusted: false },
+    ])
   })
 
   test('falls back to the legacy global URL when nothing matches', () => {
     const r = route({ matchRule: 'replication-*' })
-    expect(resolveTargets([r], TARGET, 'https://legacy.example/hook')).toEqual([
-      'https://legacy.example/hook',
-    ])
+    expect(resolveTargets([r], TARGET, LEGACY)).toEqual([LEGACY])
   })
 
   test('empty route list (no D1 / owner throw) falls back to legacy URL', () => {
-    expect(resolveTargets([], TARGET, 'https://legacy.example/hook')).toEqual([
-      'https://legacy.example/hook',
-    ])
+    expect(resolveTargets([], TARGET, LEGACY)).toEqual([LEGACY])
   })
 
   test('a matched pagerduty route is excluded from the channel list AND suppresses the legacy webhook fallback (no double-fire)', () => {
@@ -333,14 +332,32 @@ describe('resolveTargets (pure)', () => {
       provider: 'pagerduty',
       routingKey: 'R-key',
     })
-    expect(resolveTargets([pd], TARGET, 'https://legacy.example/hook')).toEqual(
-      []
-    )
+    expect(resolveTargets([pd], TARGET, LEGACY)).toEqual([])
+  })
+
+  test('a routing.yaml (file/env) route is trusted; a saved (D1) route is not', () => {
+    const saved = {
+      ...route({ id: 'a', channelUrl: 'https://a.example/hook' }),
+      source: 'd1' as const,
+    }
+    const file = {
+      ...route({ id: 'b', channelUrl: 'https://b.example/hook' }),
+      source: 'file' as const,
+    }
+    const env = {
+      ...route({ id: 'c', channelUrl: 'https://c.example/hook' }),
+      source: 'env' as const,
+    }
+    expect(resolveTargets([saved, file, env], TARGET, LEGACY)).toEqual([
+      { url: 'https://a.example/hook', trusted: false },
+      { url: 'https://b.example/hook', trusted: true },
+      { url: 'https://c.example/hook', trusted: true },
+    ])
   })
 
   test('no match and no legacy URL configured -> empty', () => {
     const r = route({ matchRule: 'replication-*' })
-    expect(resolveTargets([r], TARGET, '')).toEqual([])
+    expect(resolveTargets([r], TARGET, null)).toEqual([])
   })
 })
 

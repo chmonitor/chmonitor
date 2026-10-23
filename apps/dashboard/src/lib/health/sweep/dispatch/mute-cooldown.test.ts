@@ -98,6 +98,7 @@ function makeCtx(overrides: Partial<SweepContext> = {}): SweepContext {
     pagerDutyFallbackKey: '',
     channels: {
       webhookUrl: WEBHOOK_URL,
+      webhookUrlTrusted: true,
       healthchecksUrl: '',
       opsgenie: null,
       email: null,

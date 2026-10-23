@@ -434,8 +434,8 @@ async function handlePost(request: Request): Promise<Response> {
 
   // Reuse the same SSRF guard the outbound webhook-subscriptions create path
   // uses (`validateHostUrl`) — never introduce a new unguarded outbound
-  // destination. Delivery re-validates on every send via the sweep's
-  // existing `postWebhook`, this just fails fast with a clear error.
+  // destination. The sweep re-checks a saved route's URL at send time and
+  // refuses redirects (`postWebhookTarget`); this fails fast with a clear error.
   const ssrfError = await validateHostUrl(channelUrl)
   if (ssrfError) {
     return jsonError(ssrfError, 400)

@@ -7,6 +7,7 @@
  */
 
 import type { AlertPayload } from './../../../adapters'
+import type { WebhookTarget } from './../../../alert-routing'
 import type { FindingContext } from './../finding-context'
 
 import {
@@ -15,7 +16,7 @@ import {
   isDigestCapableWebhook,
 } from './../../../adapters'
 import { recordChannelEvent } from './../alert-event-record'
-import { postWebhook } from './../webhook-post'
+import { postWebhookTarget } from './../webhook-post'
 
 /**
  * Digest partition (#2663): Slack / generic-webhook URLs are grouped and
@@ -23,15 +24,15 @@ import { postWebhook } from './../webhook-post'
  * Google Chat keep today's inline per-finding sends. `isDigestCapableWebhook`
  * never matches those rich-embed adapters, so they land in `immediate`.
  */
-export function partitionWebhookTargets(targets: string[]): {
-  immediate: string[]
-  groupable: string[]
+export function partitionWebhookTargets(targets: readonly WebhookTarget[]): {
+  immediate: WebhookTarget[]
+  groupable: WebhookTarget[]
 } {
-  const immediate: string[] = []
-  const groupable: string[] = []
-  for (const url of targets) {
-    if (isDigestCapableWebhook(url)) groupable.push(url)
-    else immediate.push(url)
+  const immediate: WebhookTarget[] = []
+  const groupable: WebhookTarget[] = []
+  for (const target of targets) {
+    if (isDigestCapableWebhook(target.url)) groupable.push(target)
+    else immediate.push(target)
   }
   return { immediate, groupable }
 }
@@ -42,13 +43,14 @@ export function partitionWebhookTargets(targets: string[]): {
  */
 export async function dispatchWebhookFanoutChannel(
   finding: FindingContext,
-  immediateWebhookTargets: string[],
+  immediateWebhookTargets: readonly WebhookTarget[],
   webhookPayload: AlertPayload
 ): Promise<boolean> {
   const { text } = finding
   let anyDelivered = false
 
-  for (const url of immediateWebhookTargets) {
+  for (const target of immediateWebhookTargets) {
+    const { url } = target
     const adapter = detectAdapter(url)
 
     // Per-URL body selection (#2656): Discord/MS Teams/Google Chat targets
@@ -59,7 +61,7 @@ export async function dispatchWebhookFanoutChannel(
       text,
       payload: webhookPayload,
     })
-    const result = await postWebhook(url, dispatch.body)
+    const result = await postWebhookTarget(target, dispatch.body)
     if (result.ok) anyDelivered = true
 
     // Best-effort audit trail per channel — `detectAdapter` picks the per-URL
