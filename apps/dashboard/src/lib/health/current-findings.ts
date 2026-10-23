@@ -40,6 +40,8 @@ export interface CurrentFinding {
   severity: 'warning' | 'critical'
   value: number | null
   label: string
+  /** Up to 5 names behind a count-only rule (`affectedKey`); cluster-originated. */
+  affected: string[]
 }
 
 function hostLabel(config: ClickHouseConfig): string {
@@ -142,6 +144,7 @@ export async function getCurrentFindings(options?: {
           severity,
           value,
           label: ruleLabel(rule, value, affected),
+          affected,
         })
       } catch {
         // Skip — a failing check shouldn't hide the rest of the snapshot.

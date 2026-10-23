@@ -31,7 +31,11 @@ import type { AlertDecision } from './alert-state-store'
 import { afterAll, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 import * as outboundBusModule from '@/lib/events/outbound-bus'
 
+type EmitOptions = {
+  withDetails?: (evt: unknown) => Promise<{ data: { alert?: unknown } }>
+}
 const emitted: unknown[] = []
+const emittedOptions: (EmitOptions | undefined)[] = []
 let emitInstanceEventImpl: (evt: unknown) => Promise<void> = async (evt) => {
   emitted.push(evt)
 }
@@ -39,7 +43,12 @@ let emitInstanceEventImpl: (evt: unknown) => Promise<void> = async (evt) => {
 const emitInstanceEventSpy = spyOn(
   outboundBusModule,
   'emitInstanceEvent'
-).mockImplementation(async (evt: unknown) => emitInstanceEventImpl(evt))
+).mockImplementation(
+  async (evt: unknown, _deps?: unknown, options?: unknown) => {
+    emittedOptions.push(options as EmitOptions | undefined)
+    return emitInstanceEventImpl(evt)
+  }
+)
 
 afterAll(() => {
   emitInstanceEventSpy.mockRestore()
@@ -71,6 +80,7 @@ const baseParams = {
 
 beforeEach(() => {
   emitted.length = 0
+  emittedOptions.length = 0
   emitInstanceEventImpl = async (evt) => {
     emitted.push(evt)
   }
@@ -169,6 +179,24 @@ describe('dispatchDedupedAlertEvent', () => {
   test('emits exactly once for a notify-worthy decision', () => {
     dispatchDedupedAlertEvent({ ...baseParams, decision: decision() })
     expect(emitted).toHaveLength(1)
+  })
+
+  // #3998: the bus hands the lazy `alert` block to the emitter, which only
+  // resolves it for a subscription with `details: true`.
+  test('passes the alert block builder through; without one, none', async () => {
+    dispatchDedupedAlertEvent({ ...baseParams, decision: decision() })
+    expect(emittedOptions[0]?.withDetails).toBeUndefined()
+
+    const block = { ruleId: 'disk-usage' }
+    dispatchDedupedAlertEvent({
+      ...baseParams,
+      decision: decision(),
+      alert: async () => block as never,
+    })
+    const withDetails = emittedOptions[1]?.withDetails
+    expect(withDetails).toBeDefined()
+    const enriched = await withDetails?.(emitted[1])
+    expect(enriched?.data.alert).toBe(block)
   })
 
   test('emits nothing for a suppressed decision', () => {

@@ -120,9 +120,9 @@ export interface CustomWebhookTarget {
    */
   repeat?: boolean
   /**
-   * `true` = the raw JSON body also carries `details` (trend, repeatCount,
-   * firstFiredAt). Unset/`false` = body identical to before. Declarative
-   * targets only.
+   * `true` = the raw JSON body also carries the structured `alert` block
+   * (`AlertBlock`, #3998). Unset/`false` = body identical to before.
+   * Declarative targets only.
    */
   details?: boolean
   updatedAt: number
@@ -238,7 +238,7 @@ const TEMPLATE_VARS: Record<string, (p: AlertPayload) => string> = {
     p.severity === 'recovery' && p.firedForMs !== undefined
       ? spanText(p.firedForMs)
       : '',
-  firstFired: (p) => p.details?.firstFiredAt ?? '',
+  firstFired: (p) => p.alert?.firstSeenAt ?? '',
 }
 
 /** `{{meta.<key>}}` resolves a `HEALTH_ALERT_METADATA` value by key. */

@@ -1,12 +1,11 @@
 /**
- * Opt-in `topContributors` for the webhook `details` block (#4049). Each
+ * Opt-in `topContributors` for the webhook `alert` block (#4049). Each
  * supported rule maps to one bounded, read-only query. A failed or empty read
  * omits the field; it must never fail the alert.
  */
 
 import type {
   AlertContributor,
-  AlertDetails,
   QueryContributor,
   TableContributor,
 } from './../../adapters'
@@ -138,22 +137,4 @@ export async function fetchTopContributors(
   } catch {
     return undefined
   }
-}
-
-/**
- * Adds `topContributors` to a details block. Reads nothing unless `enabled`
- * (a target opted into details and the finding is not a recovery).
- */
-export async function withTopContributors(
-  details: AlertDetails,
-  ctx: { enabled: boolean; ruleId: string; hostId: number },
-  fetchRows?: ContributorFetcher
-): Promise<AlertDetails> {
-  if (!ctx.enabled) return details
-  const topContributors = await fetchTopContributors(
-    ctx.ruleId,
-    ctx.hostId,
-    fetchRows
-  )
-  return topContributors ? { ...details, topContributors } : details
 }

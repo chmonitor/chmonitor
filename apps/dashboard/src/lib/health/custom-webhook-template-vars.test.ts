@@ -62,13 +62,19 @@ describe('custom webhook template variables for alert facts', () => {
     )
   })
 
-  test('firstFired comes from the opt-in details', () => {
+  test('firstFired is the opt-in alert block firstSeenAt', () => {
     const withDetails: AlertPayload = {
       ...FIRING,
-      details: {
+      alert: {
+        ruleId: 'r',
+        metric: 'r',
+        threshold: null,
+        value: 1,
+        previousValue: null,
         trend: null,
         repeatCount: 0,
-        firstFiredAt: '2026-07-02T07:00:00.000Z',
+        firstSeenAt: '2026-07-02T07:00:00.000Z',
+        untrusted: { affected: [] },
       },
     }
     expect(render('{{firstFired}}', withDetails)).toBe(

@@ -52,6 +52,11 @@ export interface SweepFinding {
   severity: 'warning' | 'critical'
   value: number | null
   label: string
+  /**
+   * Up to 5 names behind a count-only rule (`affectedKey`); cluster-originated.
+   * Set by every base rule; absent for findings with no rule query.
+   */
+  affected?: string[]
 }
 
 export interface SweepHostSummary {
@@ -239,6 +244,7 @@ export async function runHostSweep(
         severity,
         value,
         label,
+        affected: [...affected],
       })
     }
 
@@ -254,6 +260,7 @@ export async function runHostSweep(
         label,
         warnThreshold: thresholds.warning,
         critThreshold: thresholds.critical,
+        affected,
         ...(isSignalOnly(rule, ctx.notifyRules) ? { signalOnly: true } : {}),
       })
     }

@@ -1,15 +1,14 @@
 /**
- * Opt-in `details` for custom webhook targets (#4049). The contract that
- * matters: with `details` off the request body is byte-identical to what a
- * target sent before the option existed.
+ * Opt-in `alert` block for custom webhook targets (#3998, #4049). The contract
+ * that matters: with `details` off the request body is byte-identical to what
+ * a target sent before the option existed, and nothing is read to build it.
  */
 
-import type { AlertDetails, AlertPayload } from '../../../adapters'
+import type { AlertBlock, AlertPayload } from '../../../adapters'
 import type { EffectiveCustomWebhookTarget } from '../../../custom-webhook-config'
 import type { FindingContext } from '../finding-context'
 
 import { loadEnvCustomWebhookTargets } from '../../../custom-webhook-env'
-import { buildAlertDetails } from '../alert-details'
 import { dispatchCustomWebhookTargets } from './custom-targets'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
@@ -59,10 +58,16 @@ const payload: AlertPayload = {
   timestamp: '2026-01-01T00:00:00.000Z',
 }
 
-const details: AlertDetails = {
+const block: AlertBlock = {
+  ruleId: 'rule',
+  metric: 'rule',
+  threshold: 1,
+  value: 1,
+  previousValue: 0,
   trend: 'rising',
+  firstSeenAt: '2025-12-31T23:00:00.000Z',
   repeatCount: 2,
-  firstFiredAt: '2025-12-31T23:00:00.000Z',
+  untrusted: { affected: ['db.t'] },
 }
 
 const finding = {
@@ -78,6 +83,8 @@ const finding = {
   text: 'x',
 } as unknown as FindingContext
 
+let resolved = 0
+
 async function send(t: EffectiveCustomWebhookTarget): Promise<unknown> {
   await dispatchCustomWebhookTargets(finding, {
     targets: [t],
@@ -85,10 +92,17 @@ async function send(t: EffectiveCustomWebhookTarget): Promise<unknown> {
     text: 'x',
     globalMinSeverity: 'warning',
     severity: 'critical',
-    details,
+    alert: async () => {
+      resolved++
+      return block
+    },
   })
   return JSON.parse(bodies[0] ?? 'null')
 }
+
+beforeEach(() => {
+  resolved = 0
+})
 
 // The exact body a raw target sent before `details` existed.
 const LEGACY_RAW_BODY = {
@@ -104,11 +118,12 @@ const LEGACY_RAW_BODY = {
   text: '[CRITICAL] T — L (host h)',
 }
 
-describe('custom target details', () => {
-  test('off (unset) leaves the body byte-identical', async () => {
+describe('custom target alert block', () => {
+  test('off (unset) leaves the body byte-identical and reads nothing', async () => {
     const body = await send(target())
     expect(body).toEqual(LEGACY_RAW_BODY)
     expect(bodies[0]).toBe(JSON.stringify(LEGACY_RAW_BODY))
+    expect(resolved).toBe(0)
   })
 
   test('details: false is the same as unset', async () => {
@@ -116,14 +131,13 @@ describe('custom target details', () => {
     expect(bodies[0]).toBe(JSON.stringify(LEGACY_RAW_BODY))
   })
 
-  test('on adds exactly trend, repeatCount and firstFiredAt', async () => {
-    const body = await send(target({ details: true }))
-    expect(body).toEqual({ ...LEGACY_RAW_BODY, details })
-    expect(Object.keys((body as { details: object }).details)).toEqual([
-      'trend',
-      'repeatCount',
-      'firstFiredAt',
-    ])
+  test('on adds exactly one `alert` block and no legacy `details` key', async () => {
+    const body = (await send(target({ details: true }))) as Record<
+      string,
+      unknown
+    >
+    expect(body).toEqual({ ...LEGACY_RAW_BODY, alert: block })
+    expect('details' in body).toBe(false)
   })
 
   test('on does not change a non-raw format', async () => {
@@ -131,49 +145,6 @@ describe('custom target details', () => {
     bodies = []
     const on = await send(target({ format: 'slack', details: true }))
     expect(on).toEqual(off)
-  })
-})
-
-describe('buildAlertDetails', () => {
-  const now = '2026-01-01T00:00:00.000Z'
-
-  test('a new incident starts now with no trend baseline', () => {
-    expect(
-      buildAlertDetails({
-        kind: 'new',
-        value: 5,
-        previousValue: undefined,
-        previousState: undefined,
-        now,
-      })
-    ).toEqual({ trend: null, repeatCount: 0, firstFiredAt: now })
-  })
-
-  test('a reminder reports trend, repeat count and the incident start', () => {
-    const state = {
-      severity: 'critical' as const,
-      updatedAt: 0,
-      notifiedAt: 0,
-      firstFiredAt: Date.parse('2025-12-31T00:00:00.000Z'),
-      repeatCount: 3,
-    }
-    const base = {
-      kind: 'reminder' as const,
-      previousState: state,
-      now,
-    }
-    const rising = buildAlertDetails({ ...base, value: 9, previousValue: 5 })
-    expect(rising).toEqual({
-      trend: 'rising',
-      repeatCount: 3,
-      firstFiredAt: '2025-12-31T00:00:00.000Z',
-    })
-    expect(
-      buildAlertDetails({ ...base, value: 2, previousValue: 5 }).trend
-    ).toBe('falling')
-    expect(
-      buildAlertDetails({ ...base, value: 5, previousValue: 5 }).trend
-    ).toBe('flat')
   })
 })
 

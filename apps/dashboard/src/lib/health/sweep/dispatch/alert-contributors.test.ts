@@ -1,17 +1,5 @@
-import type { AlertDetails } from '../../adapters'
-
-import {
-  CONTRIBUTOR_SOURCES,
-  fetchTopContributors,
-  withTopContributors,
-} from './alert-contributors'
+import { CONTRIBUTOR_SOURCES, fetchTopContributors } from './alert-contributors'
 import { describe, expect, test } from 'bun:test'
-
-const base: AlertDetails = {
-  trend: 'rising',
-  repeatCount: 1,
-  firstFiredAt: '2026-01-01T00:00:00.000Z',
-}
 
 describe('fetchTopContributors', () => {
   test('disk rules list tables by bytes on disk', async () => {
@@ -105,35 +93,5 @@ describe('fetchTopContributors', () => {
       })
     ).toBeUndefined()
     expect(called).toBe(false)
-  })
-})
-
-describe('withTopContributors', () => {
-  test('does not read anything when details are not enabled', async () => {
-    let called = false
-    const out = await withTopContributors(
-      base,
-      { enabled: false, ruleId: 'disk-usage', hostId: 1 },
-      async () => {
-        called = true
-        return []
-      }
-    )
-    expect(called).toBe(false)
-    expect(out).toBe(base)
-    expect('topContributors' in out).toBe(false)
-  })
-
-  test('adds the field when enabled and leaves details intact on failure', async () => {
-    const ctx = { enabled: true, ruleId: 'disk-usage', hostId: 1 }
-    const ok = await withTopContributors(base, ctx, async () => [
-      { database: 'a', table: 'b', bytes_on_disk: 1 },
-    ])
-    expect(ok).toMatchObject({ ...base })
-    expect(ok.topContributors).toHaveLength(1)
-    const failed = await withTopContributors(base, ctx, async () => {
-      throw new Error('down')
-    })
-    expect(failed).toEqual(base)
   })
 })

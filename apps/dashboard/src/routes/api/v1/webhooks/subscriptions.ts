@@ -37,6 +37,7 @@ function toPublicSubscription(sub: WebhookSubscription) {
     eventTypes: sub.eventTypes,
     enabled: sub.enabled,
     scope: sub.scope,
+    details: sub.details,
     createdAt: sub.createdAt,
     updatedAt: sub.updatedAt,
   }
@@ -64,6 +65,7 @@ interface CreateRequest {
   url?: string
   eventTypes?: unknown
   scope?: unknown
+  details?: unknown
 }
 
 async function handlePost(request: Request): Promise<Response> {
@@ -130,6 +132,18 @@ async function handlePost(request: Request): Promise<Response> {
   }
   const scope = body.scope === 'instance' ? 'instance' : 'user'
 
+  if (body.details !== undefined && typeof body.details !== 'boolean') {
+    return createApiErrorResponse(
+      {
+        type: ApiErrorType.ValidationError,
+        message: 'Invalid "details": expected a boolean',
+      },
+      400,
+      ROUTE_POST
+    )
+  }
+  const details = body.details === true
+
   // alert.fired/alert.resolved have no per-user owner (env/operator hosts) —
   // a scope: 'user' subscription requesting them would create successfully
   // but could never receive a delivery (see event-types.ts's docblock).
@@ -160,7 +174,12 @@ async function handlePost(request: Request): Promise<Response> {
 
   try {
     const userId = await resolveSubscriptionUserId()
-    const created = await createSubscription(userId, { url, eventTypes, scope })
+    const created = await createSubscription(userId, {
+      url,
+      eventTypes,
+      scope,
+      details,
+    })
     // Secret is revealed exactly once, in this create response.
     return createSuccessResponse(
       { ...toPublicSubscription(created), secret: created.secret },

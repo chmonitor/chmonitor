@@ -202,7 +202,7 @@ export const declarativeWebhookTargetSchema = z.strictObject({
     }),
   /** `false` = first alert and recovery only, no reminders. */
   repeat: z.boolean().default(true),
-  /** `true` = raw JSON body also carries `details` (trend, repeatCount, firstFiredAt). */
+  /** `true` = raw JSON body also carries the structured `alert` block (#3998). */
   details: z.boolean().default(false),
   /** Env var holding the HTTPS webhook URL (credential-bearing). */
   urlEnv: envNameSchema,

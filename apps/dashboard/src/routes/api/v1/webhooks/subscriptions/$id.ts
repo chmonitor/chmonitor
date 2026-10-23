@@ -1,6 +1,6 @@
 /**
  * Webhook subscription by ID (plan 44)
- * PATCH  /api/v1/webhooks/subscriptions/$id — edit url/eventTypes/enabled
+ * PATCH  /api/v1/webhooks/subscriptions/$id — edit url/eventTypes/enabled/details
  * DELETE /api/v1/webhooks/subscriptions/$id
  */
 
@@ -38,6 +38,7 @@ interface PatchRequest {
   url?: string
   eventTypes?: unknown
   enabled?: boolean
+  details?: unknown
 }
 
 async function handlePatch(
@@ -130,6 +131,7 @@ async function handlePatch(
       url,
       eventTypes: eventTypes ?? undefined,
       enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+      details: typeof body.details === 'boolean' ? body.details : undefined,
     })
     return createSuccessResponse({
       id: updated.id,
@@ -137,6 +139,7 @@ async function handlePatch(
       eventTypes: updated.eventTypes,
       enabled: updated.enabled,
       scope: updated.scope,
+      details: updated.details,
       updatedAt: updated.updatedAt,
     })
   } catch (error) {

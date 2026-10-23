@@ -121,6 +121,25 @@ describe('runHostSweep for a count-only rule with affected names', () => {
     ).toEqual(expected)
   })
 
+  // #3998: the names reach the finding and the dispatcher as data, not only
+  // inside the human label, so the `alert` block can carry them apart.
+  test('the finding and the dispatch carry the affected names', async () => {
+    const dispatched: DispatchFindingParams[] = []
+    const result = await runHostSweep(config as never, ctx, async (p) => {
+      dispatched.push(p)
+    })
+    const own = ['db.x <b>', 'db.y']
+    expect(
+      result.findings.find((f) => f.checkId === 'own-statement-rule')?.affected
+    ).toEqual(own)
+    expect(
+      dispatched.find((d) => d.ruleId === 'own-statement-rule')?.affected
+    ).toEqual(own)
+    expect(
+      dispatched.find((d) => d.ruleId === 'batched-rule')?.affected
+    ).toHaveLength(5)
+  })
+
   test('the batch reads the names column of a rule that has one', async () => {
     await runHostSweep(config as never, ctx, async () => {})
     expect(batchQueries).toHaveLength(1)

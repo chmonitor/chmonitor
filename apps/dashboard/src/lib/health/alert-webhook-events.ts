@@ -20,6 +20,7 @@
  */
 
 import type { AlertEventData, EventPayload } from '@/lib/events/event-types'
+import type { AlertBlock } from './adapters'
 import type { AlertDecision } from './alert-state-store'
 
 import { debug } from '@chm/logger'
@@ -35,6 +36,8 @@ export interface BuildAlertWebhookEventParams {
   label: string
   /** Injectable clock for tests. Defaults to `Date.now()`. */
   now?: number
+  /** Lazy `alert` block, resolved only for subscriptions with `details: true`. */
+  alert?: () => Promise<AlertBlock>
 }
 
 /**
@@ -112,7 +115,18 @@ export function dispatchDedupedAlertEvent(
   try {
     const event = buildAlertWebhookEvent(params)
     if (!event) return Promise.resolve()
-    return emitInstanceEvent(event).catch((err) => {
+    const { alert } = params
+    const options = alert
+      ? {
+          withDetails: async (
+            evt: EventPayload<AlertEventData>
+          ): Promise<EventPayload<AlertEventData>> => ({
+            ...evt,
+            data: { ...evt.data, alert: await alert() },
+          }),
+        }
+      : {}
+    return emitInstanceEvent(event, {}, options).catch((err) => {
       debug(
         `[health-sweep] webhook-subscriptions bus emit failed for host ${params.hostId} rule ${params.ruleId}`,
         err instanceof Error ? err.message : String(err)

@@ -16,6 +16,8 @@ export interface WebhookSubscriptionInfo {
    * also eligible for alert.fired/alert.resolved (env/operator hosts, no
    * per-user owner) — see event-types.ts's docblock. */
   scope: 'user' | 'instance'
+  /** Alert events carry the structured `alert` block (#3998). */
+  details: boolean
   createdAt: number
   updatedAt: number
 }

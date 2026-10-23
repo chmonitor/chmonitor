@@ -416,6 +416,7 @@ async function verifyDelivery(): Promise<void> {
   const customFormats: Record<string, string> = {
     'custom-auto': 'auto',
     'custom-generic-json': 'raw',
+    'custom-raw-details': 'raw',
     'custom-slack': 'slack',
     'custom-matrix': 'matrix',
     'custom-hookshot': 'hookshot',
@@ -423,7 +424,10 @@ async function verifyDelivery(): Promise<void> {
   const customTargets = Object.entries(customFormats).map(([name, format]) => {
     const urlEnv = `CHM_VERIFY_URL_${name.replace(/-/g, '_').toUpperCase()}`
     process.env[urlEnv] = `${base}/t/${name}/hook`
-    return { name, format, urlEnv }
+    // #3998: one raw target opts into the structured `alert` block.
+    return name === 'custom-raw-details'
+      ? { name, format, urlEnv, details: true }
+      : { name, format, urlEnv }
   })
   process.env.HEALTH_ALERT_WEBHOOK_TARGETS = JSON.stringify(customTargets)
 
@@ -607,7 +611,15 @@ async function verifyDelivery(): Promise<void> {
         text += `\n${req.headers.get('title') ?? ''}`
       } else {
         try {
-          JSON.parse(req.body)
+          const body = JSON.parse(req.body) as Record<string, unknown>
+          const alert = body.alert as { ruleId?: unknown } | undefined
+          if (target === 'custom-raw-details') {
+            if (typeof alert?.ruleId !== 'string')
+              problems.push('no alert block on a details: true target')
+            if ('details' in body) problems.push('legacy details key')
+          } else if (alert !== undefined) {
+            problems.push('alert block without details: true')
+          }
         } catch {
           problems.push('body is not JSON')
         }

@@ -23,6 +23,8 @@ export interface DispatchFindingParams {
   /** Thresholds that classified this finding, when known (base rules only). */
   warnThreshold?: number | null
   critThreshold?: number | null
+  /** Up to 5 names behind a count-only rule (`affectedKey`), cluster-originated. */
+  affected?: readonly string[]
 }
 
 /** Every dispatch-side counter the sweep summary reports. */

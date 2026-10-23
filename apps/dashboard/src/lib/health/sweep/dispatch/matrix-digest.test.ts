@@ -26,6 +26,7 @@ mock.module('../../alert-history-store', () => ({
       delivered: row.delivered,
     })
   },
+  queryFirstSeenInEpisode: async () => null,
 }))
 
 const { createDispatcher } = await import('./index')

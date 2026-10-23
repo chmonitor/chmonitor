@@ -15,7 +15,7 @@
  * logged — only the redacted host hint.
  */
 
-import type { AlertDetails, AlertPayload } from '../../../adapters'
+import type { AlertBlock, AlertPayload } from '../../../adapters'
 import type { AlertSeverityFloor } from '../../../alert-channel-settings'
 import type { AlertDecisionKind } from '../../../alert-state-store'
 import type { EffectiveCustomWebhookTarget } from '../../../custom-webhook-config'
@@ -142,12 +142,11 @@ export async function dispatchCustomWebhookTargets(
      * global floor — skip all targets.
      */
     severity: AlertSeverityFloor | null
-    /** Sent only to targets with `details: true`. */
-    details?: AlertDetails
+    /** Resolved and sent only for targets with `details: true`. */
+    alert?: () => Promise<AlertBlock>
   }
 ): Promise<boolean> {
-  const { targets, payload, text, globalMinSeverity, severity, details } =
-    params
+  const { targets, payload, text, globalMinSeverity, severity, alert } = params
   if (targets.length === 0 || severity === null) return false
   let anyDelivered = false
 
@@ -158,7 +157,9 @@ export async function dispatchCustomWebhookTargets(
 
     const { body, adapterId } = buildCustomTargetBody(
       target,
-      target.details === true && details ? { ...payload, details } : payload,
+      target.details === true && alert
+        ? { ...payload, alert: await alert() }
+        : payload,
       text
     )
     const result = await sendCustomTarget(target, body)

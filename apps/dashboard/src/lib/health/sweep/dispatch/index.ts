@@ -83,8 +83,7 @@ import {
   isRuleMuted,
   meetsMinSeverity,
 } from './../suppression'
-import { withTopContributors } from './alert-contributors'
-import { buildAlertDetails } from './alert-details'
+import { createAlertBlockResolver } from './alert-block'
 import {
   dispatchCustomWebhookTargets,
   eligibleGroupableCustomTargets,
@@ -208,6 +207,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       warnThreshold,
       critThreshold,
       signalOnly,
+      affected = [],
     } = params
     const effective = effectiveSeverity(severity, settings.minSeverity)
     // Per-rule hysteresis/cooldown (#4029): exact rule id first, then the
@@ -452,6 +452,25 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       return
     }
 
+    // One lazy `alert` block per finding (#3998), shared by custom targets
+    // and subscriptions with `details: true`; nothing is read otherwise.
+    const webhookTimestamp = new Date().toISOString()
+    const alertBlock = createAlertBlockResolver({
+      hostId,
+      ruleId,
+      kind: decision.kind,
+      severity: isRecovery
+        ? (decision.previousSeverity as 'warning' | 'critical')
+        : (effective as 'warning' | 'critical'),
+      value,
+      previousValue,
+      previousState,
+      warnThreshold,
+      critThreshold,
+      affected,
+      now: webhookTimestamp,
+    })
+
     // Outbound webhook-subscriptions bus (#2664): fires from this SAME
     // dedup decision, independently of every legacy channel below —
     // "regardless of channel config" per the issue, this is its own
@@ -470,6 +489,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
         decision,
         value,
         label,
+        alert: alertBlock,
       })
     )
 
@@ -638,7 +658,6 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     // embeds carry host/value/thresholds; the Slack/generic wrapper carries
     // `text`). One timestamp per finding so the embed and any Slack ack block
     // agree.
-    const webhookTimestamp = new Date().toISOString()
     const webhookPayload: AlertPayload = {
       severity: isRecovery ? 'recovery' : (effective as 'warning' | 'critical'),
       hostLabel: name,
@@ -690,20 +709,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       text,
       globalMinSeverity: settings.minSeverity,
       severity: deliverSeverity,
-      details: await withTopContributors(
-        buildAlertDetails({
-          kind: decision.kind,
-          value,
-          previousValue,
-          previousState,
-          now: webhookTimestamp,
-        }),
-        {
-          enabled: !isRecovery && customTargets.some((t) => t.details === true),
-          ruleId: finding.ruleId,
-          hostId: finding.hostId,
-        }
-      ),
+      alert: alertBlock,
     })
     if (customDelivered) anyDelivered = true
     // Grouped custom targets count as groupable (in settleFinding), and a
