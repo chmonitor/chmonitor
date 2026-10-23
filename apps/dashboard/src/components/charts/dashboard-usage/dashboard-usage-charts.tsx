@@ -14,6 +14,7 @@ export const ChartDashboardUsageQueries = createAreaChart({
   defaultInterval: 'toStartOfHour',
   defaultLastHours: 24 * 7,
   dataTestId: 'dashboard-usage-queries-chart',
+  defaultChartClassName: 'h-[220px]',
   areaChartProps: {
     showLegend: true,
     showXAxis: true,
@@ -30,6 +31,7 @@ export const ChartDashboardUsageP95 = createAreaChart({
   defaultInterval: 'toStartOfHour',
   defaultLastHours: 24 * 7,
   dataTestId: 'dashboard-usage-p95-chart',
+  defaultChartClassName: 'h-[220px]',
   enableScaleToggle: false,
   areaChartProps: {
     showLegend: false,
@@ -48,6 +50,7 @@ export const ChartDashboardUsageTop = createBarChart({
   defaultTitle: 'Top',
   defaultLastHours: 24 * 7,
   dataTestId: 'dashboard-usage-top-chart',
+  defaultChartClassName: 'h-[260px]',
   xAxisDateFormat: false,
   barChartProps: {
     layout: 'vertical',
