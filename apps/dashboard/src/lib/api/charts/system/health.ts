@@ -1,6 +1,7 @@
 import type { ChartQueryBuilder } from '../types'
 
 import { buildPartsPressurePercentSql } from '@/lib/health/parts-pressure'
+import { REPLICATION_USED_SCALAR_SQL } from '@/lib/health/replication-usage'
 import {
   buildTtlPartitionFlaggedCountSql,
   TTL_PARTITION_HEALTH_SETTINGS,
@@ -9,7 +10,7 @@ import {
 export const healthCharts: Record<string, ChartQueryBuilder> = {
   'health-readonly-replicas': () => ({
     query: `
-    SELECT count() AS readonly_count
+    SELECT count() AS readonly_count, ${REPLICATION_USED_SCALAR_SQL} AS replication_used
     FROM system.replicas
     WHERE is_readonly = 1
   `,
@@ -89,7 +90,7 @@ export const healthCharts: Record<string, ChartQueryBuilder> = {
 
   'health-replication-lag': () => ({
     query: `
-    SELECT max(absolute_delay) AS max_lag
+    SELECT max(absolute_delay) AS max_lag, ${REPLICATION_USED_SCALAR_SQL} AS replication_used
     FROM system.replicas
   `,
     optional: true,

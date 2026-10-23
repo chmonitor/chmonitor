@@ -176,6 +176,17 @@ spec:
                   key: {{ $key }}
             {{- end }}
             {{- end }}
+            {{- with .Values.queryAttribution }}
+            {{- $attrKeys := list "CHM_QUERY_ATTRIBUTION" "CHM_QUERY_ATTRIBUTION_SQL_COMMENT" "CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL" }}
+            {{- if .label }}{{- $attrKeys = append $attrKeys "CHM_QUERY_ATTRIBUTION_LABEL" }}{{- end }}
+            {{- range $attrKeys }}
+            - name: {{ . }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "chmonitor.fullname" $ }}
+                  key: {{ . }}
+            {{- end }}
+            {{- end }}
             {{- if .Values.alertWebhooks.enabled }}
             - name: HEALTH_ALERT_WEBHOOK_TARGETS
               valueFrom:

@@ -8,6 +8,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
+import { runWithAttribution } from '@chm/clickhouse-client/attribution'
 import { error } from '@chm/logger'
 import {
   executeChartGrouping,
@@ -222,13 +223,17 @@ export async function handler(request: Request): Promise<Response> {
   }
 
   try {
-    const grouped = await executeChartGrouping(groupingId, hostId, {
-      bindings,
-      lastHours,
-      interval,
-      params: chartParams,
-      timezone,
-    })
+    const grouped = await runWithAttribution(
+      { source: `chart-group:${groupingId}` },
+      () =>
+        executeChartGrouping(groupingId, hostId, {
+          bindings,
+          lastHours,
+          interval,
+          params: chartParams,
+          timezone,
+        })
+    )
 
     const entries: string[] = []
     for (const [name, entry] of Object.entries(grouped)) {

@@ -241,7 +241,7 @@
     {
       "category": "replication",
       "core": true,
-      "description": "Get per-table replication status including delay, queue size, and replica counts.",
+      "description": "Get per-table replication status including delay, queue size, and replica counts. Says so when the host uses no replication.",
       "envGate": null,
       "name": "get_replication_status",
       "summary": "Per-table replication delay, queue size, and replica counts."

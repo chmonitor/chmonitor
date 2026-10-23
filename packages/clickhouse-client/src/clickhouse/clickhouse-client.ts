@@ -7,6 +7,11 @@ import {
 
 import type { ClickHouseConfig } from './types'
 
+import {
+  attributionHostName,
+  isEnvHostDemo,
+  withQueryAttribution,
+} from '../attribution/scope'
 import { isCloudflareWorkers } from '../runtime/cloudflare-workers'
 import { getAndValidateClientConfig } from './clickhouse-config'
 import {
@@ -72,7 +77,15 @@ export const getClient = async ({
     // lives here rather than at each call site, so a new caller cannot
     // reintroduce the bug. `withReadonlyEnforcement` covers the settings passed
     // per query() call, which is where most read-only call sites set theirs.
-    pooled = getPooledClient(withReadonlyEnforcement(newClient), config, isWeb)
+    pooled = getPooledClient(
+      withQueryAttribution(
+        withReadonlyEnforcement(newClient),
+        attributionHostName(config),
+        { anonymous: isEnvHostDemo }
+      ),
+      config,
+      isWeb
+    )
   }
 
   pooled.inUse++

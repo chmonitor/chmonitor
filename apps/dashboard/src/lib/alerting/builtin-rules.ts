@@ -490,6 +490,7 @@ WHERE num_tries > 100 OR create_time < now() - INTERVAL 1 HOUR`,
     formatLabel: fmtCount('stuck queue entry', 'stuck queue entries'),
     optional: true,
     tableCheck: 'system.replication_queue',
+    requiresReplication: true,
     remediationActions: [
       {
         id: 'replication-queue-stuck-detail',

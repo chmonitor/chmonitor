@@ -39,6 +39,7 @@ import {
   takeDueDigestEntries,
 } from './../../alert-digest-buffer-store'
 import { recordAlertEvent } from './../../alert-history-store'
+import { alertThreadKey } from './../../alert-thread-store'
 import {
   buildCustomTargetBody,
   buildCustomTargetDigestBody,
@@ -53,6 +54,12 @@ import { SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
 import { buildAlertEventRecord, recordChannelEvent } from './alert-event-record'
 import { sendCustomTarget } from './channels/custom-targets'
 import { matrixSendError, sendMatrixChannel } from './channels/matrix'
+import {
+  loadEpisodeThreads,
+  telegramMessageId,
+  withMatrixThread,
+  withTelegramReply,
+} from './threading'
 import { postWebhook, postWebhookTarget } from './webhook-post'
 import { debug } from '@chm/logger'
 import { buildAlertBlocksWithAck } from '@/lib/slack/blocks'
@@ -469,6 +476,44 @@ export async function createDigestPipeline(
   }
 
   /**
+   * The root a lone send replies under. A new episode starts its own thread,
+   * and a time-window-flushed entry (no live decision) is never threaded.
+   */
+  function threadRootFor(
+    pending: PendingDigestCommit | null,
+    threadKey: string
+  ): string | undefined {
+    if (!threads || !pending || pending.decision.kind === 'new')
+      return undefined
+    return threads.rootFor(threadKey)
+  }
+
+  /** Record what one Matrix / Telegram send means for each member's thread. */
+  async function settleThreads(
+    entries: readonly {
+      payload: AlertPayload
+      pending: PendingDigestCommit | null
+    }[],
+    threadKeys: readonly string[],
+    result: { ok: boolean; messageId?: string; rejected?: boolean }
+  ): Promise<void> {
+    if (!threads) return
+    for (const [i, e] of entries.entries()) {
+      if (!e.pending || e.payload.hostId === undefined) continue
+      const target = {
+        threadKey: threadKeys[i],
+        hostId: e.payload.hostId,
+        ruleId: e.payload.metric,
+        kind: e.pending.decision.kind,
+      }
+      if (entries.length === 1) await threads.afterLoneSend(target, result)
+      else await threads.afterDigestSend(target, result.ok)
+    }
+  }
+
+  let threads: Awaited<ReturnType<typeof loadEpisodeThreads>> | null = null
+
+  /**
    * Flush every buffered groupable delivery (#2663), grouping by target so a
    * target that received >1 finding this pass gets ONE combined message. Then
    * commit + count each in-pass finding exactly once (shared `pending` record),
@@ -560,20 +605,45 @@ export async function createDigestPipeline(
       if (list) list.push(entry)
       else byChat.set(key, [entry])
     }
+    // Episode threads (#4049): loaded once, only when a threadable channel sends.
+    threads =
+      telegramDigestEntries.length + matrixDigestEntries.length > 0
+        ? await loadEpisodeThreads()
+        : null
     for (const entries of byChat.values()) {
       const first = entries[0]
       const config = { token: first.botToken, chatId: first.chatId }
-      const body =
-        entries.length === 1 && !isCompactReminder(first)
+      const lone = entries.length === 1
+      const threadKeys = await Promise.all(
+        entries.map((e) =>
+          alertThreadKey({
+            hostId: e.payload.hostId,
+            ruleId: e.payload.metric,
+            channel: 'telegram',
+            destination: [e.botToken, e.chatId],
+          })
+        )
+      )
+      const baseBody =
+        lone && !isCompactReminder(first)
           ? buildTelegramBody(first.payload, config)
           : buildTelegramDigestBody(
               entries.map((e) => e.payload),
               config
             )
+      const body = withTelegramReply(
+        baseBody,
+        lone ? threadRootFor(first.pending, threadKeys[0]) : undefined
+      )
       const result = await postWebhook(
         telegramSendMessageUrl(first.botToken),
-        body
+        body,
+        { readJson: true }
       )
+      await settleThreads(entries, threadKeys, {
+        ok: result.ok,
+        messageId: telegramMessageId(result.json),
+      })
       if (result.ok) {
         for (const e of entries) {
           if (e.pending) e.pending.groupableDelivered = true
@@ -636,9 +706,28 @@ export async function createDigestPipeline(
       const first = entries[0]
       const roomId = first.target.roomId
       const lone = entries.length === 1 && !isCompactReminder(first)
-      const body = lone
-        ? buildMatrixBody(first.payload)
-        : buildMatrixDigestBody(entries.map((e) => e.payload))
+      const threadKeys = await Promise.all(
+        entries.map((e) =>
+          alertThreadKey({
+            hostId: e.payload.hostId,
+            ruleId: e.payload.metric,
+            channel: 'matrix',
+            destination: [
+              e.target.homeserverUrl,
+              e.target.roomId,
+              e.target.accessToken,
+            ],
+          })
+        )
+      )
+      const body = withMatrixThread(
+        lone
+          ? buildMatrixBody(first.payload)
+          : buildMatrixDigestBody(entries.map((e) => e.payload)),
+        entries.length === 1
+          ? threadRootFor(first.pending, threadKeys[0])
+          : undefined
+      )
       const memberTxnIds = await Promise.all(
         entries.map((e) => matrixTxnIdForPayload(e.payload, roomId))
       )
@@ -647,6 +736,13 @@ export async function createDigestPipeline(
           ? memberTxnIds[0]
           : await buildMatrixTxnId([roomId, 'digest', ...memberTxnIds])
       const result = await sendMatrixChannel(first, body, txnId)
+      await settleThreads(entries, threadKeys, {
+        ok: result.ok,
+        messageId: result.eventId,
+        rejected:
+          'm.relates_to' in body &&
+          (result.status === 400 || result.status === 404),
+      })
       if (result.ok) {
         for (const e of entries) {
           if (e.pending) e.pending.groupableDelivered = true

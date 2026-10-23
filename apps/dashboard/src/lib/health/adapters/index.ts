@@ -36,10 +36,13 @@ export type {
 export type { SlackWebhookBody } from './slack'
 export type { TelegramConfig, TelegramSendMessageBody } from './telegram'
 export type {
+  AlertContributor,
   AlertDetails,
   AlertPayload,
   AlertSeverity,
   NotificationAdapter,
+  QueryContributor,
+  TableContributor,
 } from './types'
 
 export {

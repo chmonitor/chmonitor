@@ -730,6 +730,12 @@ export default defineConfig({
       '@chm/clickhouse-client/redact-host': r(
         '../../packages/clickhouse-client/src/clickhouse/redact-host.ts'
       ),
+      '@chm/clickhouse-client/attribution/record': r(
+        '../../packages/clickhouse-client/src/attribution/record.ts'
+      ),
+      '@chm/clickhouse-client/attribution': r(
+        '../../packages/clickhouse-client/src/attribution/scope.ts'
+      ),
       '@chm/clickhouse-client/table-existence-cache': r(
         '../../packages/clickhouse-client/src/table-existence-cache.ts'
       ),

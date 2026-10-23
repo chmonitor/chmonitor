@@ -2,12 +2,17 @@ import { z } from 'zod'
 
 import { hostIdSchema, readOnlyQuery, resolveHostId } from './helpers'
 import { dynamicTool } from 'ai'
+import { getHostCapabilities } from '@/lib/health/capability-cache'
+import {
+  REPLICATION_NOT_USED_MESSAGE,
+  usesReplication,
+} from '@/lib/health/replication-usage'
 
 export function createReplicationTools(hostId: number) {
   return {
     get_replication_status: dynamicTool({
       description:
-        'Get per-table replication status including delay, queue size, and replica counts.',
+        'Get per-table replication status including delay, queue size, and replica counts. Says so when the host uses no replication.',
       inputSchema: z.object({
         database: z
           .string()
@@ -22,6 +27,14 @@ export function createReplicationTools(hostId: number) {
           hostId?: number
         }
         const resolvedHostId = resolveHostId(toolHostId, hostId)
+        const capabilities = await getHostCapabilities(resolvedHostId)
+        if (!usesReplication(capabilities)) {
+          return {
+            replicationUsed: false,
+            message: `${REPLICATION_NOT_USED_MESSAGE}: no Replicated or SharedMergeTree table exists, so there is no replication status to report. This is not a healthy result.`,
+            rows: [],
+          }
+        }
         return readOnlyQuery({
           query: `SELECT
             database,

@@ -3,6 +3,7 @@ import type { QueryParams } from '@clickhouse/client'
 import type { QueryConfigLike } from '@chm/sql-builder'
 import type { FetchDataResult } from './types'
 
+import { attributionHostName, displaySql } from '../attribution/scope'
 import { getClickHouseVersion, selectVersionedSql } from '../clickhouse-version'
 import { transformClickHouseJsonEachRowWasmJson } from '../wasm/monitor-core'
 import { getClient, releaseClient } from './clickhouse-client'
@@ -115,6 +116,10 @@ export const fetchJsonEachRowAsNormalizedJson = async ({
           rows,
           host: redactHostCredentials(clientConfig.host),
           sql: effectiveQuery.replace(/\s+/g, ' ').trim(),
+          displaySql: displaySql(
+            effectiveQuery,
+            attributionHostName(clientConfig)
+          ),
           rawResponseLength: rawText.length,
           rawResponsePreview:
             rawText.length <= 500 ? rawText : `${rawText.substring(0, 500)}...`,

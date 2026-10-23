@@ -16,6 +16,7 @@ import type { Thresholds } from '@/lib/health/thresholds-storage'
 import type { PeerDBFleetMetrics } from '@/lib/peerdb/fleet-metrics'
 
 import { classifyValue } from '@/lib/alerting/rule-registry'
+import { REPLICATION_NOT_USED_MESSAGE } from '@/lib/health/replication-usage'
 import {
   SLOT_LAG_CRITICAL_MB,
   SLOT_LAG_WARN_MB,
@@ -79,6 +80,15 @@ export function computeCheckStatus(
     label = result.statusMessage ?? 'Unavailable'
   } else if (result.data && result.data.length > 0) {
     row = result.data[0] as Record<string, unknown>
+    if (check.requiresReplication && Number(row.replication_used) === 0) {
+      return {
+        status: 'error',
+        value: null,
+        label: REPLICATION_NOT_USED_MESSAGE,
+        displayValue: '—',
+        row,
+      }
+    }
     const raw = row[check.valueKey]
     value = raw === null || raw === undefined ? 0 : Number(raw)
     label = check.formatLabel ? check.formatLabel(value) : String(value)

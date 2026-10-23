@@ -2,8 +2,11 @@ import type { ChartProps } from '@/components/charts/chart-props'
 
 import { CardMultiMetrics } from '@/components/cards/card-multi-metrics'
 import { createCustomChart } from '@/components/charts/factory'
+import { ReplicationNotUsed } from '@/components/replication/replication-not-used'
+import { useHostId } from '@/lib/swr'
+import { useReplicationUsed } from '@/lib/swr/use-replication-usage'
 
-export const ChartReplicationQueueCount = createCustomChart({
+const ChartReplicationQueueCountInner = createCustomChart({
   chartName: 'replication-queue-count',
   dataTestId: 'replication-queue-count-chart',
   chartCardClassName: 'justify-between',
@@ -31,6 +34,13 @@ export const ChartReplicationQueueCount = createCustomChart({
     )
   },
 })
+
+export function ChartReplicationQueueCount(props: ChartProps) {
+  const hostId = useHostId()
+  const used = useReplicationUsed(props.hostId ?? hostId)
+  if (used === false) return <ReplicationNotUsed compact />
+  return <ChartReplicationQueueCountInner {...props} />
+}
 
 export type ChartReplicationQueueCountProps = ChartProps
 

@@ -47,6 +47,11 @@ export interface TelegramSendMessageBody {
   chat_id: string
   text: string
   parse_mode: 'MarkdownV2'
+  /** Reply under an earlier message (#4049); sent even if that one is gone. */
+  reply_parameters?: {
+    message_id: number
+    allow_sending_without_reply: true
+  }
 }
 
 /** Caller-supplied Telegram transport config. */
