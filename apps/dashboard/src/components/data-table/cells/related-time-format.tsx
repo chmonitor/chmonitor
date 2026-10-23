@@ -10,6 +10,10 @@ export const RelatedTimeFormat = function RelatedTimeFormat({
 }: RelatedTimeFormatProps) {
   const userTimezone = useTimezone()
 
+  // dayjs reads a missing value as "now", so a NULL time would claim a
+  // recent event that never happened.
+  if (value == null || value === '') return null
+
   const fromNow = (() => {
     try {
       const parsed = dayjs.tz(value as string, userTimezone)
