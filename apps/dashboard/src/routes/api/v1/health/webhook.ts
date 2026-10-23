@@ -199,6 +199,8 @@ async function handlePost(
             body: JSON.stringify(outgoingBody),
           }
         : {}),
+      // Redirects are refused: only the original URL was checked above.
+      redirect: 'error',
       signal: controller.signal,
     })
 
