@@ -18,25 +18,34 @@ import {
 } from './../../alert-thread-store'
 import { SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
 
+/** One finding's thread on one destination. */
+export interface ThreadTarget {
+  threadKey: string
+  hostId: number
+  ruleId: string
+  kind: AlertDecisionKind
+}
+
 export interface EpisodeThreads {
   /** The episode's root message id on this destination, if one is stored. */
   rootFor: (threadKey: string) => string | undefined
-  /** Update the stored root after a lone send of a finding of `kind`. */
-  afterLoneSend: (params: {
-    threadKey: string
-    kind: AlertDecisionKind
-    ok: boolean
-    messageId: string | undefined
-  }) => Promise<void>
-  /** A digest send carried this finding: it ends or starts no thread. */
-  afterDigestSend: (params: {
-    threadKey: string
-    kind: AlertDecisionKind
-    ok: boolean
-  }) => Promise<void>
+  /**
+   * Update the stored root after a lone send. `rejected` = the destination
+   * refused a threaded send (say the root was deleted): forget the root so the
+   * retry goes out top-level instead of failing forever.
+   */
+  afterLoneSend: (
+    target: ThreadTarget,
+    result: { ok: boolean; messageId?: string; rejected?: boolean }
+  ) => Promise<void>
+  /** A digest carried this finding: a delivered recovery ends its thread. */
+  afterDigestSend: (target: ThreadTarget, ok: boolean) => Promise<void>
 }
 
-/** Load every stored root once for this flush. */
+/**
+ * Load every stored root once for this flush. A new episode's leftover roots
+ * were already dropped by `dispatchFinding` (`deleteEpisodeThreadRoots`).
+ */
 export async function loadEpisodeThreads(): Promise<EpisodeThreads> {
   const roots = await loadThreadRoots(SWEEP_ROUTING_OWNER_ID)
 
@@ -48,40 +57,31 @@ export async function loadEpisodeThreads(): Promise<EpisodeThreads> {
   return {
     rootFor: (threadKey) => roots.get(threadKey),
 
-    async afterLoneSend({ threadKey, kind, ok, messageId }) {
-      if (!ok) return
+    async afterLoneSend(target, { ok, messageId, rejected }) {
+      const { threadKey, kind } = target
+      if (!ok) {
+        if (rejected) await forget(threadKey)
+        return
+      }
       if (kind === 'recovery') {
         await forget(threadKey)
         return
       }
-      if (!messageId) return
-      if (kind === 'new') {
-        // A new episode always replaces a leftover root: a recovery that was
-        // never sent (muted, signal-only) leaves the old one behind.
-        roots.set(threadKey, messageId)
-        await saveThreadRoot(SWEEP_ROUTING_OWNER_ID, threadKey, messageId, {
-          replace: true,
-        })
-        return
-      }
-      if (
-        (kind === 'reminder' || kind === 'escalated') &&
-        !roots.has(threadKey)
-      ) {
-        // The first message was not threadable (a digest, or sent before
-        // threading existed): this one becomes the root.
-        roots.set(threadKey, messageId)
-        await saveThreadRoot(SWEEP_ROUTING_OWNER_ID, threadKey, messageId, {
-          replace: false,
-        })
-      }
+      // The first message this episode got here becomes the root: the `new`
+      // alert, or a later one when the first was a digest or never reached
+      // this destination.
+      if (!messageId || roots.has(threadKey)) return
+      if (kind !== 'new' && kind !== 'reminder' && kind !== 'escalated') return
+      roots.set(threadKey, messageId)
+      await saveThreadRoot(
+        SWEEP_ROUTING_OWNER_ID,
+        { ...target, rootId: messageId },
+        { replace: kind === 'new' }
+      )
     },
 
-    async afterDigestSend({ threadKey, kind, ok }) {
-      if (!ok) return
-      // The episode ended, or a new one began inside a digest: either way the
-      // old root no longer belongs to the current episode.
-      if (kind === 'recovery' || kind === 'new') await forget(threadKey)
+    async afterDigestSend({ threadKey, kind }, ok) {
+      if (ok && kind === 'recovery') await forget(threadKey)
     },
   }
 }

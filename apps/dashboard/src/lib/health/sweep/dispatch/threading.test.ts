@@ -228,6 +228,43 @@ describe('Matrix: repeats thread under the first alert', () => {
     expect(rootRows()).not.toContainEqual({ root_id: staleRoot })
   })
 
+  test('a new episode that first reaches a room as an escalation starts a new thread', async () => {
+    // Critical-only room: the episode's 'new' warning never reaches it, so the
+    // escalation is its first message there.
+    const ctx: SweepContext = {
+      ...makeCtx(MATRIX),
+      channelSettings: { matrix: { minSeverity: 'critical' } },
+    }
+    await tick(ctx, 'warning')
+    const [firstCritical] = await tick(ctx, 'critical')
+    expect(relation(firstCritical)).toBeUndefined()
+    // Recovery dropped without a send (muted rule): the root stays behind.
+    await tick({ ...ctx, mutedRules: ['thread-test'] }, 'ok')
+
+    expect(await tick(ctx, 'warning')).toEqual([])
+    const [nextCritical] = await tick(ctx, 'critical')
+    expect(relation(nextCritical)).toBeUndefined()
+    expect(rootRows()).toEqual([{ root_id: `$ev${nextId - 1}` }])
+  })
+
+  test('a threaded send the homeserver rejects drops the root so the retry goes top-level', async () => {
+    const ctx = makeCtx(MATRIX)
+    await tick(ctx, 'warning')
+    const okFetch = globalThis.fetch
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit
+    ) => {
+      sent.push({ url: String(input), body: JSON.parse(String(init?.body)) })
+      return new Response('{"errcode":"M_UNKNOWN"}', { status: 400 })
+    }) as typeof fetch
+    const [rejected] = await tick(ctx, 'warning')
+    expect(relation(rejected)).toBeDefined()
+    globalThis.fetch = okFetch
+    const [retry] = await tick(ctx, 'warning')
+    expect(relation(retry)).toBeUndefined()
+  })
+
   test('with no metadata DB every message stays top-level', async () => {
     const ctx = makeCtx(MATRIX)
     sqlite = null

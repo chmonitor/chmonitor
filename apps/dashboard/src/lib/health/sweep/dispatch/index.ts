@@ -57,6 +57,7 @@ import {
   alertStateStore,
   evaluateAlert,
 } from './../../alert-state-store'
+import { deleteEpisodeThreadRoots } from './../../alert-thread-store'
 import { dispatchDedupedAlertEvent } from './../../alert-webhook-events'
 import {
   groupableCustomFormat,
@@ -73,7 +74,7 @@ import {
   getServerAlertIdentity,
   resolvePerRuleOverride,
 } from './../../server-alert-config'
-import { SWEEP_ACK_OWNER_ID } from './../resolve-config'
+import { SWEEP_ACK_OWNER_ID, SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
 import {
   effectiveSeverity,
   isAckGated,
@@ -244,6 +245,13 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       backoffMaxMs: ctx.repeatBackoffMaxMs,
     })
     const isRecovery = decision.kind === 'recovery'
+
+    // A new episode (#4049): no destination may thread under the previous
+    // episode's first message, whichever one this episode reaches first.
+    // Before every gate below; a gated 'new' is evaluated again next sweep.
+    if (decision.notify && decision.kind === 'new') {
+      await deleteEpisodeThreadRoots(SWEEP_ROUTING_OWNER_ID, hostId, ruleId)
+    }
 
     // Opt-in daily digest of long-firing alerts (#4049): a no-op unless set.
     longFiring.collect({

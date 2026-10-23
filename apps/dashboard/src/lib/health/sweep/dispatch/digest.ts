@@ -490,21 +490,24 @@ export async function createDigestPipeline(
 
   /** Record what one Matrix / Telegram send means for each member's thread. */
   async function settleThreads(
-    entries: readonly { pending: PendingDigestCommit | null }[],
+    entries: readonly {
+      payload: AlertPayload
+      pending: PendingDigestCommit | null
+    }[],
     threadKeys: readonly string[],
-    ok: boolean,
-    messageId: string | undefined
+    result: { ok: boolean; messageId?: string; rejected?: boolean }
   ): Promise<void> {
     if (!threads) return
     for (const [i, e] of entries.entries()) {
-      if (!e.pending) continue
-      const kind = e.pending.decision.kind
-      const threadKey = threadKeys[i]
-      if (entries.length === 1) {
-        await threads.afterLoneSend({ threadKey, kind, ok, messageId })
-      } else {
-        await threads.afterDigestSend({ threadKey, kind, ok })
+      if (!e.pending || e.payload.hostId === undefined) continue
+      const target = {
+        threadKey: threadKeys[i],
+        hostId: e.payload.hostId,
+        ruleId: e.payload.metric,
+        kind: e.pending.decision.kind,
       }
+      if (entries.length === 1) await threads.afterLoneSend(target, result)
+      else await threads.afterDigestSend(target, result.ok)
     }
   }
 
@@ -637,12 +640,10 @@ export async function createDigestPipeline(
         body,
         { readJson: true }
       )
-      await settleThreads(
-        entries,
-        threadKeys,
-        result.ok,
-        telegramMessageId(result.json)
-      )
+      await settleThreads(entries, threadKeys, {
+        ok: result.ok,
+        messageId: telegramMessageId(result.json),
+      })
       if (result.ok) {
         for (const e of entries) {
           if (e.pending) e.pending.groupableDelivered = true
@@ -735,7 +736,13 @@ export async function createDigestPipeline(
           ? memberTxnIds[0]
           : await buildMatrixTxnId([roomId, 'digest', ...memberTxnIds])
       const result = await sendMatrixChannel(first, body, txnId)
-      await settleThreads(entries, threadKeys, result.ok, result.eventId)
+      await settleThreads(entries, threadKeys, {
+        ok: result.ok,
+        messageId: result.eventId,
+        rejected:
+          'm.relates_to' in body &&
+          (result.status === 400 || result.status === 404),
+      })
       if (result.ok) {
         for (const e of entries) {
           if (e.pending) e.pending.groupableDelivered = true
