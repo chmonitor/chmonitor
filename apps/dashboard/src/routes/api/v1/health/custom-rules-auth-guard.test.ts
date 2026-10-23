@@ -3,17 +3,24 @@
  * authenticated when auth is configured, and keep working when it is not.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 let authenticated = true
 let storeCalls = 0
 
+const realApiGuard = { ...(await import('@/lib/auth/api-guard')) }
 mock.module('@/lib/auth/api-guard', () => ({
   isAuthenticatedRequest: async () => authenticated,
 }))
+const realCustomRulesAuth = {
+  ...(await import('@/lib/health/custom-rules-auth')),
+}
 mock.module('@/lib/health/custom-rules-auth', () => ({
   resolveCustomRuleOwnerId: async () => 'oss',
 }))
+const realCustomRulesStore = {
+  ...(await import('@/lib/health/custom-rules-store')),
+}
 mock.module('@/lib/health/custom-rules-store', () => ({
   CustomRuleStoreError: class extends Error {},
   listCustomRules: async () => {
@@ -37,6 +44,9 @@ mock.module('@/lib/health/custom-rules-store', () => ({
     storeCalls++
   },
 }))
+const realCheckAlertsStore = {
+  ...(await import('@/lib/health/check-alerts-store')),
+}
 mock.module('@/lib/health/check-alerts-store', () => ({
   renameCheckAlert: async () => {
     storeCalls++
@@ -47,6 +57,9 @@ mock.module('@/lib/health/check-alerts-store', () => ({
     return { ok: true }
   },
 }))
+const realAlertSuggestionsCompute = {
+  ...(await import('@/lib/health/alert-suggestions-compute')),
+}
 mock.module('@/lib/health/alert-suggestions-compute', () => ({
   computeAlertSuggestions: async () => {
     storeCalls++
@@ -54,6 +67,9 @@ mock.module('@/lib/health/alert-suggestions-compute', () => ({
   },
   invalidateAlertSuggestionsCache: () => {},
 }))
+const realAlertSuggestionDismissalsStore = {
+  ...(await import('@/lib/health/alert-suggestion-dismissals-store')),
+}
 mock.module('@/lib/health/alert-suggestion-dismissals-store', () => ({
   SuggestionDismissalStoreError: class extends Error {},
   dismissSuggestion: async () => {
@@ -138,4 +154,24 @@ describe('health rule routes auth guard', () => {
     })
     expect(res.status).toBe(200)
   })
+})
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/auth/api-guard', () => ({ ...realApiGuard }))
+  mock.module('@/lib/health/custom-rules-auth', () => ({
+    ...realCustomRulesAuth,
+  }))
+  mock.module('@/lib/health/custom-rules-store', () => ({
+    ...realCustomRulesStore,
+  }))
+  mock.module('@/lib/health/check-alerts-store', () => ({
+    ...realCheckAlertsStore,
+  }))
+  mock.module('@/lib/health/alert-suggestions-compute', () => ({
+    ...realAlertSuggestionsCompute,
+  }))
+  mock.module('@/lib/health/alert-suggestion-dismissals-store', () => ({
+    ...realAlertSuggestionDismissalsStore,
+  }))
 })

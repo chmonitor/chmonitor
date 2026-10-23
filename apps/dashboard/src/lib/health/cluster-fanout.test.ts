@@ -17,7 +17,15 @@
  *    is the tempting fix and the wrong one.
  */
 
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from 'bun:test'
 
 interface FetchArgs {
   query: string
@@ -42,7 +50,9 @@ const AUTH_FAILURE = {
     'Code: 516. DB::Exception: default: Authentication failed: password is incorrect, or there is no user with such name (host: node-1)',
 }
 
+const realClickHouseClient = { ...(await import('@chm/clickhouse-client')) }
 mock.module('@chm/clickhouse-client', () => ({
+  ...realClickHouseClient,
   fetchData: async (args: FetchArgs) => {
     fetchCalls.push(args)
     if (args.query.includes('system.clusters')) {
@@ -73,6 +83,11 @@ mock.module('@chm/clickhouse-client', () => ({
     }
   },
 }))
+
+// Restore the real module so this mock never leaks into other test files.
+afterAll(() => {
+  mock.module('@chm/clickhouse-client', () => ({ ...realClickHouseClient }))
+})
 
 const {
   AUTH_FAILURE_MESSAGE,

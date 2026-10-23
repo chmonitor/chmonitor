@@ -6,6 +6,7 @@
  */
 
 import {
+  afterAll,
   afterEach,
   beforeEach,
   describe,
@@ -16,9 +17,13 @@ import {
 } from 'bun:test'
 import { installHealthPlatformMock } from '@/lib/health/__tests__/platform-mock'
 
+const realApiGuard = { ...(await import('@/lib/auth/api-guard')) }
 mock.module('@/lib/auth/api-guard', () => ({
   isAuthenticatedRequest: async () => true,
 }))
+const realCustomRulesAuth = {
+  ...(await import('@/lib/health/custom-rules-auth')),
+}
 mock.module('@/lib/health/custom-rules-auth', () => ({
   resolveCustomRuleOwnerId: async () => 'oss',
 }))
@@ -93,4 +98,12 @@ describe('custom-rules without a state backend', () => {
     expect(msg).not.toContain('wrangler')
     expect(errorSpy).toHaveBeenCalled()
   })
+})
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/auth/api-guard', () => ({ ...realApiGuard }))
+  mock.module('@/lib/health/custom-rules-auth', () => ({
+    ...realCustomRulesAuth,
+  }))
 })

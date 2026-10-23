@@ -5,11 +5,15 @@
  * suppressing alerts.
  */
 
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
+const realFeaturePermissions = {
+  ...(await import('@/lib/feature-permissions/server')),
+}
 mock.module('@/lib/feature-permissions/server', () => ({
   authorizeFeatureRequest: async () => null,
 }))
+const realBillingOwner = { ...(await import('@/lib/billing/billing-owner')) }
 mock.module('@/lib/billing/billing-owner', () => ({
   resolveBillingOwnerId: async () => 'owner-1',
 }))
@@ -17,6 +21,9 @@ mock.module('@/lib/billing/billing-owner', () => ({
 class MaintenanceStoreUnavailableError extends Error {}
 let deleteImpl: (ownerId: string, id: string) => Promise<number> = async () => 1
 const deleteCalls: Array<[string, string]> = []
+const realMaintenanceWindows = {
+  ...(await import('@/lib/health/maintenance-windows')),
+}
 mock.module('@/lib/health/maintenance-windows', () => ({
   MaintenanceStoreUnavailableError,
   createWindow: async () => {
@@ -87,4 +94,15 @@ describe('DELETE /api/v1/health/maint-windows', () => {
     expect(res.status).toBe(400)
     expect(deleteCalls).toEqual([])
   })
+})
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/feature-permissions/server', () => ({
+    ...realFeaturePermissions,
+  }))
+  mock.module('@/lib/billing/billing-owner', () => ({ ...realBillingOwner }))
+  mock.module('@/lib/health/maintenance-windows', () => ({
+    ...realMaintenanceWindows,
+  }))
 })

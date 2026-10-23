@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // Same auth-gate mocking approach as webhook.test.ts: this route self-gates
 // writes via authorizeFeatureRequest (feature 'settings', operation 'write'),
@@ -12,6 +12,9 @@ let authorizeFeatureRequest = mock(
     _options?: { allowAgentBearerToken?: boolean }
   ): Promise<Response | null> => null
 )
+const realFeaturePermissions = {
+  ...(await import('@/lib/feature-permissions/server')),
+}
 mock.module('@/lib/feature-permissions/server', () => ({
   getAppConfig: () => ({ authProvider: 'none' as const, features: {} }),
   _resetAppConfigCache: () => {},
@@ -31,6 +34,9 @@ let emailConfig: {
   from: string
   to: readonly string[]
 } | null = null
+const realServerAlertConfig = {
+  ...(await import('@/lib/health/server-alert-config')),
+}
 mock.module('@/lib/health/server-alert-config', () => ({
   getServerEmailConfig: () => emailConfig,
   getServerAlertIdentity: () => ({}),
@@ -41,6 +47,7 @@ mock.module('@/lib/health/server-alert-config', () => ({
 // so no test hits the network. Records the config/body it was called with.
 let sendResult = true
 const sendCalls: unknown[] = []
+const realEmailTransport = { ...(await import('@/lib/health/email-transport')) }
 mock.module('@/lib/health/email-transport', () => ({
   sendAlertEmail: async (config: unknown, body: unknown) => {
     sendCalls.push({ config, body })
@@ -131,4 +138,15 @@ describe('health email test-send — dispatch result', () => {
     expect(call.body.subject).toContain('test-alert')
     expect(call.body.subject).toContain('Test host')
   })
+})
+
+// Restore the real modules so these mocks never leak into other test files.
+afterAll(() => {
+  mock.module('@/lib/feature-permissions/server', () => ({
+    ...realFeaturePermissions,
+  }))
+  mock.module('@/lib/health/server-alert-config', () => ({
+    ...realServerAlertConfig,
+  }))
+  mock.module('@/lib/health/email-transport', () => ({ ...realEmailTransport }))
 })
