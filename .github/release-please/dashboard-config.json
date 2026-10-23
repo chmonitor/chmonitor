@@ -19,6 +19,10 @@
           "type": "json",
           "path": "apps/dashboard/src/package.json",
           "jsonpath": "$.version"
+        },
+        {
+          "type": "generic",
+          "path": "README.md"
         }
       ],
       "changelog-sections": [
