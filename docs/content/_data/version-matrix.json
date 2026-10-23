@@ -189,6 +189,18 @@
       "since": ["23.8"]
     },
     {
+      "name": "users",
+      "since": ["23.8", "26.2"]
+    },
+    {
+      "name": "users-basic",
+      "since": ["23.8", "26.2"]
+    },
+    {
+      "name": "users-with-login",
+      "since": ["23.8", "26.2"]
+    },
+    {
       "name": "workloads",
       "since": ["25.4"]
     }

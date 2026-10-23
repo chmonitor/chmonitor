@@ -13,7 +13,7 @@
  * docs (table-missing help text) and permission (FeaturePermission as plain
  * data) are now serializable and ARE compared here.
  *
- * settings/users now migrate too: their factory-based `expandable` is expressed
+ * settings now migrates too: its factory-based `expandable` is expressed
  * via the declarative `expandable` config-details spec. The compiled
  * renderExpanded is a function (not deep-equalled by compareSerializable); a
  * dedicated behavioral test asserts it binds the same factory + primaryColumns
@@ -41,7 +41,6 @@ import { topUsageTablesDeclarative } from './top-usage-tables'
 import { unusedColumnsDeclarative } from './unused-columns'
 import { unusedProjectionsDeclarative } from './unused-projections'
 import { unusedTablesDeclarative } from './unused-tables'
-import { usersDeclarative } from './users'
 import { zookeeperDeclarative } from './zookeeper'
 import { describe, expect, test } from 'bun:test'
 // Legacy TS configs
@@ -59,7 +58,6 @@ import { topUsageTablesConfig } from '@/lib/query-config/more/top-usage-tables'
 import { unusedColumnsConfig } from '@/lib/query-config/more/unused-columns'
 import { unusedProjectionsConfig } from '@/lib/query-config/more/unused-projections'
 import { unusedTablesConfig } from '@/lib/query-config/more/unused-tables'
-import { usersConfig } from '@/lib/query-config/more/users'
 import { zookeeperConfig } from '@/lib/query-config/more/zookeeper'
 
 // ---------------------------------------------------------------------------
@@ -385,29 +383,6 @@ describe('settings declarative', () => {
     expectExpandableMatchesLegacy(
       loaded,
       settingsConfig.expandable as ExpandableConfig
-    )
-  })
-})
-
-// ---------------------------------------------------------------------------
-// users — expandable (config-details) migrated to declarative
-// ---------------------------------------------------------------------------
-
-describe('users declarative', () => {
-  test('loads without error', () => {
-    expect(() => loadDeclarativeConfig(usersDeclarative)).not.toThrow()
-  })
-
-  test('serializable fields match legacy', () => {
-    const loaded = loadDeclarativeConfig(usersDeclarative)
-    compareSerializable(loaded, usersConfig)
-  })
-
-  test('expandable binds the same factory + primaryColumns as legacy', () => {
-    const loaded = loadDeclarativeConfig(usersDeclarative)
-    expectExpandableMatchesLegacy(
-      loaded,
-      usersConfig.expandable as ExpandableConfig
     )
   })
 })

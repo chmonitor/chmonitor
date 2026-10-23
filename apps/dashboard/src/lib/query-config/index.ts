@@ -63,7 +63,12 @@ import { topUsageTablesConfig } from './more/top-usage-tables'
 import { unusedColumnsConfig } from './more/unused-columns'
 import { unusedProjectionsConfig } from './more/unused-projections'
 import { unusedTablesConfig } from './more/unused-tables'
-import { usersConfig } from './more/users'
+import { userDetailConfigs } from './more/user-detail'
+import {
+  usersBasicConfig,
+  usersConfig,
+  usersWithLoginConfig,
+} from './more/users'
 import { zookeeperConfig } from './more/zookeeper'
 import { commonErrorsConfig } from './queries/common-errors'
 import { dashboardUsageConfigs } from './queries/dashboard-usage'
@@ -226,6 +231,9 @@ export const queries: Array<QueryConfig> = [
   metricsConfig,
   asynchronousMetricsConfig,
   usersConfig,
+  usersWithLoginConfig,
+  usersBasicConfig,
+  ...userDetailConfigs,
   rolesConfig,
   zookeeperConfig,
   errorsConfig,
