@@ -83,6 +83,7 @@ import {
   isRuleMuted,
   meetsMinSeverity,
 } from './../suppression'
+import { withTopContributors } from './alert-contributors'
 import { buildAlertDetails } from './alert-details'
 import {
   dispatchCustomWebhookTargets,
@@ -689,13 +690,20 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       text,
       globalMinSeverity: settings.minSeverity,
       severity: deliverSeverity,
-      details: buildAlertDetails({
-        kind: decision.kind,
-        value,
-        previousValue,
-        previousState,
-        now: webhookTimestamp,
-      }),
+      details: await withTopContributors(
+        buildAlertDetails({
+          kind: decision.kind,
+          value,
+          previousValue,
+          previousState,
+          now: webhookTimestamp,
+        }),
+        {
+          enabled: !isRecovery && customTargets.some((t) => t.details === true),
+          ruleId: finding.ruleId,
+          hostId: finding.hostId,
+        }
+      ),
     })
     if (customDelivered) anyDelivered = true
     // Grouped custom targets count as groupable (in settleFinding), and a
