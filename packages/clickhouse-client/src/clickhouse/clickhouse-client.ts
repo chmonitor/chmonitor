@@ -7,7 +7,11 @@ import {
 
 import type { ClickHouseConfig } from './types'
 
-import { isEnvHostDemo, withQueryAttribution } from '../attribution/scope'
+import {
+  attributionHostName,
+  isEnvHostDemo,
+  withQueryAttribution,
+} from '../attribution/scope'
 import { isCloudflareWorkers } from '../runtime/cloudflare-workers'
 import { getAndValidateClientConfig } from './clickhouse-config'
 import {
@@ -76,7 +80,7 @@ export const getClient = async ({
     pooled = getPooledClient(
       withQueryAttribution(
         withReadonlyEnforcement(newClient),
-        config.customName ?? `host-${config.id}`,
+        attributionHostName(config),
         { anonymous: isEnvHostDemo }
       ),
       config,

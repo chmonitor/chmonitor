@@ -6,14 +6,15 @@
  * scope with `AsyncLocalStorage`; entry points narrow it (a chart name, a cron
  * job), and `withQueryAttribution` reads it on every `query()` / `command()`.
  *
- * Server-only: this module imports `node:async_hooks`, so it must stay out of
- * anything the browser bundle reaches (`./constants` is browser-safe, this is
- * not).
+ * Server-side: the scope needs `node:async_hooks`. The browser bundle reaches
+ * this module through the package index, so nothing here touches it at load
+ * time (see `scopeStorage`).
  */
 
 import type { ClickHouseClient } from '@clickhouse/client'
 import type { ClickHouseClient as WebClickHouseClient } from '@clickhouse/client-web'
 
+import { QUERY_COMMENT } from '../clickhouse/constants'
 import {
   type AttributionRecord,
   buildAttributionRecord,
@@ -46,15 +47,33 @@ export interface AttributionConfig {
   readonly version: string | null
 }
 
-const storage = new AsyncLocalStorage<AttributionScope>()
+let storage: AsyncLocalStorage<AttributionScope> | null | undefined
+
+/**
+ * Created on first use, not at module load: the package index reaches this
+ * module, so it lands in the browser bundle too, where `node:async_hooks` is
+ * an empty stub and `new AsyncLocalStorage()` would throw on page load.
+ * Without it there is no scope, and queries go out anonymous.
+ */
+function scopeStorage(): AsyncLocalStorage<AttributionScope> | null {
+  if (storage === undefined) {
+    storage =
+      typeof AsyncLocalStorage === 'function'
+        ? new AsyncLocalStorage<AttributionScope>()
+        : null
+  }
+  return storage
+}
 
 /** Run `fn` with `patch` layered over the current scope. */
 export function runWithAttribution<T>(patch: AttributionScope, fn: () => T): T {
-  return storage.run({ ...storage.getStore(), ...patch }, fn)
+  const store = scopeStorage()
+  if (!store) return fn()
+  return store.run({ ...store.getStore(), ...patch }, fn)
 }
 
 export function currentAttributionScope(): AttributionScope | undefined {
-  return storage.getStore()
+  return scopeStorage()?.getStore()
 }
 
 function envBool(value: string | undefined, fallback: boolean): boolean {
@@ -74,7 +93,7 @@ export function getAttributionConfig(): AttributionConfig {
   const env = process.env
   return {
     enabled: envBool(env.CHM_QUERY_ATTRIBUTION, true),
-    sqlComment: envBool(env.CHM_QUERY_ATTRIBUTION_SQL_COMMENT, false),
+    sqlComment: envBool(env.CHM_QUERY_ATTRIBUTION_SQL_COMMENT, true),
     includeEmail: envBool(env.CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL, false),
     label: env.CHM_QUERY_ATTRIBUTION_LABEL?.trim() || null,
     version: appVersion,
@@ -113,7 +132,7 @@ export async function resolveAttributionRecord(
   config: AttributionConfig = getAttributionConfig(),
   options: AttributionOptions = {}
 ): Promise<AttributionRecord> {
-  const scope = storage.getStore()
+  const scope = currentAttributionScope()
   let principal: AttributionPrincipal | null = null
   if (!options.anonymous?.()) {
     try {
@@ -146,8 +165,31 @@ type QueryLikeParams = {
 export type AttributionCarriers = 'configured' | 'sqlCommentOnly'
 
 /**
- * Add the attribution carriers to one request's params. Returns `params`
- * unchanged when attribution is off.
+ * Leading minimal `QUERY_COMMENT`s, with any whitespace around them. Call
+ * sites and query configs still prepend it (some twice: the config embeds it
+ * and fetch adds another), so it is stripped before the one leading comment
+ * this module writes.
+ */
+const LEADING_QUERY_COMMENTS =
+  /^\s*(?:\/\*\s*\{\s*"client"\s*:\s*"clickhouse-monitoring"\s*\}\s*\*\/\s*)+/
+
+function usesQueryCache(
+  settings: Record<string, unknown> | undefined
+): boolean {
+  const value = settings?.use_query_cache
+  return value === 1 || value === true || value === '1' || value === 'true'
+}
+
+export function stripQueryComment(query: string): string {
+  return query.replace(LEADING_QUERY_COMMENTS, '')
+}
+
+/**
+ * Add the attribution carriers to one request's params.
+ *
+ * The query always leaves with exactly one leading comment: the attribution
+ * comment, or the minimal `QUERY_COMMENT` when attribution or the SQL comment
+ * is off, so self-filters on `"client":"clickhouse-monitoring"` keep working.
  */
 export async function attributeParams<T>(
   params: T,
@@ -156,18 +198,34 @@ export async function attributeParams<T>(
   options: AttributionOptions = {}
 ): Promise<T> {
   if (params === null || typeof params !== 'object') return params
+  const p = params as QueryLikeParams
   const config = getAttributionConfig()
-  if (!config.enabled) return params
+  if (!config.enabled) {
+    return typeof p.query === 'string'
+      ? ({ ...p, query: QUERY_COMMENT + stripQueryComment(p.query) } as T)
+      : params
+  }
 
   const record = await resolveAttributionRecord(host, config, options)
-  const p = params as QueryLikeParams
+  const hasQuery = typeof p.query === 'string'
   const withComment = config.sqlComment || carriers === 'sqlCommentOnly'
+  // `log_comment` is part of the query cache key before ClickHouse 25.x
+  // (measured: 24.8 misses, 26.5 hits), so a per-user value would split one
+  // cached chart into one entry per user. When the comment carries the
+  // record, a cached query leaves `log_comment` out.
+  const withLogComment =
+    carriers === 'configured' &&
+    !(withComment && hasQuery && usesQueryCache(p.clickhouse_settings))
   return {
     ...p,
-    ...(withComment && typeof p.query === 'string'
-      ? { query: encodeSqlComment(record) + p.query }
+    ...(typeof p.query === 'string'
+      ? {
+          query:
+            (withComment ? encodeSqlComment(record) : QUERY_COMMENT) +
+            stripQueryComment(p.query),
+        }
       : {}),
-    ...(carriers === 'configured'
+    ...(withLogComment
       ? {
           clickhouse_settings: {
             log_comment: encodeLogComment(record),
@@ -176,6 +234,36 @@ export async function attributeParams<T>(
         }
       : {}),
   } as T
+}
+
+/**
+ * The SQL to show in the dashboard's SQL dialog: `query` with the leading
+ * comment it is sent with, except `user`, which is always `null` here.
+ * Chart and table responses can sit in a shared edge cache
+ * (`Cache-Control: public`), so one user's id must not reach another.
+ */
+export function displaySql(query: string, host: string | null): string {
+  const config = getAttributionConfig()
+  const body = stripQueryComment(query)
+  if (!config.enabled || !config.sqlComment) return QUERY_COMMENT + body
+  const record = buildAttributionRecord({
+    version: config.version,
+    user: null,
+    email: null,
+    host,
+    source: currentAttributionScope()?.source ?? null,
+    page: null,
+    label: config.label,
+  })
+  return encodeSqlComment(record) + body
+}
+
+/** Host name the attribution record carries for a configured host. */
+export function attributionHostName(config: {
+  id: number
+  customName?: string
+}): string {
+  return config.customName ?? `host-${config.id}`
 }
 
 const LOG_COMMENT_REFUSED =

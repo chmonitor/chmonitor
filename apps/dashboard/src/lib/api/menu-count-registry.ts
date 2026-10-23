@@ -1,6 +1,6 @@
 /** SECURITY: only whitelisted count keys are allowed; clients send a countKey, never raw SQL. */
 
-import { QUERY_COMMENT } from '@chm/clickhouse-client/constants'
+import { QUERY_COMMENT_FINGERPRINT } from '@chm/clickhouse-client/constants'
 import { EVENTS_TABLE } from '@/lib/app-tables'
 import { LOCAL_DATABASES_FILTER } from '@/lib/clickhouse-local-databases'
 
@@ -42,7 +42,7 @@ export const menuCountRegistry: Record<string, MenuCountQuery> = {
   },
 
   'running-queries': {
-    query: `SELECT COUNT() as count FROM system.processes WHERE is_cancelled = 0 AND query NOT LIKE '%${QUERY_COMMENT}%'`,
+    query: `SELECT COUNT() as count FROM system.processes WHERE is_cancelled = 0 AND position(query, '${QUERY_COMMENT_FINGERPRINT}') = 0`,
   },
 
   merges: {

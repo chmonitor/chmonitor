@@ -7,26 +7,31 @@ import { ColumnFormat } from '@/types/column-format'
 /**
  * Dashboard usage (#4164): what this dashboard itself sent to ClickHouse, read
  * back from the attribution record on each query (`packages/clickhouse-client
- * /src/attribution`). The record arrives in one of two carriers:
+ * /src/attribution`). The record arrives in one or both of two carriers:
  *
- * - `log_comment` JSON (`{"app":"chmonitor","v":1,"user":…}`), the default;
- * - a leading `/* chmonitor v=1 user=… source=… *\/` SQL comment, sent when
- *   the operator turns it on or when a `readonly = 1` profile refuses
- *   `log_comment`.
+ * - `log_comment` JSON (`{"app":"chmonitor","v":1,"user":…}`);
+ * - the leading SQL comment, `/* {"client":"clickhouse-monitoring",
+ *   "app":"chmonitor","v":1,…} *\/`. It is on by default, and it is the only
+ *   carrier when a `readonly = 1` profile refuses `log_comment`.
  *
- * `attr()` reads the JSON first and falls back to the comment. `[*]` matches
- * a literal star without a backslash, so the regex survives both the TS
+ * {@link ATTRIBUTION_JSON} picks the record once: `log_comment` first, then
+ * the leading comment. The comment body never contains `*` (the encoder's
+ * safe charset), so `[^*]*` captures it whole; `[*]` and `[{]` match the
+ * literal characters without a backslash, so the regex survives both the TS
  * template and the ClickHouse string literal unchanged.
  */
 
-const IS_JSON_RECORD = `JSONExtractString(log_comment, 'app') = 'chmonitor'`
-const IS_COMMENT_RECORD = `startsWith(query, '/* chmonitor ')`
+const LOG_COMMENT_RECORD = `JSONExtractString(log_comment, 'app') = 'chmonitor'`
+const LEADING_COMMENT_JSON = `extract(query, '^[[:space:]]*/[*] *([{][^*]*[}]) *[*]/')`
+
+/** The attribution record JSON of a query_log row, or '' when it has none. */
+export const ATTRIBUTION_JSON = `if(${LOG_COMMENT_RECORD}, log_comment, ${LEADING_COMMENT_JSON})`
 
 function attr(key: string): string {
-  return `if(${IS_JSON_RECORD}, JSONExtractString(log_comment, '${key}'), extract(query, '^/[*] chmonitor [^*]* ${key}=([^ *]+)'))`
+  return `JSONExtractString(${ATTRIBUTION_JSON}, '${key}')`
 }
 
-const DASHBOARD_FILTER = `(${IS_JSON_RECORD} OR ${IS_COMMENT_RECORD})`
+const DASHBOARD_FILTER = `${attr('app')} = 'chmonitor'`
 
 const WHERE = `
       WHERE (${USAGE_END_EVENTS})

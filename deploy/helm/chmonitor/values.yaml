@@ -430,8 +430,9 @@ queryAttribution:
   enabled: true
   # CHM_QUERY_ATTRIBUTION_LABEL, e.g. "region=eu-west,env=prod".
   label: ""
-  # CHM_QUERY_ATTRIBUTION_SQL_COMMENT. Also prepend a /* chmonitor ... */ comment.
-  sqlComment: false
+  # CHM_QUERY_ATTRIBUTION_SQL_COMMENT. Write the record into the leading
+  # /* {"client":"clickhouse-monitoring",...} */ SQL comment.
+  sqlComment: true
   # CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL. Put the user's email in the record (PII).
   includeEmail: false
 

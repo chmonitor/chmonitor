@@ -1,5 +1,7 @@
+import { QUERY_COMMENT } from '../../clickhouse/constants'
 import {
   attributeParams,
+  displaySql,
   runWithAttribution,
   setAttributionVersion,
   withQueryAttribution,
@@ -32,6 +34,16 @@ afterEach(() => {
 })
 
 type Params = { query: string; clickhouse_settings?: Record<string, unknown> }
+
+/** The JSON body of the query's leading comment. */
+function leading(query: string): Record<string, unknown> {
+  const match = query.match(/^\/\* (\{[^\n]*\}) \*\/\n/)
+  if (!match) throw new Error(`no leading comment: ${query}`)
+  return JSON.parse(match[1])
+}
+
+/** The query without its leading comment line. */
+const body = (query: string) => query.slice(query.indexOf('*/\n') + 3)
 
 function fakeClient() {
   const calls: Params[] = []
@@ -77,7 +89,7 @@ describe('withQueryAttribution', () => {
 
     const byQuery = Object.fromEntries(
       calls.map((c) => [
-        c.query,
+        body(c.query),
         JSON.parse(String(c.clickhouse_settings?.log_comment)),
       ])
     )
@@ -106,34 +118,49 @@ describe('withQueryAttribution', () => {
     expect(record).toMatchObject({ user: 'jane', source: 'chart:inner' })
   })
 
-  it('sends no log_comment and no comment when attribution is off', async () => {
+  it('keeps only the minimal comment and no log_comment when attribution is off', async () => {
     process.env.CHM_QUERY_ATTRIBUTION = 'false'
     process.env.CHM_QUERY_ATTRIBUTION_SQL_COMMENT = 'true'
     const { client, calls } = fakeClient()
     await runWithAttribution({ principal }, () =>
-      client.query({ query: 'SELECT 1', clickhouse_settings: { readonly: 2 } })
+      client.query({
+        query: `${QUERY_COMMENT}SELECT 1`,
+        clickhouse_settings: { readonly: 2 },
+      })
     )
     expect(calls[0]).toEqual({
-      query: 'SELECT 1',
+      query: `${QUERY_COMMENT}SELECT 1`,
       clickhouse_settings: { readonly: 2 },
     })
   })
 
-  it('adds the SQL comment and email only when opted in', async () => {
-    process.env.CHM_QUERY_ATTRIBUTION_SQL_COMMENT = 'true'
+  it('replaces QUERY_COMMENT with one attribution comment by default', async () => {
     process.env.CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL = 'true'
     process.env.CHM_QUERY_ATTRIBUTION_LABEL = 'env=prod'
     const { client, calls } = fakeClient()
     await runWithAttribution({ principal, source: 'console' }, () =>
-      client.query({ query: 'SELECT 1' })
+      client.query({
+        query: `${QUERY_COMMENT}\n    ${QUERY_COMMENT}    SELECT 1`,
+      })
     )
-    expect(calls[0].query).toStartWith(
-      '/* chmonitor v=1 version=0.3.0+abc user=jane host=ch-0 source=console label=env=prod */\n'
+    expect(calls[0].query).toBe(
+      '/* {"client":"clickhouse-monitoring","app":"chmonitor","v":1,"version":"0.3.0+abc","user":"jane","source":"console","host":"ch-0","label":"env=prod"} */\nSELECT 1'
     )
-    expect(calls[0].query).toEndWith('SELECT 1')
     const record = JSON.parse(String(calls[0].clickhouse_settings?.log_comment))
     expect(record.email).toBe('jane@example.com')
     expect(record.label).toBe('env=prod')
+  })
+
+  it('sends the minimal comment plus log_comment when the SQL comment is off', async () => {
+    process.env.CHM_QUERY_ATTRIBUTION_SQL_COMMENT = 'false'
+    const { client, calls } = fakeClient()
+    await runWithAttribution({ principal }, () =>
+      client.query({ query: 'SELECT 1' })
+    )
+    expect(calls[0].query).toBe(`${QUERY_COMMENT}SELECT 1`)
+    expect(
+      JSON.parse(String(calls[0].clickhouse_settings?.log_comment)).user
+    ).toBe('jane')
   })
 
   it('treats a failing principal lookup as anonymous instead of failing the query', async () => {
@@ -174,9 +201,12 @@ describe('withQueryAttribution', () => {
       false,
       false,
     ])
-    expect(calls[1].query).toStartWith('/* chmonitor v=1 ')
-    expect(calls[1].query).toContain('user=jane host=ch-0 source=console')
-    expect(calls[2].query).toEndWith('SELECT 2')
+    expect(leading(calls[1].query)).toMatchObject({
+      user: 'jane',
+      host: 'ch-0',
+      source: 'console',
+    })
+    expect(body(calls[2].query)).toBe('SELECT 2')
   })
 
   it('does not retry other readonly refusals', async () => {
@@ -220,7 +250,7 @@ describe('withQueryAttribution', () => {
 
     expect(calls).toHaveLength(2)
     expect(calls[1].clickhouse_settings?.log_comment).toBeDefined()
-    expect(calls[1].query).toBe('SELECT 1')
+    expect(body(calls[1].query)).toBe('SELECT 1')
   })
 
   it('never resends a refused command, and uses the SQL comment from the next call', async () => {
@@ -242,7 +272,7 @@ describe('withQueryAttribution', () => {
     await client.command({ query: 'INSERT INTO t VALUES (2)' })
     expect(calls).toHaveLength(2)
     expect(calls[1].clickhouse_settings).toBeUndefined()
-    expect(calls[1].query).toStartWith('/* chmonitor v=1 ')
+    expect(leading(calls[1].query).app).toBe('chmonitor')
   })
 
   it('records no user or email for a demo host, and never resolves the principal', async () => {
@@ -275,6 +305,7 @@ describe('withQueryAttribution', () => {
       source: 'console',
     })
     expect(record.email ?? null).toBeNull()
+    expect(leading(calls[0].query).user).toBeNull()
     expect(resolved).toBe(0)
   })
 
@@ -284,5 +315,53 @@ describe('withQueryAttribution', () => {
       'ch-0'
     )
     expect(params.clickhouse_settings.log_comment).toBe('mine')
+  })
+})
+
+describe('displaySql', () => {
+  it('shows the comment the query is sent with, without the user', async () => {
+    const shown = await runWithAttribution(
+      { principal, source: 'chart:x' },
+      () => displaySql(`${QUERY_COMMENT}SELECT 1`, 'ch-0')
+    )
+    expect(shown).toBe(
+      '/* {"client":"clickhouse-monitoring","app":"chmonitor","v":1,"version":"0.3.0+abc","user":null,"source":"chart:x","host":"ch-0","label":null} */\nSELECT 1'
+    )
+  })
+
+  it('shows the minimal comment when attribution is off', () => {
+    process.env.CHM_QUERY_ATTRIBUTION = 'false'
+    expect(displaySql('SELECT 1', 'ch-0')).toBe(`${QUERY_COMMENT}SELECT 1`)
+  })
+})
+
+/**
+ * Before ClickHouse 25.x `log_comment` is part of the query cache key
+ * (measured: 24.8 misses on a different value, 26.5 hits), so a per-user
+ * value would give every user their own cache entry for the same chart.
+ */
+describe('query cache', () => {
+  it('leaves log_comment out of a cached query so users share one entry', async () => {
+    const params = await runWithAttribution({ principal }, () =>
+      attributeParams(
+        { query: 'SELECT 1', clickhouse_settings: { use_query_cache: 1 } },
+        'ch-0'
+      )
+    )
+    expect(params.clickhouse_settings).toEqual({ use_query_cache: 1 })
+    expect(leading(params.query).user).toBe('jane')
+  })
+
+  it('keeps log_comment on a cached query when the SQL comment is off', async () => {
+    process.env.CHM_QUERY_ATTRIBUTION_SQL_COMMENT = 'false'
+    const params = await runWithAttribution({ principal }, () =>
+      attributeParams(
+        { query: 'SELECT 1', clickhouse_settings: { use_query_cache: 1 } },
+        'ch-0'
+      )
+    )
+    expect(
+      JSON.parse(String(params.clickhouse_settings.log_comment)).user
+    ).toBe('jane')
   })
 })

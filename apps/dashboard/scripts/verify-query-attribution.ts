@@ -24,6 +24,7 @@ import {
   setAttributionVersion,
   withQueryAttribution,
 } from '@chm/clickhouse-client/attribution'
+import { QUERY_COMMENT } from '@chm/clickhouse-client/constants'
 import { dashboardUsageConfigs } from '@/lib/query-config/queries/dashboard-usage'
 
 const url = process.env.CHM_VERIFY_CLICKHOUSE_URL
@@ -140,6 +141,99 @@ async function main(): Promise<void> {
     )
   }
 
+  console.log('\nThe leading comment in system.processes')
+  const def = await getClient({ hostId: 0 })
+  const slow = runWithAttribution(
+    { principal: async () => ({ subject: tag('proc') }), source: 'console' },
+    async () => {
+      const rs = await def.query({
+        query: `${QUERY_COMMENT}SELECT sleep(2) AS s`,
+        format: 'JSONEachRow',
+      })
+      await rs.json()
+    }
+  )
+  await new Promise((r) => setTimeout(r, 700))
+  const running = await (
+    await admin.query({
+      query: `SELECT query FROM system.processes WHERE position(query, {t:String}) > 0 AND position(query, 'system.processes') = 0`,
+      query_params: { t: tag('proc') },
+      format: 'JSONEachRow',
+    })
+  ).json<{ query: string }>()
+  await slow
+  const proc = running[0]?.query ?? ''
+  check(
+    'system.processes.query starts with one attribution comment',
+    proc.startsWith(
+      `/* {"client":"clickhouse-monitoring","app":"chmonitor","v":1,`
+    ) && proc.split('/*').length === 2,
+    proc.slice(0, 160)
+  )
+
+  console.log('\nQuery cache shared across users (use_query_cache=1)')
+  const cacheSql = `SELECT count() AS c, ${run.length} AS r FROM numbers(1000)`
+  const cacheIds: string[] = []
+  for (const who of ['cache-a', 'cache-b']) {
+    await runWithAttribution(
+      { principal: async () => ({ subject: tag(who) }), source: 'chart:cache' },
+      async () => {
+        const rs = await def.query({
+          query: cacheSql,
+          format: 'JSONEachRow',
+          clickhouse_settings: { use_query_cache: 1 },
+        })
+        cacheIds.push(rs.query_id)
+        await rs.json()
+      }
+    )
+  }
+
+  await admin.command({ query: 'SYSTEM FLUSH LOGS' })
+
+  const cacheRows = await (
+    await admin.query({
+      query: `SELECT query_id, ProfileEvents['QueryCacheHits'] AS hits, normalized_query_hash AS h FROM system.query_log WHERE type = 'QueryFinish' AND query_id IN {ids:Array(String)}`,
+      query_params: { ids: cacheIds },
+      format: 'JSONEachRow',
+    })
+  ).json<{ query_id: string; hits: string; h: string }>()
+  const second = cacheRows.find((r) => r.query_id === cacheIds[1])
+  check(
+    'second user hits the entry the first user cached',
+    Number(second?.hits) === 1,
+    `hits=${second?.hits}`
+  )
+  check(
+    'both users share one normalized_query_hash',
+    cacheRows.length === 2 && cacheRows[0].h === cacheRows[1].h,
+    cacheRows.map((r) => r.h).join(',')
+  )
+
+  console.log('\nquery_log carriers')
+  const carriers = await (
+    await admin.query({
+      query: `SELECT
+          countIf(log_comment = '' AND startsWith(query, '/* {"client":"clickhouse-monitoring","app":"chmonitor"')) AS comment_only,
+          countIf(JSONExtractString(log_comment, 'app') = 'chmonitor' AND startsWith(query, '/* {"client":"clickhouse-monitoring","app":"chmonitor"')) AS both
+        FROM system.query_log
+        WHERE type = 'QueryFinish' AND position(query, {run:String}) > 0`,
+      query_params: { run: `run=${run}` },
+      format: 'JSONEachRow',
+    })
+  ).json<{ comment_only: string; both: string }>()
+  check(
+    'readonly=1 rows carry only the leading comment',
+    Number(carriers[0]?.comment_only) > 0,
+    `comment_only=${carriers[0]?.comment_only}`
+  )
+  check(
+    'other rows carry log_comment and the leading comment',
+    Number(carriers[0]?.both) > 0,
+    `both=${carriers[0]?.both}`
+  )
+
+  // Second flush: the usage configs below read the rows sent above.
   await admin.command({ query: 'SYSTEM FLUSH LOGS' })
 
   console.log('\nRun every Dashboard usage config (enable_analyzer 0 and 1)')

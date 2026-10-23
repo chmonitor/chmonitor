@@ -90,23 +90,56 @@ describe('encodeLogComment', () => {
   })
 })
 
+/** The JSON body of a leading comment; throws when it is not one line of JSON. */
+function commentBody(comment: string): Record<string, unknown> {
+  expect(comment.startsWith('/* ')).toBe(true)
+  expect(comment.endsWith(' */\n')).toBe(true)
+  return JSON.parse(comment.slice(3, -4))
+}
+
 describe('encodeSqlComment', () => {
-  it('is one leading block comment', () => {
+  it('is one leading block comment of JSON, client key first', () => {
     expect(encodeSqlComment(buildAttributionRecord(base))).toBe(
-      '/* chmonitor v=1 version=0.3.0+f679398 user=jane host=ch-0 source=chart:query-count page=/overview label=region=eu-west,env=prod */\n'
+      '/* {"client":"clickhouse-monitoring","app":"chmonitor","v":1,"version":"0.3.0+f679398","user":"jane","source":"chart:query-count","host":"ch-0","label":"region=eu-west,env=prod"} */\n'
     )
   })
 
-  it.each(CRAFTED)('cannot close or nest the comment with %#', (v) => {
-    const comment = encodeSqlComment(
-      buildAttributionRecord({ ...base, user: v, page: v, label: v })
+  it('keeps the key existing self-filters match on', () => {
+    expect(encodeSqlComment(buildAttributionRecord(base))).toContain(
+      '"client":"clickhouse-monitoring"'
     )
-    const body = comment.slice(2, -3)
-    expect(comment.startsWith('/* ')).toBe(true)
-    expect(comment.endsWith(' */\n')).toBe(true)
-    expect(body).not.toContain('*')
-    expect(body).not.toMatch(/[\r\n'"\\]/)
+  })
+
+  it('writes null for an anonymous or cron query', () => {
+    const body = commentBody(
+      encodeSqlComment(buildAttributionRecord({ ...base, user: null }))
+    )
+    expect(body.user).toBeNull()
+  })
+
+  it.each(CRAFTED)('cannot close, nest, or break the comment with %#', (v) => {
+    const comment = encodeSqlComment(
+      buildAttributionRecord({
+        ...base,
+        version: v,
+        user: v,
+        host: v,
+        source: v,
+        page: v,
+        label: v,
+      })
+    )
+    const inner = comment.slice(2, -3)
+    expect(inner).not.toContain('*')
+    expect(inner).not.toMatch(/[\r\n'\\]/)
+    expect(comment.split('\n')).toHaveLength(2)
     expect(comment.length).toBeLessThan(600)
+    const body = commentBody(comment)
+    for (const key of ['version', 'user', 'source', 'host', 'label']) {
+      const value = body[key]
+      if (value !== null)
+        expect(String(value)).toMatch(/^[A-Za-z0-9._:/=,+-]{1,64}$/)
+    }
   })
 
   it('never writes the email, even when the record has one', () => {
@@ -114,5 +147,15 @@ describe('encodeSqlComment', () => {
       buildAttributionRecord({ ...base, email: 'jane@example.com' })
     )
     expect(comment).not.toContain('example.com')
+    expect(comment).not.toContain('@')
+  })
+
+  it('cuts an email-shaped subject to the part before @', () => {
+    const body = commentBody(
+      encodeSqlComment(
+        buildAttributionRecord({ ...base, user: 'jane.doe@example.com' })
+      )
+    )
+    expect(body.user).toBe('jane.doe')
   })
 })

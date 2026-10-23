@@ -6,8 +6,9 @@
  * Two carriers, built from one record:
  * - `log_comment` setting (primary). Compact JSON in its own query_log column,
  *   read back with `JSONExtractString(log_comment, 'user')`.
- * - a leading SQL comment (optional). Visible in `system.processes` and server
- *   logs that do not carry settings. Built from a safe character set only.
+ * - a leading SQL comment (on by default). It replaces the fixed
+ *   `QUERY_COMMENT` and shows in `system.processes`, `query_log.query`, and
+ *   server logs that do not carry settings. Built from a safe character set.
  *
  * Every value here can come from a request header, so both encoders treat
  * fields as untrusted text.
@@ -116,31 +117,51 @@ export function encodeLogComment(record: AttributionRecord): string {
   return json
 }
 
+/** The key the minimal `QUERY_COMMENT` carries; existing self-filters match on it. */
+export const ATTRIBUTION_CLIENT = 'clickhouse-monitoring'
+
 /**
  * Anything outside this set becomes `_`. It has no `*`, so neither `*` + `/`
  * (end of comment) nor `/` + `*` (a nested comment, which ClickHouse supports)
- * can form, and no whitespace or quotes.
+ * can form. No quotes, backslashes, or whitespace either, so `JSON.stringify`
+ * never escapes anything and the JSON stays one line. No `@`: the user field
+ * is cut to the part before `@` first, so an email-shaped subject never lands
+ * in the comment.
  */
-const SQL_COMMENT_UNSAFE = /[^A-Za-z0-9._:@/=,+-]/g
+const SQL_COMMENT_UNSAFE = /[^A-Za-z0-9._:/=,+-]/g
 const MAX_SQL_COMMENT_VALUE = 64
 
-function sqlSafe(value: string): string {
-  return value.replace(SQL_COMMENT_UNSAFE, '_').slice(0, MAX_SQL_COMMENT_VALUE)
+function sqlSafe(value: string | null | undefined): string | null {
+  if (!value) return null
+  const safe = value
+    .replace(SQL_COMMENT_UNSAFE, '_')
+    .slice(0, MAX_SQL_COMMENT_VALUE)
+  return safe.length > 0 ? safe : null
 }
 
-/** `/* chmonitor v=1 user=jane source=console *\/` plus a newline. */
+function userForComment(user: string | null): string | null {
+  if (!user) return null
+  return sqlSafe(user.split('@')[0])
+}
+
+/**
+ * The leading SQL comment, one line of JSON plus a newline:
+ * `/* {"client":"clickhouse-monitoring","app":"chmonitor","v":1,…} *\/`.
+ *
+ * Eight fixed keys, each value at most {@link MAX_SQL_COMMENT_VALUE} safe
+ * characters, so the comment is bounded (under 600 bytes). `page` and `email`
+ * stay out: the page is in `log_comment`, and the email never goes here.
+ */
 export function encodeSqlComment(record: AttributionRecord): string {
-  const pairs: string[] = [`v=${record.v}`]
-  const fields: ReadonlyArray<[string, string | null | undefined]> = [
-    ['version', record.version],
-    ['user', record.user],
-    ['host', record.host],
-    ['source', record.source],
-    ['page', record.page],
-    ['label', record.label],
-  ]
-  for (const [key, value] of fields) {
-    if (value) pairs.push(`${key}=${sqlSafe(value)}`)
+  const body = {
+    client: ATTRIBUTION_CLIENT,
+    app: record.app,
+    v: record.v,
+    version: sqlSafe(record.version),
+    user: userForComment(record.user),
+    source: sqlSafe(record.source),
+    host: sqlSafe(record.host),
+    label: sqlSafe(record.label),
   }
-  return `/* ${ATTRIBUTION_APP} ${pairs.join(' ')} */\n`
+  return `/* ${JSON.stringify(body)} */\n`
 }

@@ -64,7 +64,7 @@ helm uninstall my-chm
 | `alerting.metadata` | `{}` | Non-secret key/values added to alerts, rendered as JSON into `HEALTH_ALERT_METADATA`. Max 10 pairs, keys `[A-Za-z0-9_.-]{1,32}`, values up to 128 chars. |
 | `queryAttribution.enabled` | `true` | Tag each ClickHouse query with app, version, signed-in user, host and source in `system.query_log.log_comment` (`CHM_QUERY_ATTRIBUTION`). |
 | `queryAttribution.label` | `""` | Free-form deployment label in the record, e.g. `region=eu-west,env=prod` (`CHM_QUERY_ATTRIBUTION_LABEL`). |
-| `queryAttribution.sqlComment` | `false` | Also prepend a `/* chmonitor ... */` comment, visible in `system.processes` (`CHM_QUERY_ATTRIBUTION_SQL_COMMENT`). |
+| `queryAttribution.sqlComment` | `true` | Write the record into the leading `/* {"client":"clickhouse-monitoring",...} */` SQL comment, visible in `system.processes` (`CHM_QUERY_ATTRIBUTION_SQL_COMMENT`). |
 | `queryAttribution.includeEmail` | `false` | Put the signed-in user's email in the record (`CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL`). |
 | `imagePullSecrets` | `[]` | Pull secrets for the Deployment and cron Job pods. |
 | `nameOverride` | `""` | Overrides the chart name used in resource names. |

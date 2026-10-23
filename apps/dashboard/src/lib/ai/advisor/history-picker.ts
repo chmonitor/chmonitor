@@ -5,7 +5,7 @@
  * in `lib/clickhouse-query.ts`. Pure (no I/O).
  */
 
-import { QUERY_COMMENT } from '@chm/clickhouse-client/constants' // pragma: allowlist secret
+import { QUERY_COMMENT_FINGERPRINT } from '@chm/clickhouse-client/constants' // pragma: allowlist secret
 
 export const HISTORY_PICKER_KINDS = [
   'Select',
@@ -36,11 +36,10 @@ export const HISTORY_PICKER_KIND_OPTIONS: ReadonlyArray<{
 ]
 
 /**
- * Distinctive prefix `fetchData` prepends to every dashboard query. Trimmed so
- * the match is independent of how query_log stores whitespace after the block
- * comment.
+ * The key every dashboard query carries in its leading comment, minimal or
+ * attributed.
  */
-export const DASHBOARD_QUERY_FINGERPRINT = QUERY_COMMENT.trim() // pragma: allowlist secret
+export const DASHBOARD_QUERY_FINGERPRINT = QUERY_COMMENT_FINGERPRINT // pragma: allowlist secret
 
 export interface HistoryPickerFilters {
   keyword?: string
@@ -143,7 +142,7 @@ export function buildHistoryPickerQuery(
   }
 
   const excludeSelf = filters.excludeSelf !== false
-  if (excludeSelf && DASHBOARD_QUERY_FINGERPRINT !== '') {
+  if (excludeSelf) {
     params.selfFingerprint = DASHBOARD_QUERY_FINGERPRINT // pragma: allowlist secret
     where.push('position(query, {selfFingerprint:String}) = 0')
   }
