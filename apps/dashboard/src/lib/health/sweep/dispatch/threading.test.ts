@@ -10,13 +10,29 @@ import type { SweepContext } from '../resolve-config'
 
 import { installHealthPlatformMock } from '../../__tests__/platform-mock'
 import { Database } from 'bun:sqlite'
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
+const realAlertHistoryStore = {
+  ...(await import('../../alert-history-store')),
+}
 mock.module('../../alert-history-store', () => ({
+  ...realAlertHistoryStore,
   recordAlertEvent: async () => {},
 }))
+
+afterAll(() => {
+  mock.module('../../alert-history-store', () => ({ ...realAlertHistoryStore }))
+})
 
 /** The `prepare → bind → all/run` subset of D1 the thread store uses. */
 function sqliteD1(db: Database) {
@@ -155,7 +171,7 @@ async function tick(
   hostIds: number[] = [1],
   ruleId = 'thread-test'
 ) {
-  await Bun.sleep(5)
+  await new Promise((resolve) => setTimeout(resolve, 5))
   const dispatcher = await createDispatcher(ctx)
   for (const hostId of hostIds) {
     await dispatcher.dispatchFinding({
