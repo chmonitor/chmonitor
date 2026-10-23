@@ -504,7 +504,7 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
         )}
       </GroupHoverFlyout>
       <GroupCustomizeButton groupTitle={item.title} />
-      {item.countKey && (
+      {item.countKey && !open && (
         <SidebarMenuBadge className={cn(badgeHiddenClasses, 'max-lg:hidden')}>
           <Suspense fallback={null}>
             <CountBadge

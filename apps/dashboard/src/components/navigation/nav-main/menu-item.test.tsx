@@ -262,6 +262,41 @@ describe('MenuItem collapsible group', () => {
   })
 })
 
+describe('MenuItem group count badge', () => {
+  const countedGroup: MenuItemType = {
+    ...queriesGroup,
+    countKey: 'running-queries',
+    items: [
+      {
+        title: 'Running Queries',
+        href: '/running-queries',
+        countKey: 'running-queries',
+      },
+      { title: 'History Queries', href: '/history-queries' },
+    ],
+  }
+  const groupBadges = (container: HTMLElement) =>
+    container.querySelectorAll('[data-sidebar="menu-badge"]').length
+
+  test('an open group leaves the count to its child row, so it is not shown twice', async () => {
+    const m = await mount({ item: countedGroup })
+    try {
+      await m.render('/running-queries')
+      expect(m.subLinks()).toContain('/running-queries')
+      expect(groupBadges(m.container)).toBe(0)
+
+      await m.act(async () => {
+        m.trigger()?.click()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      })
+      expect(m.subLinks()).toEqual([])
+      expect(groupBadges(m.container)).toBe(1)
+    } finally {
+      await m.cleanup()
+    }
+  })
+})
+
 describe('MenuItem availability hiding (#3463)', () => {
   test('sub-item path: a tableCheck leaf with no table leaves the rail by default', async () => {
     const m = await mount({ item: insightsGroup })
