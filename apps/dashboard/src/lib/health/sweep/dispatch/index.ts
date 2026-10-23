@@ -41,6 +41,7 @@ import { clearAck } from './../../alert-ack-store'
 import { resolveChannelDelivery } from './../../alert-channel-settings'
 import { recordAlertEvent } from './../../alert-history-store'
 import {
+  resolveMatrixTargets,
   resolveNtfyTargets,
   resolvePagerDutyTargets,
   resolvePushoverTargets,
@@ -85,6 +86,7 @@ import {
 } from './channels/custom-targets'
 import { dispatchEmailChannel } from './channels/email'
 import { dispatchHealthchecksChannel } from './channels/healthchecks'
+import { dispatchMatrixChannel } from './channels/matrix'
 import { dispatchNtfyChannel } from './channels/ntfy'
 import { dispatchOpsgenieChannel } from './channels/opsgenie'
 import { dispatchPagerDutyChannel } from './channels/pagerduty'
@@ -116,6 +118,7 @@ const PROVIDER_CHANNEL: Record<AlertRouteProvider, AlertChannelId> = {
   telegram: 'telegram',
   ntfy: 'ntfy',
   pushover: 'pushover',
+  matrix: 'matrix',
 }
 
 /**
@@ -148,6 +151,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
   const ntfyFallback = ctx.channels.ntfy
   const twilioConfig = ctx.channels.twilio
   const pushoverFallback = ctx.channels.pushover
+  const matrixFallback = ctx.channels.matrix
   const healthchecksUrl = ctx.channels.healthchecksUrl
 
   const counters: DispatchCounters = {
@@ -591,6 +595,15 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       matchOptions
     )
 
+    // Native Matrix rooms: PUT to the Client-Server API send endpoint with
+    // the access token as a Bearer header. Env fallback when no route matched.
+    const matrixTargets = resolveMatrixTargets(
+      routes,
+      { ruleId, ruleType, hostId, hostName: name },
+      channelPasses('matrix') ? matrixFallback : null,
+      matchOptions
+    )
+
     // Opsgenie / email are single env-configured destinations (no routes) —
     // gate each on its own per-channel floor (#2661), routeMinSeverity=null.
     // Computed once so the delivery `if` and the "nothing to deliver" commit
@@ -724,6 +737,13 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     )
     if (pushoverDelivered) anyDelivered = true
 
+    const matrixDelivered = await dispatchMatrixChannel(
+      finding,
+      matrixTargets,
+      matrixFallback
+    )
+    if (matrixDelivered) anyDelivered = true
+
     if (healthchecksEligible) {
       const ok = await dispatchHealthchecksChannel(finding, healthchecksUrl)
       if (ok) anyDelivered = true
@@ -737,6 +757,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       pagerDutyTargets.length +
       ntfyTargets.length +
       pushoverTargets.length +
+      matrixTargets.length +
       (opsgenieEligible ? 1 : 0) +
       (emailEligible ? 1 : 0) +
       (twilio.eligible ? 1 : 0) +

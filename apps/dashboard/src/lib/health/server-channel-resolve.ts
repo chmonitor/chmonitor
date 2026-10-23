@@ -38,6 +38,7 @@ import type {
   ChannelSettingsMap,
 } from './alert-channel-settings'
 import type {
+  ServerMatrixConfig,
   ServerNtfyConfig,
   ServerOpsgenieConfig,
   ServerPushoverConfig,
@@ -51,6 +52,7 @@ import {
   getServerChannelSettings,
   getServerEmailConfig,
   getServerHealthchecksUrl,
+  getServerMatrixConfig,
   getServerNtfyConfig,
   getServerOpsgenieConfig,
   getServerPushoverConfig,
@@ -69,6 +71,8 @@ export interface ResolvedServerChannels {
   telegram: ServerTelegramConfig | null
   ntfy: ServerNtfyConfig | null
   pushover: ServerPushoverConfig | null
+  /** Native Matrix env fallback only — there is no saved Settings row yet. */
+  matrix: ServerMatrixConfig | null
   twilio: ServerTwilioConfig | null
   /**
    * Per-channel enabled/minSeverity gate (#2661), env-derived then overridden
@@ -202,6 +206,7 @@ export async function resolveServerChannels(
     pushover: pushoverRow
       ? buildPushoverFromRow(pushoverRow)
       : getServerPushoverConfig(),
+    matrix: getServerMatrixConfig(),
     twilio: twilioRow ? buildTwilioFromRow(twilioRow) : getServerTwilioConfig(),
     channelSettings: mergeChannelSettings(rows),
   }

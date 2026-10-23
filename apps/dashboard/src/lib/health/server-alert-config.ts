@@ -8,7 +8,12 @@ import type { AlertSettings } from './alert-settings-storage'
 
 import { detectEmailProvider } from './adapters/email'
 import { DEFAULT_ALERT_SETTINGS } from './alert-settings-storage'
+import {
+  isValidMatrixRoomId,
+  parseMatrixHomeserverUrl,
+} from './matrix-dispatch'
 import { getPagerDutyFallbackRoutingKey } from './pagerduty-config'
+import { warn } from '@chm/logger'
 
 /**
  * Lenient env boolean: true/1/yes/on and false/0/no/off (case-insensitive).
@@ -128,6 +133,7 @@ const CHANNEL_ENV_PREFIX: Partial<Record<AlertChannelId, string>> = {
   telegram: 'HEALTH_ALERT_TELEGRAM',
   ntfy: 'HEALTH_ALERT_NTFY',
   pushover: 'HEALTH_ALERT_PUSHOVER',
+  matrix: 'HEALTH_ALERT_MATRIX',
 }
 
 /**
@@ -325,6 +331,59 @@ export function getServerNtfyConfig(): ServerNtfyConfig | null {
   if (!url) return null
   const token = process.env.HEALTH_ALERT_NTFY_TOKEN?.trim() || ''
   return token ? { url, token } : { url }
+}
+
+/** Resolved server-side native Matrix config: homeserver, token, room. */
+export interface ServerMatrixConfig {
+  /** Homeserver base URL, e.g. `https://matrix.example.org`. */
+  homeserverUrl: string
+  /** Access token of the bot user (`Authorization: Bearer …`). A secret. */
+  accessToken: string
+  /** Room id (`!…`), not an alias. */
+  roomId: string
+}
+
+const warnedMatrixProblems = new Set<string>()
+
+/** Test hook: forget which Matrix config problems were already logged. */
+export function __resetMatrixConfigWarningsForTests(): void {
+  warnedMatrixProblems.clear()
+}
+
+/**
+ * Server-side native Matrix config, sourced from environment variables:
+ *
+ *   - HEALTH_ALERT_MATRIX_HOMESERVER_URL → homeserverUrl (http/https)
+ *   - HEALTH_ALERT_MATRIX_ACCESS_TOKEN   → accessToken
+ *   - HEALTH_ALERT_MATRIX_ROOM_ID        → roomId (`!…`)
+ *
+ * Returns null unless all three are set and valid (a set-but-invalid value logs one warning, never the token) — opt-in, fails open. The
+ * env URL is operator-set and trusted, so a LAN homeserver is allowed here
+ * (a URL saved from the UI goes through the SSRF guard instead). Like the
+ * ntfy token, the access token never joins {@link getServerAlertConfig}.
+ */
+export function getServerMatrixConfig(): ServerMatrixConfig | null {
+  const homeserverUrl =
+    process.env.HEALTH_ALERT_MATRIX_HOMESERVER_URL?.trim() || ''
+  const accessToken = process.env.HEALTH_ALERT_MATRIX_ACCESS_TOKEN?.trim() || ''
+  const roomId = process.env.HEALTH_ALERT_MATRIX_ROOM_ID?.trim() || ''
+  if (!homeserverUrl || !accessToken || !roomId) return null
+  const normalized = parseMatrixHomeserverUrl(homeserverUrl, {
+    allowHttp: true,
+  })
+  const problem = !normalized
+    ? 'HEALTH_ALERT_MATRIX_HOMESERVER_URL must be an http(s) URL without credentials, query or fragment'
+    : !isValidMatrixRoomId(roomId)
+      ? 'HEALTH_ALERT_MATRIX_ROOM_ID must be a room id like !abc:example.org, not an alias'
+      : null
+  if (problem || !normalized) {
+    if (problem && !warnedMatrixProblems.has(problem)) {
+      warnedMatrixProblems.add(problem)
+      warn(`[health-config] Matrix alerts not configured: ${problem}`)
+    }
+    return null
+  }
+  return { homeserverUrl: normalized, accessToken, roomId }
 }
 
 /**
@@ -760,6 +819,7 @@ export function isAnyAlertChannelEnabled(): boolean {
     on('telegram', getServerTelegramConfig() !== null) ||
     on('ntfy', getServerNtfyConfig() !== null) ||
     on('pushover', getServerPushoverConfig() !== null) ||
+    on('matrix', getServerMatrixConfig() !== null) ||
     // Twilio has no per-channel toggle, so configured means on.
     getServerTwilioConfig() !== null ||
     on('healthchecks', Boolean(getServerHealthchecksUrl()))

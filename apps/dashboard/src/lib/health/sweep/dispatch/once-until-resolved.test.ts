@@ -85,6 +85,7 @@ function makeCtx(): SweepContext {
       telegram: null,
       ntfy: null,
       pushover: null,
+      matrix: null,
       twilio: null,
       channelSettings: {},
     },

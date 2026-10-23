@@ -242,6 +242,84 @@ export function PushoverFields({
   )
 }
 
+export function MatrixFields({
+  busy,
+  mxHomeserverUrl,
+  mxAccessToken,
+  mxRoomId,
+  onHomeserverUrlChange,
+  onAccessTokenChange,
+  onRoomIdChange,
+  onSendTest,
+}: {
+  busy: boolean
+  mxHomeserverUrl: string
+  mxAccessToken: string
+  mxRoomId: string
+  onHomeserverUrlChange: (v: string) => void
+  onAccessTokenChange: (v: string) => void
+  onRoomIdChange: (v: string) => void
+  onSendTest: () => void
+}) {
+  return (
+    <>
+      <Label
+        htmlFor="route-matrix-homeserver"
+        className="text-xs text-muted-foreground"
+      >
+        Homeserver URL
+      </Label>
+      <Input
+        id="route-matrix-homeserver"
+        placeholder="https://matrix.example.org"
+        value={mxHomeserverUrl}
+        onChange={(e) => onHomeserverUrlChange(e.target.value)}
+      />
+      <Label
+        htmlFor="route-matrix-token"
+        className="text-xs text-muted-foreground"
+      >
+        Bot access token
+      </Label>
+      <Input
+        id="route-matrix-token"
+        type="password"
+        autoComplete="off"
+        placeholder="syt_…"
+        value={mxAccessToken}
+        onChange={(e) => onAccessTokenChange(e.target.value)}
+      />
+      <Label
+        htmlFor="route-matrix-room"
+        className="text-xs text-muted-foreground"
+      >
+        Room id
+      </Label>
+      <Input
+        id="route-matrix-room"
+        placeholder="!abc123:example.org"
+        aria-describedby="route-matrix-help"
+        value={mxRoomId}
+        onChange={(e) => onRoomIdChange(e.target.value)}
+      />
+      <p id="route-matrix-help" className="text-xs text-muted-foreground">
+        The bot account must already be joined to the room. Find the room id in
+        Element under Room settings, Advanced. Messages to end-to-end encrypted
+        rooms are sent unencrypted.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="self-start"
+        disabled={busy}
+        onClick={onSendTest}
+      >
+        Send test message
+      </Button>
+    </>
+  )
+}
+
 export function WebhookFields({
   channelUrl,
   onChannelUrlChange,

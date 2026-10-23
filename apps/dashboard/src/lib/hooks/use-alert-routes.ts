@@ -17,6 +17,7 @@ export type AlertRouteProvider =
   | 'telegram'
   | 'ntfy'
   | 'pushover'
+  | 'matrix'
 
 export interface AlertRouteInfo {
   id: string
@@ -41,6 +42,12 @@ export interface AlertRouteInfo {
   pushoverUser: string | null
   /** Masked Pushover application token (last 4 chars only) — never the raw secret. */
   pushoverTokenMasked: string | null
+  /** Matrix homeserver base URL (not a secret). */
+  matrixHomeserverUrl: string | null
+  /** Matrix room id (not a secret). */
+  matrixRoomId: string | null
+  /** Masked Matrix access token (last 4 chars only) — never the raw secret. */
+  matrixAccessTokenMasked: string | null
   /** Per-route severity floor; `null` = inherit the channel/global gate. */
   minSeverity: 'warning' | 'critical' | null
   /** `file`/`env` definitions are read-only; absent = `d1`. */
@@ -93,6 +100,9 @@ export function useAlertRoutesMutations() {
     ntfyToken?: string
     pushoverToken?: string
     pushoverUser?: string
+    matrixHomeserverUrl?: string
+    matrixAccessToken?: string
+    matrixRoomId?: string
     minSeverity?: 'warning' | 'critical'
   }): Promise<AlertRouteInfo> => {
     const response = await apiFetch('/api/v1/health/routes', {

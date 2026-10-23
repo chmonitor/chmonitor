@@ -82,6 +82,9 @@ describe('RouteRow Send test', () => {
               ntfyTokenMasked: null,
               pushoverUser: null,
               pushoverTokenMasked: null,
+              matrixHomeserverUrl: null,
+              matrixRoomId: null,
+              matrixAccessTokenMasked: null,
               minSeverity: null,
             }}
           />

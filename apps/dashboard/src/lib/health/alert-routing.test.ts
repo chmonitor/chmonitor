@@ -33,6 +33,9 @@ interface FakeRow {
   ntfy_token?: string | null
   pushover_token?: string | null
   pushover_user?: string | null
+  matrix_homeserver_url?: string | null
+  matrix_access_token?: string | null
+  matrix_room_id?: string | null
   min_severity?: string | null
 }
 
@@ -66,6 +69,9 @@ function makeFakeD1() {
                 ntfy_token,
                 pushover_token,
                 pushover_user,
+                matrix_homeserver_url,
+                matrix_access_token,
+                matrix_room_id,
                 min_severity,
               ] = params as [
                 string,
@@ -76,6 +82,9 @@ function makeFakeD1() {
                 number,
                 number,
                 string,
+                string | null,
+                string | null,
+                string | null,
                 string | null,
                 string | null,
                 string | null,
@@ -103,6 +112,9 @@ function makeFakeD1() {
                 ntfy_token,
                 pushover_token,
                 pushover_user,
+                matrix_homeserver_url,
+                matrix_access_token,
+                matrix_room_id,
                 min_severity,
               })
               return { meta: { changes: 1 } }
@@ -160,6 +172,7 @@ const {
   matchRoutes,
   resolveNtfyTargets,
   resolvePagerDutyTargets,
+  resolveMatrixTargets,
   resolvePushoverTargets,
   resolveTargets,
   resolveTelegramTargets,
@@ -185,6 +198,9 @@ function route(overrides: Partial<AlertRoute> = {}): AlertRoute {
     ntfyToken: null,
     pushoverToken: null,
     pushoverUser: null,
+    matrixHomeserverUrl: null,
+    matrixAccessToken: null,
+    matrixRoomId: null,
     minSeverity: null,
     ...overrides,
   }
@@ -877,5 +893,85 @@ describe('D1-backed alert-routing CRUD', () => {
 
     const [listed] = await listRoutes('owner-1')
     expect(listed.provider).toBe('webhook')
+  })
+})
+
+describe('resolveMatrixTargets (pure)', () => {
+  const ENV_FALLBACK = {
+    homeserverUrl: 'https://env.example.org',
+    accessToken: 'env-tok',
+    roomId: '!env:example.org',
+  }
+  const matrixRoute = (overrides: Partial<AlertRoute> = {}) =>
+    route({
+      matchRule: 'disk-usage',
+      provider: 'matrix',
+      channelUrl: '',
+      matrixHomeserverUrl: 'https://matrix.example.org',
+      matrixAccessToken: 'syt_secret',
+      matrixRoomId: '!abc:example.org',
+      ...overrides,
+    })
+
+  test('a matched matrix route returns its homeserver, token and room', () => {
+    expect(resolveMatrixTargets([matrixRoute()], TARGET, ENV_FALLBACK)).toEqual(
+      [
+        {
+          homeserverUrl: 'https://matrix.example.org',
+          accessToken: 'syt_secret',
+          roomId: '!abc:example.org',
+        },
+      ]
+    )
+  })
+
+  test('a matrix route missing any field is skipped', () => {
+    expect(
+      resolveMatrixTargets([matrixRoute({ matrixRoomId: null })], TARGET, null)
+    ).toEqual([])
+  })
+
+  test('the same room twice is sent once; two rooms are sent twice', () => {
+    const routes = [
+      matrixRoute({ id: 'a' }),
+      matrixRoute({ id: 'b' }),
+      matrixRoute({ id: 'c', matrixRoomId: '!other:example.org' }),
+    ]
+    expect(resolveMatrixTargets(routes, TARGET, null)).toHaveLength(2)
+  })
+
+  test('a matched webhook route suppresses the env fallback (no double-fire)', () => {
+    const webhook = route({ matchRule: 'disk-usage', provider: 'webhook' })
+    expect(resolveMatrixTargets([webhook], TARGET, ENV_FALLBACK)).toEqual([])
+  })
+
+  test('no matched route falls back to the env room', () => {
+    expect(resolveMatrixTargets([], TARGET, ENV_FALLBACK)).toEqual([
+      ENV_FALLBACK,
+    ])
+    expect(resolveMatrixTargets([], TARGET, null)).toEqual([])
+  })
+})
+
+describe('D1-backed alert-routing CRUD — matrix', () => {
+  test('create -> list round-trip keeps the matrix fields in their columns', async () => {
+    currentDb = makeFakeD1()
+    await createRoute({
+      ownerId: 'owner-mx',
+      matchRule: '*',
+      matchHost: '*',
+      channelUrl: '',
+      provider: 'matrix',
+      matrixHomeserverUrl: 'https://matrix.example.org',
+      matrixAccessToken: 'syt_secret',
+      matrixRoomId: '!abc:example.org',
+      minSeverity: 'critical',
+    })
+    const [listed] = await listRoutes('owner-mx')
+    expect(listed?.provider).toBe('matrix')
+    expect(listed?.matrixHomeserverUrl).toBe('https://matrix.example.org')
+    expect(listed?.matrixAccessToken).toBe('syt_secret')
+    expect(listed?.matrixRoomId).toBe('!abc:example.org')
+    expect(listed?.minSeverity).toBe('critical')
   })
 })

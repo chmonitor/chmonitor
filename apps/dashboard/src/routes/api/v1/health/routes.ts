@@ -29,6 +29,10 @@ import {
   resolveConfigOwner,
 } from '@/lib/health/alert-routing-auth'
 import { redactWebhookUrl } from '@/lib/health/custom-webhook-targets'
+import {
+  isValidMatrixRoomId,
+  parseMatrixHomeserverUrl,
+} from '@/lib/health/matrix-dispatch'
 import { noBackendOrWriteFailedMessage } from '@/lib/health/no-backend-message'
 import { PAGERDUTY_EVENTS_API_URL } from '@/lib/health/pagerduty-config'
 
@@ -91,6 +95,13 @@ function toPublicRoute(
     pushoverTokenMasked: route.pushoverToken
       ? maskRoutingKey(route.pushoverToken)
       : null,
+    // Matrix: the homeserver URL and room id identify the destination and are
+    // returned as-is; the access token is a bare secret, masked.
+    matrixHomeserverUrl: route.matrixHomeserverUrl,
+    matrixRoomId: route.matrixRoomId,
+    matrixAccessTokenMasked: route.matrixAccessToken
+      ? maskRoutingKey(route.matrixAccessToken)
+      : null,
     // Per-route severity floor (#2661): `null` = inherit the channel/global
     // gate. Not a secret — returned as-is so the UI can show/edit it.
     minSeverity: route.minSeverity,
@@ -135,6 +146,12 @@ interface CreateRouteBody {
   pushoverToken?: unknown
   /** Pushover-only: the target user/group key. */
   pushoverUser?: unknown
+  /** Matrix-only: the homeserver base URL (SSRF-validated, HTTPS-only). */
+  matrixHomeserverUrl?: unknown
+  /** Matrix-only: the bot user's access token (a secret). */
+  matrixAccessToken?: unknown
+  /** Matrix-only: the room id (`!…`, not an alias). */
+  matrixRoomId?: unknown
   /** Optional per-route severity floor: `'warning'` | `'critical'` (#2661). */
   minSeverity?: unknown
 }
@@ -162,7 +179,9 @@ async function handlePost(request: Request): Promise<Response> {
           ? 'ntfy'
           : body.provider === 'pushover'
             ? 'pushover'
-            : 'webhook'
+            : body.provider === 'matrix'
+              ? 'matrix'
+              : 'webhook'
 
   const matchRule =
     typeof body.matchRule === 'string' && body.matchRule.trim()
@@ -332,6 +351,62 @@ async function handlePost(request: Request): Promise<Response> {
       provider: 'pushover',
       pushoverToken,
       pushoverUser,
+      minSeverity,
+    })
+
+    if (!created) {
+      return jsonError(
+        noBackendOrWriteFailedMessage('Alert routing storage'),
+        501
+      )
+    }
+
+    return Response.json(
+      { success: true, route: toPublicRoute(created) },
+      { status: 201 }
+    )
+  }
+
+  if (provider === 'matrix') {
+    const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+    const matrixHomeserverUrl = parseMatrixHomeserverUrl(
+      str(body.matrixHomeserverUrl)
+    )
+    const matrixAccessToken = str(body.matrixAccessToken)
+    const matrixRoomId = str(body.matrixRoomId)
+    if (!matrixHomeserverUrl) {
+      return jsonError(
+        'Missing or invalid "matrixHomeserverUrl": expected an HTTPS homeserver URL without credentials, query or fragment',
+        400
+      )
+    }
+    if (!matrixAccessToken) {
+      return jsonError('Missing required "matrixAccessToken"', 400)
+    }
+    if (!isValidMatrixRoomId(matrixRoomId)) {
+      return jsonError(
+        'Missing or invalid "matrixRoomId": expected a room id like !abc:example.org (aliases starting with # are not accepted)',
+        400
+      )
+    }
+
+    // The homeserver URL is caller-supplied, so it goes through the same SSRF
+    // guard as the webhook and ntfy URLs before it is stored.
+    const ssrfError = await validateHostUrl(matrixHomeserverUrl)
+    if (ssrfError) {
+      return jsonError(ssrfError, 400)
+    }
+
+    const created = await createRoute({
+      ownerId,
+      matchRule,
+      matchHost,
+      channelUrl: '',
+      enabled,
+      provider: 'matrix',
+      matrixHomeserverUrl,
+      matrixAccessToken,
+      matrixRoomId,
       minSeverity,
     })
 

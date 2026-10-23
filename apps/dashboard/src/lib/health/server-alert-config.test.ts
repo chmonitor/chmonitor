@@ -1,10 +1,12 @@
 import {
+  __resetMatrixConfigWarningsForTests,
   getPeerDBApiCriticalAfterMs,
   getServerAlertConfig,
   getServerAlertCooldownConfig,
   getServerChannelSettings,
   getServerEmailConfig,
   getServerHysteresisConfig,
+  getServerMatrixConfig,
   getServerMutedRules,
   getServerNtfyConfig,
   getServerOpsgenieConfig,
@@ -19,7 +21,7 @@ import {
   perRuleEnvBaseId,
   resolvePerRuleOverride,
 } from './server-alert-config'
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import { PEERDB_ALERT_RULE_IDS } from '@/lib/peerdb/alert-rule-ids'
 
 const ENV_KEYS = [
@@ -955,6 +957,109 @@ describe('isAnyAlertChannelEnabled', () => {
   it('explicit true forces it on', () => {
     process.env.HEALTH_ALERT_ENABLED = 'yes'
     expect(isAnyAlertChannelEnabled()).toBe(true)
+  })
+})
+
+const MATRIX_ENV_KEYS = [
+  'HEALTH_ALERT_MATRIX_HOMESERVER_URL',
+  'HEALTH_ALERT_MATRIX_ACCESS_TOKEN',
+  'HEALTH_ALERT_MATRIX_ROOM_ID',
+  'HEALTH_ALERT_MATRIX_ENABLED',
+] as const
+
+describe('getServerMatrixConfig', () => {
+  const original: Record<string, string | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of MATRIX_ENV_KEYS) {
+      original[key] = process.env[key]
+      delete process.env[key]
+    }
+  })
+
+  afterEach(() => {
+    for (const key of MATRIX_ENV_KEYS) {
+      if (original[key] === undefined) delete process.env[key]
+      else process.env[key] = original[key]
+    }
+  })
+
+  const setAll = () => {
+    process.env.HEALTH_ALERT_MATRIX_HOMESERVER_URL =
+      ' https://matrix.example.org '
+    process.env.HEALTH_ALERT_MATRIX_ACCESS_TOKEN = 'syt_tok'
+    process.env.HEALTH_ALERT_MATRIX_ROOM_ID = '!abc:example.org'
+  }
+
+  it('returns the trimmed config when all three are set', () => {
+    setAll()
+    expect(getServerMatrixConfig()).toEqual({
+      homeserverUrl: 'https://matrix.example.org',
+      accessToken: 'syt_tok',
+      roomId: '!abc:example.org',
+    })
+  })
+
+  it('returns null when any field is missing, the URL is not http(s), or the room is an alias', () => {
+    expect(getServerMatrixConfig()).toBeNull()
+    setAll()
+    delete process.env.HEALTH_ALERT_MATRIX_ACCESS_TOKEN
+    expect(getServerMatrixConfig()).toBeNull()
+    setAll()
+    process.env.HEALTH_ALERT_MATRIX_HOMESERVER_URL = 'ftp://matrix.example.org'
+    expect(getServerMatrixConfig()).toBeNull()
+    setAll()
+    process.env.HEALTH_ALERT_MATRIX_ROOM_ID = '#ops:example.org'
+    expect(getServerMatrixConfig()).toBeNull()
+  })
+
+  it('normalizes the env homeserver, allowing http for LAN homeservers', () => {
+    process.env.HEALTH_ALERT_MATRIX_HOMESERVER_URL = 'http://10.0.0.5:8008/'
+    process.env.HEALTH_ALERT_MATRIX_ACCESS_TOKEN = 'syt_tok'
+    process.env.HEALTH_ALERT_MATRIX_ROOM_ID = '!abc:example.org'
+    expect(getServerMatrixConfig()?.homeserverUrl).toBe('http://10.0.0.5:8008')
+  })
+
+  it('treats invalid env config as unconfigured and never logs the token', () => {
+    __resetMatrixConfigWarningsForTests()
+    const warnings: string[] = []
+    const spy = spyOn(console, 'warn').mockImplementation((...a: unknown[]) => {
+      warnings.push(a.map(String).join(' '))
+    })
+    try {
+      process.env.HEALTH_ALERT_MATRIX_ACCESS_TOKEN = 'syt_SECRET_value'
+      process.env.HEALTH_ALERT_MATRIX_ROOM_ID = '!abc:example.org'
+      for (const bad of [
+        'https://user:pw@matrix.example.org',
+        'https://matrix.example.org?x=1',
+        'https://matrix.example.org#f',
+      ]) {
+        process.env.HEALTH_ALERT_MATRIX_HOMESERVER_URL = bad
+        expect(getServerMatrixConfig()).toBeNull()
+      }
+      process.env.HEALTH_ALERT_MATRIX_HOMESERVER_URL =
+        'https://matrix.example.org'
+      process.env.HEALTH_ALERT_MATRIX_ROOM_ID = '!a b:example.org'
+      expect(getServerMatrixConfig()).toBeNull()
+      expect(warnings.length).toBeGreaterThan(0)
+      expect(warnings.join('\n')).not.toContain('syt_SECRET_value')
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('turns alerting on, unless HEALTH_ALERT_MATRIX_ENABLED is false', () => {
+    const saved = process.env.HEALTH_ALERT_ENABLED
+    delete process.env.HEALTH_ALERT_ENABLED
+    try {
+      setAll()
+      expect(isAnyAlertChannelEnabled()).toBe(true)
+      process.env.HEALTH_ALERT_MATRIX_ENABLED = 'false'
+      expect(isAnyAlertChannelEnabled()).toBe(false)
+    } finally {
+      if (saved === undefined) delete process.env.HEALTH_ALERT_ENABLED
+      else process.env.HEALTH_ALERT_ENABLED = saved
+    }
   })
 })
 

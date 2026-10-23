@@ -35,6 +35,10 @@ import {
   warnOnce,
 } from './declarative/sources'
 import { globToRegExp } from './glob'
+import {
+  isValidMatrixRoomId,
+  parseMatrixHomeserverUrl,
+} from './matrix-dispatch'
 import { PAGERDUTY_EVENTS_API_URL } from './pagerduty-config'
 import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
@@ -54,7 +58,8 @@ const TABLE = 'alert_routes'
  * routes to a Telegram chat via a bot token + chat id. `'ntfy'` (#2657)
  * routes to an ntfy topic URL (self-hostable) with an optional access token.
  * `'pushover'` (#2659) routes to a Pushover user/group via an application
- * token + user key.
+ * token + user key. `'matrix'` routes to a Matrix room natively through the
+ * Client-Server API with a homeserver URL, an access token, and a room id.
  */
 export type AlertRouteProvider =
   | 'webhook'
@@ -62,6 +67,7 @@ export type AlertRouteProvider =
   | 'telegram'
   | 'ntfy'
   | 'pushover'
+  | 'matrix'
 
 /** A configured alert route: match criteria → destination channel. */
 export interface AlertRoute {
@@ -92,6 +98,12 @@ export interface AlertRoute {
   pushoverToken: string | null
   /** Pushover target user/group key (provider `'pushover'` only). */
   pushoverUser: string | null
+  /** Matrix homeserver base URL (provider `'matrix'` only). */
+  matrixHomeserverUrl: string | null
+  /** Matrix access token — a secret (provider `'matrix'` only). */
+  matrixAccessToken: string | null
+  /** Matrix room id, `!…` (provider `'matrix'` only). */
+  matrixRoomId: string | null
   /**
    * Optional per-route severity floor (#2661). When set it beats the channel-
    * and global-level `minSeverity` for THIS route's finding (see
@@ -118,6 +130,9 @@ interface D1AlertRouteRow {
   ntfy_token: string | null
   pushover_token: string | null
   pushover_user: string | null
+  matrix_homeserver_url: string | null
+  matrix_access_token: string | null
+  matrix_room_id: string | null
   min_severity: string | null
 }
 
@@ -146,7 +161,9 @@ function rowToRoute(row: D1AlertRouteRow): AlertRoute {
             ? 'ntfy'
             : row.provider === 'pushover'
               ? 'pushover'
-              : 'webhook',
+              : row.provider === 'matrix'
+                ? 'matrix'
+                : 'webhook',
     serviceName: row.service_name ?? null,
     routingKey: row.routing_key ?? null,
     telegramBotToken: row.telegram_bot_token ?? null,
@@ -155,6 +172,9 @@ function rowToRoute(row: D1AlertRouteRow): AlertRoute {
     ntfyToken: row.ntfy_token ?? null,
     pushoverToken: row.pushover_token ?? null,
     pushoverUser: row.pushover_user ?? null,
+    matrixHomeserverUrl: row.matrix_homeserver_url ?? null,
+    matrixAccessToken: row.matrix_access_token ?? null,
+    matrixRoomId: row.matrix_room_id ?? null,
     // Legacy rows (pre-0025, or fake D1s in tests) have no `min_severity` — a
     // null/unknown value inherits the channel/global gate, unchanged behavior.
     minSeverity:
@@ -195,7 +215,8 @@ async function listDbRoutes(ownerId: string): Promise<AlertRoute[]> {
       .prepare(
         `SELECT id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
                 provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
-                ntfy_url, ntfy_token, pushover_token, pushover_user, min_severity
+                ntfy_url, ntfy_token, pushover_token, pushover_user,
+                matrix_homeserver_url, matrix_access_token, matrix_room_id, min_severity
          FROM ${TABLE}
          WHERE owner_id = ?1
          ORDER BY created_at DESC`
@@ -234,6 +255,12 @@ export interface CreateRouteInput {
   pushoverToken?: string | null
   /** Pushover target user/group key (provider `'pushover'` only). */
   pushoverUser?: string | null
+  /** Matrix homeserver base URL (provider `'matrix'` only). */
+  matrixHomeserverUrl?: string | null
+  /** Matrix access token — a secret (provider `'matrix'` only). */
+  matrixAccessToken?: string | null
+  /** Matrix room id (provider `'matrix'` only). */
+  matrixRoomId?: string | null
   /** Optional per-route severity floor (#2661); omit / `null` to inherit. */
   minSeverity?: AlertSeverityFloor | null
 }
@@ -267,6 +294,9 @@ export async function createRoute(
       ntfyToken: input.ntfyToken?.trim() || null,
       pushoverToken: input.pushoverToken?.trim() || null,
       pushoverUser: input.pushoverUser?.trim() || null,
+      matrixHomeserverUrl: input.matrixHomeserverUrl?.trim() || null,
+      matrixAccessToken: input.matrixAccessToken?.trim() || null,
+      matrixRoomId: input.matrixRoomId?.trim() || null,
       minSeverity:
         input.minSeverity === 'warning' || input.minSeverity === 'critical'
           ? input.minSeverity
@@ -278,8 +308,9 @@ export async function createRoute(
         `INSERT INTO ${TABLE}
            (id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
             provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
-            ntfy_url, ntfy_token, pushover_token, pushover_user, min_severity)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)`
+            ntfy_url, ntfy_token, pushover_token, pushover_user,
+            matrix_homeserver_url, matrix_access_token, matrix_room_id, min_severity)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)`
       )
       .bind(
         route.id,
@@ -298,6 +329,9 @@ export async function createRoute(
         route.ntfyToken,
         route.pushoverToken,
         route.pushoverUser,
+        route.matrixHomeserverUrl,
+        route.matrixAccessToken,
+        route.matrixRoomId,
         route.minSeverity
       )
       .run()
@@ -633,6 +667,62 @@ export function resolvePushoverTargets(
   return envFallback ? [envFallback] : []
 }
 
+/** One Matrix dispatch target: homeserver, access token, room id. */
+export interface MatrixTarget {
+  homeserverUrl: string
+  accessToken: string
+  roomId: string
+}
+
+/**
+ * Resolve the Matrix rooms a finding should message: every enabled, matched
+ * `'matrix'` route with all three fields, deduplicated by
+ * homeserver + room + token. Falls back to `[envFallback]` only when no route
+ * of any provider matched — the same cross-provider suppression as
+ * {@link resolveNtfyTargets}. Pure — no I/O.
+ */
+export function resolveMatrixTargets(
+  routes: readonly AlertRoute[],
+  target: RouteMatchTarget,
+  envFallback: MatrixTarget | null,
+  options?: RouteMatchOptions
+): MatrixTarget[] {
+  const matched = matchRoutes(routes, target, options)
+  const matrixMatched = matched.filter(
+    (
+      r
+    ): r is AlertRoute & {
+      matrixHomeserverUrl: string
+      matrixAccessToken: string
+      matrixRoomId: string
+    } =>
+      r.provider === 'matrix' &&
+      Boolean(r.matrixHomeserverUrl) &&
+      Boolean(r.matrixAccessToken) &&
+      Boolean(r.matrixRoomId)
+  )
+
+  if (matrixMatched.length > 0) {
+    const seen = new Set<string>()
+    const out: MatrixTarget[] = []
+    for (const r of matrixMatched) {
+      const key = `${r.matrixHomeserverUrl}\u0000${r.matrixRoomId}\u0000${r.matrixAccessToken}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push({
+        homeserverUrl: r.matrixHomeserverUrl,
+        accessToken: r.matrixAccessToken,
+        roomId: r.matrixRoomId,
+      })
+    }
+    return out
+  }
+
+  if (matched.length > 0) return []
+
+  return envFallback ? [envFallback] : []
+}
+
 // ---------------------------------------------------------------------------
 // Declarative reader: Alert routes — merge key `id`
 // ---------------------------------------------------------------------------
@@ -665,6 +755,9 @@ async function declarativeRoutes(
         ntfyToken: null,
         pushoverToken: null,
         pushoverUser: null,
+        matrixHomeserverUrl: null,
+        matrixAccessToken: null,
+        matrixRoomId: null,
         minSeverity: r.minSeverity,
       }
       const t = r.target
@@ -718,6 +811,25 @@ async function declarativeRoutes(
             }
           }
           break
+        case 'matrix': {
+          // target.homeserverUrl + target.roomId; secretEnv holds the token.
+          const homeserverUrl = parseMatrixHomeserverUrl(t.homeserverUrl ?? '')
+          const roomId = t.roomId?.trim() ?? ''
+          if (
+            secret &&
+            homeserverUrl &&
+            isValidMatrixRoomId(roomId) &&
+            (await allowed(homeserverUrl))
+          ) {
+            route = {
+              ...base,
+              matrixHomeserverUrl: homeserverUrl,
+              matrixAccessToken: secret,
+              matrixRoomId: roomId,
+            }
+          }
+          break
+        }
       }
       if (route) entries.push(route)
       else if (!warnedUrl && (!r.secretEnv || secret)) {

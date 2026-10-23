@@ -51,6 +51,7 @@ function makeCtx(overrides: Partial<SweepContext> = {}): SweepContext {
       telegram: null,
       ntfy: { url: NTFY_URL },
       pushover: null,
+      matrix: null,
       twilio: null,
       channelSettings: {},
     },
@@ -149,6 +150,47 @@ describe('createDispatcher fan-out', () => {
       'warning'
     )
     expect(calls).toEqual([HC_URL])
+  })
+})
+
+describe('createDispatcher native matrix', () => {
+  const MATRIX = {
+    homeserverUrl: 'https://matrix.example.test',
+    accessToken: 'syt_tok',
+    roomId: '!room:example.test',
+  }
+  const ROOM_PREFIX =
+    'https://matrix.example.test/_matrix/client/v3/rooms/%21room%3Aexample.test/send/m.room.message/'
+
+  test('the env-configured room receives each finding once', async () => {
+    const d = await fire(
+      makeCtx({
+        channels: {
+          ...makeCtx().channels,
+          healthchecksUrl: '',
+          ntfy: null,
+          matrix: MATRIX,
+        },
+      })
+    )
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toStartWith(ROOM_PREFIX)
+    expect(d.counters.alertsDispatched).toBe(1)
+  })
+
+  test('a disabled matrix channel sends nothing', async () => {
+    await fire(
+      makeCtx({
+        channels: {
+          ...makeCtx().channels,
+          healthchecksUrl: '',
+          ntfy: null,
+          matrix: MATRIX,
+        },
+        channelSettings: { matrix: { enabled: false } },
+      })
+    )
+    expect(calls).toEqual([])
   })
 })
 /**

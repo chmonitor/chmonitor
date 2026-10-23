@@ -40,6 +40,9 @@ mock.module('@/lib/health/alert-routing', () => ({
       ntfyToken: input.ntfyToken ?? null,
       pushoverUser: input.pushoverUser ?? null,
       pushoverToken: input.pushoverToken ?? null,
+      matrixHomeserverUrl: input.matrixHomeserverUrl ?? null,
+      matrixAccessToken: input.matrixAccessToken ?? null,
+      matrixRoomId: input.matrixRoomId ?? null,
       minSeverity: input.minSeverity ?? null,
     }
     return createdRoute
@@ -178,5 +181,127 @@ describe('DELETE /api/v1/health/routes', () => {
       )
     )
     expect(res.status).toBe(200)
+  })
+})
+
+describe('POST /api/v1/health/routes — matrix', () => {
+  const FULL_MATRIX_TOKEN = 'syt_Ym90_abcdefghijklmnopqrst_0123456789'
+
+  function post(body: Record<string, unknown>) {
+    return handlePost(
+      new Request('https://dash.example.com/api/v1/health/routes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    )
+  }
+
+  test('creates a matrix route and never echoes the full access token', async () => {
+    const res = await post({
+      provider: 'matrix',
+      matrixHomeserverUrl: 'https://matrix.example.org',
+      matrixAccessToken: FULL_MATRIX_TOKEN,
+      matrixRoomId: '!abc:example.org',
+    })
+    expect(res.status).toBe(201)
+    const body = (await res.json()) as { route: Record<string, unknown> }
+    expect(createdRoute?.provider).toBe('matrix')
+    expect(createdRoute?.matrixAccessToken).toBe(FULL_MATRIX_TOKEN)
+    expect(body.route.provider).toBe('matrix')
+    expect(body.route.matrixRoomId).toBe('!abc:example.org')
+    expect(body.route.matrixHomeserverUrl).toBe('https://matrix.example.org')
+    expect(jsonContainsFullSecret(body, FULL_MATRIX_TOKEN)).toBe(false)
+    expect(body.route.matrixAccessTokenMasked).toContain('••••')
+  })
+
+  test('rejects a room alias, which the send endpoint does not accept', async () => {
+    const res = await post({
+      provider: 'matrix',
+      matrixHomeserverUrl: 'https://matrix.example.org',
+      matrixAccessToken: FULL_MATRIX_TOKEN,
+      matrixRoomId: '#ops:example.org',
+    })
+    expect(res.status).toBe(400)
+    expect(createdRoute).toBeNull()
+  })
+
+  test('stores the normalized homeserver URL', async () => {
+    const res = await post({
+      provider: 'matrix',
+      matrixHomeserverUrl: 'https://matrix.example.org/matrix//',
+      matrixAccessToken: FULL_MATRIX_TOKEN,
+      matrixRoomId: '!abc:example.org',
+    })
+    expect(res.status).toBe(201)
+    expect(createdRoute?.matrixHomeserverUrl).toBe(
+      'https://matrix.example.org/matrix'
+    )
+  })
+
+  test('rejects a homeserver URL with credentials, query or fragment', async () => {
+    for (const matrixHomeserverUrl of [
+      'https://user:pw@matrix.example.org',
+      'https://matrix.example.org?x=1',
+      'https://matrix.example.org#frag',
+    ]) {
+      const res = await post({
+        provider: 'matrix',
+        matrixHomeserverUrl,
+        matrixAccessToken: FULL_MATRIX_TOKEN,
+        matrixRoomId: '!abc:example.org',
+      })
+      expect(res.status).toBe(400)
+    }
+    expect(createdRoute).toBeNull()
+  })
+
+  test('rejects a plain-http homeserver and a missing token', async () => {
+    const http = await post({
+      provider: 'matrix',
+      matrixHomeserverUrl: 'http://matrix.example.org',
+      matrixAccessToken: FULL_MATRIX_TOKEN,
+      matrixRoomId: '!abc:example.org',
+    })
+    expect(http.status).toBe(400)
+    const noToken = await post({
+      provider: 'matrix',
+      matrixHomeserverUrl: 'https://matrix.example.org',
+      matrixRoomId: '!abc:example.org',
+    })
+    expect(noToken.status).toBe(400)
+    expect(createdRoute).toBeNull()
+  })
+
+  test('GET masks the matrix access token of a listed route', async () => {
+    listedRoutes = [
+      {
+        id: 'mx',
+        matchRule: '*',
+        matchHost: '*',
+        channelUrl: '',
+        enabled: true,
+        createdAt: 1,
+        provider: 'matrix',
+        serviceName: null,
+        routingKey: null,
+        telegramChatId: null,
+        telegramBotToken: null,
+        ntfyUrl: null,
+        ntfyToken: null,
+        pushoverUser: null,
+        pushoverToken: null,
+        matrixHomeserverUrl: 'https://matrix.example.org',
+        matrixAccessToken: FULL_MATRIX_TOKEN,
+        matrixRoomId: '!abc:example.org',
+        minSeverity: null,
+      },
+    ]
+    const res = await handleGet(
+      new Request('https://dash.example.com/api/v1/health/routes')
+    )
+    const body = await res.json()
+    expect(jsonContainsFullSecret(body, FULL_MATRIX_TOKEN)).toBe(false)
+    expect(JSON.stringify(body)).toContain('!abc:example.org')
   })
 })

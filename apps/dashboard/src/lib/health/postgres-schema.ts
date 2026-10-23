@@ -45,6 +45,9 @@ CREATE TABLE IF NOT EXISTS alert_routes (
   ntfy_token         TEXT,
   pushover_token     TEXT,
   pushover_user      TEXT,
+  matrix_homeserver_url TEXT,
+  matrix_access_token   TEXT,
+  matrix_room_id        TEXT,
   min_severity       TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_alert_routes_owner_enabled
@@ -78,6 +81,9 @@ CREATE TABLE IF NOT EXISTS alert_state (
 ALTER TABLE alert_state ADD COLUMN IF NOT EXISTS last_notified_value DOUBLE PRECISION;
 ALTER TABLE alert_state ADD COLUMN IF NOT EXISTS repeat_count INTEGER;
 ALTER TABLE alert_state ADD COLUMN IF NOT EXISTS first_value DOUBLE PRECISION;
+ALTER TABLE alert_routes ADD COLUMN IF NOT EXISTS matrix_homeserver_url TEXT;
+ALTER TABLE alert_routes ADD COLUMN IF NOT EXISTS matrix_access_token TEXT;
+ALTER TABLE alert_routes ADD COLUMN IF NOT EXISTS matrix_room_id TEXT;
 
 CREATE TABLE IF NOT EXISTS alert_events (
   id            TEXT PRIMARY KEY,
