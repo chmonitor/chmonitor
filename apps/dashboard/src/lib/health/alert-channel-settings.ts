@@ -20,7 +20,7 @@ export type AlertSeverityFloor = 'warning' | 'critical'
 /**
  * Every delivery channel that has a dispatch path today. `browser` /
  * `healthchecks` are client-only (`alert-dispatcher.ts`); `opsgenie` / `email` /
- * `pagerduty` / `telegram` / `ntfy` / `pushover` are server-only
+ * `pagerduty` / `telegram` / `ntfy` / `pushover` / `matrix` are server-only
  * (`server-sweep.ts`); `webhook` exists in both. `twilio` keeps its own
  * dedicated severity floor (`HEALTH_ALERT_TWILIO_MIN_SEVERITY`, #2668) and is
  * intentionally NOT part of this generic map — see `server-alert-config.ts`.
@@ -35,6 +35,7 @@ export type AlertChannelId =
   | 'telegram'
   | 'ntfy'
   | 'pushover'
+  | 'matrix'
 
 /** Ordered channel id list — the UI iterates this, parsing validates against it. */
 export const ALERT_CHANNEL_IDS: readonly AlertChannelId[] = [
@@ -47,6 +48,7 @@ export const ALERT_CHANNEL_IDS: readonly AlertChannelId[] = [
   'telegram',
   'ntfy',
   'pushover',
+  'matrix',
 ]
 
 /**

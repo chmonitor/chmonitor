@@ -47,6 +47,7 @@ function makeCtx(acks: AlertAck[]): SweepContext {
       ntfy: null,
       twilio: null,
       pushover: null,
+      matrix: null,
       healthchecksUrl: '',
       channelSettings: {},
     },

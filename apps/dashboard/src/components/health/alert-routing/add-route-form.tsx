@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import type { AlertRouteProvider } from '@/lib/hooks/use-alert-routes'
 
 import {
+  MatrixFields,
   NtfyFields,
   PagerDutyFields,
   PushoverFields,
@@ -22,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  fireMatrixTest,
   fireNtfyTest,
   firePagerDutyTest,
   firePushoverTest,
@@ -47,6 +49,9 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
   const [ntfyToken, setNtfyToken] = useState('')
   const [poToken, setPoToken] = useState('')
   const [poUser, setPoUser] = useState('')
+  const [mxHomeserverUrl, setMxHomeserverUrl] = useState('')
+  const [mxAccessToken, setMxAccessToken] = useState('')
+  const [mxRoomId, setMxRoomId] = useState('')
   // Per-route severity floor (#2661); '' = inherit the channel/global gate.
   const [minSeverity, setMinSeverity] = useState<'' | 'warning' | 'critical'>(
     ''
@@ -69,6 +74,9 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     setNtfyToken('')
     setPoToken('')
     setPoUser('')
+    setMxHomeserverUrl('')
+    setMxAccessToken('')
+    setMxRoomId('')
     setMinSeverity('')
   }
 
@@ -91,6 +99,15 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     } else if (provider === 'pushover') {
       if (!poToken.trim() || !poUser.trim()) {
         toast.error('Enter the Pushover application token and user key')
+        return
+      }
+    } else if (provider === 'matrix') {
+      if (
+        !mxHomeserverUrl.trim() ||
+        !mxAccessToken.trim() ||
+        !mxRoomId.trim()
+      ) {
+        toast.error('Enter the Matrix homeserver URL, access token and room id')
         return
       }
     } else if (!channelUrl.trim()) {
@@ -128,7 +145,14 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
                     pushoverToken: poToken.trim(),
                     pushoverUser: poUser.trim(),
                   }
-                : { channelUrl: channelUrl.trim() }),
+                : provider === 'matrix'
+                  ? {
+                      provider: 'matrix',
+                      matrixHomeserverUrl: mxHomeserverUrl.trim(),
+                      matrixAccessToken: mxAccessToken.trim(),
+                      matrixRoomId: mxRoomId.trim(),
+                    }
+                  : { channelUrl: channelUrl.trim() }),
       })
       toast.success('Route created')
       reset()
@@ -207,6 +231,25 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  const handleSendMatrixTest = async () => {
+    if (!mxHomeserverUrl.trim() || !mxAccessToken.trim() || !mxRoomId.trim()) {
+      toast.error('Enter the Matrix homeserver URL, access token and room id')
+      return
+    }
+    setBusy(true)
+    try {
+      const ok = await fireMatrixTest(
+        mxHomeserverUrl.trim(),
+        mxAccessToken.trim(),
+        mxRoomId.trim()
+      )
+      if (ok) toast.success('Test message sent to Matrix')
+      else toast.error('Matrix request failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2 rounded-md border p-3">
       <Label className="text-sm font-medium">Add route</Label>
@@ -227,6 +270,7 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
             <SelectItem value="telegram">Telegram chat</SelectItem>
             <SelectItem value="ntfy">ntfy topic</SelectItem>
             <SelectItem value="pushover">Pushover user</SelectItem>
+            <SelectItem value="matrix">Matrix / Element room</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -324,6 +368,17 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
           onTokenChange={setPoToken}
           onUserChange={setPoUser}
           onSendTest={handleSendPushoverTest}
+        />
+      ) : provider === 'matrix' ? (
+        <MatrixFields
+          busy={busy}
+          mxHomeserverUrl={mxHomeserverUrl}
+          mxAccessToken={mxAccessToken}
+          mxRoomId={mxRoomId}
+          onHomeserverUrlChange={setMxHomeserverUrl}
+          onAccessTokenChange={setMxAccessToken}
+          onRoomIdChange={setMxRoomId}
+          onSendTest={handleSendMatrixTest}
         />
       ) : (
         <WebhookFields

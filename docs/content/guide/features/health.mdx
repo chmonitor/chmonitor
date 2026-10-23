@@ -252,11 +252,12 @@ peerdbRules:
 ```
 
 **`routing.yaml`** declares routes. `provider` is `webhook`, `pagerduty`,
-`telegram`, `ntfy` or `pushover`; `matchRule` and `matchHost` default to `*` and
-accept globs. `secretEnv` names the variable holding the webhook URL, PagerDuty
-routing key, Telegram bot token, ntfy token (optional) or Pushover app token.
-`target` carries the non-secret fields: `serviceName` (pagerduty), `chatId`
-(telegram), `url` (ntfy) and `user` (pushover).
+`telegram`, `ntfy`, `pushover` or `matrix`; `matchRule` and `matchHost` default
+to `*` and accept globs. `secretEnv` names the variable holding the webhook URL,
+PagerDuty routing key, Telegram bot token, ntfy token (optional), Pushover app
+token or Matrix access token. `target` carries the non-secret fields:
+`serviceName` (pagerduty), `chatId` (telegram), `url` (ntfy), `user` (pushover),
+and `homeserverUrl` plus `roomId` (matrix).
 
 ```yaml
 routes:
@@ -372,10 +373,13 @@ The health-sweep endpoint runs checks over all configured hosts and sends a webh
 | `HEALTH_ALERT_WEBHOOK_URL` | (unset = webhook off) | Incoming webhook URL. The channel is auto-detected from the URL: Slack (`hooks.slack.com`) and Discord (`discord.com/api/webhooks`) get channel-native rich bodies; Microsoft Teams (`*.webhook.office.com`, or a Workflows `*.logic.azure.com` URL) gets an Adaptive Card; Google Chat (`chat.googleapis.com`) gets a `cardsV2` card; any other URL receives the plain `{"text": "...", "content": "..."}` wrapper. See [Alerting to Slack and Discord](/guide/guides/alerting-slack-discord) for setup examples. |
 | `HEALTH_ALERT_HEALTHCHECKS_URL` | (unset = healthchecks disabled) | [healthchecks.io](https://healthchecks.io) ping URL. The sweep GETs it on each alert (bare URL) and appends `/fail` on recovery. Self-hosted or cloud healthchecks.io both work. Overridable from the **Server delivery channels** UI (see callout below). |
 | `HEALTH_ALERT_MIN_SEVERITY` | `warning` | Global default minimum severity that triggers a notification. Values: `warning` or `critical`. Per-channel and per-route overrides below take precedence. |
-| `HEALTH_ALERT_<CHANNEL>_MIN_SEVERITY` | (inherit global) | Per-channel severity floor that beats the global default for one channel only (`<CHANNEL>` ∈ `WEBHOOK`, `EMAIL`, `OPSGENIE`, `PAGERDUTY`, `TELEGRAM`, `NTFY`, `PUSHOVER`). Example: `HEALTH_ALERT_WEBHOOK_MIN_SEVERITY=warning` with a `critical` global sends warnings to the webhook only. Values: `warning` or `critical`. Twilio keeps its own `HEALTH_ALERT_TWILIO_MIN_SEVERITY`. |
+| `HEALTH_ALERT_<CHANNEL>_MIN_SEVERITY` | (inherit global) | Per-channel severity floor that beats the global default for one channel only (`<CHANNEL>` ∈ `WEBHOOK`, `EMAIL`, `OPSGENIE`, `PAGERDUTY`, `TELEGRAM`, `NTFY`, `PUSHOVER`, `MATRIX`). Example: `HEALTH_ALERT_WEBHOOK_MIN_SEVERITY=warning` with a `critical` global sends warnings to the webhook only. Values: `warning` or `critical`. Twilio keeps its own `HEALTH_ALERT_TWILIO_MIN_SEVERITY`. |
 | `HEALTH_ALERT_<CHANNEL>_ENABLED` | (inherit) | Set `false` to silence one channel entirely without unsetting its config (`<CHANNEL>` as above). `HEALTH_ALERT_WEBHOOK_ENABLED=false` disables the webhook channel — routes + the legacy global URL — distinct from the master `HEALTH_ALERT_ENABLED`. Per-channel flags are optional: a configured channel is on by default. |
 | `HEALTH_ALERT_TELEGRAM_BOT_TOKEN` | (unset = Telegram disabled) | Telegram Bot API token. Server-only secret — never exposed to the browser. Set together with `HEALTH_ALERT_TELEGRAM_CHAT_ID` to enable the global Telegram channel; each finding is sent to the chat via the Bot API `sendMessage` endpoint. Per-rule/per-host Telegram routes (Routing tab) override this fallback. |
 | `HEALTH_ALERT_TELEGRAM_CHAT_ID` | (unset = Telegram disabled) | Target Telegram chat id (e.g. `-1001234567890`, or `@channelname`). Both this and `HEALTH_ALERT_TELEGRAM_BOT_TOKEN` must be set for the global Telegram channel to fire. |
+| `HEALTH_ALERT_MATRIX_HOMESERVER_URL` | (unset = native Matrix disabled) | Matrix homeserver base URL (e.g. `https://matrix.example.org`). Set together with `HEALTH_ALERT_MATRIX_ACCESS_TOKEN` and `HEALTH_ALERT_MATRIX_ROOM_ID` to post each finding to a room through the Client-Server API. Per-rule/per-host Matrix routes (Routing tab) override this fallback. See [Matrix / Element](#matrix--element) below. |
+| `HEALTH_ALERT_MATRIX_ACCESS_TOKEN` | (unset = native Matrix disabled) | Access token of the bot user, sent as `Authorization: Bearer <token>`. Server-only secret — never exposed to the browser. |
+| `HEALTH_ALERT_MATRIX_ROOM_ID` | (unset = native Matrix disabled) | Room id (`!abc123:example.org`), not an alias. |
 | `HEALTH_ALERT_NTFY_URL` | (unset = ntfy disabled) | Full [ntfy](https://ntfy.sh) topic URL (e.g. `https://ntfy.sh/my-topic`, or a self-hosted server). Each finding is published with `Title`/`Priority`/`Tags` headers + a plain-text body (severity → priority: critical `5`/urgent, warning `4`/high, recovery `3`/default). Per-rule/per-host ntfy routes (Routing tab) override this fallback. |
 | `HEALTH_ALERT_NTFY_TOKEN` | (unset = no auth) | Optional ntfy access token for a protected topic, sent as `Authorization: Bearer <token>`. Server-only secret — never exposed to the browser. |
 | `HEALTH_ALERT_TWILIO_ACCOUNT_SID` | (unset = Twilio disabled) | Twilio Account SID. Set together with `HEALTH_ALERT_TWILIO_AUTH_TOKEN`, `HEALTH_ALERT_TWILIO_FROM`, and `HEALTH_ALERT_TWILIO_TO` to enable the global Twilio SMS channel. There are no per-rule/per-host SMS *routes*, but the credentials are editable from the **Server delivery channels** UI (see callout below). |
@@ -488,6 +492,8 @@ wrangler secret put HEALTH_ALERT_NTFY_TOKEN
 wrangler secret put HEALTH_ALERT_TWILIO_AUTH_TOKEN
 # Optional: Pushover channel (app token is a secret; user key is a plain var)
 wrangler secret put HEALTH_ALERT_PUSHOVER_TOKEN
+# Optional: native Matrix (access token is a secret; homeserver URL and room id are plain vars)
+wrangler secret put HEALTH_ALERT_MATRIX_ACCESS_TOKEN
 ```
 </Step>
 <Step>
@@ -512,6 +518,45 @@ curl -H "Authorization: Bearer $CRON_SECRET" \
 The endpoint returns a JSON array of check results. It always returns HTTP 200; alert dispatch happens server-side.
 </Step>
 </Steps>
+
+### Matrix / Element
+
+chmonitor can post alerts to a Matrix room itself, through the Matrix
+Client-Server API. It sends each alert as an `m.notice` event with
+`PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.message/{txnId}`. No bridge
+is needed.
+
+1. Create a bot user on your homeserver, for example `@chmonitor:example.org`.
+2. Get its access token. Sign in as the bot in Element and copy the token from
+   **Settings → Help & About → Access token**, or call `POST /_matrix/client/v3/login`.
+3. Invite the bot to the room, then sign in as the bot and accept the invite.
+   The bot must already be joined: chmonitor does not join rooms.
+4. Copy the room id (`!abc123:example.org`) from **Room settings → Advanced**
+   in Element. A room alias (`#ops:example.org`) does not work.
+5. Set `HEALTH_ALERT_MATRIX_HOMESERVER_URL`, `HEALTH_ALERT_MATRIX_ACCESS_TOKEN`
+   and `HEALTH_ALERT_MATRIX_ROOM_ID`, or add a **Matrix / Element room** route
+   on the Routing tab and click **Send test message**.
+
+A homeserver URL saved from the Routing tab, or set in a `routing.yaml` target,
+must be public HTTPS with no username, password, query or fragment; private and
+internal addresses are refused, both when you save it and again at every send.
+It is stored without trailing slashes (a path prefix such as `/matrix` is kept).
+The env URL is set by the operator and may be `http` and point at a LAN
+homeserver; an env URL or room id that is not valid disables native Matrix and
+logs one warning. Redirects are never followed, so the access token
+only goes to the host you configured.
+
+<Callout type="warn" title="Encrypted rooms">
+chmonitor sends events unencrypted. In an end-to-end encrypted room the alerts
+still arrive, but they are not encrypted. Use a room without encryption for
+alerts, or accept that alert text is readable by the homeserver.
+</Callout>
+
+**Native Matrix or Hookshot?** A Hookshot (or other bridge) webhook is a custom
+webhook target with the `hookshot` or `matrix` format: chmonitor POSTs to the
+bridge URL and the bridge posts into the room, and findings from one sweep are
+grouped into one message. Native Matrix needs no bridge, but it sends one
+message per alert; it is not grouped and not batched by the digest.
 
 ### Scheduling (Cloudflare Cron)
 

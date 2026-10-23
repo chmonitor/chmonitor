@@ -127,6 +127,7 @@ const PUBLIC: Record<string, string> = {
   'GET /api/v1/health/snapshot': DEMO,
   'GET /api/v1/health/checks': DEMO,
   'GET /api/v1/health/custom-rules/test': DEMO,
+  'GET /api/v1/health/matrix-test': 'configured flag only',
   'GET /api/v1/health/ntfy-test': 'configured flag only',
   'GET /api/v1/health/opsgenie-test': 'configured flag only',
   'GET /api/v1/health/pushover-test': 'configured flag only',

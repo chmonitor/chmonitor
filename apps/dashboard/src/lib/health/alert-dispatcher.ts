@@ -391,6 +391,35 @@ export async function firePushoverTest(
 }
 
 /**
+ * Send a test Matrix notice to a room through the dedicated
+ * `/api/v1/health/matrix-test` route. The server SSRF-validates the
+ * caller-supplied homeserver URL and sends with the access token as a Bearer
+ * header. The token is only sent to our own server while the user is creating
+ * the route, never echoed back after storage.
+ */
+export async function fireMatrixTest(
+  homeserverUrl: string,
+  accessToken: string,
+  roomId: string
+): Promise<boolean> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10_000)
+  try {
+    const res = await fetch('/api/v1/health/matrix-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ homeserverUrl, accessToken, roomId }),
+      signal: controller.signal,
+    })
+    return res.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+/**
  * Per-channel gate for the client dispatch path (#2661). Resolves the global
  * gate + this channel's optional override into a single decision via the shared
  * {@link resolveChannelDelivery} — the same function the server sweep uses. The

@@ -293,6 +293,7 @@ const ENV_COMPOSED_NAMES = [
   'TELEGRAM',
   'NTFY',
   'PUSHOVER',
+  'MATRIX',
 ].flatMap((ch) => [
   `HEALTH_ALERT_${ch}_ENABLED`,
   `HEALTH_ALERT_${ch}_MIN_SEVERITY`,

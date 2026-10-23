@@ -154,7 +154,14 @@ export const declarativeRouteSchema = z.strictObject({
   matchRule: z.string().min(1).default('*'),
   /** Host id, host name, or `*`; may be a glob. */
   matchHost: z.string().min(1).default('*'),
-  provider: z.enum(['webhook', 'pagerduty', 'telegram', 'ntfy', 'pushover']),
+  provider: z.enum([
+    'webhook',
+    'pagerduty',
+    'telegram',
+    'ntfy',
+    'pushover',
+    'matrix',
+  ]),
   enabled: z.boolean().default(true),
   minSeverity: severityFloorSchema.nullable().default(null),
   target: targetSchema.default({}),

@@ -329,6 +329,62 @@ describe('alert routes (union by id)', () => {
     expect(await listRoutes(nextOwner())).toEqual([])
   })
 
+  test('matrix: homeserver + room from target, token from secretEnv', async () => {
+    writeConfig(
+      'routing',
+      `routes:
+  - id: room
+    provider: matrix
+    target: { homeserverUrl: 'https://1.1.1.1', roomId: '!abc:example.org' }
+    secretEnv: TG_TOKEN
+  - id: alias
+    provider: matrix
+    target: { homeserverUrl: 'https://1.1.1.1', roomId: '#ops:example.org' }
+    secretEnv: TG_TOKEN
+  - id: internal
+    provider: matrix
+    target: { homeserverUrl: 'https://127.0.0.1', roomId: '!abc:example.org' }
+    secretEnv: TG_TOKEN
+`
+    )
+    const routes = await listRoutes(nextOwner())
+    // The alias and the internal homeserver are both dropped.
+    expect(routes.map((r) => r.id)).toEqual(['room'])
+    expect(routes[0]).toMatchObject({
+      provider: 'matrix',
+      matrixHomeserverUrl: 'https://1.1.1.1',
+      matrixAccessToken: 'tg-secret-token',
+      matrixRoomId: '!abc:example.org',
+    })
+  })
+
+  test('matrix: homeserver URL is normalized; credentials/query/http are dropped', async () => {
+    writeConfig(
+      'routing',
+      `routes:
+  - id: slash
+    provider: matrix
+    target: { homeserverUrl: 'https://1.1.1.1/m//', roomId: '!abc:example.org' }
+    secretEnv: TG_TOKEN
+  - id: creds
+    provider: matrix
+    target: { homeserverUrl: 'https://u:p@1.1.1.1', roomId: '!abc:example.org' }
+    secretEnv: TG_TOKEN
+  - id: query
+    provider: matrix
+    target: { homeserverUrl: 'https://1.1.1.1?x=1', roomId: '!abc:example.org' }
+    secretEnv: TG_TOKEN
+  - id: plain
+    provider: matrix
+    target: { homeserverUrl: 'http://1.1.1.1', roomId: '!abc:example.org' }
+    secretEnv: TG_TOKEN
+`
+    )
+    const routes = await listRoutes(nextOwner())
+    expect(routes.map((r) => r.id)).toEqual(['slash'])
+    expect(routes[0]?.matrixHomeserverUrl).toBe('https://1.1.1.1/m')
+  })
+
   test('a missing secret env var skips the route', async () => {
     delete process.env.TG_TOKEN
     writeConfig('routing', ROUTING)

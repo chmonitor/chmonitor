@@ -664,6 +664,36 @@
     {
       "exampleDefault": null,
       "inEnvExample": true,
+      "name": "HEALTH_ALERT_MATRIX_ACCESS_TOKEN",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "HEALTH_ALERT_MATRIX_ENABLED",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "HEALTH_ALERT_MATRIX_HOMESERVER_URL",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "HEALTH_ALERT_MATRIX_MIN_SEVERITY",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "HEALTH_ALERT_MATRIX_ROOM_ID",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
       "name": "HEALTH_ALERT_METADATA",
       "prefix": "HEALTH"
     },

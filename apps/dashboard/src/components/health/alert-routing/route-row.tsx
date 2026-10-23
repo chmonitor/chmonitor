@@ -29,6 +29,7 @@ export function RouteRow({
   const isTelegram = route.provider === 'telegram'
   const isNtfy = route.provider === 'ntfy'
   const isPushover = route.provider === 'pushover'
+  const isMatrix = route.provider === 'matrix'
 
   const handleDelete = async () => {
     setBusy(true)
@@ -93,6 +94,13 @@ export function RouteRow({
         )
         return
       }
+      // Matrix: the access token is a masked secret, same tradeoff as above.
+      if (isMatrix) {
+        toast.info(
+          'Re-create the route to send another Matrix test message (the access token is never re-shown once saved).'
+        )
+        return
+      }
       const identity = await fetchAlertIdentity()
       const ok = await fireWebhook(TEST_ALERT, route.channelUrl, identity)
       if (ok) toast.success('Test alert sent')
@@ -110,6 +118,7 @@ export function RouteRow({
           {isTelegram && <Badge variant="default">Telegram</Badge>}
           {isNtfy && <Badge variant="default">ntfy</Badge>}
           {isPushover && <Badge variant="default">Pushover</Badge>}
+          {isMatrix && <Badge variant="default">Matrix</Badge>}
           <Badge variant="outline">rule: {route.matchRule}</Badge>
           <Badge variant="outline">host: {route.matchHost}</Badge>
           {route.minSeverity && (
@@ -128,7 +137,9 @@ export function RouteRow({
                 ? `${route.ntfyUrl}${route.ntfyTokenMasked ? ` — token ${route.ntfyTokenMasked}` : ''}`
                 : isPushover
                   ? `user ${route.pushoverUser} — token ${route.pushoverTokenMasked}`
-                  : route.channelUrl}
+                  : isMatrix
+                    ? `${route.matrixRoomId} on ${route.matrixHomeserverUrl} — token ${route.matrixAccessTokenMasked}`
+                    : route.channelUrl}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-2">

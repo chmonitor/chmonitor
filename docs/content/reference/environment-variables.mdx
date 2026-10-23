@@ -214,7 +214,7 @@ alert settings UI overrides the matching variable here.
 
 Every channel also takes a per-channel `_ENABLED` switch (`false` turns it off)
 and a `_MIN_SEVERITY` floor (`warning` or `critical`, defaults to
-`HEALTH_ALERT_MIN_SEVERITY`). The names are: `HEALTH_ALERT_WEBHOOK_ENABLED`, `HEALTH_ALERT_WEBHOOK_MIN_SEVERITY`, `HEALTH_ALERT_EMAIL_ENABLED`, `HEALTH_ALERT_EMAIL_MIN_SEVERITY`, `HEALTH_ALERT_OPSGENIE_ENABLED`, `HEALTH_ALERT_OPSGENIE_MIN_SEVERITY`, `HEALTH_ALERT_PAGERDUTY_ENABLED`, `HEALTH_ALERT_PAGERDUTY_MIN_SEVERITY`, `HEALTH_ALERT_TELEGRAM_ENABLED`, `HEALTH_ALERT_TELEGRAM_MIN_SEVERITY`, `HEALTH_ALERT_NTFY_ENABLED`, `HEALTH_ALERT_NTFY_MIN_SEVERITY`, `HEALTH_ALERT_PUSHOVER_ENABLED`, `HEALTH_ALERT_PUSHOVER_MIN_SEVERITY`.
+`HEALTH_ALERT_MIN_SEVERITY`). The names are: `HEALTH_ALERT_WEBHOOK_ENABLED`, `HEALTH_ALERT_WEBHOOK_MIN_SEVERITY`, `HEALTH_ALERT_EMAIL_ENABLED`, `HEALTH_ALERT_EMAIL_MIN_SEVERITY`, `HEALTH_ALERT_OPSGENIE_ENABLED`, `HEALTH_ALERT_OPSGENIE_MIN_SEVERITY`, `HEALTH_ALERT_PAGERDUTY_ENABLED`, `HEALTH_ALERT_PAGERDUTY_MIN_SEVERITY`, `HEALTH_ALERT_TELEGRAM_ENABLED`, `HEALTH_ALERT_TELEGRAM_MIN_SEVERITY`, `HEALTH_ALERT_NTFY_ENABLED`, `HEALTH_ALERT_NTFY_MIN_SEVERITY`, `HEALTH_ALERT_PUSHOVER_ENABLED`, `HEALTH_ALERT_PUSHOVER_MIN_SEVERITY`, `HEALTH_ALERT_MATRIX_ENABLED`, `HEALTH_ALERT_MATRIX_MIN_SEVERITY`.
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -235,6 +235,11 @@ and a `_MIN_SEVERITY` floor (`warning` or `critical`, defaults to
 | `HEALTH_ALERT_NTFY_TOKEN` | — | **Secret.** Optional Bearer token for a protected ntfy topic. |
 | `HEALTH_ALERT_PUSHOVER_TOKEN` | — | **Secret.** Pushover application API token. Pushover needs both this and the user key. |
 | `HEALTH_ALERT_PUSHOVER_USER` | — | Pushover user or group key to notify. |
+| `HEALTH_ALERT_MATRIX_HOMESERVER_URL` | — | Matrix homeserver base URL, for example `https://matrix.example.org`. A path prefix is kept. Native Matrix needs this, the access token and the room id. |
+| `HEALTH_ALERT_MATRIX_ACCESS_TOKEN` | — | **Secret.** Access token of the bot user, sent as `Authorization: Bearer`. |
+| `HEALTH_ALERT_MATRIX_ROOM_ID` | — | Room id to post to, for example `!abc123:example.org`. Room aliases (`#room:server`) are not accepted. |
+| `HEALTH_ALERT_MATRIX_ENABLED` | `true` when configured | Set `false` to silence native Matrix without unsetting it. |
+| `HEALTH_ALERT_MATRIX_MIN_SEVERITY` | inherits `HEALTH_ALERT_MIN_SEVERITY` | Severity floor for native Matrix only: `warning` or `critical`. |
 | `HEALTH_ALERT_TWILIO_ACCOUNT_SID` | — | Twilio account SID. SMS needs the SID, auth token, from number and at least one recipient. |
 | `HEALTH_ALERT_TWILIO_AUTH_TOKEN` | — | **Secret.** Twilio auth token. |
 | `HEALTH_ALERT_TWILIO_FROM` | — | Twilio sender number. |
