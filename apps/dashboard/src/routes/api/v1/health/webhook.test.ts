@@ -64,12 +64,18 @@ function makeRequest(body: unknown): Request {
 
 /** A fetch stub that records the URL + method + body it was called with. */
 function stubFetch() {
-  const calls: { url: string; method: string; body: string }[] = []
+  const calls: {
+    url: string
+    method: string
+    body: string
+    redirect?: RequestRedirect
+  }[] = []
   const fetchImpl = (async (input: unknown, init?: RequestInit) => {
     calls.push({
       url: String(input),
       method: init?.method ?? 'GET',
       body: typeof init?.body === 'string' ? init.body : '',
+      redirect: init?.redirect,
     })
     return new Response('ok', { status: 200 })
   }) as unknown as typeof fetch
@@ -127,6 +133,7 @@ describe('health webhook proxy — SSRF hardening', () => {
     expect(res.status).toBe(200)
     expect(calls).toHaveLength(1)
     expect(calls[0].url).toBe('https://hooks.slack.com/services/T000/B000/XXXX')
+    expect(calls[0].redirect).toBe('error')
     // Backward-compatible default wrapper.
     expect(JSON.parse(calls[0].body)).toEqual({
       text: 'hello world',
@@ -193,6 +200,7 @@ describe('health webhook proxy — provider verbatim forwarding', () => {
     expect(calls).toHaveLength(1)
     expect(calls[0].method).toBe('GET')
     expect(calls[0].body).toBe('')
+    expect(calls[0].redirect).toBe('error')
   })
 
   test('raw-get rejects a missing url', async () => {

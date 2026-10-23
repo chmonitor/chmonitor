@@ -17,8 +17,12 @@ const realFetch = globalThis.fetch
 let calls: string[] = []
 let responder: (url: string) => Response
 let nextHostId = 910_000
+const savedHcEnv = process.env.HEALTH_ALERT_HEALTHCHECKS_URL
 
 beforeEach(() => {
+  // The ping URL stands for the operator's env value, which is sent without
+  // the send-time host check a saved URL gets.
+  process.env.HEALTH_ALERT_HEALTHCHECKS_URL = HC_URL
   calls = []
   responder = () => new Response('ok', { status: 200 })
   globalThis.fetch = (async (input: RequestInfo | URL) => {
@@ -30,6 +34,8 @@ beforeEach(() => {
 
 afterEach(() => {
   globalThis.fetch = realFetch
+  if (savedHcEnv === undefined) delete process.env.HEALTH_ALERT_HEALTHCHECKS_URL
+  else process.env.HEALTH_ALERT_HEALTHCHECKS_URL = savedHcEnv
 })
 
 function makeCtx(overrides: Partial<SweepContext> = {}): SweepContext {
