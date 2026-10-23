@@ -81,7 +81,9 @@ async function runRuleQuery(
  * so the Active Alerts panel and the cron sweep can no longer both ask the same
  * server the same question on the same tick.
  */
-export async function getCurrentFindings(): Promise<CurrentFinding[]> {
+export async function getCurrentFindings(options?: {
+  hostId?: number
+}): Promise<CurrentFinding[]> {
   const enabledRules = getServerEnabledRules()
   const rules = ruleRegistry
     .getAll()
@@ -89,7 +91,9 @@ export async function getCurrentFindings(): Promise<CurrentFinding[]> {
   const thresholdOverrides = await resolveThresholdOverrides(
     rules.map((r) => r.id)
   )
-  const configs = getClickHouseConfigs()
+  const configs = getClickHouseConfigs().filter(
+    (config) => options?.hostId === undefined || config.id === options.hostId
+  )
 
   const findings: CurrentFinding[] = []
 

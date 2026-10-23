@@ -3,6 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/server'
 import { registerAdvisorTool } from './advisor'
 import { registerDatabasesTool } from './databases'
 import { registerExploreTableSchemaTool } from './explore-table-schema'
+import { registerFindingsTool } from './findings'
 import { registerMergesTool } from './merges'
 import { registerMetricsTool } from './metrics'
 import { registerPerformanceTool } from './performance'
@@ -20,4 +21,5 @@ export function registerAllTools(server: McpServer) {
   registerExploreTableSchemaTool(server)
   registerPerformanceTool(server)
   registerAdvisorTool(server)
+  registerFindingsTool(server)
 }

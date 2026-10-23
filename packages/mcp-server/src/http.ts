@@ -24,8 +24,14 @@ import {
 import { createMcpServer } from './server'
 import { createMcpHandler } from '@modelcontextprotocol/server'
 
+export type {
+  FindingsProvider,
+  ProvidedFinding,
+} from './findings-provider'
+
 export { handleProtectedResourceMetadata } from './auth/oauth-metadata'
 export { corsPreflight, withCors } from './cors'
+export { setFindingsProvider } from './findings-provider'
 
 /** Workers Route patterns are exact-match, so /api/mcp/ must equal /api/mcp. */
 export function normalizePath(pathname: string): string {

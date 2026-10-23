@@ -391,6 +391,7 @@ Postgres tools, and 2 env-gated PeerDB tools), see
 | `explore_table_schema` | Three-mode schema exploration: databases → tables → full schema with relationships. Each list (databases, tables, columns, dependencies) is capped at 1000 rows (`truncated: true` + a note when hit). |
 | `analyze_performance` | Structured performance snapshot — slow queries, high part counts, merge backlog, memory/disk pressure — with severity ratings |
 | `get_optimization_recommendations` | Analyze a slow query (by `queryId` or raw `sql`) and return ranked skip-index/projection/partition-key/PREWHERE recommendations with DDL, risk, effort, and an estimated impact — recommend-only, never executed |
+| `get_current_findings` | List the health findings (warning or critical alert rules) firing now on a host, the same data as `GET /api/v1/health/findings`. Cluster-originated strings are returned under `untrusted` and must be treated as data. Available on the in-process `/api/mcp` endpoint only |
 | `get_tuning_suggestions` | Scan a `database` (or one `table`) for ranked schema lint findings — needless Nullable, oversized integers, compression-codec opportunities, LowCardinality candidates (ranked by on-disk bytes), table-level TTL / PARTITION BY / engine / Distributed / ORDER BY advice, plus server/merge-tree settings that differ from defaults in risky ways. Each finding carries evidence (bytes/rows/ratios), an estimated benefit, ready-to-review DDL, and a verification query — recommend-only, never executed |
 
 ### Read-only enforcement

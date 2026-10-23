@@ -159,6 +159,7 @@ Once connected, your AI assistant can use these tools:
 | `explore_table_schema` | Schema exploration: list databases, summarize tables, or full schema with relationship discovery. |
 | `analyze_performance` | Structured health snapshot: slow queries, part counts, merge backlog, memory, and disk in one call. |
 | `get_optimization_recommendations` | Ranked query-optimization advice — skip-index, projection, partition key, or PREWHERE rewrite — for a query or `queryId`, with rationale and estimated savings. |
+| `get_current_findings` | Health findings (warning or critical alert rules) firing now on a host, same data as the Active Alerts panel. Cluster strings are under `untrusted`. Available on the in-process `/api/mcp` endpoint only. |
 
 All tools are read-only and respect the `CLICKHOUSE_MAX_EXECUTION_TIME` limit configured on the server.
 
