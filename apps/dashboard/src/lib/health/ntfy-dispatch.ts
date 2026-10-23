@@ -27,6 +27,8 @@ import { error } from '@chm/logger'
 /** Injectable dependencies (tests override fetch). */
 export interface NtfyDispatchDeps {
   fetchImpl?: typeof fetch
+  /** Fetch redirect mode. Saved-route sends pass `'error'`. */
+  redirect?: RequestRedirect
 }
 
 /**
@@ -48,6 +50,7 @@ export async function dispatchNtfy(
       method: 'POST',
       headers: buildNtfyHeaders(payload, config.token),
       body,
+      ...(deps.redirect ? { redirect: deps.redirect } : {}),
       signal: controller.signal,
     })
     if (!res.ok) {

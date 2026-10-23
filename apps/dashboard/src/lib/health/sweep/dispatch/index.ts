@@ -725,7 +725,11 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       telegramTargets
     )
 
-    const ntfyDelivered = await dispatchNtfyChannel(finding, ntfyTargets)
+    const ntfyDelivered = await dispatchNtfyChannel(
+      finding,
+      ntfyTargets,
+      ntfyFallback ?? null
+    )
     if (ntfyDelivered) anyDelivered = true
 
     const twilio = await dispatchTwilioChannel(finding, twilioConfig)
