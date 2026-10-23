@@ -400,7 +400,7 @@ describe('buffered finding dispatch counting', () => {
       } as never,
       commit: () => {},
       anyDelivered: opts.anyDelivered ?? false,
-      groupableWebhookTargets: [URL],
+      groupableWebhookTargets: [{ url: URL, trusted: true }],
       findingTelegramTargets: [],
       groupableCustomTargets: opts.targets ?? [],
       groupableMatrixTargets: opts.rooms ?? [],
