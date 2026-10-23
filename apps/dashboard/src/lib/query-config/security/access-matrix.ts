@@ -491,6 +491,10 @@ export const accessQuotasUsageConfig: QueryConfig = {
  * replica vanish from the result instead of failing it, so
  * `access-replicas` reports which replicas answered at all: a replica with
  * no grants still answers with a row, an unreachable one does not.
+ *
+ * No `defaultParams.cluster`: an empty cluster name makes clusterAllReplicas
+ * fail with BAD_ARGUMENTS, so a caller that forgets it gets the
+ * UNKNOWN_QUERY_PARAMETER the live test treats as "page fills this in".
  */
 const REPLICA_DOCS =
   'https://clickhouse.com/docs/en/sql-reference/table-functions/cluster'
@@ -521,7 +525,6 @@ export const accessReplicaGrantsConfig: QueryConfig = {
     { since: '26.7', sql: replicaGrantsSql('is_wildcard') },
   ],
   columns: REPLICA_COLUMNS([...GRANT_COLUMNS, 'is_wildcard']),
-  defaultParams: { cluster: '' },
 }
 
 export const accessReplicaRoleGrantsConfig: QueryConfig = {
@@ -547,7 +550,6 @@ export const accessReplicaRoleGrantsConfig: QueryConfig = {
     ${CLUSTER_FANOUT_SETTINGS}
   `,
   columns: REPLICA_COLUMNS(ROLE_GRANT_COLUMNS),
-  defaultParams: { cluster: '' },
 }
 
 export const accessReplicasConfig: QueryConfig = {
@@ -571,7 +573,6 @@ export const accessReplicasConfig: QueryConfig = {
     ${CLUSTER_FANOUT_SETTINGS}
   `,
   columns: ['replica', 'grants'],
-  defaultParams: { cluster: '' },
 }
 
 export const accessClustersConfig: QueryConfig = {

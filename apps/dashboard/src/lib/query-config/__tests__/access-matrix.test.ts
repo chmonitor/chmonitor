@@ -95,7 +95,7 @@ describe('access matrix configs', () => {
         expect(sql).toContain('{cluster:String}')
         expect(sql).toContain('hostName() AS replica')
         expect(sql).toContain('skip_unavailable_shards = 1')
-        expect(c.defaultParams).toEqual({ cluster: '' })
+        expect(c.defaultParams?.cluster).toBeUndefined()
       }
     })
 
