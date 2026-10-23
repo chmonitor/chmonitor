@@ -39,6 +39,11 @@ const MAX_FLUSH_ROWS = 500
 export interface BufferedWebhookEntry {
   kind: 'webhook'
   url: string
+  /**
+   * Operator-configured URL (see `WebhookTarget`). Absent on rows written
+   * before this field existed: those are re-checked at send time.
+   */
+  trusted?: boolean
   text: string
   payload: AlertPayload
   /** Ack-button key kept so a lone buffered Slack finding still renders it. */

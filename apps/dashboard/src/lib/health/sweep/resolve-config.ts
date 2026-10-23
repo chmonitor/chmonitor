@@ -17,7 +17,7 @@ import type { CompoundRuleDef } from '@/lib/alerting/compound-rules'
 import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 import type { AlertAck } from './../alert-ack-store'
 import type { ChannelSettingsMap } from './../alert-channel-settings'
-import type { AlertRoute } from './../alert-routing'
+import type { RoutedAlertRoute } from './../alert-routing'
 import type { AlertSettings } from './../alert-settings-storage'
 import type { MaintenanceWindow } from './../maintenance-windows'
 import type { QuietHours } from './../quiet-hours'
@@ -72,7 +72,7 @@ export const SWEEP_ACK_OWNER_ID = ''
 
 export interface SweepContext {
   settings: AlertSettings
-  routes: AlertRoute[]
+  routes: RoutedAlertRoute[]
   pagerDutyFallbackKey: string
   channels: ResolvedServerChannels
   channelSettings: ChannelSettingsMap
@@ -114,7 +114,7 @@ export interface SweepContext {
  */
 export async function resolveSweepContext(): Promise<SweepContext> {
   const settings = getServerAlertConfig()
-  const routes: AlertRoute[] = await listRoutes(SWEEP_ROUTING_OWNER_ID)
+  const routes: RoutedAlertRoute[] = await listRoutes(SWEEP_ROUTING_OWNER_ID)
   const pagerDutyFallbackKey = getPagerDutyFallbackRoutingKey()
   // Unified per-channel config (#2665): the D1-persisted UI config, layered
   // over the env readers (D1 row › env fallback per channel). With no D1
