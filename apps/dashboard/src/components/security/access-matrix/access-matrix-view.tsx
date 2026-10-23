@@ -3,12 +3,18 @@
  * access per cell. Click a database header to expand it into its tables,
  * a cell for the privileges behind it, a name for the user or role.
  *
- * Read only. THIS NODE ONLY: grants are read from the selected host, so
- * drift between replicas (users.xml rollouts) is not detected yet.
+ * Read only. Grants come from the selected host. The "Compare replicas"
+ * switch (off by default) also reads them from every replica of a cluster and
+ * marks the cells and users whose effective access differs between replicas.
  */
 
-import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react'
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  GitCompareArrowsIcon,
+} from 'lucide-react'
 
+import type { ReplicaView } from '@/lib/security/access-drift'
 import type { AccessInputs, GranteeAccess } from '@/lib/security/access-matrix'
 import type {
   MatrixFilters,
@@ -19,7 +25,11 @@ import type { Section } from './use-access-data'
 
 import { AccessChip, AccessLegend } from './access-chip'
 import { CellSheet, GranteeSheet } from './access-sheets'
-import { useAccessData, useDatabaseTables } from './use-access-data'
+import {
+  useAccessData,
+  useDatabaseTables,
+  useReplicaData,
+} from './use-access-data'
 import { useMemo, useState } from 'react'
 import { ChartError } from '@/components/charts/chart-error'
 import { Skeleton } from '@/components/skeletons'
@@ -36,6 +46,12 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ACCESS_TABLES_LIMIT } from '@/lib/query-config/security/access-matrix'
+import {
+  buildReplicaView,
+  cellDrift,
+  granteeDriftDatabases,
+  pickDriftCluster,
+} from '@/lib/security/access-drift'
 import { computeCell } from '@/lib/security/access-matrix'
 import {
   buildRows,
@@ -108,6 +124,7 @@ export function AccessMatrixView() {
     hideConfigUsers: false,
   })
   const [showSystemDatabases, setShowSystemDatabases] = useState(false)
+  const [compareReplicas, setCompareReplicas] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [cellSelection, setCellSelection] = useState<CellSelection | null>(null)
   const [granteeSelection, setGranteeSelection] =
@@ -144,6 +161,55 @@ export function AccessMatrixView() {
   )
   const visible = useMemo(() => filterRows(rows, filters), [rows, filters])
 
+  const driftCluster = useMemo(
+    () => pickDriftCluster(data.clusters.data),
+    [data.clusters.data]
+  )
+  const replicaData = useReplicaData(
+    compareReplicas ? driftCluster.cluster : null
+  )
+  const replicaSections = [
+    replicaData.grants,
+    replicaData.roleGrants,
+    replicaData.replicas,
+  ]
+  // A capped or failed read would look like missing grants, so it never
+  // reaches the comparison.
+  const replicaReadable =
+    compareReplicas &&
+    driftCluster.cluster !== null &&
+    replicaSections.every((r) => !r.isLoading && !r.error && !r.truncated)
+  const replicaView: ReplicaView | null = useMemo(
+    () =>
+      replicaReadable
+        ? buildReplicaView({
+            kind,
+            grantees,
+            databases,
+            grants: replicaData.grants.data,
+            roleGrants: replicaData.roleGrants.data,
+            responded: replicaData.replicas.data.map((r) => r.replica),
+            members: driftCluster.members,
+            shared: {
+              profiles: data.profiles.data,
+              profileElements: data.profileElements.data,
+            },
+          })
+        : null,
+    [
+      replicaReadable,
+      kind,
+      grantees,
+      databases,
+      replicaData.grants.data,
+      replicaData.roleGrants.data,
+      replicaData.replicas.data,
+      driftCluster.members,
+      data.profiles.data,
+      data.profileElements.data,
+    ]
+  )
+
   const granteeSection = kind === 'user' ? data.users : data.roles
   if (data.grants.isLoading || granteeSection.isLoading)
     return <MatrixSkeleton />
@@ -169,17 +235,32 @@ export function AccessMatrixView() {
     ['Quota limits', data.quotaLimits],
     ['Quota usage', data.quotasUsage],
   ] as const
+  const replicaNotices = [
+    ['Replica grants', replicaData.grants],
+    ['Replica role grants', replicaData.roleGrants],
+    ['Replica list', replicaData.replicas],
+  ] as const
+  const replicasLoading = replicaSections.some((r) => r.isLoading)
 
   const columnsFor = (database: string) =>
     expanded === database ? expandedTables.tables : []
 
   return (
     <div className="flex flex-col gap-4">
-      {notices.some(([, s]) => s.error || s.truncated) && (
+      {(notices.some(([, s]) => s.error || s.truncated) ||
+        (compareReplicas && !replicasLoading)) && (
         <ul className="list-disc space-y-1 rounded-xl border bg-card px-8 py-3 text-xs text-muted-foreground shadow-sm">
           {notices.map(([label, section]) => (
             <SectionNotice key={label} label={label} section={section} />
           ))}
+          {compareReplicas &&
+            replicaNotices.map(([label, section]) => (
+              <SectionNotice key={label} label={label} section={section} />
+            ))}
+          {compareReplicas && !replicasLoading && !replicaReadable && (
+            <li>Replicas were not compared.</li>
+          )}
+          {replicaView && <ReplicaNotice view={replicaView} />}
         </ul>
       )}
 
@@ -246,6 +327,29 @@ export function AccessMatrixView() {
             Hide users.xml users
           </Label>
         )}
+        <Label
+          className="flex items-center gap-2 text-[13px]"
+          title={driftCluster.reason}
+        >
+          <Switch
+            checked={compareReplicas && driftCluster.cluster !== null}
+            disabled={driftCluster.cluster === null}
+            onCheckedChange={setCompareReplicas}
+          />
+          Compare replicas
+          {driftCluster.cluster === null && (
+            <span className="text-xs text-muted-foreground">
+              {data.clusters.error
+                ? `Clusters not available: ${data.clusters.error.message}`
+                : driftCluster.reason}
+            </span>
+          )}
+          {compareReplicas && replicasLoading && (
+            <span className="text-xs text-muted-foreground">
+              Reading replicas…
+            </span>
+          )}
+        </Label>
         <Label className="flex items-center gap-2 text-[13px]">
           <Switch
             checked={showSystemDatabases}
@@ -347,12 +451,21 @@ export function AccessMatrixView() {
                     >
                       {row.access.grantee.name}
                     </button>
+                    {replicaView &&
+                      granteeDriftDatabases(
+                        replicaView,
+                        row.access.grantee.name,
+                        databases
+                      ).length > 0 && (
+                        <DriftMark label="differs between replicas" />
+                      )}
                   </th>
                   {databases.flatMap((d) => [
                     <td key={d} className="px-3 py-1.5">
                       <CellButton
                         row={row}
                         database={d}
+                        replicaView={replicaView}
                         onOpen={setCellSelection}
                       />
                     </td>,
@@ -362,6 +475,7 @@ export function AccessMatrixView() {
                           row={row}
                           database={d}
                           table={t}
+                          replicaView={replicaView}
                           onOpen={setCellSelection}
                         />
                       </td>
@@ -393,9 +507,41 @@ export function AccessMatrixView() {
       <GranteeSheet
         access={granteeSelection}
         data={data}
+        replicaView={replicaView}
+        databases={databases}
         onClose={() => setGranteeSelection(null)}
       />
     </div>
+  )
+}
+
+/** Replicas that did not answer, and a comparison that cannot be made. */
+function ReplicaNotice({ view }: { view: ReplicaView }) {
+  return (
+    <>
+      {view.skipped.length > 0 && (
+        <li>
+          <span className="font-medium">Skipped replicas</span> did not answer
+          and are not compared (not counted as drift):{' '}
+          <span className="font-mono">{view.skipped.join(', ')}</span>.
+        </li>
+      )}
+      {!view.comparable && (
+        <li>
+          Fewer than two replicas answered, so there is nothing to compare.
+        </li>
+      )}
+    </>
+  )
+}
+
+function DriftMark({ label }: { label: string }) {
+  return (
+    <GitCompareArrowsIcon
+      className="ml-1.5 inline size-3.5 text-chart-yellow"
+      strokeWidth={1.5}
+      aria-label={label}
+    />
   )
 }
 
@@ -403,27 +549,33 @@ function CellButton({
   row,
   database,
   table,
+  replicaView,
   onOpen,
 }: {
   row: MatrixRow
   database: string
   table?: string
+  replicaView: ReplicaView | null
   onOpen: (selection: CellSelection) => void
 }) {
   const cell = table
     ? computeCell(row.access.sourced, { database, table }, row.access.readonly)
     : row.cells.get(database)
   if (!cell) return null
+  const drift = replicaView
+    ? cellDrift(replicaView, row.access.grantee.name, { database, table })
+    : undefined
   return (
     <button
       type="button"
       className="rounded-md px-1 py-0.5 hover:bg-muted pointer-coarse:min-h-11"
       aria-label={`${row.access.grantee.name} on ${database}.${table ?? '*'}: ${cell.level}`}
       onClick={() =>
-        onOpen({ access: row.access, scope: { database, table }, cell })
+        onOpen({ access: row.access, scope: { database, table }, cell, drift })
       }
     >
       <AccessChip cell={cell} />
+      {drift?.drifted && <DriftMark label="differs between replicas" />}
     </button>
   )
 }

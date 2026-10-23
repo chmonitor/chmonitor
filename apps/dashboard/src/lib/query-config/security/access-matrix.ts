@@ -16,6 +16,8 @@
 
 import type { QueryConfig } from '@/types/query-config'
 
+import { CLUSTER_FANOUT_SETTINGS } from '@/lib/cluster/fanout-settings'
+
 const DOCS = 'https://clickhouse.com/docs/en/operations/access-rights'
 
 const SECURITY = { feature: 'security' } as const
@@ -23,9 +25,20 @@ const SECURITY = { feature: 'security' } as const
 /** Row cap of one expanded database column; the UI says when it is hit. */
 export const ACCESS_TABLES_LIMIT = 500
 
-const grantsSql = (isWildcard: string) => `
+const GRANT_COLUMNS = [
+  'user_name',
+  'role_name',
+  'access_type',
+  'database',
+  'table',
+  'column',
+  'is_partial_revoke',
+  'grant_option',
+]
+
+const grantsSelect = (isWildcard: string, prefix = '') => `
     SELECT
-      user_name,
+      ${prefix}user_name,
       role_name,
       toString(access_type) AS access_type,
       database,
@@ -34,8 +47,13 @@ const grantsSql = (isWildcard: string) => `
       is_partial_revoke,
       grant_option,
       ${isWildcard}
-    FROM system.grants
-    ORDER BY user_name, role_name, database, table, column, access_type
+    FROM system.grants`
+
+const GRANTS_ORDER =
+  'ORDER BY user_name, role_name, database, table, column, access_type'
+
+const grantsSql = (isWildcard: string) => `${grantsSelect(isWildcard)}
+    ${GRANTS_ORDER}
   `
 
 export const accessGrantsConfig: QueryConfig = {
@@ -89,6 +107,14 @@ export const accessRoleGrantsConfig: QueryConfig = {
     'with_admin_option',
   ],
 }
+
+const ROLE_GRANT_COLUMNS = [
+  'user_name',
+  'role_name',
+  'granted_role_name',
+  'granted_role_is_default',
+  'with_admin_option',
+]
 
 export const accessUsersConfig: QueryConfig = {
   name: 'access-users',
@@ -458,6 +484,112 @@ export const accessQuotasUsageConfig: QueryConfig = {
   ],
 }
 
+/**
+ * Replica drift (#4123), opt-in. The same two reads as above, run on every
+ * replica of `{cluster}` through clusterAllReplicas, tagged with the replica's
+ * hostName(). Read-only. `skip_unavailable_shards` makes an unreachable
+ * replica vanish from the result instead of failing it, so
+ * `access-replicas` reports which replicas answered at all: a replica with
+ * no grants still answers with a row, an unreachable one does not.
+ */
+const REPLICA_DOCS =
+  'https://clickhouse.com/docs/en/sql-reference/table-functions/cluster'
+
+const REPLICA_COLUMNS = (columns: string[]) => ['replica', ...columns]
+
+const replicaGrantsSql = (isWildcard: string) => `
+    SELECT ${REPLICA_COLUMNS([...GRANT_COLUMNS, 'is_wildcard']).join(', ')}
+    FROM clusterAllReplicas(
+      {cluster:String},
+      view(${grantsSelect(isWildcard, 'hostName() AS replica, ')}
+      )
+    )
+    ORDER BY replica, ${GRANTS_ORDER.replace('ORDER BY ', '')}
+    ${CLUSTER_FANOUT_SETTINGS}
+  `
+
+export const accessReplicaGrantsConfig: QueryConfig = {
+  name: 'access-replica-grants',
+  description:
+    'Privileges (system.grants) as each replica of a cluster sees them, for the replica drift check.',
+  optional: true,
+  tableCheck: 'system.grants',
+  docs: REPLICA_DOCS,
+  permission: SECURITY,
+  sql: [
+    { since: '23.8', sql: replicaGrantsSql('toUInt8(0) AS is_wildcard') },
+    { since: '26.7', sql: replicaGrantsSql('is_wildcard') },
+  ],
+  columns: REPLICA_COLUMNS([...GRANT_COLUMNS, 'is_wildcard']),
+  defaultParams: { cluster: '' },
+}
+
+export const accessReplicaRoleGrantsConfig: QueryConfig = {
+  name: 'access-replica-role-grants',
+  description:
+    'Role grants (system.role_grants) as each replica of a cluster sees them, for the replica drift check.',
+  optional: true,
+  tableCheck: 'system.role_grants',
+  docs: REPLICA_DOCS,
+  permission: SECURITY,
+  sql: `
+    SELECT ${REPLICA_COLUMNS(ROLE_GRANT_COLUMNS).join(', ')}
+    FROM clusterAllReplicas(
+      {cluster:String},
+      view(
+        SELECT
+          hostName() AS replica,
+          ${ROLE_GRANT_COLUMNS.join(',\n          ')}
+        FROM system.role_grants
+      )
+    )
+    ORDER BY replica, user_name, role_name, granted_role_name
+    ${CLUSTER_FANOUT_SETTINGS}
+  `,
+  columns: REPLICA_COLUMNS(ROLE_GRANT_COLUMNS),
+  defaultParams: { cluster: '' },
+}
+
+export const accessReplicasConfig: QueryConfig = {
+  name: 'access-replicas',
+  description:
+    'Replicas of a cluster that answered, one row each (system.grants row count), to tell a skipped replica from a replica without drift.',
+  optional: true,
+  tableCheck: 'system.grants',
+  docs: REPLICA_DOCS,
+  permission: SECURITY,
+  sql: `
+    SELECT replica, grants
+    FROM clusterAllReplicas(
+      {cluster:String},
+      view(
+        SELECT hostName() AS replica, count() AS grants
+        FROM system.grants
+      )
+    )
+    ORDER BY replica
+    ${CLUSTER_FANOUT_SETTINGS}
+  `,
+  columns: ['replica', 'grants'],
+  defaultParams: { cluster: '' },
+}
+
+export const accessClustersConfig: QueryConfig = {
+  name: 'access-clusters',
+  description:
+    'Cluster members (system.clusters), to pick the cluster for the replica drift check and know which replicas to expect.',
+  optional: true,
+  tableCheck: 'system.clusters',
+  docs: REPLICA_DOCS,
+  permission: SECURITY,
+  sql: `
+    SELECT cluster, host_name, host_address, port, is_local
+    FROM system.clusters
+    ORDER BY cluster, shard_num, replica_num
+  `,
+  columns: ['cluster', 'host_name', 'host_address', 'port', 'is_local'],
+}
+
 export const accessMatrixConfigs: QueryConfig[] = [
   accessGrantsConfig,
   accessRoleGrantsConfig,
@@ -471,4 +603,8 @@ export const accessMatrixConfigs: QueryConfig[] = [
   accessQuotasConfig,
   accessQuotaLimitsConfig,
   accessQuotasUsageConfig,
+  accessReplicaGrantsConfig,
+  accessReplicaRoleGrantsConfig,
+  accessReplicasConfig,
+  accessClustersConfig,
 ]

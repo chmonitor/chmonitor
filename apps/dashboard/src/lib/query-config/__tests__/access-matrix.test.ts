@@ -77,4 +77,35 @@ describe('access matrix configs', () => {
     expect(sql).toContain('{database:String}')
     expect(sql).toMatch(/LIMIT 500\s*$/)
   })
+
+  describe('replica drift reads', () => {
+    const replicaConfigs = accessMatrixConfigs.filter((c) =>
+      /^access-replica/.test(c.name)
+    )
+
+    test('every replica read fans out with a cluster parameter, skipping dead replicas', () => {
+      expect(replicaConfigs.map((c) => c.name)).toEqual([
+        'access-replica-grants',
+        'access-replica-role-grants',
+        'access-replicas',
+      ])
+      for (const c of replicaConfigs) {
+        const sql = sqlOf(c.sql)
+        expect(sql).toContain('clusterAllReplicas(')
+        expect(sql).toContain('{cluster:String}')
+        expect(sql).toContain('hostName() AS replica')
+        expect(sql).toContain('skip_unavailable_shards = 1')
+        expect(c.defaultParams).toEqual({ cluster: '' })
+      }
+    })
+
+    test('replica grants keep the is_wildcard version split', () => {
+      const grants = accessMatrixConfigs.find(
+        (c) => c.name === 'access-replica-grants'
+      )
+      const versions = grants?.sql as { since: string; sql: string }[]
+      expect(versions.map((v) => v.since)).toEqual(['23.8', '26.7'])
+      expect(versions[0].sql).toContain('toUInt8(0) AS is_wildcard')
+    })
+  })
 })

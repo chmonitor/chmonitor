@@ -46,7 +46,8 @@ export function useTableData<T = unknown>(
   searchParams?: TableQueryParams,
   refreshInterval?: number,
   timezone?: string,
-  pollingActiveProp?: boolean
+  pollingActiveProp?: boolean,
+  enabled = true
 ) {
   const viewportActive = useChartViewportActive()
   const pollingActive = pollingActiveProp ?? viewportActive
@@ -114,6 +115,7 @@ export function useTableData<T = unknown>(
         await throwIfNotOk(response, 'Failed to fetch table data')
         return response.json() as Promise<TableDataResponse<T>>
       },
+      enabled,
       staleTime: Math.max((refreshInterval ?? 0) * 0.9, 5_000),
       refetchInterval: resolvedRefetchInterval,
       refetchOnMount: true,
