@@ -131,6 +131,7 @@ const DASHBOARD_ROUTES = [
   '/unused-tables',
   '/usage',
   '/usage/user',
+  '/dashboard-usage',
   '/user-processes',
   '/users',
   '/view-refreshes',

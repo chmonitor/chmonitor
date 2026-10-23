@@ -108,6 +108,9 @@ const { fetchData, fetchJsonEachRowAsNormalizedJson } = await import(
 // uses internally via clickhouse-client -> clickhouse-config -> env-schema.
 const { _resetEnvCache: resetEnvCache } = await import('../env-schema')
 const { clientPool } = await import('../connection-pool')
+const { runWithAttribution, setEnvHostsAreDemo } = await import(
+  '../../attribution/scope'
+)
 
 describe('clickhouse-fetch', () => {
   const originalEnv = { ...process.env }
@@ -336,9 +339,46 @@ describe('clickhouse-fetch', () => {
 
         expect(mockClientQuery).toHaveBeenCalledWith(
           expect.objectContaining({
-            clickhouse_settings: settings,
+            clickhouse_settings: expect.objectContaining(settings),
           })
         )
+      })
+
+      it('tags the query with the attribution log_comment', async () => {
+        await fetchData(defaultParams)
+
+        const params = mockClientQuery.mock.calls.at(-1)?.[0] as {
+          clickhouse_settings: { log_comment: string }
+        }
+        expect(
+          JSON.parse(params.clickhouse_settings.log_comment)
+        ).toMatchObject({ app: 'chmonitor', v: 1, host: 'host-0' })
+      })
+
+      it('leaves the user out of the record when env hosts are the public demo', async () => {
+        const principal = async () => ({ subject: 'jane' })
+        const lastRecord = () =>
+          JSON.parse(
+            (
+              mockClientQuery.mock.calls.at(-1)?.[0] as {
+                clickhouse_settings: { log_comment: string }
+              }
+            ).clickhouse_settings.log_comment
+          )
+        try {
+          await runWithAttribution({ principal }, () =>
+            fetchData(defaultParams)
+          )
+          expect(lastRecord().user).toBe('jane')
+
+          setEnvHostsAreDemo(() => true)
+          await runWithAttribution({ principal }, () =>
+            fetchData(defaultParams)
+          )
+          expect(lastRecord().user).toBeNull()
+        } finally {
+          setEnvHostsAreDemo(() => false)
+        }
       })
 
       it('should support different formats', async () => {

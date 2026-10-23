@@ -15,6 +15,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { DataFormat } from '@clickhouse/client'
 import { createClient } from '@clickhouse/client-web'
 
+import { withQueryAttribution } from '@chm/clickhouse-client/attribution'
 import { error as logError } from '@chm/logger'
 import { validateSqlQuery } from '@chm/sql-builder'
 import { createValidationError } from '@/lib/api/error-handler'
@@ -132,12 +133,15 @@ async function handlePost(request: Request): Promise<Response> {
   const start = Date.now()
 
   try {
-    const client = createClient({
-      host,
-      username: user,
-      password,
-      fetch: createHostValidationFetch(),
-    })
+    const client = withQueryAttribution(
+      createClient({
+        host,
+        username: user,
+        password,
+        fetch: createHostValidationFetch(),
+      }),
+      null
+    )
 
     const result = await client.query({
       query,

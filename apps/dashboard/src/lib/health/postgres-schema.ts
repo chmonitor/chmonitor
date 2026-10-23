@@ -126,6 +126,18 @@ CREATE TABLE IF NOT EXISTS alert_digest_buffer (
 CREATE INDEX IF NOT EXISTS idx_alert_digest_buffer_due
   ON alert_digest_buffer (owner_id, flush_after);
 
+CREATE TABLE IF NOT EXISTS alert_thread_roots (
+  owner_id   TEXT NOT NULL,
+  thread_key TEXT NOT NULL,
+  host_id    INTEGER NOT NULL,
+  rule_id    TEXT NOT NULL,
+  root_id    TEXT NOT NULL,
+  created_at BIGINT NOT NULL,
+  PRIMARY KEY (owner_id, thread_key)
+);
+CREATE INDEX IF NOT EXISTS idx_alert_thread_roots_episode
+  ON alert_thread_roots (owner_id, host_id, rule_id);
+
 CREATE TABLE IF NOT EXISTS alert_suggestion_dismissals (
   owner_id       TEXT NOT NULL,
   suggestion_key TEXT NOT NULL,

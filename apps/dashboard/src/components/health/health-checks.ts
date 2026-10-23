@@ -67,6 +67,11 @@ export interface HealthCheckDef {
   detailTitle?: string
   detailDescription?: string
   detailEmptyMessage?: string
+  /**
+   * The chart row carries a `replication_used` flag. When it is 0 the check is
+   * not applicable on this host, not healthy (#4044).
+   */
+  requiresReplication?: boolean
 }
 
 const fmtCount = (singular: string, plural?: string) => (v: number | null) => {
@@ -77,6 +82,7 @@ const fmtCount = (singular: string, plural?: string) => (v: number | null) => {
 export const HEALTH_CHECKS: readonly HealthCheckDef[] = [
   {
     id: 'readonly-replicas',
+    requiresReplication: true,
     title: 'Readonly Replicas',
     icon: ShieldAlert,
     chartName: 'health-readonly-replicas',
@@ -399,6 +405,7 @@ WHERE event_time > now() - INTERVAL 1 HOUR
   },
   {
     id: 'replication-lag',
+    requiresReplication: true,
     title: 'Replication Lag',
     icon: Clock,
     chartName: 'health-replication-lag',

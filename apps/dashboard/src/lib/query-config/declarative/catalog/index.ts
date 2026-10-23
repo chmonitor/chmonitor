@@ -61,7 +61,6 @@ import { topUsageTablesDeclarative } from './more/top-usage-tables'
 import { unusedColumnsDeclarative } from './more/unused-columns'
 import { unusedProjectionsDeclarative } from './more/unused-projections'
 import { unusedTablesDeclarative } from './more/unused-tables'
-import { usersDeclarative } from './more/users'
 import { zookeeperDeclarative } from './more/zookeeper'
 import { commonErrorsDeclarative } from './queries/common-errors'
 import { parallelizationDeclarative } from './queries/parallelization'
@@ -174,7 +173,6 @@ const ALL_DECLARATIVE: DeclarativeQueryConfig[] = [
   unusedColumnsDeclarative,
   hotQueryShapesDeclarative,
   unusedProjectionsDeclarative,
-  usersDeclarative,
   zookeeperDeclarative,
 
   commonErrorsDeclarative,

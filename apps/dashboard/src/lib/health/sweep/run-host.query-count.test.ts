@@ -66,6 +66,7 @@ mock.module('@chm/clickhouse-client', () => ({
           { kind: 'table', name: 'system.disks' },
           { kind: 'table', name: 'system.replicas' },
           ...[...presentTables].map((t) => ({ kind: 'table', name: t })),
+          { kind: 'replication', name: 'used' },
           { kind: 'cluster', name: 'default' },
         ],
         metadata: {},

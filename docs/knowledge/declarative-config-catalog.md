@@ -3,7 +3,7 @@ id: declarative-config-catalog
 title: Declarative Config Catalog
 type: spec
 status: active
-updated: 2026-08-27
+updated: 2026-10-23
 tags:
   - query-config
   - declarative
@@ -117,7 +117,8 @@ discriminated union on `type` so variants can land incrementally:
 
 - **`config-details`** (`createConfigExpandedDetails({ primaryColumns, descriptionKey })`)
   — **done** (#1728). An auto-grid of every row column not already in
-  `primaryColumns`. `settings` and `users` are migrated using it.
+  `primaryColumns`. `settings` is migrated using it (`users` was too, until it
+  became TS-only; see below).
 - **`panel`** (`createExpandedPanel({ sections })`) — **follow-up**; room is
   reserved in the union but not yet implemented. Unblocks the remaining query
   configs (`expensive`/`slow`/`failed`/`history`).
@@ -135,6 +136,10 @@ runtime code, not data:
   option functions.
 - Runtime-templated SQL — e.g. `more/page-views` interpolates the runtime
   `EVENTS_TABLE` env var into its SQL, which cannot be inlined as data.
+- Lazy React expandables and SQL built from shared fragments — `more/users`
+  (and its `users-with-login` / `users-basic` variants) renders a per-user
+  panel through `React.lazy` and builds three table-dependent SQL variants
+  from one builder, so it has no catalog entry.
 
 ## Testing
 
@@ -206,11 +211,11 @@ every entry in `queries` is validated against the same
 
 ## Status
 
-Foundation + opt-in wiring complete; `DECLARATIVE_CATALOG` has 93 entries — 91
+Foundation + opt-in wiring complete; `DECLARATIVE_CATALOG` has 92 entries — 90
 map to a same-named config in the 107-entry TS `queries` registry, plus 2
 catalog-only entries (`keeper-presence`, `cluster-live-metrics-all`) consumed
 by direct import (see orphan guard above) — across all 10 domains, including
-`settings`/`users` via the `config-details` expandable (#1728), all dormant
+`settings` via the `config-details` expandable (#1728), all dormant
 behind `CHM_CONFIG_SOURCE=ts`. Of the 16 TS configs with no catalog entry: 3
 are inline-JSX expandables (`running-queries`, `keeper-connections`,
 `readonly-tables`), 5 are blocked on the not-yet-implemented `panel` expandable

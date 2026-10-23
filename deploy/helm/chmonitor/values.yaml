@@ -423,6 +423,19 @@ alerting:
   dashboardUrl: ""
   metadata: {}
 
+# Query attribution (#4164): tag each ClickHouse query with app, version,
+# signed-in user, host and source in system.query_log.log_comment.
+queryAttribution:
+  # CHM_QUERY_ATTRIBUTION. Set false to send no record.
+  enabled: true
+  # CHM_QUERY_ATTRIBUTION_LABEL, e.g. "region=eu-west,env=prod".
+  label: ""
+  # CHM_QUERY_ATTRIBUTION_SQL_COMMENT. Write the record into the leading
+  # /* {"client":"clickhouse-monitoring",...} */ SQL comment.
+  sqlComment: true
+  # CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL. Put the user's email in the record (PII).
+  includeEmail: false
+
 # Extra env (canonical CHM_* names from apps/dashboard/.env.example).
 # SECURITY: prefer non-secret values here. For credentials, use valueFrom
 # secretKeyRef entries pointing at a pre-existing Secret — never commit

@@ -14,12 +14,14 @@ import type { InsightCandidate, InsightSeverity } from './types'
 
 import { readOnlyQuery } from '../ai/agent/tools/helpers'
 import { formatReadableQuantity, formatReadableSize } from '../format-readable'
+import { getHostCapabilities } from '../health/capability-cache'
 import {
   buildPartsPressureCurrentSql,
   buildPartsPressureProjectionSql,
   type PartsPressureRow,
   projectHoursToThreshold,
 } from '../health/parts-pressure'
+import { usesReplication } from '../health/replication-usage'
 import {
   createFailedProbeMemory,
   type FailedProbeMemory,
@@ -527,6 +529,8 @@ async function collectReliability(hostId: number): Promise<InsightCandidate[]> {
 
 async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
   const out: InsightCandidate[] = []
+  // No replicated table means no queue to be stuck (#4044): skip, don't report.
+  const replicationUsed = usesReplication(await getHostCapabilities(hostId))
 
   const [
     detachedSettled,
@@ -558,10 +562,12 @@ async function collectOperational(hostId: number): Promise<InsightCandidate[]> {
     collectPartsPressure(hostId),
     // system.replication_queue only has rows on replicated tables; an empty
     // table yields count 0 and no finding.
-    firstRow(
-      `SELECT count() AS value, max(num_tries) AS max_tries FROM system.replication_queue WHERE num_tries > ${REPLICATION_QUEUE_STUCK_TRIES} OR create_time < now() - INTERVAL ${REPLICATION_QUEUE_STUCK_AGE_SECONDS} SECOND`,
-      hostId
-    ),
+    replicationUsed
+      ? firstRow(
+          `SELECT count() AS value, max(num_tries) AS max_tries FROM system.replication_queue WHERE num_tries > ${REPLICATION_QUEUE_STUCK_TRIES} OR create_time < now() - INTERVAL ${REPLICATION_QUEUE_STUCK_AGE_SECONDS} SECOND`,
+          hostId
+        )
+      : Promise.resolve(null),
     firstRow(
       `SELECT sum(value) AS value FROM system.metrics WHERE metric = 'DelayedInserts'`,
       hostId

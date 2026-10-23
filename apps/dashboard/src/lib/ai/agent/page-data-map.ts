@@ -238,6 +238,14 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     'usage-by-user',
     'usage-inactive-users',
   ]),
+  '/dashboard-usage': p('Dashboard Usage', QUERIES, [
+    'dashboard-usage-daily',
+    'dashboard-usage-by-user',
+    'dashboard-usage-by-source',
+    'dashboard-usage-by-version',
+    'dashboard-usage-by-label',
+    'dashboard-usage-expensive',
+  ]),
   '/usage/user': p('User Usage', QUERIES, [
     'user-usage-daily',
     'user-usage-hours',
@@ -440,7 +448,7 @@ export const PAGE_DATA_MAP: Readonly<Record<string, PageDataEntry>> = {
     ['page-views'],
     ['page-view', 'top-pages', 'human-vs-bot-pageviews', 'pageviews-by-device']
   ),
-  '/users': p('Users', SERVER, ['users']),
+  '/users': p('Users', SERVER, ['users-basic']),
   '/roles': p('Roles', SERVER, ['roles']),
   '/security/access-matrix': p('Access Matrix', SERVER, [
     'access-grants',

@@ -18,6 +18,12 @@
       "@chm/clickhouse-client/constants": [
         "../../packages/clickhouse-client/src/clickhouse/constants.ts"
       ],
+      "@chm/clickhouse-client/attribution": [
+        "../../packages/clickhouse-client/src/attribution/scope.ts"
+      ],
+      "@chm/clickhouse-client/attribution/record": [
+        "../../packages/clickhouse-client/src/attribution/record.ts"
+      ],
       "@chm/clickhouse-client/table-existence-cache": [
         "../../packages/clickhouse-client/src/table-existence-cache.ts"
       ],

@@ -3,6 +3,7 @@ import type { ChartProps } from '@/components/charts/chart-props'
 import { ChartCard } from '@/components/cards/chart-card'
 import { ChartEmpty } from '@/components/charts/chart-empty'
 import { ChartError } from '@/components/charts/chart-error'
+import { ReplicationNotUsed } from '@/components/replication/replication-not-used'
 import { ChartSkeleton } from '@/components/skeletons'
 import {
   Table,
@@ -12,7 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { REFRESH_INTERVAL, useChartData } from '@/lib/swr'
+import { REFRESH_INTERVAL, useChartData, useHostId } from '@/lib/swr'
+import { useReplicationUsed } from '@/lib/swr/use-replication-usage'
 import { cn } from '@/lib/utils'
 
 export const ChartReplicationSummaryTable =
@@ -32,8 +34,11 @@ export const ChartReplicationSummaryTable =
       refreshInterval: REFRESH_INTERVAL.MEDIUM_30S,
     })
 
+    const routeHostId = useHostId()
+    const used = useReplicationUsed(hostId ?? routeHostId)
     const dataArray = Array.isArray(data) ? data : undefined
 
+    if (used === false) return <ReplicationNotUsed compact />
     if (isLoading) return <ChartSkeleton title={title} className={className} />
     if (error)
       return <ChartError error={error} title={title} onRetry={mutate} />

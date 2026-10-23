@@ -134,6 +134,8 @@ export function matrixTxnIdForPayload(
 /** Result of one send: `ok`, plus the Matrix `errcode` on failure (no secrets). */
 export interface MatrixSendResult {
   ok: boolean
+  /** The new event's id from a 200 response, when the body carried one. */
+  eventId?: string
   status?: number
   errcode?: string
 }
@@ -162,7 +164,16 @@ export async function sendMatrixEvent(
         signal: controller.signal,
       }
     )
-    if (res.ok) return { ok: true, status: res.status }
+    if (res.ok) {
+      let eventId: string | undefined
+      try {
+        const json = (await res.json()) as { event_id?: unknown }
+        if (typeof json.event_id === 'string') eventId = json.event_id
+      } catch {
+        // Sent without a readable body: delivered, just not threadable.
+      }
+      return { ok: true, status: res.status, ...(eventId && { eventId }) }
+    }
     let errcode: string | undefined
     try {
       const json = (await res.json()) as { errcode?: unknown }

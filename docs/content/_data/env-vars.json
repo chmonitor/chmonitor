@@ -321,6 +321,30 @@
     },
     {
       "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_QUERY_ATTRIBUTION",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_QUERY_ATTRIBUTION_LABEL",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "CHM_QUERY_ATTRIBUTION_SQL_COMMENT",
+      "prefix": "CHM"
+    },
+    {
+      "exampleDefault": null,
       "inEnvExample": false,
       "name": "CHM_STATE_CLICKHOUSE_DATABASE",
       "prefix": "CHM"
