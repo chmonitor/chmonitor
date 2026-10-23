@@ -51,7 +51,9 @@ function DashboardUsageContent() {
         Queries this dashboard sent to ClickHouse, read from the attribution
         record on each query in system.query_log. Turn it off with
         CHM_QUERY_ATTRIBUTION=false. Signed-in users appear only with an auth
-        provider.
+        provider. The record is self-asserted, not proof of identity: any
+        ClickHouse client can set log_comment, so for an audit compare it with
+        query_log.user, the ClickHouse account that ran the query.
       </p>
       {dashboardUsageConfigs.map((config) => (
         <Suspense key={config.name} fallback={<TableSkeleton />}>

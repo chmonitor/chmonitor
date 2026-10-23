@@ -83,7 +83,7 @@ function breakdownConfig({
   const alias = key === 'user' ? 'dashboard_user' : key
   return {
     name: `dashboard-usage-by-${key}`,
-    permission: { feature: 'queries' },
+    permission: { feature: 'operations' },
     defaultView: 'table',
     card: { primary: alias },
     description: `Queries this dashboard sent, by ${label}: count, errors, p95 duration, bytes read, peak memory (top 100, default 7 days, at most 30). THIS REPLICA ONLY.`,
@@ -110,7 +110,7 @@ export const dashboardUsageBreakdownConfigs: QueryConfig[] =
 
 export const dashboardUsageDailyConfig: QueryConfig = {
   name: 'dashboard-usage-daily',
-  permission: { feature: 'queries' },
+  permission: { feature: 'operations' },
   defaultView: 'table',
   card: { primary: 'day' },
   description:
@@ -138,7 +138,7 @@ export const dashboardUsageDailyConfig: QueryConfig = {
 
 export const dashboardUsageExpensiveConfig: QueryConfig = {
   name: 'dashboard-usage-expensive',
-  permission: { feature: 'queries' },
+  permission: { feature: 'operations' },
   defaultView: 'table',
   card: { primary: 'query_id' },
   description:

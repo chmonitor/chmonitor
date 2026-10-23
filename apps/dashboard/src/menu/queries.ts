@@ -89,6 +89,8 @@ export const queriesItems: MenuItem[] = [
         description:
           'Queries this dashboard sent, by signed-in user, source, version and deployment label',
         icon: UsersIcon,
+        // The record names users across the whole deployment: admin-only, like Page Views.
+        permission: { feature: 'operations' },
         isNew: true,
         docs: 'https://clickhouse.com/docs/en/operations/system-tables/query_log',
         tableCheck: 'system.query_log',
