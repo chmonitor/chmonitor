@@ -13,6 +13,18 @@
       "description": "Stuck merges AND high disk usage both firing at once — merges are likely stalled fighting for disk headroom rather than transient load.",
       "id": "merge-pressure",
       "title": "Merge Pressure"
+    },
+    {
+      "category": "compound",
+      "depends": [
+        "long-running-queries",
+        "heavy-query-memory",
+        "memory-pressure",
+        "concurrent-queries"
+      ],
+      "description": "A long-running or memory-heavy query (at least warning) while the server is critical on memory or concurrent query slots. The only page for heavy queries: a heavy query on a healthy server stays a signal on /health.",
+      "id": "runaway-query-impact",
+      "title": "Runaway Query Under System Pressure"
     }
   ],
   "rules": [
@@ -595,6 +607,62 @@
         "warning": 80
       },
       "title": "Memory Pressure"
+    },
+    {
+      "category": "other",
+      "commonCauses": [
+        "Missing PRIMARY KEY / sort order for the query pattern",
+        "Cross-shard JOINs without distributed_product_mode tuning",
+        "Stuck query waiting on lock or external resource"
+      ],
+      "description": "Seconds the longest running query has been running (system.processes, initial queries only), naming up to 5 as user:query_id. A monitoring signal: shown on /health and fed to \"Runaway query under system pressure\", never sent to a channel on its own.",
+      "fix": [
+        {
+          "description": "Running initial queries, longest first.",
+          "id": "long-running-queries-detail",
+          "kind": "diagnostic",
+          "label": "Get longest running queries",
+          "sql": "SELECT query_id, user, round(elapsed) AS elapsed_seconds, formatReadableSize(memory_usage) AS memory, substring(query, 1, 200) AS query\nFROM system.processes\nWHERE is_initial_query = 1\nORDER BY elapsed DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "long-running-queries",
+      "link": null,
+      "optional": false,
+      "sampleLabel": "longest query running 600s",
+      "sql": "SELECT round(max(elapsed)) AS longest_seconds,\n  arrayMap(t -> concat(t.2, ':', t.3),\n    arraySlice(arrayReverseSort(groupArray((elapsed, user, query_id))), 1, 5)) AS longest_queries\nFROM system.processes\nWHERE is_initial_query = 1 AND query_id != queryID()",
+      "tableCheck": null,
+      "thresholds": {
+        "critical": 3600,
+        "warning": 600
+      },
+      "title": "Long-Running Query"
+    },
+    {
+      "category": "other",
+      "commonCauses": [],
+      "description": "Memory of the single heaviest running query as a percentage of the server memory limit (the same limit Memory Pressure uses), naming up to 5 as user:query_id. A monitoring signal: shown on /health and fed to \"Runaway query under system pressure\", never sent to a channel on its own.",
+      "fix": [
+        {
+          "description": "Running initial queries using the most memory right now.",
+          "id": "heavy-query-memory-detail",
+          "kind": "diagnostic",
+          "label": "Get top queries by memory",
+          "sql": "SELECT query_id, user, round(elapsed) AS elapsed_seconds, formatReadableSize(memory_usage) AS memory, substring(query, 1, 200) AS query\nFROM system.processes\nWHERE is_initial_query = 1\nORDER BY memory_usage DESC\nLIMIT 20",
+          "url": null
+        }
+      ],
+      "id": "heavy-query-memory",
+      "link": null,
+      "optional": true,
+      "sampleLabel": "heaviest query uses 30% of the server memory limit",
+      "sql": "SELECT round(\n  max(memory_usage) * 100.0\n  / nullIf(coalesce(\n    nullIf(toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_server_memory_usage')), 0),\n    (SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal')\n      * toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_server_memory_usage_to_ram_ratio'))\n  ), 0),\n  1\n) AS heaviest_query_memory_percent,\n  arrayMap(t -> concat(t.2, ':', t.3),\n    arraySlice(arrayReverseSort(groupArray((memory_usage, user, query_id))), 1, 5)) AS heaviest_queries\nFROM system.processes\nWHERE is_initial_query = 1 AND query_id != queryID()",
+      "tableCheck": "system.asynchronous_metrics",
+      "thresholds": {
+        "critical": 50,
+        "warning": 30
+      },
+      "title": "Heavy Query Memory"
     },
     {
       "category": "other",

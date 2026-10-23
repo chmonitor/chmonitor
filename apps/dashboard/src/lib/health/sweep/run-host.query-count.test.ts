@@ -9,7 +9,7 @@
  *
  * The claim under test is the issue's: **total background queries per host per
  * sweep down at least 50%**. Both numbers are printed by the `> reports the
- * measured counts` test so a reviewer reading CI output sees 23 → 5 rather than
+ * measured counts` test so a reviewer reading CI output sees 25 → 5 rather than
  * a bare pass.
  */
 
@@ -180,7 +180,7 @@ describe('background queries per host per sweep', () => {
     expect(warm.total).toBeLessThan(BEFORE_PER_TICK * 0.3)
   })
 
-  test('reports the measured counts so CI output shows 23 → 5', async () => {
+  test('reports the measured counts so CI output shows 25 → 5', async () => {
     const cold = await tick()
     const reduction = Math.round((1 - cold.total / BEFORE_PER_TICK) * 100)
     console.log(
@@ -190,7 +190,7 @@ describe('background queries per host per sweep', () => {
       before: BEFORE_PER_TICK,
       after: cold.total,
       reductionPct: reduction,
-    }).toEqual({ before: 23, after: 5, reductionPct: 78 })
+    }).toEqual({ before: 25, after: 5, reductionPct: 80 })
   })
 
   test('the count does not grow once the cache is warm', async () => {
@@ -221,9 +221,9 @@ describe('background queries per host per sweep', () => {
     await tick()
     const batch = queries.find((q) => q.includes('AS rule_id'))
     expect(batch).toBeDefined()
-    // 22 rules, 3 excluded → 19 branches, 18 joins.
-    expect(batch!.match(/AS rule_id/g)).toHaveLength(19)
-    expect(batch!.match(/UNION ALL/g)).toHaveLength(18)
+    // 24 rules, 3 excluded → 21 branches, 20 joins.
+    expect(batch!.match(/AS rule_id/g)).toHaveLength(21)
+    expect(batch!.match(/UNION ALL/g)).toHaveLength(20)
     // The `system.parts` scans are separate statements.
     const partsScans = queries.filter(
       (q) => !q.includes('AS rule_id') && q.includes('system.parts')
@@ -293,7 +293,7 @@ describe('the batch fallback', () => {
     await tick()
     const batch = queries.find((q) => q.includes('AS rule_id'))!
     expect(batch).not.toContain('system.backup_log')
-    expect(batch.match(/AS rule_id/g)).toHaveLength(18)
+    expect(batch.match(/AS rule_id/g)).toHaveLength(20)
   })
 })
 

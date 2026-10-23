@@ -114,6 +114,7 @@ function makeCtx(overrides: Partial<SweepContext> = {}): SweepContext {
     repeatBackoffMaxMs: null,
     mutedRules: [],
     enabledRules: [],
+    notifyRules: [],
     rules: [],
     thresholdOverrides: {} as SweepContext['thresholdOverrides'],
     hysteresis: {
@@ -137,6 +138,7 @@ async function sweep(
     hostId: number
     ruleId: string
     severity: 'ok' | 'warning' | 'critical'
+    signalOnly?: boolean
   }[]
 ) {
   const dispatcher = await createDispatcher(ctx)
@@ -150,6 +152,7 @@ async function sweep(
       severity: f.severity,
       value: 99,
       label: 'too high',
+      signalOnly: f.signalOnly,
     })
   }
   await dispatcher.flushDigests()
@@ -161,6 +164,26 @@ const postsTo = (url: string, ruleId?: string) =>
   posts.filter(
     (p) => p.url === url && (ruleId === undefined || p.body.includes(ruleId))
   )
+
+describe('signal-only rules', () => {
+  // A signal (e.g. one long query) is shown on /health and feeds compound
+  // rules, but must never page on its own: only the compound pages.
+  test('a signal-only finding reaches no channel, even when critical', async () => {
+    const hostId = nextHostId++
+    const d = await sweep(makeCtx(), [
+      { hostId, ruleId: 'signal-rule', severity: 'critical', signalOnly: true },
+      { hostId, ruleId: 'loud-rule', severity: 'critical' },
+    ])
+
+    expect(postsTo(WEBHOOK_URL, 'signal-rule')).toHaveLength(0)
+    expect(postsTo(CUSTOM_URL, 'signal-rule')).toHaveLength(0)
+    expect(postsTo(WEBHOOK_URL, 'loud-rule')).toHaveLength(1)
+    expect(d.counters.alertsSuppressed).toBe(1)
+    // Counted apart from operator mutes so the summary stays honest.
+    expect(d.counters.signalOnlySuppressed).toBe(1)
+    expect(d.counters.mutedSuppressed).toBe(0)
+  })
+})
 
 describe('per-rule mute', () => {
   test('a muted rule reaches no channel; another rule still sends', async () => {

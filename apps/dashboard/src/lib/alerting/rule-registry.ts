@@ -41,6 +41,8 @@ export type AlertRuleType =
   | 'memory-pressure'
   | 'broken-detached-parts'
   | 'detached-parts-review'
+  | 'long-running-queries'
+  | 'heavy-query-memory'
   | 'custom'
 
 /**
@@ -93,6 +95,12 @@ export interface AlertRuleDef {
    * Each name stands for one counted item, so the rest is `value - names`.
    */
   affectedKey?: string
+  /**
+   * The `affectedKey` names are the top items ranked by `value` (e.g. the
+   * longest running queries), not the items `value` counts, so the label
+   * adds no "and N more".
+   */
+  affectedRanked?: boolean
   /** Default thresholds. Overridable via thresholds-storage. */
   defaults: { warning: number; critical: number }
   /** Human-readable label for the triggered value. */
@@ -105,6 +113,13 @@ export interface AlertRuleDef {
    * single decision lives in `isRuleEnabled` (`lib/health/sweep/suppression`).
    */
   defaultEnabled?: boolean
+  /**
+   * A monitoring signal, not a page: the rule is evaluated, shown on /health
+   * and fed to compound rules, but never delivered to a channel. Delivery is
+   * dropped at the same decision point as a muted rule, so the dispatcher
+   * keeps no firing state for it either.
+   */
+  signalOnly?: boolean
   /** When true, skip this rule if the required table is missing. */
   optional?: boolean
   /** Table to check before running the SQL (e.g. 'system.backup_log'). */
@@ -196,13 +211,15 @@ export function parseAffectedNames(raw: unknown): string[] {
  * e.g. `"7 stuck merges: db.a p1, db.b p2 and 5 more"`.
  */
 export function ruleLabel(
-  rule: Pick<AlertRuleDef, 'formatLabel'>,
+  rule: Pick<AlertRuleDef, 'formatLabel' | 'affectedRanked'>,
   value: number | null,
   affected: readonly string[] = []
 ): string {
   const base = rule.formatLabel ? rule.formatLabel(value) : String(value)
   if (affected.length === 0) return base
-  const more = Math.max(0, (value ?? 0) - affected.length)
+  const more = rule.affectedRanked
+    ? 0
+    : Math.max(0, (value ?? 0) - affected.length)
   return `${base}: ${affected.join(', ')}${more > 0 ? ` and ${more.toLocaleString()} more` : ''}`
 }
 

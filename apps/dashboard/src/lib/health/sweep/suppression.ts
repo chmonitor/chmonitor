@@ -127,6 +127,20 @@ export function isRuleMuted(
 }
 
 /**
+ * Whether `rule` is signal-only this tick: it ships with `signalOnly: true`
+ * and no entry of `HEALTH_ALERT_NOTIFY_RULES` names it (exact id or `*`/`?`
+ * glob, case-insensitive). A signal-only finding is recorded but never
+ * delivered.
+ */
+export function isSignalOnly(
+  rule: Pick<AlertRuleDef, 'id' | 'signalOnly'>,
+  notifyRules: readonly string[] = []
+): boolean {
+  if (!rule.signalOnly) return false
+  return !notifyRules.some((pattern) => globToRegExp(pattern).test(rule.id))
+}
+
+/**
  * Whether `rule` runs (#4070). A rule runs unless it ships with
  * `defaultEnabled: false` and no entry of `HEALTH_ALERT_ENABLE_RULES` names it
  * (exact id or `*`/`?` glob, case-insensitive). Every evaluation path asks

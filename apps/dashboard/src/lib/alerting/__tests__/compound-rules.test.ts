@@ -257,3 +257,77 @@ describe('BUILTIN_COMPOUND_RULES', () => {
     })
   })
 })
+
+describe('runaway-query-impact (page only when the whole system is critical)', () => {
+  const rule = BUILTIN_COMPOUND_RULES.find(
+    (r) => r.id === 'runaway-query-impact'
+  ) as CompoundRuleDef
+  const at = (
+    severity: CompoundRuleInput['severity'],
+    affected?: string[]
+  ): CompoundRuleInput => ({
+    value: 1,
+    severity,
+    ...(affected ? { affected } : {}),
+  })
+  const inputs = (
+    longRunning: CompoundRuleInput['severity'],
+    heavy: CompoundRuleInput['severity'],
+    memory: CompoundRuleInput['severity'],
+    slots: CompoundRuleInput['severity']
+  ) => ({
+    'long-running-queries': at(longRunning),
+    'heavy-query-memory': at(heavy),
+    'memory-pressure': at(memory),
+    'concurrent-queries': at(slots),
+  })
+
+  test('stays ok for a critical query on a healthy or merely warning server', () => {
+    expect(rule.evaluate(inputs('critical', 'critical', 'ok', 'ok'))).toBe('ok')
+    expect(
+      rule.evaluate(inputs('critical', 'critical', 'warning', 'warning'))
+    ).toBe('ok')
+  })
+
+  test('stays ok for a critical server with no heavy query', () => {
+    expect(rule.evaluate(inputs('ok', 'ok', 'critical', 'critical'))).toBe('ok')
+  })
+
+  test('fires critical when a query is at least warning and memory or slots are critical', () => {
+    expect(rule.evaluate(inputs('warning', 'ok', 'critical', 'ok'))).toBe(
+      'critical'
+    )
+    expect(rule.evaluate(inputs('ok', 'warning', 'ok', 'critical'))).toBe(
+      'critical'
+    )
+  })
+
+  test('never returns warning', () => {
+    const levels = ['ok', 'warning', 'critical'] as const
+    for (const a of levels)
+      for (const b of levels)
+        for (const c of levels)
+          for (const d of levels)
+            expect(rule.evaluate(inputs(a, b, c, d))).not.toBe('warning')
+  })
+
+  test('evaluates with a missing dependency (partialInputs)', () => {
+    expect(rule.partialInputs).toBe(true)
+    expect(
+      rule.evaluate({
+        'long-running-queries': at('warning'),
+        'memory-pressure': at('critical'),
+      })
+    ).toBe('critical')
+  })
+
+  test('the label names each offending query once', () => {
+    const label = rule.formatLabel?.({
+      'long-running-queries': at('warning', ['bob:q1', 'amy:q2']),
+      'heavy-query-memory': at('warning', ['amy:q2']),
+      'memory-pressure': { value: 96, severity: 'critical' },
+      'concurrent-queries': { value: 20, severity: 'ok' },
+    })
+    expect(label).toBe('96% server memory, 20% query slots: bob:q1, amy:q2')
+  })
+})

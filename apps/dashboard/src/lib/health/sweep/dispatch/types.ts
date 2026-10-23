@@ -18,6 +18,8 @@ export interface DispatchFindingParams {
   severity: Severity
   value: number | null
   label: string
+  /** `AlertRuleDef.signalOnly`: evaluate and record, never deliver. */
+  signalOnly?: boolean
   /** Thresholds that classified this finding, when known (base rules only). */
   warnThreshold?: number | null
   critThreshold?: number | null
@@ -31,6 +33,7 @@ export interface DispatchCounters {
   quietHoursSuppressed: number
   ackedSuppressed: number
   mutedSuppressed: number
+  signalOnlySuppressed: number
   recoveries: number
   emailsDispatched: number
   digestBuffered: number

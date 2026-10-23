@@ -439,6 +439,22 @@ free space that trend uses in 24 hours: `100` means full within a day
 samples per disk; until then it reports nothing. `disk-usage` still alerts on percent
 used.
 
+`long-running-queries` reports how long the longest running query has been
+running (warning 10 minutes, critical 1 hour). `heavy-query-memory` reports the
+memory of the heaviest running query as a percentage of the same server memory
+limit `memory-pressure` uses (warning 30%, critical 50%). Both name up to 5
+queries as `user:query_id`, longest or heaviest first. Both are signals, not
+pages: they show on the Health page but never send an alert on their own. A
+long report query on a healthy server is normal and should not wake anyone.
+
+`runaway-query-impact` is the page for heavy queries. It fires, always as
+critical, only when a long or heavy query (at least warning) runs while the
+server itself is critical: `memory-pressure` or `concurrent-queries` is
+critical. Put simply, a heavy query alone is shown, and it pages only when the
+whole system is in trouble at the same time. The alert names the offending
+queries so you can kill the right one. To also get alerts for one of the two
+signals on its own, list it in `HEALTH_ALERT_NOTIFY_RULES`.
+
 <Callout type="info" title="Alert grouping & digest batching">
 When one sweep finds several alerts bound for the **same** delivery target (e.g. disk filling on 8 hosts, all routed to one Slack channel), they are combined into **one** message — a summary line (`3 critical, 2 warning on 4 hosts`) followed by a line per finding — instead of N separate pings. A reminder for a condition that is still firing takes one short line (`still open, 3 h (82.8 -> 82.9)`, with how the value moved since the last notification when both values are numbers) instead of the full detail, also when it is the only finding. A Slack message with ack buttons keeps its card. This in-pass grouping is **always on** and needs no configuration; it applies to the generic webhook, Slack, and Telegram channels, and to Matrix Hookshot and Element / Matrix custom webhook targets that have no title or body template (every other channel keeps per-finding sends). Hookshot and Matrix targets are always grouped within the sweep: the time-window digest never buffers them, because they can carry secret headers. To also batch across time, enable the optional **time-window digest** (`HEALTH_ALERT_DIGEST_MINUTES` or the Alerts tab): non-critical findings wait up to the window and flush together, while criticals still page immediately.
 </Callout>

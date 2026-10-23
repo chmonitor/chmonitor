@@ -688,6 +688,83 @@ LIMIT 20`,
   },
 
   {
+    id: 'long-running-queries',
+    type: 'long-running-queries',
+    title: 'Long-Running Query',
+    description:
+      'Seconds the longest running query has been running (system.processes, initial queries only), naming up to 5 as user:query_id. A monitoring signal: shown on /health and fed to "Runaway query under system pressure", never sent to a channel on its own.',
+    // `queryID()` leaves out this statement. Tuples sort by elapsed first.
+    sql: `SELECT round(max(elapsed)) AS longest_seconds,
+  arrayMap(t -> concat(t.2, ':', t.3),
+    arraySlice(arrayReverseSort(groupArray((elapsed, user, query_id))), 1, 5)) AS longest_queries
+FROM system.processes
+WHERE is_initial_query = 1 AND query_id != queryID()`,
+    valueKey: 'longest_seconds',
+    affectedKey: 'longest_queries',
+    affectedRanked: true,
+    signalOnly: true,
+    defaults: { warning: 600, critical: 3600 },
+    formatLabel: (v) => `longest query running ${(v ?? 0).toLocaleString()}s`,
+    remediationActions: [
+      {
+        id: 'long-running-queries-detail',
+        label: 'Get longest running queries',
+        kind: 'diagnostic',
+        description: 'Running initial queries, longest first.',
+        sql: `SELECT query_id, user, round(elapsed) AS elapsed_seconds, formatReadableSize(memory_usage) AS memory, substring(query, 1, 200) AS query
+FROM system.processes
+WHERE is_initial_query = 1
+ORDER BY elapsed DESC
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
+    id: 'heavy-query-memory',
+    type: 'heavy-query-memory',
+    title: 'Heavy Query Memory',
+    description:
+      'Memory of the single heaviest running query as a percentage of the server memory limit (the same limit Memory Pressure uses), naming up to 5 as user:query_id. A monitoring signal: shown on /health and fed to "Runaway query under system pressure", never sent to a channel on its own.',
+    // Denominator copied from `memory-pressure`; see the comment there.
+    sql: `SELECT round(
+  max(memory_usage) * 100.0
+  / nullIf(coalesce(
+    nullIf(toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_server_memory_usage')), 0),
+    (SELECT value FROM system.asynchronous_metrics WHERE metric = 'OSMemoryTotal')
+      * toFloat64OrZero((SELECT value FROM system.server_settings WHERE name = 'max_server_memory_usage_to_ram_ratio'))
+  ), 0),
+  1
+) AS heaviest_query_memory_percent,
+  arrayMap(t -> concat(t.2, ':', t.3),
+    arraySlice(arrayReverseSort(groupArray((memory_usage, user, query_id))), 1, 5)) AS heaviest_queries
+FROM system.processes
+WHERE is_initial_query = 1 AND query_id != queryID()`,
+    valueKey: 'heaviest_query_memory_percent',
+    affectedKey: 'heaviest_queries',
+    affectedRanked: true,
+    signalOnly: true,
+    defaults: { warning: 30, critical: 50 },
+    formatLabel: (v) =>
+      `heaviest query uses ${v ?? 0}% of the server memory limit`,
+    optional: true,
+    tableCheck: 'system.asynchronous_metrics',
+    remediationActions: [
+      {
+        id: 'heavy-query-memory-detail',
+        label: 'Get top queries by memory',
+        kind: 'diagnostic',
+        description: 'Running initial queries using the most memory right now.',
+        sql: `SELECT query_id, user, round(elapsed) AS elapsed_seconds, formatReadableSize(memory_usage) AS memory, substring(query, 1, 200) AS query
+FROM system.processes
+WHERE is_initial_query = 1
+ORDER BY memory_usage DESC
+LIMIT 20`,
+      },
+    ],
+  },
+
+  {
     id: 'broken-detached-parts',
     type: 'broken-detached-parts',
     title: 'Broken Detached Parts',
@@ -828,6 +905,49 @@ export const BUILTIN_COMPOUND_RULES: readonly CompoundRuleDef[] = [
       const merges = inputs['stuck-merges']?.value ?? 0
       const disk = inputs['disk-usage']?.value ?? 0
       return `${merges.toLocaleString()} stuck merge(s) + ${disk}% disk used`
+    },
+  },
+
+  {
+    id: 'runaway-query-impact',
+    title: 'Runaway Query Under System Pressure',
+    description:
+      'A long-running or memory-heavy query (at least warning) while the ' +
+      'server is critical on memory or concurrent query slots. The only ' +
+      'page for heavy queries: a heavy query on a healthy server stays a ' +
+      'signal on /health.',
+    depends: [
+      'long-running-queries',
+      'heavy-query-memory',
+      'memory-pressure',
+      'concurrent-queries',
+    ],
+    // concurrent-queries is NULL (absent) when the limit is unlimited, and
+    // memory-pressure is optional; either side of the OR still decides.
+    partialInputs: true,
+    evaluate: (inputs) => {
+      const queryHeavy = ['long-running-queries', 'heavy-query-memory'].some(
+        (id) => {
+          const input = inputs[id]
+          return input !== undefined && atLeast(input.severity, 'warning')
+        }
+      )
+      const systemCritical = ['memory-pressure', 'concurrent-queries'].some(
+        (id) => inputs[id]?.severity === 'critical'
+      )
+      return queryHeavy && systemCritical ? 'critical' : 'ok'
+    },
+    formatLabel: (inputs) => {
+      const memory = inputs['memory-pressure']?.value ?? 0
+      const slots = inputs['concurrent-queries']?.value ?? 0
+      const offenders = [
+        ...new Set([
+          ...(inputs['long-running-queries']?.affected ?? []),
+          ...(inputs['heavy-query-memory']?.affected ?? []),
+        ]),
+      ]
+      const queries = offenders.length > 0 ? `: ${offenders.join(', ')}` : ''
+      return `${memory}% server memory, ${slots}% query slots${queries}`
     },
   },
 ]
