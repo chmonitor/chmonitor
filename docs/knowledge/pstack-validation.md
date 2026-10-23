@@ -3,7 +3,7 @@ id: pstack-validation
 title: Project-local pstack validation
 type: workflow
 status: active
-updated: 2026-10-22
+updated: 2026-10-23
 tags:
   - verification
   - pstack
@@ -141,6 +141,7 @@ regenerate or edit `apps/dashboard/src/lib/ai/agent/skills/registry.ts`.
 | API/auth/security | `test.yml` `unit-tests`; `cloudflare.yml` `dashboard` verify step | Route, method, status class, auth posture, redacted response shape | Mocked unit evidence is not an external service proof |
 | PeerDB | `test.yml` `unit-tests`; `agent-eval.yml` only on its path filter | Mocked versus live source, tool gate, status/metrics shape, ownership/cache result | No real PeerDB is assumed |
 | Query configs | `test.yml` `unit-tests` (static); `test-queries-config` (live, ClickHouse 25.8 and 26.8) on every PR/push; locally `pnpm run test:query-config:live` | Config name, ClickHouse version, server error for a failure | Non-required live job, so auto-merge does not wait for it: watch it by hand on SQL PRs (#4081 merged a broken config this way) |
+| Alerting (rules, sweep, channels) | `test.yml` `unit-tests` (mocked); locally `bun scripts/verify-alerting.ts` | Lever output: rule/analyzer table, per-target delivery table, suite result | Lever is not in CI; run it by hand on any `lib/alerting`, `health/adapters` or `health/sweep` change. See [alerting-validation.md](alerting-validation.md) |
 | Custom webhooks | `test.yml` `unit-tests`; `k8s-lint.yml` `helm` fixture | Preview/send distinction, masked target, SSRF/auth result, Helm render | No third-party delivery is assumed |
 | Helm/GitOps | `k8s-lint.yml` on `deploy/helm/**` or `deploy/kubernetes/**`; `helm-release.yml` on `main` | Chart/overlay path, rendered kinds, Kubernetes version, release result | Render is not cluster rollout |
 | Cloudflare/Docker deploy | `cloudflare.yml` `dashboard`; `ci.yml` Docker jobs | Base URL or artifact, build/deploy conclusion, verify step | Build/deploy is not proof of every user feature |
