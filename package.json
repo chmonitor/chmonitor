@@ -40,6 +40,7 @@
     "test:agent:all": "bun scripts/agent-eval.ts --tags all",
     "test:agent:improve": "bun scripts/agent-eval-improve.ts --tags core,safety",
     "test:agent:view": "promptfoo view",
+    "verify:alerting": "bun scripts/verify-alerting.ts",
     "cf:deploy": "cd apps/dashboard && pnpm run cf:deploy",
     "cf:config": "bun scripts/set-secrets.ts --from-env",
     "cf:typegen": "cd apps/dashboard && pnpm run cf-typegen",

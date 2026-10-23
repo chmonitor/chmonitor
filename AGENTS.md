@@ -451,6 +451,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Operations | [ch-version-onboarding.md](docs/knowledge/ch-version-onboarding.md) | New ClickHouse release audit: binary `system.columns` diff, `EXPLAIN` every config, scraper and `LTS_VERSIONS` traps, first dry run (26.9) |
 | Specs | [agent-verification.md](docs/knowledge/agent-verification.md) | Question bank (`cases/questions.yaml`) + offline gate `question-bank.test.ts`; live drive via the `verify-agent` skill |
 | Specs | [agent-tool-gates-formal.md](docs/knowledge/agent-tool-gates-formal.md) | Exhaustive tool-gate check over the real route composition; `disabledTools` vs `search_tools` finding |
+| Development | [alerting-validation.md](docs/knowledge/alerting-validation.md) | `bun scripts/verify-alerting.ts`: every rule SQL on a real ClickHouse (analyzer 0/1), real dispatch to every channel format, focused suites; when to run it and the pinned known gaps |
 
 ### When to Write to Knowledge vs Memory
 
