@@ -8,12 +8,16 @@
  * test through the route module in the full suite. Instead, we:
  *
  * 1. Structurally verify the proxy source imports and calls validateSqlQuery
- * 2. Behaviorally verify validateSqlQuery rejects DDL/DML (when not mocked)
+ * 2. Behaviorally verify the real validateSqlQuery rejects DDL/DML
  *
  * The full behavioral coverage lives in:
  *   packages/sql-builder/src/__tests__/sql-validator.test.ts
  */
 
+// Import the real validator by file path, not the '@chm/sql-builder' barrel:
+// shared-mocks.ts replaces the barrel with a no-op for the whole process, but
+// does not touch this module, so these tests always run the real function.
+import { validateSqlQuery } from '../../../../../../../../packages/sql-builder/src/sql-validator'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -43,43 +47,24 @@ describe('browser-connections proxy SQL validation (structural)', () => {
   })
 })
 
-describe('validateSqlQuery rejects DDL/DML (behavioral, when real)', () => {
-  // Check if validateSqlQuery is the real implementation or the shared-mocks no-op.
-  // The real function throws on 'DROP TABLE users'; the mock does not.
-  let validateSqlQuery: (sql: string) => void
-  let isReal: boolean
-
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('@chm/sql-builder')
-    validateSqlQuery = mod.validateSqlQuery
-    validateSqlQuery('DROP TABLE test_proxy_detection_only')
-    isReal = false // mock absorbed it
-  } catch {
-    isReal = true // real function threw
-  }
-
+describe('validateSqlQuery rejects DDL/DML (behavioral)', () => {
   test('rejects DROP TABLE', () => {
-    if (!isReal) return
     expect(() => validateSqlQuery('DROP TABLE users')).toThrow(/dangerous SQL/)
   })
 
   test('rejects DELETE FROM', () => {
-    if (!isReal) return
     expect(() =>
       validateSqlQuery('DELETE FROM system.query_log WHERE 1=1')
     ).toThrow(/dangerous SQL/)
   })
 
   test('rejects INSERT INTO', () => {
-    if (!isReal) return
     expect(() =>
       validateSqlQuery('INSERT INTO users VALUES (1, "admin")')
     ).toThrow(/dangerous SQL/)
   })
 
   test('allows SELECT', () => {
-    if (!isReal) return
     expect(() => validateSqlQuery('SELECT 1')).not.toThrow()
   })
 })
