@@ -2,7 +2,7 @@
  * A throw before the handler body can respond (host resolution) must become
  * a structured JSON 500, not an unstructured crash.
  */
-import { describe, expect, mock, test } from 'bun:test'
+import { afterAll, describe, expect, mock, test } from 'bun:test'
 
 mock.module('cloudflare:workers', () => ({ env: {} }))
 
@@ -38,4 +38,8 @@ describe('/api/v1/settings-diff internal errors', () => {
       expect(body.success).toBe(false)
     })
   }
+})
+
+afterAll(() => {
+  mock.restore()
 })
