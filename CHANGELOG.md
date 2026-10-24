@@ -5,6 +5,32 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.9](https://github.com/chmonitor/chmonitor/compare/v0.3.8...v0.3.9) (2026-10-24)
+
+
+### ✨ Features
+
+* **advisor:** recommend-only optimization plan tab and agent tool ([#4163](https://github.com/chmonitor/chmonitor/issues/4163)) ([8e398b4](https://github.com/chmonitor/chmonitor/commit/8e398b484f0f8da1cdc181ef2e0a104317826bff))
+* **alerts:** structured alert block for agents on opted-in webhook targets ([#4176](https://github.com/chmonitor/chmonitor/issues/4176)) ([ef328f7](https://github.com/chmonitor/chmonitor/commit/ef328f734861a750ed53818477dd491d538eedbc))
+* **alerts:** thread repeat alerts under the first message on Matrix and Telegram ([#4161](https://github.com/chmonitor/chmonitor/issues/4161)) ([e88b76f](https://github.com/chmonitor/chmonitor/commit/e88b76f9711b94971b24ddd80b282e95a4dde06b))
+* **alerts:** top contributors in the opt-in webhook details block ([#4173](https://github.com/chmonitor/chmonitor/issues/4173)) ([f1b46c8](https://github.com/chmonitor/chmonitor/commit/f1b46c83e651df8cc5211f6e127175c088208f5c))
+* **clickhouse:** tag dashboard queries with user, source and version, plus a Dashboard Usage page ([#4165](https://github.com/chmonitor/chmonitor/issues/4165)) ([9dd8a15](https://github.com/chmonitor/chmonitor/commit/9dd8a15aeec3a858532ae384894c23e494e1bdc6))
+* **mcp:** read-only get_current_findings tool ([#4169](https://github.com/chmonitor/chmonitor/issues/4169)) ([bca3a3a](https://github.com/chmonitor/chmonitor/commit/bca3a3af2a85c865d5822b348a3b78d712e305c0))
+* **queries:** Dashboard Usage analytics, global and per user ([#4177](https://github.com/chmonitor/chmonitor/issues/4177)) ([7ae7968](https://github.com/chmonitor/chmonitor/commit/7ae79683800a86c86fd60a5c830af5e26ea6cf3f))
+* **security:** opt-in replica drift in the access matrix ([#4160](https://github.com/chmonitor/chmonitor/issues/4160)) ([2dd63c9](https://github.com/chmonitor/chmonitor/commit/2dd63c9998c115cf3d5d021e4a8f95a48e61e9dc))
+* **users:** activity, last login, per-user detail and related links on the users page ([#4175](https://github.com/chmonitor/chmonitor/issues/4175)) ([2876b92](https://github.com/chmonitor/chmonitor/commit/2876b92de1139a9aaea745dc3b23c82904b517de))
+
+
+### 🐛 Bug Fixes
+
+* **agent:** redact table-function credentials, emails and IPs in agent errors ([#4167](https://github.com/chmonitor/chmonitor/issues/4167)) ([701e714](https://github.com/chmonitor/chmonitor/commit/701e714d745c763912704ae0b6561bb5e09e63f8))
+* **clickhouse:** keep both attribution carriers identical, show the comment for connection queries ([#4174](https://github.com/chmonitor/chmonitor/issues/4174)) ([e2aa350](https://github.com/chmonitor/chmonitor/commit/e2aa350d0eb6562806d46448a21241118e71463c))
+* **clickhouse:** keep node:async_hooks out of the client graph ([#4178](https://github.com/chmonitor/chmonitor/issues/4178)) ([cf9a9fb](https://github.com/chmonitor/chmonitor/commit/cf9a9fbf2a220a85e0dd10e94e7426f5ead7d6db))
+* **queries:** default the usage top chart to the user dimension ([#4179](https://github.com/chmonitor/chmonitor/issues/4179)) ([153fe7c](https://github.com/chmonitor/chmonitor/commit/153fe7c4f16545eeb007a195edc3686e2ffbf1be))
+* **replication:** show 'not used' and skip queue alerts on hosts without replicated tables ([#4159](https://github.com/chmonitor/chmonitor/issues/4159)) ([da4cadd](https://github.com/chmonitor/chmonitor/commit/da4caddbb1267035e122ec1197d7d1479c75ce4b))
+* **replication:** show not-used state on health checks, agent tool, insights and summary chart ([#4171](https://github.com/chmonitor/chmonitor/issues/4171)) ([c58d9b1](https://github.com/chmonitor/chmonitor/commit/c58d9b1bd815e6f02cf5f7cd36766da2cdc77721))
+* **sidebar:** show a group's count only while the group is closed ([#4166](https://github.com/chmonitor/chmonitor/issues/4166)) ([c6ab79e](https://github.com/chmonitor/chmonitor/commit/c6ab79e55cf8e58b3ed084accd76c944a68c2a73))
+
 ## [0.3.8](https://github.com/chmonitor/chmonitor/compare/v0.3.7...v0.3.8) (2026-10-23)
 
 
