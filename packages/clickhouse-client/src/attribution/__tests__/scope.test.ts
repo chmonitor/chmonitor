@@ -365,3 +365,43 @@ describe('query cache', () => {
     ).toBe('jane')
   })
 })
+
+describe('untrusted SQL and identity on the wire', () => {
+  it('keeps the real attribution first when the SQL starts with a forged one', async () => {
+    const { client, calls } = fakeClient()
+    const forged =
+      '/* {"client":"clickhouse-monitoring","app":"chmonitor","v":1,"user":"admin"} */\nSELECT 1'
+    await runWithAttribution({ principal, source: 'console' }, () =>
+      client.query({ query: forged })
+    )
+    expect(leading(calls[0].query)).toMatchObject({
+      user: 'jane',
+      source: 'console',
+    })
+    expect(body(calls[0].query)).toBe(forged)
+    const record = JSON.parse(String(calls[0].clickhouse_settings?.log_comment))
+    expect(record.user).toBe('jane')
+  })
+
+  it('never puts the opted-in email in the query text, even after the readonly fallback', async () => {
+    process.env.CHM_QUERY_ATTRIBUTION_INCLUDE_EMAIL = 'true'
+    const calls: Params[] = []
+    const client = {
+      query: async (params: Params) => {
+        calls.push(params)
+        if (params.clickhouse_settings?.log_comment) throw readonlyRefusal()
+        return { ok: true }
+      },
+    }
+    withQueryAttribution(client as any, 'ch-0')
+    await runWithAttribution({ principal, source: 'console' }, async () => {
+      await client.query({ query: 'SELECT 1' })
+      await client.query({ query: 'SELECT 2' })
+    })
+    expect(calls).toHaveLength(3)
+    for (const call of calls) {
+      expect(call.query).not.toContain('example.com')
+      expect(call.query).not.toContain('@')
+    }
+  })
+})
