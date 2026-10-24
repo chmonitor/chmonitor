@@ -12,6 +12,8 @@ describe('sourceFromPath', () => {
     ['/api/v1/tables/running-queries', 'table:running-queries'],
     ['/api/v1/tables/parts/filter-options', 'table:parts'],
     ['/api/v1/explorer/query', 'console'],
+    ['/api/v1/browser-connections/proxy', 'console'],
+    ['/api/v1/explain', 'explain'],
     ['/api/v1/explorer/tables', 'explorer:tables'],
     ['/api/v1/agent', 'agent'],
     ['/api/mcp', 'mcp'],

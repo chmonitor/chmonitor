@@ -18,6 +18,8 @@ const SOURCE_ROUTES: ReadonlyArray<
   ['/api/v1/charts/', (rest) => `chart:${rest}`],
   ['/api/v1/tables/', (rest) => `table:${rest}`],
   ['/api/v1/explorer/query', () => 'console'],
+  ['/api/v1/browser-connections/proxy', () => 'console'],
+  ['/api/v1/explain', () => 'explain'],
   ['/api/v1/explorer/', (rest) => `explorer:${rest}`],
   ['/api/v1/agent', () => 'agent'],
   ['/api/v1/advisor', () => 'agent'],
