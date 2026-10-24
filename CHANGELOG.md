@@ -5,6 +5,22 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.10](https://github.com/chmonitor/chmonitor/compare/v0.3.9...v0.3.10) (2026-10-24)
+
+
+### ✨ Features
+
+* **sql-editor:** schema-aware typeahead completion ([#4200](https://github.com/chmonitor/chmonitor/issues/4200)) ([a5dc22d](https://github.com/chmonitor/chmonitor/commit/a5dc22d760e50d01e9b3f62beff109b7198e177b))
+
+
+### 🐛 Bug Fixes
+
+* **api:** return a JSON 500 when settings-diff or schema-diff throws ([#4197](https://github.com/chmonitor/chmonitor/issues/4197)) ([0c2d544](https://github.com/chmonitor/chmonitor/commit/0c2d5442ce4cd6b50328a464107075c5924fa45b))
+* **attribution:** tag explain and browser-proxy queries with their editor source ([#4196](https://github.com/chmonitor/chmonitor/issues/4196)) ([3fc7ee4](https://github.com/chmonitor/chmonitor/commit/3fc7ee4bc3aa548adc24c1455dc1f57c90dce752))
+* **cli:** run the Cargo.lock sync online so CI can resolve the index ([#4189](https://github.com/chmonitor/chmonitor/issues/4189)) ([c023c5d](https://github.com/chmonitor/chmonitor/commit/c023c5d85b7dcdbd04e4c686a35f5af6ee763d2d))
+* **cli:** sync the chmonitor Cargo.lock entry before the crates.io publish ([#4187](https://github.com/chmonitor/chmonitor/issues/4187)) ([57b2570](https://github.com/chmonitor/chmonitor/commit/57b25706080558d8cea723ca457e932911f2f5d4))
+* **connections:** attribute the Test connection query ([#4195](https://github.com/chmonitor/chmonitor/issues/4195)) ([2bad367](https://github.com/chmonitor/chmonitor/commit/2bad3677c0421e40a2c735ae30b768029b174663))
+
 ## [0.3.9](https://github.com/chmonitor/chmonitor/compare/v0.3.8...v0.3.9) (2026-10-24)
 
 
