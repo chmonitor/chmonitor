@@ -10,6 +10,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from 'cloudflare:workers'
+import { generateRequestId } from '@chm/logger'
+import { createInternalErrorResponse } from '@/lib/api/error-handler/error-response-builder'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env' // pragma: allowlist secret
 import { demoHiddenUnavailable } from '@/lib/cloud/reject-demo-host'
 import { loadClusterNodes } from '@/lib/cluster/load-cluster-nodes'
@@ -169,6 +171,19 @@ async function loadNodeCatalogs(
 }
 
 async function handleSchemaDiff(request: Request): Promise<Response> {
+  const requestId = generateRequestId()
+  try {
+    return await runSchemaDiff(request)
+  } catch (err) {
+    return createInternalErrorResponse(
+      err,
+      { route: '/api/v1/schema-diff', method: request.method },
+      requestId
+    )
+  }
+}
+
+async function runSchemaDiff(request: Request): Promise<Response> {
   bridgeClickHouseEnv(env as Record<string, string | undefined>) // pragma: allowlist secret
 
   const { search, browserSessions } = await readDiffRequest(request)
