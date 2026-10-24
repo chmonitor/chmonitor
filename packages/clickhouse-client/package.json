@@ -31,7 +31,7 @@
     "@clickhouse/client": "^1.18.5",
     "@clickhouse/client-web": "^1.18.5",
     "lru-cache": "^11.5.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "typescript": "^6.0.0"
