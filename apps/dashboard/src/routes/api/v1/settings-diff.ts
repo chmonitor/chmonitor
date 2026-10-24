@@ -13,6 +13,8 @@ import type { SettingsDiffView } from '@/lib/settings-diff/search'
 import type { SettingsDiffHostInfo } from '@/lib/settings-diff/types'
 
 import { env } from 'cloudflare:workers'
+import { generateRequestId } from '@chm/logger'
+import { createInternalErrorResponse } from '@/lib/api/error-handler/error-response-builder'
 import { bridgeClickHouseEnv } from '@/lib/api/server-env' // pragma: allowlist secret
 import { demoHiddenUnavailable } from '@/lib/cloud/reject-demo-host'
 import { loadClusterNodes } from '@/lib/cluster/load-cluster-nodes'
@@ -157,6 +159,19 @@ function hostsToQuery(
 }
 
 async function handleSettingsDiff(request: Request): Promise<Response> {
+  const requestId = generateRequestId()
+  try {
+    return await runSettingsDiff(request)
+  } catch (err) {
+    return createInternalErrorResponse(
+      err,
+      { route: '/api/v1/settings-diff', method: request.method },
+      requestId
+    )
+  }
+}
+
+async function runSettingsDiff(request: Request): Promise<Response> {
   bridgeClickHouseEnv(env as Record<string, string | undefined>) // pragma: allowlist secret
 
   const { search, browserSessions } = await readDiffRequest(request)
