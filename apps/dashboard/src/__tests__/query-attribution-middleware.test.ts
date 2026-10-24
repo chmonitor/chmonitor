@@ -123,4 +123,26 @@ describe('queryAttributionHandler', () => {
     expect(record).toMatchObject({ user: null, host: 'duet-ubuntu' })
     expect(record.email ?? null).toBeNull()
   })
+
+  // The query editors: SQL console on env hosts, the console on a browser
+  // connection (proxy, host null), and the Explain page's editor.
+  test.each([
+    ['/api/v1/explorer/query', 'ch-0', 'console'],
+    ['/api/v1/browser-connections/proxy', null, 'console'],
+    ['/api/v1/explain?hostId=0', 'ch-0', 'explain'],
+  ])('editor SQL on %s carries the signed-in user', async (path, host, source) => {
+    const record = await recordFor(
+      new Request(`https://dash.example${path}`, {
+        method: 'POST',
+        headers: {
+          'X-Chm-Proxy-Secret': 'proxy-secret',
+          'X-Forwarded-User': 'jane',
+          'X-Forwarded-Email': 'jane@example.com',
+        },
+      }),
+      host as string
+    )
+    expect(record).toMatchObject({ user: 'jane', source })
+    expect(record.email).toBeUndefined()
+  })
 })
