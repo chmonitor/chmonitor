@@ -90,7 +90,7 @@ afterEach(() => {
 
 describe('the probe statement', () => {
   test('asks for system tables, app tables and clusters in one statement', () => {
-    const sql = buildCapabilityProbeSql('system')
+    const sql = buildCapabilityProbeSql()
     expect(sql).toContain('system.tables')
     expect(sql).toContain('system.clusters')
     expect(sql).toContain("database IN ('system', {appDatabase: String})")
@@ -103,13 +103,13 @@ describe('the probe statement', () => {
     // A `system.tables` scan that is not pinned to `system` must carry the
     // engine allow-list, or the probe itself becomes the expensive background
     // query this issue is about.
-    expect(buildCapabilityProbeSql('system')).toContain(
+    expect(buildCapabilityProbeSql()).toContain(
       'system.databases WHERE engine IN'
     )
   })
 
   test('the app database is a parameter, not interpolated', () => {
-    expect(buildCapabilityProbeSql('chmonitor_meta')).toContain(
+    expect(buildCapabilityProbeSql()).toContain(
       '{appDatabase: String}'
     )
   })
@@ -244,7 +244,7 @@ describe('the cluster half of the snapshot', () => {
   })
 
   test('the probe marks membership from is_local', () => {
-    expect(buildCapabilityProbeSql('system')).toContain(
+    expect(buildCapabilityProbeSql()).toContain(
       "if(is_local = 1, 'local_cluster', 'cluster')"
     )
   })

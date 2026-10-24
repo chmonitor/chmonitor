@@ -32,7 +32,7 @@ function isAutoRouter(id: string): boolean {
  */
 function isOwnKey(id: string): boolean {
   const entry = MODEL_REGISTRY.find((e) => e.id === id)
-  return entry !== undefined && entry.providers.every((p) => p === 'nvidia')
+  return entry !== undefined && entry.providers.every((p) => p === 'nvidia') === true
 }
 
 /** A workspace preset is a routing alias, not a model — its cost varies. */

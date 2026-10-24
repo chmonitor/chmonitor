@@ -20,9 +20,7 @@ const okReport = {
   html: '<html>never returned</html>',
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamicTool typing is opaque in tests
 function getTool(hostId = 0): any {
-  // biome-ignore lint/suspicious/noExplicitAny: see above
   return (createReportTools(hostId) as any).generate_cluster_report
 }
 

@@ -308,9 +308,6 @@ const TICK_RULES: AlertRuleDef[] = [
   })
 )
 
-/** Value the fake server reports for every rule, so the two paths agree. */
-const RULE_VALUE = 3
-
 /**
  * Count the queries one sweep tick issues, for one of two strategies.
  *
