@@ -109,9 +109,7 @@ describe('the probe statement', () => {
   })
 
   test('the app database is a parameter, not interpolated', () => {
-    expect(buildCapabilityProbeSql()).toContain(
-      '{appDatabase: String}'
-    )
+    expect(buildCapabilityProbeSql()).toContain('{appDatabase: String}')
   })
 })
 
