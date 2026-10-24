@@ -257,6 +257,6 @@ jobs:
           fi
           # The release PR bumps Cargo.toml but not the workspace Cargo.lock.
           # Sync only the chmonitor entry; dependencies stay locked.
-          cargo update -p chmonitor --offline
+          cargo update -p chmonitor
           echo "Publishing chmonitor v${VERSION} to crates.io..."
           cargo publish -p chmonitor --locked
