@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.19](https://github.com/chmonitor/chmonitor/compare/helm-chmonitor-0.2.18...helm-chmonitor-0.2.19) (2026-10-24)
+
+
+### Features
+
+* **clickhouse:** tag dashboard queries with user, source and version, plus a Dashboard Usage page ([#4165](https://github.com/chmonitor/chmonitor/issues/4165)) ([9dd8a15](https://github.com/chmonitor/chmonitor/commit/9dd8a15aeec3a858532ae384894c23e494e1bdc6))
+
 ## [0.2.18](https://github.com/chmonitor/chmonitor/compare/helm-chmonitor-0.2.17...helm-chmonitor-0.2.18) (2026-10-23)
 
 
