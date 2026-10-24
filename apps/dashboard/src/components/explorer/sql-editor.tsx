@@ -1,3 +1,5 @@
+import { type QueryClient, useQueryClient } from '@tanstack/react-query'
+
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { sql } from '@codemirror/lang-sql'
@@ -15,6 +17,11 @@ import {
 } from '@codemirror/view'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useRef } from 'react'
+import {
+  createSqlCompletionSource,
+  prefetchSqlSchema,
+} from '@/components/explorer/sql-completion-source'
+import { useHostId } from '@/lib/swr/use-host'
 
 const darkTheme = EditorView.theme(
   {
@@ -110,12 +117,19 @@ const lightTheme = EditorView.theme(
   { dark: false }
 )
 
+function completionFor(queryClient: QueryClient, hostId: number) {
+  return autocompletion({
+    override: [createSqlCompletionSource(queryClient, hostId)],
+    activateOnTyping: true,
+    activateOnTypingDelay: 150,
+  })
+}
+
 interface SqlEditorProps {
   value: string
   onChange: (value: string) => void
   onRun?: () => void
   placeholder?: string
-  schema?: Record<string, string[]>
 }
 
 export function SqlEditor({
@@ -123,13 +137,14 @@ export function SqlEditor({
   onChange,
   onRun,
   placeholder = 'SELECT * FROM system.tables LIMIT 100',
-  schema,
 }: SqlEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const onChangeRef = useRef(onChange)
   const onRunRef = useRef(onRun)
-  const sqlCompartment = useRef(new Compartment())
+  const completionCompartment = useRef(new Compartment())
+  const queryClient = useQueryClient()
+  const hostId = useHostId()
   // Track programmatic document updates to avoid echoing onChange back to parent.
   const isProgrammaticChange = useRef(false)
   const { resolvedTheme } = useTheme()
@@ -137,7 +152,7 @@ export function SqlEditor({
   onChangeRef.current = onChange
   onRunRef.current = onRun
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — value/schema/placeholder are initial values; sync handled by separate effects
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — value/placeholder/hostId are initial values; sync handled by separate effects
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -174,8 +189,8 @@ export function SqlEditor({
         runKeymap,
         history(),
         bracketMatching(),
-        autocompletion(),
-        sqlCompartment.current.of(sql({ schema: schema || {} })),
+        sql(),
+        completionCompartment.current.of(completionFor(queryClient, hostId)),
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         keymap.of([
           ...defaultKeymap,
@@ -202,17 +217,19 @@ export function SqlEditor({
       view.destroy()
       viewRef.current = null
     }
-    // Only recreate on theme change — value/schema sync handled separately
+    // Only recreate on theme change — value/host sync handled separately
   }, [resolvedTheme])
 
+  // Host switch swaps the completion source in place; the editor keeps its
+  // document, history and focus.
   useEffect(() => {
-    const view = viewRef.current
-    if (!view || !schema) return
-
-    view.dispatch({
-      effects: sqlCompartment.current.reconfigure(sql({ schema })),
+    prefetchSqlSchema(queryClient, hostId)
+    viewRef.current?.dispatch({
+      effects: completionCompartment.current.reconfigure(
+        completionFor(queryClient, hostId)
+      ),
     })
-  }, [schema])
+  }, [queryClient, hostId])
 
   useEffect(() => {
     const view = viewRef.current
