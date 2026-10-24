@@ -95,6 +95,11 @@ meaning (active, expired), pass fixed classes per value:
 
 ## Verifying SQL
 
+Offline first: `bun test src/lib/api/__tests__/registry-default-params.test.ts`
+(from `apps/dashboard`, part of the required `unit-tests` job) builds every
+chart and table with no params, as the live sweep does, and fails on a
+throwing builder, empty SQL, or a placeholder with no default (#4177/#4179).
+
 CI's `test-queries-config` job runs every config against a real ClickHouse
 (25.8 and 26.8) but is not a required check, and its `*-live` tests self-skip
 without `CLICKHOUSE_HOST`. Incident: #4081 merged an `unused-tables` config
