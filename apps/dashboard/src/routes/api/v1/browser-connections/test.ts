@@ -11,6 +11,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@clickhouse/client-web'
 
+import { withQueryAttribution } from '@chm/clickhouse-client/attribution'
 import { formatPostgresError, getPostgresVersion } from '@chm/postgres-client'
 import { isSourceEngine } from '@chm/types'
 import { createValidationError } from '@/lib/api/error-handler'
@@ -127,12 +128,15 @@ async function handlePost(request: Request): Promise<Response> {
   }
 
   try {
-    const client = createClient({
-      host,
-      username: user,
-      password,
-      fetch: createHostValidationFetch(),
-    })
+    const client = withQueryAttribution(
+      createClient({
+        host,
+        username: user,
+        password,
+        fetch: createHostValidationFetch(),
+      }),
+      null
+    )
 
     const result = await client.query({
       query: 'SELECT version() AS version',

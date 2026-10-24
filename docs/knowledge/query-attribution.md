@@ -85,8 +85,6 @@ Current allowlist:
   before pooling.
 - `scripts/verify-readonly-mode.ts` is a manual probe of raw readonly
   behaviour.
-- `routes/api/v1/browser-connections/test.ts` is a **known gap**: "Test
-  connection" sends `SELECT version()` unattributed.
 
 Not covered by the guard: the state backend
 (`apps/dashboard/src/lib/state-backend/clickhouse-client.ts`) talks to the

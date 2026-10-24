@@ -26,8 +26,6 @@ const ALLOWED: Record<string, string> = {
     'picks the factory at runtime (`clientFactory(...)`) and wraps the result in withQueryAttribution before pooling it; scope.test.ts covers the wrapper',
   'packages/clickhouse-client/scripts/verify-readonly-mode.ts':
     'manual probe that measures raw readonly behaviour, including the log_comment refusal itself; never shipped',
-  'apps/dashboard/src/routes/api/v1/browser-connections/test.ts':
-    'KNOWN GAP: "Test connection" sends `SELECT version()` to a user-supplied host unattributed; wrap it in withQueryAttribution in its own PR, then delete this entry',
 }
 
 const FACTORY_IMPORT =
