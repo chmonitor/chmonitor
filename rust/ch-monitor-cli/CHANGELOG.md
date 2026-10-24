@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/chmonitor/chmonitor/compare/chm-v0.1.4...chm-v0.1.5) (2026-10-24)
+
+
+### Features
+
+* **telemetry:** send usage to the shared telemetry service ([#3829](https://github.com/chmonitor/chmonitor/issues/3829)) ([60d641d](https://github.com/chmonitor/chmonitor/commit/60d641d49fb7ca81cc3d3d7a2820b3aa217567ef))
+
 ## [0.1.4](https://github.com/chmonitor/chmonitor/compare/chm-v0.1.3...chm-v0.1.4) (2026-09-25)
 
 
