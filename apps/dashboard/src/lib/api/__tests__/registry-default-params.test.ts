@@ -6,12 +6,12 @@
  * required `unit-tests` job.
  */
 
+import { SWEEP_REAL_PARAMS } from './sweep-params'
 import { describe, expect, test } from 'bun:test'
 import { getAllSqlStrings } from '@chm/sql-builder'
 import { getAvailableCharts, getChartQuery } from '@/lib/api/chart-registry'
 import { findMissingQueryParams } from '@/lib/api/query-executor'
 import { getAvailableTables, getTableQuery } from '@/lib/api/table-registry'
-import { SWEEP_REAL_PARAMS } from './sweep-params'
 
 function errorOf(fn: () => unknown): string | null {
   try {

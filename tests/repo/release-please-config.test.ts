@@ -89,7 +89,10 @@ function ownVersion(
     }
     case 'rust': {
       const file = join(pkgPath, 'Cargo.toml')
-      return { file, version: read(file).match(/^version\s*=\s*"([^"]+)"/m)?.[1] }
+      return {
+        file,
+        version: read(file).match(/^version\s*=\s*"([^"]+)"/m)?.[1],
+      }
     }
     default: {
       const json = (pkg['extra-files'] ?? []).find(
@@ -97,7 +100,10 @@ function ownVersion(
       )
       if (!json) throw new Error(`no json extra-file for ${pkgPath}`)
       const file = join(pkgPath, json.path)
-      return { file, version: (JSON.parse(read(file)) as { version?: string }).version }
+      return {
+        file,
+        version: (JSON.parse(read(file)) as { version?: string }).version,
+      }
     }
   }
 }
@@ -146,7 +152,9 @@ describe('release-please config', () => {
   })
 
   test('CLI publish syncs Cargo.lock before cargo publish --locked', () => {
-    expect(syncsLockBeforePublish(read('.github/workflows/cli-rust-release.yml'))).toBe(true)
+    expect(
+      syncsLockBeforePublish(read('.github/workflows/cli-rust-release.yml'))
+    ).toBe(true)
   })
 })
 
@@ -154,15 +162,21 @@ describe('checks reject the v0.3.9 failure shapes', () => {
   test('two versions on one line inside a block', () => {
     const block = (body: string) =>
       `<!-- x-release-please-start-version -->\n${body}\n<!-- x-release-please-end -->`
-    expect(multiVersionLines(block('Current: v0.3.9 (image 0.3.8)'))).toHaveLength(1)
+    expect(
+      multiVersionLines(block('Current: v0.3.9 (image 0.3.8)'))
+    ).toHaveLength(1)
     expect(multiVersionLines(block('Current: v0.3.9'))).toEqual([])
     expect(multiVersionLines('outside v0.3.9 and v0.3.8')).toEqual([])
   })
 
   test('publish without, or before, the lock sync', () => {
-    expect(syncsLockBeforePublish('cargo publish -p chmonitor --locked')).toBe(false)
+    expect(syncsLockBeforePublish('cargo publish -p chmonitor --locked')).toBe(
+      false
+    )
     expect(
-      syncsLockBeforePublish('cargo publish --locked\ncargo update -p chmonitor')
+      syncsLockBeforePublish(
+        'cargo publish --locked\ncargo update -p chmonitor'
+      )
     ).toBe(false)
   })
 })
