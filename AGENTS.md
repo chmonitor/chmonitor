@@ -400,6 +400,12 @@ leak into the agent bundle). Current dev skills:
   callable tools; records a `disabledTools` finding. Backed by
   `docs/knowledge/agent-tool-gates-formal.md`.
 
+- **`verify-release`** — check the release pipeline before and after a
+  release: `tests/repo/release-please-config.test.ts`,
+  `scripts/check-release-labels.sh` (stale `autorelease: pending` labels), and
+  the published tags, deploy, image, Helm index, crates.io crate, and blog.
+  Backed by `docs/knowledge/release-automation.md`.
+
 **Auto-improve project skills (standing instruction).** These skills are living
 documents — keep them accurate as the codebase evolves, without being asked:
 
@@ -452,6 +458,7 @@ Developer-facing docs live in `docs/knowledge/` as a linked knowledge graph. Eac
 | Specs | [agent-verification.md](docs/knowledge/agent-verification.md) | Question bank (`cases/questions.yaml`) + offline gate `question-bank.test.ts`; live drive via the `verify-agent` skill |
 | Specs | [agent-tool-gates-formal.md](docs/knowledge/agent-tool-gates-formal.md) | Exhaustive tool-gate check over the real route composition; `disabledTools` vs `search_tools` finding |
 | Development | [alerting-validation.md](docs/knowledge/alerting-validation.md) | `bun scripts/verify-alerting.ts`: every rule SQL on a real ClickHouse (analyzer 0/1), real dispatch to every channel format, focused suites; when to run it and the pinned known gaps |
+| Operations | [release-automation.md](docs/knowledge/release-automation.md) | release-please per component, release body, CLI and Helm releases, and the pipeline checks: config test, stale-label script, one version per README line, Cargo.lock sync before publish |
 
 ### When to Write to Knowledge vs Memory
 
