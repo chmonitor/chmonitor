@@ -125,10 +125,11 @@ describe('attribution coverage', () => {
   })
 
   it('sees the wrapped call sites, so a broken scan cannot pass vacuously', () => {
-    const wrapped = ['proxy.ts', 'connection-client.ts'].map((name) => {
-      const file = [...sourceFiles(join(REPO, 'apps/dashboard/src'))].find(
-        (f) => f.endsWith(`/${name}`)
-      ) as string
+    const wrapped = [
+      'apps/dashboard/src/routes/api/v1/browser-connections/proxy.ts',
+      'apps/dashboard/src/lib/connection-query/connection-client.ts',
+    ].map((rel) => {
+      const file = join(REPO, rel)
       const text = readFileSync(file, 'utf8')
       return (
         factoryNames(text).length > 0 && rawClientUses(file, text).length === 0
