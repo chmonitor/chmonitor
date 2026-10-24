@@ -255,5 +255,8 @@ jobs:
             echo "chmonitor v${VERSION} already published or check inconclusive (HTTP ${STATUS_CODE}). Skipping crates.io."
             exit 0
           fi
+          # The release PR bumps Cargo.toml but not the workspace Cargo.lock.
+          # Sync only the chmonitor entry; dependencies stay locked.
+          cargo update -p chmonitor --offline
           echo "Publishing chmonitor v${VERSION} to crates.io..."
           cargo publish -p chmonitor --locked
