@@ -34,6 +34,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   release:
@@ -82,6 +83,24 @@ jobs:
           skip_existing: true
         env:
           CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # skip-github-release means release-please never sees the tag that
+      # chart-releaser creates, so it never flips the merged release PR to
+      # `autorelease: tagged`. A pending label left behind makes the next
+      # release-please run abort for every component.
+      - name: Mark released helm PRs as tagged
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr list -R "$GITHUB_REPOSITORY" --state merged --label 'autorelease: pending' \
+            --search 'release helm-chart in:title' --json number,title --jq '.[] | "\(.number) \(.title)"' |
+          while read -r num title; do
+            version="${title##* }"
+            if git ls-remote --exit-code --tags origin "refs/tags/helm-chmonitor-${version}" >/dev/null; then
+              gh pr edit "$num" -R "$GITHUB_REPOSITORY" --remove-label 'autorelease: pending' --add-label 'autorelease: tagged'
+            fi
+          done
 
   # chart-releaser pushes index.yaml + .tgz to the gh-pages BRANCH, but pushes
   # made by GITHUB_TOKEN do not trigger downstream push workflows (anti-loop),

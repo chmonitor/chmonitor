@@ -3,7 +3,7 @@ id: release-automation
 title: Release Automation Pipeline
 type: workflow
 status: active
-updated: 2026-10-23
+updated: 2026-10-24
 tags:
   - release
   - ci
@@ -173,3 +173,15 @@ asserts exactly **8** assets before upload (and re-checks the Release API).
 Installers and `chm update`/`upgrade` select channel via `CHM_CHANNEL` /
 `--channel` / config (`stable` default). See
 [standalone-cli.md](standalone-cli.md).
+
+## Release pipeline checks
+
+Three failures hit the v0.3.9 release. Each one now has a check. Run the
+`verify-release` skill (`.claude/skills/verify-release/SKILL.md`) before and
+after a release.
+
+| Failure | Check | Fix |
+|---|---|---|
+| A merged release PR kept `autorelease: pending`, so release-please aborted every component ("untagged, merged release PRs outstanding") | `scripts/check-release-labels.sh` | Relabel to `autorelease: tagged`. Helm PRs are relabeled by `helm-release.yml` after chart-releaser, because `skip-github-release` means release-please never sees the Helm tag |
+| The `generic` updater bumps only the first version on a line, so README kept a stale version | `tests/repo/release-please-config.test.ts` | One version per line inside the `x-release-please-start-version` block |
+| The rust release PR bumps `Cargo.toml` but not `rust/Cargo.lock`, so `cargo publish --locked` failed | same test | `cli-rust-release.yml` runs `cargo update -p chmonitor` before publishing |
