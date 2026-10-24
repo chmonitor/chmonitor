@@ -15,6 +15,7 @@
  */
 
 import type { ClickHouseVersion } from '@chm/clickhouse-client/clickhouse-version'
+import type { SWEEP_REAL_PARAMS } from '@/lib/api/__tests__/sweep-params'
 
 import { beforeAll, describe, expect, it } from 'bun:test'
 import { fetchData } from '@chm/clickhouse-client'
@@ -172,7 +173,8 @@ describe('/api/v1 chart and table routes against a live ClickHouse (optional)', 
         expect(required.size).toBeGreaterThan(0)
 
         const cluster = await firstCluster()
-        const known: Record<string, string | null> = {
+        const known: Record<(typeof SWEEP_REAL_PARAMS)[number], string | null> &
+          Record<string, string | null> = {
           database: 'system',
           table: 'one',
           cluster,

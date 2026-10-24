@@ -32,7 +32,24 @@ Detail and examples live in
   `system.zookeeper`) gets `optional: true` and `tableCheck`.
 - Register a new config in `apps/dashboard/src/lib/query-config/index.ts`.
 
-## Verify
+## Validation
+
+1. Offline, no server (runs in the required `unit-tests` job), from
+   `apps/dashboard`:
+
+   ```sh
+   bun test src/lib/api/__tests__/registry-default-params.test.ts
+   ```
+
+   It builds every chart and table with no params, exactly as the live sweep
+   does, and fails if a builder throws, returns empty SQL, or leaves a
+   `{name:Type}` placeholder without a default (tables may leave only
+   `database` / `table` / `cluster` unset, the params the sweep can fill).
+   A chart param read from `args.params` needs a default (#4177, fixed in #4179).
+2. Live, below: the same suite as `test-queries-config`, every config under
+   `enable_analyzer=0` and `1`.
+3. Wait by hand for both non-required `test-queries-config` checks before
+   merging a query change.
 
 CI runs `test-queries-config` against real ClickHouse 25.8 and 26.8. That job
 is **not a required check**, so auto-merge can land a PR while it is running or
