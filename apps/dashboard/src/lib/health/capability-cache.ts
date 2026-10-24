@@ -140,18 +140,14 @@ export function resetHostCapabilities(hostId?: number): void {
 }
 
 /**
- * The probe statement. Exported so a test can assert it is exactly what runs,
- * and so a caller that wants to probe a database other than `APP_DATABASE`
- * (a custom `CLICKHOUSE_DATABASE`) does not have to edit the string.
+ * The probe statement. Exported so a test can assert it is exactly what runs.
  *
  * Verified verbatim on 23.8.16.16, 24.3.18.7 and 26.7.22.4 — the
  * `UNION ALL` over a derived subquery is the only shape that parses on all
  * three. The cluster half (GROUP BY with `is_local`) was re-checked on 25.8
  * and 26.5.
  */
-export function buildCapabilityProbeSql(
-  appDatabase: string = APP_DATABASE
-): string {
+export function buildCapabilityProbeSql(): string {
   return `
     SELECT 'table' AS kind, concat(database, '.', name) AS name
     FROM system.tables

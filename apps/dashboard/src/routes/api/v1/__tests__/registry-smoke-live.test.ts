@@ -24,6 +24,7 @@ import {
   selectVersionedSql,
 } from '@chm/clickhouse-client/clickhouse-version'
 import { getAvailableCharts } from '@/lib/api/chart-registry'
+import { findMissingQueryParams } from '@/lib/api/query-executor'
 import { getAvailableTables, getTableQuery } from '@/lib/api/table-registry'
 import { handler as chartHandler } from '@/routes/api/v1/charts/$name'
 import { handler as tableHandler } from '@/routes/api/v1/tables/$name'
@@ -51,19 +52,12 @@ async function getLiveVersion(): Promise<ClickHouseVersion | null> {
   }
 }
 
-const PLACEHOLDER = /\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*:[^{}]+\}/g
-
 /** Placeholders in the SQL the server would run that `defaultParams` leave unset. */
 function requiredParams(name: string, version: ClickHouseVersion): string[] {
   const def = getTableQuery(name, { hostId: 0, searchParams: {} })
   if (!def) return []
   const sql = selectVersionedSql(def.queryConfig.sql, version)
-  const missing = new Set<string>()
-  for (const [, param] of sql.matchAll(PLACEHOLDER)) {
-    const value = def.queryParams?.[param]
-    if (value === undefined || value === null) missing.add(param)
-  }
-  return [...missing]
+  return findMissingQueryParams(sql, def.queryParams)
 }
 
 async function firstCluster(): Promise<string | null> {
