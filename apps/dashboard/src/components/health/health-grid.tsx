@@ -22,6 +22,7 @@ import { EMPTY_STATE, useHealthChecks } from './use-health-checks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePeerDBMetrics } from '@/components/peerdb/use-peerdb-metrics'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useVisibleInterval } from '@/hooks/use-visible-interval'
 import {
   alertStatusKey,
   dispatchAlert,
@@ -387,10 +388,7 @@ export function HealthGrid() {
   }, [items, filter])
 
   const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 5000)
-    return () => clearInterval(id)
-  }, [])
+  useVisibleInterval(() => setNow(Date.now()), 5000)
 
   return (
     <div className="flex flex-col gap-4">
