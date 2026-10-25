@@ -9,6 +9,9 @@ import { GlobalRegistrator } from '@happy-dom/global-registrator'
 
 // The page pulls in the whole agent runtime; only the sidebar-default hook is
 // under test here.
+const realSidebar = {
+  ...(await import('@/components/agents/welcome/agent-settings-sidebar')),
+}
 mock.module('@/components/agents/welcome/agent-settings-sidebar', () => ({
   AgentSettingsSidebar: () => null,
 }))
@@ -22,6 +25,9 @@ beforeAll(() => {
   ).IS_REACT_ACT_ENVIRONMENT = true
 })
 afterAll(async () => {
+  mock.module('@/components/agents/welcome/agent-settings-sidebar', () => ({
+    ...realSidebar,
+  }))
   await GlobalRegistrator.unregister()
 })
 
