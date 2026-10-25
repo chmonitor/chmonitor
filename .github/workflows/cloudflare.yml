@@ -513,6 +513,27 @@ jobs:
         run: |
           npx --yes --package=wrangler@4 wrangler deploy --minify
 
+      # The dashboard "Verify deployment" step runs before these workers deploy
+      # and only reaches the dashboard worker. A sibling that lost a binding
+      # (preview telemetry lost its D1 -> /v1/summary 503, #3246) stayed green.
+      - name: Verify MCP + telemetry workers
+        if: >-
+          github.actor != 'dependabot[bot]' &&
+          (steps.filter.outputs.mcp == 'true' ||
+          steps.filter.outputs.telemetry == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag')
+        working-directory: apps/dashboard
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="https://preview.dash.chmonitor.dev"
+          else
+            BASE="https://dash.chmonitor.dev"
+          fi
+          sleep 5
+          bun scripts/verify-deploy-workers.ts --base-url "$BASE" --only mcp,telemetry
+
       - name: Comment preview URL on PR
         # Skip for dependabot — its runs get a read-only pull-requests token
         # (createComment would 403), and no preview was deployed anyway.
@@ -1207,3 +1228,15 @@ jobs:
           put CF_OBSERVABILITY_API_TOKEN "${CF_OBSERVABILITY_API_TOKEN:-}"
           put GH_APP_ID "${GH_APP_ID:-}"
           put GH_APP_PRIVATE_KEY "${GH_APP_PRIVATE_KEY:-}"
+
+      # cloud-hooks has no preview route, so this runs for production only.
+      - name: Verify cloud-hooks worker
+        if: >-
+          github.event_name != 'pull_request' &&
+          (steps.filter.outputs.cloud_hooks == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          github.ref_type == 'tag')
+        run: |
+          sleep 5
+          bun ../dashboard/scripts/verify-deploy-workers.ts --base-url https://dash.chmonitor.dev --only hooks
