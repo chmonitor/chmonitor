@@ -325,7 +325,7 @@ function HostRunningQueriesView({ hostId }: { hostId: number }) {
               <>
                 {/* Trend charts on this page use a fixed 14-day window for historical
                     context and are not affected by the global time-range picker. */}
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] max-sm:text-xs text-muted-foreground">
                   Trend charts use a fixed 14-day window · not affected by the
                   global time-range picker
                 </p>

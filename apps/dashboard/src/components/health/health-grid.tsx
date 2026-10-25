@@ -471,7 +471,7 @@ function HealthResults({
           {/* Only label the quiet list when issues sit above it — the loud →
               calm transition needs a marker; a filtered-only view does not. */}
           {cardItems.length > 0 && (
-            <div className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="px-1 text-[11px] max-sm:text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Operational · {rowItems.length}
             </div>
           )}

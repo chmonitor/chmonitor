@@ -126,7 +126,7 @@ export function ThreadRow({ item, onSelect }: ThreadRowProps) {
       >
         <div className="truncate text-[12.5px] font-medium">{item.title}</div>
         {item.createdAt !== undefined && (
-          <div className="text-muted-foreground truncate text-[10.5px] tabular-nums">
+          <div className="text-muted-foreground truncate text-[10.5px] max-sm:text-xs tabular-nums">
             {formatRelativeTime(item.createdAt)}
           </div>
         )}
@@ -246,7 +246,7 @@ export function ConversationRailBody({
           ) : (
             groups.map((group) => (
               <div key={group.label} className="mb-2">
-                <div className="text-muted-foreground px-2 py-1 text-[10px] font-semibold tracking-wider uppercase">
+                <div className="text-muted-foreground px-2 py-1 text-[10px] max-sm:text-xs font-semibold tracking-wider uppercase">
                   {group.label}
                 </div>
                 <div className="flex flex-col gap-0.5">
@@ -319,7 +319,7 @@ export function ConversationRailOpenButton({
       size="sm"
       onClick={onClick}
       className={cn(
-        'inline-flex h-8 gap-1.5 bg-background px-2.5 text-[11.5px] whitespace-nowrap shadow-sm dark:bg-background dark:hover:bg-muted',
+        'inline-flex h-8 gap-1.5 bg-background px-2.5 text-[11.5px] max-sm:text-xs whitespace-nowrap shadow-sm dark:bg-background dark:hover:bg-muted',
         className
       )}
     >

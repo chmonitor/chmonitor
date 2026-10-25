@@ -6,6 +6,9 @@
  * 2. Touch-visible controls: `opacity-0` revealed only by `group-hover` never
  *    appears on touch (no hover). Every such class string must also carry a
  *    `pointer-coarse:` / `pointer-fine:` / `focus` visibility branch.
+ * 3. Readable phone text: a pixel font size under 12px (`text-[11px]`) must
+ *    carry `max-sm:text-xs` in the same class string, so phones never render
+ *    text below 12px.
  */
 import { describe, expect, it } from 'bun:test'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -70,5 +73,20 @@ describe('ui conventions', () => {
       (f) => !(f in DECORATIVE_ALLOWLIST)
     )
     expect(unexpected).toEqual([])
+  })
+
+  it('sub-12px pixel font sizes are raised to 12px on phones', () => {
+    const literal = /(["'`])((?:\\[\s\S]|(?!\1)[^\\])*?)\1/g
+    const small = /(^|\s)text-\[(?:[0-9]|1[01])(?:\.\d+)?px\]/
+    const offenders = new Set<string>()
+    for (const f of walk(SRC)) {
+      if (rel(f).startsWith('components/ui/')) continue
+      const src = readFileSync(f, 'utf8')
+      for (const m of src.matchAll(literal)) {
+        if (small.test(m[2]) && !/max-sm:text-/.test(m[2]))
+          offenders.add(rel(f))
+      }
+    }
+    expect([...offenders]).toEqual([])
   })
 })

@@ -68,7 +68,7 @@ function InsightCard({ highlight }: { readonly highlight: InsightHighlight }) {
       <CardContent className="p-3">
         <div className="flex items-center gap-2 mb-1.5">
           <Icon className={cn('h-3.5 w-3.5', color)} />
-          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
             {highlight.metric}
           </span>
         </div>
@@ -112,7 +112,7 @@ export function QueryInsightsCard({ insights }: QueryInsightsCardProps) {
           <TrendingUpIcon className="size-4 text-primary" />
           <span className="text-sm font-semibold">Query Insights</span>
         </div>
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="outline" className="text-[10px] max-sm:text-xs">
           Last {insights.period}
         </Badge>
       </div>

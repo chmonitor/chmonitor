@@ -62,14 +62,18 @@ export function AgentDashboardSuggestion({
       <div className="mb-2 flex items-center gap-2">
         <LayoutDashboardIcon className="size-4 shrink-0 text-muted-foreground" />
         <span className="text-xs font-medium text-foreground">{name}</span>
-        <span className="ml-auto font-mono text-[11px] text-muted-foreground">
+        <span className="ml-auto font-mono text-[11px] max-sm:text-xs text-muted-foreground">
           {chartCount} chart{chartCount === 1 ? '' : 's'}
         </span>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
         {layout.widgets.map((widget) => (
-          <Badge key={widget.id} variant="outline" className="text-[11px]">
+          <Badge
+            key={widget.id}
+            variant="outline"
+            className="text-[11px] max-sm:text-xs"
+          >
             {widget.chartName
               ? humanizeChartName(widget.chartName)
               : widget.type}

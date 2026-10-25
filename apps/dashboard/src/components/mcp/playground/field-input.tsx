@@ -32,7 +32,10 @@ export function FieldInput({
         </Label>
         <span className="text-xs text-muted-foreground">{field.kind}</span>
         {field.required && (
-          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+          <Badge
+            variant="outline"
+            className="px-1.5 py-0 text-[10px] max-sm:text-xs"
+          >
             required
           </Badge>
         )}

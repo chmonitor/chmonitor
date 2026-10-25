@@ -59,13 +59,13 @@ function GuideSection({ guide }: { guide: SetupGuide }) {
               <span className="text-sm font-medium">{guide.name}</span>
               <Badge
                 variant="secondary"
-                className="px-1.5 py-0 text-[10px] font-normal"
+                className="px-1.5 py-0 text-[10px] max-sm:text-xs font-normal"
               >
                 {guide.platform}
               </Badge>
               <Badge
                 variant="outline"
-                className="hidden px-1.5 py-0 text-[10px] font-normal sm:inline-flex"
+                className="hidden px-1.5 py-0 text-[10px] max-sm:text-xs font-normal sm:inline-flex"
               >
                 {guide.transport}
               </Badge>

@@ -37,11 +37,22 @@ export function WelcomeComposer() {
           <p className="font-medium">LLM provider not configured</p>
           <p className="mt-0.5 text-xs text-amber-950/80 dark:text-amber-100/80">
             Set one of{' '}
-            <code className="font-mono text-[11px]">OPENROUTER_API_KEY</code>{' '}
-            (or <code className="font-mono text-[11px]">LLM_API_KEY</code>),{' '}
-            <code className="font-mono text-[11px]">ANYROUTER_API_KEY</code>, or{' '}
-            <code className="font-mono text-[11px]">NVIDIA_API_KEY</code> on
-            this deployment so the agent can answer.
+            <code className="font-mono text-[11px] max-sm:text-xs">
+              OPENROUTER_API_KEY
+            </code>{' '}
+            (or{' '}
+            <code className="font-mono text-[11px] max-sm:text-xs">
+              LLM_API_KEY
+            </code>
+            ),{' '}
+            <code className="font-mono text-[11px] max-sm:text-xs">
+              ANYROUTER_API_KEY
+            </code>
+            , or{' '}
+            <code className="font-mono text-[11px] max-sm:text-xs">
+              NVIDIA_API_KEY
+            </code>{' '}
+            on this deployment so the agent can answer.
           </p>
         </div>
       ) : null}

@@ -77,7 +77,10 @@ function SeverityBadge({ severity }: { severity: TuningFinding['severity'] }) {
   return (
     <Badge
       variant="outline"
-      className={cn('shrink-0 text-[10px]', SEVERITY_CLASS[severity])}
+      className={cn(
+        'shrink-0 text-[10px] max-sm:text-xs',
+        SEVERITY_CLASS[severity]
+      )}
     >
       {severity}
     </Badge>
@@ -105,10 +108,10 @@ function FindingCard({ finding }: { finding: TuningFinding }) {
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="secondary" className="text-[10px] max-sm:text-xs">
           {RULE_LABEL[finding.ruleId]}
         </Badge>
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="secondary" className="text-[10px] max-sm:text-xs">
           {finding.risk} risk
         </Badge>
       </div>
@@ -135,7 +138,7 @@ function FindingCard({ finding }: { finding: TuningFinding }) {
 
       {finding.verifyQuery ? (
         <div className="space-y-1">
-          <div className="text-[11px] font-medium text-muted-foreground">
+          <div className="text-[11px] max-sm:text-xs font-medium text-muted-foreground">
             Verify before applying:
           </div>
           <CodeBlock
@@ -187,7 +190,7 @@ export function TuningFindingsPanel({
             Fine-tune advisor: {scope}
           </span>
         </div>
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="outline" className="text-[10px] max-sm:text-xs">
           {output.findings.length} finding
           {output.findings.length === 1 ? '' : 's'}
         </Badge>

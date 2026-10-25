@@ -52,7 +52,7 @@ export function SkillDetailDialog({
                 <Badge
                   variant={skill.source === 'system' ? 'default' : 'outline'}
                   className={cn(
-                    'h-4 px-1.5 text-[10px] font-normal',
+                    'h-4 px-1.5 text-[10px] max-sm:text-xs font-normal',
                     skill.source === 'system'
                       ? 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]'
                       : 'text-muted-foreground'
@@ -63,7 +63,7 @@ export function SkillDetailDialog({
                 {isEnabled ? (
                   <Badge
                     variant="secondary"
-                    className="h-4 gap-1 px-1.5 text-[10px] font-normal bg-[var(--chart-green)]/10 text-[var(--chart-green)]"
+                    className="h-4 gap-1 px-1.5 text-[10px] max-sm:text-xs font-normal bg-[var(--chart-green)]/10 text-[var(--chart-green)]"
                   >
                     <CheckIcon className="size-2.5" /> active
                   </Badge>
@@ -84,7 +84,7 @@ export function SkillDetailDialog({
             ) : null}
 
             <div>
-              <div className="text-muted-foreground mb-2 text-[10.5px] font-semibold tracking-wider uppercase">
+              <div className="text-muted-foreground mb-2 text-[10.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
                 Tools included ({skill.tools.length})
               </div>
               <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -94,7 +94,7 @@ export function SkillDetailDialog({
                     className="border-border bg-card flex items-center gap-2 rounded-md border px-2.5 py-1.5"
                   >
                     <span className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--chart-green)]" />
-                    <span className="truncate font-mono text-[11.5px]">
+                    <span className="truncate font-mono text-[11.5px] max-sm:text-xs">
                       {tool}
                     </span>
                   </div>
@@ -108,7 +108,7 @@ export function SkillDetailDialog({
                   <div className="font-medium">
                     {isEnabled ? 'Skill enabled' : 'Skill disabled'}
                   </div>
-                  <div className="text-muted-foreground text-[11px]">
+                  <div className="text-muted-foreground text-[11px] max-sm:text-xs">
                     {isEnabled
                       ? 'Its tools are available to the agent.'
                       : 'Tools from this skill are hidden from the agent.'}
@@ -118,7 +118,7 @@ export function SkillDetailDialog({
                   type="button"
                   onClick={() => onToggle(skill.id)}
                   className={cn(
-                    'h-7 shrink-0 rounded-md border px-2.5 text-[11.5px] font-medium transition-colors',
+                    'h-7 shrink-0 rounded-md border px-2.5 text-[11.5px] max-sm:text-xs font-medium transition-colors',
                     isEnabled
                       ? 'border-border bg-background hover:bg-muted'
                       : 'border-foreground bg-foreground text-background hover:bg-foreground/90'

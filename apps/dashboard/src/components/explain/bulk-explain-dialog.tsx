@@ -154,7 +154,7 @@ export function BulkExplainDialog({
                     disabled={disabled}
                     onClick={() => setN(opt)}
                     className={[
-                      'rounded-md border px-2.5 py-1 text-[11.5px] font-medium tabular-nums transition-colors',
+                      'rounded-md border px-2.5 py-1 text-[11.5px] max-sm:text-xs font-medium tabular-nums transition-colors',
                       disabled
                         ? 'cursor-not-allowed opacity-40'
                         : n === opt
@@ -193,13 +193,13 @@ export function BulkExplainDialog({
                     <div key={idx} className="px-4 py-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 flex-col gap-1">
-                          <p className="truncate font-mono text-[11.5px] text-foreground">
+                          <p className="truncate font-mono text-[11.5px] max-sm:text-xs text-foreground">
                             {result.title}
                           </p>
                           {result.ok ? (
                             <div className="flex flex-wrap gap-1">
                               {result.suggestions.length === 0 ? (
-                                <span className="text-[11px] text-muted-foreground">
+                                <span className="text-[11px] max-sm:text-xs text-muted-foreground">
                                   No issues found
                                 </span>
                               ) : (
@@ -217,7 +217,7 @@ export function BulkExplainDialog({
                           ) : (
                             <Badge
                               variant="outline"
-                              className="w-fit border-red-300 bg-red-50 text-[11px] text-red-700 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400"
+                              className="w-fit border-red-300 bg-red-50 text-[11px] max-sm:text-xs text-red-700 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400"
                             >
                               Error: {result.error}
                             </Badge>
@@ -226,7 +226,7 @@ export function BulkExplainDialog({
                         {result.ok && result.planLines.length > 0 && (
                           <button
                             type="button"
-                            className="shrink-0 text-[11px] text-muted-foreground hover:text-foreground"
+                            className="shrink-0 text-[11px] max-sm:text-xs text-muted-foreground hover:text-foreground"
                             onClick={() =>
                               setExpandedIdx((prev) => {
                                 const next = new Set(prev)
@@ -241,7 +241,7 @@ export function BulkExplainDialog({
                         )}
                       </div>
                       {isExpanded && result.planLines.length > 0 && (
-                        <pre className="mt-2 overflow-x-auto rounded bg-muted px-3 py-2 font-mono text-[10.5px] leading-relaxed text-foreground">
+                        <pre className="mt-2 overflow-x-auto rounded bg-muted px-3 py-2 font-mono text-[10.5px] max-sm:text-xs leading-relaxed text-foreground">
                           {result.planLines.join('\n')}
                         </pre>
                       )}
@@ -254,7 +254,7 @@ export function BulkExplainDialog({
 
           {results.length > 0 && !running && (
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11.5px] text-muted-foreground">
+              <span className="text-[11.5px] max-sm:text-xs text-muted-foreground">
                 {totalSuggestions === 0
                   ? 'No issues found across all queries.'
                   : `${totalSuggestions} suggestion${totalSuggestions === 1 ? '' : 's'} found.`}

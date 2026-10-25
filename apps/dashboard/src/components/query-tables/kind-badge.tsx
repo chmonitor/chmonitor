@@ -22,7 +22,7 @@ export function KindBadge({ kind }: { kind: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-wide',
+        'inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wide',
         kindBadgeClass(kind)
       )}
     >

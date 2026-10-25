@@ -141,7 +141,7 @@ function LegendItem({
         <polygon points="20,3 24,6 20,9" fill={color} />
       </svg>
       <span
-        className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+        className="rounded px-1.5 py-0.5 text-[10px] max-sm:text-xs font-medium"
         style={{
           backgroundColor: `${color}15`,
           color: color,

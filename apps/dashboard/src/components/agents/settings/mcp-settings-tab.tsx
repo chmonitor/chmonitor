@@ -42,12 +42,12 @@ function BuiltInMcpServerCard() {
               </span>
               <Badge
                 variant="outline"
-                className="h-4 px-1.5 text-[10px] font-normal"
+                className="h-4 px-1.5 text-[10px] max-sm:text-xs font-normal"
               >
                 Built-in
               </Badge>
             </div>
-            <p className="text-muted-foreground mt-0.5 text-[11.5px] leading-snug">
+            <p className="text-muted-foreground mt-0.5 text-[11.5px] max-sm:text-xs leading-snug">
               Read-only self-access to THIS cluster — always available to the
               agent, nothing to register.
               {isLoading ? (
@@ -59,7 +59,7 @@ function BuiltInMcpServerCard() {
           </div>
           <HostPrefixedLink
             href="/mcp"
-            className="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-[11.5px] font-medium"
+            className="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-[11.5px] max-sm:text-xs font-medium"
           >
             Setup guide
             <ArrowUpRightIcon className="size-3" />
@@ -79,11 +79,11 @@ export function McpSettingsTab() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <UnplugIcon className="text-muted-foreground size-3.5" />
-          <span className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+          <span className="text-muted-foreground text-[11px] max-sm:text-xs font-semibold tracking-wider uppercase">
             External MCP servers
           </span>
         </div>
-        <p className="text-muted-foreground text-[11.5px] leading-snug">
+        <p className="text-muted-foreground text-[11.5px] max-sm:text-xs leading-snug">
           Servers you register yourself so their tools load into the agent
           alongside the built-in ones — e.g. Firecrawl, GitHub, Slack, or any
           HTTP/SSE MCP endpoint.

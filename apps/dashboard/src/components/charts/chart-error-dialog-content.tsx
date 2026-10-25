@@ -91,7 +91,7 @@ export default function ChartErrorDialogContent({
                   Copy SQL
                 </Button>
               </div>
-              <pre className="p-3.5 bg-zinc-950 dark:bg-zinc-900 border border-zinc-800 rounded-lg text-[11px] font-mono text-zinc-100 overflow-x-auto whitespace-pre leading-relaxed select-all">
+              <pre className="p-3.5 bg-zinc-950 dark:bg-zinc-900 border border-zinc-800 rounded-lg text-[11px] max-sm:text-xs font-mono text-zinc-100 overflow-x-auto whitespace-pre leading-relaxed select-all">
                 {sql}
               </pre>
             </div>
@@ -101,7 +101,7 @@ export default function ChartErrorDialogContent({
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Diagnostics & Traceback
             </h4>
-            <pre className="p-3.5 bg-muted/40 dark:bg-muted/10 border border-border/60 rounded-lg text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all leading-relaxed text-foreground/90">
+            <pre className="p-3.5 bg-muted/40 dark:bg-muted/10 border border-border/60 rounded-lg text-[11px] max-sm:text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all leading-relaxed text-foreground/90">
               {error.message}
               {(() => {
                 const details = (
@@ -164,7 +164,7 @@ export default function ChartErrorDialogContent({
                 {tableMissingInfo.guidance?.enableInstructions && (
                   <div className="p-3 bg-muted/40 dark:bg-zinc-900 rounded-md border border-border/50">
                     <p className="font-semibold mb-1">How to enable:</p>
-                    <div className="text-[11px] text-foreground/90 leading-relaxed [&>p]:my-0 [&>p+p]:mt-2">
+                    <div className="text-[11px] max-sm:text-xs text-foreground/90 leading-relaxed [&>p]:my-0 [&>p+p]:mt-2">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{

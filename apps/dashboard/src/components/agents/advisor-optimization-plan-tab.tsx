@@ -69,7 +69,7 @@ function SqlBlock({ label, sql }: { label: string; sql?: string }) {
   if (!sql) return null
   return (
     <div className="space-y-1">
-      <div className="text-[11px] font-medium text-muted-foreground">
+      <div className="text-[11px] max-sm:text-xs font-medium text-muted-foreground">
         {label}
       </div>
       <CodeBlock code={sql} language="sql" className="max-h-56 text-xs">
@@ -114,7 +114,7 @@ function PlanRow({ item }: { item: PlanItem }) {
           {cost(item)}
         </div>
         <div className="space-y-1">
-          <div className="text-[11px] font-medium text-muted-foreground">
+          <div className="text-[11px] max-sm:text-xs font-medium text-muted-foreground">
             Evidence
           </div>
           <pre className="whitespace-pre-wrap rounded-md bg-muted/50 p-2 text-xs">
@@ -123,7 +123,7 @@ function PlanRow({ item }: { item: PlanItem }) {
         </div>
         {item.ddl.length > 0 ? (
           <div className="space-y-1">
-            <div className="text-[11px] font-medium text-muted-foreground">
+            <div className="text-[11px] max-sm:text-xs font-medium text-muted-foreground">
               DDL in apply order{item.reversible ? '' : ' · not reversible'}
             </div>
             <RecommendDdlBlocks statement={item.ddl.join(';\n')} />

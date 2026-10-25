@@ -109,7 +109,7 @@ export function GroupCustomizeDialog({
                 >
                   <div
                     data-testid="group-customize-subgroup"
-                    className="px-2 pt-2 pb-0.5 text-[11px] font-medium text-muted-foreground"
+                    className="px-2 pt-2 pb-0.5 text-[11px] max-sm:text-xs font-medium text-muted-foreground"
                   >
                     {section.subgroup}
                   </div>
@@ -190,7 +190,7 @@ function GroupPageRow({ item }: { item: MenuItem }) {
       >
         {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
         <span className="min-w-0 truncate">{item.title}</span>
-        <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+        <span className="ml-auto shrink-0 text-[11px] max-sm:text-xs text-muted-foreground">
           {hidden ? 'Add' : 'Remove'}
         </span>
       </button>

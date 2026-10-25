@@ -63,7 +63,9 @@ export function ComparePeerSelect({
       <span
         className={cn(
           'font-medium text-muted-foreground',
-          compact ? 'shrink-0 text-[11px]' : 'text-[11px]'
+          compact
+            ? 'shrink-0 text-[11px] max-sm:text-xs'
+            : 'text-[11px] max-sm:text-xs'
         )}
       >
         {label}

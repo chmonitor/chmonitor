@@ -88,14 +88,14 @@ export function MirrorGroupHeader({
           <span className="font-mono text-[12.5px] font-semibold">
             {group.wildcard}
           </span>
-          <span className="inline-flex items-center rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10.5px] text-muted-foreground">
+          <span className="inline-flex items-center rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs text-muted-foreground">
             {group.items.length} jobs
           </span>
           <span className="flex items-center gap-1.5">
             {statusBits.map((k) => (
               <span
                 key={k}
-                className="inline-flex items-center gap-1 text-[10.5px] tabular-nums text-muted-foreground"
+                className="inline-flex items-center gap-1 text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground"
               >
                 <span
                   className="size-1.5 rounded-full"
@@ -105,7 +105,7 @@ export function MirrorGroupHeader({
               </span>
             ))}
           </span>
-          <span className="ml-auto flex flex-wrap items-center gap-4 text-[11.5px] tabular-nums">
+          <span className="ml-auto flex flex-wrap items-center gap-4 text-[11.5px] max-sm:text-xs tabular-nums">
             <span className="hidden sm:inline text-muted-foreground">
               lag{' '}
               <span className="font-medium text-foreground">

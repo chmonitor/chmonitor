@@ -112,7 +112,7 @@ export function AddChannelTile({
         </span>
         <span className="text-xs text-muted-foreground">{description}</span>
         {example && (
-          <code className="truncate text-[11px] text-muted-foreground/80">
+          <code className="truncate text-[11px] max-sm:text-xs text-muted-foreground/80">
             {example}
           </code>
         )}

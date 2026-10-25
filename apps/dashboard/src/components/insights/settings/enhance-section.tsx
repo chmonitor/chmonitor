@@ -50,11 +50,11 @@ export function EnhanceSection({
             <span>
               No LLM provider configured — deterministic copy will be shown. Set
               a provider key (e.g.{' '}
-              <code className="rounded bg-amber-500/15 px-0.5 font-mono text-[10px]">
+              <code className="rounded bg-amber-500/15 px-0.5 font-mono text-[10px] max-sm:text-xs">
                 OPENROUTER_API_KEY
               </code>{' '}
               or{' '}
-              <code className="rounded bg-amber-500/15 px-0.5 font-mono text-[10px]">
+              <code className="rounded bg-amber-500/15 px-0.5 font-mono text-[10px] max-sm:text-xs">
                 ANYROUTER_API_KEY
               </code>
               ).
@@ -64,7 +64,7 @@ export function EnhanceSection({
             href={docsProviderUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-5.5 inline-flex items-center gap-1 text-[11px] text-amber-700/80 hover:text-amber-700 dark:text-amber-400/80 dark:hover:text-amber-400 underline underline-offset-2"
+            className="ml-5.5 inline-flex items-center gap-1 text-[11px] max-sm:text-xs text-amber-700/80 hover:text-amber-700 dark:text-amber-400/80 dark:hover:text-amber-400 underline underline-offset-2"
           >
             Configure a provider
             <ExternalLink className="size-3" />

@@ -52,7 +52,7 @@ export const ChartDataFreshness = function ChartDataFreshness({
             metadata={metadata}
           >
             <div className="flex h-full min-h-0 flex-col gap-3">
-              <div className="flex items-center justify-end text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-end text-[11px] max-sm:text-xs text-muted-foreground">
                 since last insert
               </div>
               <div className="min-h-0 flex-1 overflow-auto">

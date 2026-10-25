@@ -82,7 +82,10 @@ function SeverityBadge({ severity }: { severity: Severity }) {
   return (
     <Badge
       variant="outline"
-      className={cn('shrink-0 text-[10px]', SEVERITY_CLASS[severity])}
+      className={cn(
+        'shrink-0 text-[10px] max-sm:text-xs',
+        SEVERITY_CLASS[severity]
+      )}
     >
       {severity}
     </Badge>
@@ -105,7 +108,7 @@ export function AgentIssuesPanel({ output }: { output: AgentIssuesOutput }) {
           <AlertTriangleIcon className="size-4 text-[var(--chart-yellow)]" />
           <span className="text-sm font-semibold">Issue scan</span>
         </div>
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="outline" className="text-[10px] max-sm:text-xs">
           {output.issueCount} issues - {output.lastHours}h
         </Badge>
       </div>
@@ -139,14 +142,23 @@ export function AgentIssuesPanel({ output }: { output: AgentIssuesOutput }) {
                   {issue.recommendation}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] max-sm:text-xs"
+                  >
                     {issue.category}
                   </Badge>
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] max-sm:text-xs"
+                  >
                     {issue.confidence}
                   </Badge>
                   {issue.rule ? (
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] max-sm:text-xs"
+                    >
                       {issue.rule}
                     </Badge>
                   ) : null}
@@ -173,7 +185,7 @@ export function QueryRepairPanel({ output }: { output: QueryRepairOutput }) {
         <Badge
           variant="outline"
           className={cn(
-            'text-[10px]',
+            'text-[10px] max-sm:text-xs',
             isBlocked
               ? SEVERITY_CLASS.critical
               : output.status === 'repaired'
@@ -246,7 +258,7 @@ export function TableDesignPanel({ output }: { output: TableDesignOutput }) {
             Table design: {output.table}
           </span>
         </div>
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="outline" className="text-[10px] max-sm:text-xs">
           {output.lastDays}d
         </Badge>
       </div>
@@ -258,7 +270,11 @@ export function TableDesignPanel({ output }: { output: TableDesignOutput }) {
           </div>
           <div className="flex flex-wrap gap-1.5">
             {output.suggestedOrderBy.map((column) => (
-              <Badge key={column} variant="secondary" className="text-[10px]">
+              <Badge
+                key={column}
+                variant="secondary"
+                className="text-[10px] max-sm:text-xs"
+              >
                 {column}
               </Badge>
             ))}
@@ -289,13 +305,19 @@ export function TableDesignPanel({ output }: { output: TableDesignOutput }) {
                 <SeverityBadge severity={recommendation.priority} />
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] max-sm:text-xs"
+                >
                   {recommendation.category}
                 </Badge>
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] max-sm:text-xs"
+                >
                   {recommendation.confidence}
                 </Badge>
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-[10px] max-sm:text-xs">
                   {recommendation.rule}
                 </Badge>
               </div>

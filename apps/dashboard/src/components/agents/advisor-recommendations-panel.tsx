@@ -52,7 +52,7 @@ function RiskBadge({ risk }: { risk: Recommendation['risk'] }) {
   return (
     <Badge
       variant="outline"
-      className={cn('shrink-0 text-[10px]', RISK_CLASS[risk])}
+      className={cn('shrink-0 text-[10px] max-sm:text-xs', RISK_CLASS[risk])}
     >
       {risk} risk
     </Badge>
@@ -89,10 +89,10 @@ function RecommendationCard({
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="secondary" className="text-[10px] max-sm:text-xs">
           {KIND_LABEL[recommendation.kind]}
         </Badge>
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="secondary" className="text-[10px] max-sm:text-xs">
           {recommendation.effort} effort
         </Badge>
       </div>
@@ -150,7 +150,7 @@ export function AdvisorRecommendationsPanel({
             {output.database}.{output.table}
           </span>
         </div>
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="outline" className="text-[10px] max-sm:text-xs">
           {output.recommendations.length} recommendation
           {output.recommendations.length === 1 ? '' : 's'}
         </Badge>

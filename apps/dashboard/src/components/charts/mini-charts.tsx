@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils'
  */
 
 const EMPTY_CLASS =
-  'flex size-full items-center justify-center text-[10px] text-muted-foreground'
+  'flex size-full items-center justify-center text-[10px] max-sm:text-xs text-muted-foreground'
 
 export interface MiniAreaChartProps {
   /** Ordered values, oldest first. Needs ≥ 2 points to draw. */

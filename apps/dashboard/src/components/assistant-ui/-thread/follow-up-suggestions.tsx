@@ -50,14 +50,14 @@ export function FollowUpSuggestions() {
           size="sm"
           onClick={() => void fetchFollowUps()}
           disabled={isLoading}
-          className="text-muted-foreground hover:text-foreground h-7 w-fit gap-1.5 px-2 text-[11px]"
+          className="text-muted-foreground hover:text-foreground h-7 w-fit gap-1.5 px-2 text-[11px] max-sm:text-xs"
         >
           <SparklesIcon className="size-3" />
           {isLoading ? 'Loading suggestions…' : 'Suggested follow-ups'}
         </Button>
       ) : (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-muted-foreground inline-flex items-center gap-1 text-[10px] font-semibold tracking-wider uppercase">
+          <span className="text-muted-foreground inline-flex items-center gap-1 text-[10px] max-sm:text-xs font-semibold tracking-wider uppercase">
             <SparklesIcon className="size-3" />
             Follow-ups
           </span>

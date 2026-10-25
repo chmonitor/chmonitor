@@ -152,7 +152,7 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
           </PopoverTrigger>
           <PopoverContent align="start" className="w-64 space-y-3">
             <div>
-              <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-1.5 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Minimum runs
               </p>
               <div className="flex flex-wrap gap-1">
@@ -162,7 +162,7 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
                     type="button"
                     onClick={() => setMinRuns(n)}
                     className={cn(
-                      'rounded-md border px-2 py-1 text-[11.5px] font-medium tabular-nums transition-colors',
+                      'rounded-md border px-2 py-1 text-[11.5px] max-sm:text-xs font-medium tabular-nums transition-colors',
                       minRuns === n
                         ? 'border-border bg-muted text-foreground'
                         : 'border-border text-muted-foreground hover:text-foreground'
@@ -174,7 +174,7 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
               </div>
             </div>
             <div>
-              <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-1.5 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Minimum total time
               </p>
               <div className="flex flex-wrap gap-1">
@@ -184,7 +184,7 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
                     type="button"
                     onClick={() => setMinDurationSecs(n)}
                     className={cn(
-                      'rounded-md border px-2 py-1 text-[11.5px] font-medium tabular-nums transition-colors',
+                      'rounded-md border px-2 py-1 text-[11.5px] max-sm:text-xs font-medium tabular-nums transition-colors',
                       minDurationSecs === n
                         ? 'border-border bg-muted text-foreground'
                         : 'border-border text-muted-foreground hover:text-foreground'
@@ -212,7 +212,7 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
         </Popover>
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="whitespace-nowrap text-[11.5px] tabular-nums text-muted-foreground">
+          <span className="whitespace-nowrap text-[11.5px] max-sm:text-xs tabular-nums text-muted-foreground">
             {visible.length} of {rows.length}
           </span>
           <div className="h-5 w-px bg-border" />
@@ -354,7 +354,7 @@ export const ExpensiveQueriesTable = memo(function ExpensiveQueriesTable({
         </div>
       )}
 
-      <div className="border-t border-border px-3 py-2 text-[11.5px] text-muted-foreground">
+      <div className="border-t border-border px-3 py-2 text-[11.5px] max-sm:text-xs text-muted-foreground">
         Showing{' '}
         <span className="font-medium tabular-nums text-foreground">
           {visible.length}

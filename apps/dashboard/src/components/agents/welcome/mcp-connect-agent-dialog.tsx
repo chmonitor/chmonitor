@@ -66,7 +66,7 @@ export function McpConnectAgentDialog({
         <ScrollArea className="max-h-[80dvh]">
           <div className="space-y-5 p-5">
             <div className="space-y-1.5">
-              <p className="text-muted-foreground text-[10.5px] font-semibold tracking-wider uppercase">
+              <p className="text-muted-foreground text-[10.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
                 Endpoint URL
               </p>
               <McpEndpointUrl />
@@ -78,7 +78,7 @@ export function McpConnectAgentDialog({
 
             <a
               href={`/mcp?host=${hostId}`}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-[11.5px] transition-colors"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-[11.5px] max-sm:text-xs transition-colors"
             >
               <span className="min-w-0 flex-1">
                 Open the full MCP page for tool docs and a live playground.

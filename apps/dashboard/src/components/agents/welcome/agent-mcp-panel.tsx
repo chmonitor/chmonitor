@@ -55,7 +55,7 @@ export type { McpServer }
 function StatusBadge({ status }: { status: McpServer['status'] }) {
   if (status === 'connected') {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400">
+      <span className="flex items-center gap-1 text-[10px] max-sm:text-xs text-emerald-700 dark:text-emerald-400">
         <span className="size-1.5 rounded-full bg-[var(--chart-green)]" />
         Connected
       </span>
@@ -63,7 +63,7 @@ function StatusBadge({ status }: { status: McpServer['status'] }) {
   }
   if (status === 'connecting') {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-[var(--chart-yellow)]">
+      <span className="flex items-center gap-1 text-[10px] max-sm:text-xs text-[var(--chart-yellow)]">
         <span className="size-1.5 animate-pulse rounded-full bg-[var(--chart-yellow)]" />
         Connecting
       </span>
@@ -71,13 +71,17 @@ function StatusBadge({ status }: { status: McpServer['status'] }) {
   }
   if (status === 'error') {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-destructive">
+      <span className="flex items-center gap-1 text-[10px] max-sm:text-xs text-destructive">
         <span className="size-1.5 rounded-full bg-destructive" />
         Error
       </span>
     )
   }
-  return <span className="text-muted-foreground text-[10px]">Unconfigured</span>
+  return (
+    <span className="text-muted-foreground text-[10px] max-sm:text-xs">
+      Unconfigured
+    </span>
+  )
 }
 
 interface McpServerRowProps {
@@ -113,13 +117,13 @@ function McpServerRow({
           {server.version && (
             <Badge
               variant="outline"
-              className="h-4 shrink-0 px-1.5 text-[10px]"
+              className="h-4 shrink-0 px-1.5 text-[10px] max-sm:text-xs"
             >
               {server.version}
             </Badge>
           )}
         </div>
-        <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-[10.5px] tabular-nums">
+        <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-[10.5px] max-sm:text-xs tabular-nums">
           <span>{server.toolCount} tools</span>
           {server.resourceCount !== undefined && (
             <>
@@ -255,7 +259,7 @@ export function AgentMcpPanel({ config }: { config: UseMcpConfigResult }) {
         }}
       />
 
-      <div className="text-muted-foreground flex items-center justify-between text-[10.5px]">
+      <div className="text-muted-foreground flex items-center justify-between text-[10.5px] max-sm:text-xs">
         <span>
           <span className="text-foreground font-medium">{activeCount}</span>/
           {serverCount} active
@@ -298,7 +302,7 @@ export function AgentMcpPanel({ config }: { config: UseMcpConfigResult }) {
         type="button"
         variant="outline"
         size="sm"
-        className="mt-1 h-8 w-full justify-center gap-1.5 text-[11.5px]"
+        className="mt-1 h-8 w-full justify-center gap-1.5 text-[11.5px] max-sm:text-xs"
         onClick={() => setAddServerOpen(true)}
       >
         <PlusIcon className="size-3" />

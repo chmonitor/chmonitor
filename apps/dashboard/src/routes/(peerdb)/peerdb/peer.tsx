@@ -88,7 +88,7 @@ function PeerDetailContent() {
       <section className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">Peer info</h2>
-          <span className="font-mono text-[10.5px] text-muted-foreground">
+          <span className="font-mono text-[10.5px] max-sm:text-xs text-muted-foreground">
             GET /v1/peers/info/&lt;name&gt;
           </span>
         </div>

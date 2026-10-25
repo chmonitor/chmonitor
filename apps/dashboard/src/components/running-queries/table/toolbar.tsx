@@ -17,7 +17,7 @@ export function KindFilter({
           type="button"
           onClick={() => onChange(kind)}
           className={cn(
-            'h-7 whitespace-nowrap rounded px-2.5 text-[11.5px] font-medium uppercase tracking-wide transition-colors',
+            'h-7 whitespace-nowrap rounded px-2.5 text-[11.5px] max-sm:text-xs font-medium uppercase tracking-wide transition-colors',
             value === kind
               ? 'bg-card text-foreground'
               : 'text-foreground/70 hover:text-foreground'

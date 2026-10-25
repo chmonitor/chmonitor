@@ -42,7 +42,7 @@ export function ConnectionErrorPanel({
         </p>
       )}
       {e.raw && (
-        <pre className="overflow-x-auto rounded bg-muted/60 p-2 text-[11px] text-muted-foreground">
+        <pre className="overflow-x-auto rounded bg-muted/60 p-2 text-[11px] max-sm:text-xs text-muted-foreground">
           <code>{e.raw}</code>
         </pre>
       )}

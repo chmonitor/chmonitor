@@ -59,7 +59,7 @@ export const QueryCard = memo(function QueryCard({
       >
         <div className="flex min-w-0 items-center gap-2">
           <RankBadge rank={d.rank} severity={d.severity} />
-          <span className="min-w-0 truncate text-[11px] text-muted-foreground">
+          <span className="min-w-0 truncate text-[11px] max-sm:text-xs text-muted-foreground">
             {formatCompactNumber(d.cnt)} runs
           </span>
           <ExpandIcon className="ml-auto size-4 shrink-0 text-muted-foreground" />
@@ -75,7 +75,7 @@ export const QueryCard = memo(function QueryCard({
           </pre>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] max-sm:text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Clock className="size-3" />
             {formatDuration(d.queriesDuration).value}{' '}

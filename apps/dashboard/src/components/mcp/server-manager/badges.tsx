@@ -9,7 +9,10 @@ import { useMcpServerStatus } from '@/lib/swr/use-mcp-registry'
 
 export function TransportBadge({ transport }: { transport: McpTransport }) {
   return (
-    <Badge variant="outline" className="h-5 px-1.5 text-[10px] uppercase">
+    <Badge
+      variant="outline"
+      className="h-5 px-1.5 text-[10px] max-sm:text-xs uppercase"
+    >
       {transport}
     </Badge>
   )
@@ -28,7 +31,7 @@ export function LiveStatusBadge({
 
   if (status === 'connecting') {
     return (
-      <span className="text-muted-foreground flex items-center gap-1 text-[10.5px]">
+      <span className="text-muted-foreground flex items-center gap-1 text-[10.5px] max-sm:text-xs">
         <Loader2Icon className="size-3 animate-spin" />
         Checking…
       </span>
@@ -37,7 +40,7 @@ export function LiveStatusBadge({
 
   if (status === 'connected') {
     return (
-      <span className="flex items-center gap-1 text-[10.5px] text-emerald-600 dark:text-emerald-400">
+      <span className="flex items-center gap-1 text-[10.5px] max-sm:text-xs text-emerald-600 dark:text-emerald-400">
         <CheckCircle2Icon className="size-3" />
         Connected
       </span>
@@ -45,7 +48,7 @@ export function LiveStatusBadge({
   }
 
   return (
-    <span className="text-destructive flex items-center gap-1 text-[10.5px]">
+    <span className="text-destructive flex items-center gap-1 text-[10.5px] max-sm:text-xs">
       <CircleDashedIcon className="size-3" />
       Unreachable
     </span>
@@ -60,10 +63,17 @@ export function AuthBadge({
   headerName: string | null
 }) {
   if (authKind === 'none') {
-    return <span className="text-muted-foreground text-[11px]">No auth</span>
+    return (
+      <span className="text-muted-foreground text-[11px] max-sm:text-xs">
+        No auth
+      </span>
+    )
   }
   return (
-    <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+    <Badge
+      variant="secondary"
+      className="h-5 px-1.5 text-[10px] max-sm:text-xs"
+    >
       {authKind === 'bearer' ? 'Bearer' : `Header: ${headerName ?? '—'}`}
     </Badge>
   )

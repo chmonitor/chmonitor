@@ -102,7 +102,7 @@ function StatTile({
   if (!value) return null
   return (
     <div className="min-w-0 rounded-md border border-border/60 bg-background/60 px-3 py-2.5">
-      <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-1 text-[10px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {Icon && <Icon className="size-3 shrink-0" aria-hidden="true" />}
         <span className="truncate">{label}</span>
       </div>
@@ -121,7 +121,7 @@ function StatTile({
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="mb-1.5 text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
       {children}
     </div>
   )
@@ -281,17 +281,17 @@ export default function QueryMetricLogExpandedDetails({ row }: Props) {
   const sqlSection = (
     <div>
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <Code2Icon className="size-3 shrink-0" aria-hidden="true" />
           Query
           {kind && (
-            <span className="rounded bg-muted px-1 py-0.5 font-mono text-[9.5px] uppercase text-muted-foreground">
+            <span className="rounded bg-muted px-1 py-0.5 font-mono text-[9.5px] max-sm:text-xs uppercase text-muted-foreground">
               {kind}
             </span>
           )}
         </span>
         {sql && (
-          <span className="whitespace-nowrap text-[10.5px] tabular-nums text-muted-foreground">
+          <span className="whitespace-nowrap text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground">
             {sql.length.toLocaleString()} chars
           </span>
         )}
@@ -308,7 +308,7 @@ export default function QueryMetricLogExpandedDetails({ row }: Props) {
           {error?.message ?? 'Failed to load query.'}
         </p>
       ) : sql ? (
-        <pre className="max-h-[220px] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border/60 bg-background/60 px-3 py-2 font-mono text-[11.5px] leading-relaxed text-foreground">
+        <pre className="max-h-[220px] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border/60 bg-background/60 px-3 py-2 font-mono text-[11.5px] max-sm:text-xs leading-relaxed text-foreground">
           {sql}
         </pre>
       ) : (
@@ -319,7 +319,7 @@ export default function QueryMetricLogExpandedDetails({ row }: Props) {
       )}
 
       {exception && (
-        <p className="mt-2 whitespace-pre-wrap break-words rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 font-mono text-[11px] text-destructive">
+        <p className="mt-2 whitespace-pre-wrap break-words rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 font-mono text-[11px] max-sm:text-xs text-destructive">
           {exception}
         </p>
       )}

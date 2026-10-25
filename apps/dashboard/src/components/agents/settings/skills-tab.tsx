@@ -24,7 +24,7 @@ export function SkillsTab() {
         <p className="text-[13px] font-medium">
           {activeSkillCount} of {skills.length} skills enabled
         </p>
-        <p className="text-muted-foreground text-[11.5px]">
+        <p className="text-muted-foreground text-[11.5px] max-sm:text-xs">
           Toggle a skill to add or remove the tools it covers from the agent.
         </p>
       </div>

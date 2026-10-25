@@ -46,7 +46,7 @@ function IssuePill({ status }: { status: HealthStatus }) {
   return (
     <span
       className={cn(
-        'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide',
+        'rounded-full px-2 py-0.5 text-[10px] max-sm:text-xs font-semibold uppercase leading-none tracking-wide',
         status === 'critical'
           ? 'bg-red-500/12 text-red-700 dark:text-red-400'
           : 'bg-amber-500/12 text-amber-700 dark:text-amber-400'
@@ -270,7 +270,7 @@ function HealthCheckCard({
             onClick={(e) => e.stopPropagation()}
             className={cn(
               'inline-flex items-center rounded-md px-2 py-0.5',
-              'text-[11px] font-medium leading-none whitespace-nowrap',
+              'text-[11px] max-sm:text-xs font-medium leading-none whitespace-nowrap',
               'bg-muted/60 text-muted-foreground',
               'transition-colors hover:bg-muted hover:text-foreground',
               'focus-visible:bg-muted focus-visible:text-foreground'
@@ -291,7 +291,7 @@ function HealthCheckCard({
           // components/cards/chart-action-classes.ts already ships.
           <span
             aria-hidden
-            className="ml-auto inline-flex flex-none items-center gap-0.5 text-[11px] font-medium text-muted-foreground opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40 group-hover:!opacity-100 group-focus-within:!opacity-100"
+            className="ml-auto inline-flex flex-none items-center gap-0.5 text-[11px] max-sm:text-xs font-medium text-muted-foreground opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40 group-hover:!opacity-100 group-focus-within:!opacity-100"
           >
             Details
             <ArrowUpRight className="size-3" />

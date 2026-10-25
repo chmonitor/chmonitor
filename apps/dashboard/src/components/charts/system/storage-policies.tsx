@@ -91,16 +91,16 @@ export const ChartStoragePolicies = function ChartStoragePolicies({
             <div className="w-full overflow-auto">
               <div className="min-w-[400px]">
                 <div className="grid grid-cols-[1.1fr_1fr_1.2fr_auto] gap-x-3 border-b pb-2">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+                  <span className="text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
                     Policy
                   </span>
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+                  <span className="text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
                     Volume
                   </span>
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+                  <span className="text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
                     Disks
                   </span>
-                  <span className="text-right text-[10.5px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+                  <span className="text-right text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
                     Prio
                   </span>
                 </div>
@@ -114,7 +114,7 @@ export const ChartStoragePolicies = function ChartStoragePolicies({
                       {policy.policy_name}
                       {policy.hasNoMerge && (
                         <span
-                          className="rounded px-1 py-px text-[10px] font-medium leading-none text-muted-foreground ring-1 ring-inset ring-border"
+                          className="rounded px-1 py-px text-[10px] max-sm:text-xs font-medium leading-none text-muted-foreground ring-1 ring-inset ring-border"
                           title="prefer_not_to_merge is enabled for one or more volumes"
                         >
                           no-merge

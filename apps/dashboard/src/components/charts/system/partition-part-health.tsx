@@ -53,7 +53,7 @@ export const ChartPartitionPartHealth = function ChartPartitionPartHealth({
                 <div className="text-[28px] font-semibold tracking-tight font-mono leading-none">
                   {row.readable_active_parts}
                 </div>
-                <div className="text-[11.5px] text-muted-foreground mt-1">
+                <div className="text-[11.5px] max-sm:text-xs text-muted-foreground mt-1">
                   active parts
                 </div>
               </div>
@@ -61,7 +61,7 @@ export const ChartPartitionPartHealth = function ChartPartitionPartHealth({
                 <div className="text-[28px] font-semibold tracking-tight font-mono leading-none text-amber-500 dark:text-amber-400">
                   {row.outdated_parts.toLocaleString()}
                 </div>
-                <div className="text-[11.5px] text-muted-foreground mt-1">
+                <div className="text-[11.5px] max-sm:text-xs text-muted-foreground mt-1">
                   outdated
                 </div>
               </div>
@@ -69,7 +69,7 @@ export const ChartPartitionPartHealth = function ChartPartitionPartHealth({
                 <div className="text-[28px] font-semibold tracking-tight font-mono leading-none">
                   {row.partitions.toLocaleString()}
                 </div>
-                <div className="text-[11.5px] text-muted-foreground mt-1">
+                <div className="text-[11.5px] max-sm:text-xs text-muted-foreground mt-1">
                   partitions
                 </div>
               </div>
@@ -88,7 +88,7 @@ export const ChartPartitionPartHealth = function ChartPartitionPartHealth({
               )}
             </div>
 
-            <div className="flex justify-between mt-[9px] text-[11.5px] text-muted-foreground">
+            <div className="flex justify-between mt-[9px] text-[11.5px] max-sm:text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-[7px] h-[7px] rounded-full bg-emerald-500 dark:bg-emerald-400" />
                 {healthyPct}% healthy

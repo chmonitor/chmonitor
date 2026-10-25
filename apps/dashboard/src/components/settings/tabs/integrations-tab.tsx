@@ -48,11 +48,14 @@ export function IntegrationsTab() {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium">{item.name}</span>
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] max-sm:text-xs"
+                >
                   Soon
                 </Badge>
               </div>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-[11px] max-sm:text-xs text-muted-foreground">
                 {item.description}
               </span>
             </div>

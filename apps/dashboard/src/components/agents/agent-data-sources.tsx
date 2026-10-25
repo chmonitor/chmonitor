@@ -56,7 +56,7 @@ function ColumnList({
           <span className="text-xs font-medium text-foreground truncate">
             {col.name}
           </span>
-          <span className="text-[11px] font-mono text-muted-foreground shrink-0">
+          <span className="text-[11px] max-sm:text-xs font-mono text-muted-foreground shrink-0">
             {col.type}
           </span>
         </div>
@@ -67,7 +67,7 @@ function ColumnList({
 
 function SectionHeading({ label }: { label: string }) {
   return (
-    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+    <p className="text-[10px] max-sm:text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
       {label}
     </p>
   )
@@ -106,16 +106,16 @@ function DataSourceItem({
 
         <Badge
           variant="outline"
-          className="shrink-0 px-1.5 py-0 text-[10px] font-normal"
+          className="shrink-0 px-1.5 py-0 text-[10px] max-sm:text-xs font-normal"
         >
           {source.engine}
         </Badge>
 
-        <span className="shrink-0 text-[11px] text-muted-foreground">
+        <span className="shrink-0 text-[11px] max-sm:text-xs text-muted-foreground">
           {source.size}
         </span>
 
-        <span className="shrink-0 text-[11px] text-muted-foreground">
+        <span className="shrink-0 text-[11px] max-sm:text-xs text-muted-foreground">
           {source.totalRows.toLocaleString()} rows
         </span>
       </CollapsibleTrigger>
@@ -188,7 +188,7 @@ export function AgentDataSources({
           {searchTerm && (
             <Badge
               variant="secondary"
-              className="px-1.5 py-0 text-[10px] font-normal"
+              className="px-1.5 py-0 text-[10px] max-sm:text-xs font-normal"
             >
               {searchTerm}
             </Badge>
@@ -196,7 +196,7 @@ export function AgentDataSources({
 
           <Badge
             variant="secondary"
-            className="px-1.5 py-0 text-[10px] font-normal"
+            className="px-1.5 py-0 text-[10px] max-sm:text-xs font-normal"
           >
             {sources.length} {sources.length === 1 ? 'table' : 'tables'}
           </Badge>

@@ -40,7 +40,10 @@ export function InsightsPreview({
         <CardTitle className="flex items-center gap-2 text-base">
           <FlaskConical className="size-4 text-muted-foreground" />
           Example
-          <Badge variant="secondary" className="font-normal text-[10px]">
+          <Badge
+            variant="secondary"
+            className="font-normal text-[10px] max-sm:text-xs"
+          >
             Sample
           </Badge>
         </CardTitle>
@@ -79,7 +82,7 @@ export function InsightsPreview({
             All examples dismissed — Regenerate to show another set.
           </p>
         )}
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
+        <p className="text-[11px] max-sm:text-xs leading-relaxed text-muted-foreground">
           Illustrative sample reflecting your settings — not live analysis of
           this cluster. Real insights appear on the overview page.
         </p>

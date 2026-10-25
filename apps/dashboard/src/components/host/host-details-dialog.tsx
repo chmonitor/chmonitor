@@ -128,7 +128,7 @@ export function HostDetailsDialog({
                 <span className="truncate">{name}</span>
                 <Badge
                   variant="secondary"
-                  className="shrink-0 text-[10px] font-medium"
+                  className="shrink-0 text-[10px] max-sm:text-xs font-medium"
                 >
                   {meta.label}
                 </Badge>

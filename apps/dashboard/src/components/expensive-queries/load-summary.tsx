@@ -110,7 +110,7 @@ export function LoadSummary({ rows }: LoadSummaryProps) {
               <Gauge className="size-3.5 text-primary" />
               Cluster query-time distribution
             </div>
-            <span className="text-[11px] tabular-nums text-muted-foreground">
+            <span className="text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
               {formatReadableSecondDuration(Math.round(stats.totalTime))} total
               · {formatCompactNumber(stats.totalRuns)} runs
             </span>
@@ -152,18 +152,18 @@ export function LoadSummary({ rows }: LoadSummaryProps) {
                 <span
                   className={cn('size-2 rounded-full', SEVERITY_META[sev].dot)}
                 />
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-[11px] max-sm:text-xs text-muted-foreground">
                   {SEVERITY_META[sev].label}
                 </span>
                 <span
                   className={cn(
-                    'text-[11px] font-medium tabular-nums',
+                    'text-[11px] max-sm:text-xs font-medium tabular-nums',
                     SEVERITY_META[sev].text
                   )}
                 >
                   {pct(stats.bucket[sev].time, stats.totalTime).toFixed(0)}%
                 </span>
-                <span className="text-[10.5px] tabular-nums text-muted-foreground">
+                <span className="text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground">
                   · {stats.bucket[sev].count}{' '}
                   {stats.bucket[sev].count === 1 ? 'query' : 'queries'}
                 </span>
@@ -184,7 +184,7 @@ export function LoadSummary({ rows }: LoadSummaryProps) {
               <div className="text-lg font-semibold tabular-nums leading-tight">
                 {pct(stats.heavyTime, stats.totalTime).toFixed(0)}%
               </div>
-              <p className="text-[11px] leading-snug text-muted-foreground">
+              <p className="text-[11px] max-sm:text-xs leading-snug text-muted-foreground">
                 of cluster time from{' '}
                 <span className="font-medium text-foreground">
                   {stats.heavyCount}
@@ -204,7 +204,7 @@ export function LoadSummary({ rows }: LoadSummaryProps) {
               <div className="text-lg font-semibold tabular-nums leading-tight">
                 {pct(stats.topNTime, stats.totalTime).toFixed(0)}%
               </div>
-              <p className="text-[11px] leading-snug text-muted-foreground">
+              <p className="text-[11px] max-sm:text-xs leading-snug text-muted-foreground">
                 concentrated in the top{' '}
                 <span className="font-medium text-foreground">
                   {stats.topN}

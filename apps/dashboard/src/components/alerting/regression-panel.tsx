@@ -67,7 +67,7 @@ export function RegressionPanel({ hostId, className }: RegressionPanelProps) {
           Slow Query Regressions
           <Badge
             variant="outline"
-            className="ml-auto h-5 border-amber-400 bg-amber-100 px-1.5 text-[10px] text-amber-700 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-300"
+            className="ml-auto h-5 border-amber-400 bg-amber-100 px-1.5 text-[10px] max-sm:text-xs text-amber-700 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-300"
           >
             {rows.length}
           </Badge>
@@ -83,7 +83,7 @@ export function RegressionPanel({ hostId, className }: RegressionPanelProps) {
             <RegressionRow key={i} row={row} />
           ))}
           {rows.length > 5 && (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] max-sm:text-xs text-muted-foreground">
               +{rows.length - 5} more regressions
             </p>
           )}
@@ -107,7 +107,7 @@ function RegressionRow({ row }: { row: SlowQueryRegression }) {
       />
       <div className="min-w-0 flex-1">
         <p
-          className="truncate font-mono text-[11px] text-foreground"
+          className="truncate font-mono text-[11px] max-sm:text-xs text-foreground"
           title={row.fingerprint_short as string}
         >
           {row.fingerprint_short}
@@ -130,7 +130,7 @@ function RegressionRow({ row }: { row: SlowQueryRegression }) {
       <Badge
         variant="outline"
         className={cn(
-          'shrink-0 h-5 px-1.5 text-[10px]',
+          'shrink-0 h-5 px-1.5 text-[10px] max-sm:text-xs',
           isCritical
             ? 'border-destructive/40 bg-destructive/10 text-destructive'
             : 'border-amber-400 bg-amber-100 text-amber-700 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-300'

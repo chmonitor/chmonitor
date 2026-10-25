@@ -57,7 +57,7 @@ export const QueryCard = memo(function QueryCard({
         <div className="flex min-w-0 items-center gap-2">
           {done && <DoneBadge />}
           <KindBadge kind={d.kind} />
-          <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+          <span className="min-w-0 truncate font-mono text-[11px] max-sm:text-xs text-muted-foreground">
             #{d.id ? d.id.slice(0, 8) : 'n/a'}
           </span>
           <ExpandIcon className="ml-auto size-4 shrink-0 text-muted-foreground" />
@@ -73,7 +73,7 @@ export const QueryCard = memo(function QueryCard({
           </pre>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] max-sm:text-xs text-muted-foreground">
           {d.user && (
             <span className="inline-flex items-center gap-1">
               <UserIcon className="size-3" />

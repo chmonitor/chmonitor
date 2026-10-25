@@ -34,7 +34,7 @@ const SPARK_BUCKETS = 16
 
 export const segmentClass = (active: boolean) =>
   cn(
-    'inline-flex h-6 items-center gap-1 rounded px-2 text-[10.5px] font-medium',
+    'inline-flex h-6 items-center gap-1 rounded px-2 text-[10.5px] max-sm:text-xs font-medium',
     active ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
   )
 
@@ -42,7 +42,7 @@ function LevelBadge({ level }: { level: MirrorLogLevel }) {
   const meta = LOG_LEVEL_META[level]
   return (
     <span
-      className="mt-0.5 inline-flex h-4 shrink-0 items-center justify-center rounded px-1.5 font-mono text-[9.5px] font-bold"
+      className="mt-0.5 inline-flex h-4 shrink-0 items-center justify-center rounded px-1.5 font-mono text-[9.5px] max-sm:text-xs font-bold"
       style={{
         background: `${meta.dot}14`,
         color: meta.dot,
@@ -76,7 +76,7 @@ function LogMessage({
 }) {
   return (
     <div
-      className="break-words font-mono text-[11.5px] leading-snug"
+      className="break-words font-mono text-[11.5px] max-sm:text-xs leading-snug"
       style={
         level === 'error' ? { color: LOG_LEVEL_META.error.dot } : undefined
       }
@@ -100,7 +100,7 @@ export function LogLine({
       <LevelBadge level={entry.level} />
       <div className="min-w-0 flex-1">
         <LogMessage level={entry.level}>{entry.errorMessage}</LogMessage>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] tabular-nums text-muted-foreground/80">
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] max-sm:text-xs tabular-nums text-muted-foreground/80">
           {showMirror ? (
             <MirrorLink mirror={entry.mirror} />
           ) : (
@@ -176,7 +176,7 @@ function MuteControl({
         type="button"
         title={MUTE_HINT}
         onClick={() => onUnmute(fingerprint)}
-        className="mt-0.5 shrink-0 rounded border border-border px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+        className="mt-0.5 shrink-0 rounded border border-border px-1.5 text-[10px] max-sm:text-xs text-muted-foreground hover:text-foreground"
       >
         Unmute
       </button>
@@ -191,7 +191,7 @@ function MuteControl({
         const ms = MUTE_DURATIONS[Number(e.target.value)]?.ms
         if (ms !== undefined) onMute(fingerprint, ms)
       }}
-      className="mt-0.5 h-4 shrink-0 rounded border border-border bg-transparent px-1 text-[10px] text-muted-foreground"
+      className="mt-0.5 h-4 shrink-0 rounded border border-border bg-transparent px-1 text-[10px] max-sm:text-xs text-muted-foreground"
     >
       <option value="" disabled>
         Mute…
@@ -241,14 +241,14 @@ function PatternRow({
           />
         </CollapsibleTrigger>
         <LevelBadge level={group.level} />
-        <span className="mt-0.5 inline-flex h-4 shrink-0 items-center rounded bg-muted px-1.5 font-mono text-[10px] font-semibold tabular-nums">
+        <span className="mt-0.5 inline-flex h-4 shrink-0 items-center rounded bg-muted px-1.5 font-mono text-[10px] max-sm:text-xs font-semibold tabular-nums">
           ×{group.count}
         </span>
         <div className="min-w-0 flex-1">
           <LogMessage level={group.level} title={group.fingerprint}>
             {group.sample.errorMessage}
           </LogMessage>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] tabular-nums text-muted-foreground/80">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] max-sm:text-xs tabular-nums text-muted-foreground/80">
             <span>last {pdbFmtRelative(group.sample.errorTimestamp)}</span>
             {showMirrors && (
               <>
@@ -283,7 +283,7 @@ function PatternRow({
             />
           ))}
           {group.count > shown.length && (
-            <div className="px-3 py-1.5 text-[10.5px] text-muted-foreground">
+            <div className="px-3 py-1.5 text-[10.5px] max-sm:text-xs text-muted-foreground">
               {group.count - shown.length} more lines. Switch to Raw to see them
               all.
             </div>
@@ -362,7 +362,7 @@ export function LogPatternList({
             type="button"
             title={MUTE_HINT}
             onClick={() => setShowMuted((v) => !v)}
-            className="text-[11px] text-muted-foreground hover:text-foreground"
+            className="text-[11px] max-sm:text-xs text-muted-foreground hover:text-foreground"
           >
             {showMuted ? 'Hide muted' : `Show ${mutedGroups.length} muted`}
           </button>
@@ -394,7 +394,7 @@ export function LogPatternList({
           <button
             type="button"
             onClick={() => setShowInfo((v) => !v)}
-            className="text-[11px] text-muted-foreground hover:text-foreground"
+            className="text-[11px] max-sm:text-xs text-muted-foreground hover:text-foreground"
           >
             {showInfo
               ? 'Hide info patterns'
@@ -407,7 +407,7 @@ export function LogPatternList({
           <button
             type="button"
             onClick={() => setShowAll((v) => !v)}
-            className="text-[11px] text-muted-foreground hover:text-foreground"
+            className="text-[11px] max-sm:text-xs text-muted-foreground hover:text-foreground"
           >
             {showAll ? 'Show fewer' : `Show all ${list.length} groups`}
           </button>

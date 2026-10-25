@@ -119,7 +119,7 @@ export function NavUser({
                       </span>
                       {authSourceLabel && (
                         <span
-                          className="mt-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
+                          className="mt-0.5 flex items-center gap-1 text-[10px] max-sm:text-xs uppercase tracking-wide text-muted-foreground"
                           data-testid="nav-user-auth-source"
                         >
                           <ShieldCheck className="size-3 shrink-0" />

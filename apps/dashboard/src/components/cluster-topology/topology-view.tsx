@@ -103,7 +103,9 @@ function Pill({
   return (
     <div className="flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3">
       <Icon className="h-[13px] w-[13px] text-muted-foreground" />
-      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <span className="text-[11px] max-sm:text-xs text-muted-foreground">
+        {label}
+      </span>
       <span
         className={cn(
           'text-[12.5px] font-semibold tabular-nums',
@@ -315,7 +317,7 @@ export function TopologyView({
                 ? 'Quorum healthy · all replicas online'
                 : 'Quorum degraded'}
           </span>
-          <span className="text-[11.5px] text-muted-foreground">
+          <span className="text-[11.5px] max-sm:text-xs text-muted-foreground">
             · cluster <span className="font-mono">{dfltCluster}</span> · updated{' '}
             <TopologyUpdatedAgo topology={topology} liveRow={liveRow} /> ago
           </span>
@@ -376,7 +378,7 @@ export function TopologyView({
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <span className="mr-1 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Clusters
               </span>
               {model.clusters
@@ -435,13 +437,13 @@ export function TopologyView({
                 <button
                   type="button"
                   onClick={() => setActiveCluster(null)}
-                  className="ml-1 text-[11px] text-muted-foreground underline hover:text-foreground"
+                  className="ml-1 text-[11px] max-sm:text-xs text-muted-foreground underline hover:text-foreground"
                 >
                   clear
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10.5px] text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10.5px] max-sm:text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden>
                   <rect
@@ -514,7 +516,7 @@ export function TopologyView({
               />
             </div>
           </div>
-          <p className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+          <p className="border-t border-border px-4 py-2 text-[11px] max-sm:text-xs text-muted-foreground">
             Drag a node to move it · drag a cluster fill (or Alt-drag a node) to
             move the group · nodes stay inside their cluster box
           </p>
@@ -523,7 +525,7 @@ export function TopologyView({
         <Card className="overflow-hidden xl:sticky xl:top-4">
           <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
             <div className="min-w-0">
-              <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <div className="text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Inspector
               </div>
               <div className="mt-0.5 flex items-center gap-2 truncate text-[14px] font-semibold">
@@ -540,7 +542,7 @@ export function TopologyView({
                       }}
                     />
                     <span className="font-mono">{selectedNode.id}</span>
-                    <span className="text-[11px] font-normal text-muted-foreground">
+                    <span className="text-[11px] max-sm:text-xs font-normal text-muted-foreground">
                       {isKeeperNode(selectedNode) ? 'Keeper' : 'ClickHouse'}
                     </span>
                   </>

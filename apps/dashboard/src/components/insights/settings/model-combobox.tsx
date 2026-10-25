@@ -101,7 +101,7 @@ export function ModelCombobox({
               />
               <span className="truncate font-mono text-xs">{triggerLabel}</span>
               {currentModel.isFree && (
-                <span className="shrink-0 rounded px-1 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <span className="shrink-0 rounded px-1 py-0.5 text-[10px] max-sm:text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   free
                 </span>
               )}
@@ -140,7 +140,7 @@ export function ModelCombobox({
                   <span className="flex-1">
                     <span className="text-sm">Default</span>
                     {defaultModelLabel && (
-                      <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">
+                      <span className="ml-1.5 font-mono text-[10px] max-sm:text-xs text-muted-foreground">
                         {defaultModelLabel}
                       </span>
                     )}
@@ -187,7 +187,7 @@ export function ModelCombobox({
                           {m.name}
                         </span>
                         {m.isFree && (
-                          <span className="ml-auto shrink-0 rounded px-1 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                          <span className="ml-auto shrink-0 rounded px-1 py-0.5 text-[10px] max-sm:text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                             free
                           </span>
                         )}

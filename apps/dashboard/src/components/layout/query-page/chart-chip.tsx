@@ -73,7 +73,7 @@ export const ChartChip = function ChartChip({
           summary.trend !== 'flat' ? (
             <span
               className={cn(
-                'flex shrink-0 items-center gap-0.5 text-[10px] font-medium tabular-nums',
+                'flex shrink-0 items-center gap-0.5 text-[10px] max-sm:text-xs font-medium tabular-nums',
                 TREND_COLOR[trendKey]
               )}
             >

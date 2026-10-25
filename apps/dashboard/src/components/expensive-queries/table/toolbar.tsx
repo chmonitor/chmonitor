@@ -24,7 +24,7 @@ export function SeverityFilterBar({
           type="button"
           onClick={() => onChange(s)}
           className={cn(
-            'h-7 whitespace-nowrap rounded px-2.5 text-[11.5px] font-medium transition-colors',
+            'h-7 whitespace-nowrap rounded px-2.5 text-[11.5px] max-sm:text-xs font-medium transition-colors',
             value === s
               ? 'bg-card text-foreground'
               : 'text-muted-foreground hover:text-foreground'

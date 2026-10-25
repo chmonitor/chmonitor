@@ -11,7 +11,7 @@ export function StaticSectionHeader({
 }) {
   return (
     <div className="mb-1.5 flex items-center justify-between">
-      <div className="text-muted-foreground text-[10.5px] font-semibold tracking-wider uppercase">
+      <div className="text-muted-foreground text-[10.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
         {label}
       </div>
       {right}

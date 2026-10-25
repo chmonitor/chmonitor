@@ -28,14 +28,14 @@ export const cardStyles = {
   ),
 
   label: cn(
-    'text-[10px] uppercase tracking-widest font-medium',
+    'text-[10px] max-sm:text-xs uppercase tracking-widest font-medium',
     'text-foreground/45',
     'group-hover:hidden',
     'transition-opacity duration-150'
   ),
 
   labelHover: cn(
-    'text-[10px] uppercase tracking-widest font-medium',
+    'text-[10px] max-sm:text-xs uppercase tracking-widest font-medium',
     'text-foreground/80 dark:text-foreground/70',
     'hidden group-hover:inline',
     'transition-opacity duration-150'

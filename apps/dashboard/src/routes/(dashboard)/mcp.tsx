@@ -32,7 +32,7 @@ function EndpointStat({
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="text-[10px] max-sm:text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
         <p className="truncate text-[13px] font-medium">{value}</p>

@@ -268,7 +268,7 @@ export function MessageStatsFooter() {
     usage?.resolvedModel != null && usage.resolvedModel !== usage?.model
 
   return (
-    <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
+    <div className="mt-1 flex items-center gap-3 text-[11px] max-sm:text-xs text-muted-foreground">
       {hasDuration && timing?.totalStreamTime != null && (
         <span className="flex items-center gap-0.5">
           <ClockIcon className="size-3 shrink-0" />
@@ -311,7 +311,7 @@ export function MessageStatsFooter() {
           {isResolved && (
             <Badge
               variant="outline"
-              className="px-1 py-0 text-[10px] h-4 leading-none border-border/40"
+              className="px-1 py-0 text-[10px] max-sm:text-xs h-4 leading-none border-border/40"
             >
               resolved
             </Badge>

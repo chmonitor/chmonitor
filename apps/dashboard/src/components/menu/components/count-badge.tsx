@@ -38,7 +38,7 @@ export const CountBadge = memo(function CountBadge({
     <span
       className={cn(
         'group/count inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5',
-        'text-[10px] font-medium tabular-nums',
+        'text-[10px] max-sm:text-xs font-medium tabular-nums',
         'transition-all duration-200 ease-out',
         'group-data-[state=collapsed]/sidebar:hidden',
         variantClasses

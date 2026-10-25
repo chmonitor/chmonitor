@@ -113,7 +113,7 @@ function MetricItem({
         tone === 'danger' && 'dark:border-red-800/70 dark:bg-red-950/20'
       )}
     >
-      <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-1.5 text-[11px] max-sm:text-xs font-medium text-muted-foreground">
         <Icon className="size-3.5 shrink-0" aria-hidden="true" />
         <span className="truncate">{label}</span>
       </div>
@@ -121,7 +121,7 @@ function MetricItem({
         {value}
       </div>
       {hasValue(subValue) && (
-        <div className="mt-0.5 min-w-0 truncate text-[11px] tabular-nums text-muted-foreground">
+        <div className="mt-0.5 min-w-0 truncate text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
           {subValue}
         </div>
       )}
@@ -198,7 +198,7 @@ export const RunningQuerySummaryFormat = function RunningQuerySummaryFormat<
             {queryKind && (
               <Badge
                 variant="secondary"
-                className="h-6 shrink-0 rounded-md px-2 font-mono text-[11px] uppercase"
+                className="h-6 shrink-0 rounded-md px-2 font-mono text-[11px] max-sm:text-xs uppercase"
               >
                 {queryKind}
               </Badge>
@@ -206,7 +206,7 @@ export const RunningQuerySummaryFormat = function RunningQuerySummaryFormat<
             {user && (
               <Badge
                 variant="outline"
-                className="h-6 max-w-36 shrink-0 rounded-md px-2 text-[11px]"
+                className="h-6 max-w-36 shrink-0 rounded-md px-2 text-[11px] max-sm:text-xs"
               >
                 <User className="mr-1 size-3" aria-hidden="true" />
                 <span className="truncate">{user}</span>
@@ -215,7 +215,7 @@ export const RunningQuerySummaryFormat = function RunningQuerySummaryFormat<
             {database && (
               <Badge
                 variant="outline"
-                className="h-6 max-w-44 shrink-0 rounded-md px-2 text-[11px]"
+                className="h-6 max-w-44 shrink-0 rounded-md px-2 text-[11px] max-sm:text-xs"
               >
                 <Database className="mr-1 size-3" aria-hidden="true" />
                 <span className="truncate font-mono">{database}</span>
@@ -224,7 +224,7 @@ export const RunningQuerySummaryFormat = function RunningQuerySummaryFormat<
             {isDistributed && (
               <Badge
                 variant="outline"
-                className="h-6 shrink-0 rounded-md px-2 text-[11px]"
+                className="h-6 shrink-0 rounded-md px-2 text-[11px] max-sm:text-xs"
               >
                 Distributed depth {distributedDepth}
               </Badge>

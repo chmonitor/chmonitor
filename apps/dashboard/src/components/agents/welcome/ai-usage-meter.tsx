@@ -52,7 +52,7 @@ export function AnyRouterUnlimitedLink({
   return (
     <button
       type="button"
-      className="text-primary text-[10.5px] font-medium underline-offset-2 hover:underline focus-visible:underline disabled:opacity-60"
+      className="text-primary text-[10.5px] max-sm:text-xs font-medium underline-offset-2 hover:underline focus-visible:underline disabled:opacity-60"
       disabled={anyRouter.isSigningIn}
       onClick={anyRouter.signIn}
       title="Sign in with AnyRouter for unlimited use"
@@ -78,7 +78,7 @@ export function AiUsageMeter({
     return (
       <span
         className={cn(
-          'text-muted-foreground ml-auto flex items-center gap-1 px-1 text-[11px] tabular-nums',
+          'text-muted-foreground ml-auto flex items-center gap-1 px-1 text-[11px] max-sm:text-xs tabular-nums',
           className
         )}
         title={
@@ -109,7 +109,7 @@ export function AiUsageMeter({
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-muted-foreground text-[10.5px] leading-snug">
+      <p className="text-muted-foreground text-[10.5px] max-sm:text-xs leading-snug">
         {depleted
           ? "You've used all of today's messages. The limit resets tomorrow."
           : `${remaining} message${remaining === 1 ? '' : 's'} left today`}
@@ -126,7 +126,7 @@ export function AiUsageMeterBadge({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        'text-muted-foreground text-[10px] tabular-nums',
+        'text-muted-foreground text-[10px] max-sm:text-xs tabular-nums',
         className
       )}
     >

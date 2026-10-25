@@ -47,7 +47,7 @@ function DetailField({
         className
       )}
     >
-      <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-1.5 text-[11px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {Icon && <Icon className="size-3.5 shrink-0" aria-hidden="true" />}
         <span className="truncate">{label}</span>
       </div>

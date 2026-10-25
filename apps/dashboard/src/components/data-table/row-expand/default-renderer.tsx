@@ -15,7 +15,7 @@ export function DefaultExpandedRow({ row }: { row: Record<string, unknown> }) {
           key={key}
           className="flex min-w-0 items-baseline gap-2 border-b border-border/30 py-1"
         >
-          <span className="shrink-0 font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
+          <span className="shrink-0 font-mono text-[11px] max-sm:text-xs uppercase tracking-wide text-muted-foreground">
             {key}
           </span>
           <span className="min-w-0 flex-1 truncate font-mono text-xs">

@@ -81,7 +81,10 @@ export function TableRelations({
                     {targetDb}.{targetTable}
                   </span>
                 </span>
-                <Badge variant="secondary" className="shrink-0 text-[10px]">
+                <Badge
+                  variant="secondary"
+                  className="shrink-0 text-[10px] max-sm:text-xs"
+                >
                   {dependencyTypeLabel(edge.dependency_type)}
                 </Badge>
               </li>

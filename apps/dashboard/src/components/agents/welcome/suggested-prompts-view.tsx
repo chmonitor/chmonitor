@@ -131,7 +131,7 @@ export function SuggestedPrompts({
                 <span className="block truncate text-[12.5px] font-medium text-foreground">
                   {entry.title}
                 </span>
-                <span className="text-muted-foreground line-clamp-2 text-[11.5px] leading-snug">
+                <span className="text-muted-foreground line-clamp-2 text-[11.5px] max-sm:text-xs leading-snug">
                   {entry.prompt}
                 </span>
               </span>
@@ -140,7 +140,7 @@ export function SuggestedPrompts({
         })}
       </div>
     ) : (
-      <div className="space-y-1.5 text-[11.5px]">
+      <div className="space-y-1.5 text-[11.5px] max-sm:text-xs">
         {visible.map((entry) => (
           <button
             key={entry.title}
@@ -148,7 +148,7 @@ export function SuggestedPrompts({
             onClick={() => onPickPrompt?.(entry.prompt)}
             className="text-muted-foreground hover:text-foreground hover:bg-muted/40 -mx-1 flex w-[calc(100%+0.5rem)] items-start gap-1.5 rounded px-1 py-0.5 text-left transition-colors"
           >
-            <span className="text-foreground w-14 shrink-0 pt-0.5 text-[9.5px] font-semibold tracking-wider uppercase">
+            <span className="text-foreground w-14 shrink-0 pt-0.5 text-[9.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
               {entry.category}
             </span>
             <span className="line-clamp-2 leading-snug">{entry.prompt}</span>
@@ -164,7 +164,7 @@ export function SuggestedPrompts({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="text-muted-foreground hover:text-foreground mt-2 text-[10.5px]"
+          className="text-muted-foreground hover:text-foreground mt-2 text-[10.5px] max-sm:text-xs"
         >
           {expanded ? 'Show less' : 'Show more'}
         </button>
@@ -180,7 +180,7 @@ export function SuggestedPrompts({
         <h3 className="text-[13px] font-semibold tracking-tight">
           Suggested questions
         </h3>
-        <p className="text-muted-foreground text-[11.5px]">
+        <p className="text-muted-foreground text-[11.5px] max-sm:text-xs">
           Pick one to get started, or write your own.
         </p>
       </div>

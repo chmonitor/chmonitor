@@ -131,7 +131,7 @@ export function ConnectionManagerDialog({
                           {conn.status && (
                             <Badge
                               className={cn(
-                                'text-[10px] px-1.5 py-0',
+                                'text-[10px] max-sm:text-xs px-1.5 py-0',
                                 badge.className
                               )}
                             >

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 export const cardClass =
   'flex flex-col rounded-xl border border-border bg-card p-3.5'
 export const labelClass =
-  'text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground'
+  'text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground'
 
 export function ChartCard({
   className,
@@ -33,7 +33,7 @@ function DeltaChip({ text }: { text: string }) {
   return (
     <span
       className={cn(
-        'rounded-md border px-1.5 py-0.5 text-[10.5px] font-medium tabular-nums',
+        'rounded-md border px-1.5 py-0.5 text-[10.5px] max-sm:text-xs font-medium tabular-nums',
         positive &&
           'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300',
         negative &&
@@ -85,7 +85,9 @@ export function Kpi({
           </span>
         )}
       </div>
-      <div className="mt-1.5 text-[11px] text-muted-foreground">{sub}</div>
+      <div className="mt-1.5 text-[11px] max-sm:text-xs text-muted-foreground">
+        {sub}
+      </div>
     </div>
   )
 }
@@ -235,7 +237,7 @@ export function Donut({
           <div className="text-[19px] font-bold leading-none tabular-nums">
             {center.value}
           </div>
-          <div className="mt-1 text-[10px] text-muted-foreground">
+          <div className="mt-1 text-[10px] max-sm:text-xs text-muted-foreground">
             {center.label}
           </div>
         </div>
@@ -255,14 +257,14 @@ export function ChurnBars({
       {rows.map((r) => (
         <div key={r.table}>
           <div className="mb-1 flex items-center justify-between gap-2">
-            <span className="flex min-w-0 items-center gap-1.5 truncate font-mono text-[11.5px]">
+            <span className="flex min-w-0 items-center gap-1.5 truncate font-mono text-[11.5px] max-sm:text-xs">
               <span
                 className="size-1.5 shrink-0 rounded-sm"
                 style={{ background: r.color }}
               />
               <span className="truncate">{r.table}</span>
             </span>
-            <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+            <span className="shrink-0 text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
               {formatReadableQuantity(r.events)}
             </span>
           </div>

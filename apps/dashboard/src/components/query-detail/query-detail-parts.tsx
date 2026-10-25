@@ -25,7 +25,7 @@ export function MetaField({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <dt className="flex items-center gap-1 text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {Icon && <Icon className="size-3" />}
         {label}
       </dt>
@@ -62,7 +62,7 @@ export const CollapsibleSection = function CollapsibleSection({
       >
         <span className="text-[12.5px] font-semibold">{title}</span>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] tabular-nums text-muted-foreground">
+          <span className="text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
             {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
           </span>
           {open ? (
@@ -78,7 +78,7 @@ export const CollapsibleSection = function CollapsibleSection({
             {entries.map(([key, val]) => (
               <div
                 key={key}
-                className="flex items-baseline justify-between gap-2 border-b border-border px-4 py-2 text-[11.5px] last:border-b-0 sm:border-b"
+                className="flex items-baseline justify-between gap-2 border-b border-border px-4 py-2 text-[11.5px] max-sm:text-xs last:border-b-0 sm:border-b"
               >
                 <span className="min-w-0 truncate font-mono text-muted-foreground">
                   {key}
@@ -148,17 +148,17 @@ export function SqlBlock({ query }: { query: string }) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           SQL
         </span>
         <div className="flex items-center gap-3">
-          <span className="text-[10.5px] tabular-nums text-muted-foreground">
+          <span className="text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground">
             {query.length.toLocaleString()} chars · {lineCount}{' '}
             {lineCount === 1 ? 'line' : 'lines'}
           </span>
           <Label
             htmlFor={beautifyId}
-            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+            className="flex items-center gap-1.5 text-[11px] max-sm:text-xs text-muted-foreground"
           >
             <Wand2 className="size-3" />
             Beautify
@@ -173,7 +173,7 @@ export function SqlBlock({ query }: { query: string }) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 gap-1 px-2 text-[11px] text-muted-foreground"
+            className="h-6 gap-1 px-2 text-[11px] max-sm:text-xs text-muted-foreground"
             onClick={handleCopy}
           >
             {copied ? (
@@ -188,7 +188,7 @@ export function SqlBlock({ query }: { query: string }) {
       <div className="max-h-[320px] overflow-auto">
         <div
           className={cn(
-            'px-4 py-3 font-mono text-[11.5px] leading-relaxed',
+            'px-4 py-3 font-mono text-[11.5px] max-sm:text-xs leading-relaxed',
             HLJS_TOKEN_CLASSES
           )}
           dangerouslySetInnerHTML={{ __html: highlightedHtml }}

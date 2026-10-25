@@ -67,7 +67,7 @@ export function InsightsStrip({ hostId, className }: InsightsStripProps) {
                 key={sev}
                 variant="outline"
                 className={cn(
-                  'text-[10px] font-medium',
+                  'text-[10px] max-sm:text-xs font-medium',
                   SEVERITY_META[sev].badge
                 )}
               >

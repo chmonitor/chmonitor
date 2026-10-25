@@ -190,7 +190,7 @@ export function McpPlayground() {
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className="gap-1 px-1.5 py-0 text-[10px] font-normal"
+              className="gap-1 px-1.5 py-0 text-[10px] max-sm:text-xs font-normal"
             >
               {discovered ? (
                 <CheckCircle2 className="size-3 text-emerald-500" />
@@ -287,7 +287,7 @@ export function McpPlayground() {
             {tool?.annotations?.readOnlyHint && (
               <Badge
                 variant="outline"
-                className="gap-1 px-1.5 py-0 text-[10px] font-normal"
+                className="gap-1 px-1.5 py-0 text-[10px] max-sm:text-xs font-normal"
               >
                 <ShieldCheck className="size-3" />
                 read-only
@@ -388,14 +388,14 @@ export function McpPlayground() {
                 {result.isError ? (
                   <Badge
                     variant="outline"
-                    className="border-destructive/40 px-1.5 py-0 text-[10px] text-destructive"
+                    className="border-destructive/40 px-1.5 py-0 text-[10px] max-sm:text-xs text-destructive"
                   >
                     tool error
                   </Badge>
                 ) : (
                   <Badge
                     variant="outline"
-                    className="px-1.5 py-0 text-[10px] font-normal"
+                    className="px-1.5 py-0 text-[10px] max-sm:text-xs font-normal"
                   >
                     ok
                   </Badge>

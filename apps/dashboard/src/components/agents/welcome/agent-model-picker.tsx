@@ -149,7 +149,7 @@ export function ModelOptionRow({
           <span className="text-muted-foreground">:</span>
           <span className="text-foreground">{model.modelId}</span>
         </div>
-        <div className="text-muted-foreground truncate text-[10px] tabular-nums">
+        <div className="text-muted-foreground truncate text-[10px] max-sm:text-xs tabular-nums">
           {modelMetaLine(model)}
         </div>
       </div>
@@ -157,7 +157,7 @@ export function ModelOptionRow({
         <Badge
           variant="secondary"
           className={cn(
-            'h-4 shrink-0 px-1.5 text-[10px] font-normal',
+            'h-4 shrink-0 px-1.5 text-[10px] max-sm:text-xs font-normal',
             tone.className
           )}
         >
@@ -167,7 +167,7 @@ export function ModelOptionRow({
       {isCustom ? (
         <Badge
           variant="secondary"
-          className="h-4 shrink-0 px-1.5 text-[10px] font-normal opacity-60"
+          className="h-4 shrink-0 px-1.5 text-[10px] max-sm:text-xs font-normal opacity-60"
         >
           custom
         </Badge>
@@ -282,7 +282,7 @@ export function AgentModelPicker({
     return (
       <div
         className={cn(
-          'text-muted-foreground border-input flex min-h-10 w-full flex-col items-start gap-1 rounded-md border border-dashed px-3 py-2 text-[11px] leading-snug',
+          'text-muted-foreground border-input flex min-h-10 w-full flex-col items-start gap-1 rounded-md border border-dashed px-3 py-2 text-[11px] max-sm:text-xs leading-snug',
           variant === 'toolbar' && 'h-6 min-h-0 flex-row border-0 px-2 py-0',
           className
         )}
@@ -295,7 +295,7 @@ export function AgentModelPicker({
           type="button"
           variant="link"
           size="sm"
-          className="h-auto p-0 text-[11px]"
+          className="h-auto p-0 text-[11px] max-sm:text-xs"
           disabled={anyRouter.isSigningIn}
           onClick={anyRouter.signIn}
         >
@@ -325,7 +325,7 @@ export function AgentModelPicker({
               variant="ghost"
               size="sm"
               className={cn(
-                'text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px]',
+                'text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px] max-sm:text-xs',
                 className
               )}
             >
@@ -365,7 +365,7 @@ export function AgentModelPicker({
                   <span className="text-muted-foreground">:</span>
                   <span className="text-foreground">{selected.modelId}</span>
                 </div>
-                <div className="text-muted-foreground text-[10px] tabular-nums">
+                <div className="text-muted-foreground text-[10px] max-sm:text-xs tabular-nums">
                   {selected.formattedContextLength} ctx
                   {selected.pricing
                     ? ` · $${selected.pricing.inputPerMillion.toFixed(2)}/M in`
@@ -377,7 +377,7 @@ export function AgentModelPicker({
               {anyRouter.isSignedIn && selected.provider === 'anyrouter' ? (
                 <Badge
                   variant="outline"
-                  className="h-4 shrink-0 px-1.5 text-[10px] font-normal text-[var(--chart-green)]"
+                  className="h-4 shrink-0 px-1.5 text-[10px] max-sm:text-xs font-normal text-[var(--chart-green)]"
                 >
                   Signed in with AnyRouter
                 </Badge>
@@ -389,7 +389,7 @@ export function AgentModelPicker({
                   <Badge
                     variant="secondary"
                     className={cn(
-                      'h-4 shrink-0 px-1.5 text-[10px] font-normal',
+                      'h-4 shrink-0 px-1.5 text-[10px] max-sm:text-xs font-normal',
                       tone.className
                     )}
                   >
@@ -426,7 +426,7 @@ export function AgentModelPicker({
           ) : null}
           {recent.length > 0 ? (
             <div className="space-y-0.5">
-              <div className="text-muted-foreground flex items-center gap-1.5 px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wider uppercase">
+              <div className="text-muted-foreground flex items-center gap-1.5 px-2 pt-1 pb-0.5 text-[10px] max-sm:text-xs font-semibold tracking-wider uppercase">
                 <ClockIcon className="size-2.5" />
                 recent
               </div>
@@ -445,7 +445,7 @@ export function AgentModelPicker({
           ) : null}
           {grouped.map(([provider, list]) => (
             <div key={provider} className="space-y-0.5">
-              <div className="text-muted-foreground flex items-center gap-1.5 px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wider uppercase">
+              <div className="text-muted-foreground flex items-center gap-1.5 px-2 pt-1 pb-0.5 text-[10px] max-sm:text-xs font-semibold tracking-wider uppercase">
                 <span
                   className={cn(
                     'inline-block size-1.5 rounded-full',
@@ -485,13 +485,13 @@ export function AgentModelPicker({
               placeholder="provider:model — use any model id"
               aria-label="Custom model id"
               aria-invalid={customError !== null}
-              className="h-8 font-mono text-[11.5px]"
+              className="h-8 font-mono text-[11.5px] max-sm:text-xs"
             />
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              className="h-8 shrink-0 px-2 text-[11.5px]"
+              className="h-8 shrink-0 px-2 text-[11.5px] max-sm:text-xs"
               disabled={customInput.trim().length === 0}
               onClick={submitCustomModel}
             >
@@ -499,14 +499,14 @@ export function AgentModelPicker({
             </Button>
           </div>
           {customError ? (
-            <p className="text-destructive px-1 pt-1 text-[10.5px]">
+            <p className="text-destructive px-1 pt-1 text-[10.5px] max-sm:text-xs">
               {customError}
             </p>
           ) : null}
 
           {showAnyRouterSignIn ? (
             <div className="flex items-center justify-between gap-2 px-1 pt-1.5">
-              <span className="text-muted-foreground text-[10.5px]">
+              <span className="text-muted-foreground text-[10.5px] max-sm:text-xs">
                 {anyRouter.isSignedIn
                   ? 'Signed in with AnyRouter — your credits'
                   : anyRouter.expired
@@ -517,7 +517,7 @@ export function AgentModelPicker({
                 type="button"
                 variant="link"
                 size="sm"
-                className="h-auto p-0 text-[10.5px]"
+                className="h-auto p-0 text-[10.5px] max-sm:text-xs"
                 disabled={anyRouter.isSigningIn}
                 onClick={
                   anyRouter.isSignedIn ? anyRouter.signOut : anyRouter.signIn
@@ -534,7 +534,7 @@ export function AgentModelPicker({
             </div>
           ) : null}
           {anyRouter.error ? (
-            <p className="text-destructive px-1 pt-1 text-[10.5px]">
+            <p className="text-destructive px-1 pt-1 text-[10.5px] max-sm:text-xs">
               {anyRouter.error}
             </p>
           ) : null}

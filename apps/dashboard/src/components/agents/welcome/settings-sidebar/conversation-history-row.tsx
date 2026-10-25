@@ -37,7 +37,7 @@ export function ConversationHistoryRow() {
             {isAgentState && (
               <Badge
                 variant={supportsAiEnrichment ? 'default' : 'secondary'}
-                className="h-4 shrink-0 px-1.5 text-[9px]"
+                className="h-4 shrink-0 px-1.5 text-[9px] max-sm:text-xs"
               >
                 {supportsAiEnrichment ? 'Enrichment on' : 'Enrichment off'}
               </Badge>
@@ -57,7 +57,10 @@ export function ConversationHistoryRow() {
             >
               <InfoIcon className="size-3.5" />
             </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-56 text-[11px]">
+            <TooltipContent
+              side="left"
+              className="max-w-56 text-[11px] max-sm:text-xs"
+            >
               Fixed at deploy time via environment variables — not editable
               here.
             </TooltipContent>
@@ -70,7 +73,7 @@ export function ConversationHistoryRow() {
           href="https://agentstate.app"
           target="_blank"
           rel="noreferrer"
-          className="text-muted-foreground hover:text-foreground hover:bg-muted/40 mt-1 flex items-center gap-1.5 rounded px-1 py-0.5 text-[11px] transition-colors"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted/40 mt-1 flex items-center gap-1.5 rounded px-1 py-0.5 text-[11px] max-sm:text-xs transition-colors"
         >
           <ExternalLinkIcon className="size-3 shrink-0" />
           <span className="min-w-0 flex-1 truncate">

@@ -26,14 +26,14 @@ export function PeerChip({
     size === 'lg'
       ? 'h-7 text-[12px]'
       : size === 'xs'
-        ? 'h-5 text-[10.5px]'
-        : 'h-6 text-[11.5px]'
+        ? 'h-5 text-[10.5px] max-sm:text-xs'
+        : 'h-6 text-[11.5px] max-sm:text-xs'
   const mono =
     size === 'lg'
-      ? 'w-7 h-full text-[10.5px] rounded-l-[5px]'
+      ? 'w-7 h-full text-[10.5px] max-sm:text-xs rounded-l-[5px]'
       : size === 'xs'
-        ? 'w-5 h-full text-[8.5px] rounded-l-[4px]'
-        : 'w-6 h-full text-[9.5px] rounded-l-[5px]'
+        ? 'w-5 h-full text-[8.5px] max-sm:text-xs rounded-l-[4px]'
+        : 'w-6 h-full text-[9.5px] max-sm:text-xs rounded-l-[5px]'
   return (
     <span
       className={cn(

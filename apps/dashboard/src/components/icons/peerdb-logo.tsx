@@ -78,7 +78,7 @@ export function DbLogo({
       return (
         <span
           className={cn(
-            'inline-flex shrink-0 items-center justify-center font-mono font-bold text-[9px] select-none rounded bg-muted/60 text-muted-foreground border border-border/60',
+            'inline-flex shrink-0 items-center justify-center font-mono font-bold text-[9px] max-sm:text-xs select-none rounded bg-muted/60 text-muted-foreground border border-border/60',
             className
           )}
           style={{ width, height }}

@@ -61,7 +61,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex max-w-full items-center rounded-md border px-1.5 py-0.5 text-[11px]',
+        'inline-flex max-w-full items-center rounded-md border px-1.5 py-0.5 text-[11px] max-sm:text-xs',
         TONE_BADGE[tone],
         className
       )}
@@ -92,7 +92,7 @@ export function ThSort({
   return (
     <th
       className={cn(
-        'select-none whitespace-nowrap px-2 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-3',
+        'select-none whitespace-nowrap px-2 py-2 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-3',
         align === 'right' ? 'text-right' : 'text-left',
         className
       )}
@@ -151,8 +151,8 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
     <div className="space-y-3 border-t border-border bg-muted/40 px-3 py-3.5 sm:px-5">
       {row.event_type.startsWith('Merge') &&
         row.merge_reason !== 'NotAMerge' && (
-          <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-[11.5px] text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200">
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider opacity-80">
+          <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-[11.5px] max-sm:text-xs text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200">
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider opacity-80">
               <Merge className="size-3" />
               Merge composition
             </div>
@@ -168,8 +168,8 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
         )}
 
       {Number(row.error) > 0 && row.exception && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 font-mono text-[11px] text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
-          <div className="mb-1 font-sans text-[10px] font-semibold uppercase tracking-wider opacity-80">
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 font-mono text-[11px] max-sm:text-xs text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+          <div className="mb-1 font-sans text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider opacity-80">
             Exception
           </div>
           {row.exception}
@@ -177,16 +177,16 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
       )}
 
       <div className="overflow-hidden rounded-md border border-border bg-card">
-        <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] max-sm:text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Part details
         </div>
-        <dl className="grid grid-cols-2 text-[11.5px] sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+        <dl className="grid grid-cols-2 text-[11.5px] max-sm:text-xs sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
           {fields.map((f) => (
             <div
               key={f.label}
               className="-ml-px -mt-px min-w-0 border-l border-t border-border px-3 py-1.5"
             >
-              <dt className="text-[10px] font-semibold uppercase leading-tight tracking-wider text-muted-foreground">
+              <dt className="text-[10px] max-sm:text-xs font-semibold uppercase leading-tight tracking-wider text-muted-foreground">
                 {f.label}
               </dt>
               <dd
@@ -207,7 +207,7 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
         <Button
           variant="default"
           size="sm"
-          className="h-7 gap-1.5 text-[11.5px]"
+          className="h-7 gap-1.5 text-[11.5px] max-sm:text-xs"
           nativeButton={false}
           render={
             <a
@@ -225,7 +225,7 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
         <Button
           variant="outline"
           size="sm"
-          className="h-7 gap-1.5 text-[11.5px]"
+          className="h-7 gap-1.5 text-[11.5px] max-sm:text-xs"
           onClick={copyName}
         >
           <Copy className="size-3" />
@@ -234,7 +234,7 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
         <Button
           variant="outline"
           size="sm"
-          className="h-7 gap-1.5 text-[11.5px]"
+          className="h-7 gap-1.5 text-[11.5px] max-sm:text-xs"
           nativeButton={false}
           render={
             <a href={buildUrl('/merges', { host: hostId })}>
@@ -247,7 +247,7 @@ function ExpandedRow({ row, hostId }: { row: PartLogRow; hostId: number }) {
         <Button
           variant="outline"
           size="sm"
-          className="h-7 gap-1.5 text-[11.5px]"
+          className="h-7 gap-1.5 text-[11.5px] max-sm:text-xs"
           nativeButton={false}
           render={
             <a
@@ -311,7 +311,7 @@ export function Row({
               <div className="font-mono text-[12px] tabular-nums">
                 {timeOfDay(row.event_time)}
               </div>
-              <div className="text-[10px] tabular-nums text-muted-foreground">
+              <div className="text-[10px] max-sm:text-xs tabular-nums text-muted-foreground">
                 {relativeAgo(num(row.event_unixtime), nowSeconds)}
               </div>
             </div>
@@ -328,14 +328,14 @@ export function Row({
           <Badge tone={tableTone(row.table)} className="font-mono">
             <span className="truncate">{row.table}</span>
           </Badge>
-          <div className="mt-1 truncate font-mono text-[10.5px] text-muted-foreground lg:hidden">
+          <div className="mt-1 truncate font-mono text-[10.5px] max-sm:text-xs text-muted-foreground lg:hidden">
             {row.part_name}
           </div>
         </td>
 
         <td className="hidden min-w-0 px-2 py-2.5 align-middle lg:table-cell">
           <span
-            className="block truncate font-mono text-[11.5px]"
+            className="block truncate font-mono text-[11.5px] max-sm:text-xs"
             title={row.part_name}
           >
             {row.part_name}
@@ -343,13 +343,13 @@ export function Row({
         </td>
 
         <td className="hidden whitespace-nowrap px-2 py-2.5 align-middle sm:px-3 xl:table-cell">
-          <span className="font-mono text-[11.5px] text-muted-foreground">
+          <span className="font-mono text-[11.5px] max-sm:text-xs text-muted-foreground">
             {row.partition_id}
           </span>
         </td>
 
         <td className="hidden whitespace-nowrap px-2 py-2.5 align-middle sm:px-3 md:table-cell">
-          <span className="inline-flex items-center gap-1.5 text-[11.5px]">
+          <span className="inline-flex items-center gap-1.5 text-[11.5px] max-sm:text-xs">
             <span
               className="size-1.5 rounded-full"
               style={{ background: reasonColor }}

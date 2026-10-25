@@ -54,11 +54,13 @@ export function MirrorLogsPanel({ flowJobName }: { flowJobName: string }) {
     <div className="overflow-hidden rounded-md border border-border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Mirror logs
           </span>
-          <span className="text-[10.5px] text-muted-foreground">·</span>
-          <span className="font-mono text-[10.5px] text-muted-foreground">
+          <span className="text-[10.5px] max-sm:text-xs text-muted-foreground">
+            ·
+          </span>
+          <span className="font-mono text-[10.5px] max-sm:text-xs text-muted-foreground">
             POST /v1/mirrors/logs
           </span>
         </div>
@@ -86,7 +88,7 @@ export function MirrorLogsPanel({ flowJobName }: { flowJobName: string }) {
                 className={segmentClass(level === lvl)}
               >
                 {lvl === 'all' ? 'All' : lvl.toUpperCase()}
-                <span className="text-[9.5px] tabular-nums opacity-70">
+                <span className="text-[9.5px] max-sm:text-xs tabular-nums opacity-70">
                   {counts[lvl]}
                 </span>
               </button>
@@ -95,7 +97,7 @@ export function MirrorLogsPanel({ flowJobName }: { flowJobName: string }) {
         </div>
       </div>
       {filtered.length === 0 ? (
-        <div className="px-3 py-6 text-center text-[11.5px] text-muted-foreground">
+        <div className="px-3 py-6 text-center text-[11.5px] max-sm:text-xs text-muted-foreground">
           No logs at this level
         </div>
       ) : view === 'patterns' ? (
@@ -114,7 +116,7 @@ export function MirrorLogsPanel({ flowJobName }: { flowJobName: string }) {
               <button
                 type="button"
                 onClick={() => setShowAll((v) => !v)}
-                className="text-[11px] text-muted-foreground hover:text-foreground"
+                className="text-[11px] max-sm:text-xs text-muted-foreground hover:text-foreground"
               >
                 {showAll
                   ? 'Show fewer'

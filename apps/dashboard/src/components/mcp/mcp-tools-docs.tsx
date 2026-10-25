@@ -10,7 +10,7 @@ function ParamBadge({ required }: { required: boolean }) {
   return (
     <Badge
       variant={required ? 'default' : 'secondary'}
-      className="text-[10px] px-1.5 py-0"
+      className="text-[10px] max-sm:text-xs px-1.5 py-0"
     >
       {required ? 'required' : 'optional'}
     </Badge>
@@ -38,7 +38,7 @@ function ToolCard({ tool }: { tool: (typeof MCP_TOOLS)[number] }) {
             </code>
             <Badge
               variant="secondary"
-              className="px-1.5 py-0 text-[10px] font-normal"
+              className="px-1.5 py-0 text-[10px] max-sm:text-xs font-normal"
             >
               {tool.category}
             </Badge>
@@ -50,13 +50,16 @@ function ToolCard({ tool }: { tool: (typeof MCP_TOOLS)[number] }) {
           </span>
         </span>
         <span className="hidden shrink-0 items-center gap-2 sm:flex">
-          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+          <Badge
+            variant="outline"
+            className="px-1.5 py-0 text-[10px] max-sm:text-xs"
+          >
             {tool.params.length} arg{tool.params.length !== 1 ? 's' : ''}
             {requiredCount > 0 ? ` · ${requiredCount} required` : ''}
           </Badge>
           <Badge
             variant="outline"
-            className="gap-1 px-1.5 py-0 text-[10px] font-normal"
+            className="gap-1 px-1.5 py-0 text-[10px] max-sm:text-xs font-normal"
           >
             <ShieldCheck className="size-3" />
             read-only

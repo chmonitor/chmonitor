@@ -50,7 +50,7 @@ export function HealthDetailRows({
       <div className="flex items-center gap-2">
         <h4 className="text-sm font-semibold">{title}</h4>
         {hasData && (
-          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] max-sm:text-xs font-medium tabular-nums text-muted-foreground">
             {rowCount}
           </span>
         )}

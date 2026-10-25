@@ -129,7 +129,7 @@ export function AddServerForm({ onClose }: { onClose: () => void }) {
     <Card className="rounded-xl border bg-card shadow-sm">
       <CardContent className="space-y-3 p-4">
         <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-[11px] uppercase tracking-wide">
+          <Label className="text-muted-foreground text-[11px] max-sm:text-xs uppercase tracking-wide">
             Start from a template
           </Label>
           <div className="flex flex-wrap gap-1.5">

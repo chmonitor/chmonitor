@@ -16,7 +16,9 @@ function InsRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-[11.5px] text-muted-foreground">{label}</span>
+      <span className="text-[11.5px] max-sm:text-xs text-muted-foreground">
+        {label}
+      </span>
       <span
         className={cn(
           'text-right text-[12px] font-medium tabular-nums text-foreground',
@@ -60,7 +62,9 @@ function MeterRow({
   return (
     <div className="py-1.5">
       <div className="mb-1 flex items-center justify-between">
-        <span className="text-[11.5px] text-muted-foreground">{label}</span>
+        <span className="text-[11.5px] max-sm:text-xs text-muted-foreground">
+          {label}
+        </span>
         <span className="text-[12px] font-medium tabular-nums text-foreground">
           {value}{' '}
           <span className="font-normal text-muted-foreground">{sub}</span>
@@ -83,7 +87,7 @@ function InsSection({
   return (
     <div className="border-b border-border px-4 py-3">
       <div className="mb-1.5 flex items-center justify-between">
-        <h4 className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        <h4 className="text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {title}
         </h4>
         {right}
@@ -95,7 +99,7 @@ function InsSection({
 
 function LiveTag() {
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+    <span className="inline-flex items-center gap-1 text-[10px] max-sm:text-xs text-emerald-600 dark:text-emerald-400">
       <span className="topo-live-dot h-1.5 w-1.5 rounded-full bg-emerald-500" />
       live
     </span>
@@ -116,7 +120,7 @@ function Sparkline({
   if (!data || data.length < 2) {
     return (
       <div
-        className="text-[10px] text-muted-foreground"
+        className="text-[10px] max-sm:text-xs text-muted-foreground"
         style={{ width, height }}
       />
     )
@@ -257,7 +261,7 @@ export function ChInspector({
           <Badge
             variant="outline"
             className={cn(
-              'border px-1.5 py-0.5 text-[10.5px]',
+              'border px-1.5 py-0.5 text-[10.5px] max-sm:text-xs',
               node.status === 'warn'
                 ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
                 : node.status === 'down'
@@ -312,7 +316,7 @@ export function ChInspector({
         >
           <div className="mb-2 flex items-center justify-between">
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <div className="text-[10px] max-sm:text-xs uppercase tracking-wider text-muted-foreground">
                 CPU
               </div>
               <div className="text-[22px] font-bold leading-none tabular-nums">
@@ -344,7 +348,7 @@ export function ChInspector({
         </InsSection>
       ) : (
         <InsSection title="Live resources">
-          <p className="text-[10.5px] leading-relaxed text-muted-foreground">
+          <p className="text-[10.5px] max-sm:text-xs leading-relaxed text-muted-foreground">
             {unreachable
               ? 'Node unreachable in the live cluster fan-out — structural state is shown below; live metrics are intentionally not fabricated.'
               : 'Live metrics unavailable for this node (cluster fan-out not permitted, e.g. a readonly profile). Structural state is shown below.'}
@@ -389,20 +393,20 @@ export function ChInspector({
                 {cl.kind === 'physical' && (
                   <Badge
                     variant="outline"
-                    className="border-border px-1.5 py-0 text-[10px] text-muted-foreground"
+                    className="border-border px-1.5 py-0 text-[10px] max-sm:text-xs text-muted-foreground"
                   >
                     physical
                   </Badge>
                 )}
               </span>
-              <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+              <span className="shrink-0 font-mono text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
                 s{role.s} · r{role.r}
               </span>
             </div>
           ))}
         </div>
         {mems.length > 1 && (
-          <p className="mt-2 text-[10.5px] leading-relaxed text-muted-foreground">
+          <p className="mt-2 text-[10.5px] max-sm:text-xs leading-relaxed text-muted-foreground">
             Same node, different shard/replica role per cluster — virtual
             clusters overlap.
           </p>
@@ -430,7 +434,7 @@ export function KeeperInspector({
           <Badge
             variant="outline"
             className={cn(
-              'border px-1.5 py-0.5 text-[10.5px]',
+              'border px-1.5 py-0.5 text-[10.5px] max-sm:text-xs',
               isLeader
                 ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
                 : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
@@ -478,7 +482,7 @@ export function KeeperInspector({
       <InsSection title="Latency">
         <div className="mb-2 flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <div className="text-[10px] max-sm:text-xs uppercase tracking-wider text-muted-foreground">
               avg request
             </div>
             <div className="text-[22px] font-bold leading-none tabular-nums">
@@ -519,7 +523,7 @@ export function ClusterOverview({
             model.quorumHealthy ? (
               <Badge
                 variant="outline"
-                className="border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10.5px] text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+                className="border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10.5px] max-sm:text-xs text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
               >
                 <CheckIcon className="mr-1 h-2.5 w-2.5" />
                 healthy
@@ -527,7 +531,7 @@ export function ClusterOverview({
             ) : (
               <Badge
                 variant="outline"
-                className="border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10.5px] text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
+                className="border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10.5px] max-sm:text-xs text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
               >
                 degraded
               </Badge>
@@ -535,7 +539,7 @@ export function ClusterOverview({
           ) : (
             <Badge
               variant="outline"
-              className="border-border px-1.5 py-0.5 text-[10.5px] text-muted-foreground"
+              className="border-border px-1.5 py-0.5 text-[10.5px] max-sm:text-xs text-muted-foreground"
             >
               unavailable
             </Badge>
@@ -559,7 +563,7 @@ export function ClusterOverview({
             </InsRow>
           </>
         ) : (
-          <p className="text-[10.5px] leading-relaxed text-muted-foreground">
+          <p className="text-[10.5px] max-sm:text-xs leading-relaxed text-muted-foreground">
             No coordination layer detected — this cluster uses Distributed
             routing without ReplicatedMergeTree, or Keeper / ZooKeeper is not
             configured. Cluster structure is shown without coordination details.
@@ -570,7 +574,7 @@ export function ClusterOverview({
       <InsSection
         title="Virtual clusters"
         right={
-          <span className="text-[11px] tabular-nums text-muted-foreground">
+          <span className="text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
             {model.clusters.length}
           </span>
         }
@@ -598,15 +602,17 @@ export function ClusterOverview({
                     {cl.name}
                   </span>
                 </span>
-                <span className="text-[11px] tabular-nums text-muted-foreground">
+                <span className="text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
                   {cl.nodeCount} node{cl.nodeCount === 1 ? '' : 's'}
                 </span>
               </div>
-              <div className="text-[11px] text-muted-foreground">{cl.topo}</div>
+              <div className="text-[11px] max-sm:text-xs text-muted-foreground">
+                {cl.topo}
+              </div>
             </div>
           ))}
         </div>
-        <p className="mt-2.5 text-[10.5px] leading-relaxed text-muted-foreground">
+        <p className="mt-2.5 text-[10.5px] max-sm:text-xs leading-relaxed text-muted-foreground">
           Nodes can join several clusters at once — overlaps show where the
           hulls intersect.
         </p>
@@ -625,7 +631,7 @@ export function ClusterOverview({
           {model.counts.logical} logical)
         </InsRow>
         {model.meta.truncated && (
-          <p className="mt-2 text-[10.5px] leading-relaxed text-muted-foreground">
+          <p className="mt-2 text-[10.5px] max-sm:text-xs leading-relaxed text-muted-foreground">
             Showing {model.chNodes.length} of {model.counts.chNodes} ClickHouse
             nodes — {model.meta.hiddenChNodes} hidden for readability. All nodes
             remain counted above.

@@ -110,7 +110,7 @@ function RowDisclosure({
 }) {
   return (
     <Collapsible defaultOpen={defaultOpen} className="group/disclosure">
-      <CollapsibleTrigger className="flex w-full items-center gap-1 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground">
+      <CollapsibleTrigger className="flex w-full items-center gap-1 py-1 text-[10px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground">
         <ChevronRightIcon className="size-3 shrink-0 transition-transform duration-200 group-data-[state=open]/disclosure:rotate-90" />
         <span>{label}</span>
         {count != null ? (
@@ -362,7 +362,7 @@ export function ToolCallPart({
                               {key}
                             </span>
                             {isOptional ? (
-                              <span className="text-[10px] text-muted-foreground/60">
+                              <span className="text-[10px] max-sm:text-xs text-muted-foreground/60">
                                 (optional)
                               </span>
                             ) : null}
@@ -396,7 +396,7 @@ export function ToolCallPart({
                           {JSON.stringify(value)}
                         </span>
                         {isOptional ? (
-                          <span className="text-[10px] text-muted-foreground/60">
+                          <span className="text-[10px] max-sm:text-xs text-muted-foreground/60">
                             (optional)
                           </span>
                         ) : null}

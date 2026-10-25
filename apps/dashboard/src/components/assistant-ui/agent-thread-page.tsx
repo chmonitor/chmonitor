@@ -162,7 +162,7 @@ function AgentChatLayout() {
             variant="outline"
             size="sm"
             onClick={() => setRightSidebarOpen(true)}
-            className="absolute top-3 right-3 z-10 h-8 gap-1.5 bg-background px-2.5 text-[11.5px] whitespace-nowrap shadow-sm dark:bg-background dark:hover:bg-muted"
+            className="absolute top-3 right-3 z-10 h-8 gap-1.5 bg-background px-2.5 text-[11.5px] max-sm:text-xs whitespace-nowrap shadow-sm dark:bg-background dark:hover:bg-muted"
           >
             <PanelRightOpenIcon className="size-3.5" />
             Agent settings

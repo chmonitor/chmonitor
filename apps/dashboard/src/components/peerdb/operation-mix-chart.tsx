@@ -37,7 +37,7 @@ export function OperationMixChart({ tables }: { tables: CDCTableRowCounts[] }) {
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3.5">
-      <div className="flex flex-wrap items-center gap-3 text-[10.5px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-3 text-[10.5px] max-sm:text-xs text-muted-foreground">
         {OPS.map((op) => (
           <span key={op.key} className="inline-flex items-center gap-1.5">
             <span
@@ -53,10 +53,10 @@ export function OperationMixChart({ tables }: { tables: CDCTableRowCounts[] }) {
         {rows.map((r) => (
           <div key={r.name} className="flex flex-col gap-1">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="truncate font-mono text-[11.5px] font-medium">
+              <span className="truncate font-mono text-[11.5px] max-sm:text-xs font-medium">
                 {r.name}
               </span>
-              <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground">
+              <span className="shrink-0 text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground">
                 {pdbFmtNum(r.total)}
               </span>
             </div>

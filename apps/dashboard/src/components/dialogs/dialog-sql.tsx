@@ -199,7 +199,7 @@ export function RequestInfoContent({
             </h3>
             <Badge
               variant="outline"
-              className="font-mono text-[10px] bg-background/50 border-border/40"
+              className="font-mono text-[10px] max-sm:text-xs bg-background/50 border-border/40"
             >
               {metadata?.host || 'Local'}
             </Badge>
@@ -208,12 +208,12 @@ export function RequestInfoContent({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
             {fullApiUrl && (
               <div className="col-span-full group/api">
-                <dt className="text-[10px] font-medium text-muted-foreground uppercase tracking-tight mb-1 flex items-center gap-1.5">
+                <dt className="text-[10px] max-sm:text-xs font-medium text-muted-foreground uppercase tracking-tight mb-1 flex items-center gap-1.5">
                   <ExternalLink className="size-3" strokeWidth={1.5} />
                   API Endpoint
                 </dt>
                 <dd className="flex items-center gap-2 bg-background/50 rounded-md border border-border/40 px-2 py-1.5 transition-colors group-hover/api:border-primary/30">
-                  <code className="text-[11px] font-mono truncate flex-1 text-muted-foreground group-hover/api:text-foreground transition-colors">
+                  <code className="text-[11px] max-sm:text-xs font-mono truncate flex-1 text-muted-foreground group-hover/api:text-foreground transition-colors">
                     {metadata?.api || fullApiUrl}
                   </code>
                   <Button
@@ -289,7 +289,7 @@ export function RequestInfoContent({
                   <dd>
                     <Badge
                       variant="outline"
-                      className="font-mono text-[11px] border-border/40"
+                      className="font-mono text-[11px] max-sm:text-xs border-border/40"
                     >
                       <CopyableValue value={metadata.clickhouseVersion} />
                     </Badge>
@@ -309,7 +309,7 @@ export function RequestInfoContent({
                   <dd className="bg-background/50 rounded px-2 py-1 border border-border/40">
                     <CopyableValue
                       value={metadata.queryId}
-                      className="text-[10px] w-full"
+                      className="text-[10px] max-sm:text-xs w-full"
                     />
                   </dd>
                 </div>
@@ -404,7 +404,7 @@ export function RequestInfoContent({
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+          <div className="flex items-center justify-between text-[10px] max-sm:text-xs text-muted-foreground">
             <span>ClickHouse SQL Dialect</span>
             <span>{displaySQL.split('\n').length} lines</span>
           </div>

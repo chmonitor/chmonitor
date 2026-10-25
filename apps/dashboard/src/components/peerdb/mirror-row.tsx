@@ -127,7 +127,7 @@ export function MirrorRow({
               </div>
               <div className="mt-0.5 flex items-center gap-1.5">
                 <MirrorStatusPill status={mirror.status} />
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] max-sm:text-xs text-muted-foreground">
                   {phaseLabel(mirror.status)}
                 </span>
               </div>
@@ -142,7 +142,7 @@ export function MirrorRow({
         <td className="hidden px-1 py-2.5 md:table-cell">
           <div className="flex items-center justify-center gap-1.5">
             <span className="text-muted-foreground">→</span>
-            <span className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] text-muted-foreground">
+            <span className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs text-muted-foreground">
               {type}
             </span>
           </div>
@@ -173,7 +173,7 @@ export function MirrorRow({
             ) : (
               <span className="text-muted-foreground">—</span>
             )}
-            <span className="ml-0.5 text-[10.5px] text-muted-foreground">
+            <span className="ml-0.5 text-[10.5px] max-sm:text-xs text-muted-foreground">
               /s
             </span>
           </div>
@@ -191,7 +191,7 @@ export function MirrorRow({
               >
                 {pdbFmtNum(rowsSynced)}
               </div>
-              <div className="text-[10px] leading-tight tabular-nums text-muted-foreground">
+              <div className="text-[10px] max-sm:text-xs leading-tight tabular-nums text-muted-foreground">
                 {type === 'QRep'
                   ? `${partitions.filter((p) => partitionState(p) === 'done').length}/${partitions.length} parts`
                   : 'cumulative'}
@@ -210,10 +210,12 @@ export function MirrorRow({
         </td>
 
         <td className="hidden whitespace-nowrap px-3 py-2.5 text-right xl:table-cell">
-          <div className="text-[11.5px] tabular-nums text-muted-foreground">
+          <div className="text-[11.5px] max-sm:text-xs tabular-nums text-muted-foreground">
             {pdbFmtAgo(mirror.createdAt)}
           </div>
-          <div className="text-[10px] text-muted-foreground/70">ago</div>
+          <div className="text-[10px] max-sm:text-xs text-muted-foreground/70">
+            ago
+          </div>
         </td>
       </tr>
       {expanded && (

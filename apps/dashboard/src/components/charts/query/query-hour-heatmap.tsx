@@ -42,7 +42,7 @@ function HourHeatmapBody({ data }: { data: HourHeatmapRow[] }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="scrollbar-hide overflow-x-auto">
-        <table className="border-separate border-spacing-[2px] text-[10px]">
+        <table className="border-separate border-spacing-[2px] text-[10px] max-sm:text-xs">
           <thead>
             <tr>
               <th aria-hidden />

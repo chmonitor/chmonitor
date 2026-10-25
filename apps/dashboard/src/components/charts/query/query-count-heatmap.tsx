@@ -143,7 +143,7 @@ function StatCardView({
         className
       )}
     >
-      <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide max-sm:truncate sm:whitespace-normal">
+      <span className="text-muted-foreground text-[10px] max-sm:text-xs font-medium uppercase tracking-wide max-sm:truncate sm:whitespace-normal">
         {label}
       </span>
       <span
@@ -155,7 +155,7 @@ function StatCardView({
         {value}
       </span>
       {sub ? (
-        <span className="text-muted-foreground mt-0.5 truncate text-[11px]">
+        <span className="text-muted-foreground mt-0.5 truncate text-[11px] max-sm:text-xs">
           {sub}
         </span>
       ) : null}
@@ -371,7 +371,7 @@ function CalendarBody({
             {CALENDAR_DAY_LABELS.map((label, dow) => (
               <div
                 key={label}
-                className="text-muted-foreground flex h-[11px] items-center justify-end pr-1 text-[9px] leading-none"
+                className="text-muted-foreground flex h-[11px] items-center justify-end pr-1 text-[9px] max-sm:text-xs leading-none"
               >
                 {LABELLED_ROWS.has(dow) ? label : ''}
               </div>
@@ -384,7 +384,7 @@ function CalendarBody({
           <div className="flex min-w-0 flex-1 items-start justify-end gap-3">
             {visibleBlocks.map((block: MonthBlock) => (
               <div key={block.key} className="flex flex-col">
-                <div className="text-muted-foreground mb-1 h-[10px] text-[10px] leading-none">
+                <div className="text-muted-foreground mb-1 h-[10px] text-[10px] max-sm:text-xs leading-none">
                   {block.label}
                 </div>
                 <div className={cn('flex', CELL_GAP)}>
@@ -408,7 +408,9 @@ function CalendarBody({
           Click any day for details · hover for daily totals
         </p>
         <div className="flex items-center gap-1.5">
-          <span className="text-muted-foreground text-[11px]">Less</span>
+          <span className="text-muted-foreground text-[11px] max-sm:text-xs">
+            Less
+          </span>
           <div className="flex items-center gap-[3px]">
             {metric.tiers.map((tierClass) => (
               <div
@@ -420,7 +422,9 @@ function CalendarBody({
               />
             ))}
           </div>
-          <span className="text-muted-foreground text-[11px]">More</span>
+          <span className="text-muted-foreground text-[11px] max-sm:text-xs">
+            More
+          </span>
         </div>
       </div>
 
@@ -438,15 +442,15 @@ function CalendarBody({
                 <span className="text-sm font-semibold tabular-nums">
                   {hover.day.readable}
                 </span>
-                <span className="text-muted-foreground text-[10px] tabular-nums">
+                <span className="text-muted-foreground text-[10px] max-sm:text-xs tabular-nums">
                   {hasTraffic ? Math.round((hover.day.value * 100) / max) : 0}%
                   of peak
                 </span>
               </div>
-              <span className="text-muted-foreground text-[11px]">
+              <span className="text-muted-foreground text-[11px] max-sm:text-xs">
                 {formatCalendarDate(hover.day.date)}
               </span>
-              <div className="border-border/60 flex items-center gap-1 border-t pt-1 text-[10px]">
+              <div className="border-border/60 flex items-center gap-1 border-t pt-1 text-[10px] max-sm:text-xs">
                 <span className={metric.accentText}>
                   {mode === 'failed' ? 'View failed queries' : 'View queries'}
                 </span>
@@ -484,7 +488,7 @@ function CalendarBody({
                         key={key}
                         className="border-border/60 bg-card/40 rounded-lg border px-3 py-2"
                       >
-                        <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">
+                        <span className="text-muted-foreground text-[10px] max-sm:text-xs font-medium uppercase tracking-wide">
                           {cfg.label}
                         </span>
                         <div

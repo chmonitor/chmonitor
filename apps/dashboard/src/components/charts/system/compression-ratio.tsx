@@ -50,7 +50,7 @@ export const ChartCompressionRatio = function ChartCompressionRatio({
             metadata={metadata}
           >
             <div className="flex h-full min-h-0 flex-col gap-3">
-              <div className="flex items-center justify-end text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-end text-[11px] max-sm:text-xs text-muted-foreground">
                 compressed / raw · lower is better
               </div>
               <div className="min-h-0 flex-1 overflow-auto">

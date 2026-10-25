@@ -132,14 +132,14 @@ function ZoomChartControls() {
 
   return (
     <div className="flex items-center justify-end gap-2">
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+      <span className="text-[10px] max-sm:text-xs uppercase tracking-wide text-muted-foreground">
         Y-axis
       </span>
       <div className="flex items-center rounded-md border border-border/50 p-0.5">
         <Button
           variant={isLogScale ? 'ghost' : 'secondary'}
           size="sm"
-          className="h-5 px-2 text-[11px]"
+          className="h-5 px-2 text-[11px] max-sm:text-xs"
           onClick={() => setScale('linear')}
         >
           Linear
@@ -147,7 +147,7 @@ function ZoomChartControls() {
         <Button
           variant={isLogScale ? 'secondary' : 'ghost'}
           size="sm"
-          className="h-5 px-2 text-[11px]"
+          className="h-5 px-2 text-[11px] max-sm:text-xs"
           onClick={() => setScale('log')}
         >
           Log
@@ -178,7 +178,7 @@ function MetadataTile({
         className
       )}
     >
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-[10px] max-sm:text-xs uppercase tracking-wide text-muted-foreground">
         <Icon className="size-3" strokeWidth={1.5} />
         {label}
       </div>
@@ -511,7 +511,7 @@ export const ChartZoomDialog = function ChartZoomDialog({
               >
                 <CodeBlockCopyButton />
               </CodeBlock>
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
+              <div className="flex items-center justify-between text-[10px] max-sm:text-xs text-muted-foreground mt-2">
                 <span>ClickHouse SQL Dialect</span>
                 <span>{displaySQL.split('\n').length} lines</span>
               </div>

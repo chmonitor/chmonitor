@@ -23,7 +23,10 @@ export function ExamplePreviewChrome({
           />
           Example
         </span>
-        <Badge variant="secondary" className="font-normal text-[10px]">
+        <Badge
+          variant="secondary"
+          className="font-normal text-[10px] max-sm:text-xs"
+        >
           Sample
         </Badge>
         <p className="text-sm text-muted-foreground">{footnote}</p>

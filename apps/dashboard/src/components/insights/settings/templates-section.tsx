@@ -49,7 +49,7 @@ export function TemplatesSection({
               <span className="text-sm font-medium leading-none">
                 {t.label}
               </span>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-[11px] max-sm:text-xs text-muted-foreground">
                 {t.hint}
               </span>
             </button>

@@ -142,7 +142,7 @@ function sectionHasData(
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="mb-1.5 text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
       {children}
     </div>
   )
@@ -188,7 +188,7 @@ function FieldsSection({
               key={field.key}
               className="min-w-0 rounded-md border border-border/60 bg-background/60 px-3 py-2"
             >
-              <div className="truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="truncate text-[10px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 {field.label}
               </div>
               <div
@@ -231,7 +231,7 @@ function StatsSection({
               key={stat.key}
               className="min-w-0 rounded-md border border-border/60 bg-background/60 px-3 py-2.5"
             >
-              <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="flex items-center gap-1 text-[10px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 {StatIcon && <StatIcon className="size-3 shrink-0" />}
                 <span className="truncate">
                   {stat.label ?? humanizeKey(stat.key)}
@@ -321,17 +321,17 @@ function CodeSection({
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <Code2Icon className="size-3 shrink-0" />
           {section.title ?? humanizeKey(section.column)}
         </span>
-        <span className="whitespace-nowrap text-[10.5px] tabular-nums text-muted-foreground">
+        <span className="whitespace-nowrap text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground">
           {text.length.toLocaleString()} chars
           <span className="mx-1.5 opacity-50">·</span>
           {lineCount} {lineCount === 1 ? 'line' : 'lines'}
         </span>
       </div>
-      <pre className="max-h-[180px] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border/60 bg-background/60 px-3 py-2 font-mono text-[11.5px] leading-relaxed text-foreground">
+      <pre className="max-h-[180px] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border/60 bg-background/60 px-3 py-2 font-mono text-[11.5px] max-sm:text-xs leading-relaxed text-foreground">
         {text}
       </pre>
     </div>

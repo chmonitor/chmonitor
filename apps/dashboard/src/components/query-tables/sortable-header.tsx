@@ -27,7 +27,7 @@ export function SortableHeader({
   return (
     <th
       className={cn(
-        'select-none whitespace-nowrap px-2 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-3',
+        'select-none whitespace-nowrap px-2 py-2 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-3',
         align === 'right' ? 'text-right' : 'text-left',
         className
       )}

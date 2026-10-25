@@ -45,7 +45,7 @@ export function EngineChooser({
           Connect Postgres
           <Badge
             variant="secondary"
-            className="ml-1 px-1.5 py-0 text-[10px] font-medium"
+            className="ml-1 px-1.5 py-0 text-[10px] max-sm:text-xs font-medium"
           >
             Beta
           </Badge>

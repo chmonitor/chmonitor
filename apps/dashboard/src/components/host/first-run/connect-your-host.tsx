@@ -37,11 +37,11 @@ export function ConnectYourHost({
             {allowPostgres ? (
               <>
                 The endpoint or host (e.g.{' '}
-                <code className="rounded bg-muted px-1 text-[11px]">
+                <code className="rounded bg-muted px-1 text-[11px] max-sm:text-xs">
                   https://host:8443
                 </code>{' '}
                 for ClickHouse,{' '}
-                <code className="rounded bg-muted px-1 text-[11px]">
+                <code className="rounded bg-muted px-1 text-[11px] max-sm:text-xs">
                   host:5432
                 </code>{' '}
                 for Postgres), username and password.
@@ -49,7 +49,7 @@ export function ConnectYourHost({
             ) : (
               <>
                 The HTTP(S) endpoint (e.g.{' '}
-                <code className="rounded bg-muted px-1 text-[11px]">
+                <code className="rounded bg-muted px-1 text-[11px] max-sm:text-xs">
                   https://host:8443
                 </code>
                 ), username and password.
@@ -61,8 +61,13 @@ export function ConnectYourHost({
             title="2. Use a read-only monitoring user"
           >
             A user with{' '}
-            <code className="rounded bg-muted px-1 text-[11px]">SELECT</code> on{' '}
-            <code className="rounded bg-muted px-1 text-[11px]">system.*</code>{' '}
+            <code className="rounded bg-muted px-1 text-[11px] max-sm:text-xs">
+              SELECT
+            </code>{' '}
+            on{' '}
+            <code className="rounded bg-muted px-1 text-[11px] max-sm:text-xs">
+              system.*
+            </code>{' '}
             is enough. No write access needed.
           </SetupStep>
           <SetupStep

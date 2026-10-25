@@ -100,7 +100,7 @@ export const NotificationsPopover = function NotificationsPopover() {
         {totalCount > 0 && (
           <Badge
             variant="secondary"
-            className="pointer-events-none absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center p-0 text-[10px] font-medium tabular-nums"
+            className="pointer-events-none absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center p-0 text-[10px] max-sm:text-xs font-medium tabular-nums"
           >
             {totalCount > 99 ? '99+' : totalCount}
           </Badge>
@@ -115,7 +115,7 @@ export const NotificationsPopover = function NotificationsPopover() {
             {totalCount > 0 && (
               <Badge
                 variant="secondary"
-                className="h-4 px-1 text-[10px] tabular-nums"
+                className="h-4 px-1 text-[10px] max-sm:text-xs tabular-nums"
               >
                 {totalCount}
               </Badge>
@@ -203,7 +203,7 @@ function ClusterViewNoticeRow({ notice }: { notice: ClusterViewUnavailable }) {
       <div className="min-w-0 text-xs text-muted-foreground">
         <p>{notice.message}</p>
         {notice.cluster && (
-          <p className="mt-0.5 font-mono text-[11px] opacity-80">
+          <p className="mt-0.5 font-mono text-[11px] max-sm:text-xs opacity-80">
             cluster: {notice.cluster}
           </p>
         )}

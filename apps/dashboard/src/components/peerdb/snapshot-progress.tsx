@@ -16,7 +16,7 @@ import { usePeerDB } from '@/lib/swr'
 function PhaseBadge({ label, done }: { label: string; done: boolean }) {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[9.5px] font-medium"
+      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[9.5px] max-sm:text-xs font-medium"
       style={
         done
           ? {
@@ -64,7 +64,7 @@ function SnapshotRow({ summary }: { summary: CloneTableSummary }) {
           style={{ width: `${pct}%`, background: barColor }}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[10.5px] tabular-nums text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground">
         <span>
           <span className="font-semibold text-foreground">
             {completed}/{total || '—'}
@@ -120,16 +120,16 @@ export function SnapshotProgress({
     <section className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">Snapshot progress</h2>
-        <span className="font-mono text-[10.5px] text-muted-foreground">
+        <span className="font-mono text-[10.5px] max-sm:text-xs text-muted-foreground">
           GET /v1/mirrors/cdc/initial_load/&lt;flow&gt;
         </span>
       </div>
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Initial load
           </span>
-          <span className="text-[11px] tabular-nums">
+          <span className="text-[11px] max-sm:text-xs tabular-nums">
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
               {doneTables}
             </span>

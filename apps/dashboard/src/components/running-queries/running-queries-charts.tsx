@@ -47,7 +47,7 @@ interface TodayPoint {
 const USER_COLORS = ['#0d9488', '#1e3a5f', '#f59e0b', '#8b5cf6', '#ef4444']
 
 const labelClass =
-  'text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground'
+  'text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground'
 
 function StatCard({
   label,
@@ -82,7 +82,7 @@ function StatCard({
         {trend && !compact && (
           <span
             className={cn(
-              'rounded-md border px-1.5 py-0.5 text-[10.5px] font-medium tabular-nums',
+              'rounded-md border px-1.5 py-0.5 text-[10.5px] max-sm:text-xs font-medium tabular-nums',
               trend.positive
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
                 : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300'
@@ -109,7 +109,7 @@ function StatCard({
       </div>
       {!compact ? (
         <>
-          <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+          <div className="mt-0.5 text-[11.5px] max-sm:text-xs text-muted-foreground">
             {sub}
           </div>
           <div className="mt-auto h-[96px] pt-3">
@@ -122,7 +122,7 @@ function StatCard({
           </div>
         </>
       ) : sub ? (
-        <div className="mt-0.5 text-[10.5px] text-muted-foreground line-clamp-1">
+        <div className="mt-0.5 text-[10.5px] max-sm:text-xs text-muted-foreground line-clamp-1">
           {sub}
         </div>
       ) : null}
@@ -153,7 +153,7 @@ function ByUserCard({
           <span className="text-[20px] font-bold leading-none tracking-tight tabular-nums">
             {activeUsersCount}
           </span>
-          <span className="text-[11.5px] font-medium text-muted-foreground">
+          <span className="text-[11.5px] max-sm:text-xs font-medium text-muted-foreground">
             active {activeUsersCount === 1 ? 'user' : 'users'}
           </span>
         </div>
@@ -163,7 +163,7 @@ function ByUserCard({
             <MiniBarChart data={data} series={series} />
           </div>
           {series.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] max-sm:text-xs text-muted-foreground">
               {series.map((s) => (
                 <span key={s.key} className="inline-flex items-center gap-1">
                   <span
@@ -204,7 +204,7 @@ function SummaryCard({
     >
       <span className={labelClass}>Summary</span>
       {compact ? (
-        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px]">
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px] max-sm:text-xs">
           {items.slice(0, 3).map((item) => (
             <div key={item.label} className="flex items-center gap-1">
               <span className="text-muted-foreground">{item.label}:</span>

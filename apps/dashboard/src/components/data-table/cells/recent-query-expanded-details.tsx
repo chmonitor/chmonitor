@@ -67,7 +67,7 @@ function DetailField({
         className
       )}
     >
-      <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-1.5 text-[11px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {Icon && <Icon className="size-3.5 shrink-0" aria-hidden="true" />}
         <span className="truncate">{label}</span>
       </div>
@@ -114,20 +114,23 @@ export const RecentQueryExpandedDetails = function RecentQueryExpandedDetails({
         {queryKind && (
           <Badge
             variant="secondary"
-            className="font-mono text-[10.5px] uppercase"
+            className="font-mono text-[10.5px] max-sm:text-xs uppercase"
           >
             {queryKind}
           </Badge>
         )}
         {database && (
-          <Badge variant="outline" className="font-mono text-[10.5px]">
+          <Badge
+            variant="outline"
+            className="font-mono text-[10.5px] max-sm:text-xs"
+          >
             {database}
           </Badge>
         )}
         {failed && (
           <Badge
             variant="outline"
-            className="gap-1 border-red-500/40 font-mono text-[10.5px] text-red-600 dark:text-red-400"
+            className="gap-1 border-red-500/40 font-mono text-[10.5px] max-sm:text-xs text-red-600 dark:text-red-400"
           >
             <AlertTriangleIcon className="size-3" aria-hidden="true" />
             exit code {exceptionCode}
@@ -137,7 +140,7 @@ export const RecentQueryExpandedDetails = function RecentQueryExpandedDetails({
 
       {failed && exception && (
         <div className="mb-4 rounded-md border border-red-500/30 bg-red-50/60 p-3 dark:bg-red-950/30">
-          <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-red-600 dark:text-red-400">
+          <div className="mb-1 flex items-center gap-1.5 text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400">
             <AlertTriangleIcon className="size-3.5" aria-hidden="true" />
             <span>Exception</span>
           </div>
@@ -172,7 +175,7 @@ export const RecentQueryExpandedDetails = function RecentQueryExpandedDetails({
 
       {query && (
         <div className="mt-4">
-          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="mb-2 flex items-center gap-1.5 text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <span>Query</span>
           </div>
           <CodeBlock code={query} language="sql" className="text-xs">

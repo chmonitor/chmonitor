@@ -27,7 +27,7 @@ export function CollapsedChartsRow({
         {labels.map((label) => (
           <span
             key={label}
-            className="shrink-0 truncate rounded bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+            className="shrink-0 truncate rounded bg-muted px-2 py-0.5 text-[11px] max-sm:text-xs font-medium text-muted-foreground"
           >
             {label}
           </span>

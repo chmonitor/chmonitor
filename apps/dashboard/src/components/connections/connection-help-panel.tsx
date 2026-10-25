@@ -259,7 +259,7 @@ function ConnectionFlowDiagram({
 }) {
   return (
     <div className="rounded-xl border bg-gradient-to-b from-card to-card/40 p-4">
-      <p className="mb-3 text-center text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+      <p className="mb-3 text-center text-[10px] max-sm:text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
         Data path
       </p>
       <div className="flex items-start justify-between gap-1">
@@ -322,7 +322,7 @@ function FlowNode({
       >
         {icon}
       </div>
-      <span className="text-[10px] font-medium leading-tight text-muted-foreground">
+      <span className="text-[10px] max-sm:text-xs font-medium leading-tight text-muted-foreground">
         {label}
       </span>
     </div>

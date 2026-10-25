@@ -154,7 +154,7 @@ function PaneHeader({
   return (
     <div className={cn('flex items-center gap-2 px-3 py-1.5', className)}>
       <div className="min-w-0 flex-1 leading-tight">
-        <p className="text-[11px] font-medium text-muted-foreground">
+        <p className="text-[11px] max-sm:text-xs font-medium text-muted-foreground">
           {kicker}
         </p>
         {name ? (
@@ -204,7 +204,7 @@ function DiffCell({ side, row }: { side: 'left' | 'right'; row: DdlDiffRow }) {
       data-testid={`schema-diff-ddl-${side}`}
     >
       <span
-        className="w-7 shrink-0 select-none pt-px text-right text-[10px] tabular-nums text-muted-foreground"
+        className="w-7 shrink-0 select-none pt-px text-right text-[10px] max-sm:text-xs tabular-nums text-muted-foreground"
         data-testid="schema-diff-line-gutter"
       >
         {cell?.no ?? ''}

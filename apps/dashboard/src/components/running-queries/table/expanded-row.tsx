@@ -71,7 +71,7 @@ export function ExpandedRow({
   return (
     <div className="space-y-3 border-t border-border bg-muted/40 px-3 py-3.5 sm:px-5">
       <div className="overflow-hidden rounded-md border border-border bg-card">
-        <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Execution details
         </div>
         <dl className="-ml-px -mt-px grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
@@ -88,10 +88,10 @@ export function ExpandedRow({
 
       <div>
         <div className="mb-1.5 flex items-center justify-between gap-2">
-          <span className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Full query
           </span>
-          <span className="whitespace-nowrap text-[10.5px] tabular-nums text-muted-foreground">
+          <span className="whitespace-nowrap text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground">
             {d.query.length.toLocaleString()} chars
             <span className="mx-1.5 opacity-50">·</span>
             {lineCount} {lineCount === 1 ? 'line' : 'lines'}

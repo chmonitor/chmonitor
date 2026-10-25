@@ -265,7 +265,7 @@ function MirrorDetailContent() {
         <section className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">CDC batch history</h2>
-            <span className="font-mono text-[10.5px] text-muted-foreground">
+            <span className="font-mono text-[10.5px] max-sm:text-xs text-muted-foreground">
               POST /v1/mirrors/cdc/batches
             </span>
           </div>
@@ -277,7 +277,7 @@ function MirrorDetailContent() {
         <section className="flex flex-col gap-2 rounded-lg border p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Partition sync history</h2>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-[11px] max-sm:text-xs text-muted-foreground">
               Rows synced at a point in time
             </span>
           </div>

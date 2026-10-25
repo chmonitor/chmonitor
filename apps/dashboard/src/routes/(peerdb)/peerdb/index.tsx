@@ -438,11 +438,11 @@ function PeerDBMirrorsPage() {
           <h1 className="text-[20px] font-bold tracking-tight sm:text-[22px]">
             PeerDB Mirrors
           </h1>
-          <span className="ml-1 inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] font-medium text-muted-foreground">
+          <span className="ml-1 inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs font-medium text-muted-foreground">
             {mirrors.length} mirrors
           </span>
           {groupOn && grouping.groups.length > 0 && (
-            <span className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] font-medium text-muted-foreground">
+            <span className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs font-medium text-muted-foreground">
               {grouping.groups.length} groups
             </span>
           )}
@@ -450,7 +450,7 @@ function PeerDBMirrorsPage() {
         <div className="flex flex-wrap items-center gap-1.5">
           <span
             className={cn(
-              'inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[11.5px] font-medium',
+              'inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[11.5px] max-sm:text-xs font-medium',
               chipTone
             )}
             title={status?.error}
@@ -473,7 +473,7 @@ function PeerDBMirrorsPage() {
             </span>
           </span>
           {(isRefreshing || counting) && (
-            <span className="mr-1 inline-flex animate-pulse items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="mr-1 inline-flex animate-pulse items-center gap-1.5 text-[11px] max-sm:text-xs text-muted-foreground">
               <span className="size-1.5 rounded-full bg-primary" />
               {counting
                 ? `Counting ${liveCount}/${eagerSlice.length} jobs…`
@@ -523,7 +523,7 @@ function PeerDBMirrorsPage() {
       {(error || peersError || statusError) && (
         <div className="mb-4 animate-in fade-in slide-in-from-top-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-[12.5px] text-destructive shadow-sm duration-300">
           <div className="flex items-center gap-2">
-            <span className="mr-1 rounded bg-destructive/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+            <span className="mr-1 rounded bg-destructive/20 px-1.5 py-0.5 text-[10px] max-sm:text-xs font-bold uppercase tracking-wider">
               Connection Alert
             </span>
             <span className="text-left font-medium">
@@ -533,7 +533,7 @@ function PeerDBMirrorsPage() {
           <button
             type="button"
             onClick={refreshAll}
-            className="flex shrink-0 items-center gap-1 rounded border border-destructive/30 bg-background px-2.5 py-1 text-[11.5px] font-medium text-foreground shadow-sm transition-all hover:bg-muted"
+            className="flex shrink-0 items-center gap-1 rounded border border-destructive/30 bg-background px-2.5 py-1 text-[11.5px] max-sm:text-xs font-medium text-foreground shadow-sm transition-all hover:bg-muted"
           >
             <RefreshCwIcon className="size-3" />
             Retry Connection
@@ -609,10 +609,10 @@ function PeerDBMirrorsPage() {
           <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
             <NetworkIcon className="size-3.5 text-muted-foreground" />
             <h2 className="text-[13px] font-semibold">Peer topology</h2>
-            <span className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] font-medium text-muted-foreground">
+            <span className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs font-medium text-muted-foreground">
               {peers.length} peers
             </span>
-            <span className="hidden text-[11px] text-muted-foreground sm:inline">
+            <span className="hidden text-[11px] max-sm:text-xs text-muted-foreground sm:inline">
               live flow visualization
             </span>
           </div>
@@ -630,7 +630,7 @@ function PeerDBMirrorsPage() {
           <button
             type="button"
             onClick={() => setGraphOpen((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1 text-[11px] font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1 text-[11px] max-sm:text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
           >
             {graphOpen ? (
               <ChevronUpIcon className="size-3" />
@@ -673,14 +673,14 @@ function PeerDBMirrorsPage() {
                   type="button"
                   onClick={() => setStatusFilter(o.k)}
                   className={cn(
-                    'inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-[11.5px] font-medium',
+                    'inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-[11.5px] max-sm:text-xs font-medium',
                     on
                       ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground'
                   )}
                 >
                   {o.label}
-                  <span className="rounded px-1 text-[10px] tabular-nums text-muted-foreground/70">
+                  <span className="rounded px-1 text-[10px] max-sm:text-xs tabular-nums text-muted-foreground/70">
                     {count}
                   </span>
                 </button>
@@ -721,7 +721,7 @@ function PeerDBMirrorsPage() {
               <col style={{ width: '90px' }} />
             </colgroup>
             <thead className="border-b border-border bg-muted/40">
-              <tr className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <tr className="text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 <th className="px-3 py-2 text-left">Mirror</th>
                 <th className="hidden px-3 py-2 text-left md:table-cell">
                   Source
@@ -796,7 +796,7 @@ function PeerDBMirrorsPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-[11.5px] text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-[11.5px] max-sm:text-xs text-muted-foreground">
           <div>
             Showing{' '}
             <span className="font-medium tabular-nums text-foreground">
@@ -822,7 +822,7 @@ function PeerDBMirrorsPage() {
           <button
             type="button"
             onClick={() => setLogsOpen((v) => !v)}
-            className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[11.5px] max-sm:text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {logsOpen ? (
               <ChevronUpIcon className="size-3" />

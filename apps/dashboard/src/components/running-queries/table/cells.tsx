@@ -8,7 +8,7 @@ const DONE_COLOR = 'hsl(158 64% 42%)'
 
 export function DoneBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+    <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
       <CheckCircle2 className="size-3" />
       Done
     </span>
@@ -45,7 +45,7 @@ export function ProgressCell({ d, done }: { d: DerivedQuery; done?: boolean }) {
 
   return (
     <div className="flex min-w-[88px] flex-col gap-1">
-      <div className="flex items-center justify-between gap-2 text-[11px]">
+      <div className="flex items-center justify-between gap-2 text-[11px] max-sm:text-xs">
         <span
           className={cn(
             'font-medium tabular-nums',

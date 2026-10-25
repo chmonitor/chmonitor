@@ -80,7 +80,9 @@ export function ThresholdField({
         </StepperButton>
       </div>
       {hint && (
-        <span className="text-[11px] text-muted-foreground">{hint}</span>
+        <span className="text-[11px] max-sm:text-xs text-muted-foreground">
+          {hint}
+        </span>
       )}
     </div>
   )

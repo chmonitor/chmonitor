@@ -14,7 +14,7 @@ export function MirrorStatusPill({ status, className }: MirrorStatusPillProps) {
   return (
     <span
       className={cn(
-        'inline-flex h-5 items-center gap-1.5 rounded-md border px-1.5 text-[10.5px] font-semibold',
+        'inline-flex h-5 items-center gap-1.5 rounded-md border px-1.5 text-[10.5px] max-sm:text-xs font-semibold',
         className
       )}
       style={{

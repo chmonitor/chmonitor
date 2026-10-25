@@ -77,7 +77,7 @@ function PickItem({
         {text}
       </span>
       {meta && (
-        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+        <span className="shrink-0 text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
           {meta}
         </span>
       )}

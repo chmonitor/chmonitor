@@ -73,7 +73,7 @@ export function PalettePicker({
             </div>
             <div className="space-y-0.5">
               <span className="block text-xs font-medium">{option.label}</span>
-              <span className="block text-[11px] text-muted-foreground">
+              <span className="block text-[11px] max-sm:text-xs text-muted-foreground">
                 {option.hint}
               </span>
             </div>

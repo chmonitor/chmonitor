@@ -32,7 +32,7 @@ interface MetricProps {
 function Metric({ label, value, className }: MetricProps) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="text-[11px] max-sm:text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
       <span className={cn('text-sm font-semibold tabular-nums', className)}>
@@ -58,7 +58,7 @@ export function DiskCard({ disk }: { disk: DiskRow }) {
             </span>
           </div>
           {disk.type ? (
-            <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11px] max-sm:text-xs font-medium text-muted-foreground">
               {disk.type}
             </span>
           ) : null}
@@ -84,7 +84,7 @@ export function DiskCard({ disk }: { disk: DiskRow }) {
             </span>
           </div>
           <DiskUsageBar percentUsed={percentUsed} />
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-between text-[11px] max-sm:text-xs text-muted-foreground">
             <span>{disk.readable_free_space} free</span>
             <span>{disk.readable_total_space} total</span>
           </div>
