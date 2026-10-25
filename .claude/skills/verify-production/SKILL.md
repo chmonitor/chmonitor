@@ -12,7 +12,8 @@ description: >-
 
 `.github/workflows/cloudflare.yml` deploys every push to `main` and runs
 `apps/dashboard/scripts/verify-deploy.ts`. That proves the deploy path, not the
-product: its anonymous checks stop at "the endpoints answered". This skill says
+product: its anonymous checks cover liveness, the shell, the auth gate and (since the
+agent probes below were automated) the agent config. This skill says
 what to probe, what a green probe means, and what to do when it is red. The
 `local:prod` desk job runs it on a schedule (`docs/herdr-desk/prod-watch.md`).
 
@@ -91,10 +92,22 @@ When `--skip-auth` is all you can run, add the `host-status` probe above.
 
 ## Agent and guest-model probes
 
+**Automated.** `verify-deploy.ts` now runs three anonymous agent probes (logic
+in `verify-deploy-agent.ts`, tests in `verify-deploy-agent.test.ts`) and they
+are hard fails, not warnings: `config-check` must report
+`configured.apiKey: true`; `/agents/models` must list
+`GUEST_DEFAULT_AGENT_MODEL` (imported from the source, so a stale deployed list
+or a stale constant both fail); `/agents/anyrouter/login` must not be 5xx
+(#3733). A 401/403 prints `SKIPPED` (not a pass) because the agent was then not
+verified. They still do not prove a model id routes upstream: that needs
+`POST /api/v1/agent`.
+
 A dead model id is invisible in every health check, and that is exactly how it
 broke before: the guest default is the constant `GUEST_DEFAULT_AGENT_MODEL`
 in `apps/dashboard/src/lib/billing/guest-ai.ts`. That id can go stale while
 other surfaces still answer.
+
+Manual equivalents:
 
 ```sh
 curl -sS https://dash.chmonitor.dev/api/v1/agents/config-check | head -c 400
