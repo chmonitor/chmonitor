@@ -19,6 +19,7 @@
 import type { AnalyticsEvent, AnalyticsProps } from './events'
 
 import { isAnalyticsEnabled } from './config'
+import { runWhenIdle } from '@/lib/run-when-idle'
 import { redactProps } from '@/lib/telemetry/redact'
 
 interface PendingEvent {
@@ -36,8 +37,12 @@ let disabled = false
 const MAX_PENDING = 20
 const pending: PendingEvent[] = []
 
-/** Initialize the browser SDK once. Safe to call repeatedly. */
-export async function initAnalyticsClient(): Promise<void> {
+/**
+ * Initialize the browser SDK once. Safe to call repeatedly. posthog-js is
+ * fetched when the browser is idle so it does not compete with first paint;
+ * events tracked before then wait in `pending`.
+ */
+export function initAnalyticsClient(): void {
   if (initStarted) return
   initStarted = true
   // Never run on the server — the isomorphic wrapper in analytics.ts already
@@ -56,8 +61,17 @@ export async function initAnalyticsClient(): Promise<void> {
     return
   }
 
-  const { default: posthog } = await import('posthog-js')
-  posthog.init(key as string, {
+  runWhenIdle(() => {
+    void import('posthog-js')
+      .then(({ default: posthog }) => startPostHog(posthog, key as string))
+      .catch(() => {
+        // Analytics is best effort; a failed chunk load must not surface.
+      })
+  })
+}
+
+function startPostHog(posthog: PostHogModule, key: string): void {
+  posthog.init(key, {
     api_host: import.meta.env.VITE_ANALYTICS_HOST || 'https://us.i.posthog.com',
     persistence: 'localStorage',
     autocapture: true,
