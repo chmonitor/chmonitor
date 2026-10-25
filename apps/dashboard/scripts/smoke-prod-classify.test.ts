@@ -99,9 +99,52 @@ describe('summarize', () => {
     expect(findings).toHaveLength(1)
     expect(findings[0]).toMatchObject({
       key: 'upstream',
-      severity: 'fail',
+      severity: 'warn',
       count: 50,
     })
+  })
+
+  const failing = (rs: ReturnType<typeof classify>[]) =>
+    summarize(rs).filter((f) => f.severity === 'fail')
+  const outage = () =>
+    Array.from({ length: 5 }, (_, i) =>
+      classify(probe({ name: `c${i}`, status: 500, body: chErr }), true)
+    )
+
+  test('an outage alone does not fail the run', () => {
+    expect(failing(outage())).toHaveLength(0)
+    expect(summarize(outage())).toHaveLength(1)
+  })
+
+  test('an outage does not hide a broken page', () => {
+    const page = classify(
+      probe({ kind: 'page', name: '/overview', body: '<html>error</html>' }),
+      true
+    )
+    const f = failing([...outage(), page])
+    expect(f).toHaveLength(1)
+    expect(f[0].key).toBe('page:/overview')
+  })
+
+  test('an outage does not hide a failed anonymous-write gate', () => {
+    const auth = classify(
+      probe({
+        kind: 'auth',
+        name: 'POST /x',
+        status: 200,
+        expect: 'unauthorized',
+      }),
+      true
+    )
+    expect(failing([...outage(), auth])).toHaveLength(1)
+  })
+
+  test('a healthy upstream with a broken chart fails', () => {
+    const chart = classify(
+      probe({ name: 'broken', status: 500, body: chErr }),
+      false
+    )
+    expect(failing([chart])).toHaveLength(1)
   })
 
   test('slow passing probe is a warning, not a failure', () => {
