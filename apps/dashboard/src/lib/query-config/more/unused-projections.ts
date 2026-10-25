@@ -26,6 +26,7 @@ export const unusedProjectionsConfig: QueryConfig = {
   description:
     'Projections that no finished SELECT in the query log window used, largest compressed size first (top 200). This replica only: other replicas and shards keep their own query_log. Unused in the log window is not the same as unneeded: a projection kept for a job that runs less often than the window, or one that only serves queries on another replica, can appear here. Data-skipping indices are not listed because the query log does not record which indices a query used. Check log_window_start for how far back the log reaches.',
   docs: QUERY_LOG,
+  optional: true,
   tableCheck: ['system.query_log', 'system.projections'],
   sql: [
     {

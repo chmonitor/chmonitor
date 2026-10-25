@@ -1,33 +1,17 @@
-import type { QueryConfig } from '@/types/query-config'
+import type { QueryConfig, VersionedSql } from '@/types/query-config'
 
 import { ColumnFormat } from '@/types/column-format'
 
 /**
- * Read-only triage view over system.detached_parts, one row per
- * (database, table, reason).
- *
- * `covered_by_active` counts detached parts whose block range
- * [min_block_number, max_block_number] lies inside one ACTIVE part of the same
- * partition on THIS replica. That is not proof the data survives elsewhere.
- * The class never says "safe": coverage never overrides a `broken` class or a
- * part ClickHouse still owns (`attaching_`, `deleting_`, `tmp-fetch_`).
- *
- * `reason` is the directory prefix ClickHouse parses off the part name (the
- * column exists since before 23.8); a manually detached part has none and shows
- * as `unknown`. Active parts are folded into one array of block ranges per
- * partition so the coverage test is a lambda in SELECT, not a range join
- * (range joins need a newer server) and not a correlated EXISTS (needs the new
- * analyzer). The one-hop derived names (`part_*`, `active_*`) keep every
- * output alias distinct from its source column (#4032).
+ * `system.detached_parts.modification_time` is missing on 23.3 and 23.8 and
+ * present on 24.3 (audited with official binaries; the first release that has it
+ * lies between, so 24.3 is the verified gate). The 23.3 audit error was
+ * UNKNOWN_IDENTIFIER. The old variant selects a typed NULL instead, so the
+ * output columns stay the same. `max(NULL) < now() - INTERVAL 30 DAY` is NULL,
+ * so without a modification time the age rule never holds and a part stays at
+ * `review`: no age evidence, no review_after_coverage_check class.
  */
-export const detachedPartsTriageConfig: QueryConfig = {
-  name: 'detached-parts-triage',
-  defaultView: 'auto',
-  card: { primary: 'table', badges: ['reason', 'triage'] },
-  description:
-    'Detached parts grouped by table and reason, with a review class, largest first (top 200). THIS REPLICA ONLY: covered_by_active counts detached parts whose block range sits inside an active part of the same partition on this replica, and that does not prove other replicas hold the data. Nothing here is a safe-to-drop verdict. Classes: cannot_drop_via_sql (attaching_, deleting_, tmp-fetch_ parts that ClickHouse still owns), needs_attention (broken, broken-on-start, unexpected, noquorum: never reviewable, whatever the coverage), review_after_coverage_check (ignored, clone or covered-by-broken parts, all covered here, newest part older than 30 days: review each part before acting), review (everything else). Unknown reason means the part was detached by hand.',
-  tableCheck: 'system.detached_parts',
-  sql: `
+const triageSql = (modified: string): string => `
       SELECT
           dpt.part_database AS database,
           dpt.part_table AS table,
@@ -60,7 +44,7 @@ export const detachedPartsTriageConfig: QueryConfig = {
               if(coalesce(dp.reason, '') = '', 'unknown', dp.reason) AS part_reason,
               coalesce(dp.partition_id, '') AS part_partition,
               dp.bytes_on_disk AS part_bytes,
-              dp.modification_time AS part_modified,
+              ${modified} AS part_modified,
               toUInt8(
                   dp.reason IN ('attaching', 'deleting', 'tmp-fetch')
                   OR startsWith(dp.name, 'attaching_')
@@ -90,7 +74,45 @@ export const detachedPartsTriageConfig: QueryConfig = {
       ) AS dpt
       GROUP BY dpt.part_database, dpt.part_table, dpt.part_reason
       ORDER BY bytes DESC, database, table, reason
-      LIMIT 200`,
+      LIMIT 200`
+
+/**
+ * Read-only triage view over system.detached_parts, one row per
+ * (database, table, reason).
+ *
+ * `covered_by_active` counts detached parts whose block range
+ * [min_block_number, max_block_number] lies inside one ACTIVE part of the same
+ * partition on THIS replica. That is not proof the data survives elsewhere.
+ * The class never says "safe": coverage never overrides a `broken` class or a
+ * part ClickHouse still owns (`attaching_`, `deleting_`, `tmp-fetch_`).
+ *
+ * `reason` is the directory prefix ClickHouse parses off the part name (the
+ * column exists since before 23.8); a manually detached part has none and shows
+ * as `unknown`. Active parts are folded into one array of block ranges per
+ * partition so the coverage test is a lambda in SELECT, not a range join
+ * (range joins need a newer server) and not a correlated EXISTS (needs the new
+ * analyzer). The one-hop derived names (`part_*`, `active_*`) keep every
+ * output alias distinct from its source column (#4032).
+ */
+export const detachedPartsTriageConfig: QueryConfig = {
+  name: 'detached-parts-triage',
+  defaultView: 'auto',
+  card: { primary: 'table', badges: ['reason', 'triage'] },
+  description:
+    'Detached parts grouped by table and reason, with a review class, largest first (top 200). THIS REPLICA ONLY: covered_by_active counts detached parts whose block range sits inside an active part of the same partition on this replica, and that does not prove other replicas hold the data. Nothing here is a safe-to-drop verdict. Classes: cannot_drop_via_sql (attaching_, deleting_, tmp-fetch_ parts that ClickHouse still owns), needs_attention (broken, broken-on-start, unexpected, noquorum: never reviewable, whatever the coverage), review_after_coverage_check (ignored, clone or covered-by-broken parts, all covered here, newest part older than 30 days: review each part before acting), review (everything else). Unknown reason means the part was detached by hand.',
+  tableCheck: 'system.detached_parts',
+  sql: [
+    {
+      since: '23.3',
+      sql: triageSql("CAST(NULL, 'Nullable(DateTime)')"),
+      description:
+        'No modification_time on system.detached_parts before 24.3: age columns are NULL and no part reaches review_after_coverage_check',
+    },
+    {
+      since: '24.3',
+      sql: triageSql('dp.modification_time'),
+    },
+  ] as VersionedSql[],
   columns: [
     'database',
     'table',
