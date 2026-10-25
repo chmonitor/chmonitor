@@ -232,7 +232,7 @@ export const ChartSkeleton = function ChartSkeleton({
               <span className="truncate text-xs font-semibold tracking-wide text-foreground/90 uppercase">
                 {title}
               </span>
-              <span className="text-[10px] text-muted-foreground/40 font-normal lowercase shrink-0">
+              <span className="text-[10px] max-sm:text-xs text-muted-foreground/60 font-normal lowercase shrink-0">
                 (loading…)
               </span>
             </span>

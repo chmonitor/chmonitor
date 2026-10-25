@@ -119,7 +119,7 @@ export const KpiCard = function KpiCard({
           wrap so "Active Queries" stays fully readable in the four-up strip. */}
       <div className="flex items-start gap-1.5">
         <Icon className={cn('mt-0.5 size-3.5 shrink-0', TONE_ICON[tone])} />
-        <span className="min-w-0 flex-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground max-sm:truncate sm:whitespace-normal sm:leading-snug">
+        <span className="min-w-0 flex-1 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground max-sm:truncate sm:whitespace-normal sm:leading-snug">
           {label}
         </span>
         {spark && spark.length >= 2 ? (
@@ -172,7 +172,7 @@ export const KpiCard = function KpiCard({
       )}
 
       {sub && (
-        <div className="min-w-0 text-[11.5px] leading-snug text-muted-foreground max-sm:truncate sm:whitespace-normal">
+        <div className="min-w-0 text-[11.5px] max-sm:text-xs leading-snug text-muted-foreground max-sm:truncate sm:whitespace-normal">
           {sub}
         </div>
       )}

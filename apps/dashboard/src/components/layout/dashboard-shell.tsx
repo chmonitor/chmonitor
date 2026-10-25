@@ -47,7 +47,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <div
               id="main-content"
               tabIndex={-1}
-              className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3 pt-0 pb-16 outline-none sm:gap-4 sm:p-4 sm:pt-0 lg:pb-4"
+              className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3 pt-0 pb-20 outline-none sm:gap-4 sm:p-4 sm:pt-0 sm:pb-20 lg:pb-4"
             >
               {children}
             </div>
