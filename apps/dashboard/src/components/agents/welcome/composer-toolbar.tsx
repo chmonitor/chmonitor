@@ -89,7 +89,7 @@ export function ComposerToolbar({
               type="button"
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px]"
+              className="text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px] max-sm:text-xs"
             />
           }
         >
@@ -106,7 +106,7 @@ export function ComposerToolbar({
           sideOffset={4}
           className="flex max-h-[min(28rem,var(--available-height))] w-[340px] flex-col overflow-hidden p-1"
         >
-          <div className="text-muted-foreground shrink-0 px-2 py-1.5 text-[10px] font-semibold tracking-wider uppercase">
+          <div className="text-muted-foreground shrink-0 px-2 py-1.5 text-[10px] max-sm:text-xs font-semibold tracking-wider uppercase">
             Skills
           </div>
           <ScrollArea className="min-h-0 flex-1">
@@ -140,7 +140,7 @@ export function ComposerToolbar({
                               skill.source === 'system' ? 'default' : 'outline'
                             }
                             className={cn(
-                              'h-4 px-1.5 text-[10px] font-normal',
+                              'h-4 px-1.5 text-[10px] max-sm:text-xs font-normal',
                               skill.source === 'system'
                                 ? 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]'
                                 : 'text-muted-foreground'
@@ -149,7 +149,7 @@ export function ComposerToolbar({
                             {skill.source}
                           </Badge>
                         </div>
-                        <div className="text-muted-foreground truncate text-[10.5px]">
+                        <div className="text-muted-foreground truncate text-[10.5px] max-sm:text-xs">
                           {skill.description}
                         </div>
                       </div>
@@ -175,7 +175,7 @@ export function ComposerToolbar({
               type="button"
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px]"
+              className="text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px] max-sm:text-xs"
             />
           }
         >
@@ -192,7 +192,7 @@ export function ComposerToolbar({
           sideOffset={4}
           className="flex max-h-[min(28rem,var(--available-height))] w-[320px] flex-col overflow-hidden p-1"
         >
-          <div className="text-muted-foreground flex shrink-0 items-center justify-between px-2 py-1.5 text-[10px] font-semibold tracking-wider uppercase">
+          <div className="text-muted-foreground flex shrink-0 items-center justify-between px-2 py-1.5 text-[10px] max-sm:text-xs font-semibold tracking-wider uppercase">
             <span>Tools</span>
             <span className="text-muted-foreground/70 font-normal normal-case tabular-nums">
               {enabledToolCount} active
@@ -217,11 +217,11 @@ export function ComposerToolbar({
                       )}
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-mono text-[11.5px]">
+                      <div className="truncate font-mono text-[11.5px] max-sm:text-xs">
                         {tool}
                       </div>
                       {owners.length > 0 ? (
-                        <div className="text-muted-foreground truncate text-[10px]">
+                        <div className="text-muted-foreground truncate text-[10px] max-sm:text-xs">
                           {owners.map((o) => o.name).join(' · ')}
                         </div>
                       ) : null}
@@ -245,7 +245,7 @@ export function ComposerToolbar({
         variant="ghost"
         size="sm"
         onClick={() => setAddContextOpen(true)}
-        className="text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px]"
+        className="text-muted-foreground hover:text-foreground h-6 gap-1.5 px-2 text-[11.5px] max-sm:text-xs"
       >
         <PaperclipIcon className="size-3" />
         <span>

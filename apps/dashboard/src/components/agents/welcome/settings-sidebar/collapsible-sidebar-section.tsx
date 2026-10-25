@@ -53,7 +53,7 @@ export function CollapsibleSidebarSection({
             <ChevronRightIcon className="text-muted-foreground size-3 shrink-0" />
           )}
           <Icon className="text-muted-foreground size-3.5 shrink-0" />
-          <span className="text-muted-foreground min-w-0 flex-1 truncate text-[10.5px] font-semibold tracking-wider uppercase">
+          <span className="text-muted-foreground min-w-0 flex-1 truncate text-[10.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
             {label}
           </span>
           {right}
