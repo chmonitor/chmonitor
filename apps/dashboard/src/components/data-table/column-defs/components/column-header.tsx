@@ -113,7 +113,7 @@ export function ColumnHeader<TData extends RowData>({
             if (canSort) column.toggleSorting(sortState === 'asc')
           }}
           className={cn(
-            'flex min-w-0 flex-1 items-center gap-0.5 text-left',
+            'relative pointer-coarse:after:absolute pointer-coarse:after:-inset-y-3 pointer-coarse:after:content-[""] flex min-w-0 flex-1 items-center gap-0.5 text-left',
             canSort && 'cursor-pointer hover:text-foreground'
           )}
         >
@@ -135,7 +135,7 @@ export function ColumnHeader<TData extends RowData>({
                   <button
                     type="button"
                     aria-label={`About ${name} column`}
-                    className="text-muted-foreground/40 hover:text-muted-foreground transition-colors p-0.5 rounded cursor-help shrink-0"
+                    className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-y-3 pointer-coarse:after:content-[''] text-muted-foreground/40 hover:text-muted-foreground transition-colors p-0.5 rounded cursor-help shrink-0"
                     onClick={(e) => e.stopPropagation()}
                   />
                 }

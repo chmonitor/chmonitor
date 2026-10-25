@@ -48,7 +48,7 @@ export function ModelWindowSection({
             target="_blank"
             rel="noopener noreferrer"
             tabIndex={off ? -1 : undefined}
-            className="flex items-center gap-0.5 text-[10px] max-sm:text-xs font-normal text-muted-foreground hover:text-foreground transition-colors"
+            className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[''] flex items-center gap-0.5 text-[10px] max-sm:text-xs font-normal text-muted-foreground hover:text-foreground transition-colors"
           >
             Providers
             <ExternalLink className="size-2.5" />

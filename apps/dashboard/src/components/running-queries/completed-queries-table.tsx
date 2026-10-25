@@ -232,7 +232,7 @@ export const CompletedQueriesTable = memo(function CompletedQueriesTable({
         </span>
         <Link
           href={buildUrl('/history-queries', { host: hostId })}
-          className="group ml-auto inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[''] group ml-auto inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           View all in history
           <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />

@@ -59,7 +59,7 @@ function BuiltInMcpServerCard() {
           </div>
           <HostPrefixedLink
             href="/mcp"
-            className="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-[11.5px] max-sm:text-xs font-medium"
+            className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[''] text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-[11.5px] max-sm:text-xs font-medium"
           >
             Setup guide
             <ArrowUpRightIcon className="size-3" />

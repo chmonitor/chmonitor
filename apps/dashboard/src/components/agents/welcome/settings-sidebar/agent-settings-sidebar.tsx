@@ -257,7 +257,7 @@ export function AgentSettingsSidebar({
             </DrawerDescription>
             <AppLink
               href="/agents/settings"
-              className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-[11px] max-sm:text-xs underline underline-offset-2"
+              className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[''] text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-[11px] max-sm:text-xs underline underline-offset-2"
             >
               Open full agent settings
               <ArrowRightIcon className="size-2.5" />
