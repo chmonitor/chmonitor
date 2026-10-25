@@ -108,7 +108,7 @@ export function InsightsPopover() {
           {total > 0 && (
             <Badge
               className={cn(
-                'pointer-events-none absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center border-transparent p-0 text-[10px] font-medium tabular-nums',
+                'pointer-events-none absolute -top-0.5 -right-0.5 size-3.5 flex items-center justify-center border-transparent p-0 text-[10px] max-sm:text-xs font-medium tabular-nums',
                 badgeTone
               )}
             >
@@ -125,7 +125,7 @@ export function InsightsPopover() {
               {total > 0 && (
                 <Badge
                   variant="secondary"
-                  className="h-4 px-1 text-[10px] tabular-nums"
+                  className="h-4 px-1 text-[10px] max-sm:text-xs tabular-nums"
                 >
                   {total}
                 </Badge>

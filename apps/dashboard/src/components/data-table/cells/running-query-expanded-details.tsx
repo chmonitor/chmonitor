@@ -99,7 +99,7 @@ function DetailField({
         className
       )}
     >
-      <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-1.5 text-[11px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {Icon && <Icon className="size-3.5 shrink-0" aria-hidden="true" />}
         <span className="truncate">{label}</span>
       </div>
@@ -152,18 +152,21 @@ export const RunningQueryExpandedDetails =
           {queryKind && (
             <Badge
               variant="secondary"
-              className="font-mono text-[10.5px] uppercase"
+              className="font-mono text-[10.5px] max-sm:text-xs uppercase"
             >
               {queryKind}
             </Badge>
           )}
           {database && (
-            <Badge variant="outline" className="font-mono text-[10.5px]">
+            <Badge
+              variant="outline"
+              className="font-mono text-[10.5px] max-sm:text-xs"
+            >
               {database}
             </Badge>
           )}
           {interfaceLabel && (
-            <Badge variant="outline" className="text-[10.5px]">
+            <Badge variant="outline" className="text-[10.5px] max-sm:text-xs">
               {interfaceLabel}
             </Badge>
           )}
@@ -206,10 +209,13 @@ export const RunningQueryExpandedDetails =
 
         {profileEntries.length > 0 && (
           <div className="mt-4">
-            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <ActivityIcon className="size-3.5" aria-hidden="true" />
               <span>ProfileEvents</span>
-              <Badge variant="outline" className="ml-1 text-[10px]">
+              <Badge
+                variant="outline"
+                className="ml-1 text-[10px] max-sm:text-xs"
+              >
                 {profileEntries.length}
               </Badge>
             </div>
@@ -217,7 +223,7 @@ export const RunningQueryExpandedDetails =
               {profileEntries.map(([key, value]) => (
                 <div
                   key={key}
-                  className="flex min-w-0 items-baseline justify-between gap-2 text-[11.5px]"
+                  className="flex min-w-0 items-baseline justify-between gap-2 text-[11.5px] max-sm:text-xs"
                 >
                   <span
                     className="min-w-0 truncate font-mono text-muted-foreground"

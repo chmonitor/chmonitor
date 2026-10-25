@@ -178,7 +178,7 @@ export function AddContextDialog({
 
         {items.length > 0 ? (
           <div className="border-t pt-3">
-            <div className="text-muted-foreground mb-2 text-[10.5px] font-semibold tracking-wider uppercase">
+            <div className="text-muted-foreground mb-2 text-[10.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
               Attached ({items.length})
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -187,7 +187,7 @@ export function AddContextDialog({
                 return (
                   <span
                     key={item.id}
-                    className="bg-muted flex max-w-full items-center gap-1.5 rounded-md py-1 pr-1 pl-2 text-[11.5px]"
+                    className="bg-muted flex max-w-full items-center gap-1.5 rounded-md py-1 pr-1 pl-2 text-[11.5px] max-sm:text-xs"
                   >
                     <Icon className="text-muted-foreground size-3 shrink-0" />
                     <span className="truncate">{item.label}</span>

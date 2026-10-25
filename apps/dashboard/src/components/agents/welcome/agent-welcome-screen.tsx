@@ -79,7 +79,7 @@ export function AgentWelcomeScreen({
         />
       )}
 
-      <div className="text-muted-foreground mt-4 flex items-center justify-center gap-2 text-center text-[11px] tracking-[0.02em]">
+      <div className="text-muted-foreground mt-4 flex items-center justify-center gap-2 text-center text-[11px] max-sm:text-xs tracking-[0.02em]">
         <span className="size-1.5 rounded-full bg-[var(--chart-green)] animate-pulse motion-reduce:animate-none" />
         Connected to{' '}
         <span className="text-foreground font-mono">

@@ -100,7 +100,7 @@ export function WidgetStat({ widget }: { widget: DashboardWidget }) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
         <span className="text-xs text-destructive">Failed to load</span>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-[11px] max-sm:text-xs text-muted-foreground">
           {getCardErrorMessage(error)}
         </span>
       </div>

@@ -142,7 +142,7 @@ function FavoriteItem({
                 <Badge
                   key={tag}
                   variant="secondary"
-                  className="h-4 px-1.5 text-[10px]"
+                  className="h-4 px-1.5 text-[10px] max-sm:text-xs"
                 >
                   {tag}
                 </Badge>
@@ -150,7 +150,7 @@ function FavoriteItem({
             </div>
           )}
 
-          <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-[11px]">
+          <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-[11px] max-sm:text-xs">
             <span>{relTime(fav.createdAt)}</span>
             {/* Always visible, never gated. Run, rename, remove and copy-link have no
               other path in this panel — no context menu, no keyboard shortcut —
@@ -258,7 +258,7 @@ export function QueryFavoritesPanel({ onSelect }: QueryFavoritesPanelProps) {
                 type="button"
                 onClick={() => setActiveTag(activeTag === tag ? null : tag)}
                 className={cn(
-                  'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] transition-colors',
+                  'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] max-sm:text-xs transition-colors',
                   activeTag === tag
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border text-muted-foreground hover:bg-muted'
@@ -269,7 +269,7 @@ export function QueryFavoritesPanel({ onSelect }: QueryFavoritesPanelProps) {
             ))}
           </div>
         )}
-        <p className="text-muted-foreground text-[11px]">
+        <p className="text-muted-foreground text-[11px] max-sm:text-xs">
           {filtered.length} of {favorites.length} favorite
           {favorites.length !== 1 ? 's' : ''}
         </p>

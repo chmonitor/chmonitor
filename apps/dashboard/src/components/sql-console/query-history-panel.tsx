@@ -171,7 +171,7 @@ export function QueryHistoryPanel({
                 >
                   <QueryLine sql={e.sql} />
                 </button>
-                <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-[11px]">
+                <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-[11px] max-sm:text-xs">
                   <span>
                     {relTime(e.ts)}
                     {e.rows !== undefined &&
@@ -252,7 +252,7 @@ export function QueryHistoryPanel({
                 >
                   <QueryLine sql={r.query} />
                 </button>
-                <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-[11px]">
+                <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-[11px] max-sm:text-xs">
                   <span>
                     {r.query_duration_ms} ms ·{' '}
                     {Number(r.read_rows).toLocaleString()} rows

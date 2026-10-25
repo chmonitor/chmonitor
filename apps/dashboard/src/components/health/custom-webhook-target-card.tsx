@@ -333,7 +333,7 @@ export function CustomWebhookTargetCard({
           className="min-h-20 font-mono text-xs"
           disabled={busy || target?.editable === false}
         />
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[11px] max-sm:text-xs text-muted-foreground">
           Only bounded X-* headers are accepted. Use Kubernetes Secret
           references for credentials.
         </p>
@@ -355,7 +355,7 @@ export function CustomWebhookTargetCard({
             <span>{preview.redactedUrl}</span>
             {preview.truncated && <span>Body truncated</span>}
           </div>
-          <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed">
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-[11px] max-sm:text-xs leading-relaxed">
             {preview.bodyJson}
           </pre>
         </div>

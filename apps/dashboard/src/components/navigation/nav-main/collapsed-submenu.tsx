@@ -188,7 +188,7 @@ export const CollapsedSubmenu = function CollapsedSubmenu({
                 >
                   <div
                     aria-hidden="true"
-                    className="px-2 pt-1.5 pb-0.5 text-[11px] font-medium text-muted-foreground"
+                    className="px-2 pt-1.5 pb-0.5 text-[11px] max-sm:text-xs font-medium text-muted-foreground"
                   >
                     {section.subgroup}
                   </div>

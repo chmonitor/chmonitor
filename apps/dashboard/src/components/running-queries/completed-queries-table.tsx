@@ -50,7 +50,7 @@ function StatusBadge({ failed }: { failed: boolean }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide',
+        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wide',
         failed
           ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'
           : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
@@ -143,12 +143,12 @@ const CompletedRow = memo(function CompletedRow({
 
       <td className="min-w-0 px-2 py-2.5">
         <span
-          className="block min-w-0 truncate font-mono text-[11.5px] text-foreground sm:text-[12px]"
+          className="block min-w-0 truncate font-mono text-[11.5px] max-sm:text-xs text-foreground sm:text-[12px]"
           title={d.query}
         >
           {d.query}
         </span>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10.5px] text-muted-foreground">
+        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10.5px] max-sm:text-xs text-muted-foreground">
           {detailUrl ? (
             <>
               <Link
@@ -242,7 +242,7 @@ export const CompletedQueriesTable = memo(function CompletedQueriesTable({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] table-fixed border-collapse">
           <thead className="border-b border-border bg-muted/40">
-            <tr className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <tr className="text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <th
                 className="px-2 py-2 text-left sm:px-3"
                 style={{ width: '150px' }}

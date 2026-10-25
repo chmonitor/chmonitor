@@ -48,7 +48,7 @@ export function KpiCard({
               )}
             </span>
           )}
-          <span className="truncate text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          <span className="truncate text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             {label}
           </span>
         </div>
@@ -72,7 +72,7 @@ export function KpiCard({
         {sub && (
           <span
             className={cn(
-              'ml-auto text-[11px] leading-tight text-muted-foreground',
+              'ml-auto text-[11px] max-sm:text-xs leading-tight text-muted-foreground',
               counting && 'motion-safe:animate-pulse motion-reduce:animate-none'
             )}
           >

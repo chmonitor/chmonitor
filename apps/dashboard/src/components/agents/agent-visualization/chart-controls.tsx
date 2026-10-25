@@ -271,7 +271,7 @@ export function ChartControls({
                     onRightAxisKeysChange(next)
                   }}
                   className={cn(
-                    'h-6 px-2 rounded border text-[11px] transition-colors',
+                    'h-6 px-2 rounded border text-[11px] max-sm:text-xs transition-colors',
                     isRight
                       ? 'bg-[var(--chart-blue)]/15 text-[var(--chart-blue)] border-[var(--chart-blue)]/40'
                       : 'bg-muted/50 text-muted-foreground border-input hover:bg-muted'

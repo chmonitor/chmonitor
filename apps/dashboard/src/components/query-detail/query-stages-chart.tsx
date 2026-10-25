@@ -61,7 +61,7 @@ export function QueryStagesChart({ queryId }: { queryId: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="flex items-center gap-1.5 text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <Activity className="size-3.5" />
           Query stages
         </h2>
@@ -78,7 +78,7 @@ export function QueryStagesChart({ queryId }: { queryId: string }) {
               className="grid grid-cols-[9rem_1fr_auto] items-center gap-3"
             >
               <span
-                className="truncate font-mono text-[11px] text-muted-foreground"
+                className="truncate font-mono text-[11px] max-sm:text-xs text-muted-foreground"
                 title={toStr(r.name)}
               >
                 {toStr(r.name) || '—'}
@@ -97,7 +97,7 @@ export function QueryStagesChart({ queryId }: { queryId: string }) {
                   style={{ width: `${segmentWidthPct(outputWait, maxTotal)}%` }}
                 />
               </div>
-              <span className="text-[11px] tabular-nums text-muted-foreground">
+              <span className="text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
                 {formatMicros(active + inputWait + outputWait)}
               </span>
             </li>
@@ -119,7 +119,7 @@ function Legend() {
       {items.map(([cls, label]) => (
         <span
           key={label}
-          className="flex items-center gap-1 text-[10px] text-muted-foreground"
+          className="flex items-center gap-1 text-[10px] max-sm:text-xs text-muted-foreground"
         >
           <span className={cn('size-2 rounded-sm', cls)} />
           {label}

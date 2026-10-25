@@ -35,7 +35,7 @@ export function KpiTiles({ tiles, loadingCount }: KpiTilesProps) {
           key={kpi.label}
           className="border-border/60 bg-card/40 flex min-w-0 flex-col rounded-lg border px-3 py-2"
         >
-          <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">
+          <span className="text-muted-foreground text-[10px] max-sm:text-xs font-medium uppercase tracking-wide">
             {kpi.label}
           </span>
           <span className="mt-1 truncate text-lg font-semibold tabular-nums leading-tight">

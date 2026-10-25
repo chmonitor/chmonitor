@@ -36,7 +36,7 @@ export function SuggestionChip({
             <Badge
               variant="outline"
               className={cn(
-                'cursor-pointer text-[11px] font-medium',
+                'cursor-pointer text-[11px] max-sm:text-xs font-medium',
                 badgeClass
               )}
               onClick={() => setExpanded(true)}
@@ -47,7 +47,9 @@ export function SuggestionChip({
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs text-xs">
           {suggestion.rationale}
-          <p className="mt-1 text-[10px] opacity-70">Click to expand</p>
+          <p className="mt-1 text-[10px] max-sm:text-xs opacity-70">
+            Click to expand
+          </p>
         </TooltipContent>
       </Tooltip>
     )
@@ -65,14 +67,17 @@ export function SuggestionChip({
       <div className="flex items-start justify-between gap-2">
         <Badge
           variant="outline"
-          className={cn('shrink-0 text-[11px] font-medium', badgeClass)}
+          className={cn(
+            'shrink-0 text-[11px] max-sm:text-xs font-medium',
+            badgeClass
+          )}
         >
           {suggestion.title}
         </Badge>
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="text-[10px] text-muted-foreground hover:text-foreground"
+          className="text-[10px] max-sm:text-xs text-muted-foreground hover:text-foreground"
         >
           ✕
         </button>
@@ -84,7 +89,7 @@ export function SuggestionChip({
         <Button
           variant="ghost"
           size="sm"
-          className="mt-1.5 h-6 px-2 text-[11px]"
+          className="mt-1.5 h-6 px-2 text-[11px] max-sm:text-xs"
           onClick={() => onAskAgent(suggestion, sql)}
         >
           Ask AI

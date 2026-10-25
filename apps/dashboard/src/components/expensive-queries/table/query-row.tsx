@@ -83,12 +83,12 @@ export const QueryRow = memo(function QueryRow({
 
         <td className="min-w-0 px-2 py-2.5">
           <span
-            className="block min-w-0 truncate font-mono text-[11.5px] text-foreground sm:text-[12px]"
+            className="block min-w-0 truncate font-mono text-[11.5px] max-sm:text-xs text-foreground sm:text-[12px]"
             title={d.query}
           >
             {d.query}
           </span>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10.5px] text-muted-foreground">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10.5px] max-sm:text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Repeat className="size-3" />
               {formatCompactNumber(d.cnt)} runs
@@ -128,7 +128,7 @@ export const QueryRow = memo(function QueryRow({
         </td>
 
         {showCnt && (
-          <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[11px] tabular-nums sm:table-cell">
+          <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[11px] max-sm:text-xs tabular-nums sm:table-cell">
             {formatCompactNumber(d.cnt)}
           </td>
         )}
@@ -146,7 +146,7 @@ export const QueryRow = memo(function QueryRow({
         )}
 
         {showReadRows && (
-          <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[11px] tabular-nums text-muted-foreground xl:table-cell">
+          <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-[11px] max-sm:text-xs tabular-nums text-muted-foreground xl:table-cell">
             {formatCompactNumber(d.readRows)}
           </td>
         )}

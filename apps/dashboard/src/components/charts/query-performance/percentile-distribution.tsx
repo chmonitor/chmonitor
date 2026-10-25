@@ -25,7 +25,7 @@ const PERCENTILE_KEYS = [
 function StatChip({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-center gap-0.5 rounded-md border bg-muted/40 px-3 py-1.5">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="text-[10px] max-sm:text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
       <span className="font-mono text-sm font-semibold tabular-nums">

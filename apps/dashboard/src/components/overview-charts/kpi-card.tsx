@@ -142,7 +142,7 @@ export const KpiCard = function KpiCard({
           // components/cards/chart-action-classes.ts already ships.
           <span
             aria-hidden
-            className="ml-auto text-[11px] text-muted-foreground opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40 group-hover:!opacity-100 group-focus-within:!opacity-100"
+            className="ml-auto text-[11px] max-sm:text-xs text-muted-foreground opacity-40 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-40 pointer-fine:group-focus-within:opacity-40 group-hover:!opacity-100 group-focus-within:!opacity-100"
           >
             →
           </span>

@@ -102,16 +102,16 @@ export const QueryRow = memo(function QueryRow({
         <td className="min-w-0 px-2 py-2.5">
           <div className="flex min-w-0 items-start gap-2">
             <span
-              className="block min-w-0 flex-1 truncate font-mono text-[11.5px] text-foreground sm:text-[12px]"
+              className="block min-w-0 flex-1 truncate font-mono text-[11.5px] max-sm:text-xs text-foreground sm:text-[12px]"
               title={d.query}
             >
               {d.query}
             </span>
-            <span className="hidden shrink-0 font-mono text-[11px] text-muted-foreground md:inline">
+            <span className="hidden shrink-0 font-mono text-[11px] max-sm:text-xs text-muted-foreground md:inline">
               #{d.id ? d.id.slice(0, 8) : 'n/a'}
             </span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10.5px] text-muted-foreground">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10.5px] max-sm:text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1 font-mono md:hidden">
               #{d.id ? d.id.slice(0, 8) : 'n/a'}
             </span>
@@ -212,7 +212,7 @@ export const QueryRow = memo(function QueryRow({
           <td className="hidden whitespace-nowrap px-2 py-2.5 text-right text-[12px] tabular-nums sm:table-cell sm:px-3">
             <span className={cn(!done && SEVERITY_DURATION[d.severity])}>
               {dur.value}
-              <span className="ml-0.5 text-[10.5px] text-muted-foreground">
+              <span className="ml-0.5 text-[10.5px] max-sm:text-xs text-muted-foreground">
                 {dur.unit}
               </span>
             </span>

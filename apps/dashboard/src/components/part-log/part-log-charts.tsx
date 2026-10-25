@@ -144,7 +144,7 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
                 Events by type · last 24 hours
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3 text-[10.5px] text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 text-[10.5px] max-sm:text-xs text-muted-foreground">
               <LegendDot color={TONE_COLOR.green} label="New" />
               <LegendDot color={TONE_COLOR.violet} label="Merge" />
               <LegendDot color={TONE_COLOR.amber} label="Mutate" />
@@ -178,7 +178,7 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
           ) : lifecycleData.length > 0 ? (
             <>
               <LifecycleChart data={lifecycleData} />
-              <div className="mt-1 flex justify-between text-[10px] tabular-nums text-muted-foreground">
+              <div className="mt-1 flex justify-between text-[10px] max-sm:text-xs tabular-nums text-muted-foreground">
                 {axisLabels.map((d) => (
                   <span key={d.event_time}>
                     {d.event_time.match(/(\d{2}):\d{2}/)?.[1] ?? ''}h
@@ -210,7 +210,7 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
               {reasonSegments.map((s) => (
                 <div
                   key={s.label}
-                  className="flex items-center justify-between gap-2 text-[11.5px]"
+                  className="flex items-center justify-between gap-2 text-[11.5px] max-sm:text-xs"
                 >
                   <span className="inline-flex min-w-0 items-center gap-1.5">
                     <span
@@ -238,7 +238,7 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
                 Part events in window
               </div>
             </div>
-            <span className="rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[11px] text-foreground">
+            <span className="rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[11px] max-sm:text-xs text-foreground">
               top {churnRows.length}
             </span>
           </div>
@@ -262,7 +262,7 @@ export function PartLogCharts({ rows }: { rows: PartLogRow[] }) {
             </span>
           </div>
           <SizeHistogram bins={sizeBins} />
-          <div className="mt-1 flex justify-between text-[9px] tabular-nums text-muted-foreground">
+          <div className="mt-1 flex justify-between text-[9px] max-sm:text-xs tabular-nums text-muted-foreground">
             {SIZE_BINS.map((b) => (
               <span key={b.label}>{b.label}</span>
             ))}

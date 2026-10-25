@@ -39,10 +39,10 @@ export function ServerRow({ server }: { server: McpRegistrationDto }) {
           />
           <LiveStatusBadge id={server.id} enabled={server.enabled} />
         </div>
-        <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate font-mono text-[11px]">
+        <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate font-mono text-[11px] max-sm:text-xs">
           <span className="truncate">{server.url}</span>
         </div>
-        <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-[10.5px] tabular-nums">
+        <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-[10.5px] max-sm:text-xs tabular-nums">
           <span>{toolCount} tools</span>
           {validated && (
             <>

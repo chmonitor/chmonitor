@@ -129,7 +129,7 @@ export function SkillsLibraryList({
                           skill.source === 'system' ? 'default' : 'outline'
                         }
                         className={cn(
-                          'h-4 px-1.5 text-[10px] font-normal',
+                          'h-4 px-1.5 text-[10px] max-sm:text-xs font-normal',
                           skill.source === 'system'
                             ? 'bg-[var(--chart-blue)]/10 text-[var(--chart-blue)]'
                             : 'text-muted-foreground'
@@ -138,7 +138,7 @@ export function SkillsLibraryList({
                         {skill.source}
                       </Badge>
                     </div>
-                    <p className="text-muted-foreground mt-0.5 text-[11.5px] leading-snug">
+                    <p className="text-muted-foreground mt-0.5 text-[11.5px] max-sm:text-xs leading-snug">
                       {skill.description}
                     </p>
                     {skill.tools.length > 0 ? (
@@ -146,7 +146,7 @@ export function SkillsLibraryList({
                         {skill.tools.map((tool) => (
                           <span
                             key={tool}
-                            className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[10px]"
+                            className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[10px] max-sm:text-xs"
                           >
                             {tool}
                           </span>

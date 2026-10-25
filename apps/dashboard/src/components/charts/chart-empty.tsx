@@ -183,7 +183,7 @@ export const ChartEmpty = function ChartEmpty({
         <p
           className={cn(
             'font-medium text-muted-foreground text-center',
-            compact ? 'text-[11px]' : 'text-sm'
+            compact ? 'text-[11px] max-sm:text-xs' : 'text-sm'
           )}
         >
           {compact

@@ -50,7 +50,7 @@ export function PdbSparkline({
   if (!data || data.length < 2) {
     return (
       <div
-        className="flex items-center justify-center text-[10px] text-muted-foreground/60"
+        className="flex items-center justify-center text-[10px] max-sm:text-xs text-muted-foreground/60"
         style={{ width, height }}
       >
         —
@@ -98,7 +98,7 @@ export function PdbBarChart({
   if (!data || data.length === 0) {
     return (
       <div
-        className="flex items-center justify-center text-[11px] text-muted-foreground"
+        className="flex items-center justify-center text-[11px] max-sm:text-xs text-muted-foreground"
         style={{ height }}
       >
         No sync history
@@ -113,7 +113,7 @@ export function PdbBarChart({
   return (
     <div className="flex flex-col" style={{ height }}>
       <div className="flex min-h-0 flex-1">
-        <div className="flex w-12 shrink-0 flex-col justify-between pr-2 text-right text-[10px] tabular-nums text-muted-foreground">
+        <div className="flex w-12 shrink-0 flex-col justify-between pr-2 text-right text-[10px] max-sm:text-xs tabular-nums text-muted-foreground">
           {ticks.map((t, i) => (
             <span key={i}>{fmt(t)}</span>
           ))}
@@ -141,7 +141,7 @@ export function PdbBarChart({
           </div>
         </div>
       </div>
-      <div className="flex pl-12 pt-1 text-[9.5px] tabular-nums text-muted-foreground">
+      <div className="flex pl-12 pt-1 text-[9.5px] max-sm:text-xs tabular-nums text-muted-foreground">
         <div className="flex flex-1 justify-between px-1">
           {bars
             .filter((_, i) => i % labelEvery === 0)
@@ -177,7 +177,7 @@ export function PdbAreaChart({
   if (!data || data.length < 2) {
     return (
       <div
-        className="flex items-center justify-center text-[11px] text-muted-foreground"
+        className="flex items-center justify-center text-[11px] max-sm:text-xs text-muted-foreground"
         style={{ height }}
       >
         No data

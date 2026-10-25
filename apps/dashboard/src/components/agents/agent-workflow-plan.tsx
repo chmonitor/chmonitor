@@ -62,7 +62,7 @@ export function AgentWorkflowPlan({
         <span className="text-xs font-medium text-foreground">
           {workflow ? `Workflow: ${workflow}` : 'Workflow plan'}
         </span>
-        <span className="ml-auto font-mono text-[11px] text-muted-foreground">
+        <span className="ml-auto font-mono text-[11px] max-sm:text-xs text-muted-foreground">
           {completedCount}/{totalCount}
         </span>
       </div>

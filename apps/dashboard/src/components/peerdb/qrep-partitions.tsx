@@ -83,10 +83,10 @@ export function QRepPartitions({
     <div className="overflow-hidden rounded-md border border-border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Progress
           </span>
-          <span className="text-[11px] tabular-nums">
+          <span className="text-[11px] max-sm:text-xs tabular-nums">
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
               {stats.done}
             </span>
@@ -111,7 +111,7 @@ export function QRepPartitions({
               </>
             )}
           </span>
-          <span className="text-[11px] tabular-nums text-muted-foreground">
+          <span className="text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
             · {pdbFmtNum(stats.rowsSynced)} / {pdbFmtNum(stats.rowsIn)} rows
             {stats.avgDurationSec != null && (
               <> · avg {pdbFmtDuration(stats.avgDurationSec)}</>
@@ -127,7 +127,7 @@ export function QRepPartitions({
               setPage(0)
             }}
             placeholder="Search by partition"
-            className="min-w-0 flex-1 bg-transparent text-[11.5px] outline-none placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 bg-transparent text-[11.5px] max-sm:text-xs outline-none placeholder:text-muted-foreground"
           />
           {query && (
             <button
@@ -144,9 +144,9 @@ export function QRepPartitions({
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[11.5px]">
+        <table className="w-full border-collapse text-[11.5px] max-sm:text-xs">
           <thead>
-            <tr className="border-b border-border bg-muted/30 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-border bg-muted/30 text-left text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <th className="w-[44px] px-2.5 py-1.5">#</th>
               <th className="px-2.5 py-1.5">Partition UUID</th>
               <th className="w-[80px] px-2.5 py-1.5">Status</th>
@@ -184,7 +184,10 @@ export function QRepPartitions({
                     {from + i}
                   </td>
                   <td className="px-2.5 py-1.5">
-                    <span className="font-mono text-[10.5px]" title={uuid}>
+                    <span
+                      className="font-mono text-[10.5px] max-sm:text-xs"
+                      title={uuid}
+                    >
                       {uuid.length > 20
                         ? `${uuid.slice(0, 14)}…${uuid.slice(-4)}`
                         : uuid}
@@ -192,7 +195,7 @@ export function QRepPartitions({
                   </td>
                   <td className="px-2.5 py-1.5">
                     <span
-                      className="inline-flex items-center gap-1.5 text-[10.5px] font-medium"
+                      className="inline-flex items-center gap-1.5 text-[10.5px] max-sm:text-xs font-medium"
                       style={{ color: tone }}
                     >
                       <span
@@ -227,7 +230,7 @@ export function QRepPartitions({
                           style={{ width: `${pct}%`, background: tone }}
                         />
                       </div>
-                      <span className="w-8 text-right text-[10px] tabular-nums text-muted-foreground">
+                      <span className="w-8 text-right text-[10px] max-sm:text-xs tabular-nums text-muted-foreground">
                         {pct.toFixed(0)}%
                       </span>
                     </div>
@@ -238,7 +241,7 @@ export function QRepPartitions({
           </tbody>
         </table>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-1.5 text-[11px] max-sm:text-xs text-muted-foreground">
         <span className="tabular-nums">
           {from === 0 ? '0 of 0' : `${from}–${to} of ${filtered.length}`}
           {filtered.length !== partitions.length

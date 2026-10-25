@@ -157,7 +157,7 @@ export function ClerkNavWrapper() {
                       </span>
                       <span className="mt-1 flex items-center gap-1.5">
                         {organization && (
-                          <span className="text-muted-foreground flex min-w-0 items-center gap-1 text-[11px]">
+                          <span className="text-muted-foreground flex min-w-0 items-center gap-1 text-[11px] max-sm:text-xs">
                             <Building2 className="size-3 shrink-0" />
                             <span className="truncate">
                               {organization.name}

@@ -229,7 +229,7 @@ function PlanSettingsPanel({
 
           <p className="text-muted-foreground text-xs">
             ClickHouse &gt;= v25.9: accurate index output requires{' '}
-            <code className="bg-muted rounded px-1 text-[11px]">
+            <code className="bg-muted rounded px-1 text-[11px] max-sm:text-xs">
               SETTINGS use_query_condition_cache = 0,
               use_skip_indexes_on_data_read = 0
             </code>{' '}
@@ -509,7 +509,7 @@ function ExplainContent() {
             {qlLoading ? (
               <span className="text-muted-foreground">
                 Loading query{' '}
-                <code className="bg-muted rounded px-1 text-[11px]">
+                <code className="bg-muted rounded px-1 text-[11px] max-sm:text-xs">
                   {queryIdFromUrl}
                 </code>
                 …
@@ -517,7 +517,7 @@ function ExplainContent() {
             ) : qlError ? (
               <span className="text-amber-600 dark:text-amber-400">
                 Couldn't load query{' '}
-                <code className="bg-muted rounded px-1 text-[11px]">
+                <code className="bg-muted rounded px-1 text-[11px] max-sm:text-xs">
                   {queryIdFromUrl}
                 </code>
                 : {qlError.message}
@@ -527,11 +527,11 @@ function ExplainContent() {
               // here: the effect is about to fill the editor and strip the id.
               <span className="text-amber-600 dark:text-amber-400">
                 Query{' '}
-                <code className="bg-muted rounded px-1 text-[11px]">
+                <code className="bg-muted rounded px-1 text-[11px] max-sm:text-xs">
                   {queryIdFromUrl}
                 </code>{' '}
                 isn't in{' '}
-                <code className="bg-muted rounded px-1 text-[11px]">
+                <code className="bg-muted rounded px-1 text-[11px] max-sm:text-xs">
                   system.query_log
                 </code>{' '}
                 yet — paste its SQL below to explain it.
@@ -543,7 +543,9 @@ function ExplainContent() {
         <div className="flex items-center justify-between gap-2">
           <p className="text-muted-foreground text-xs">
             Press Cmd/Ctrl + Enter to explain. Separate multiple queries with{' '}
-            <code className="bg-muted rounded px-1 text-[11px]">;</code>
+            <code className="bg-muted rounded px-1 text-[11px] max-sm:text-xs">
+              ;
+            </code>
           </p>
           <Button onClick={handleExplain} disabled={!queryInput.trim()}>
             Explain

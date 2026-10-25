@@ -9,12 +9,12 @@ import { cn } from '@/lib/utils'
 function MenuPreview({ mode }: { mode: 'dim' | 'hide' }) {
   return (
     <div className="flex h-[72px] w-[88px] flex-col gap-1 overflow-hidden rounded-lg bg-zinc-100 p-1.5 ring-1 ring-black/10 dark:bg-zinc-900 dark:ring-white/10">
-      <div className="flex items-center gap-1 text-[10px] leading-none">
+      <div className="flex items-center gap-1 text-[10px] max-sm:text-xs leading-none">
         <LayoutGrid className="size-3 shrink-0" />
         <span>Queries</span>
       </div>
       {mode === 'dim' ? (
-        <div className="flex items-center gap-1 text-[10px] leading-none text-muted-foreground/40">
+        <div className="flex items-center gap-1 text-[10px] max-sm:text-xs leading-none text-muted-foreground/40">
           <BlocksIcon className="size-3 shrink-0" />
           <span>Backups</span>
         </div>
@@ -24,7 +24,7 @@ function MenuPreview({ mode }: { mode: 'dim' | 'hide' }) {
           aria-hidden="true"
         />
       )}
-      <div className="flex items-center gap-1 text-[10px] leading-none">
+      <div className="flex items-center gap-1 text-[10px] max-sm:text-xs leading-none">
         <Rows3 className="size-3 shrink-0" />
         <span>Tables</span>
       </div>

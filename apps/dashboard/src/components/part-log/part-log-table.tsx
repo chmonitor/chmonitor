@@ -147,7 +147,7 @@ export function PartLogTable({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 px-2.5 py-2.5 sm:px-3">
-          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="mr-1 text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Quick filters
           </span>
           {quickFilters.map((f) => {
@@ -158,7 +158,7 @@ export function PartLogTable({
                 type="button"
                 onClick={() => toggleFilter(f.key)}
                 className={cn(
-                  'inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                  'inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] max-sm:text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
                   on
                     ? 'border-foreground bg-foreground text-background'
                     : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -172,7 +172,7 @@ export function PartLogTable({
             <button
               type="button"
               onClick={() => setActiveFilters(new Set())}
-              className="ml-auto rounded-sm text-[11.5px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="ml-auto rounded-sm text-[11.5px] max-sm:text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               Clear all
             </button>
@@ -196,7 +196,7 @@ export function PartLogTable({
                   type="button"
                   onClick={() => setSort({ key: p.key, dir: p.dir })}
                   className={cn(
-                    'h-7 rounded px-2.5 text-[11.5px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                    'h-7 rounded px-2.5 text-[11.5px] max-sm:text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
                     active
                       ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -316,7 +316,7 @@ export function PartLogTable({
           </table>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-[11.5px] text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-[11.5px] max-sm:text-xs text-muted-foreground">
           <div>
             Showing{' '}
             <span className="font-medium tabular-nums text-foreground">

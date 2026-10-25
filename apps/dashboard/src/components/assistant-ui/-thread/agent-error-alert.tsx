@@ -24,7 +24,7 @@ export function AgentErrorAlert({ agentError }: { agentError: AgentError }) {
             </p>
           ) : null}
           {agentError.code ? (
-            <p className="text-destructive/60 font-mono text-[10px]">
+            <p className="text-destructive/60 font-mono text-[10px] max-sm:text-xs">
               {agentError.code}
               {agentError.provider ? ` · ${agentError.provider}` : ''}
             </p>

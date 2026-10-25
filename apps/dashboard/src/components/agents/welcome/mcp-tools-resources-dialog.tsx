@@ -63,7 +63,7 @@ export function McpToolsResourcesDialog({
                 {server.version && (
                   <Badge
                     variant="outline"
-                    className="h-4 shrink-0 px-1.5 text-[10px] font-normal"
+                    className="h-4 shrink-0 px-1.5 text-[10px] max-sm:text-xs font-normal"
                   >
                     {server.version}
                   </Badge>
@@ -80,7 +80,7 @@ export function McpToolsResourcesDialog({
           <div className="space-y-5 p-5">
             {server.probeTools !== undefined ? (
               <div>
-                <div className="text-muted-foreground mb-2 text-[10.5px] font-semibold tracking-wider uppercase">
+                <div className="text-muted-foreground mb-2 text-[10.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
                   Tools ({server.probeTools.length})
                 </div>
                 {server.probeTools.length === 0 ? (
@@ -94,7 +94,7 @@ export function McpToolsResourcesDialog({
                         key={toolName}
                         className="border-border bg-card rounded-md border px-3 py-2"
                       >
-                        <span className="min-w-0 flex-1 truncate font-mono text-[11.5px]">
+                        <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] max-sm:text-xs">
                           {toolName}
                         </span>
                       </div>
@@ -118,7 +118,7 @@ export function McpToolsResourcesDialog({
                     <button
                       type="button"
                       onClick={retry}
-                      className="border-border bg-background hover:bg-muted h-7 rounded-md border px-2.5 text-[11.5px] font-medium transition-colors"
+                      className="border-border bg-background hover:bg-muted h-7 rounded-md border px-2.5 text-[11.5px] max-sm:text-xs font-medium transition-colors"
                     >
                       Retry
                     </button>
@@ -128,7 +128,7 @@ export function McpToolsResourcesDialog({
                 {data && (
                   <>
                     <div>
-                      <div className="text-muted-foreground mb-2 text-[10.5px] font-semibold tracking-wider uppercase">
+                      <div className="text-muted-foreground mb-2 text-[10.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
                         Tools ({data.tools.length})
                       </div>
                       {data.tools.length === 0 ? (
@@ -143,18 +143,18 @@ export function McpToolsResourcesDialog({
                               className="border-border bg-card rounded-md border px-3 py-2"
                             >
                               <div className="flex items-center gap-2">
-                                <span className="min-w-0 flex-1 truncate font-mono text-[11.5px]">
+                                <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] max-sm:text-xs">
                                   {tool.name}
                                 </span>
                                 <Badge
                                   variant="outline"
-                                  className={`h-4 shrink-0 px-1.5 text-[10px] font-normal ${CATEGORY_STYLES[tool.category] ?? ''}`}
+                                  className={`h-4 shrink-0 px-1.5 text-[10px] max-sm:text-xs font-normal ${CATEGORY_STYLES[tool.category] ?? ''}`}
                                 >
                                   {tool.category}
                                 </Badge>
                               </div>
                               {tool.description && (
-                                <p className="text-muted-foreground mt-0.5 text-[11px] leading-snug">
+                                <p className="text-muted-foreground mt-0.5 text-[11px] max-sm:text-xs leading-snug">
                                   {tool.description}
                                 </p>
                               )}
@@ -165,7 +165,7 @@ export function McpToolsResourcesDialog({
                     </div>
 
                     <div>
-                      <div className="text-muted-foreground mb-2 text-[10.5px] font-semibold tracking-wider uppercase">
+                      <div className="text-muted-foreground mb-2 text-[10.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
                         Resources ({data.resources.length})
                       </div>
                       {data.resources.length === 0 ? (
@@ -180,15 +180,15 @@ export function McpToolsResourcesDialog({
                               className="border-border bg-card rounded-md border px-3 py-2"
                             >
                               <div className="flex items-center gap-2">
-                                <span className="min-w-0 flex-1 truncate font-mono text-[11.5px]">
+                                <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] max-sm:text-xs">
                                   {resource.name}
                                 </span>
-                                <span className="text-muted-foreground shrink-0 truncate font-mono text-[10px]">
+                                <span className="text-muted-foreground shrink-0 truncate font-mono text-[10px] max-sm:text-xs">
                                   {resource.uri}
                                 </span>
                               </div>
                               {resource.description && (
-                                <p className="text-muted-foreground mt-0.5 text-[11px] leading-snug">
+                                <p className="text-muted-foreground mt-0.5 text-[11px] max-sm:text-xs leading-snug">
                                   {resource.description}
                                 </p>
                               )}

@@ -11,7 +11,7 @@ export function DetailField({
 }) {
   return (
     <div className="min-w-0 border-l border-t border-border px-3 py-2">
-      <dt className="text-[10px] font-semibold uppercase leading-tight tracking-wider text-muted-foreground">
+      <dt className="text-[10px] max-sm:text-xs font-semibold uppercase leading-tight tracking-wider text-muted-foreground">
         {label}
       </dt>
       <dd

@@ -161,7 +161,7 @@ export function InsightsPanel({ hostId, className }: InsightsPanelProps) {
                 key={sev}
                 variant="outline"
                 className={cn(
-                  'text-[10px] font-medium',
+                  'text-[10px] max-sm:text-xs font-medium',
                   SEVERITY_META[sev].badge
                 )}
               >
@@ -427,7 +427,7 @@ function InsightsStorageFooter({ hostId }: { hostId: number }) {
   if (isLoading) return null
 
   return (
-    <p className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+    <p className="flex items-center gap-1.5 text-[10.5px] max-sm:text-xs text-muted-foreground">
       <Database className="size-3 shrink-0" />
       <span>
         Stored in {INSIGHTS_BACKEND_LABELS[backend]} · refreshed automatically

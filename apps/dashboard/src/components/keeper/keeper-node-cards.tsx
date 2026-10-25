@@ -106,7 +106,7 @@ function RoleBadge({ role }: { role: RoleVariant }) {
     <Badge
       variant="outline"
       className={cn(
-        'text-[10.5px] font-semibold px-1.5 py-0',
+        'text-[10.5px] max-sm:text-xs font-semibold px-1.5 py-0',
         ROLE_STYLES[role]
       )}
     >
@@ -140,7 +140,7 @@ function KeeperTypeBadge({ version }: { version: string | undefined }) {
           <Badge
             variant="outline"
             className={cn(
-              'text-[10.5px] font-semibold px-1.5 py-0 cursor-default',
+              'text-[10.5px] max-sm:text-xs font-semibold px-1.5 py-0 cursor-default',
               KEEPER_TYPE_STYLES[type]
             )}
           />
@@ -171,10 +171,10 @@ function MetricRow({
         className
       )}
     >
-      <span className="shrink-0 text-[11px] text-muted-foreground leading-snug">
+      <span className="shrink-0 text-[11px] max-sm:text-xs text-muted-foreground leading-snug">
         {label}
       </span>
-      <span className="truncate text-right font-mono text-[11.5px] tabular-nums text-foreground/85">
+      <span className="truncate text-right font-mono text-[11.5px] max-sm:text-xs tabular-nums text-foreground/85">
         {value}
       </span>
     </div>
@@ -195,7 +195,7 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
             {row.host}:{row.port}
           </span>
           {row.zookeeper_cluster_name && (
-            <span className="text-[10.5px] text-muted-foreground truncate leading-snug">
+            <span className="text-[10.5px] max-sm:text-xs text-muted-foreground truncate leading-snug">
               {row.zookeeper_cluster_name}
             </span>
           )}
@@ -238,7 +238,7 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
 
       <CardContent className="p-3 pt-2.5 flex flex-col gap-1">
         <div className="mb-1">
-          <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/70">
+          <span className="text-[10px] max-sm:text-xs uppercase tracking-wide font-semibold text-muted-foreground/70">
             Latency
           </span>
           <div className="mt-0.5 grid grid-cols-1 gap-1 sm:grid-cols-3">
@@ -249,7 +249,7 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
         </div>
 
         <div className="mb-1">
-          <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/70">
+          <span className="text-[10px] max-sm:text-xs uppercase tracking-wide font-semibold text-muted-foreground/70">
             Storage
           </span>
           <div className="mt-0.5 flex flex-col gap-0.5">
@@ -267,7 +267,7 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
         </div>
 
         <div className="mb-1">
-          <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/70">
+          <span className="text-[10px] max-sm:text-xs uppercase tracking-wide font-semibold text-muted-foreground/70">
             Network
           </span>
           <div className="mt-0.5 flex flex-col gap-0.5">
@@ -289,7 +289,7 @@ const NodeCard = memo(function NodeCard({ row }: { row: KeeperInfoRow }) {
         {/* Raft (only meaningful when not standalone) */}
         {!isStandalone && (
           <div>
-            <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/70">
+            <span className="text-[10px] max-sm:text-xs uppercase tracking-wide font-semibold text-muted-foreground/70">
               Raft
             </span>
             <div className="mt-0.5 flex flex-col gap-0.5">
@@ -382,7 +382,7 @@ export function KeeperNodeCards() {
         <p className="text-[12.5px]">
           No keeper nodes found.
           <br />
-          <span className="text-[11.5px]">
+          <span className="text-[11.5px] max-sm:text-xs">
             system.zookeeper_info requires ClickHouse ≥ 26.1 and an active
             Keeper / ZooKeeper connection.
           </span>
@@ -399,10 +399,10 @@ export function KeeperNodeCards() {
             {multiCluster && (
               <div className="flex items-center gap-2">
                 <Layers className="size-3.5 text-muted-foreground" />
-                <span className="text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="text-[11.5px] max-sm:text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {clusterName || 'default'}
                 </span>
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-[11px] max-sm:text-xs text-muted-foreground">
                   ({nodes.length} {nodes.length === 1 ? 'node' : 'nodes'})
                 </span>
               </div>

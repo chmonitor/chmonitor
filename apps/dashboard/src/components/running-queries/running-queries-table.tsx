@@ -236,7 +236,7 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
           </PopoverTrigger>
           <PopoverContent align="start" className="w-60 space-y-3">
             <div>
-              <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-1.5 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Interface
               </p>
               <div className="flex flex-wrap gap-1">
@@ -246,7 +246,7 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
                     type="button"
                     onClick={() => setFilterInterface(iface)}
                     className={cn(
-                      'rounded-md border px-2 py-1 text-[11.5px] font-medium transition-colors',
+                      'rounded-md border px-2 py-1 text-[11.5px] max-sm:text-xs font-medium transition-colors',
                       filterInterface === iface
                         ? 'border-border bg-muted text-foreground'
                         : 'border-border text-muted-foreground hover:text-foreground'
@@ -282,7 +282,7 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
         </Popover>
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="whitespace-nowrap text-[11.5px] tabular-nums text-muted-foreground">
+          <span className="whitespace-nowrap text-[11.5px] max-sm:text-xs tabular-nums text-muted-foreground">
             {visible.length} of {rows.length}
           </span>
           <div className="h-5 w-px bg-border" />
@@ -453,7 +453,7 @@ export const RunningQueriesTable = memo(function RunningQueriesTable({
         </div>
       )}
 
-      <div className="border-t border-border px-3 py-2 text-[11.5px] text-muted-foreground">
+      <div className="border-t border-border px-3 py-2 text-[11.5px] max-sm:text-xs text-muted-foreground">
         Showing{' '}
         <span className="font-medium tabular-nums text-foreground">
           {visible.length}

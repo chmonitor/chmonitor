@@ -275,7 +275,7 @@ export function HostSwitcher() {
                             )}
                           </span>
                         </div>
-                        <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] max-sm:text-xs font-medium text-muted-foreground">
                           Postgres
                         </span>
                       </DropdownMenuItem>

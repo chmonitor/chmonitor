@@ -26,7 +26,7 @@ export function MatchOk({ title, description, compact = false }: MatchOkProps) {
       <p
         className={
           compact
-            ? 'text-[11px] text-muted-foreground'
+            ? 'text-[11px] max-sm:text-xs text-muted-foreground'
             : 'mt-0.5 text-xs text-muted-foreground'
         }
       >

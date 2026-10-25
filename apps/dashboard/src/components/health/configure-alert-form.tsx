@@ -116,7 +116,10 @@ export function ConfigureAlertForm({
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold">Configure alert</span>
-          <Badge variant="outline" className="font-mono text-[11px]">
+          <Badge
+            variant="outline"
+            className="font-mono text-[11px] max-sm:text-xs"
+          >
             {check.id}
           </Badge>
         </div>
@@ -136,7 +139,7 @@ export function ConfigureAlertForm({
           {isTuned && (
             <Badge
               variant="secondary"
-              className="text-[10px] uppercase tracking-wide"
+              className="text-[10px] max-sm:text-xs uppercase tracking-wide"
             >
               Tuned
             </Badge>
@@ -158,7 +161,7 @@ export function ConfigureAlertForm({
             tone="critical"
           />
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[11px] max-sm:text-xs text-muted-foreground">
           Saved in this browser. The browser dispatcher fires on them through
           your local channels — no database required.
         </p>
@@ -182,7 +185,7 @@ export function ConfigureAlertForm({
           {signals.sources.includes('rule') && (
             <Badge
               variant="secondary"
-              className="text-[10px] uppercase tracking-wide"
+              className="text-[10px] max-sm:text-xs uppercase tracking-wide"
             >
               Exists
             </Badge>
@@ -190,7 +193,7 @@ export function ConfigureAlertForm({
         </div>
 
         {catalogMetric === null ? (
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] max-sm:text-xs text-muted-foreground">
             This check has no equivalent in the alert-rule metric catalog, so it
             cannot be saved as a named alert. The thresholds above still drive
             it in this browser.
@@ -213,19 +216,19 @@ export function ConfigureAlertForm({
                 className="h-8 text-[13px]"
               />
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] max-sm:text-xs text-muted-foreground">
               Saved on the server so the cron sweep evaluates it and the server
               channels can deliver it, on{' '}
               <span className="font-mono">{catalogMetric}</span>.
             </p>
 
             {availability === 'unavailable' && (
-              <p className="text-[11px] text-amber-600 dark:text-amber-400">
+              <p className="text-[11px] max-sm:text-xs text-amber-600 dark:text-amber-400">
                 {ALERT_STORE_UNAVAILABLE_HINT}
               </p>
             )}
             {availability === 'unknown' && (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] max-sm:text-xs text-muted-foreground">
                 Checking whether this deployment can store named alerts…
               </p>
             )}

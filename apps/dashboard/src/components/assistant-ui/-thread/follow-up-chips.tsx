@@ -53,7 +53,7 @@ export function FollowUpChips({
           key={prompt}
           type="button"
           onClick={() => onSelect(prompt)}
-          className="border-border/70 text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground focus-visible:ring-ring/50 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+          className="border-border/70 text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground focus-visible:ring-ring/50 rounded-full border px-2.5 py-1 text-[11.5px] max-sm:text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
           {prompt}
         </button>

@@ -85,7 +85,7 @@ function Section({
 }) {
   return (
     <section className={cn('flex min-w-0 flex-col gap-2', className)}>
-      <h4 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <h4 className="text-[10px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {title}
       </h4>
       {children}
@@ -96,7 +96,7 @@ function Section({
 function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-md border border-border/60 bg-background/60 px-3 py-2">
-      <div className="truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="truncate text-[10px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
       <div className="mt-1 truncate text-sm font-semibold tabular-nums">

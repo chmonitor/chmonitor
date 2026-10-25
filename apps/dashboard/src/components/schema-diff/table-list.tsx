@@ -70,7 +70,10 @@ function KindMark({ row, example }: { row: TableDiff; example: boolean }) {
   return (
     <span className="flex shrink-0 items-center gap-1">
       {example ? (
-        <Badge variant="secondary" className="font-normal text-[10px]">
+        <Badge
+          variant="secondary"
+          className="font-normal text-[10px] max-sm:text-xs"
+        >
           Example
         </Badge>
       ) : null}

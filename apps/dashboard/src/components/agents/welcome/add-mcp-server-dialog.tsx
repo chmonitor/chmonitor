@@ -91,7 +91,7 @@ export function AddMcpServerDialog({
           <div className="space-y-1.5">
             <label
               htmlFor="mcp-server-name"
-              className="text-muted-foreground text-[11px] font-medium"
+              className="text-muted-foreground text-[11px] max-sm:text-xs font-medium"
             >
               Server name
             </label>
@@ -107,7 +107,7 @@ export function AddMcpServerDialog({
           <div className="space-y-1.5">
             <label
               htmlFor="mcp-server-url"
-              className="text-muted-foreground text-[11px] font-medium"
+              className="text-muted-foreground text-[11px] max-sm:text-xs font-medium"
             >
               Endpoint URL
             </label>

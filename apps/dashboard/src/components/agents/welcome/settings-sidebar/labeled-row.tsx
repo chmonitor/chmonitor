@@ -16,7 +16,7 @@ export function LabeledRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-muted-foreground w-11 shrink-0 text-[9.5px] font-semibold tracking-wider uppercase">
+      <span className="text-muted-foreground w-11 shrink-0 text-[9.5px] max-sm:text-xs font-semibold tracking-wider uppercase">
         {tag}
       </span>
       <div className="min-w-0 flex-1">{children}</div>

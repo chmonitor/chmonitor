@@ -88,17 +88,23 @@ export function InsightDetailDialog({
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge
                   variant="outline"
-                  className={cn('text-[10px] font-medium', style.badge)}
+                  className={cn(
+                    'text-[10px] max-sm:text-xs font-medium',
+                    style.badge
+                  )}
                 >
                   {style.label}
                 </Badge>
-                <Badge variant="secondary" className="text-[10px] font-medium">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] max-sm:text-xs font-medium"
+                >
                   {titleCase(insight.category)}
                 </Badge>
                 {insight.metric ? (
                   <Badge
                     variant="outline"
-                    className="font-mono text-[10px] text-muted-foreground"
+                    className="font-mono text-[10px] max-sm:text-xs text-muted-foreground"
                   >
                     {insight.metric}
                   </Badge>
@@ -107,7 +113,7 @@ export function InsightDetailDialog({
                   <time
                     dateTime={insight.generatedAt}
                     title={new Date(generatedMs).toLocaleString()}
-                    className="text-[11px] text-muted-foreground/80"
+                    className="text-[11px] max-sm:text-xs text-muted-foreground/80"
                   >
                     {formatRelativeTime(generatedMs)}
                   </time>

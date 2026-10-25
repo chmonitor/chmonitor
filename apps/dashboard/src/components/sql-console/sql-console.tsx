@@ -184,7 +184,7 @@ export function SqlConsole({
               <Play className="mr-1.5 size-3.5" />
             )}
             Run
-            <kbd className="bg-primary-foreground/20 ml-1.5 hidden rounded px-1 text-[10px] sm:inline">
+            <kbd className="bg-primary-foreground/20 ml-1.5 hidden rounded px-1 text-[10px] max-sm:text-xs sm:inline">
               ⌘↵
             </kbd>
           </Button>
@@ -453,7 +453,7 @@ function StatusBar({
         </span>
       )}
       {queryId && (
-        <code className="text-[11px] opacity-70" title={queryId}>
+        <code className="text-[11px] max-sm:text-xs opacity-70" title={queryId}>
           {queryId.slice(0, 8)}…
         </code>
       )}

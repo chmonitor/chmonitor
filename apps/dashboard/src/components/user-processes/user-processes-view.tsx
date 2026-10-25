@@ -30,7 +30,7 @@ function FilterGroup({
   if (options.length === 0) return null
   return (
     <div className="flex items-center gap-1.5">
-      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+      <span className="inline-flex items-center gap-1 text-[11px] max-sm:text-xs font-medium text-muted-foreground">
         <Timer className="size-3.5" />
         Time window
       </span>
@@ -43,7 +43,7 @@ function FilterGroup({
               type="button"
               onClick={() => onSelect(opt.key, String(opt.value))}
               className={cn(
-                'rounded-md border px-2 py-1 text-[11px] font-medium tabular-nums transition-colors',
+                'rounded-md border px-2 py-1 text-[11px] max-sm:text-xs font-medium tabular-nums transition-colors',
                 selected
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border bg-card text-muted-foreground hover:bg-muted/60 hover:text-foreground'

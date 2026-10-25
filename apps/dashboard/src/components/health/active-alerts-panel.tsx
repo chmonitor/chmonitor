@@ -197,7 +197,7 @@ export function ActiveAlertsPanel() {
               <TableCell>
                 <Badge
                   className={cn(
-                    'text-[11px]',
+                    'text-[11px] max-sm:text-xs',
                     SEVERITY_BADGE_CLASS[finding.severity]
                   )}
                 >

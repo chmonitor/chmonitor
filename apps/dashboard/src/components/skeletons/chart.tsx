@@ -59,7 +59,7 @@ const AreaChartSkeleton = () => (
       </svg>
     </div>
 
-    <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1 pt-1 border-t border-border/30">
+    <div className="flex justify-between text-[9px] max-sm:text-xs text-muted-foreground/40 mt-1 pt-1 border-t border-border/30">
       <Skeleton className="h-2 w-8" />
       <Skeleton className="h-2 w-8" />
       <Skeleton className="h-2 w-8" />
@@ -93,7 +93,7 @@ const LineChartSkeleton = () => (
       </svg>
     </div>
 
-    <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1 pt-1 border-t border-border/30">
+    <div className="flex justify-between text-[9px] max-sm:text-xs text-muted-foreground/40 mt-1 pt-1 border-t border-border/30">
       <Skeleton className="h-2 w-8" />
       <Skeleton className="h-2 w-8" />
       <Skeleton className="h-2 w-8" />
@@ -120,7 +120,7 @@ const BarChartSkeleton = () => (
       ))}
     </div>
 
-    <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1.5 pt-1 border-t border-border/30">
+    <div className="flex justify-between text-[9px] max-sm:text-xs text-muted-foreground/40 mt-1.5 pt-1 border-t border-border/30">
       <Skeleton className="h-2 w-6" />
       <Skeleton className="h-2 w-6" />
       <Skeleton className="h-2 w-6" />

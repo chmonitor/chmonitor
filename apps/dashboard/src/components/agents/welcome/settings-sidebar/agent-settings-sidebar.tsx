@@ -113,7 +113,7 @@ export function AgentSettingsSidebar({
         icon={PlugZapIcon}
         defaultOpen={false}
         right={
-          <span className="text-muted-foreground text-[10px] tabular-nums">
+          <span className="text-muted-foreground text-[10px] max-sm:text-xs tabular-nums">
             <span className="text-foreground font-medium">
               {mcpCounts.active}
             </span>
@@ -127,14 +127,14 @@ export function AgentSettingsSidebar({
         <button
           type="button"
           onClick={() => setConnectOpen(true)}
-          className="text-muted-foreground hover:text-foreground hover:bg-muted/40 mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed px-3 py-2 text-left text-[11.5px] transition-colors"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted/40 mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed px-3 py-2 text-left text-[11.5px] max-sm:text-xs transition-colors"
         >
           <PlugZapIcon className="size-3.5 shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="text-foreground font-medium">
               Connect your own agent
             </span>
-            <span className="block text-[10.5px]">
+            <span className="block text-[10.5px] max-sm:text-xs">
               Use this cluster&apos;s MCP endpoint in your IDE or tooling
             </span>
           </span>
@@ -147,7 +147,7 @@ export function AgentSettingsSidebar({
         icon={SparklesIcon}
         defaultOpen={false}
         right={
-          <span className="text-muted-foreground text-[10px] tabular-nums">
+          <span className="text-muted-foreground text-[10px] max-sm:text-xs tabular-nums">
             <span className="text-foreground font-medium">
               {activeSkillCount}
             </span>
@@ -176,7 +176,7 @@ export function AgentSettingsSidebar({
                     <div className="truncate text-[12px] font-medium">
                       {skill.name}
                     </div>
-                    <div className="text-muted-foreground text-[10px] tabular-nums">
+                    <div className="text-muted-foreground text-[10px] max-sm:text-xs tabular-nums">
                       {skill.tools.length} tools · {skill.source}
                     </div>
                   </div>
@@ -196,7 +196,7 @@ export function AgentSettingsSidebar({
           variant="outline"
           size="sm"
           onClick={onOpenSkillsLibrary ?? (() => setLibraryOpen(true))}
-          className="mt-1.5 h-8 w-full justify-center gap-1.5 text-[11.5px]"
+          className="mt-1.5 h-8 w-full justify-center gap-1.5 text-[11.5px] max-sm:text-xs"
         >
           <SparklesIcon className="size-3" />
           Skill library
@@ -212,7 +212,7 @@ export function AgentSettingsSidebar({
         icon={LightbulbIcon}
         defaultOpen={false}
         right={
-          <span className="text-muted-foreground text-[10px] tabular-nums">
+          <span className="text-muted-foreground text-[10px] max-sm:text-xs tabular-nums">
             {SUGGESTED_PROMPTS.length}
           </span>
         }
@@ -252,12 +252,12 @@ export function AgentSettingsSidebar({
         <DrawerContent className="max-h-[85dvh]">
           <DrawerHeader className="text-left">
             <DrawerTitle className="text-[14px]">Agent settings</DrawerTitle>
-            <DrawerDescription className="text-[11.5px]">
+            <DrawerDescription className="text-[11.5px] max-sm:text-xs">
               Host, model, tools, and skills.
             </DrawerDescription>
             <AppLink
               href="/agents/settings"
-              className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-[11px] underline underline-offset-2"
+              className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-[11px] max-sm:text-xs underline underline-offset-2"
             >
               Open full agent settings
               <ArrowRightIcon className="size-2.5" />
@@ -286,7 +286,7 @@ export function AgentSettingsSidebar({
           <div className="flex shrink-0 items-center gap-0.5">
             <AppLink
               href="/agents/settings"
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center gap-1 rounded-md px-1.5 py-1 text-[10.5px] font-medium transition-colors"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center gap-1 rounded-md px-1.5 py-1 text-[10.5px] max-sm:text-xs font-medium transition-colors"
             >
               Full settings
               <ArrowRightIcon className="size-2.5" />

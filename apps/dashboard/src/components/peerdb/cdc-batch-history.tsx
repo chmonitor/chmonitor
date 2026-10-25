@@ -43,10 +43,10 @@ export function CdcBatchHistory({ batches }: { batches: CDCBatch[] }) {
     <div className="flex flex-col gap-3">
       <div className="rounded-lg border border-border bg-card p-3.5">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Rows per batch
           </span>
-          <span className="text-[10.5px] tabular-nums text-muted-foreground">
+          <span className="text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground">
             {batches.length} batches
           </span>
         </div>
@@ -77,7 +77,7 @@ export function CdcBatchHistory({ batches }: { batches: CDCBatch[] }) {
                   <TableCell className="font-mono text-xs tabular-nums">
                     #{String(b.batchId ?? '—')}
                   </TableCell>
-                  <TableCell className="font-mono text-[11px] text-muted-foreground">
+                  <TableCell className="font-mono text-[11px] max-sm:text-xs text-muted-foreground">
                     {b.startLsn ?? '—'} → {b.endLsn ?? '—'}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">

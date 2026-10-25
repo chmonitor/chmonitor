@@ -38,7 +38,7 @@ export function RecommendDdlBlocks({
       </CodeBlock>
       {onClusterStatement ? (
         <div className="space-y-1">
-          <div className="text-[11px] font-medium text-muted-foreground">
+          <div className="text-[11px] max-sm:text-xs font-medium text-muted-foreground">
             ON CLUSTER
           </div>
           <CodeBlock

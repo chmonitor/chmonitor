@@ -79,7 +79,7 @@ export function TimezoneCombobox({
                 <span className="min-w-0 flex-1 truncate">
                   {timezoneLabel(browserTimezone)}
                 </span>
-                <span className="shrink-0 text-[10px] text-muted-foreground">
+                <span className="shrink-0 text-[10px] max-sm:text-xs text-muted-foreground">
                   Browser
                 </span>
               </CommandItem>
@@ -100,7 +100,7 @@ export function TimezoneCombobox({
                     />
                     <span className="min-w-0 flex-1 truncate">{tz.label}</span>
                     {defaultTimezone === tz.value && (
-                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                      <span className="shrink-0 text-[10px] max-sm:text-xs text-muted-foreground">
                         Default
                       </span>
                     )}

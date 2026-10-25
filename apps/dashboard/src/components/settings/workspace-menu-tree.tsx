@@ -139,7 +139,7 @@ function TreeNode({
               <SidebarMenuSubItem key={`subgroup:${section.subgroup}`}>
                 <div
                   data-testid="workspace-menu-subgroup"
-                  className="px-2 pt-1.5 pb-0.5 text-left text-[11px] font-medium text-muted-foreground"
+                  className="px-2 pt-1.5 pb-0.5 text-left text-[11px] max-sm:text-xs font-medium text-muted-foreground"
                 >
                   {section.subgroup}
                 </div>
@@ -184,7 +184,7 @@ function LeafRow({
       >
         {item.icon && <item.icon className="size-4 shrink-0" />}
         <span className="min-w-0 flex-1 truncate text-left">{item.title}</span>
-        <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+        <span className="ml-auto shrink-0 text-[11px] max-sm:text-xs text-muted-foreground">
           {hidden ? 'Show' : 'Hide'}
         </span>
       </button>
@@ -204,7 +204,7 @@ function SubLeafRow({
   if (item.items?.length) {
     return (
       <SidebarMenuSubItem>
-        <div className="px-2 py-1 text-left text-[11px] font-medium text-muted-foreground">
+        <div className="px-2 py-1 text-left text-[11px] max-sm:text-xs font-medium text-muted-foreground">
           {item.title}
         </div>
         <SidebarMenuSub>
@@ -238,7 +238,7 @@ function SubLeafRow({
         }
       >
         <span className="min-w-0 flex-1 truncate">{item.title}</span>
-        <span className="shrink-0 text-[11px] text-muted-foreground">
+        <span className="shrink-0 text-[11px] max-sm:text-xs text-muted-foreground">
           {hidden ? 'Show' : 'Hide'}
         </span>
       </SidebarMenuSubButton>

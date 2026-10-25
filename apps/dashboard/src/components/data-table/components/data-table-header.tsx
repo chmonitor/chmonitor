@@ -322,7 +322,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                 <FilterIcon className="size-3.5" />
                 <span>Filters</span>
                 {advancedFilters.length > 0 && (
-                  <span className="flex items-center justify-center size-4 bg-primary text-[10px] font-bold text-primary-foreground rounded-full">
+                  <span className="flex items-center justify-center size-4 bg-primary text-[10px] max-sm:text-xs font-bold text-primary-foreground rounded-full">
                     {advancedFilters.length}
                   </span>
                 )}
@@ -438,7 +438,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                     <PlusIcon className="size-3.5" /> Add condition
                   </Button>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-[11px] max-sm:text-xs text-muted-foreground">
                       Press Enter to apply
                     </span>
                     <Button
@@ -481,7 +481,7 @@ export const DataTableHeader = memo(function DataTableHeader<
           {(advancedFilters.length > 0 || globalSearch) && (
             <div className="flex flex-wrap items-center gap-1.5">
               {globalSearch && (
-                <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-medium transition-colors">
+                <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] max-sm:text-xs font-medium transition-colors">
                   <span>Search: &ldquo;{globalSearch}&rdquo;</span>
                   <button
                     type="button"
@@ -498,7 +498,7 @@ export const DataTableHeader = memo(function DataTableHeader<
                 return (
                   <div
                     key={filter.id}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted/60 dark:bg-muted/40 border border-border/50 text-foreground/80 text-[11px] font-medium transition-colors"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted/60 dark:bg-muted/40 border border-border/50 text-foreground/80 text-[11px] max-sm:text-xs font-medium transition-colors"
                   >
                     <span>{`${label} ${OPERATOR_LABELS[filter.operator]} “${filter.value}”`}</span>
                     <button

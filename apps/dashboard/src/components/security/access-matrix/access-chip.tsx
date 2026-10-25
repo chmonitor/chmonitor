@@ -23,7 +23,7 @@ export function AccessChip({ cell }: { cell: CellAccess }) {
     <span className="inline-flex items-center gap-1">
       <span
         className={cn(
-          'rounded px-1.5 py-0.5 font-mono text-[11px] leading-none',
+          'rounded px-1.5 py-0.5 font-mono text-[11px] max-sm:text-xs leading-none',
           LEVEL_CLASS[cell.level]
         )}
       >

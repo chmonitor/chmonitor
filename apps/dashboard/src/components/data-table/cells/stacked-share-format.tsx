@@ -68,7 +68,7 @@ export function StackedShareFormat<TData extends RowData = RowData>({
           style={{ width: `${dropPct}%` }}
         />
       </div>
-      <div className="text-muted-foreground flex gap-2 text-[11px] tabular-nums">
+      <div className="text-muted-foreground flex gap-2 text-[11px] max-sm:text-xs tabular-nums">
         <span className={cn(drop > 0 ? 'text-foreground' : undefined)}>
           {keepLabel} in range
         </span>

@@ -348,7 +348,7 @@ const SubgroupSection = function SubgroupSection({
         aria-expanded={open}
         aria-controls={open ? contentId : undefined}
         onClick={toggle}
-        className="flex h-11 min-h-11 w-full cursor-pointer items-center gap-1 rounded-md px-2 text-left text-[11px] font-medium text-muted-foreground ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 lg:h-6 lg:min-h-6"
+        className="flex h-11 min-h-11 w-full cursor-pointer items-center gap-1 rounded-md px-2 text-left text-[11px] max-sm:text-xs font-medium text-muted-foreground ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 lg:h-6 lg:min-h-6"
       >
         <ChevronRight
           aria-hidden="true"

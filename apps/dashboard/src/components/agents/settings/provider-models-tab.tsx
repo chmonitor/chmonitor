@@ -64,7 +64,7 @@ function ProviderMark({ provider }: { provider: string }) {
   return (
     <span
       className={cn(
-        'inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white',
+        'inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] max-sm:text-xs font-semibold text-white',
         providerDotClass(provider)
       )}
     >
@@ -82,7 +82,7 @@ function ProviderStatusBadge({
   return status.configured ? (
     <Badge
       variant="outline"
-      className="h-4 gap-1 px-1.5 text-[10px] font-normal text-[var(--chart-green)]"
+      className="h-4 gap-1 px-1.5 text-[10px] max-sm:text-xs font-normal text-[var(--chart-green)]"
     >
       <CheckCircle2Icon className="size-2.5" />
       Configured
@@ -90,7 +90,7 @@ function ProviderStatusBadge({
   ) : (
     <Badge
       variant="outline"
-      className="text-muted-foreground h-4 px-1.5 text-[10px] font-normal"
+      className="text-muted-foreground h-4 px-1.5 text-[10px] max-sm:text-xs font-normal"
     >
       Not configured
     </Badge>
@@ -149,7 +149,7 @@ export function AnyRouterSignInRow({
           {isSignedIn ? (
             <Badge
               variant="outline"
-              className="h-4 gap-1 px-1.5 text-[10px] font-normal text-[var(--chart-green)]"
+              className="h-4 gap-1 px-1.5 text-[10px] max-sm:text-xs font-normal text-[var(--chart-green)]"
             >
               <CheckCircle2Icon className="size-2.5" />
               Connected
@@ -158,7 +158,7 @@ export function AnyRouterSignInRow({
         </p>
         <p
           className={cn(
-            'text-[11px] leading-snug',
+            'text-[11px] max-sm:text-xs leading-snug',
             expired && !isSignedIn
               ? 'text-[var(--chart-yellow)]'
               : 'text-muted-foreground'
@@ -167,12 +167,12 @@ export function AnyRouterSignInRow({
           {description}
         </p>
         {isSignedIn && expiresAt !== null ? (
-          <p className="text-muted-foreground text-[11px] leading-snug">
+          <p className="text-muted-foreground text-[11px] max-sm:text-xs leading-snug">
             Expires {formatAnyRouterExpiry(expiresAt)}
           </p>
         ) : null}
         {anyRouter.error ? (
-          <p className="text-destructive pt-0.5 text-[11px]">
+          <p className="text-destructive pt-0.5 text-[11px] max-sm:text-xs">
             {anyRouter.error}
           </p>
         ) : null}
@@ -264,7 +264,7 @@ export function ProviderModelsTab() {
           <AlertTriangleIcon className="size-4" />
           <AlertDescription>
             No provider is configured. Set{' '}
-            <code className="font-mono text-[11px]">
+            <code className="font-mono text-[11px] max-sm:text-xs">
               {configCheck.requiredKeys.apiKey}
             </code>{' '}
             to enable the agent.
@@ -284,7 +284,7 @@ export function ProviderModelsTab() {
             >
               <div className="bg-muted/40 flex items-center gap-2 px-3 py-2">
                 <ProviderMark provider={provider} />
-                <span className="text-[11px] font-semibold tracking-wider uppercase">
+                <span className="text-[11px] max-sm:text-xs font-semibold tracking-wider uppercase">
                   {provider}
                 </span>
                 {configLoading ? (
@@ -293,7 +293,7 @@ export function ProviderModelsTab() {
                   <ProviderStatusBadge status={status} />
                 )}
                 {status && (
-                  <span className="text-muted-foreground ml-auto truncate font-mono text-[10px]">
+                  <span className="text-muted-foreground ml-auto truncate font-mono text-[10px] max-sm:text-xs">
                     {status.apiKeyEnvVar}
                   </span>
                 )}
@@ -315,7 +315,7 @@ export function ProviderModelsTab() {
 
       <p
         className={cn(
-          'text-muted-foreground text-[11px] leading-snug',
+          'text-muted-foreground text-[11px] max-sm:text-xs leading-snug',
           'border-t pt-3'
         )}
       >

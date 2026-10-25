@@ -112,7 +112,7 @@ export function AlertTemplateDialog({
               </li>
             ))}
           </ul>
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-[11px] max-sm:text-xs text-muted-foreground">
             Webhook and healthchecks.io targets are left untouched.
           </span>
         </div>

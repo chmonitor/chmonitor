@@ -49,7 +49,7 @@ function SourceBadge({ source }: { source: MergedHostInfo['source'] }) {
   const label =
     source === 'demo' ? 'demo' : source === 'database' ? 'saved' : 'browser'
   return (
-    <Badge variant="outline" className="shrink-0 text-[10px]">
+    <Badge variant="outline" className="shrink-0 text-[10px] max-sm:text-xs">
       {label}
     </Badge>
   )
@@ -242,7 +242,10 @@ function FleetPgRow({ pg }: { pg: PgConnectionInfo }) {
         <div className="flex items-center gap-2">
           <StatusDot state="unknown" />
           <span className="truncate font-medium">{pg.name || pg.host}</span>
-          <Badge variant="outline" className="shrink-0 text-[10px]">
+          <Badge
+            variant="outline"
+            className="shrink-0 text-[10px] max-sm:text-xs"
+          >
             Postgres
           </Badge>
         </div>

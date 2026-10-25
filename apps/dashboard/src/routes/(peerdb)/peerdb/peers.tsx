@@ -80,7 +80,7 @@ function computePeerStats(
 function ToneDot({ tone, count }: { tone: string; count: number }) {
   return (
     <span
-      className="inline-flex items-center gap-1 text-[11px]"
+      className="inline-flex items-center gap-1 text-[11px] max-sm:text-xs"
       title={`${count} ${tone}`}
     >
       <span
@@ -250,7 +250,7 @@ function PeerDBPeersPage() {
                             ))}
                         </div>
                       ) : (
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-[11px] max-sm:text-xs text-muted-foreground">
                           No mirrors
                         </span>
                       )}

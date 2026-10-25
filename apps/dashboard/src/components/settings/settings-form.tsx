@@ -102,7 +102,7 @@ export function SettingsForm({
               />
               Settings
             </p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+            <p className="mt-0.5 text-[11px] max-sm:text-xs text-muted-foreground">
               Local to this browser
             </p>
           </div>
@@ -112,7 +112,7 @@ export function SettingsForm({
           >
             {navGroups.map((group) => (
               <div key={group.label} className="pb-2">
-                <p className="px-2.5 pb-1 pt-2 text-[11px] font-medium text-muted-foreground">
+                <p className="px-2.5 pb-1 pt-2 text-[11px] max-sm:text-xs font-medium text-muted-foreground">
                   {group.label}
                 </p>
                 {group.items.map((item) => {

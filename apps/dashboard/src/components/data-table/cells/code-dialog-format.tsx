@@ -451,14 +451,14 @@ export const CodeDialogFormat = memo(function CodeDialogFormat({
         <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 transition-opacity group-hover/code:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
           <Badge
             variant="secondary"
-            className="bg-background/80 font-mono text-[10px]"
+            className="bg-background/80 font-mono text-[10px] max-sm:text-xs"
           >
             {language === 'plaintext' ? 'TEXT' : language.toUpperCase()}
           </Badge>
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-0.5 text-[10px] text-muted-foreground">
+      <div className="flex items-center justify-between px-0.5 text-[10px] max-sm:text-xs text-muted-foreground">
         <span className="font-medium">{languageLabel}</span>
         <span className="tabular-nums">{lineCount} lines</span>
       </div>

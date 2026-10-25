@@ -58,7 +58,7 @@ function formatValue(value: unknown): string {
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-md border border-border/60 bg-background/60 px-3 py-2">
-      <div className="truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="truncate text-[11px] max-sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
       <div

@@ -69,7 +69,7 @@ export function PhaseTimeline({
             <div className="flex shrink-0 items-start gap-2">
               <span
                 className={cn(
-                  'relative mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
+                  'relative mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] max-sm:text-xs font-bold',
                   pending ? 'text-muted-foreground' : 'text-white'
                 )}
                 style={{
@@ -88,7 +88,7 @@ export function PhaseTimeline({
               <div className="flex flex-col leading-tight">
                 <span
                   className={cn(
-                    'whitespace-nowrap text-[11px] font-medium',
+                    'whitespace-nowrap text-[11px] max-sm:text-xs font-medium',
                     done
                       ? 'text-foreground'
                       : cur
@@ -109,7 +109,7 @@ export function PhaseTimeline({
                     </span>
                   )}
                 </span>
-                <span className="whitespace-nowrap text-[9.5px] text-muted-foreground/80">
+                <span className="whitespace-nowrap text-[9.5px] max-sm:text-xs text-muted-foreground/80">
                   {n.hint}
                 </span>
               </div>

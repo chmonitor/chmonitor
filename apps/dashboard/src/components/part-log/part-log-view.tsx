@@ -90,7 +90,7 @@ export function PartLogView() {
             <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs font-medium tabular-nums text-foreground">
               {rows.length.toLocaleString()} events
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 text-[11px] max-sm:text-xs text-emerald-700 dark:text-emerald-400">
               <span className="relative inline-flex size-2">
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-70" />
                 <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />

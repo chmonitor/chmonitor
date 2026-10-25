@@ -50,7 +50,7 @@ export function FleetLagTriage({
         <h2 className="text-[12px] font-semibold text-amber-800 dark:text-amber-300">
           Lag triage
         </h2>
-        <span className="text-[11px] text-amber-700/80 dark:text-amber-400/70">
+        <span className="text-[11px] max-sm:text-xs text-amber-700/80 dark:text-amber-400/70">
           {entries.length} mirror{entries.length === 1 ? '' : 's'} behind
         </span>
       </div>
@@ -68,7 +68,7 @@ export function FleetLagTriage({
                     {e.name}
                   </span>
                   {(e.source || e.destination) && (
-                    <span className="hidden truncate text-[10.5px] text-muted-foreground sm:inline">
+                    <span className="hidden truncate text-[10.5px] max-sm:text-xs text-muted-foreground sm:inline">
                       {e.source ?? '—'} → {e.destination ?? '—'}
                     </span>
                   )}

@@ -77,7 +77,7 @@ export function QueryDetailHeader({
           {type && (
             <span
               className={cn(
-                'inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-wide',
+                'inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wide',
                 typeBadgeClass(type)
               )}
             >
@@ -87,7 +87,7 @@ export function QueryDetailHeader({
           {kind && (
             <span
               className={cn(
-                'inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-wide',
+                'inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wide',
                 kindBadgeClass(kind)
               )}
             >
@@ -95,7 +95,7 @@ export function QueryDetailHeader({
             </span>
           )}
           {hasException && (
-            <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-wide bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
+            <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wide bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
               <AlertCircle className="size-3" />
               Error {toStr(row.exception_code)}
             </span>
@@ -172,10 +172,10 @@ export function QueryDetailHeader({
 
       {hasException && row.exception_text && (
         <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 dark:border-rose-900/40 dark:bg-rose-950/20">
-          <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+          <p className="mb-1 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
             Exception
           </p>
-          <pre className="max-h-[120px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-rose-700 dark:text-rose-300">
+          <pre className="max-h-[120px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] max-sm:text-xs text-rose-700 dark:text-rose-300">
             {toStr(row.exception_text)}
           </pre>
         </div>
@@ -186,10 +186,10 @@ export function QueryDetailHeader({
           of exception_text since it carries the C++ frame breakdown. */}
       {stackTrace && (
         <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 dark:border-rose-900/40 dark:bg-rose-950/20">
-          <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+          <p className="mb-1 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
             Stack trace
           </p>
-          <pre className="max-h-[240px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] text-rose-700/90 dark:text-rose-300/90">
+          <pre className="max-h-[240px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] max-sm:text-xs text-rose-700/90 dark:text-rose-300/90">
             {stackTrace}
           </pre>
         </div>
@@ -273,7 +273,7 @@ export function QueryDetailInsights({
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <h2 className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <h2 className="mb-3 flex items-center gap-1.5 text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         <Lightbulb className="size-3.5" />
         Insights
       </h2>
@@ -292,7 +292,7 @@ export function QueryDetailInsights({
             />
             <div className="min-w-0">
               <p className="text-[12.5px] font-medium">{insight.title}</p>
-              <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+              <p className="text-[11.5px] max-sm:text-xs leading-relaxed text-muted-foreground">
                 {insight.detail}
               </p>
             </div>
@@ -315,10 +315,10 @@ export function QueryDetailChildren({
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Child queries
         </span>
-        <span className="text-[10.5px] tabular-nums text-muted-foreground">
+        <span className="text-[10.5px] max-sm:text-xs tabular-nums text-muted-foreground">
           {childrenData.length} spawned by this query
         </span>
       </div>
@@ -337,11 +337,11 @@ export function QueryDetailChildren({
             >
               {String(child.query_id)}
             </Link>
-            <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+            <span className="shrink-0 text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
               {formatReadableSecondDuration(toNumber(child.query_duration))}
             </span>
             {toStr(child.readable_read_rows) && (
-              <span className="shrink-0 text-[11px] text-muted-foreground">
+              <span className="shrink-0 text-[11px] max-sm:text-xs text-muted-foreground">
                 {toStr(child.readable_read_rows)} rows
               </span>
             )}

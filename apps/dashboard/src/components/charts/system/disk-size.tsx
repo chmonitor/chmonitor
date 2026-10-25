@@ -121,7 +121,7 @@ export const ChartDiskSize = createCustomChart({
                     {row.type ? (
                       <Badge
                         variant="secondary"
-                        className="rounded-md px-1.5 py-0 text-[10px]"
+                        className="rounded-md px-1.5 py-0 text-[10px] max-sm:text-xs"
                       >
                         {row.type}
                       </Badge>

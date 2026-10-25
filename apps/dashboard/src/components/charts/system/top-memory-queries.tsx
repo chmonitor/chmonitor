@@ -79,7 +79,7 @@ function QueryDetailDialog({
 
         <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
           <div className="flex flex-col gap-0.5 px-4 py-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Peak Memory
             </span>
             <span className="font-mono text-sm font-semibold tabular-nums text-orange-600 dark:text-orange-400">
@@ -87,7 +87,7 @@ function QueryDetailDialog({
             </span>
           </div>
           <div className="flex flex-col gap-0.5 px-4 py-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Avg Memory
             </span>
             <span className="font-mono text-sm font-medium tabular-nums">
@@ -95,7 +95,7 @@ function QueryDetailDialog({
             </span>
           </div>
           <div className="flex flex-col gap-0.5 px-4 py-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Executions
             </span>
             <span className="font-mono text-sm font-medium tabular-nums">
@@ -106,16 +106,16 @@ function QueryDetailDialog({
 
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[11px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               SQL Preview
             </span>
-            <span className="text-[10.5px] text-muted-foreground">
+            <span className="text-[10.5px] max-sm:text-xs text-muted-foreground">
               (first 120 chars)
             </span>
             <Button
               variant="ghost"
               size="sm"
-              className="ml-auto h-6 px-2 text-[11px] text-muted-foreground"
+              className="ml-auto h-6 px-2 text-[11px] max-sm:text-xs text-muted-foreground"
               onClick={handleCopy}
             >
               {copied ? 'Copied' : 'Copy'}

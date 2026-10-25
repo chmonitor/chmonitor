@@ -22,7 +22,7 @@ export function RankBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums',
+        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[11px] max-sm:text-xs font-semibold tabular-nums',
         RANK_BADGE[severity]
       )}
     >
@@ -59,14 +59,14 @@ export function MetricBar({
     >
       <span
         className={cn(
-          'text-[11px] tabular-nums',
+          'text-[11px] max-sm:text-xs tabular-nums',
           align === 'right' && 'text-right',
           valueClassName
         )}
       >
         {value}
         {unit && (
-          <span className="ml-0.5 text-[10px] text-muted-foreground">
+          <span className="ml-0.5 text-[10px] max-sm:text-xs text-muted-foreground">
             {unit}
           </span>
         )}

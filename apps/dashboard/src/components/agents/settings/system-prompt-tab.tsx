@@ -21,12 +21,12 @@ import { CLICKHOUSE_AGENT_INSTRUCTIONS } from '@/lib/ai/agent/prompts/clickhouse
 export function SystemPromptTab() {
   return (
     <div className="space-y-3">
-      <p className="text-muted-foreground text-[11.5px] leading-snug">
+      <p className="text-muted-foreground text-[11.5px] max-sm:text-xs leading-snug">
         The instructions sent to the model at the start of every conversation.
         Fixed for now — there is no per-user override.
       </p>
       <ScrollArea className="bg-muted/20 h-[480px] rounded-md border">
-        <pre className="whitespace-pre-wrap p-4 font-mono text-[11px] leading-relaxed">
+        <pre className="whitespace-pre-wrap p-4 font-mono text-[11px] max-sm:text-xs leading-relaxed">
           {CLICKHOUSE_AGENT_INSTRUCTIONS}
         </pre>
       </ScrollArea>

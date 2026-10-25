@@ -65,7 +65,7 @@ function DiskRowItem({ disk }: { disk: DiskRow }) {
             {disk.name}
           </span>
           {disk.type ? (
-            <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
+            <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] max-sm:text-xs font-medium text-secondary-foreground">
               {disk.type}
             </span>
           ) : null}
@@ -82,7 +82,7 @@ function DiskRowItem({ disk }: { disk: DiskRow }) {
 
       <DiskUsageBar percentUsed={pct} className="h-2" />
 
-      <div className="flex items-center justify-between font-mono text-[11px] tabular-nums text-muted-foreground">
+      <div className="flex items-center justify-between font-mono text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
         <span>
           {disk.readable_used_space} / {disk.readable_total_space}
         </span>
@@ -103,7 +103,7 @@ function DiskUsageContent({ disks }: { disks: DiskRow[] }) {
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-baseline justify-between gap-2 pb-2 font-mono text-[11px] tabular-nums text-muted-foreground">
+      <div className="flex items-baseline justify-between gap-2 pb-2 font-mono text-[11px] max-sm:text-xs tabular-nums text-muted-foreground">
         <span className="text-[13px] font-semibold tabular-nums text-foreground/90">
           {formatReadableSize(usedSum)}
           <span className="font-normal text-muted-foreground">

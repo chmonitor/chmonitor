@@ -122,7 +122,7 @@ export function CommandPaletteTrigger({ onOpen }: { onOpen: () => void }) {
         <span className="text-muted-foreground">Search…</span>
         <kbd
           id="search-shortcut"
-          className="ml-auto rounded border bg-muted px-1.5 text-[10px] font-medium"
+          className="ml-auto rounded border bg-muted px-1.5 text-[10px] max-sm:text-xs font-medium"
         >
           ⌘K
         </kbd>
@@ -141,7 +141,7 @@ export function Kbd({
   return (
     <kbd
       className={cn(
-        'inline-flex h-5 min-w-5 items-center justify-center rounded border bg-muted px-1 font-sans text-[10px] font-medium text-muted-foreground',
+        'inline-flex h-5 min-w-5 items-center justify-center rounded border bg-muted px-1 font-sans text-[10px] max-sm:text-xs font-medium text-muted-foreground',
         className
       )}
     >
@@ -156,7 +156,7 @@ export function Kbd({
  */
 export function EnterHint() {
   return (
-    <span className="ml-auto flex items-center gap-1 pl-2 text-[10px] text-muted-foreground opacity-0 transition-opacity group-data-[selected=true]:opacity-100">
+    <span className="ml-auto flex items-center gap-1 pl-2 text-[10px] max-sm:text-xs text-muted-foreground opacity-0 transition-opacity group-data-[selected=true]:opacity-100">
       <CornerDownLeft className="size-3" />
     </span>
   )
@@ -172,7 +172,7 @@ function HiddenHint({ hidden }: { hidden: boolean }) {
   return (
     <span
       data-testid="palette-hidden-hint"
-      className="ml-1 shrink-0 text-[10px] font-medium text-muted-foreground"
+      className="ml-1 shrink-0 text-[10px] max-sm:text-xs font-medium text-muted-foreground"
     >
       Hidden
     </span>
@@ -646,7 +646,7 @@ export function CommandPaletteResults({
 /** Footer with keyboard hints — the hallmark of a polished palette. */
 export function CommandPaletteFooter() {
   return (
-    <div className="flex items-center justify-between border-t px-3 py-2 text-[11px] text-muted-foreground">
+    <div className="flex items-center justify-between border-t px-3 py-2 text-[11px] max-sm:text-xs text-muted-foreground">
       <div className="flex items-center gap-3">
         <span className="flex items-center gap-1">
           <Kbd>↑</Kbd>

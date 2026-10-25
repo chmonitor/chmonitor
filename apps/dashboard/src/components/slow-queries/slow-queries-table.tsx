@@ -141,7 +141,7 @@ const SEVERITY_DURATION: Record<Severity, string> = {
 function RankBadge({ rank }: { rank: number }) {
   return (
     <span
-      className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-[11px] font-semibold tabular-nums text-muted-foreground"
+      className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-[11px] max-sm:text-xs font-semibold tabular-nums text-muted-foreground"
       title={`Rank #${rank} by duration`}
     >
       {rank}
@@ -154,7 +154,7 @@ function CacheBadge({ value }: { value: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-wide',
+        'inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wide',
         cacheBadgeClass(value)
       )}
     >
@@ -208,7 +208,7 @@ function ExpandedDetail({ d }: { d: DerivedQuery }) {
   return (
     <div className="space-y-3 border-t border-border bg-muted/40 px-3 py-3.5 sm:px-5">
       <div className="overflow-hidden rounded-md border border-border bg-card">
-        <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="border-b border-border bg-muted/40 px-3 pb-1.5 pt-2 text-[10px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Query metrics
         </div>
         <dl className="-ml-px -mt-px grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -225,7 +225,7 @@ function ExpandedDetail({ d }: { d: DerivedQuery }) {
 
       {/* Full query — syntax-highlighted dialog with EXPLAIN plan tab. */}
       <div>
-        <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="mb-1.5 text-[10.5px] max-sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Full query
         </div>
         <CodeDialogFormat
