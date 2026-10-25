@@ -4,7 +4,7 @@
  * Plan every shipped query on every given ClickHouse binary.
  *
  *   bun scripts/audit-query-configs.ts --bin <path> [--bin <path> ...]
- *     [--only <substring>] [--json <out.json>] [--all]
+ *     [--only <substring>] [--json <out.json>] [--all] [--analyzer-off]
  *
  * For each binary this boots a throwaway `clickhouse server` with an embedded
  * Keeper (not `local`: `clickhouse local` never creates the `*_log` tables, so
@@ -18,7 +18,11 @@
  * `version()`, so each binary sees what production sends it. `{name:Type}`
  * placeholders are bound as HTTP `param_*`: `defaultParams` / chart
  * `queryParams` first, else `''` for strings and `0` for numbers. A config's
- * `clickhouseSettings` are sent with it, as the app does.
+ * `clickhouseSettings` are sent with it, filtered by the server version through
+ * the app's own `dropUnsupportedSettings`, so 26.9+ never sees the analyzer
+ * opt-out it rejects. `--analyzer-off` also sends `allow_experimental_analyzer=0`
+ * (dropped again on 26.9+) to audit the old analyzer that older servers still
+ * run for a config that asks for it.
  *
  * Each cell is classified:
  *   ok      plans
@@ -41,6 +45,7 @@ import {
   getAvailableCharts,
   getChartQuery,
 } from '../apps/dashboard/src/lib/api/chart-registry'
+import { dropUnsupportedSettings } from '../apps/dashboard/src/lib/api/table-query-settings'
 import { queries } from '../apps/dashboard/src/lib/query-config/index'
 import {
   parseVersion,
@@ -144,17 +149,19 @@ function parseArgs(argv: string[]) {
   let only: string | undefined
   let json: string | undefined
   let all = false
+  let analyzerOff = false
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--bin') bins.push(resolve(argv[++i]))
     else if (arg === '--only') only = argv[++i]
     else if (arg === '--json') json = argv[++i]
     else if (arg === '--all') all = true
+    else if (arg === '--analyzer-off') analyzerOff = true
     else throw new Error(`unknown argument: ${arg}`)
   }
   if (bins.length === 0)
     throw new Error('pass at least one --bin <clickhouse binary>')
-  return { bins, only, json, all }
+  return { bins, only, json, all, analyzerOff }
 }
 
 function toList(value: string | string[] | undefined): string[] {
@@ -348,7 +355,8 @@ async function existing(
 async function auditBinary(
   bin: string,
   port: number,
-  items: AuditItem[]
+  items: AuditItem[],
+  analyzerOff: boolean
 ): Promise<VersionRun> {
   const server = await Server.start(bin, port)
   try {
@@ -375,7 +383,12 @@ async function auditBinary(
       const res = await server.query(
         `EXPLAIN PLAN ${sql}`,
         bound,
-        item.settings
+        dropUnsupportedSettings(
+          analyzerOff
+            ? { ...item.settings, allow_experimental_analyzer: 0 }
+            : item.settings,
+          parsed
+        )
       )
       if (res.ok) {
         cells[item.id] = { status: 'ok' }
@@ -452,7 +465,9 @@ function printMatrix(
 }
 
 async function main(): Promise<void> {
-  const { bins, only, json, all } = parseArgs(process.argv.slice(2))
+  const { bins, only, json, all, analyzerOff } = parseArgs(
+    process.argv.slice(2)
+  )
   const items = collectItems().filter((i) => !only || i.id.includes(only))
   console.log(`${items.length} queries x ${bins.length} binaries`)
 
@@ -466,7 +481,12 @@ async function main(): Promise<void> {
   const runs: VersionRun[] = []
   // One server at a time: they are heavy and must not fight over ports.
   for (const [index, bin] of bins.entries()) {
-    const run = await auditBinary(bin, basePort + index * 10, items)
+    const run = await auditBinary(
+      bin,
+      basePort + index * 10,
+      items,
+      analyzerOff
+    )
     console.log(`${run.version}: done`)
     runs.push(run)
   }

@@ -312,6 +312,84 @@ jobs:
           # covering nothing.
           CHM_LIVE_CLICKHOUSE: '1'
 
+  # Plans every shipped query config and chart on official ClickHouse binaries
+  # for the oldest and a middle supported LTS plus the newest stable. The
+  # service-container job above only runs 25.8 and 26.8, so SQL that breaks on
+  # 23.x / 24.x or on a new release was invisible to CI (#3948-#3979). Exits 1
+  # on any defect. Not a required check. Bump the pinned tags when a newer
+  # patch or release ships (see docs/knowledge/ch-version-onboarding.md).
+  audit-query-configs:
+    name: audit-query-configs (${{ matrix.version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: '23.3.22.3'
+            tag: 'v23.3.22.3-lts'
+          - version: '24.8.14.39'
+            tag: 'v24.8.14.39-lts'
+          - version: '26.10.2.103'
+            tag: 'v26.10.2.103-stable'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            apps/dashboard/pnpm-lock.yaml
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install dashboard dependencies
+        working-directory: apps/dashboard
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache ClickHouse tarball
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/clickhouse-tarball
+          key: clickhouse-common-static-${{ matrix.version }}-amd64
+
+      # The checksum is verified on every run, cache hit or not.
+      - name: Download and verify ClickHouse ${{ matrix.version }}
+        env:
+          CH_TAG: ${{ matrix.tag }}
+          CH_VERSION: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/clickhouse-tarball"
+          mkdir -p "$dir"
+          cd "$dir"
+          base="https://github.com/ClickHouse/ClickHouse/releases/download/$CH_TAG"
+          file="clickhouse-common-static-$CH_VERSION-amd64.tgz"
+          [ -f "$file" ] || curl -fsSLO "$base/$file"
+          curl -fsSLO "$base/$file.sha512"
+          sha512sum -c "$file.sha512"
+          mkdir -p "$RUNNER_TEMP/clickhouse-bin"
+          tar xzf "$file" -C "$RUNNER_TEMP/clickhouse-bin"
+          echo "CH_BIN=$RUNNER_TEMP/clickhouse-bin/clickhouse-common-static-$CH_VERSION/usr/bin/clickhouse" >> "$GITHUB_ENV"
+
+      - name: Audit query configs
+        run: bun scripts/audit-query-configs.ts --bin "$CH_BIN"
+
   # Live Postgres integration tests for the postgres-source path (@chm/postgres-client
   # + the dashboard's executePgQuery/SSRF guard). Started via `docker run` (not
   # `services:`) because `pg_stat_statements` needs `shared_preload_libraries` at
