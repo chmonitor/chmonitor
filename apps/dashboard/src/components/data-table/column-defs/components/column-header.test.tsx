@@ -1,6 +1,7 @@
 import { ColumnHeader } from './column-header'
 import { describe, expect, it } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { ColumnFormat } from '@/types/column-format'
 
 // Sort and info buttons are under 24px; on coarse pointers they grow a 44px
 // hit area through an ::after overlay, without changing layout.
@@ -28,7 +29,7 @@ describe('ColumnHeader touch hit areas', () => {
     <ColumnHeader
       column={column}
       name="Rows"
-      format="number"
+      format={ColumnFormat.Number}
       description="Row count"
       isFilterable={false}
       filterValue=""
