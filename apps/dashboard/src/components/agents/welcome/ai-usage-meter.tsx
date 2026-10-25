@@ -52,7 +52,7 @@ export function AnyRouterUnlimitedLink({
   return (
     <button
       type="button"
-      className="text-primary text-[10.5px] max-sm:text-xs font-medium underline-offset-2 hover:underline focus-visible:underline disabled:opacity-60"
+      className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[''] text-primary text-[10.5px] max-sm:text-xs font-medium underline-offset-2 hover:underline focus-visible:underline disabled:opacity-60"
       disabled={anyRouter.isSigningIn}
       onClick={anyRouter.signIn}
       title="Sign in with AnyRouter for unlimited use"

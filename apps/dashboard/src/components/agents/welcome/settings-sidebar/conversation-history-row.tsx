@@ -73,7 +73,7 @@ export function ConversationHistoryRow() {
           href="https://agentstate.app"
           target="_blank"
           rel="noreferrer"
-          className="text-muted-foreground hover:text-foreground hover:bg-muted/40 mt-1 flex items-center gap-1.5 rounded px-1 py-0.5 text-[11px] max-sm:text-xs transition-colors"
+          className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[''] text-muted-foreground hover:text-foreground hover:bg-muted/40 mt-1 flex items-center gap-1.5 rounded px-1 py-0.5 text-[11px] max-sm:text-xs transition-colors"
         >
           <ExternalLinkIcon className="size-3 shrink-0" />
           <span className="min-w-0 flex-1 truncate">

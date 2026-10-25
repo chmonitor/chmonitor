@@ -159,7 +159,7 @@ function HubSections({ group, hostId }: { group: MenuItem; hostId: number }) {
           type="button"
           onClick={() => setShowHidden((v) => !v)}
           aria-pressed={showHidden}
-          className="self-start text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[''] self-start text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {showHidden
             ? 'Hide hidden pages'

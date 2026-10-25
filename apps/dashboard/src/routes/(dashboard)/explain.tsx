@@ -184,7 +184,7 @@ function PlanSettingsPanel({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm font-medium transition-colors"
+        className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[''] text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm font-medium transition-colors"
       >
         {open ? (
           <ChevronDownIcon className="size-4" />

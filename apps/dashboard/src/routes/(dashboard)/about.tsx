@@ -206,7 +206,7 @@ function AboutPage() {
                         href={`${GITHUB_REPO.replace('git+', '').replace('.git', '')}/commit/${import.meta.env.VITE_GIT_SHA}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-muted-foreground hover:text-foreground text-sm"
+                        className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[''] text-muted-foreground hover:text-foreground text-sm"
                         aria-label="View commit on GitHub"
                       >
                         <ExternalLink className="size-4" />
