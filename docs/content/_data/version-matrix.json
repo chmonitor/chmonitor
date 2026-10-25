@@ -33,6 +33,10 @@
       "since": ["23.3", "23.8", "24.3", "24.10"]
     },
     {
+      "name": "detached-parts-triage",
+      "since": ["23.3", "24.3"]
+    },
+    {
       "name": "errors",
       "since": ["23.8"]
     },
