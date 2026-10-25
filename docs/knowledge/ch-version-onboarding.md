@@ -3,7 +3,7 @@ id: ch-version-onboarding
 title: ClickHouse version onboarding audit
 type: workflow
 status: active
-updated: 2026-10-19
+updated: 2026-10-25
 tags:
   - clickhouse
   - versions
@@ -142,6 +142,34 @@ bad cast on real data.
   - 46 to 52 configs were skipped, depending on the version, because their
     tables are absent in `clickhouse local`. They include every `query_log`,
     `part_log` and `text_log` view.
+
+## 26.10 run (2026-10-25)
+
+- Newest stable: `v26.10.2.103-stable` (2026-10-24). Newest LTS: `v26.8.34.13-lts`,
+  already in `LTS_VERSIONS` and in the `test-queries-config` matrix. Baseline: 26.9.25.15.
+- Changelog scrape: 1 version doc and 16 table docs, but noisy (column names
+  parsed as `unknown` and `to`, a fake `stopping → receive` rename). The
+  committed `docs/clickhouse-schemas/v26.10.md` is written from the binary diff instead.
+- **Column diff 26.9.25.15 → 26.10.2.103** (server with log tables, 77 referenced tables):
+  - Added: `query_log.used_number_of_joins`, `used_join_algorithms`,
+    `used_join_kinds`, `used_join_strictness`, `spilled_to_disk`;
+    `processes.spillable_memory_bytes`; `clusters.replica_group`;
+    `dictionaries.is_lazy`; `errors`/`error_log.last_error_lines`,
+    `last_error_symbols`; four `scheduler` columns; quota `written_rows` columns.
+  - Removed: ten `query_metric_log.ProfileEvent_*` columns. None is referenced.
+  - Retyped: enum or tuple extensions only (`interface`, `op_num`,
+    `blob_storage_log.event_type`, `grants.access_type`, `*_tid`,
+    `transaction_id`). No config filters on them.
+- **Query audit** over 371 queries (configs + chart builders), with
+  `enable_analyzer` 0 and 1, both as `EXPLAIN PLAN` and executed: 355 ok on
+  26.10, 0 defects, 11 gated, 5 harness. No `since:` variant needed.
+- 26.10 accepts `enable_analyzer = 0` but ignores it (`getSetting` returns
+  `true`); 26.9 rejects `allow_experimental_analyzer = 0`. The audit script
+  does not drop analyzer-off settings the way the app does (#3984), so
+  `tables-overview` shows `other` on 26.9 in the audit only.
+- Trap: `scripts/build-support-matrix.ts` also writes
+  `docs/versions/v0.3/reference/support-matrix.mdx`, a directory the repo no
+  longer has. Delete it after running the generator.
 
 ## Related
 

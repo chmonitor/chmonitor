@@ -25,11 +25,14 @@ Key system-table deltas that affect chmonitor monitoring queries. LTS rows match
 | 25.12 | 2025-12 | Regular | `mutations.parts_in_progress_names`; background schedule pool tables |
 | 26.1 | 2026-01 | Regular | `system.parts.files` (part file-count / fragmentation) |
 | 26.2 | 2026-02 | Regular | `mutations.parts_postpone_reasons` (not yet selected in UI) |
-| 26.3 | 2026-03 | LTS | Current 26.x LTS |
+| 26.3 | 2026-03 | LTS | 26.x LTS line |
 | 26.6 | 2026-06 | Regular | `client_agent` on query_log/processes; merge projection progress columns |
-| 26.7 | 2026-07 | Regular | Current stable train head (patch releases continue on 26.7.x) |
+| 26.7 | 2026-07 | Regular | Stable train (patch releases continue on 26.7.x) |
+| 26.8 | 2026-08 | LTS | Current 26.x LTS; in the `test-queries-config` CI matrix |
+| 26.9 | 2026-09 | Regular | Old analyzer removed (`allow_experimental_analyzer = 0` rejected); see `docs/knowledge/ch-version-onboarding.md` |
+| 26.10 | 2026-10 | Regular | `query_log` join/spill columns; no config changes needed (see [v26.10](v26.10.md)) |
 
-**Upstream pins (research 2026-08-10):** latest stable tag `v26.7.3.19-stable`; LTS tags `v26.3.17.110-lts`, `v25.8.29.51-lts`.
+**Upstream pins (research 2026-10-25):** latest stable tag `v26.10.2.103-stable`; LTS tags `v26.8.34.13-lts`, `v26.3.60.2-lts`.
 
 ## Monitored System Tables
 
@@ -50,7 +53,7 @@ Key system-table deltas that affect chmonitor monitoring queries. LTS rows match
 
 - [Agent Instructions](AGENTS.md) - For every coding agent (`CLAUDE.md` includes this)
 - [README](README.md) - Overview
-- Per-version notes: [v24.1](v24.1.md), [v25.12](v25.12.md), [v26.1](v26.1.md), [v26.2](v26.2.md), [v26.6](v26.6.md)
+- Per-version notes: [v24.1](v24.1.md), [v25.12](v25.12.md), [v26.1](v26.1.md), [v26.2](v26.2.md), [v26.6](v26.6.md), [v26.10](v26.10.md)
 
 - Generated from ClickHouse itself: [column-descriptions.md](column-descriptions.md) (`system.columns.comment`), [settings-tiers.md](settings-tiers.md) (Experimental and Beta settings)
 
