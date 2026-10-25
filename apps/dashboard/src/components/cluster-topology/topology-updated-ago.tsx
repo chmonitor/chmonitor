@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useVisibleInterval } from '@/hooks/use-visible-interval'
 
 /**
  * Isolated "updated Ns ago" ticker. Lives in its own component so the 1s
- * interval cannot re-render TopologyView / TopoCanvas.
+ * interval cannot re-render TopologyView / TopoCanvas. Elapsed time is derived
+ * from a timestamp, so a hidden tab does not undercount when it becomes visible.
  */
 export function TopologyUpdatedAgo({
   topology,
@@ -11,17 +13,17 @@ export function TopologyUpdatedAgo({
   topology: unknown
   liveRow: unknown
 }) {
-  const [secsAgo, setSecsAgo] = useState(0)
+  const [updatedAt, setUpdatedAt] = useState(() => Date.now())
+  const [now, setNow] = useState(() => Date.now())
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset the ticker when fresh topology/live data arrives
   useEffect(() => {
-    setSecsAgo(0)
+    setUpdatedAt(Date.now())
+    setNow(Date.now())
   }, [topology, liveRow])
 
-  useEffect(() => {
-    const t = setInterval(() => setSecsAgo((s) => s + 1), 1000)
-    return () => clearInterval(t)
-  }, [])
+  useVisibleInterval(() => setNow(Date.now()), 1000)
 
+  const secsAgo = Math.max(0, Math.floor((now - updatedAt) / 1000))
   return <span className="tabular-nums">{secsAgo}s</span>
 }
