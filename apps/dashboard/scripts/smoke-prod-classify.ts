@@ -126,7 +126,9 @@ export function classify(p: Probe, upstreamDown: boolean): Result {
 
 /**
  * Group results into findings. Every upstream-attributed probe collapses into
- * ONE finding so a demo outage (#3825) reads as one problem, not N charts.
+ * ONE `warn` finding so a demo outage (#3825) reads as one problem, not N
+ * charts, and does not mask a real page/asset/auth failure: only `fail`
+ * verdicts (never `upstream` ones) make the run fail.
  */
 export function summarize(results: Result[]): Finding[] {
   const map = new Map<string, Finding>()
@@ -145,7 +147,7 @@ export function summarize(results: Result[]): Finding[] {
     if (verdict === 'upstream') {
       add(
         'upstream',
-        'fail',
+        'warn',
         'Demo ClickHouse unreachable (host-status down); data probes cannot be evaluated',
         `${p.kind} ${p.name}: ${reason}`
       )
