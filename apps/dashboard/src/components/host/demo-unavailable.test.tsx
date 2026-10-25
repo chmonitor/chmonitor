@@ -38,4 +38,22 @@ describe('DemoUnavailableAlert', () => {
     )
     expect(html).toContain('disabled=""')
   })
+
+  it('is a fixed overlay, never in flow, so it cannot shift page content', () => {
+    const html = renderToStaticMarkup(
+      <DemoUnavailableAlert onRetry={() => {}} />
+    )
+    const tag = html.match(/<div[^>]*demo-unavailable-banner[^>]*>/)?.[0] ?? ''
+    const classes = (tag.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
+    expect(classes).toContain('fixed')
+    expect(classes).not.toContain('mb-4')
+    expect(tag).toContain('role="alert"')
+  })
+
+  it('keeps a 44px Retry target on touch', () => {
+    const html = renderToStaticMarkup(
+      <DemoUnavailableAlert onRetry={() => {}} />
+    )
+    expect(html).toContain('pointer-coarse:h-11')
+  })
 })
