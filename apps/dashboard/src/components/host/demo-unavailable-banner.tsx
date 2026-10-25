@@ -1,6 +1,7 @@
-import { CloudOff, RefreshCw } from 'lucide-react'
+import { CloudOff, RefreshCw, X } from 'lucide-react'
 
 import { isDemoUnavailable } from './demo-unavailable'
+import { useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useHostId } from '@/lib/swr'
@@ -16,9 +17,11 @@ import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
  */
 export function DemoUnavailableAlert({
   onRetry,
+  onDismiss,
   retrying = false,
 }: {
   onRetry: () => void
+  onDismiss: () => void
   retrying?: boolean
 }) {
   return (
@@ -27,7 +30,17 @@ export function DemoUnavailableAlert({
       className="fixed inset-x-4 bottom-20 z-40 w-auto shadow-lg sm:right-auto sm:bottom-4 sm:max-w-sm"
     >
       <CloudOff />
-      <AlertTitle>Demo temporarily unavailable</AlertTitle>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="absolute top-2 right-2 size-7 pointer-coarse:size-11"
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        data-testid="demo-unavailable-dismiss"
+      >
+        <X />
+      </Button>
+      <AlertTitle className="pr-8">Demo temporarily unavailable</AlertTitle>
       <AlertDescription>
         <p>
           The public demo cluster is not responding right now, so data below may
@@ -57,9 +70,16 @@ export function DemoUnavailableBanner() {
   const { error, refetch, isFetching } = useHostStatus(
     source === 'demo' ? hostId : null
   )
+  // On a phone the overlay covers page controls, so the user can close it for
+  // the rest of the visit; a full reload shows it again while the demo is down.
+  const [dismissed, setDismissed] = useState(false)
 
-  if (!isDemoUnavailable(source, error)) return null
+  if (dismissed || !isDemoUnavailable(source, error)) return null
   return (
-    <DemoUnavailableAlert onRetry={() => refetch()} retrying={isFetching} />
+    <DemoUnavailableAlert
+      onRetry={() => refetch()}
+      onDismiss={() => setDismissed(true)}
+      retrying={isFetching}
+    />
   )
 }
