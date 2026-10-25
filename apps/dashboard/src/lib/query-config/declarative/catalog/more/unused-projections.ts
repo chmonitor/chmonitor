@@ -7,7 +7,7 @@ export const unusedProjectionsDeclarative: DeclarativeQueryConfig = {
   description:
     'Projections that no finished SELECT in the query log window used, largest compressed size first (top 200). This replica only: other replicas and shards keep their own query_log. Unused in the log window is not the same as unneeded: a projection kept for a job that runs less often than the window, or one that only serves queries on another replica, can appear here. Data-skipping indices are not listed because the query log does not record which indices a query used. Check log_window_start for how far back the log reaches.',
   docs: `The required table 'query_log' may be missing. Please follow the documentation at https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#query-log and https://clickhouse.com/docs/en/operations/system-tables/query_log to ensure the necessary table is available.`,
-  optional: false,
+  optional: true,
   tableCheck: ['system.query_log', 'system.projections'],
   sql: [
     {

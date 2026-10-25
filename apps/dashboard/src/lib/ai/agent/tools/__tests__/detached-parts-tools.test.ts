@@ -94,9 +94,12 @@ describe('get_detached_parts_triage', () => {
   })
 
   test('the config still has exactly one of each anchor the tool rewrites', () => {
-    const base = detachedPartsTriageConfig.sql as string
-    expect(base.split(DETACHED_SOURCE_ANCHOR)).toHaveLength(2)
-    expect(base.split(DETACHED_LIMIT_ANCHOR)).toHaveLength(2)
+    const variants = detachedPartsTriageConfig.sql as { sql: string }[]
+    expect(variants.length).toBeGreaterThan(0)
+    for (const { sql } of variants) {
+      expect(sql.split(DETACHED_SOURCE_ANCHOR)).toHaveLength(2)
+      expect(sql.split(DETACHED_LIMIT_ANCHOR)).toHaveLength(2)
+    }
   })
 
   test('a full page is flagged truncated', async () => {

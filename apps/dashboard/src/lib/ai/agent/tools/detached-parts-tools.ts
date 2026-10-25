@@ -45,9 +45,14 @@ const FILTERED_SOURCE = `FROM (
  * (they break under enable_analyzer=0).
  */
 export function buildDetachedPartsTriageSql(): string {
-  const base = detachedPartsTriageConfig.sql
-  if (typeof base !== 'string') {
-    throw new Error('detached-parts-triage config sql must be a single string')
+  // The config has a variant per ClickHouse version. The tool does not detect
+  // the server version, so it uses the newest variant (the one with real
+  // modification times); on a server too old for it the query fails and the
+  // tool reports that through its fail-open error.
+  const { sql } = detachedPartsTriageConfig
+  const base = typeof sql === 'string' ? sql : sql[sql.length - 1]?.sql
+  if (!base) {
+    throw new Error('detached-parts-triage config has no sql')
   }
   for (const anchor of [DETACHED_SOURCE_ANCHOR, DETACHED_LIMIT_ANCHOR]) {
     if (base.split(anchor).length !== 2) {
