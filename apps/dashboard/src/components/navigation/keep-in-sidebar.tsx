@@ -46,7 +46,7 @@ function KeepChip({
         data-testid="keep-in-sidebar"
         onClick={() => onKeep(href)}
         className={cn(
-          'inline-flex h-8 min-h-8 items-center rounded-md border border-border px-2 text-[13px] font-medium hover:bg-muted'
+          'inline-flex h-8 min-h-8 pointer-coarse:h-11 pointer-coarse:min-h-11 items-center rounded-md border border-border px-2 text-[13px] font-medium hover:bg-muted'
         )}
       >
         Keep in sidebar
@@ -57,7 +57,7 @@ function KeepChip({
         aria-label={isPinned ? 'Unpin page' : 'Pin page'}
         aria-pressed={isPinned}
         onClick={() => toggleFavorite(href)}
-        className="inline-flex size-8 items-center justify-center rounded-md border border-border hover:bg-muted"
+        className="inline-flex size-8 pointer-coarse:size-11 items-center justify-center rounded-md border border-border hover:bg-muted"
       >
         <Pin className={cn('size-3.5', isPinned && 'fill-current')} />
       </button>

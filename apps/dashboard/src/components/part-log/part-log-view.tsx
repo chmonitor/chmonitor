@@ -44,7 +44,7 @@ function HeaderButton({
     <Button
       variant="outline"
       size="sm"
-      className="h-8 gap-1.5 text-[12px]"
+      className="h-8 gap-1.5 text-[12px] pointer-coarse:h-11"
       onClick={onClick}
       disabled={disabled}
     >
@@ -127,7 +127,10 @@ export function PartLogView() {
               <Download className="size-3.5" />
               Export CSV
             </HeaderButton>
-            <Button size="sm" className="h-8 gap-1.5 text-[12px]">
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 text-[12px] pointer-coarse:h-11"
+            >
               <Filter className="size-3.5" />
               Filters
             </Button>

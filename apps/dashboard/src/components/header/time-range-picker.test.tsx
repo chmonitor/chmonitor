@@ -103,7 +103,7 @@ describe('GlobalTimeRangePicker', () => {
       expect(chip.className).not.toContain('min-w-11')
       expect(chip.className).toContain('flex-1')
       // 36px touch target on coarse pointers only; compact otherwise.
-      expect(chip.className).toContain('pointer-coarse:min-h-9')
+      expect(chip.className).toContain('pointer-coarse:min-h-11')
       expect(chip.className).toContain('min-w-0')
       expect(chip.className).toContain('sm:flex-none')
     }

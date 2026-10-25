@@ -6,10 +6,10 @@ import { cn } from '@/lib/utils'
  *
  * Fine pointers (mouse) keep the hover-reveal: actions fade in when the card
  * (`group`) is hovered or focused. Coarse pointers (touch) have no hover, so
- * the actions rest visible and grow to a 36px hit target.
+ * the actions rest visible and grow to a 44px hit target.
  */
 const BASE = cn(
-  'size-6 rounded-full transition-opacity pointer-coarse:size-9',
+  'size-6 rounded-full transition-opacity pointer-coarse:size-11',
   'relative before:content-[""] before:absolute before:-inset-4'
 )
 
