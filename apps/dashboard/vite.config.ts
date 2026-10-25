@@ -830,6 +830,28 @@ export default defineConfig({
     // post-upload. Off otherwise to keep builds lean.
     sourcemap: sentryAuthToken ? 'hidden' : false,
   },
+  environments: {
+    client: {
+      build: {
+        rolldownOptions: {
+          output: {
+            codeSplitting: {
+              groups: [
+                // Every page statically loads the client entry's whole import
+                // graph. Default splitting cut it into ~94 chunks, and each
+                // became a <link rel="modulepreload"> in every prerendered
+                // page. Merge that always-loaded code into a few chunks: same
+                // bytes, far fewer requests. Route chunks keep default
+                // splitting, so no page loads code it did not load before.
+                // Client env only: the Worker (ssr) bundle is untouched.
+                { name: 'app', tags: ['$initial'], maxSize: 500_000 },
+              ],
+            },
+          },
+        },
+      },
+    },
+  },
   optimizeDeps: {
     // Pre-bundle heavy deps to speed cold dev-server start.
     include: [
