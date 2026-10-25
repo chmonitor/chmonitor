@@ -1,6 +1,7 @@
 import { isDemoUnavailable } from './demo-unavailable'
 import { DemoUnavailableAlert } from './demo-unavailable-banner'
-import { describe, expect, it } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+import { GlobalRegistrator } from '@happy-dom/global-registrator'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 describe('isDemoUnavailable', () => {
@@ -25,7 +26,7 @@ describe('isDemoUnavailable', () => {
 describe('DemoUnavailableAlert', () => {
   it('renders the title and an enabled Retry button', () => {
     const html = renderToStaticMarkup(
-      <DemoUnavailableAlert onRetry={() => {}} />
+      <DemoUnavailableAlert onRetry={() => {}} onDismiss={() => {}} />
     )
     expect(html).toContain('Demo temporarily unavailable')
     expect(html).toContain('data-testid="demo-unavailable-retry"')
@@ -34,14 +35,14 @@ describe('DemoUnavailableAlert', () => {
 
   it('disables Retry while a retry is in flight', () => {
     const html = renderToStaticMarkup(
-      <DemoUnavailableAlert onRetry={() => {}} retrying />
+      <DemoUnavailableAlert onRetry={() => {}} onDismiss={() => {}} retrying />
     )
     expect(html).toContain('disabled=""')
   })
 
   it('is a fixed overlay, never in flow, so it cannot shift page content', () => {
     const html = renderToStaticMarkup(
-      <DemoUnavailableAlert onRetry={() => {}} />
+      <DemoUnavailableAlert onRetry={() => {}} onDismiss={() => {}} />
     )
     const tag = html.match(/<div[^>]*demo-unavailable-banner[^>]*>/)?.[0] ?? ''
     const classes = (tag.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
@@ -52,8 +53,58 @@ describe('DemoUnavailableAlert', () => {
 
   it('keeps a 44px Retry target on touch', () => {
     const html = renderToStaticMarkup(
-      <DemoUnavailableAlert onRetry={() => {}} />
+      <DemoUnavailableAlert onRetry={() => {}} onDismiss={() => {}} />
     )
     expect(html).toContain('pointer-coarse:h-11')
+  })
+
+  it('offers a 44px Dismiss button on touch so the overlay never traps page controls', () => {
+    const html = renderToStaticMarkup(
+      <DemoUnavailableAlert onRetry={() => {}} onDismiss={() => {}} />
+    )
+    const tag =
+      html.match(/<button[^>]*demo-unavailable-dismiss[^>]*>/)?.[0] ?? ''
+    expect(tag).toContain('aria-label="Dismiss"')
+    expect(tag).toContain('pointer-coarse:size-11')
+  })
+
+  describe('in the browser', () => {
+    beforeAll(() => {
+      GlobalRegistrator.register()
+      ;(
+        globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+      ).IS_REACT_ACT_ENVIRONMENT = true
+    })
+    afterAll(async () => {
+      await GlobalRegistrator.unregister()
+    })
+
+    it('calls onDismiss when Dismiss is clicked', async () => {
+      const { act } = await import('react')
+      const { createRoot } = await import('react-dom/client')
+      const container = document.createElement('div')
+      document.body.appendChild(container)
+      const root = createRoot(container)
+      let dismissed = 0
+      await act(async () => {
+        root.render(
+          <DemoUnavailableAlert
+            onRetry={() => {}}
+            onDismiss={() => {
+              dismissed++
+            }}
+          />
+        )
+      })
+      const button = container.querySelector<HTMLButtonElement>(
+        '[data-testid="demo-unavailable-dismiss"]'
+      )
+      await act(async () => {
+        button?.click()
+      })
+      expect(dismissed).toBe(1)
+      await act(async () => root.unmount())
+      container.remove()
+    })
   })
 })
