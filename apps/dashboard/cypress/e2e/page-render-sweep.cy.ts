@@ -2,13 +2,21 @@
 
 /**
  * Page-render sweep — visits every dashboard route with ?host=0 and asserts
- * the page shell renders without uncaught JS exceptions.
+ * the page shell renders without uncaught JS exceptions or React render errors.
  *
  * This catches import errors, broken route configs, missing layout wrappers,
  * and module-level crashes that unit tests miss (they don't execute the
  * component tree against the real router). No ClickHouse data needed — the
  * pages should render their loading/error shells even without an API response.
+ *
+ * React reports hydration mismatches (#418, "Hydration failed") through
+ * console.error and recovers by client-rendering, so they never throw. The
+ * sweep stubs console.error before each page loads and fails on those too.
  */
+
+// Messages React logs for a failed or recovered render. Production builds use
+// the minified form; dev builds use the "Hydration" wording.
+const REACT_ERROR_PATTERN = /Minified React error|Hydration/
 
 // All (dashboard) routes extracted from src/routes/(dashboard)/.
 // Excludes layout helpers (prefixed with -) and the route.tsx layout file.
@@ -167,7 +175,20 @@ describe('Page render sweep', () => {
         return false
       })
 
-      cy.visit(`${route}?host=0`)
+      cy.visit(`${route}?host=0`, {
+        onBeforeLoad(win) {
+          const original = win.console.error.bind(win.console)
+          win.console.error = (...args: unknown[]) => {
+            const text = args.map(String).join(' ')
+            if (REACT_ERROR_PATTERN.test(text)) {
+              failedRoutes.push(
+                `${route}: console.error: ${text.slice(0, 200)}`
+              )
+            }
+            original(...args)
+          }
+        },
+      })
       cy.get('body').should('exist')
     })
   }
