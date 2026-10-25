@@ -96,7 +96,9 @@ auto-merge (`gh pr merge --auto --squash`) and babysit it (`/github:babysit-pr`)
 watch CI, fix failures, confirm the merge and production deploy. Do NOT ask the
 user whether to babysit — just do it. Known non-required checks (`e2e-test`,
 `coverage-upload`) do not block auto-merge. `unit-tests` IS a required check
-(required alongside `dashboard` since 2026-07-10, plan 75). `e2e-test-tsr` and
+(required alongside `dashboard` since 2026-07-10, plan 75). `lint / lint` (Biome)
+is required too since 2026-10-25: run `npx biome check <touched files>` before
+pushing, especially with `--no-verify`. `e2e-test-tsr` and
 `component-test` were deleted in June 2026 (#1613, #1623) — do not wait on them
 either. `coverage-upload` fails whenever Codecov's CDN is unreachable; that is
 an external outage, not a repo defect (#3647), so never hold a PR for it.
