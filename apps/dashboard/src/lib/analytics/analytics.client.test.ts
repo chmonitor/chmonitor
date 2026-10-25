@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, mock, test } from 'bun:test'
 
 const init = mock((_key: string, _opts: unknown) => {})
 const capture = mock((_event: string, _props: unknown) => {})
+const realPosthog = { ...(await import('posthog-js')) }
 mock.module('posthog-js', () => ({
   default: {
     init,
@@ -32,6 +33,7 @@ beforeAll(() => {
 })
 
 afterAll(() => {
+  mock.module('posthog-js', () => ({ ...realPosthog }))
   g.document = saved.document
   g.requestIdleCallback = saved.requestIdleCallback
   if (saved.key === undefined) delete process.env.VITE_ANALYTICS_KEY

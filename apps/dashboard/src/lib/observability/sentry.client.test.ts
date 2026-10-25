@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, mock, test } from 'bun:test'
 
 const init = mock(() => {})
 const captureException = mock((_e: unknown, _ctx?: unknown) => {})
+const realSentry = { ...(await import('@sentry/react')) }
 mock.module('@sentry/react', () => ({
   init,
   captureException,
@@ -33,6 +34,7 @@ beforeAll(() => {
 })
 
 afterAll(() => {
+  mock.module('@sentry/react', () => ({ ...realSentry }))
   g.document = saved.document
   g.window = saved.window
   g.requestIdleCallback = saved.requestIdleCallback
