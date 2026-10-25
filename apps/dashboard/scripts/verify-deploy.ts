@@ -25,7 +25,7 @@
  *      ClickHouse system-table counts === the worker reaches + queries ClickHouse
  *
  * Run:
- *   bun scripts/verify-deploy.ts [--base-url URL] [--hosts 0,1] [--json] [--skip-auth]
+ *   bun scripts/verify-deploy.ts [--base-url URL] [--hosts 0,1] [--json] [--skip-auth] [--workers]
  *   CHM_API_KEY_SECRET=... bun scripts/verify-deploy.ts            # enables authed scenario
  *
  * Exit codes: 0 = all checks pass, 1 = one or more failed, 2 = harness error.
@@ -34,6 +34,7 @@
 import { GUEST_DEFAULT_AGENT_MODEL } from '../src/lib/billing/guest-ai'
 import { runAgentProbes } from './verify-deploy-agent'
 import { type HostStatusProbe, isUpstreamDown } from './verify-deploy-upstream'
+import { fetchHttp, runWorkerProbes, workerUrls } from './verify-deploy-workers'
 
 const args = process.argv.slice(2)
 function flag(name: string): string | undefined {
@@ -53,6 +54,7 @@ const HOSTS = (flag('hosts') ?? '0,1')
   .filter(Boolean)
 const JSON_OUTPUT = args.includes('--json')
 const SKIP_AUTH = args.includes('--skip-auth')
+const WORKERS = args.includes('--workers')
 const SECRET = process.env.CHM_API_KEY_SECRET
 
 interface Check {
@@ -279,6 +281,20 @@ async function runAgentChecks() {
   }
 }
 
+// Opt-in: CI verifies these after each sibling deploys (see cloudflare.yml),
+// because this script runs before the MCP and telemetry workers are deployed.
+async function runWorkerChecks() {
+  for (const p of await runWorkerProbes(workerUrls(BASE_URL), fetchHttp)) {
+    record({
+      scenario: 'unauthenticated',
+      name: p.name,
+      ok: p.ok,
+      skip: p.skipped,
+      detail: p.detail,
+    })
+  }
+}
+
 async function runAuthenticated() {
   if (SKIP_AUTH) return
   if (!SECRET) {
@@ -362,6 +378,7 @@ async function main() {
   await probeDeployment()
   await runUnauthenticated()
   await runAgentChecks()
+  if (WORKERS) await runWorkerChecks()
   await runAuthenticated()
 
   const failed = checks.filter((c) => !c.ok)
