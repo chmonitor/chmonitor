@@ -15,7 +15,7 @@
 import { PanelRightOpenIcon } from 'lucide-react'
 import { ErrorBoundary } from 'react-error-boundary'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { AgentSettingsSidebar } from '@/components/agents/welcome/agent-settings-sidebar'
 import { AgentAuthGate } from '@/components/assistant-ui/agent-auth-gate'
 import { AgentRuntimeProvider } from '@/components/assistant-ui/agent-runtime-provider'
@@ -75,6 +75,16 @@ export function AgentThreadPage() {
   )
 }
 
+/**
+ * `null` = no explicit choice yet: open on desktop, closed on a phone (where the
+ * sidebar is a Drawer). Derived at render, not set from an effect, so a phone
+ * never commits an open Drawer.
+ */
+export function useSettingsSidebarOpen(isMobile: boolean) {
+  const [choice, setChoice] = useState<boolean | null>(null)
+  return [choice ?? !isMobile, setChoice] as const
+}
+
 function AgentChatLayout() {
   const isMobile = useIsMobile()
   // Conversation rail: persistent inline column on desktop; a Drawer on mobile.
@@ -91,10 +101,8 @@ function AgentChatLayout() {
   const [railOpen, setRailOpen] = useState<boolean | null>(null)
   const effectiveRailOpen = railOpen ?? false
   const [mobileConvOpen, setMobileConvOpen] = useState(false)
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
-  useEffect(() => {
-    setRightSidebarOpen(!isMobile)
-  }, [isMobile])
+  const [rightSidebarOpen, setRightSidebarOpen] =
+    useSettingsSidebarOpen(isMobile)
   const { setOpen: setNavOpen, setOpenMobile: setNavOpenMobile } = useSidebar()
   const collapseChrome = useCallback(() => {
     setRailOpen(false)
@@ -102,7 +110,7 @@ function AgentChatLayout() {
     setMobileConvOpen(false)
     setNavOpen(false)
     setNavOpenMobile(false)
-  }, [setNavOpen, setNavOpenMobile])
+  }, [setNavOpen, setNavOpenMobile, setRightSidebarOpen])
   const pickPrompt = useStartAgentPrompt(collapseChrome)
   const firstName = useClerkFirstName()
   const hostId = useHostId()
