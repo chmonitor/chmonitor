@@ -3,7 +3,7 @@ id: core-memory
 title: Automation Core Memory
 type: workflow
 status: active
-updated: 2026-06-01
+updated: 2026-10-27
 tags:
   - automation
   - code-smell
@@ -37,7 +37,7 @@ Durable code-smell/dead-code automation memory. Do not create dated files under 
 - Verify dead-code claims with zero non-test references before deleting symbols
 - Data-table synthetic utility column ids are `__expand`, `select`, and `action` (singular); exclude them from client-side filter/search/sort targets and card-control affordances
 - Collapsible TSR chart strips must unmount hidden chart subtrees, not just set `grid-rows-[0fr]` / `opacity-0`; otherwise auto-refreshing charts keep polling while invisible. The 30-minute TanStack Query `gcTime` already preserves fast reopen from cache.
-- Docker build must install full deps (`pnpm install --frozen-lockfile --ignore-scripts`) because `lib/platform/adapters/cloudflare.ts` imports `@opennextjs/cloudflare` during `pnpm run build`
+- Docker build installs with `pnpm install --frozen-lockfile --ignore-scripts` (`Dockerfile:34`). The old reason for full deps, `lib/platform/adapters/cloudflare.ts` importing `@opennextjs/cloudflare`, is gone: that adapter was removed and the TanStack Start build uses `apps/dashboard/src/lib/platform-native.ts`
 - If automation checkout is detached (`git status --short --branch` shows `HEAD (no branch)`), stale versus `origin/main`, or `.git/worktrees/...` writes fail (`FETCH_HEAD`/`HEAD.lock`/`index.lock`), run `git -C /Users/duet/project/clickhouse-monitor fetch origin`; if that checkout is dirty, create a clean worktree under `/private/tmp` for commit/PR commands
 
 ## Latest Update
