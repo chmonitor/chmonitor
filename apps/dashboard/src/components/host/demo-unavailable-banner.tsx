@@ -7,7 +7,13 @@ import { useHostId } from '@/lib/swr'
 import { useHostStatus } from '@/lib/swr/use-host-status'
 import { useMergedHosts } from '@/lib/swr/use-merged-hosts'
 
-/** Presentational banner; kept separate from the hooks so it is testable. */
+/**
+ * Presentational banner. It is `fixed` (an overlay), not in document flow: it
+ * appears ~2s after load once host-status fails, so an in-flow banner shifted
+ * every page down (CLS 0.18 on mobile). Reserving space instead would leave a
+ * blank gap on every healthy load. Kept separate from the hooks so it is
+ * testable.
+ */
 export function DemoUnavailableAlert({
   onRetry,
   retrying = false,
@@ -16,7 +22,10 @@ export function DemoUnavailableAlert({
   retrying?: boolean
 }) {
   return (
-    <Alert data-testid="demo-unavailable-banner" className="mb-4">
+    <Alert
+      data-testid="demo-unavailable-banner"
+      className="fixed inset-x-4 bottom-20 z-40 w-auto shadow-lg sm:right-auto sm:bottom-4 sm:max-w-sm"
+    >
       <CloudOff />
       <AlertTitle>Demo temporarily unavailable</AlertTitle>
       <AlertDescription>
@@ -27,7 +36,7 @@ export function DemoUnavailableAlert({
         <Button
           size="sm"
           variant="outline"
-          className="mt-2"
+          className="mt-2 pointer-coarse:h-11"
           onClick={onRetry}
           disabled={retrying}
           data-testid="demo-unavailable-retry"
