@@ -27,7 +27,7 @@ export function ExpandChevron<TData extends RowData>({
         row.toggleExpanded()
       }}
       className={cn(
-        'inline-flex size-5 items-center justify-center rounded text-muted-foreground',
+        'relative inline-flex size-5 items-center pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-[""] justify-center rounded text-muted-foreground',
         'transition-all hover:bg-accent hover:text-foreground',
         expanded && 'text-foreground'
       )}

@@ -31,6 +31,6 @@ describe('chartActionClass', () => {
   })
 
   it('grows to a 36px hit target on coarse pointers', () => {
-    expect(chartActionClass().split(/\s+/)).toContain('pointer-coarse:size-9')
+    expect(chartActionClass().split(/\s+/)).toContain('pointer-coarse:size-11')
   })
 })
