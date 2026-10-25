@@ -13,6 +13,9 @@
  *   3. client entry bundle        -> contains the Clerk pk_ key when authProvider=clerk
  *      (guards the NEXT_PUBLIC_* -> VITE_* regression: a broken build ships NO key)
  *   4. GET /api/v1/menu-counts (no token) -> 401 when API-key auth is enabled
+ *   4b. agent probes (no ClickHouse, hard fails; see verify-deploy-agent.ts):
+ *      config-check configured.apiKey true, /agents/models lists
+ *      GUEST_DEFAULT_AGENT_MODEL, /agents/anyrouter/login is not 5xx
  *
  *  AUTHENTICATED (when CHM_API_KEY_SECRET is set)
  *   5. POST /api/v1/auth/api-key (Bearer secret) -> mints a chm_ token
@@ -28,6 +31,8 @@
  * Exit codes: 0 = all checks pass, 1 = one or more failed, 2 = harness error.
  */
 
+import { GUEST_DEFAULT_AGENT_MODEL } from '../src/lib/billing/guest-ai'
+import { runAgentProbes } from './verify-deploy-agent'
 import { type HostStatusProbe, isUpstreamDown } from './verify-deploy-upstream'
 
 const args = process.argv.slice(2)
@@ -55,6 +60,8 @@ interface Check {
   name: string
   ok: boolean
   detail: string
+  // skip: the probe could not run (route needs auth); reported, not a pass.
+  skip?: boolean
   // warn: the DEPLOY is fine but the monitored ClickHouse upstream is
   // unreachable. A monitoring dashboard must stay deployable during an
   // incident of the thing it monitors, so upstream outages degrade these
@@ -65,7 +72,7 @@ const checks: Check[] = []
 function record(c: Check) {
   checks.push(c)
   if (!JSON_OUTPUT) {
-    const icon = c.ok ? (c.warn ? '⚠️' : '✅') : '❌'
+    const icon = c.skip ? '⏭️' : c.ok ? (c.warn ? '⚠️' : '✅') : '❌'
     console.log(`${icon} [${c.scenario}] ${c.name} — ${c.detail}`)
   }
 }
@@ -260,6 +267,18 @@ async function runUnauthenticated() {
   }
 }
 
+async function runAgentChecks() {
+  for (const p of await runAgentProbes(http, GUEST_DEFAULT_AGENT_MODEL)) {
+    record({
+      scenario: 'unauthenticated',
+      name: p.name,
+      ok: p.ok,
+      skip: p.skipped,
+      detail: p.detail,
+    })
+  }
+}
+
 async function runAuthenticated() {
   if (SKIP_AUTH) return
   if (!SECRET) {
@@ -342,6 +361,7 @@ async function main() {
   if (!JSON_OUTPUT) console.log(`\n🔎 Verifying ${BASE_URL}\n`)
   await probeDeployment()
   await runUnauthenticated()
+  await runAgentChecks()
   await runAuthenticated()
 
   const failed = checks.filter((c) => !c.ok)
