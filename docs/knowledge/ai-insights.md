@@ -3,7 +3,7 @@ id: ai-insights
 title: AI Insights Engine
 type: spec
 status: active
-updated: 2026-10-22
+updated: 2026-10-26
 tags:
   - insights
   - findings
@@ -534,6 +534,13 @@ documented in their own sections above (see **PeerDB findings are page-local**):
 - `src/components/insights/insight-card.tsx` — shadcn `Card` wrapper (never edits
   `components/ui/`), a **severity-toned left-accent border**, dismiss `X`, and a
   derived action link (e.g. View tables / Open running queries / Ask the agent).
+- `src/components/insights/agent-prompt-section.tsx` — **"Fix with your coding
+  agent"** block in the ClickHouse insight detail dialog: a copyable prompt from
+  `lib/insights/agent-prompt.ts` (`buildAgentPrompt`) carrying the finding, the
+  server version and node count (host status), and how the admin applies changes
+  (`CONFIG_TARGETS`: config.d files, Kubernetes operator, Helm, ClickHouse Cloud,
+  SQL only; the choice is remembered per browser). The prompt asks the agent to
+  confirm read-only, propose a reviewable diff, and never write to the cluster.
 - `src/components/insights/severity-meta.ts` — **single source** for severity
   label (`info` renders as **"Notice"**), icon, and token classes, shared by the
   card, strip, and board so they never drift.

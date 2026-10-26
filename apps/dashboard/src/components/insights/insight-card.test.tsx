@@ -75,9 +75,17 @@ async function renderInto(
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
+  const { QueryClient, QueryClientProvider } = await import(
+    '@tanstack/react-query'
+  )
+  const client = new QueryClient({
+    defaultOptions: { queries: { enabled: false } },
+  })
 
   await act(async () => {
-    root.render(node)
+    root.render(
+      <QueryClientProvider client={client}>{node}</QueryClientProvider>
+    )
   })
 
   return {
@@ -117,6 +125,18 @@ async function openCard() {
 }
 
 describe('InsightCard detail dialog (#3362)', () => {
+  test('offers a copyable coding-agent prompt for the insight', async () => {
+    const rendered = await openCard()
+    const section = document.querySelector(
+      '[data-testid="insight-agent-prompt"]'
+    )
+    expect(section?.querySelector('pre')?.textContent).toContain(
+      'Slow queries climbing'
+    )
+    expect(section?.textContent).toContain('Copy prompt')
+    await rendered.cleanup()
+  })
+
   test('X closes the dialog', async () => {
     const rendered = await openCard()
     const close = document.querySelector(
