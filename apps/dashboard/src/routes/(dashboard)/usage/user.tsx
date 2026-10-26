@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import {
   ChartSkeleton,
   PageSkeleton,
@@ -9,10 +9,17 @@ import {
 import { TableClient } from '@/components/tables/table-client'
 import { AppLink as Link } from '@/components/ui/app-link'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { UserDailyChart } from '@/components/usage/user-daily-chart'
 import {
   UserUsageKpis,
   UserUsageProfile,
 } from '@/components/usage/user-usage-header'
+import {
+  DEFAULT_USER_USAGE_TAB,
+  resolveUserUsageTab,
+  USER_USAGE_TABS,
+} from '@/components/usage/user-usage-tabs'
 import { useUrlSearchParams } from '@/hooks/use-url-search-params'
 import { pageOgHead } from '@/lib/og'
 import {
@@ -49,6 +56,24 @@ function UserUsageContent() {
 
   const usageUrl = `/usage?host=${hostId}`
 
+  // Local state seeded from ?tab=, written back with replaceState so a tab
+  // click does not re-suspend the page (same pattern as the Overview tabs).
+  const [tab, setTab] = useState(() =>
+    resolveUserUsageTab(searchParams.get('tab'))
+  )
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(window.location.search)
+    if (value === DEFAULT_USER_USAGE_TAB) params.delete('tab')
+    else params.set('tab', value)
+    const qs = params.toString()
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${qs ? `?${qs}` : ''}`
+    )
+    setTab(value)
+  }
+
   if (!user) {
     return (
       <EmptyState
@@ -80,7 +105,7 @@ function UserUsageContent() {
           {USER_USAGE_DAY_OPTIONS.map((d) => (
             <Link
               key={d}
-              href={`/usage/user?user=${userParam}&days=${d}&host=${hostId}`}
+              href={`/usage/user?user=${userParam}&days=${d}&host=${hostId}${tab === DEFAULT_USER_USAGE_TAB ? '' : `&tab=${tab}`}`}
               className={cn(
                 'rounded-md px-2 py-1',
                 d === days
@@ -95,35 +120,61 @@ function UserUsageContent() {
       </div>
       <UserUsageProfile user={user} />
       <UserUsageKpis user={user} days={days} />
-      <p className="text-muted-foreground text-xs">
-        The activity calendar always shows the last year and Daily Activity
-        follows the window up to a year; every other total and table covers at
-        most 30 days.
-      </p>
-      <Suspense fallback={<ChartSkeleton />}>
-        <ChartQueryCountHeatmap
-          title="Activity Calendar"
-          lastHours={24 * USER_DAILY_MAX_DAYS}
-          params={{ user }}
-        />
-      </Suspense>
-      <Suspense fallback={<ChartSkeleton />}>
-        <ChartQueryHourHeatmap
-          title="Hour Heatmap"
-          lastHours={Number(days) * 24}
-          params={{ user }}
-        />
-      </Suspense>
-      {userUsageConfigs.map((config) => (
-        <Suspense key={config.name} fallback={<TableSkeleton />}>
-          <TableClient
-            title={TITLES[config.name] ?? config.name}
-            description={config.description}
-            queryConfig={config}
-            searchParams={{ user, days }}
-          />
-        </Suspense>
-      ))}
+      <Tabs value={tab} onValueChange={handleTabChange} className="gap-4">
+        <div className="scrollbar-hide -mx-1 overflow-x-auto px-1">
+          <TabsList className="w-max">
+            {USER_USAGE_TABS.map((t) => (
+              <TabsTrigger key={t.value} value={t.value}>
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+        {USER_USAGE_TABS.map((t) => (
+          <TabsContent
+            key={t.value}
+            value={t.value}
+            className="flex flex-col gap-4"
+          >
+            {t.value === DEFAULT_USER_USAGE_TAB ? (
+              <>
+                <p className="text-muted-foreground text-xs">
+                  The activity calendar always shows the last year; Daily
+                  Queries and Daily Activity follow the window up to a year;
+                  every other total and table covers at most 30 days.
+                </p>
+                <UserDailyChart user={user} days={Number(days)} />
+                <Suspense fallback={<ChartSkeleton />}>
+                  <ChartQueryCountHeatmap
+                    title="Activity Calendar"
+                    lastHours={24 * USER_DAILY_MAX_DAYS}
+                    params={{ user }}
+                  />
+                </Suspense>
+                <Suspense fallback={<ChartSkeleton />}>
+                  <ChartQueryHourHeatmap
+                    title="Hour Heatmap"
+                    lastHours={Number(days) * 24}
+                    params={{ user }}
+                  />
+                </Suspense>
+              </>
+            ) : null}
+            {userUsageConfigs
+              .filter((config) => t.tables.includes(config.name))
+              .map((config) => (
+                <Suspense key={config.name} fallback={<TableSkeleton />}>
+                  <TableClient
+                    title={TITLES[config.name] ?? config.name}
+                    description={config.description}
+                    queryConfig={config}
+                    searchParams={{ user, days }}
+                  />
+                </Suspense>
+              ))}
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   )
 }
