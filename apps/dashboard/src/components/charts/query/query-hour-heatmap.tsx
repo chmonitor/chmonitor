@@ -41,41 +41,34 @@ function HourHeatmapBody({ data }: { data: HourHeatmapRow[] }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="scrollbar-hide overflow-x-auto">
-        <table className="border-separate border-spacing-[2px] text-[10px] max-sm:text-xs">
-          <thead>
-            <tr>
-              <th aria-hidden />
-              {HOURS.map((h) => (
-                <th
-                  key={h}
-                  className="text-muted-foreground w-4 font-normal tabular-nums"
-                >
-                  {h % 3 === 0 ? h : ''}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {grid.map((row, i) => (
-              <tr key={WEEKDAYS[i]}>
-                <th className="text-muted-foreground pr-1 text-right font-normal">
-                  {WEEKDAYS[i]}
-                </th>
-                {row.map((n, h) => (
-                  <td
-                    key={HOURS[h]}
-                    title={`${WEEKDAYS[i]} ${String(h).padStart(2, '0')}:00 · ${n.toLocaleString()} queries`}
-                    className={cn(
-                      'size-4 rounded-[3px]',
-                      getIntensityClass(n, max, tiers)
-                    )}
-                  />
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid w-full grid-cols-[auto_repeat(24,minmax(0,1fr))] gap-[2px] text-[10px] max-sm:text-xs">
+        <span aria-hidden />
+        {HOURS.map((h) => (
+          <span
+            key={h}
+            className="text-muted-foreground text-center tabular-nums"
+          >
+            {h % 3 === 0 ? h : ''}
+          </span>
+        ))}
+        {grid.map((row, i) => [
+          <span
+            key={WEEKDAYS[i]}
+            className="text-muted-foreground pr-1 text-right leading-4 sm:leading-5"
+          >
+            {WEEKDAYS[i]}
+          </span>,
+          ...row.map((n, h) => (
+            <span
+              key={`${WEEKDAYS[i]}-${HOURS[h]}`}
+              title={`${WEEKDAYS[i]} ${String(h).padStart(2, '0')}:00 · ${n.toLocaleString()} queries`}
+              className={cn(
+                'h-4 rounded-[3px] sm:h-5',
+                getIntensityClass(n, max, tiers)
+              )}
+            />
+          )),
+        ])}
       </div>
       <p className="text-muted-foreground text-xs">
         Server time zone · hover a cell for its count
