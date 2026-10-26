@@ -4,6 +4,7 @@ import type { InsightCard as InsightCardData } from '@/lib/insights/types'
 
 import { Suspense } from 'react'
 import { getChartComponent } from '@/components/charts/chart-registry'
+import { AgentPromptSection } from '@/components/insights/agent-prompt-section'
 import { SEVERITY_META } from '@/components/insights/severity-meta'
 import { DynamicChart } from '@/components/layout/query-page/dynamic-chart'
 import { ChartSkeleton } from '@/components/skeletons/chart'
@@ -127,6 +128,13 @@ export function InsightDetailDialog({
           <DialogDescription className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
             {insight.detail}
           </DialogDescription>
+
+          {hostId !== undefined && linkSearch === undefined ? (
+            <>
+              <Separator />
+              <AgentPromptSection insight={insight} hostId={hostId} />
+            </>
+          ) : null}
 
           {chartNames.length > 0 ? (
             <>
