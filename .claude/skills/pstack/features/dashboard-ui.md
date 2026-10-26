@@ -45,7 +45,7 @@ Preconditions:
   (non-required, so confirm it ran and passed). It runs the Cypress `page-render-sweep.cy.ts` list from the current
   `apps/dashboard/src/routes/(dashboard)` tree and records a failure for any
   route with an uncaught exception. The parity guard in
-  `apps/dashboard/scripts/page-sweep-parity.test.ts` makes route-list drift
+  `tests/repo/page-sweep-parity.test.ts` makes route-list drift
   visible in `unit-tests`.
 - **Navigation and host state.** Inspect the Cypress specs
   `sidebar-navigation.cy.ts`, `navigation.cy.ts`, and `host-switching.cy.ts` in
