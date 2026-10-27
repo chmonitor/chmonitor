@@ -4,7 +4,9 @@
  * collide with a Clerk user id, and an unauthenticated request fails closed.
  */
 
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+
+const realClerk = await import('@clerk/tanstack-react-start/server')
 
 mock.module('@clerk/tanstack-react-start/server', () => ({
   auth: async () => ({ userId: 'user_clerk_1' }),
@@ -12,6 +14,10 @@ mock.module('@clerk/tanstack-react-start/server', () => ({
 
 const { resolveConversationUserId } = await import('../auth')
 const { ConversationStoreError } = await import('../types')
+
+afterAll(() => {
+  mock.module('@clerk/tanstack-react-start/server', () => realClerk)
+})
 
 const KEYS = [
   'CHM_AUTH_PROVIDER',
