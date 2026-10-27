@@ -261,6 +261,28 @@ describe('scorePartitionKey', () => {
 })
 
 describe('proposePrewhereRewrite', () => {
+  const typePredicate = {
+    column: 'type',
+    operator: '=',
+    isRange: false,
+    isEqualityOrIn: true,
+  }
+
+  test.each([
+    ['GROUP BY user', 'INTERVAL 24 HOUR'],
+    ['ORDER BY user', 'INTERVAL 24 HOUR'],
+    ['LIMIT 10', 'INTERVAL 24 HOUR'],
+    ['GROUP BY user', '30'],
+  ])('keeps the clause after WHERE separated (%s, condition ends in %s)', (clause, tail) => {
+    const ctx = makeContext({
+      sql: `SELECT user FROM system.query_log\nWHERE type = 'QueryFinish'\n  AND event_time >= now() - ${tail}\n${clause}`,
+      predicates: [typePredicate],
+    })
+    expect(proposePrewhereRewrite(ctx)?.rewrittenSql).toBe(
+      `SELECT user FROM system.query_log\nPREWHERE type = 'QueryFinish' WHERE event_time >= now() - ${tail}\n${clause}`
+    )
+  })
+
   test('moves a single selective predicate into PREWHERE', () => {
     const ctx = makeContext({
       sql: "SELECT * FROM default.events WHERE status = 'error'",
