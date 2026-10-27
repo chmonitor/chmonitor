@@ -59,6 +59,7 @@ const GUARDS = [
   'handleMcp',
   // fail-closed identity resolvers
   'resolveUserId',
+  'resolveConversationUserId',
   'resolveDashboardOwnerId',
   'resolveConnectionUserId',
   'resolveBillingOwner',

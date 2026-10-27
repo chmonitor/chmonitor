@@ -4,6 +4,7 @@ import { AgentStateStore } from './agentstate-store'
 import { BrowserStore } from './browser-store'
 import { D1Store } from './d1-store'
 import { MemoryStore } from './memory-store'
+import { isConversationDbEnabled } from './server-feature'
 import { ConversationStoreError } from './types'
 // PostgresStore is NOT statically imported: the `postgres` package is
 // Node-only and must NOT be bundled into the Cloudflare Workers build.
@@ -11,7 +12,6 @@ import { ConversationStoreError } from './types'
 // (i.e. a Node / non-CF environment). The CF path always reaches D1Store
 // first and never hits this branch.
 import { getPlatformBindings } from '@chm/platform'
-import { featureFlags } from '@/lib/feature-flags'
 import { getStatePostgresUrl } from '@/lib/state-backend/config'
 
 const D1_BINDING_NAME = 'CHM_CLOUD_D1'
@@ -40,7 +40,7 @@ const CONVERSATION_STORE_BACKEND = 'CONVERSATION_STORE_BACKEND'
  * ```
  */
 export async function resolveStore(): Promise<ConversationStore> {
-  if (!featureFlags.conversationDb()) {
+  if (!isConversationDbEnabled()) {
     return new BrowserStore()
   }
 

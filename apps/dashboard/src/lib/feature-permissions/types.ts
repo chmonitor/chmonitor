@@ -107,6 +107,11 @@ export type Principal = 'anonymous' | 'authenticated'
 
 export type ResolvedFeatureStates = Record<FeatureId, FeatureState>
 
+export interface ConversationsPublicConfig {
+  /** True when agent threads persist server-side (D1 / Postgres / AgentState). */
+  dbStorageEnabled: boolean
+}
+
 export interface UserConnectionsPublicConfig {
   dbStorageEnabled: boolean
   requiresAuth: boolean
@@ -134,6 +139,8 @@ export interface PublicFeaturePermissionConfig {
   capabilities?: DeploymentCapabilities
   /** Per-user ClickHouse connection storage capabilities. */
   userConnections?: UserConnectionsPublicConfig
+  /** Agent conversation storage, resolved from runtime env (#4227). */
+  conversations?: ConversationsPublicConfig
   /** Metadata-database availability for state-persisting features. */
   metadataDb?: MetadataDbPublicConfig
   /** AI agent capabilities the client needs to know about. */

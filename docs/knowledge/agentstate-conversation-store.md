@@ -3,7 +3,7 @@ id: agentstate-conversation-store
 title: AgentState Conversation Store
 type: spec
 status: active
-updated: 2026-08-18
+updated: 2026-10-27
 related:
   - agent-conversation-storage
   - ai-insights
@@ -38,7 +38,9 @@ append turn, list, delete) so the agent route is backend-agnostic. AgentState is
 the highest-priority backend in `resolveStore`.
 
 **Selection priority** (when persistence is enabled via
-`VITE_FEATURE_CONVERSATION_DB=true` and the user is authenticated):
+runtime `CHM_FEATURE_CONVERSATION_DB=true` and the user is authenticated
+via Clerk or the `trusted` proxy provider — see
+`lib/conversation-store/server-feature.ts`, #4227):
 
 1. **AgentState** — when `AGENTSTATE_API_KEY` is set
 2. **D1** — when a Cloudflare D1 binding is present
@@ -101,7 +103,14 @@ backend endpoint reflects this.
 | `AGENTSTATE_AI_ENRICH` | no | `false` | enable auto-title + follow-up suggestions |
 | `CONVERSATION_STORE_BACKEND` | no | `auto` | force `agentstate` when a D1 binding is also present |
 
-Also requires `VITE_FEATURE_CONVERSATION_DB=true` and a Clerk auth provider.
+Also requires runtime `CHM_FEATURE_CONVERSATION_DB=true` and an identity:
+Clerk (`CLERK_SECRET_KEY`) or `CHM_AUTH_PROVIDER=trusted`. Under `trusted` the
+flag only turns on when a durable backend exists (AgentState key, D1, or
+`DATABASE_URL`/`POSTGRES_URL`), so trusted users never land on MemoryStore.
+Trusted owners are stored as `trusted:<subject>` (from
+`resolveConversationUserId`), so they cannot collide with Clerk user ids. The
+client picks the server thread adapter from `/api/v1/config`
+`conversations.dbStorageEnabled`, not a build-time flag.
 
 **Local dev** against a self-hosted instance: `AGENTSTATE_BASE_URL=http://localhost:8787`
 with the seed test key `as_live_TEST_KEY_FOR_LOCAL_DEV_ONLY_1234567890ab`.
