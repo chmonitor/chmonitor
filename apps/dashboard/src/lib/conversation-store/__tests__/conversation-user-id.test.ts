@@ -4,7 +4,15 @@
  * collide with a Clerk user id, and an unauthenticated request fails closed.
  */
 
-import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from 'bun:test'
 
 const realClerk = await import('@clerk/tanstack-react-start/server')
 
