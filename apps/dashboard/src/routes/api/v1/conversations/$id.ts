@@ -22,10 +22,10 @@ import {
   createSuccessResponse,
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
-import { resolveUserId } from '@/lib/conversation-store/auth'
+import { resolveConversationUserId } from '@/lib/conversation-store/auth'
 import { resolveStore } from '@/lib/conversation-store/resolve-store'
+import { isConversationDbEnabled } from '@/lib/conversation-store/server-feature'
 import { ConversationStoreError } from '@/lib/conversation-store/types'
-import { isFeatureEnabled } from '@/lib/feature-flags'
 import { autoMigrate } from '@/lib/migration/auto-migrate'
 
 const ROUTE_CONTEXT_GET = { route: '/api/v1/conversations/$id', method: 'GET' }
@@ -53,7 +53,7 @@ export interface ConversationResponse extends StoredConversation {}
 /**
  * Handle GET requests for single conversation
  */
-async function handleGet(id: string): Promise<Response> {
+async function handleGet(request: Request, id: string): Promise<Response> {
   const requestId = generateRequestId()
   debug('[GET /api/v1/conversations/$id] Fetching conversation', {
     conversationId: id,
@@ -63,12 +63,12 @@ async function handleGet(id: string): Promise<Response> {
   try {
     // Auth before the feature check: an anonymous caller is rejected,
     // never shown a 501 that reveals how storage is configured (#4020).
-    const userId = await resolveUserId()
+    const userId = await resolveConversationUserId(request)
 
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
-    if (!isFeatureEnabled('conversationDb')) {
+    if (!isConversationDbEnabled()) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.PermissionError,
@@ -192,12 +192,12 @@ async function handlePut(request: Request, id: string): Promise<Response> {
   try {
     // Auth before the feature check: an anonymous caller is rejected,
     // never shown a 501 that reveals how storage is configured (#4020).
-    const userId = await resolveUserId()
+    const userId = await resolveConversationUserId(request)
 
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
-    if (!isFeatureEnabled('conversationDb')) {
+    if (!isConversationDbEnabled()) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.PermissionError,
@@ -375,7 +375,7 @@ async function handlePut(request: Request, id: string): Promise<Response> {
 /**
  * Handle DELETE requests to delete conversation
  */
-async function handleDelete(id: string): Promise<Response> {
+async function handleDelete(request: Request, id: string): Promise<Response> {
   const requestId = generateRequestId()
   debug('[DELETE /api/v1/conversations/$id] Deleting conversation', {
     conversationId: id,
@@ -385,12 +385,12 @@ async function handleDelete(id: string): Promise<Response> {
   try {
     // Auth before the feature check: an anonymous caller is rejected,
     // never shown a 501 that reveals how storage is configured (#4020).
-    const userId = await resolveUserId()
+    const userId = await resolveConversationUserId(request)
 
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
-    if (!isFeatureEnabled('conversationDb')) {
+    if (!isConversationDbEnabled()) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.PermissionError,
@@ -498,9 +498,9 @@ async function handleDelete(id: string): Promise<Response> {
 export const Route = createFileRoute('/api/v1/conversations/$id')({
   server: {
     handlers: {
-      GET: ({ params }) => handleGet(params.id),
+      GET: ({ request, params }) => handleGet(request, params.id),
       PUT: ({ request, params }) => handlePut(request, params.id),
-      DELETE: ({ params }) => handleDelete(params.id),
+      DELETE: ({ request, params }) => handleDelete(request, params.id),
     },
   },
 })

@@ -45,6 +45,7 @@ import { getAuthProvider } from '@/lib/auth/provider'
 import { resolveConfig } from '@/lib/config/deployment-mode'
 import { parseBool } from '@/lib/config/parse-bool'
 import { getUserConnectionsServerConfig } from '@/lib/connection-store/server-feature'
+import { getConversationStoreServerConfig } from '@/lib/conversation-store/server-feature'
 import { getFileFeatureOverrides } from '@/lib/feature-permissions/config-file'
 import {
   FEATURE_ACCESS_VALUES,
@@ -251,6 +252,9 @@ function getPublicFeaturePermissionConfig(): PublicFeaturePermissionConfig {
     userConnections: {
       dbStorageEnabled: userConnections.dbStorageEnabled,
       requiresAuth: userConnections.requiresAuth,
+    },
+    conversations: {
+      dbStorageEnabled: getConversationStoreServerConfig().dbStorageEnabled,
     },
     metadataDb: { available: metadataDbAvailable },
     agent: {

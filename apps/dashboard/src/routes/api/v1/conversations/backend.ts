@@ -20,7 +20,7 @@ import { BrowserStore } from '@/lib/conversation-store/browser-store'
 import { D1Store } from '@/lib/conversation-store/d1-store'
 import { MemoryStore } from '@/lib/conversation-store/memory-store'
 import { resolveStore } from '@/lib/conversation-store/resolve-store'
-import { isFeatureEnabled } from '@/lib/feature-flags'
+import { isConversationDbEnabled } from '@/lib/conversation-store/server-feature'
 
 /**
  * Known conversation store backend identifiers.
@@ -62,7 +62,7 @@ async function handleGet(): Promise<Response> {
 
   try {
     // When persistence is disabled the BrowserStore (localStorage) is used.
-    if (!isFeatureEnabled('conversationDb')) {
+    if (!isConversationDbEnabled()) {
       return backendResponse('browser', false, requestId)
     }
 

@@ -28,11 +28,16 @@ mock.module('@/lib/feature-flags', () => ({
   isFeatureEnabled: () => true,
 }))
 
+mock.module('@/lib/conversation-store/server-feature', () => ({
+  isConversationDbEnabled: () => true,
+}))
+
 import * as realAuth from '@/lib/conversation-store/auth'
 
 mock.module('@/lib/conversation-store/auth', () => ({
   ...realAuth,
   resolveUserId: async () => 'user_123',
+  resolveConversationUserId: async () => 'user_123',
 }))
 
 const { handlePost: dataPost } = await import('@/routes/api/v1/data')

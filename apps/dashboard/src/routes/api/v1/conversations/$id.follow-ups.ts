@@ -20,10 +20,10 @@ import {
 } from '@/lib/api/shared/response-builder'
 import { ApiErrorType } from '@/lib/api/types'
 import { AgentStateStore } from '@/lib/conversation-store/agentstate-store'
-import { resolveUserId } from '@/lib/conversation-store/auth'
+import { resolveConversationUserId } from '@/lib/conversation-store/auth'
 import { resolveStore } from '@/lib/conversation-store/resolve-store'
+import { isConversationDbEnabled } from '@/lib/conversation-store/server-feature'
 import { ConversationStoreError } from '@/lib/conversation-store/types'
-import { isFeatureEnabled } from '@/lib/feature-flags'
 import { autoMigrate } from '@/lib/migration/auto-migrate'
 
 const ROUTE_CONTEXT_GET = {
@@ -34,7 +34,7 @@ const ROUTE_CONTEXT_GET = {
 /**
  * Handle GET requests for conversation follow-up suggestions.
  */
-async function handleGet(id: string): Promise<Response> {
+async function handleGet(request: Request, id: string): Promise<Response> {
   const requestId = generateRequestId()
   debug('[GET /api/v1/conversations/$id/follow-ups] Generating follow-ups', {
     conversationId: id,
@@ -44,12 +44,12 @@ async function handleGet(id: string): Promise<Response> {
   try {
     // Auth before the feature check: an anonymous caller is rejected,
     // never shown a 501 that reveals how storage is configured (#4020).
-    const userId = await resolveUserId()
+    const userId = await resolveConversationUserId(request)
 
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
-    if (!isFeatureEnabled('conversationDb')) {
+    if (!isConversationDbEnabled()) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.PermissionError,
@@ -154,7 +154,7 @@ async function handleGet(id: string): Promise<Response> {
 export const Route = createFileRoute('/api/v1/conversations/$id/follow-ups')({
   server: {
     handlers: {
-      GET: ({ params }) => handleGet(params.id),
+      GET: ({ request, params }) => handleGet(request, params.id),
     },
   },
 })

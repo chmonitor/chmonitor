@@ -6,7 +6,7 @@ import { ConversationStoreError } from '@/lib/conversation-store/types'
 const resolveStore = mock(async () => ({}))
 const autoMigrate = mock(async () => {})
 mock.module('@/lib/conversation-store/auth', () => ({
-  resolveUserId: async () => {
+  resolveConversationUserId: async () => {
     throw new ConversationStoreError(
       'Authentication is required for conversation storage.',
       'UNAUTHORIZED'
@@ -14,7 +14,9 @@ mock.module('@/lib/conversation-store/auth', () => ({
   },
 }))
 mock.module('@/lib/conversation-store/resolve-store', () => ({ resolveStore }))
-mock.module('@/lib/feature-flags', () => ({ isFeatureEnabled: () => false }))
+mock.module('@/lib/conversation-store/server-feature', () => ({
+  isConversationDbEnabled: () => false,
+}))
 mock.module('@/lib/migration/auto-migrate', () => ({ autoMigrate }))
 
 const { Route } = await import('../../conversations')

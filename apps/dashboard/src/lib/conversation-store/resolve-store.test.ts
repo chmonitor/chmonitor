@@ -2,12 +2,12 @@
  * Tests for {@link resolveStore} and {@link isPersistentStore}.
  *
  * resolveStore() consults several collaborators before reaching a backend:
- *   1. `featureFlags.conversationDb()` — gated on a Vite env flag + Clerk auth.
+ *   1. `isConversationDbEnabled()` — runtime flag + identity (server-feature.ts).
  *   2. `process.env.CONVERSATION_STORE_BACKEND` / `AGENTSTATE_API_KEY`.
  *   3. `getPlatformBindings().getD1Database(...)` for the D1 fallback.
  *
  * To isolate branches in a unit test we mock:
- *   - `@/lib/feature-flags` with a controllable `conversationDb` mock (defaults
+ *   - `./server-feature` with a controllable `isConversationDbEnabled` mock (defaults
  *     to true; flipped to false to exercise the disabled-feature branch).
  *   - `@chm/platform` so getD1Database() returns undefined (no D1 binding).
  *   - `@agentstate/sdk` with a minimal fake so `new AgentStateStore(...)` works
@@ -24,10 +24,8 @@ import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 // conversationDb is a controllable mock so we can exercise both the enabled and
 // disabled feature-flag branches; reset to `true` before each test.
 const mockConversationDb = mock(() => true)
-mock.module('@/lib/feature-flags', () => ({
-  featureFlags: {
-    conversationDb: mockConversationDb,
-  },
+mock.module('./server-feature', () => ({
+  isConversationDbEnabled: mockConversationDb,
 }))
 
 mock.module('@chm/platform', () => ({

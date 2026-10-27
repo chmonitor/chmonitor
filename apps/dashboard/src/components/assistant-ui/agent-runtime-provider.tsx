@@ -26,6 +26,7 @@ import { trackEvent } from '@/lib/analytics/analytics'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { isCloudModeClient } from '@/lib/cloud/cloud-mode'
 import { resolveThreadListAdapter } from '@/lib/conversation-store/adapter/resolve-thread-list-adapter'
+import { useFeaturePermissions } from '@/lib/feature-permissions/context'
 import { useAgentModel } from '@/lib/hooks/use-agent-model'
 import {
   getAnyRouterToken,
@@ -187,9 +188,11 @@ function useAgentChatRuntime() {
 export function AgentRuntimeProvider({ children }: { children: ReactNode }) {
   const signedIn = useClerkIsSignedIn()
   const persistRemote = !(isCloudModeClient() && !signedIn)
+  const dbStorageEnabled =
+    useFeaturePermissions().config.conversations?.dbStorageEnabled === true
   const adapter = useMemo(
-    () => resolveThreadListAdapter({ persistRemote }),
-    [persistRemote]
+    () => resolveThreadListAdapter({ dbStorageEnabled, persistRemote }),
+    [dbStorageEnabled, persistRemote]
   )
 
   const runtime = useRemoteThreadListRuntime({

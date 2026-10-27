@@ -27,10 +27,10 @@ import { ApiErrorType } from '@/lib/api/types'
 import { resolveBillingOwner } from '@/lib/billing/billing-owner'
 import { retentionCutoffMs } from '@/lib/billing/entitlements'
 import { getPlanForOwner } from '@/lib/billing/user-subscription'
-import { resolveUserId } from '@/lib/conversation-store/auth'
+import { resolveConversationUserId } from '@/lib/conversation-store/auth'
 import { resolveStore } from '@/lib/conversation-store/resolve-store'
+import { isConversationDbEnabled } from '@/lib/conversation-store/server-feature'
 import { ConversationStoreError } from '@/lib/conversation-store/types'
-import { isFeatureEnabled } from '@/lib/feature-flags'
 import { autoMigrate } from '@/lib/migration/auto-migrate'
 
 const ROUTE_CONTEXT_GET = { route: '/api/v1/conversations', method: 'GET' }
@@ -75,12 +75,12 @@ async function handleGet(request: Request): Promise<Response> {
     // Run pending migrations on first request
     // Auth before the feature check: an anonymous caller is rejected,
     // never shown a 501 that reveals how storage is configured (#4020).
-    const userId = await resolveUserId()
+    const userId = await resolveConversationUserId(request)
 
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
-    if (!isFeatureEnabled('conversationDb')) {
+    if (!isConversationDbEnabled()) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.PermissionError,
@@ -188,12 +188,12 @@ async function handlePost(request: Request): Promise<Response> {
     // Run pending migrations on first request
     // Auth before the feature check: an anonymous caller is rejected,
     // never shown a 501 that reveals how storage is configured (#4020).
-    const userId = await resolveUserId()
+    const userId = await resolveConversationUserId(request)
 
     await autoMigrate()
 
     // Guard: conversation persistence must be explicitly enabled
-    if (!isFeatureEnabled('conversationDb')) {
+    if (!isConversationDbEnabled()) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.PermissionError,

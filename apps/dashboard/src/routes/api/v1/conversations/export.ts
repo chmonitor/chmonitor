@@ -19,27 +19,27 @@ import { ApiErrorType } from '@/lib/api/types'
 import { resolveBillingOwner } from '@/lib/billing/billing-owner'
 import { retentionCutoffMs } from '@/lib/billing/entitlements'
 import { getPlanForOwner } from '@/lib/billing/user-subscription'
-import { resolveUserId } from '@/lib/conversation-store/auth'
+import { resolveConversationUserId } from '@/lib/conversation-store/auth'
 import { exportConversationsJsonl } from '@/lib/conversation-store/export'
 import { resolveStore } from '@/lib/conversation-store/resolve-store'
+import { isConversationDbEnabled } from '@/lib/conversation-store/server-feature'
 import { ConversationStoreError } from '@/lib/conversation-store/types'
-import { isFeatureEnabled } from '@/lib/feature-flags'
 import { autoMigrate } from '@/lib/migration/auto-migrate'
 
 const ROUTE_CONTEXT = { route: '/api/v1/conversations/export', method: 'GET' }
 
-async function handleGet(): Promise<Response> {
+async function handleGet(request: Request): Promise<Response> {
   const requestId = generateRequestId()
   debug('[GET /api/v1/conversations/export] Exporting', { requestId })
 
   try {
     // Auth before the feature check: an anonymous caller is rejected,
     // never shown a 501 that reveals how storage is configured (#4020).
-    const userId = await resolveUserId()
+    const userId = await resolveConversationUserId(request)
 
     await autoMigrate()
 
-    if (!isFeatureEnabled('conversationDb')) {
+    if (!isConversationDbEnabled()) {
       return createApiErrorResponse(
         {
           type: ApiErrorType.PermissionError,
@@ -115,7 +115,7 @@ async function handleGet(): Promise<Response> {
 export const Route = createFileRoute('/api/v1/conversations/export')({
   server: {
     handlers: {
-      GET: () => handleGet(),
+      GET: ({ request }) => handleGet(request),
     },
   },
 })
