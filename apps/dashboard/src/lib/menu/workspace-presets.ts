@@ -19,14 +19,6 @@ import {
  * catalog.
  */
 
-export const WORKSPACE_PRESETS = [
-  'full',
-  'dba',
-  'engineer',
-  'sre',
-  'custom',
-] as const
-
 export interface WorkspaceVisibility {
   workspacePreset: WorkspacePreset
   hiddenMenuHrefs: readonly string[]
