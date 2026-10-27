@@ -387,7 +387,7 @@ entitlements**, not Polar seats:
   the operator's egress IP. The inline path stays enabled for self-hosted
   deployments (default), which are typically not publicly exposed and rely on
   it for the browser-connections feature. The legitimate client
-  (`lib/swr/browser-proxy-fetcher.ts`, `lib/host-fetch/resolve-host-fetch.ts`)
+  (`lib/host-fetch/resolve-host-fetch.ts`)
   always mints a sessionToken first, so this is purely a hardening gate for
   callers hitting the API directly.
 - **`/browser-connections/{test,sessions}` are IP-rate-limited (#2978).** Both

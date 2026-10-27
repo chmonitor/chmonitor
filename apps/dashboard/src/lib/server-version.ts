@@ -20,15 +20,6 @@ export type { ClickHouseVersion }
 export { parseVersion }
 
 /**
- * Return the raw version string (e.g. "26.6.1.0") for the given host.
- * Returns an empty string if the version cannot be determined.
- */
-export async function getServerVersion(hostId: number): Promise<string> {
-  const v = await getClickHouseVersion(hostId)
-  return v?.raw ?? ''
-}
-
-/**
  * Compare two version strings.
  * Returns -1 if v1 < v2, 0 if equal, 1 if v1 > v2.
  */

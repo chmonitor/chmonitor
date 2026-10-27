@@ -40,16 +40,3 @@ export const captureException = createIsomorphicFn().client(
     )
   }
 )
-
-/**
- * The browser's PostHog distinct-id, or undefined on the server / when
- * analytics is disabled or not yet initialized. Awaited (unlike the
- * fire-and-forget `trackEvent`) because callers need the value before making
- * a request — e.g. attaching it to checkout flows for funnel stitching.
- */
-export const getDistinctId = createIsomorphicFn()
-  .server(async (): Promise<string | undefined> => undefined)
-  .client(async (): Promise<string | undefined> => {
-    const m = await import('./analytics.client')
-    return m.getAnalyticsDistinctId()
-  })

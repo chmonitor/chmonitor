@@ -64,25 +64,6 @@ export function convexHull(points: Point[]): Point[] {
   return hull
 }
 
-/** Smooth closed path through points (Catmull-Rom → bezier). */
-export function catmullRomClosed(p: Point[]): string {
-  const n = p.length
-  if (n < 3) return ''
-  let d = `M ${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)}`
-  for (let i = 0; i < n; i++) {
-    const p0 = p[(i - 1 + n) % n]
-    const p1 = p[i]
-    const p2 = p[(i + 1) % n]
-    const p3 = p[(i + 2) % n]
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6
-    const c1y = p1[1] + (p2[1] - p0[1]) / 6
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6
-    const c2y = p2[1] - (p3[1] - p1[1]) / 6
-    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`
-  }
-  return `${d} Z`
-}
-
 const f = (n: number) => n.toFixed(1)
 
 /** Axis-aligned rounded-rectangle path (four corner arcs). */
@@ -186,48 +167,4 @@ export function offsetHullPath(centers: Center[], r: number): string {
     d += `A ${f(r)} ${f(r)} 0 0 1 ${f(depart[0])} ${f(depart[1])} `
   }
   return `${d}Z`
-}
-
-/** Approximate area of the offset hull, used to z-order overlapping blobs (largest first). */
-export function offsetHullArea(centers: Center[], r: number): number {
-  if (centers.length === 0) return 0
-  const hull = convexHull(centers.map((c) => [c.x, c.y] as Point))
-  if (hull.length === 1) return Math.PI * r * r
-  if (hull.length === 2) {
-    const len = Math.hypot(hull[1][0] - hull[0][0], hull[1][1] - hull[0][1])
-    // stadium = rectangle (len × 2r) + circle (πr²)
-    return len * 2 * r + Math.PI * r * r
-  }
-  // polygon area (shoelace) + perimeter*r + πr² (exact Minkowski area)
-  let area2 = 0
-  let perim = 0
-  const n = hull.length
-  for (let i = 0; i < n; i++) {
-    const a = hull[i]
-    const b = hull[(i + 1) % n]
-    area2 += a[0] * b[1] - b[0] * a[1]
-    perim += Math.hypot(b[0] - a[0], b[1] - a[1])
-  }
-  return Math.abs(area2) / 2 + perim * r + Math.PI * r * r
-}
-
-/** Smooth blob hull: ring of samples around each center, convex hull, then Catmull-Rom. */
-export function hullPath(centers: Center[], pad: number): string {
-  if (centers.length === 0 || pad <= 0) return ''
-  // Degenerate: single center → return a circle directly (catmullRom needs ≥3).
-  if (centers.length === 1) {
-    return circlePath(centers[0].x, centers[0].y, pad)
-  }
-
-  const RING_N = 20
-  const ring: Point[] = []
-  for (const c of centers) {
-    for (let i = 0; i < RING_N; i++) {
-      const a = (i / RING_N) * Math.PI * 2
-      ring.push([c.x + Math.cos(a) * pad, c.y + Math.sin(a) * pad])
-    }
-  }
-  const hull = convexHull(ring)
-  if (hull.length < 3) return offsetHullPath(centers, pad) // fallback
-  return catmullRomClosed(hull)
 }
