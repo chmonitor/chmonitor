@@ -6,6 +6,7 @@
  */
 
 import { error } from '@chm/logger'
+import { getBuildAuthProvider } from '@/lib/auth/provider'
 import { isClerkEnabled } from '@/lib/clerk/clerk-client'
 import { parseBool } from '@/lib/config/parse-bool'
 
@@ -20,11 +21,12 @@ export const featureFlags = {
    * Enable persistent database storage for AI agent conversations.
    *
    * When enabled, conversations are stored in D1 (Cloudflare Workers) or PostgreSQL
-   * instead of localStorage. Requires Clerk to be fully enabled — provider
-   * `clerk` AND a real publishable key — because the server store isolates
-   * conversations per signed-in user. Without a key there is no user identity,
-   * so we fall back to the localStorage adapter instead of calling the server
-   * endpoint (which would 501 on guest/self-hosted deployments).
+   * instead of localStorage. Requires a provider that supplies per-user identity:
+   * - `clerk`: full Clerk auth with a valid publishable key
+   * - `trusted`: reverse-proxy sets `X-Auth-Request-*` identity headers (e.g. oauth2-proxy)
+   * - `proxy`: same reverse-proxy pattern as `trusted`
+   *
+   * `none` always returns false — there is no user identity to isolate conversations by.
    *
    * @default false (unset)
    * @env VITE_FEATURE_CONVERSATION_DB (was NEXT_PUBLIC_FEATURE_CONVERSATION_DB)
@@ -35,9 +37,13 @@ export const featureFlags = {
     }
 
     try {
-      return isClerkEnabled()
+      const provider = getBuildAuthProvider()
+      if (provider === 'clerk') return isClerkEnabled()
+      // trusted and proxy supply user identity via reverse-proxy headers;
+      // conversation isolation works without Clerk.
+      return provider === 'trusted' || provider === 'proxy'
     } catch (err) {
-      error('[featureFlags.conversationDb] Clerk enablement check failed', err)
+      error('[featureFlags.conversationDb] auth provider check failed', err)
       return false
     }
   },

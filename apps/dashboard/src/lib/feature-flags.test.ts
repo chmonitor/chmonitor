@@ -39,6 +39,18 @@ mock.module('@/lib/clerk/clerk-client', () => ({
   CLERK_PUBLISHABLE_KEY: 'pk_test_mock',
 }))
 
+// ── Mock @/lib/auth/provider ──────────────────────────────────────────────────
+// getBuildAuthProvider is a build-time constant in production (inlined by Vite),
+// but in tests we need to vary it. Mock the module so each test group can set the
+// provider independently without rebuilding.
+import type { AuthProvider } from '@/lib/auth/provider'
+
+const mockGetBuildAuthProvider = mock((): AuthProvider => 'clerk')
+
+mock.module('@/lib/auth/provider', () => ({
+  getBuildAuthProvider: mockGetBuildAuthProvider,
+}))
+
 // ── Import module under test (after mock registration) ───────────────────────
 const { featureFlags, isFeatureEnabled } = await import('./feature-flags')
 
@@ -67,8 +79,10 @@ function unsetEnv(key: FeatureEnvKey): void {
 }
 
 beforeEach(() => {
-  // Default Clerk to enabled so the Clerk gate is not the variable in env tests.
+  // Default Clerk to enabled and provider to 'clerk' so the Clerk gate is not
+  // the variable in env-var-only tests.
   mockIsClerkEnabled.mockReturnValue(true)
+  mockGetBuildAuthProvider.mockReturnValue('clerk')
   snapshot = {}
   for (const key of FEATURE_KEYS) {
     snapshot[key] = process.env[key]
@@ -117,11 +131,12 @@ describe('featureFlags.conversationDb — VITE_FEATURE_CONVERSATION_DB gate', ()
   })
 })
 
-describe('featureFlags.conversationDb — Clerk gate (env var = "true")', () => {
+describe('featureFlags.conversationDb — Clerk gate (env var = "true", provider = "clerk")', () => {
   // Env var is always "true" here; only isClerkEnabled() varies.
 
   beforeEach(() => {
     setEnv('VITE_FEATURE_CONVERSATION_DB', 'true')
+    mockGetBuildAuthProvider.mockReturnValue('clerk')
   })
 
   test('returns false when Clerk is NOT enabled', () => {
@@ -131,6 +146,36 @@ describe('featureFlags.conversationDb — Clerk gate (env var = "true")', () => 
 
   test('returns true when Clerk IS enabled', () => {
     mockIsClerkEnabled.mockReturnValue(true)
+    expect(featureFlags.conversationDb()).toBe(true)
+  })
+})
+
+describe('featureFlags.conversationDb — non-Clerk identity providers (env var = "true")', () => {
+  // trusted and proxy supply user identity via reverse-proxy headers;
+  // none has no identity and must always return false.
+
+  beforeEach(() => {
+    setEnv('VITE_FEATURE_CONVERSATION_DB', 'true')
+  })
+
+  test('returns true for provider=trusted (no Clerk required)', () => {
+    mockGetBuildAuthProvider.mockReturnValue('trusted')
+    expect(featureFlags.conversationDb()).toBe(true)
+  })
+
+  test('returns true for provider=proxy (no Clerk required)', () => {
+    mockGetBuildAuthProvider.mockReturnValue('proxy')
+    expect(featureFlags.conversationDb()).toBe(true)
+  })
+
+  test('returns false for provider=none (no user identity)', () => {
+    mockGetBuildAuthProvider.mockReturnValue('none')
+    expect(featureFlags.conversationDb()).toBe(false)
+  })
+
+  test('trusted: Clerk disabled does not affect result', () => {
+    mockGetBuildAuthProvider.mockReturnValue('trusted')
+    mockIsClerkEnabled.mockReturnValue(false)
     expect(featureFlags.conversationDb()).toBe(true)
   })
 })
