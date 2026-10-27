@@ -3,7 +3,7 @@ id: agent-conversation-storage
 title: Agent Conversation Storage
 type: spec
 status: active
-updated: 2026-09-27
+updated: 2026-10-28
 related:
   - agentstate-conversation-store
   - deployment
@@ -86,16 +86,16 @@ Verified present on `main`:
   `app/api/v1/agent/route.ts`)
 - `apps/dashboard/src/routes/api/v1/conversations/backend.ts` — reports the active
   backend and whether it supports AI enrichment; the successor to the deleted
-  `app/api/v1/conversations/status/route.ts`
+  Next.js-era conversations status route
 - `scripts/prepare-dashboard-wrangler.ts` — the `database_id` / D1-binding guard
 - `scripts/setup-conversations-db.ts` — D1 provisioning helper
 
 **Deleted with the Next.js app in #1613, no successor** — do not go looking:
 
-- `apps/dashboard/lib/conversation-store/config.ts`
-- `apps/dashboard/lib/conversation-store/persist-agent-turn.ts`
-- `apps/dashboard/app/api/v1/conversations/status/route.ts`
+- the Next.js-era conversation-store config module
+- the Next.js-era persist-agent-turn module
+- the Next.js-era conversations status route
 
 Every one of the five Code References this note carried before still pointed into
-`apps/dashboard/lib/` or `apps/dashboard/app/`; all five paths were dead, and
+the Next.js-era `lib/` or `app/` trees; all five were dead, and
 three of them now point at a verified successor.

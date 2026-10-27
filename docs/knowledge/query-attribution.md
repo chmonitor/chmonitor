@@ -3,7 +3,7 @@ id: query-attribution
 title: Query attribution
 type: spec
 status: active
-updated: 2026-10-24
+updated: 2026-10-28
 tags:
   - clickhouse
   - query-log
@@ -83,7 +83,7 @@ Current allowlist:
 
 - `clickhouse-client.ts` picks the factory at runtime and wraps the result
   before pooling.
-- `scripts/verify-readonly-mode.ts` is a manual probe of raw readonly
+- `packages/clickhouse-client/scripts/verify-readonly-mode.ts` is a manual probe of raw readonly
   behaviour.
 
 Not covered by the guard: the state backend

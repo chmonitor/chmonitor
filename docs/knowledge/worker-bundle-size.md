@@ -3,7 +3,7 @@ id: worker-bundle-size
 title: Cloudflare Worker Bundle Size
 type: decision
 status: active
-updated: 2026-08-07
+updated: 2026-10-28
 tags:
   - cloudflare-workers
   - bundle-size
@@ -39,7 +39,7 @@ pnpm exec wrangler deploy --minify --dry-run 2>&1 | grep -iE "Total Upload|gzip:
 
 1. **SSR stubs** (`apps/dashboard/vite.config.ts` → `SSR_STUB_PREFIXES` + `chm:ssr-client-only-stub`). Client-only packages resolve to a no-op Proxy on the Worker SSR graph; the client build keeps real packages. **Node/Docker (`BUILD_TARGET=node`) does not stub** (except `@cloudflare/puppeteer`, which is Workers-only).
 
-2. **Thin Polar REST client** (`lib/billing/polar-http.ts` + `polar-webhooks.ts`) replaces `@polar-sh/sdk` on the Worker runtime path (~1.3 MiB raw Speakeasy SDK → small fetch + `standardwebhooks`). Dev script `scripts/polar-setup.ts` may still import the SDK.
+2. **Thin Polar REST client** (`lib/billing/polar-http.ts` + `polar-webhooks.ts`) replaces `@polar-sh/sdk` on the Worker runtime path (~1.3 MiB raw Speakeasy SDK → small fetch + `standardwebhooks`). Dev script `apps/dashboard/scripts/polar-setup.ts` may still import the SDK.
 
 3. **Do not rely on dynamic `import()` alone** for size. With `no_bundle: true`, every emitted `dist/server/assets/*.js` still counts toward the upload total. Only **removing a package from the server graph** (stub or never import) saves bytes.
 

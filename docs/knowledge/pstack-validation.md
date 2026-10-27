@@ -3,7 +3,7 @@ id: pstack-validation
 title: Project-local pstack validation
 type: workflow
 status: active
-updated: 2026-10-23
+updated: 2026-10-28
 tags:
   - verification
   - pstack
@@ -90,7 +90,7 @@ regenerate or edit `apps/dashboard/src/lib/ai/agent/skills/registry.ts`.
 | `.cursor/skills/verify-chmonitor/scripts/doctor.sh` | Binary identity by default; optional HTTP or cluster checks | Useful read-only helper. A failing hosted connectivity row is separate from identity. |
 | `.cursor/skills/verify-chmonitor/scripts/drive.sh` | One local CLI/TUI feature at a time | Requires the isolated CLI setup. Useful only when a live CLI claim is requested. |
 | `.cursor/skills/verify-chmonitor/scripts/cleanup.sh` and `redact-check.sh` | Removes helper-created sessions/scratch state and checks evidence for secrets | Reuse rather than reimplementing. Preserve evidence. |
-| `.claude/skills/verify-production/SKILL.md` | Post-deploy proof: `verify-deploy.ts` contract, health endpoints, agent probes, restore order | Replaced the deleted `verify-deploy.md`, which named the old `apps/dashboard-tsr` surface. Source: `apps/dashboard/scripts/verify-deploy.ts`. |
+| `.claude/skills/verify-production/SKILL.md` | Post-deploy proof: `verify-deploy.ts` contract, health endpoints, agent probes, restore order | Replaced the deleted `verify-deploy.md`, which named the old dashboard-tsr surface. Source: `apps/dashboard/scripts/verify-deploy.ts`. |
 | `.claude/skills/ui-ux-audit/SKILL.md` and `scripts/` | Broad route discovery, console/network checks, overflow, skeletons, axe, screenshots, visual diffs, traces | Valuable manual harness. Its live login helper is account-specific, and `setup.sh` installs an external toolchain. It is not the default CI proof. |
 | `.agents/skills/plan-and-verify/SKILL.md` | Explicit planning and narrow-window verification discipline | The requested `.claude/skills/plan-and-verify` path does not exist. The real file is under `.agents/skills` and is allowlisted in the generated registry. Do not move or duplicate it for this task. |
 | `.claude/skills/product-design/SKILL.md` and `docs/knowledge/product-design.md` | Stable UI states, tokens, responsive behavior, navigation, loading/error/empty conventions | Use as the expected-state contract for UI proof. It is not an executable test harness. |
@@ -129,7 +129,7 @@ regenerate or edit `apps/dashboard/src/lib/ai/agent/skills/registry.ts`.
 - Deployment and CLI evidence were in separate helpers and workflows. The new
   deploy/CLI feature records the artifact, job, and live boundary together.
 - The old `verify-deploy` and `ui-ux-audit` instructions named the deleted
-  `apps/dashboard-tsr` app. `verify-deploy.md` is gone (see
+  dashboard-tsr app. `verify-deploy.md` is gone (see
   `verify-production`) and `ui-ux-audit` now targets `apps/dashboard`.
 
 ## Validation matrix

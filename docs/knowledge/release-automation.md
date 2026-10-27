@@ -3,7 +3,7 @@ id: release-automation
 title: Release Automation Pipeline
 type: workflow
 status: active
-updated: 2026-10-24
+updated: 2026-10-28
 tags:
   - release
   - ci
@@ -51,8 +51,8 @@ from conventional commits on `main` — no manual version bumps or tagging.
    [`duyet/llm-release-action@v1`](https://github.com/duyet/llm-release-action)
    composite action (recap stats, tiered AI summary, Docker block, compare link,
    and the migration prompt). The recap/notes scripts and tiered-inference steps
-   used to live in-repo (`scripts/release-recap.mjs`,
-   `scripts/generate-release-notes.ts`) and are now centralized in that action.
+   used to live in-repo (release-recap.mjs,
+   generate-release-notes.ts) and are now centralized in that action.
 
 ## Release body layout
 
@@ -149,7 +149,7 @@ bodies stay detailed (recap, Docker, commits).
 `.github/release-migration-prompt.md` is the canonical paste-able prompt that
 rewrites a user's env for a breaking upgrade. It is surfaced in **three** places,
 kept in sync: the GitHub Release body (auto-appended), `README.md`
-(`#upgrading-to-v03`), and `docs/content/migrating/v0-3.mdx`. Update all three
+(`#upgrading-to-v03`), and `docs/content/reference/migrating/v0-3.mdx`. Update all three
 together when the migration rules change.
 
 ## Dead tooling note

@@ -2,7 +2,7 @@
 id: metadata-db-optional-config
 type: spec
 status: active
-updated: 2026-10-19
+updated: 2026-10-28
 related:
   - cloud-saas-mode
   - deployment
@@ -369,7 +369,7 @@ Do not invent a third. Two exist and both are good.
 ### 1. The mode-defaults matrix
 
 `apps/dashboard/scripts/deploy-defaults.ts` — no `@/` aliases so `bun` can
-import it pre-build, and shared with `scripts/patch-wrangler-env.ts`:
+import it pre-build, and shared with `apps/dashboard/scripts/patch-wrangler-env.ts`:
 
 ```ts
 16: export const DEPLOYMENT_MODES = ['oss', 'cloud'] as const
