@@ -561,6 +561,13 @@ single-alert message). Neither is held by the time-window digest, because both
 carry a secret (headers or an access token) that is never written to the
 buffer. If a grouped send fails, its alerts are retried on the next sweep.
 
+A custom webhook target with the `slack` format is grouped the same way: one
+sweep sends one Slack message with a summary line, the findings listed (capped
+at 25 with "…and N more", and kept inside Slack's text limits), a colour bar
+from the highest severity (green when every finding is a recovery), and an
+"Open dashboard" button. A lone finding keeps the full single-alert message. A
+target with a title or body template still sends one message per finding.
+
 ### Scheduling (Cloudflare Cron)
 
 The hosted deploy schedules the sweep every 10 minutes. In `wrangler.toml`:

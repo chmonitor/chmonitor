@@ -133,6 +133,10 @@ describe('groupable custom targets', () => {
     ...target('https://93.184.216.34/m'),
     format: 'matrix' as const,
   }
+  const slack = {
+    ...target('https://93.184.216.34/s'),
+    format: 'slack' as const,
+  }
   const templated = {
     ...hookshot,
     url: 'https://93.184.216.34/t',
@@ -140,7 +144,7 @@ describe('groupable custom targets', () => {
   }
 
   test('the per-finding path skips grouped targets but sends templated ones', async () => {
-    expect(await run([hookshot, matrix, templated])).toBe(true)
+    expect(await run([hookshot, matrix, slack, templated])).toBe(true)
     expect(fetched).toEqual(['https://93.184.216.34/t'])
   })
 
@@ -151,6 +155,8 @@ describe('groupable custom targets', () => {
       eligibleGroupableCustomTargets({
         targets: [
           hookshot,
+          slack,
+          { ...slack, id: 'slack-t', bodyTemplate: '{{label}}' },
           templated,
           target('https://93.184.216.34/r'),
           critOnly,
@@ -162,9 +168,13 @@ describe('groupable custom targets', () => {
       }).map((t) => t.url + (t.id === 'crit' ? '#crit' : ''))
     expect(pick('critical')).toEqual([
       'https://93.184.216.34/h',
+      'https://93.184.216.34/s',
       'https://93.184.216.34/m#crit',
     ])
-    expect(pick('warning')).toEqual(['https://93.184.216.34/h'])
+    expect(pick('warning')).toEqual([
+      'https://93.184.216.34/h',
+      'https://93.184.216.34/s',
+    ])
     expect(pick(null)).toEqual([])
   })
 })

@@ -23,6 +23,15 @@ function slackLinkUrl(url: string): string {
   return escapeSlackMrkdwn(url.replace(/\|/g, '%7C'))
 }
 
+/** Slack Block Kit limits a grouped message must stay inside. */
+export const SLACK_SECTION_TEXT_MAX = 3000
+export const SLACK_HEADER_TEXT_MAX = 150
+export const SLACK_BLOCKS_MAX = 50
+
+function clip(text: string, max: number): string {
+  return text.length <= max ? text : `${text.slice(0, max - 1)}…`
+}
+
 /** Severity → attachment colour (hex) and header emoji. */
 const SEVERITY_STYLE: Record<AlertSeverity, { color: string; emoji: string }> =
   {
@@ -202,25 +211,36 @@ export function buildSlackDigestBody(
   const style = SEVERITY_STYLE[digest.topSeverity]
   const summary = `Health digest: ${escapeSlackMrkdwn(digest.summaryLine)} (${digest.total} alerts)`
 
-  const listLines = digest.findingLines.map(
+  // Fit the list into one section: drop trailing lines (counted into the
+  // "…and N more" overflow line) until it is within Slack's text limit.
+  const lines = digest.findingLines.map(
     (line) => `• ${escapeSlackMrkdwn(line)}`
   )
-  if (digest.overflow > 0) {
-    listLines.push(`…and ${digest.overflow} more`)
+  const render = (kept: number): string => {
+    const hidden = digest.overflow + (lines.length - kept)
+    const out = lines.slice(0, kept)
+    if (hidden > 0) out.push(`…and ${hidden} more`)
+    return out.join('\n')
   }
+  let kept = lines.length
+  while (kept > 1 && render(kept).length > SLACK_SECTION_TEXT_MAX) kept--
+  const listText = clip(render(kept), SLACK_SECTION_TEXT_MAX)
 
   const blocks: SlackBlock[] = [
     {
       type: 'header',
       text: {
         type: 'plain_text',
-        text: `${style.emoji} Health digest: ${digest.summaryLine}`,
+        text: clip(
+          `${style.emoji} Health digest: ${digest.summaryLine}`,
+          SLACK_HEADER_TEXT_MAX
+        ),
         emoji: true,
       },
     },
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: listLines.join('\n') },
+      text: { type: 'mrkdwn', text: listText },
     },
   ]
 

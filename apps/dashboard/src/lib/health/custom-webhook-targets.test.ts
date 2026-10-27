@@ -1,6 +1,8 @@
 import {
   buildCustomTargetBody,
+  buildCustomTargetDigestBody,
   buildCustomTargetPreview,
+  groupableCustomFormat,
   isHttpsCustomWebhookUrl,
   normalizeCustomWebhookFormat,
   redactWebhookUrl,
@@ -150,5 +152,95 @@ describe('custom webhook target formatting', () => {
     expect(
       redactWebhookUrl('https://example.test/a/secret?token=x#fragment')
     ).toBe('https://example.test/••••')
+  })
+})
+
+describe('slack custom target grouping (#4230)', () => {
+  const mk = (
+    n: number,
+    severity: 'warning' | 'critical' | 'recovery' = 'warning'
+  ) =>
+    Array.from({ length: n }, (_, i) => ({
+      ...payload,
+      severity,
+      hostId: i,
+      hostLabel: `host-${i}`,
+      label: `finding number ${i}`,
+    }))
+  type Digest = {
+    text: string
+    attachments: {
+      color: string
+      blocks: { type: string; text?: { text: string } }[]
+    }[]
+  }
+  const digest = (list: ReturnType<typeof mk>) =>
+    buildCustomTargetDigestBody('slack', list).body as Digest
+
+  test('slack targets without templates are groupable; templated ones are not', () => {
+    const base = { titleTemplate: '', bodyTemplate: '' }
+    expect(groupableCustomFormat({ ...base, format: 'slack' })).toBe('slack')
+    expect(
+      groupableCustomFormat({
+        ...base,
+        format: 'slack',
+        titleTemplate: '{{title}}',
+      })
+    ).toBeNull()
+    expect(
+      groupableCustomFormat({ ...base, format: 'slack', bodyTemplate: 'x' })
+    ).toBeNull()
+  })
+
+  test('N>1 findings make one message whose text is the summary line', () => {
+    const { body, adapterId } = buildCustomTargetDigestBody('slack', mk(3))
+    const b = body as Digest
+    expect(adapterId).toBe('slack')
+    expect(b.text).toContain('Health digest:')
+    expect(b.text).toContain('(3 alerts)')
+    expect(b.attachments).toHaveLength(1)
+    const list = b.attachments[0].blocks.find((x) => x.type === 'section')
+    expect(list?.text?.text).toContain('host-2')
+  })
+
+  test('colour follows the highest severity; recovery-only is green', () => {
+    const color = (l: ReturnType<typeof mk>) => digest(l).attachments[0].color
+    expect(color([...mk(2, 'warning'), ...mk(1, 'critical')])).toBe('#dc2626')
+    expect(color(mk(2, 'warning'))).toBe('#f59e0b')
+    expect(color(mk(2, 'recovery'))).toBe('#16a34a')
+  })
+
+  test('60 findings stay inside Slack limits with an overflow line', () => {
+    const b = digest(mk(60))
+    const blocks = b.attachments[0].blocks
+    expect(blocks.length).toBeLessThanOrEqual(50)
+    for (const block of blocks) {
+      const len = block.text?.text.length ?? 0
+      expect(len).toBeLessThanOrEqual(block.type === 'header' ? 150 : 3000)
+    }
+    const section = blocks.find((x) => x.type === 'section')
+    expect(section?.text?.text).toContain('…and 35 more')
+  })
+
+  test('very long finding lines are dropped into the overflow count', () => {
+    const long = mk(25).map((p) => ({ ...p, label: 'x'.repeat(400) }))
+    const section = digest(long).attachments[0].blocks.find(
+      (x) => x.type === 'section'
+    )
+    expect(section?.text?.text.length).toBeLessThanOrEqual(3000)
+    expect(section?.text?.text).toMatch(/…and \d+ more$/)
+  })
+
+  test('a templated slack target still renders one finding', () => {
+    const { body } = buildCustomTargetBody(
+      {
+        url: 'https://hooks.slack.com/services/T/B/x',
+        format: 'slack',
+        titleTemplate: '{{host}} down',
+        bodyTemplate: '',
+      },
+      payload
+    )
+    expect((body as { text: string }).text).toBe('db-prod-01 down')
   })
 })

@@ -41,6 +41,7 @@ import {
   buildMatrixBody,
   buildMatrixDigestBody,
   buildSlackBody,
+  buildSlackDigestBody,
   detectAdapter,
   summarizeDigest,
 } from './adapters'
@@ -560,14 +561,16 @@ export function buildCustomTargetBody(
 
 /**
  * The format a custom target is grouped under per sweep (#3869), or `null` when
- * it sends per finding. Only `hookshot` / `matrix` targets WITHOUT title/body
+ * it sends per finding. Only `hookshot` / `matrix` / `slack` targets WITHOUT title/body
  * templates group: a template renders one finding, so it cannot describe many.
  */
 export function groupableCustomFormat(
   target: Pick<CustomWebhookTarget, 'format' | 'titleTemplate' | 'bodyTemplate'>
-): 'hookshot' | 'matrix' | null {
+): 'hookshot' | 'matrix' | 'slack' | null {
   if (target.titleTemplate.trim() || target.bodyTemplate.trim()) return null
-  return target.format === 'hookshot' || target.format === 'matrix'
+  return target.format === 'hookshot' ||
+    target.format === 'matrix' ||
+    target.format === 'slack'
     ? target.format
     : null
 }
@@ -585,13 +588,15 @@ function exceedsBodyCap(body: unknown): boolean {
  * operator strings, then fall back to the summary line alone.
  */
 export function buildCustomTargetDigestBody(
-  format: 'hookshot' | 'matrix',
+  format: 'hookshot' | 'matrix' | 'slack',
   payloads: readonly AlertPayload[]
 ): { body: unknown; adapterId: string; truncated: boolean } {
   const build = (list: readonly AlertPayload[]) =>
     format === 'hookshot'
       ? buildHookshotDigestBody(list)
-      : buildMatrixDigestBody(list)
+      : format === 'slack'
+        ? buildSlackDigestBody(list)
+        : buildMatrixDigestBody(list)
   const body = build(payloads)
   if (!exceedsBodyCap(body))
     return { body, adapterId: format, truncated: false }
@@ -608,6 +613,13 @@ export function buildCustomTargetDigestBody(
     return { body: bounded, adapterId: format, truncated: true }
   }
   const line = `${summarizeDigest(payloads).summaryLine.slice(0, 500)} …(truncated oversize body)`
+  if (format === 'slack') {
+    return {
+      body: { text: escapeSlackMrkdwn(line) },
+      adapterId: format,
+      truncated: true,
+    }
+  }
   const html = escapeMatrixHtml(line)
   return {
     body:
