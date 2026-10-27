@@ -45,6 +45,9 @@ async function hydrate(tree: () => ReactNode): Promise<string[]> {
   })
   await new Promise((resolve) => setTimeout(resolve, 100))
   root.unmount()
+  // unmount schedules React work on a later macrotask; let it run while
+  // happy-dom still provides `window`, or it throws after unregister().
+  await new Promise((resolve) => setTimeout(resolve, 50))
   return errors
 }
 
