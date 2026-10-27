@@ -32,8 +32,8 @@ Durable code-smell/dead-code automation memory. Do not create dated files under 
 
 ## Repo Notes
 
-- `AGENTS.md` is a symlink to `CLAUDE.md`; edit `CLAUDE.md` to keep both in sync
-- `/docs` route reads source files from `docs/content` through `app/(docs)/docs/_lib/docs.ts`
+- `CLAUDE.md` is a stub that includes `AGENTS.md`; edit `AGENTS.md` only
+- `/docs` route reads source files from `docs/content` through `apps/docs/scripts/sync-docs.mjs` (Fumadocs site at `apps/docs`)
 - Verify dead-code claims with zero non-test references before deleting symbols
 - Data-table synthetic utility column ids are `__expand`, `select`, and `action` (singular); exclude them from client-side filter/search/sort targets and card-control affordances
 - Collapsible TSR chart strips must unmount hidden chart subtrees, not just set `grid-rows-[0fr]` / `opacity-0`; otherwise auto-refreshing charts keep polling while invisible. The 30-minute TanStack Query `gcTime` already preserves fast reopen from cache.
