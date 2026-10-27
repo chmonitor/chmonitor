@@ -98,7 +98,7 @@ export async function sendCustomTarget(
 }
 
 /**
- * The groupable (hookshot / matrix, no templates) targets that admit this
+ * The groupable (hookshot / matrix / slack, no templates) targets that admit this
  * finding (#3869). The sweep hands these to the digest pipeline, so a sweep
  * sends one grouped message per target instead of one per finding.
  */
@@ -120,7 +120,7 @@ export function eligibleGroupableCustomTargets(params: {
 
 /**
  * Dispatch one finding to every eligible NON-groupable custom target (a
- * template or a format other than hookshot / matrix). Groupable targets are
+ * template or a format other than hookshot / matrix / slack). Groupable targets are
  * skipped; the digest pipeline sends them. A `repeat: false` target skips
  * reminders. Returns whether ANY delivered (the
  * caller ORs this into the finding's `anyDelivered`). Each target is gated by

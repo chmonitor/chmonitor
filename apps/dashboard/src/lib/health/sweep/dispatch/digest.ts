@@ -124,13 +124,13 @@ interface BufferedCount {
 }
 
 /**
- * A groupable custom target (hookshot / matrix, no templates; #3869). Grouped
+ * A groupable custom target (hookshot / matrix / slack, no templates; #3869). Grouped
  * by target id and sent in THIS pass only: these entries are never written to
  * the D1 time-window buffer because the target carries secret headers.
  */
 interface CustomDigestEntry {
   target: EffectiveCustomWebhookTarget
-  format: 'hookshot' | 'matrix'
+  format: 'hookshot' | 'matrix' | 'slack'
   payload: AlertPayload
   /** Legacy one-line summary, passed through for a lone (bucket of 1) send. */
   text: string
@@ -166,7 +166,7 @@ export interface SettleFindingParams {
   groupableWebhookTargets: WebhookTarget[]
   /** Telegram chats this finding resolved to (always groupable). */
   findingTelegramTargets: TelegramChannelEntry[]
-  /** Groupable custom targets (hookshot / matrix, no templates) that admit this finding. */
+  /** Groupable custom targets (hookshot / matrix / slack, no templates) that admit this finding. */
   groupableCustomTargets?: readonly EffectiveCustomWebhookTarget[]
   /** Native Matrix rooms this finding resolved to (always groupable). */
   groupableMatrixTargets?: readonly MatrixChannelEntry[]
