@@ -257,7 +257,10 @@ export function splitTopLevelAnd(whereBody: string): string[] {
   return parts.filter(Boolean)
 }
 
-/** `start` is the index of the `WHERE` keyword itself. */
+/**
+ * `start` is the index of the `WHERE` keyword; `end` is the end of the body,
+ * so the whitespace before the next clause stays outside the span.
+ */
 export function findWhereSpan(
   sql: string
 ): { start: number; end: number; body: string } | null {
@@ -269,7 +272,7 @@ export function findWhereSpan(
   if (!match || match.index === undefined) return null
   return {
     start: match.index,
-    end: match.index + match[0].length,
+    end: match.index + match[0].trimEnd().length,
     body: match[1].trim(),
   }
 }
