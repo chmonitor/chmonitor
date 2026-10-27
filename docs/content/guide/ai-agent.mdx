@@ -172,7 +172,7 @@ Agent chat history is persisted by a server-side `ConversationStore` chosen at *
 
 Selection priority when persistence is enabled: **AgentState** (if `AGENTSTATE_API_KEY`) → **D1** (Cloudflare binding) → **Postgres** (`DATABASE_URL`) → **Memory** (last-resort, non-persistent). With the feature flag off, history stays in the **Browser**.
 
-Server persistence requires `CHM_FEATURE_CONVERSATION_DB=true` and an authenticated user — configure Clerk (`CHM_AUTH_PROVIDER=clerk` + `CLERK_SECRET_KEY`) so history can be scoped per user. Unauthenticated sessions always fall back to browser history. See [Authentication](/operate/authentication).
+Server persistence requires `CHM_FEATURE_CONVERSATION_DB=true` and an auth provider that supplies a per-user identity: **Clerk** (`CHM_AUTH_PROVIDER=clerk`), **trusted** (`CHM_AUTH_PROVIDER=trusted`, e.g. oauth2-proxy), or **proxy** (`CHM_AUTH_PROVIDER=proxy`). `CHM_AUTH_PROVIDER=none` always falls back to browser history because there is no user identity to isolate conversations by. See [Authentication](/operate/authentication).
 
 ### AgentState
 
@@ -189,7 +189,7 @@ Per-user isolation is built in: each thread is namespaced by AgentState `externa
 | `AGENTSTATE_AI_ENRICH` | no | `false` | enable auto-title + follow-up suggestions |
 | `CONVERSATION_STORE_BACKEND` | no | `auto` | force `agentstate` when a Cloudflare D1 binding is also present |
 
-Still requires `CHM_FEATURE_CONVERSATION_DB=true` and a Clerk auth provider (`CHM_AUTH_PROVIDER=clerk` + `CLERK_SECRET_KEY`).
+Still requires `CHM_FEATURE_CONVERSATION_DB=true` and an auth provider that supplies a per-user identity (Clerk, trusted, or proxy — see above).
 
 #### Setup (hosted)
 
