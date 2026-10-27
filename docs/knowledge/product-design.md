@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-10-24
+updated: 2026-10-28
 tags:
   - design-system
   - ui
@@ -214,8 +214,8 @@ component belongs there (an import of an app hook/lib is the tell). Bespoke
 components that only *look* like they belong (e.g. `debounced-input.tsx`,
 which pulled in `@/lib/hooks`) live under `src/components/` instead — moved to
 `components/inputs/debounced-input.tsx`. Exception: assistant-ui's documented
-setup expects its companion pieces (`message-scroller.tsx`, `attachment.tsx`)
-under `components/ui/`, so those stay put.
+setup expects its companion piece (`message-scroller.tsx`)
+under `components/ui/`, so it stays put.
 
 **Base UI backing (post-#2361).** The primitives are the shadcn **Base UI**
 (`@base-ui/react`) distribution, not Radix. When adding/upgrading a primitive or
