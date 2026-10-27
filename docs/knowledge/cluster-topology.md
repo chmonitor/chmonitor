@@ -3,7 +3,7 @@ id: cluster-topology
 title: Cluster Topology Visualization
 type: spec
 status: active
-updated: 2026-09-27
+updated: 2026-10-28
 tags:
   - cluster-topology
   - svg
@@ -260,8 +260,7 @@ The invariants a restored suite must lock (all currently unguarded):
 
 ## Verification (no harness)
 
-The canvas uses theme CSS vars, so you can't judge it from path strings. The committed harness
-`scripts/topo-harness.tsx` was deleted: it could not run (its imports pointed at the removed
+The canvas uses theme CSS vars, so you can't judge it from path strings. The committed harness was deleted: it could not run (its imports pointed at the removed
 Next.js tree and its fixtures had no successor), so there is **no working automated or harness
 check** for the invariants above. See the "not currently locked" warning.
 

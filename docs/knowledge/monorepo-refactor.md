@@ -1,7 +1,7 @@
 ---
 id: monorepo-refactor
 type: decision
-updated: 2026-09-30
+updated: 2026-10-28
 related: [static-site-architecture, deployment, rust-wasm-performance]
 tags: [monorepo, refactor, workspaces, turborepo, packages, handoff]
 ---
@@ -138,8 +138,7 @@ about no longer exists. The rest still hold.
   Start: the CF target bundles straight to workerd via
   `@cloudflare/vite-plugin`, and the Docker/Node target lands at
   `.output/server/index.mjs` — which is what `Dockerfile:92` runs
-  (`CMD ["node", "server/index.mjs"]`). The old
-  `scripts/stub-prerendered-handlers.ts` (Next.js output stubbing) was
+  (`CMD ["node", "server/index.mjs"]`). The Next.js output-stubbing script was
   deleted along with the other opennext scripts.
 - **pnpm, not Bun, owns `node_modules` — and the dashboard is its own
   project.** The root workspace (`pnpm-workspace.yaml`) covers `apps/mcp` +

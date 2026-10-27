@@ -1,21 +1,21 @@
 ---
 id: tsr-migration
 type: architecture
-updated: 2026-09-30
+updated: 2026-10-28
 related: [static-site-architecture, deployment, mcp-server, rust-wasm-performance]
 tags: [tanstack-start, migration, cloudflare-workers, vite, dual-target, agent]
 ---
 
 # Next.js → TanStack Start migration
 
-> **MIGRATION COMPLETE** (PR #1392 cutover, 2026-06-14). `apps/dashboard-tsr` was
+> **MIGRATION COMPLETE** (PR #1392 cutover, 2026-06-14). The dashboard-tsr app was
 > renamed to `apps/dashboard`; the legacy Next.js app was deleted. `apps/dashboard`
 > is now the sole dashboard, TanStack Start, serving `dash.chmonitor.dev` via the
 > `chmonitor-dash` worker. The dual-app parallel period is over.
 
 The dashboard was migrated from **Next.js 15 (App Router + OpenNext on Cloudflare)** to
 **TanStack Start** (`@tanstack/react-start` + `@cloudflare/vite-plugin`). The app now
-lives at `apps/dashboard` (was `apps/dashboard-tsr` during the migration). Epic: #1392.
+lives at `apps/dashboard` (was dashboard-tsr during the migration). Epic: #1392.
 
 ## Why / trade-offs
 
@@ -309,7 +309,7 @@ Server reads use runtime `CHM_AUTH_PROVIDER` → build-time
 fallback. Security boundary: only PUBLIC values are `VITE_*`; secrets stay
 server-side. Verify a build inlined the key: `grep -rl pk_live dist/client/assets/*.js` ≥ 1.
 
-The user-facing upgrade notes live at `docs/content/migrating/v0-3.mdx`
+The user-facing upgrade notes live at `docs/content/reference/migrating/v0-3.mdx`
 ("Migrate to v0.3") — keep that page non-technical (what changed + what to do).
 
 ### Agent auto-migrate prompt (hand to an AI agent on another repo)

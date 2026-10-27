@@ -3,7 +3,7 @@ id: ch-version-onboarding
 title: ClickHouse version onboarding audit
 type: workflow
 status: active
-updated: 2026-10-25
+updated: 2026-10-28
 tags:
   - clickhouse
   - versions
@@ -167,9 +167,9 @@ bad cast on real data.
   `true`); 26.9 rejects `allow_experimental_analyzer = 0`. The audit script
   does not drop analyzer-off settings the way the app does (#3984), so
   `tables-overview` shows `other` on 26.9 in the audit only.
-- Trap: `scripts/build-support-matrix.ts` also writes
-  `docs/versions/v0.3/reference/support-matrix.mdx`, a directory the repo no
-  longer has. Delete it after running the generator.
+- Trap: `scripts/build-support-matrix.ts` also writes a second copy into a
+  retired versioned-docs directory the repo no longer has. Delete that copy after
+  running the generator.
 
 ## Related
 

@@ -1,7 +1,7 @@
 ---
 id: og-images
 type: spec
-updated: 2026-09-30
+updated: 2026-10-28
 related: [deployment, conventions]
 tags: [seo, og, social, satori, static]
 ---
@@ -60,7 +60,7 @@ the `__root.tsx` base tags.
   (plus `og:image:width`/`height`); `apps/docs/src/routes/$.tsx` overrides it
   per page from the doc's frontmatter `ogImageUrl`. (`apps/docs` is Fumadocs +
   TanStack Start, so there is no Astro layout — the old
-  `apps/docs/src/layouts/MainLayout.astro` is gone.)
+  Astro MainLayout is gone.)
 - **Dashboard** — base tags in `src/routes/__root.tsx`; per-page `og:title` /
   `og:image` / `twitter:image` come from `pageOgHead('<slug>')` in each route's
   `head()`. Both the image and the meta read from the same registry, so they
