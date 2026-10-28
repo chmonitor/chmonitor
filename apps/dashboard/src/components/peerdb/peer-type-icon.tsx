@@ -66,18 +66,3 @@ export function PeerTypeIcon({ type, className }: PeerTypeIconProps) {
     />
   )
 }
-
-interface PeerTypeBadgeProps {
-  name?: string
-  type?: DBType
-  className?: string
-}
-
-export function PeerTypeBadge({ name, type, className }: PeerTypeBadgeProps) {
-  return (
-    <span className={cn('inline-flex items-center gap-1.5', className)}>
-      <PeerTypeIcon type={type} />
-      <span className="truncate">{name ?? dbTypeLabel(type)}</span>
-    </span>
-  )
-}

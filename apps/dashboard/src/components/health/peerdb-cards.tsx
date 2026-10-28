@@ -219,36 +219,3 @@ export function PeerDBHealthCard({
     </>
   )
 }
-
-export function PeerDBHealthCards({
-  hostId,
-  source,
-  sparkFor,
-  variant,
-  signalsFor,
-  availability,
-}: {
-  hostId: number
-  source: PeerDBHealthSource
-  sparkFor?: (id: string) => number[] | undefined
-  variant?: HealthCardVariant
-  signalsFor?: (id: string) => MetricAlertSignals
-  availability?: AlertRuleStoreAvailability
-}) {
-  return (
-    <>
-      {PEERDB_HEALTH_DEFS.map((def) => (
-        <PeerDBHealthCard
-          key={def.id}
-          def={def}
-          hostId={hostId}
-          source={source}
-          spark={sparkFor?.(def.id)}
-          variant={variant}
-          signals={signalsFor?.(def.id)}
-          availability={availability}
-        />
-      ))}
-    </>
-  )
-}
