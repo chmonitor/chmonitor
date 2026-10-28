@@ -1,7 +1,5 @@
 import type { DBType, FlowStatus } from '@/lib/peerdb/types'
 
-import { normalizeLogLevel } from '@/lib/peerdb/mirror-logs'
-
 /**
  * PeerDB's `DBType` enum may arrive as a string name (grpc-gateway default) or
  * a numeric ordinal (when read from the catalog). Normalize both to an
@@ -478,13 +476,6 @@ export const LOG_LEVEL_META: Record<string, LogLevelMeta> = {
   error: { label: 'ERROR', dot: '#f43f5e' },
   warn: { label: 'WARN', dot: '#f59e0b' },
   info: { label: 'INFO', dot: '#3b82f6' },
-}
-
-/** Re-export of `@/lib/peerdb/mirror-logs`, shared with the alert lane. */
-export function normalizePdbLogLevel(
-  errorType?: string | null
-): 'error' | 'warn' | 'info' {
-  return normalizeLogLevel(errorType)
 }
 
 export function pdbFmtRelative(iso?: string | number): string {

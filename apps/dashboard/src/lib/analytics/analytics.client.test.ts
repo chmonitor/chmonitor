@@ -11,7 +11,6 @@ mock.module('posthog-js', () => ({
     init,
     capture,
     captureException: () => {},
-    get_distinct_id: () => 'd',
   },
 }))
 
@@ -42,8 +41,9 @@ afterAll(() => {
 
 describe('initAnalyticsClient', () => {
   test('waits for idle, then flushes events tracked before PostHog loaded', async () => {
-    const { initAnalyticsClient, trackAnalyticsEvent, getAnalyticsDistinctId } =
-      await import('./analytics.client')
+    const { initAnalyticsClient, trackAnalyticsEvent } = await import(
+      './analytics.client'
+    )
 
     initAnalyticsClient()
     expect(idleTasks).toHaveLength(1)
@@ -51,7 +51,6 @@ describe('initAnalyticsClient', () => {
 
     trackAnalyticsEvent('upgrade_click', { source: 'nav' })
     expect(capture).not.toHaveBeenCalled()
-    expect(getAnalyticsDistinctId()).toBeUndefined()
 
     idleTasks[0]()
     await new Promise((r) => setTimeout(r, 0))
@@ -59,6 +58,5 @@ describe('initAnalyticsClient', () => {
     expect(init).toHaveBeenCalledTimes(1)
     expect(capture).toHaveBeenCalledTimes(1)
     expect(capture.mock.calls[0][0]).toBe('upgrade_click')
-    expect(getAnalyticsDistinctId()).toBe('d')
   })
 })
