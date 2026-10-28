@@ -3,7 +3,7 @@ id: agent-eval
 title: Live agent eval (promptfoo)
 type: spec
 status: active
-updated: 2026-10-23
+updated: 2026-10-28
 related:
   - ai-insights
   - agentstate-conversation-store
@@ -51,7 +51,11 @@ this suite measures live tool-first + recommend-only behavior.
 - `PROMPTFOO_API_KEY` — optional Promptfoo Cloud token (`promptfoo auth login`);
   when set, `agent-eval` adds `--share` and links the report
 
-CI uses repo secrets `ANYROUTER_API_KEY` and `AGENT_API_TOKEN`. Forks without
+CI needs only the repo secret `ANYROUTER_API_KEY`. `AGENT_API_TOKEN` and
+`PROMPTFOO_API_KEY` are optional and unset in this repo: without a token
+`scripts/agent-eval.ts` drops the `Authorization` header and the eval runs as
+a cloud guest, and without a Promptfoo key it skips `--share`. A red live run
+is usually the demo origin being down (#3825), not a missing secret. Forks without
 secrets skip the live job but still post a skip comment on the PR. Live
 results are upserted onto one sticky comment (`<!-- agent-eval-comment -->`).
 
