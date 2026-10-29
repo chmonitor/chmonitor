@@ -158,6 +158,46 @@ unchanged. Subscriptions carry it as `data.alert` on `alert.fired` and
   most one read-only ClickHouse query (top contributors) and one alert-history
   read per alert, shared by every opted-in destination.
 
+### Slack threads: details in the thread, edited on recovery
+
+A plain webhook can only post new messages. If the chmonitor Slack app is
+installed in the same workspace, a webhook alert route can name a Slack
+channel id, and alerts for that route post through the app instead:
+
+- **Firing:** one compact line with the severity colour bar, then one reply in
+  its thread with the details (host, metric, value and thresholds, detail,
+  status, runbooks, diagnostics, deployment identity).
+- **Still firing:** the same line is edited, and the new details go in its
+  thread. No second top-level message.
+- **Recovery:** the line is edited to `✅ RESOLVED …` and the thread gets
+  `✅ resolved after N min`. No new top-level message.
+
+To turn it on:
+
+1. Install the Slack app (it requests the `chat:write` scope) and invite it to
+   the channel: `/invite @chmonitor`.
+2. Copy the channel id: open the channel details in Slack; the id at the
+   bottom looks like `C0123456789`.
+3. Add a route with the channel's incoming-webhook URL and the channel id. In
+   the UI, the **Slack channel id** field shows once the URL is a
+   `hooks.slack.com` URL. In `routing.yaml`:
+
+```yaml
+routes:
+  - id: slack-alerts
+    provider: webhook
+    secretEnv: SLACK_ALERTS_WEBHOOK_URL
+    target:
+      slackChannelId: C0123456789
+```
+
+The app is matched by the workspace id in the webhook URL. The webhook stays
+the fallback: with no channel id, no installed app for that workspace, no
+metadata database (the edit needs the stored message id), or any Slack API
+error, the alert posts through the webhook exactly as before, and the error is
+logged. Grouped digests (several alerts for one channel in one sweep) also
+keep using the webhook.
+
 ## 3. Test it
 
 ```bash

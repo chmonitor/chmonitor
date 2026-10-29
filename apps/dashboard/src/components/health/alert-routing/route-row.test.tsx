@@ -85,6 +85,7 @@ describe('RouteRow Send test', () => {
               matrixHomeserverUrl: null,
               matrixRoomId: null,
               matrixAccessTokenMasked: null,
+              slackChannelId: null,
               minSeverity: null,
             }}
           />

@@ -66,6 +66,7 @@ function route(
     matrixHomeserverUrl: null,
     matrixAccessToken: null,
     matrixRoomId: null,
+    slackChannelId: null,
     minSeverity: null,
     ...(source ? { source } : {}),
   }

@@ -53,7 +53,7 @@ export const DELETE_EPISODE_THREAD_ROOTS_SQL = `DELETE FROM alert_thread_roots
 export async function alertThreadKey(parts: {
   hostId: number | undefined
   ruleId: string
-  channel: 'matrix' | 'telegram'
+  channel: 'matrix' | 'telegram' | 'slack'
   destination: readonly string[]
 }): Promise<string> {
   const data = new TextEncoder().encode(

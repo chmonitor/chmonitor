@@ -139,7 +139,9 @@ export function RouteRow({
                   ? `user ${route.pushoverUser} — token ${route.pushoverTokenMasked}`
                   : isMatrix
                     ? `${route.matrixRoomId} on ${route.matrixHomeserverUrl} — token ${route.matrixAccessTokenMasked}`
-                    : route.channelUrl}
+                    : route.slackChannelId
+                      ? `${route.channelUrl} — Slack channel ${route.slackChannelId}`
+                      : route.channelUrl}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-2">

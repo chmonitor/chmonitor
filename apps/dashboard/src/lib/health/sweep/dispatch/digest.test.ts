@@ -40,7 +40,9 @@ mock.module('../../alert-history-store', () => ({
   recordAlertEvent: async () => {},
   queryFirstSeenInEpisode: async () => null,
 }))
+const realSlackConfig = await import('@/lib/slack/config')
 mock.module('@/lib/slack/config', () => ({
+  ...realSlackConfig,
   isSlackAppConfigured: () => false,
 }))
 

@@ -50,6 +50,7 @@ mock.module('@/lib/health/alert-routing', () => ({
       matrixHomeserverUrl: input.matrixHomeserverUrl ?? null,
       matrixAccessToken: input.matrixAccessToken ?? null,
       matrixRoomId: input.matrixRoomId ?? null,
+      slackChannelId: input.slackChannelId ?? null,
       minSeverity: input.minSeverity ?? null,
     }
     return createdRoute
@@ -320,5 +321,54 @@ describe('POST /api/v1/health/routes — matrix', () => {
     const body = await res.json()
     expect(jsonContainsFullSecret(body, FULL_MATRIX_TOKEN)).toBe(false)
     expect(JSON.stringify(body)).toContain('!abc:example.org')
+  })
+})
+
+describe('POST /api/v1/health/routes — Slack channel id (#4241)', () => {
+  const SLACK_HOOK = 'https://hooks.slack.com/services/T0TEAM/B0HOOK/secret'
+
+  function post(body: Record<string, unknown>) {
+    return handlePost(
+      new Request('https://dash.example.com/api/v1/health/routes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    )
+  }
+
+  test('stores and returns a valid channel id on a Slack webhook route', async () => {
+    const res = await post({
+      channelUrl: SLACK_HOOK,
+      slackChannelId: 'C0ALERTS',
+    })
+    expect(res.status).toBe(201)
+    expect(createdRoute?.slackChannelId).toBe('C0ALERTS')
+    const body = (await res.json()) as { route: Record<string, unknown> }
+    expect(body.route.slackChannelId).toBe('C0ALERTS')
+  })
+
+  test('rejects a malformed channel id', async () => {
+    const res = await post({
+      channelUrl: SLACK_HOOK,
+      slackChannelId: '#alerts',
+    })
+    expect(res.status).toBe(400)
+    expect(createdRoute).toBeNull()
+  })
+
+  test('rejects a channel id on a non-Slack webhook', async () => {
+    const res = await post({
+      channelUrl: 'https://discord.com/api/webhooks/1/x',
+      slackChannelId: 'C0ALERTS',
+    })
+    expect(res.status).toBe(400)
+    expect(createdRoute).toBeNull()
+  })
+
+  test('an empty channel id keeps the webhook-only route', async () => {
+    const res = await post({ channelUrl: SLACK_HOOK, slackChannelId: '' })
+    expect(res.status).toBe(201)
+    expect(createdRoute?.slackChannelId).toBeNull()
   })
 })

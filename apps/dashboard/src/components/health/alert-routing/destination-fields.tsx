@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { slackWebhookTeamId } from '@/lib/slack/channel-id'
 
 type PdService = { id: string; name: string }
 
@@ -322,11 +323,16 @@ export function MatrixFields({
 
 export function WebhookFields({
   channelUrl,
+  slackChannelId,
   onChannelUrlChange,
+  onSlackChannelIdChange,
 }: {
   channelUrl: string
+  slackChannelId: string
   onChannelUrlChange: (v: string) => void
+  onSlackChannelIdChange: (v: string) => void
 }) {
+  const isSlack = slackWebhookTeamId(channelUrl.trim()) !== null
   return (
     <>
       <Label
@@ -341,6 +347,32 @@ export function WebhookFields({
         value={channelUrl}
         onChange={(e) => onChannelUrlChange(e.target.value)}
       />
+      {isSlack && (
+        <>
+          <Label
+            htmlFor="route-slack-channel"
+            className="text-xs text-muted-foreground"
+          >
+            Slack channel id (optional)
+          </Label>
+          <Input
+            id="route-slack-channel"
+            placeholder="C0123456789"
+            aria-describedby="route-slack-channel-help"
+            value={slackChannelId}
+            onChange={(e) => onSlackChannelIdChange(e.target.value)}
+          />
+          <p
+            id="route-slack-channel-help"
+            className="text-xs text-muted-foreground"
+          >
+            With the chmonitor Slack app installed in this workspace and invited
+            to the channel, alerts post as one line with details in a thread,
+            and the line is edited when the alert resolves. Leave empty to post
+            through the webhook only.
+          </p>
+        </>
+      )}
     </>
   )
 }

@@ -9,9 +9,19 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
-import { incidentLine, MAX_DIGEST_LINES, summarizeDigest } from './digest'
+import {
+  incidentLine,
+  MAX_DIGEST_LINES,
+  spanText,
+  summarizeDigest,
+} from './digest'
 import { thresholdParts, valueText } from './facts'
-import { digestDashboardUrl, instancePrefix, metadataPairs } from './identity'
+import {
+  digestDashboardUrl,
+  identityLine,
+  instancePrefix,
+  metadataPairs,
+} from './identity'
 
 /** Escape operator-controlled text before putting it in Slack mrkdwn. */
 export function escapeSlackMrkdwn(raw: string): string {
@@ -222,6 +232,166 @@ export function buildSlackDigestBody(
     text: summary,
     attachments: [{ color: style.color, blocks }],
   }
+}
+
+// --- Bot delivery (#4241): parent line + thread details ---------------------
+
+/** A `chat.postMessage` / `chat.update` body (channel and ts added by the caller). */
+export interface SlackBotMessage {
+  text?: string
+  blocks?: unknown[]
+  attachments?: { color: string; fallback: string; blocks: SlackBlock[] }[]
+}
+
+/** Plain notification text for a payload (no mrkdwn). */
+function plainSummary(payload: AlertPayload, heading: string): string {
+  const { lead, facts } = compactParts(payload, true)
+  return `${heading}  ${[lead, ...facts].join(' · ')}`
+}
+
+/**
+ * The thread parent: the compact line beside the severity colour bar.
+ *
+ * No top-level `text`: Slack shows top-level `text` as the message body when
+ * there are no top-level `blocks`, so it would repeat the line above the
+ * attachment. The attachment `fallback` is the notification text instead.
+ */
+export function buildSlackBotParent(payload: AlertPayload): SlackBotMessage {
+  const style = SEVERITY_STYLE[payload.severity]
+  return {
+    attachments: [
+      {
+        color: style.color,
+        fallback: plainSummary(
+          payload,
+          `${style.emoji} ${heading(payload.severity)}`
+        ),
+        blocks: [
+          {
+            type: 'section',
+            text: { type: 'mrkdwn', text: slackCompactLine(payload) },
+          },
+        ],
+      },
+    ],
+  }
+}
+
+/** The parent after recovery: `✅ *RESOLVED* …`, green bar. */
+export function buildSlackBotResolvedParent(
+  payload: AlertPayload
+): SlackBotMessage {
+  const recovered: AlertPayload = { ...payload, severity: 'recovery' }
+  const line = slackCompactLine(recovered).replace(
+    SEVERITY_STYLE.recovery.emoji,
+    '✅'
+  )
+  return {
+    attachments: [
+      {
+        color: SEVERITY_STYLE.recovery.color,
+        fallback: plainSummary(recovered, '✅ RESOLVED'),
+        blocks: [{ type: 'section', text: { type: 'mrkdwn', text: line } }],
+      },
+    ],
+  }
+}
+
+/**
+ * The thread reply with the details the parent leaves out: host, metric,
+ * value and thresholds, detail, status, runbooks, diagnostics, identity.
+ * `extraBlocks` (the ack button) are appended before the timestamp.
+ */
+export function buildSlackBotDetails(
+  payload: AlertPayload,
+  extraBlocks: readonly unknown[] = []
+): SlackBotMessage {
+  const thresholds = thresholdParts(payload)
+  const field = (label: string, value: string) => ({
+    type: 'mrkdwn' as const,
+    text: clip(`*${label}:*\n${escapeSlackMrkdwn(value)}`, 2000),
+  })
+  const blocks: unknown[] = [
+    {
+      type: 'section',
+      fields: [
+        field('Host', `${payload.hostLabel} (id ${payload.hostId})`),
+        field('Metric', payload.metric),
+        field(
+          'Value',
+          thresholds.length
+            ? `${valueText(payload)} (${thresholds.join(', ')})`
+            : valueText(payload)
+        ),
+        field('Detail', payload.label),
+      ],
+    },
+  ]
+  const status = incidentLine(payload)
+  if (status) {
+    blocks.push({
+      type: 'context',
+      elements: [
+        { type: 'mrkdwn', text: `*Status:* ${escapeSlackMrkdwn(status)}` },
+      ],
+    })
+  }
+  const runbooks = [
+    ...(payload.runbookUrls ?? []).map((u) => `<${slackLinkUrl(u)}|Runbook>`),
+    ...(payload.actions ?? [])
+      .filter((a) => a.kind === 'runbook' && a.url)
+      .map(
+        (a) =>
+          `<${slackLinkUrl(a.url as string)}|${escapeSlackMrkdwn(a.label)}>`
+      ),
+  ]
+  if (runbooks.length) {
+    blocks.push({
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: runbooks.join(' · ') }],
+    })
+  }
+  const diagnostics = (payload.actions ?? [])
+    .filter((a) => a.kind === 'diagnostic')
+    .map((a) => escapeSlackMrkdwn(a.label))
+  if (diagnostics.length) {
+    blocks.push({
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `*Diagnostics in the dashboard:* ${diagnostics.join(' · ')}`,
+        },
+      ],
+    })
+  }
+  const identity = identityLine(payload)
+  if (identity) {
+    blocks.push({
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: escapeSlackMrkdwn(identity) }],
+    })
+  }
+  blocks.push(...extraBlocks)
+  blocks.push({
+    type: 'context',
+    elements: [{ type: 'mrkdwn', text: escapeSlackMrkdwn(payload.timestamp) }],
+  })
+  return {
+    text: `Details: ${payload.title} on ${payload.hostLabel}`,
+    blocks,
+  }
+}
+
+/** The thread reply on recovery: `✅ resolved after N min`. */
+export function buildSlackBotResolvedReply(
+  payload: AlertPayload
+): SlackBotMessage {
+  const text =
+    payload.firedForMs !== undefined
+      ? `✅ resolved after ${spanText(payload.firedForMs)}`
+      : '✅ resolved'
+  return { text }
 }
 
 /** Slack adapter. `buildBody` returns the Incoming Webhook JSON body. */
