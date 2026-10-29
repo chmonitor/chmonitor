@@ -48,6 +48,8 @@ export interface AlertRouteInfo {
   matrixRoomId: string | null
   /** Masked Matrix access token (last 4 chars only) — never the raw secret. */
   matrixAccessTokenMasked: string | null
+  /** Slack channel id for bot delivery on a Slack webhook route (not a secret). */
+  slackChannelId: string | null
   /** Per-route severity floor; `null` = inherit the channel/global gate. */
   minSeverity: 'warning' | 'critical' | null
   /** `file`/`env` definitions are read-only; absent = `d1`. */
@@ -103,6 +105,7 @@ export function useAlertRoutesMutations() {
     matrixHomeserverUrl?: string
     matrixAccessToken?: string
     matrixRoomId?: string
+    slackChannelId?: string
     minSeverity?: 'warning' | 'critical'
   }): Promise<AlertRouteInfo> => {
     const response = await apiFetch('/api/v1/health/routes', {

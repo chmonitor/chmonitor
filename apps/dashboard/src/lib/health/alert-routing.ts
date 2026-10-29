@@ -46,6 +46,7 @@ import {
 import { PAGERDUTY_EVENTS_API_URL } from './pagerduty-config'
 import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
+import { parseSlackChannelId } from '@/lib/slack/channel-id'
 
 const COMPONENT = 'alert-routing'
 const warn = (msg: string) =>
@@ -82,6 +83,11 @@ export type AlertRouteProvider =
 export interface WebhookTarget {
   url: string
   trusted: boolean
+  /**
+   * Slack channel id for bot delivery (#4241); only meaningful on a Slack
+   * incoming-webhook URL. Absent = plain webhook post.
+   */
+  slackChannelId?: string
 }
 
 /** A route as listed for the sweep: carries its definition source when known. */
@@ -123,6 +129,11 @@ export interface AlertRoute {
   /** Matrix room id, `!…` (provider `'matrix'` only). */
   matrixRoomId: string | null
   /**
+   * Slack channel id (`C…`/`G…`/`D…`) for bot delivery on a Slack webhook
+   * route (#4241). Not a secret; `null` = webhook post only.
+   */
+  slackChannelId: string | null
+  /**
    * Optional per-route severity floor (#2661). When set it beats the channel-
    * and global-level `minSeverity` for THIS route's finding (see
    * {@link resolveChannelDelivery}); `null` means the route inherits the
@@ -151,6 +162,7 @@ interface D1AlertRouteRow {
   matrix_homeserver_url: string | null
   matrix_access_token: string | null
   matrix_room_id: string | null
+  slack_channel_id?: string | null
   min_severity: string | null
 }
 
@@ -193,6 +205,7 @@ function rowToRoute(row: D1AlertRouteRow): AlertRoute {
     matrixHomeserverUrl: row.matrix_homeserver_url ?? null,
     matrixAccessToken: row.matrix_access_token ?? null,
     matrixRoomId: row.matrix_room_id ?? null,
+    slackChannelId: row.slack_channel_id ?? null,
     // Legacy rows (pre-0025, or fake D1s in tests) have no `min_severity` — a
     // null/unknown value inherits the channel/global gate, unchanged behavior.
     minSeverity:
@@ -234,7 +247,8 @@ async function listDbRoutes(ownerId: string): Promise<AlertRoute[]> {
         `SELECT id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
                 provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
                 ntfy_url, ntfy_token, pushover_token, pushover_user,
-                matrix_homeserver_url, matrix_access_token, matrix_room_id, min_severity
+                matrix_homeserver_url, matrix_access_token, matrix_room_id, slack_channel_id,
+                min_severity
          FROM ${TABLE}
          WHERE owner_id = ?1
          ORDER BY created_at DESC`
@@ -279,6 +293,8 @@ export interface CreateRouteInput {
   matrixAccessToken?: string | null
   /** Matrix room id (provider `'matrix'` only). */
   matrixRoomId?: string | null
+  /** Slack channel id for bot delivery (provider `'webhook'` only, #4241). */
+  slackChannelId?: string | null
   /** Optional per-route severity floor (#2661); omit / `null` to inherit. */
   minSeverity?: AlertSeverityFloor | null
 }
@@ -315,6 +331,7 @@ export async function createRoute(
       matrixHomeserverUrl: input.matrixHomeserverUrl?.trim() || null,
       matrixAccessToken: input.matrixAccessToken?.trim() || null,
       matrixRoomId: input.matrixRoomId?.trim() || null,
+      slackChannelId: input.slackChannelId?.trim() || null,
       minSeverity:
         input.minSeverity === 'warning' || input.minSeverity === 'critical'
           ? input.minSeverity
@@ -327,8 +344,9 @@ export async function createRoute(
            (id, owner_id, match_rule, match_host, channel_url, enabled, created_at,
             provider, service_name, routing_key, telegram_bot_token, telegram_chat_id,
             ntfy_url, ntfy_token, pushover_token, pushover_user,
-            matrix_homeserver_url, matrix_access_token, matrix_room_id, min_severity)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)`
+            matrix_homeserver_url, matrix_access_token, matrix_room_id, min_severity,
+            slack_channel_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)`
       )
       .bind(
         route.id,
@@ -350,7 +368,8 @@ export async function createRoute(
         route.matrixHomeserverUrl,
         route.matrixAccessToken,
         route.matrixRoomId,
-        route.minSeverity
+        route.minSeverity,
+        route.slackChannelId
       )
       .run()
 
@@ -472,9 +491,12 @@ export function resolveTargets(
     for (const r of webhookMatched) {
       const trusted = r.source === 'env' || r.source === 'file'
       const seen = byUrl.get(r.channelUrl)
+      // The first route naming a Slack channel for this URL wins.
+      const slackChannelId = seen?.slackChannelId ?? r.slackChannelId
       byUrl.set(r.channelUrl, {
         url: r.channelUrl,
         trusted: trusted || (seen?.trusted ?? false),
+        ...(slackChannelId ? { slackChannelId } : {}),
       })
     }
     return [...byUrl.values()]
@@ -784,6 +806,7 @@ async function declarativeRoutes(
         matrixHomeserverUrl: null,
         matrixAccessToken: null,
         matrixRoomId: null,
+        slackChannelId: null,
         minSeverity: r.minSeverity,
       }
       const t = r.target
@@ -795,11 +818,24 @@ async function declarativeRoutes(
         return ok
       }
       switch (r.provider) {
-        case 'webhook':
+        case 'webhook': {
+          // target.slackChannelId: optional Slack bot delivery (#4241).
+          const slackChannelId = parseSlackChannelId(t.slackChannelId)
+          if (slackChannelId === 'invalid') {
+            warnOnce(
+              `[health-config] Route "${r.id}": ignoring invalid target.slackChannelId (expected C…, G… or D…)`
+            )
+          }
           if (secret && (await allowed(secret))) {
-            route = { ...base, channelUrl: secret }
+            route = {
+              ...base,
+              channelUrl: secret,
+              slackChannelId:
+                slackChannelId === 'invalid' ? null : slackChannelId,
+            }
           }
           break
+        }
         case 'pagerduty':
           if (secret) {
             route = {

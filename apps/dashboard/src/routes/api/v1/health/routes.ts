@@ -35,6 +35,7 @@ import {
 } from '@/lib/health/matrix-dispatch'
 import { noBackendOrWriteFailedMessage } from '@/lib/health/no-backend-message'
 import { PAGERDUTY_EVENTS_API_URL } from '@/lib/health/pagerduty-config'
+import { parseSlackChannelId, slackWebhookTeamId } from '@/lib/slack/channel-id'
 
 function jsonError(message: string, status: number): Response {
   return Response.json({ success: false, error: { message } }, { status })
@@ -102,6 +103,9 @@ function toPublicRoute(
     matrixAccessTokenMasked: route.matrixAccessToken
       ? maskRoutingKey(route.matrixAccessToken)
       : null,
+    // Slack bot delivery (#4241): a channel id, not a secret. The bot token
+    // lives only in `slack_installations` and is never part of a route.
+    slackChannelId: route.slackChannelId,
     // Per-route severity floor (#2661): `null` = inherit the channel/global
     // gate. Not a secret — returned as-is so the UI can show/edit it.
     minSeverity: route.minSeverity,
@@ -152,6 +156,8 @@ interface CreateRouteBody {
   matrixAccessToken?: unknown
   /** Matrix-only: the room id (`!…`, not an alias). */
   matrixRoomId?: unknown
+  /** Webhook-only: Slack channel id for bot delivery (#4241). */
+  slackChannelId?: unknown
   /** Optional per-route severity floor: `'warning'` | `'critical'` (#2661). */
   minSeverity?: unknown
 }
@@ -441,6 +447,20 @@ async function handlePost(request: Request): Promise<Response> {
     return jsonError(ssrfError, 400)
   }
 
+  const slackChannelId = parseSlackChannelId(body.slackChannelId)
+  if (slackChannelId === 'invalid') {
+    return jsonError(
+      'Invalid "slackChannelId": expected a Slack channel id like C0123456789',
+      400
+    )
+  }
+  if (slackChannelId && !slackWebhookTeamId(channelUrl)) {
+    return jsonError(
+      '"slackChannelId" needs a Slack incoming-webhook URL (https://hooks.slack.com/services/…)',
+      400
+    )
+  }
+
   const created = await createRoute({
     ownerId,
     matchRule,
@@ -448,6 +468,7 @@ async function handlePost(request: Request): Promise<Response> {
     channelUrl,
     enabled,
     provider: 'webhook',
+    slackChannelId,
     minSeverity,
   })
 

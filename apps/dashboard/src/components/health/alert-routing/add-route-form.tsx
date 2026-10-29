@@ -33,6 +33,7 @@ import {
   useAlertRoutesMutations,
   usePagerDutyServices,
 } from '@/lib/hooks/use-alert-routes'
+import { parseSlackChannelId, slackWebhookTeamId } from '@/lib/slack/channel-id'
 import { describeError } from '@/lib/swr/fetch-error'
 
 export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
@@ -40,6 +41,7 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
   const [matchHost, setMatchHost] = useState('*')
   const [provider, setProvider] = useState<AlertRouteProvider>('webhook')
   const [channelUrl, setChannelUrl] = useState('')
+  const [slackChannelId, setSlackChannelId] = useState('')
   const [pdServiceId, setPdServiceId] = useState('')
   const [pdServiceName, setPdServiceName] = useState('')
   const [pdRoutingKey, setPdRoutingKey] = useState('')
@@ -65,6 +67,7 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     setMatchRule('*')
     setMatchHost('*')
     setChannelUrl('')
+    setSlackChannelId('')
     setPdServiceId('')
     setPdServiceName('')
     setPdRoutingKey('')
@@ -113,6 +116,12 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
     } else if (!channelUrl.trim()) {
       toast.error('Enter a channel webhook URL')
       return
+    } else if (
+      slackWebhookTeamId(channelUrl.trim()) &&
+      parseSlackChannelId(slackChannelId) === 'invalid'
+    ) {
+      toast.error('Slack channel id must look like C0123456789')
+      return
     }
 
     setBusy(true)
@@ -152,7 +161,13 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
                       matrixAccessToken: mxAccessToken.trim(),
                       matrixRoomId: mxRoomId.trim(),
                     }
-                  : { channelUrl: channelUrl.trim() }),
+                  : {
+                      channelUrl: channelUrl.trim(),
+                      ...(slackWebhookTeamId(channelUrl.trim()) &&
+                      slackChannelId.trim()
+                        ? { slackChannelId: slackChannelId.trim() }
+                        : {}),
+                    }),
       })
       toast.success('Route created')
       reset()
@@ -383,7 +398,9 @@ export function AddRouteForm({ onCreated }: { onCreated: () => void }) {
       ) : (
         <WebhookFields
           channelUrl={channelUrl}
+          slackChannelId={slackChannelId}
           onChannelUrlChange={setChannelUrl}
+          onSlackChannelIdChange={setSlackChannelId}
         />
       )}
 

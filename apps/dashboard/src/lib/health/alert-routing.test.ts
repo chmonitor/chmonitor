@@ -201,6 +201,7 @@ function route(overrides: Partial<AlertRoute> = {}): AlertRoute {
     matrixHomeserverUrl: null,
     matrixAccessToken: null,
     matrixRoomId: null,
+    slackChannelId: null,
     minSeverity: null,
     ...overrides,
   }
@@ -303,6 +304,21 @@ describe('matchRoutes — accept predicate (#2661)', () => {
 })
 
 describe('resolveTargets (pure)', () => {
+  test('carries a route Slack channel id to the target (#4241)', () => {
+    const plain = route({ id: 'a' })
+    const withChannel = route({ id: 'b', slackChannelId: 'C0ALERTS' })
+    expect(resolveTargets([plain, withChannel], TARGET, LEGACY)).toEqual([
+      {
+        url: 'https://hooks.slack.com/services/x',
+        trusted: false,
+        slackChannelId: 'C0ALERTS',
+      },
+    ])
+    expect(resolveTargets([plain], TARGET, LEGACY)).toEqual([
+      { url: 'https://hooks.slack.com/services/x', trusted: false },
+    ])
+  })
+
   test('fans out to every matched route, deduplicated', () => {
     const r1 = route({ id: 'a', channelUrl: 'https://a.example/hook' })
     const r2 = route({ id: 'b', channelUrl: 'https://b.example/hook' })

@@ -116,6 +116,72 @@ export async function publishHomeView(params: {
   }
 }
 
+/** Result of a `chat.postMessage` / `chat.update` call. Never carries the token. */
+export interface SlackChatResult {
+  ok: boolean
+  /** Message timestamp (Slack's message id) on success. */
+  ts?: string
+  /** Slack `error` code, `status <n>`, or `network` on failure. */
+  error?: string
+}
+
+async function callChatMethod(
+  method: 'chat.postMessage' | 'chat.update',
+  botToken: string,
+  body: Record<string, unknown>
+): Promise<SlackChatResult> {
+  try {
+    const res = await fetchWithTimeout(`${SLACK_API_BASE}/${method}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        Authorization: `Bearer ${botToken}`,
+      },
+      body: JSON.stringify(body),
+    })
+    const json = (await res.json().catch(() => null)) as {
+      ok?: boolean
+      error?: string
+      ts?: unknown
+    } | null
+    if (!json?.ok) {
+      return { ok: false, error: json?.error ?? `status ${res.status}` }
+    }
+    return { ok: true, ts: typeof json.ts === 'string' ? json.ts : undefined }
+  } catch {
+    return { ok: false, error: 'network' }
+  }
+}
+
+/**
+ * Post a message as the bot (`chat.postMessage`, needs `chat:write`). Put
+ * `thread_ts` in `message` to reply in a thread. Never throws, never logs.
+ */
+export function postChatMessage(params: {
+  botToken: string
+  channel: string
+  message: Record<string, unknown>
+}): Promise<SlackChatResult> {
+  return callChatMethod('chat.postMessage', params.botToken, {
+    ...params.message,
+    channel: params.channel,
+  })
+}
+
+/** Edit a bot message in place (`chat.update`). Never throws, never logs. */
+export function updateChatMessage(params: {
+  botToken: string
+  channel: string
+  ts: string
+  message: Record<string, unknown>
+}): Promise<SlackChatResult> {
+  return callChatMethod('chat.update', params.botToken, {
+    ...params.message,
+    channel: params.channel,
+    ts: params.ts,
+  })
+}
+
 /**
  * Assert a Slack `response_url` is genuinely Slack-owned before we fetch it.
  * Slack always issues `response_url` values on `hooks.slack.com`. Rejecting

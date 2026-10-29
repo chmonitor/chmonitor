@@ -54,6 +54,7 @@ import { SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
 import { buildAlertEventRecord, recordChannelEvent } from './alert-event-record'
 import { sendCustomTarget } from './channels/custom-targets'
 import { matrixSendError, sendMatrixChannel } from './channels/matrix'
+import { sendSlackBotAlert } from './channels/slack-bot'
 import {
   loadEpisodeThreads,
   telegramMessageId,
@@ -105,6 +106,8 @@ interface WebhookDigestEntry {
   }
   /** In-pass finding awaiting commit; `null` for time-window-flushed entries. */
   pending: PendingDigestCommit | null
+  /** Route's Slack channel id for bot delivery (#4241); in-pass only. */
+  slackChannelId?: string
 }
 
 interface TelegramDigestEntry {
@@ -376,8 +379,9 @@ export async function createDigestPipeline(
       groupableDelivered: false,
       committed: false,
     }
-    for (const entry of webhookEntries) {
+    for (const [i, entry] of webhookEntries.entries()) {
       if (entry.kind !== 'webhook') continue
+      const slackChannelId = groupableWebhookTargets[i]?.slackChannelId
       webhookDigestEntries.push({
         url: entry.url,
         trusted: entry.trusted === true,
@@ -385,6 +389,7 @@ export async function createDigestPipeline(
         payload: entry.payload,
         slackAck: entry.slackAck,
         pending,
+        ...(slackChannelId ? { slackChannelId } : {}),
       })
     }
     for (const t of findingTelegramTargets) {
@@ -514,6 +519,72 @@ export async function createDigestPipeline(
   let threads: Awaited<ReturnType<typeof loadEpisodeThreads>> | null = null
 
   /**
+   * Send one lone Slack finding through the bot (#4241) and settle its
+   * thread root. Returns false when the bot path did not deliver, so the
+   * caller posts through the webhook as before.
+   */
+  async function deliverSlackBot(
+    entry: WebhookDigestEntry,
+    pending: PendingDigestCommit,
+    channelId: string
+  ): Promise<boolean> {
+    const { payload } = entry
+    if (payload.hostId === undefined) return false
+    const kind = pending.decision.kind
+    const threadKey = await alertThreadKey({
+      hostId: payload.hostId,
+      ruleId: payload.metric,
+      channel: 'slack',
+      destination: [entry.url, channelId],
+    })
+    const rootTs = threadRootFor(pending, threadKey)
+    const ackBlocks = entry.slackAck
+      ? buildAlertBlocksWithAck(
+          {
+            severity: entry.slackAck.severity,
+            hostLabel: payload.hostLabel,
+            hostId: payload.hostId,
+            metric: payload.metric,
+            value: payload.value,
+            title: payload.title,
+            label: payload.label,
+            timestamp: payload.timestamp,
+          },
+          entry.slackAck
+        ).filter((b) => b.type === 'actions')
+      : []
+    const sent = await sendSlackBotAlert({
+      url: entry.url,
+      channelId,
+      payload,
+      kind,
+      rootTs,
+      detailBlocks: ackBlocks,
+    })
+    if (!sent) return false
+    pending.groupableDelivered = true
+    if (threads) {
+      const target = {
+        threadKey,
+        hostId: payload.hostId,
+        ruleId: payload.metric,
+        kind,
+      }
+      // A repeat whose parent could not be edited got a new parent: replace
+      // the stored root.
+      if (rootTs && sent.messageId !== rootTs) {
+        await threads.afterLoneSend(target, { ok: false, rejected: true })
+      }
+      await threads.afterLoneSend(target, {
+        ok: true,
+        messageId: sent.messageId,
+      })
+    }
+    await recordDigestHistory([entry], 'slack', { ok: true })
+    return true
+  }
+
+  /**
    * Flush every buffered groupable delivery (#2663), grouping by target so a
    * target that received >1 finding this pass gets ONE combined message. Then
    * commit + count each in-pass finding exactly once (shared `pending` record),
@@ -538,8 +609,38 @@ export async function createDigestPipeline(
       if (list) list.push(entry)
       else byUrl.set(entry.url, [entry])
     }
+    // Episode threads (#4049): loaded once, only when a threadable channel
+    // sends: Telegram, native Matrix, or a lone Slack bot candidate (#4241).
+    const slackBotCandidate = [...byUrl.values()].some(
+      (entries) =>
+        entries.length === 1 &&
+        entries[0].pending !== null &&
+        entries[0].slackChannelId !== undefined
+    )
+    threads =
+      telegramDigestEntries.length + matrixDigestEntries.length > 0 ||
+      slackBotCandidate
+        ? await loadEpisodeThreads()
+        : null
     for (const [url, entries] of byUrl) {
       const adapterId = detectAdapter(url).id
+      // Slack bot delivery (#4241): a lone in-pass finding on a route with a
+      // channel id. Grouped digests keep the webhook post. Any failure of the
+      // bot path falls through to the webhook below.
+      const only = entries[0]
+      if (
+        entries.length === 1 &&
+        adapterId === 'slack' &&
+        only.slackChannelId &&
+        only.pending
+      ) {
+        const sent = await deliverSlackBot(
+          only,
+          only.pending,
+          only.slackChannelId
+        )
+        if (sent) continue
+      }
       let body: unknown
       if (entries.length === 1 && !isCompactReminder(entries[0])) {
         const only = entries[0]
@@ -605,11 +706,6 @@ export async function createDigestPipeline(
       if (list) list.push(entry)
       else byChat.set(key, [entry])
     }
-    // Episode threads (#4049): loaded once, only when a threadable channel sends.
-    threads =
-      telegramDigestEntries.length + matrixDigestEntries.length > 0
-        ? await loadEpisodeThreads()
-        : null
     for (const entries of byChat.values()) {
       const first = entries[0]
       const config = { token: first.botToken, chatId: first.chatId }

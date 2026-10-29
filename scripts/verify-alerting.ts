@@ -469,6 +469,7 @@ async function verifyDelivery(): Promise<void> {
     matrixHomeserverUrl: null,
     matrixAccessToken: null,
     matrixRoomId: null,
+    slackChannelId: null,
     minSeverity: null,
     ...extra,
   })
