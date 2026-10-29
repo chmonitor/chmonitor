@@ -233,7 +233,7 @@ The desk grows worktrees, so the desk owns not leaving them behind.
 
   | Path | Has a Space? | Reached by `herdr worktree remove`? | How to remove |
   |---|---|---|---|
-  | `~/.herdr/worktrees/chmonitor/desk-*` | yes | yes | never — live manager, leave it |
+  | `~/.herdr/worktrees/chmonitor/desk-*` | yes | yes | `herdr worktree remove <name>`, then `git branch -D desk/<job>`; the desk recreates it on its next fire |
   | `~/.herdr/worktrees/chmonitor/<task>` | yes | yes | `herdr worktree remove <name>` |
   | `.claude/worktrees/agent-*` | **no** | **no** | `git worktree remove <path>` |
   | a record whose directory is gone | n/a | **no** | `git worktree prune` |
@@ -241,6 +241,10 @@ The desk grows worktrees, so the desk owns not leaving them behind.
   Plain `git worktree remove` is *correct* for the Space-less rows precisely
   because there is no Space to leave behind — the opposite of the warning in the
   desk manager prompt. That inversion is the reason this is easy to get backwards.
+- **Desk worktrees are disposable.** On any worktree cleanup, remove every
+  `desk-*` worktree too, without asking, once it is clean and its commits are
+  on `main` (run the two checks above). A dirty or unlanded one gets a `wip(...)`
+  commit or a PR first.
 - **Stale lock, owner process gone:** re-run the clean and landed checks
   *first*, then `git worktree unlock <path>`, then remove. Unlocking first
   defeats the check. 4 of 16 leaked checkouts refused their first removal pass
