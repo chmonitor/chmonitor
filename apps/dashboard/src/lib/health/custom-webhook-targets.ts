@@ -422,7 +422,7 @@ export function validateCustomWebhookDraft(draft: CustomWebhookTargetDraft): {
  * Build the outgoing JSON body for a target + payload. Applies the target's
  * explicit format (or legacy URL detection for `auto`), then overlays the
  * title/body templates:
- *   - slack: overrides the top-level `text` fallback AND the header block;
+ *   - slack: overrides the top-level `text` fallback AND the compact line;
  *     blocks/attachments stay adapter-built (presentation stays valid);
  *   - matrix: overrides `body` and rebuilds `formatted_body` from the escaped
  *     template text;
@@ -459,18 +459,15 @@ export function buildCustomTargetBody(
       const summary = [title, bodyText].filter(Boolean).join(' — ')
       const safeTitle = title ? escapeSlackMrkdwn(title) : null
       const safeBody = bodyText ? escapeSlackMrkdwn(bodyText) : null
-      const blocks = slack.attachments[0]?.blocks.map((block) => {
-        if (block.type === 'header' && safeTitle) {
-          return {
-            ...block,
-            text: { ...(block.text as object), text: safeTitle },
-          }
-        }
-        if (block.type === 'section' && safeBody && block.text) {
-          return { ...block, text: { ...block.text, text: safeBody } }
-        }
-        return block
-      })
+      // The templates replace the compact alert line (the only section).
+      const templated = [safeTitle && `*${safeTitle}*`, safeBody]
+        .filter(Boolean)
+        .join('\n')
+      const blocks = slack.attachments[0]?.blocks.map((block) =>
+        block.type === 'section' && block.text
+          ? { ...block, text: { ...block.text, text: templated } }
+          : block
+      )
       body = {
         text: summary ? escapeSlackMrkdwn(summary) : slack.text,
         attachments: [{ ...slack.attachments[0], blocks }],

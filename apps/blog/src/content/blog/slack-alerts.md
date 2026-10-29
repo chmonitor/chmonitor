@@ -93,15 +93,18 @@ The CronJob and the dashboard must read the same `CRON_SECRET`. If they differ, 
 
 ## What the message looks like
 
-The Slack adapter builds these parts, top to bottom:
+Each alert is one compact line next to a severity colour bar. Host, value and thresholds appear once:
 
-- **Header:** a severity emoji and the title, for example `🔴 CRITICAL: Disk usage high`.
-- **Fields:** host, metric, value and thresholds.
-- **Detail line:** the check label.
-- **Runbook buttons:** one link button per runbook action, if the check has runbooks.
-- **Open dashboard button:** shown when `dashboardUrl` is set. It opens `/health?host=<id>`.
-- **Context line:** the instance name and metadata, for example `instance prod-eu · team=data · region=eu`.
-- **Timestamp.**
+```
+🔴 CRITICAL  Stuck Merges · node-2 · 4 (warn 1, crit 3) · Open
+🟢 RESOLVED  Stuck Merges · node-0 · 0 (warn 1, crit 3) · fired for 35 min · Open
+```
+
+- **Instance prefix:** `[prod-eu]` before the title, only when `instanceName` is set.
+- **Open link:** shown when `dashboardUrl` is set. It opens `/health?host=<id>`, where the details are.
+- **Second line, only when there is something to show:** runbook links and metadata, for example `Runbook · team=data · region=eu`.
+
+A grouped digest uses the same line for each alert, under a summary header.
 
 You can change the title and body. A target accepts `titleTemplate` and `textTemplate`. Variables are `{{severity}}`, `{{title}}`, `{{host}}`, `{{instance}}`, `{{meta.<key>}}` and more. Here is a title that puts the instance, severity and team first:
 

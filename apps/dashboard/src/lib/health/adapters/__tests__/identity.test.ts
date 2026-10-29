@@ -53,17 +53,13 @@ const HOSTILE: AlertPayload = {
 const LINK = 'https://chm.example.com/health?host=1'
 
 describe('adapters include instance, link, and metadata when set', () => {
-  test('slack: summary prefix, Open dashboard button, identity context', () => {
+  test('slack: instance prefix, Open link, metadata context', () => {
     const body = buildSlackBody(WITH_ID)
-    expect(body.text.startsWith('[prod-eu] [CRITICAL]')).toBe(true)
+    expect(body.text.startsWith('🔴 CRITICAL  [prod-eu] ')).toBe(true)
     const blocks = body.attachments[0].blocks
-    const button = blocks
-      .flatMap((b) => b.elements ?? [])
-      .find((e) => e.type === 'button')
-    expect(button).toMatchObject({ url: LINK })
-    expect(JSON.stringify(blocks)).toContain(
-      'instance prod-eu · team=db · region=eu'
-    )
+    expect(blocks[0].text?.text).toContain('*CRITICAL*  [prod-eu] ')
+    expect(blocks[0].text?.text).toEndWith(`<${LINK}|Open>`)
+    expect(JSON.stringify(blocks)).toContain('team=db · region=eu')
   })
 
   test('discord: content prefix, embed url, footer', () => {
@@ -130,8 +126,9 @@ describe('adapters include instance, link, and metadata when set', () => {
 describe('unset identity leaves bodies unchanged', () => {
   test('no identity keys, no prefix, no extra blocks', () => {
     const slack = buildSlackBody(BASE)
-    expect(slack.text.startsWith('[CRITICAL]')).toBe(true)
-    expect(JSON.stringify(slack)).not.toContain('Open dashboard')
+    expect(slack.text.startsWith('🔴 CRITICAL  ')).toBe(true)
+    expect(slack.text).not.toContain('[')
+    expect(JSON.stringify(slack)).not.toContain('|Open>')
     const discord = buildDiscordBody(BASE)
     expect('url' in discord.embeds[0]).toBe(false)
     expect('footer' in discord.embeds[0]).toBe(false)

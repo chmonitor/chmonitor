@@ -223,7 +223,7 @@ describe('slack custom target grouping (#4230)', () => {
   })
 
   test('very long finding lines are dropped into the overflow count', () => {
-    const long = mk(25).map((p) => ({ ...p, label: 'x'.repeat(400) }))
+    const long = mk(25).map((p) => ({ ...p, title: 'x'.repeat(400) }))
     const section = digest(long).attachments[0].blocks.find(
       (x) => x.type === 'section'
     )

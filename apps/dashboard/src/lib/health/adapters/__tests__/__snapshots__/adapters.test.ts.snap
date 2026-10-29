@@ -28,58 +28,7 @@ exports[`slack adapter snapshot 1`] = `
       "blocks": [
         {
           "text": {
-            "emoji": true,
-            "text": "🔴 CRITICAL: Failed mutations",
-            "type": "plain_text",
-          },
-          "type": "header",
-        },
-        {
-          "fields": [
-            {
-              "text": 
-"*Host:*
-prod-1 (id 2)"
-,
-              "type": "mrkdwn",
-            },
-            {
-              "text": 
-"*Metric:*
-failed-mutations"
-,
-              "type": "mrkdwn",
-            },
-            {
-              "text": 
-"*Value:*
-7"
-,
-              "type": "mrkdwn",
-            },
-            {
-              "text": 
-"*Thresholds:*
-warn 1 | crit 5"
-,
-              "type": "mrkdwn",
-            },
-          ],
-          "type": "section",
-        },
-        {
-          "text": {
-            "text": "*Detail:* 7 failed mutations",
-            "type": "mrkdwn",
-          },
-          "type": "section",
-        },
-        {
-          "text": {
-            "text": 
-"*Runbooks:*
-• <https://docs.example.com/runbook/mutations>"
-,
+            "text": "🔴 *CRITICAL*  Failed mutations · prod-1 · 7 (warn 1, crit 5)",
             "type": "mrkdwn",
           },
           "type": "section",
@@ -87,7 +36,7 @@ warn 1 | crit 5"
         {
           "elements": [
             {
-              "text": "2026-07-02T10:00:00.000Z",
+              "text": "<https://docs.example.com/runbook/mutations|Runbook>",
               "type": "mrkdwn",
             },
           ],
@@ -97,7 +46,7 @@ warn 1 | crit 5"
       "color": "#dc2626",
     },
   ],
-  "text": "[CRITICAL] Failed mutations — 7 failed mutations (host prod-1)",
+  "text": "🔴 CRITICAL  Failed mutations · prod-1 · 7 (warn 1, crit 5)",
 }
 `;
 

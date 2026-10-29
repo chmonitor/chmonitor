@@ -64,9 +64,9 @@ describe('affected names are escaped in markup bodies', () => {
         })
       ),
     ]
-    for (const body of bodies) {
-      expect(body).toContain('db.&lt;!channel&gt; p2')
-      expect(body).not.toContain('<!channel>')
-    }
+    for (const body of bodies) expect(body).not.toContain('<!channel>')
+    // The webhook line leaves the label out (#4241: details sit behind the
+    // dashboard link); the app's ack blocks still show it, escaped.
+    expect(bodies[2]).toContain('db.&lt;!channel&gt; p2')
   })
 })
