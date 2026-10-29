@@ -120,7 +120,14 @@ interface Channel {
 }
 
 const SINGLE: Channel[] = [
-  { name: 'slack', render: (p) => flatten(buildSlackBody(p)) },
+  {
+    name: 'slack',
+    render: (p) => flatten(buildSlackBody(p)),
+    exempt: {
+      label:
+        'one compact line per alert (#4241): the label repeats the value; details sit behind the dashboard link',
+    },
+  },
   { name: 'discord', render: (p) => flatten(buildDiscordBody(p)) },
   { name: 'msteams', render: (p) => flatten(buildMSTeamsBody(p), true) },
   { name: 'google-chat', render: (p) => flatten(buildGoogleChatBody(p)) },
@@ -155,6 +162,10 @@ const DIGEST: Channel[] = [
   {
     name: 'slack digest',
     render: (p) => flatten(buildSlackDigestBody(pair(p))),
+    exempt: {
+      label:
+        'same compact line as a single Slack alert (#4241): the label repeats the value',
+    },
   },
   {
     name: 'telegram digest',

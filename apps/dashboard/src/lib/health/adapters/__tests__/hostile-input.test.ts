@@ -143,7 +143,12 @@ describe('hostile operator text never reaches a markup field raw', () => {
       .match(/<https?:[^\n]*>/g)
     expect(links?.length).toBeGreaterThan(0)
     for (const link of links ?? []) {
-      expect(link.slice(1, -1)).not.toMatch(/[<>|]/)
+      // `<url|Label>`: only the URL part before the label separator.
+      const inner = link.slice(1, -1)
+      const url = inner.includes('|')
+        ? inner.slice(0, inner.lastIndexOf('|'))
+        : inner
+      expect(url).not.toMatch(/[<>|]/)
     }
   })
 

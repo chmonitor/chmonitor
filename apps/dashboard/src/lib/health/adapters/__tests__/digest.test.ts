@@ -97,8 +97,9 @@ describe('buildSlackDigestBody', () => {
     expect(header.type).toBe('header')
     expect(header.text?.text).toContain('1 critical, 1 warning on 1 host')
     const section = body.attachments[0].blocks[1]
-    expect(section.text?.text).toContain('[CRITICAL] A — a')
-    expect(section.text?.text).toContain('[WARNING] B — b')
+    // #4241: the same compact line as a single alert, one per finding.
+    expect(section.text?.text).toContain('🔴 *CRITICAL*  A · ')
+    expect(section.text?.text).toContain('🟠 *WARNING*  B · ')
   })
 
   test('renders a "…and N more" line past the cap', () => {

@@ -9,9 +9,9 @@
 
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
-import { incidentLine, summarizeDigest } from './digest'
-import { thresholdText, valueText } from './facts'
-import { digestDashboardUrl, identityLine, instancePrefix } from './identity'
+import { incidentLine, MAX_DIGEST_LINES, summarizeDigest } from './digest'
+import { thresholdParts, valueText } from './facts'
+import { digestDashboardUrl, instancePrefix, metadataPairs } from './identity'
 
 /** Escape operator-controlled text before putting it in Slack mrkdwn. */
 export function escapeSlackMrkdwn(raw: string): string {
@@ -75,121 +75,79 @@ function heading(severity: AlertSeverity): string {
   return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
 }
 
+/** Plain pieces of the compact line, in order; callers escape and join. */
+function compactParts(
+  payload: AlertPayload,
+  withPrefix: boolean
+): { lead: string; facts: string[] } {
+  const thresholds = thresholdParts(payload)
+  const value = thresholds.length
+    ? `${valueText(payload)} (${thresholds.join(', ')})`
+    : valueText(payload)
+  const incident = incidentLine(payload)
+  return {
+    lead: `${withPrefix ? instancePrefix(payload) : ''}${payload.title}`,
+    facts: [payload.hostLabel, value, ...(incident ? [incident] : [])],
+  }
+}
+
 /**
- * Build the Slack webhook body for a payload.
+ * One compact mrkdwn line per alert (#4241), e.g.
+ * `🔴 *CRITICAL*  Stuck Merges · node-2 · 4 (warn 1, crit 3) · <url|Open>`.
+ * Host, value and thresholds appear once; the instance prefix only when set.
+ */
+export function slackCompactLine(
+  payload: AlertPayload,
+  options: { withPrefix?: boolean; withLink?: boolean } = {}
+): string {
+  const { lead, facts } = compactParts(payload, options.withPrefix ?? true)
+  const parts = [lead, ...facts].map(escapeSlackMrkdwn)
+  if ((options.withLink ?? true) && payload.dashboardUrl) {
+    parts.push(`<${slackLinkUrl(payload.dashboardUrl)}|Open>`)
+  }
+  const style = SEVERITY_STYLE[payload.severity]
+  return `${style.emoji} *${heading(payload.severity)}*  ${parts.join(' · ')}`
+}
+
+/**
+ * Build the Slack webhook body for a payload: one compact line beside the
+ * severity colour bar, plus one small context line only when there are
+ * runbooks or deployment metadata to show. The top-level `text` is the
+ * plain-text notification fallback.
  */
 export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
   const style = SEVERITY_STYLE[payload.severity]
-  const summary = `${escapeSlackMrkdwn(instancePrefix(payload))}[${heading(payload.severity)}] ${escapeSlackMrkdwn(payload.title)} — ${escapeSlackMrkdwn(payload.label)} (host ${escapeSlackMrkdwn(payload.hostLabel)})`
+  const { lead, facts } = compactParts(payload, true)
+  const summary = escapeSlackMrkdwn(
+    `${style.emoji} ${heading(payload.severity)}  ${[lead, ...facts].join(' · ')}`
+  )
 
-  const incident = incidentLine(payload)
   const blocks: SlackBlock[] = [
     {
-      type: 'header',
-      text: {
-        type: 'plain_text',
-        text: `${style.emoji} ${heading(payload.severity)}: ${payload.title}`,
-        emoji: true,
-      },
-    },
-    {
       type: 'section',
-      fields: [
-        {
-          type: 'mrkdwn',
-          text: `*Host:*\n${escapeSlackMrkdwn(payload.hostLabel)} (id ${payload.hostId})`,
-        },
-        {
-          type: 'mrkdwn',
-          text: `*Metric:*\n${escapeSlackMrkdwn(payload.metric)}`,
-        },
-        {
-          type: 'mrkdwn',
-          text: `*Value:*\n${valueText(payload)}`,
-        },
-        { type: 'mrkdwn', text: `*Thresholds:*\n${thresholdText(payload)}` },
-      ],
-    },
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `*Detail:* ${escapeSlackMrkdwn(payload.label)}${incident ? `\n*Status:* ${escapeSlackMrkdwn(incident)}` : ''}`,
-      },
+      text: { type: 'mrkdwn', text: slackCompactLine(payload) },
     },
   ]
 
-  if (payload.runbookUrls && payload.runbookUrls.length > 0) {
-    blocks.push({
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `*Runbooks:*\n${payload.runbookUrls.map((u) => `• <${slackLinkUrl(u)}>`).join('\n')}`,
-      },
-    })
-  }
-
-  // Remediation actions (plans/33-remediation-action-links.md). Runbook
-  // actions render as Slack link buttons (no interactivity needed — Incoming
-  // Webhooks support `url` buttons out of the box). Diagnostic actions are
-  // READ-ONLY and executable via `POST /api/v1/health/actions`, but wiring a
-  // one-click Slack button to that endpoint requires an interactive Slack App
-  // request URL (plan 37) — a plain Incoming Webhook cannot receive the click.
-  // Until then, list diagnostics as plain text so the operator knows they
-  // exist and can trigger them from the in-app Active Alerts panel.
-  const runbookActions = (payload.actions ?? []).filter(
-    (a) => a.kind === 'runbook' && a.url
-  )
-  const diagnosticActions = (payload.actions ?? []).filter(
-    (a) => a.kind === 'diagnostic'
-  )
-
-  if (runbookActions.length > 0) {
-    blocks.push({
-      type: 'actions',
-      elements: runbookActions.map((a) => ({
-        type: 'button',
-        text: { type: 'plain_text', text: a.label, emoji: true },
-        url: a.url as string,
-      })),
-    })
-  }
-
-  if (diagnosticActions.length > 0) {
-    blocks.push({
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `*Diagnostics available:*\n${diagnosticActions.map((a) => `• ${escapeSlackMrkdwn(a.label)} — run from the Active Alerts panel`).join('\n')}`,
-      },
-    })
-  }
-
-  if (payload.dashboardUrl) {
-    blocks.push({
-      type: 'actions',
-      elements: [
-        {
-          type: 'button',
-          text: { type: 'plain_text', text: 'Open dashboard', emoji: true },
-          url: payload.dashboardUrl,
-        },
-      ],
-    })
-  }
-
-  const identity = identityLine(payload)
-  if (identity) {
+  const links = [
+    ...(payload.runbookUrls ?? []).map((u) => `<${slackLinkUrl(u)}|Runbook>`),
+    ...(payload.actions ?? [])
+      .filter((a) => a.kind === 'runbook' && a.url)
+      .map(
+        (a) =>
+          `<${slackLinkUrl(a.url as string)}|${escapeSlackMrkdwn(a.label)}>`
+      ),
+  ]
+  const context = [
+    ...links,
+    ...metadataPairs(payload).map(escapeSlackMrkdwn),
+  ].join(' · ')
+  if (context) {
     blocks.push({
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: escapeSlackMrkdwn(identity) }],
+      elements: [{ type: 'mrkdwn', text: context }],
     })
   }
-
-  blocks.push({
-    type: 'context',
-    elements: [{ type: 'mrkdwn', text: payload.timestamp }],
-  })
 
   return {
     text: summary,
@@ -213,9 +171,11 @@ export function buildSlackDigestBody(
 
   // Fit the list into one section: drop trailing lines (counted into the
   // "…and N more" overflow line) until it is within Slack's text limit.
-  const lines = digest.findingLines.map(
-    (line) => `• ${escapeSlackMrkdwn(line)}`
-  )
+  // Same compact line as a single alert; the header already carries the
+  // instance prefix and the digest has one dashboard button.
+  const lines = payloads
+    .slice(0, MAX_DIGEST_LINES)
+    .map((p) => slackCompactLine(p, { withPrefix: false, withLink: false }))
   const render = (kept: number): string => {
     const hidden = digest.overflow + (lines.length - kept)
     const out = lines.slice(0, kept)

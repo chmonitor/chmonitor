@@ -150,13 +150,47 @@ describe('telegram adapter', () => {
 // ---------------------------------------------------------------------------
 
 describe('slack adapter', () => {
-  test('critical uses red colour and a summary text', () => {
+  test('critical uses red colour and a plain-text notification fallback', () => {
     const body = buildSlackBody(CRITICAL)
     expect(body.attachments[0].color).toBe('#dc2626')
     expect(body.text).toBe(
-      '[CRITICAL] Failed mutations — 7 failed mutations (host prod-1)'
+      '🔴 CRITICAL  Failed mutations · prod-1 · 7 (warn 1, crit 5)'
     )
-    expect(body.attachments[0].blocks[0].text?.text).toContain('🔴')
+  })
+
+  // #4241: one alert is one compact line in the channel, so host, value and
+  // thresholds each appear once instead of across a header, fields and a
+  // detail section that Slack hides behind "Show more".
+  test('renders one compact line: no header, no field grid, no detail line', () => {
+    const payload: AlertPayload = {
+      ...CRITICAL,
+      runbookUrls: undefined,
+      dashboardUrl: 'https://chm.example.com/health?host=2',
+    }
+    const blocks = buildSlackBody(payload).attachments[0].blocks
+    expect(blocks).toEqual([
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '🔴 *CRITICAL*  Failed mutations · prod-1 · 7 (warn 1, crit 5) · <https://chm.example.com/health?host=2|Open>',
+        },
+      },
+    ])
+    const flat = JSON.stringify(blocks)
+    expect(flat.split('prod-1').length - 1).toBe(1)
+    expect(flat.split('warn 1').length - 1).toBe(1)
+  })
+
+  test('a recovery line says RESOLVED and how long it fired', () => {
+    const line = buildSlackBody({
+      ...RECOVERY,
+      runbookUrls: undefined,
+      firedForMs: 35 * 60_000,
+    }).attachments[0].blocks[0].text?.text
+    expect(line).toBe(
+      '🟢 *RESOLVED*  Failed mutations · prod-1 · 0 (warn 1, crit 5) · fired for 35 min'
+    )
   })
 
   test('warning uses amber, recovery uses green', () => {
@@ -164,21 +198,28 @@ describe('slack adapter', () => {
     expect(buildSlackBody(RECOVERY).attachments[0].color).toBe('#16a34a')
   })
 
-  test('includes runbook block when urls present', () => {
-    const body = buildSlackBody(CRITICAL)
-    const hasRunbook = body.attachments[0].blocks.some((b) =>
-      b.text?.text?.includes('Runbooks')
-    )
-    expect(hasRunbook).toBe(true)
+  test('links runbooks in one context line, never as a separate card', () => {
+    const blocks = buildSlackBody(CRITICAL).attachments[0].blocks
+    expect(blocks).toHaveLength(2)
+    expect(blocks[1]).toEqual({
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: '<https://docs.example.com/runbook/mutations|Runbook>',
+        },
+      ],
+    })
   })
 
   test('snapshot', () => {
     expect(buildSlackBody(CRITICAL)).toMatchSnapshot()
   })
 
-  test('renders a link button for a runbook action', () => {
+  test('a runbook action becomes a labelled link in the context line', () => {
     const payload: AlertPayload = {
       ...CRITICAL,
+      runbookUrls: undefined,
       actions: [
         {
           id: 'failed-mutations-runbook',
@@ -188,22 +229,14 @@ describe('slack adapter', () => {
         },
       ],
     }
-    const body = buildSlackBody(payload)
-    const actionsBlock = body.attachments[0].blocks.find(
-      (b) => b.type === 'actions'
-    )
-    expect(actionsBlock).toBeDefined()
-    const button = actionsBlock?.elements?.[0] as {
-      type: string
-      url?: string
-      text?: { text: string }
-    }
-    expect(button.type).toBe('button')
-    expect(button.url).toBe('https://docs.example.com/runbook')
-    expect(button.text?.text).toBe('Failed mutations runbook')
+    const context = buildSlackBody(payload).attachments[0].blocks[1]
+    expect(context.elements?.[0]).toEqual({
+      type: 'mrkdwn',
+      text: '<https://docs.example.com/runbook|Failed mutations runbook>',
+    })
   })
 
-  test('lists diagnostic actions as text, never as an interactive button carrying SQL', () => {
+  test('never carries SQL or an interactive button for a diagnostic action', () => {
     const payload: AlertPayload = {
       ...CRITICAL,
       actions: [
@@ -215,14 +248,10 @@ describe('slack adapter', () => {
       ],
     }
     const body = buildSlackBody(payload)
-    const serialized = JSON.stringify(body)
-    expect(serialized).toContain('Get failed mutations')
-    // The payload never carries raw SQL — only labeled ids.
-    expect(serialized).not.toContain('SELECT')
-    const actionsBlock = body.attachments[0].blocks.find(
-      (b) => b.type === 'actions'
-    )
-    expect(actionsBlock).toBeUndefined()
+    expect(JSON.stringify(body)).not.toContain('SELECT')
+    expect(
+      body.attachments[0].blocks.find((b) => b.type === 'actions')
+    ).toBeUndefined()
   })
 
   test('omits the actions block when no actions are present', () => {
