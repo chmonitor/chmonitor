@@ -10,7 +10,7 @@ co-author. The local git identity on agent machines is often `duyetbot`, so
 set the author explicitly on every commit you create, in this repo and in
 sibling repos (for example `chmonitor/launch`):
 ```
-git commit --author="duyet <5009534+duyet@users.noreply.github.com>" ...
+git commit --author="duyet <me@duyet.net>" ...
 
 Co-Authored-By: duyetbot <bot@duyet.net>
 ```
