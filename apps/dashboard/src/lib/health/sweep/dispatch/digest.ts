@@ -28,6 +28,7 @@ import type { WebhookResult } from './webhook-post'
 import {
   buildTelegramBody,
   buildTelegramDigestBody,
+  buildWebhookDeltaDispatchBody,
   buildWebhookDigestDispatchBody,
   buildWebhookDispatchBody,
   detectAdapter,
@@ -39,7 +40,9 @@ import {
   takeDueDigestEntries,
 } from './../../alert-digest-buffer-store'
 import { recordAlertEvent } from './../../alert-history-store'
+import { alertStateKey, alertStateStore } from './../../alert-state-store'
 import { alertThreadKey } from './../../alert-thread-store'
+import { perRuleEnvBaseId } from './../../server-alert-config'
 import {
   buildCustomTargetBody,
   buildCustomTargetDigestBody,
@@ -79,9 +82,42 @@ function isCompactReminder(entry: {
   return entry.payload.stillOpenMs !== undefined && !entry.slackAck
 }
 
+/**
+ * True when this finding does not need a new full digest (#4246): a recovery,
+ * or a new finding of a rule that already has another open finding. Judged
+ * against the state store before this finding commits, so findings that open
+ * in the same pass do not count as already open.
+ */
+function isDeltaOnly(
+  decision: AlertDecision,
+  hostId: number,
+  ruleId: string
+): boolean {
+  if (decision.kind === 'recovery') return true
+  if (decision.kind !== 'new') return false
+  const base = perRuleEnvBaseId(ruleId)
+  const own = alertStateKey(hostId, ruleId)
+  for (const [key, record] of alertStateStore.entries()) {
+    if (key === own || record.severity === 'ok') continue
+    if (perRuleEnvBaseId(key.slice(key.indexOf(':') + 1)) === base) return true
+  }
+  return false
+}
+
+/** Open findings in the state store right now. */
+function openFindingCount(): number {
+  let open = 0
+  for (const [, record] of alertStateStore.entries()) {
+    if (record.severity !== 'ok') open++
+  }
+  return open
+}
+
 /** Deferred dedup-commit + dispatch accounting for one grouped finding. */
 interface PendingDigestCommit {
   decision: AlertDecision
+  /** Needs only a delta line, not a full digest (see {@link isDeltaOnly}). */
+  deltaOnly: boolean
   commit: () => void
   /** Non-groupable channels already dispatched inline for this finding. */
   immediateTargetCount: number
@@ -372,6 +408,7 @@ export async function createDigestPipeline(
     // so its dedup commits exactly once).
     const pending: PendingDigestCommit = {
       decision,
+      deltaOnly: isDeltaOnly(decision, hostId, ruleId),
       commit,
       immediateTargetCount,
       immediateDelivered: anyDelivered,
@@ -602,6 +639,20 @@ export async function createDigestPipeline(
     // the next sweep retries the delivery.
     const failedBuffered: BufferedDigestEntry[] = []
 
+    // Open set after this pass: today's open findings, plus this pass's new
+    // ones, minus its recoveries. Read before the commits at the end.
+    const passDecisions = new Set<PendingDigestCommit>()
+    for (const e of webhookDigestEntries) if (e.pending) passDecisions.add(e.pending)
+    for (const e of telegramDigestEntries) if (e.pending) passDecisions.add(e.pending)
+    for (const e of customDigestEntries) if (e.pending) passDecisions.add(e.pending)
+    for (const e of matrixDigestEntries) if (e.pending) passDecisions.add(e.pending)
+    let openAfterPass = openFindingCount()
+    for (const p of passDecisions) {
+      if (p.decision.kind === 'new') openAfterPass++
+      else if (p.decision.kind === 'recovery') openAfterPass--
+    }
+    openAfterPass = Math.max(0, openAfterPass)
+
     // Webhook targets grouped by URL.
     const byUrl = new Map<string, WebhookDigestEntry[]>()
     for (const entry of webhookDigestEntries) {
@@ -642,7 +693,13 @@ export async function createDigestPipeline(
         if (sent) continue
       }
       let body: unknown
-      if (entries.length === 1 && !isCompactReminder(entries[0])) {
+      if (entries.every((e) => e.pending?.deltaOnly)) {
+        body = buildWebhookDeltaDispatchBody({
+          url,
+          payloads: entries.map((e) => e.payload),
+          open: openAfterPass,
+        }).body
+      } else if (entries.length === 1 && !isCompactReminder(entries[0])) {
         const only = entries[0]
         // A lone Slack send keeps its native-app ack blocks (plan 37); a digest
         // of many cannot carry per-finding acks, so it stays plain.

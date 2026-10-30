@@ -458,3 +458,81 @@ describe('buffered finding dispatch counting', () => {
     expect((await run({ targets: [hookshot] })).alertsDispatched).toBe(0)
   })
 })
+
+describe('delta-only updates (#4246)', () => {
+  const { alertStateStore, alertStateKey } = require('../../alert-state-store')
+  const bodies = () => posts.length
+
+  const settle = async (
+    kind: 'new' | 'recovery',
+    ruleId: string,
+    hostId: number,
+    severity: 'warning' | 'recovery' = 'warning'
+  ) => {
+    const pipe = await createDigestPipeline(
+      { digestWindowMs: 0 } as never,
+      newCounters()
+    )
+    await pipe.settleFinding({
+      finding: {
+        hostId,
+        ruleId,
+        effective: 'warning',
+        isRecovery: kind === 'recovery',
+        decision: { kind, notify: true },
+        text: 'x',
+      } as never,
+      commit: () => {},
+      anyDelivered: false,
+      groupableWebhookTargets: [{ url: URL, trusted: true }],
+      findingTelegramTargets: [],
+      immediateTargetCount: 0,
+      webhookPayload: { ...payload, hostId, metric: ruleId, severity } as never,
+    })
+    await pipe.flushDigests()
+  }
+
+  const open = (hostId: number, ruleId: string) =>
+    alertStateStore.set(alertStateKey(hostId, ruleId), {
+      severity: 'warning',
+      updatedAt: 0,
+      notifiedAt: 0,
+    })
+
+  let sent: unknown[] = []
+  beforeEach(() => {
+    alertStateStore.clear()
+    sent = []
+    globalThis.fetch = (async (_i: unknown, init?: RequestInit) => {
+      sent.push(JSON.parse(String(init?.body)))
+      return new Response(null, { status: 204 })
+    }) as typeof fetch
+  })
+  afterEach(() => alertStateStore.clear())
+
+  test('a new finding of a rule that is already open sends a delta line', async () => {
+    open(1, 'disk-usage')
+    open(2, 'other')
+    await settle('new', 'disk-usage', 3)
+    expect(bodies()).toBe(0)
+    expect(sent).toEqual([
+      { digest: 'delta', added: { critical: 0, warning: 1 }, resolved: 0, open: 3, text: '+1 warning · 3 open' },
+    ])
+  })
+
+  test('a recovery sends a delta line', async () => {
+    open(1, 'disk-usage')
+    open(2, 'disk-usage')
+    await settle('recovery', 'disk-usage', 1, 'recovery')
+    expect(sent).toEqual([
+      { digest: 'delta', added: { critical: 0, warning: 0 }, resolved: 1, open: 1, text: '1 resolved · 1 open' },
+    ])
+  })
+
+  test('the first finding of a rule still sends the full body', async () => {
+    open(2, 'other')
+    await settle('new', 'disk-usage', 1)
+    expect(sent).toHaveLength(1)
+    expect((sent[0] as { digest?: unknown }).digest).not.toBe('delta')
+  })
+})

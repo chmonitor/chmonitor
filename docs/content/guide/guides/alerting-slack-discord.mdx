@@ -99,7 +99,10 @@ an alert that is alone in its rule. Several alerts of one rule and severity
 share one row with the rule title, a count, and up to three example names, for
 example `🟠 WARNING  Source stopped sending rows · 34 (source-1, source-2,
 source-3, +31)`. Recoveries get their own row. The header still counts every
-alert.
+alert. When the rows share one host, the header names it and the rows leave it
+out. A sweep that only adds alerts of a rule that is already open, or only
+resolves, posts one line instead of the table: `+1 warning · 1 resolved · 60
+open`.
 
 The form supports bounded `{{severity}}`, `{{title}}`, `{{label}}`, `{{host}}`,
 `{{value}}`, and `{{timestamp}}` templates plus safe `X-*` headers. **Preview**
