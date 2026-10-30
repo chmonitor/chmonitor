@@ -88,7 +88,12 @@ export {
   buildPushoverMessage,
   pushoverAdapter,
 } from './pushover'
-export { buildSlackBody, buildSlackDigestBody, slackAdapter } from './slack'
+export {
+  buildSlackBody,
+  buildSlackDeltaBody,
+  buildSlackDigestBody,
+  slackAdapter,
+} from './slack'
 export {
   buildTelegramBody,
   buildTelegramDigestBody,
@@ -106,15 +111,24 @@ export {
 
 import type { AlertPayload, NotificationAdapter } from './types'
 
+import { digestDeltaOf } from './digest'
 import { buildDiscordBody, discordAdapter } from './discord'
 import { emailAdapter } from './email'
-import { buildGenericJsonDigestBody, genericJsonAdapter } from './generic-json'
+import {
+  buildGenericJsonDeltaBody,
+  buildGenericJsonDigestBody,
+  genericJsonAdapter,
+} from './generic-json'
 import { buildGoogleChatBody, googleChatAdapter } from './google-chat'
 import { withDashboardLink } from './identity'
 import { buildMSTeamsBody, msTeamsAdapter } from './msteams'
 import { opsgenieAdapter } from './opsgenie'
 import { pagerDutyAdapter } from './pagerduty'
-import { buildSlackDigestBody, slackAdapter } from './slack'
+import {
+  buildSlackDeltaBody,
+  buildSlackDigestBody,
+  slackAdapter,
+} from './slack'
 import { telegramAdapter } from './telegram'
 
 /**
@@ -283,5 +297,27 @@ export function buildWebhookDigestDispatchBody(params: {
   return {
     adapterId: adapter.id,
     body: buildGenericJsonDigestBody(params.payloads),
+  }
+}
+
+/**
+ * Body for an update that only adds findings of already-open rules or only
+ * resolves (#4246): one delta line instead of the full digest. Only called for
+ * URLs {@link isDigestCapableWebhook} accepts. Pure — no transport.
+ */
+export function buildWebhookDeltaDispatchBody(params: {
+  url: string
+  payloads: readonly AlertPayload[]
+  open: number
+}): WebhookDispatchBody {
+  const adapter = detectAdapter(params.url)
+  const delta = digestDeltaOf(params.payloads, params.open)
+  const first = params.payloads[0]
+  return {
+    adapterId: adapter.id,
+    body:
+      adapter.id === 'slack'
+        ? buildSlackDeltaBody(delta, first)
+        : buildGenericJsonDeltaBody(delta, first),
   }
 }

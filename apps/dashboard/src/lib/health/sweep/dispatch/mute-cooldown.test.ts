@@ -65,12 +65,15 @@ afterAll(() => {
 })
 
 const { createDispatcher } = await import('./index')
+const { alertStateStore } = await import('../../alert-state-store')
 
 const realFetch = globalThis.fetch
 let posts: { url: string; body: string }[] = []
 let nextHostId = 930_000
 
 beforeEach(() => {
+  // A rule already open on another host sends a delta line (#4246); start clean.
+  alertStateStore.clear()
   posts = []
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     posts.push({ url: String(input), body: String(init?.body ?? '') })
@@ -271,10 +274,13 @@ describe('per-rule cooldown', () => {
     await sweep(ctx, [{ hostId, ruleId, severity: 'critical' }])
     expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(2)
 
-    // Recovery still sends.
+    // Recovery still sends, as a delta line (#4246).
     setSystemTime(new Date(t0 + 302 * 60_000))
+    const before = postsTo(WEBHOOK_URL).length
     const d = await sweep(ctx, [{ hostId, ruleId, severity: 'ok' }])
-    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(3)
+    const after = postsTo(WEBHOOK_URL)
+    expect(after).toHaveLength(before + 1)
+    expect(after.at(-1)?.body).toContain('1 resolved')
     expect(d.counters.recoveries).toBe(1)
   })
 

@@ -58,7 +58,7 @@ describe('summarizeDigest', () => {
       payload({ severity: 'warning', hostId: 7 }),
       payload({ severity: 'recovery', hostId: 7 }),
     ])
-    expect(s.summaryLine).toBe('1 warning, 1 recovery on 1 host')
+    expect(s.summaryLine).toBe('1 warning, 1 recovery on 1 host (prod-ch)')
     // recovery ranks below warning, so warning is the top severity here.
     expect(s.topSeverity).toBe('warning')
   })

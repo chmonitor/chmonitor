@@ -9,9 +9,12 @@
 import type { AlertBlock, AlertPayload, NotificationAdapter } from './types'
 
 import {
+  type DigestDelta,
+  digestDeltaLine,
   digestGroupLine,
   groupDigest,
   incidentLine,
+  sharesOneHost,
   summarizeDigest,
 } from './digest'
 import { instancePrefix } from './identity'
@@ -121,7 +124,9 @@ export function buildGenericJsonDigestBody(
   const digest = summarizeDigest(payloads)
   const textLines = [
     `${digest.summaryLine} (${digest.total} alerts)`,
-    ...groupDigest(payloads).map(digestGroupLine),
+    ...groupDigest(payloads).map((g) =>
+      digestGroupLine(g, { withHost: !sharesOneHost(payloads) })
+    ),
   ]
   return {
     digest: true,
@@ -131,6 +136,28 @@ export function buildGenericJsonDigestBody(
     count: digest.total,
     alerts: payloads.map(buildGenericJsonBody),
     text: textLines.join('\n'),
+  }
+}
+
+/** Body for a sweep that only added to open rules or only resolved (#4246). */
+export interface GenericJsonDeltaBody {
+  digest: 'delta'
+  added: DigestDelta['added']
+  resolved: number
+  open: number
+  text: string
+}
+
+export function buildGenericJsonDeltaBody(
+  delta: DigestDelta,
+  payload: Partial<AlertPayload> = {}
+): GenericJsonDeltaBody {
+  return {
+    digest: 'delta',
+    added: delta.added,
+    resolved: delta.resolved,
+    open: delta.open,
+    text: digestDeltaLine(delta, payload),
   }
 }
 

@@ -89,7 +89,10 @@ export function stillOpenLine(
  * One finding's one-line description, mirroring the single-alert `text`. A
  * reminder (`stillOpenMs` set) replaces the label with how long it is open.
  */
-export function digestFindingLine(payload: AlertPayload): string {
+export function digestFindingLine(
+  payload: AlertPayload,
+  options: { withHost?: boolean } = {}
+): string {
   const firedFor = firedForLine(payload)
   const detail =
     payload.stillOpenMs !== undefined
@@ -97,7 +100,19 @@ export function digestFindingLine(payload: AlertPayload): string {
       : firedFor
         ? `${payload.label}, ${firedFor}`
         : payload.label
-  return `[${findingHeading(payload.severity)}] ${payload.title} — ${detail} (host ${payload.hostLabel})`
+  const host = options.withHost === false ? '' : ` (host ${payload.hostLabel})`
+  return `[${findingHeading(payload.severity)}] ${payload.title} — ${detail}${host}`
+}
+
+/**
+ * True when several findings share one host, so a per-row host is the same on
+ * every row and the header names it instead (#4246). A lone finding keeps its
+ * host: it has no other rows to repeat.
+ */
+export function sharesOneHost(payloads: readonly AlertPayload[]): boolean {
+  return (
+    payloads.length > 1 && new Set(payloads.map((p) => p.hostId)).size === 1
+  )
 }
 
 /** Example names shown on a grouped digest row before the `+N` remainder. */
@@ -152,9 +167,12 @@ export function digestGroupExamples(group: DigestGroup): string {
  * {@link digestFindingLine}; a larger group uses the rule title, a count and a
  * few example names, so truncation never hides the cause.
  */
-export function digestGroupLine(group: DigestGroup): string {
+export function digestGroupLine(
+  group: DigestGroup,
+  options: { withHost?: boolean } = {}
+): string {
   const [first] = group.payloads
-  if (group.payloads.length === 1) return digestFindingLine(first)
+  if (group.payloads.length === 1) return digestFindingLine(first, options)
   return `[${findingHeading(group.severity)}] ${group.title} · ${group.payloads.length} (${digestGroupExamples(group)})`
 }
 
@@ -202,14 +220,18 @@ export function summarizeDigest(
 
   const hostCount = hosts.size
   const hostWord = hostCount === 1 ? 'host' : 'hosts'
+  const hostName = sharesOneHost(payloads) ? ` (${payloads[0].hostLabel})` : ''
   const countText =
     parts.length > 0 ? parts.join(', ') : `${payloads.length} alerts`
   // One digest is one deployment's findings, so the first payload's instance
   // labels the whole group ('' when unset).
-  const summaryLine = `${instancePrefix(payloads[0] ?? {})}${countText} on ${hostCount} ${hostWord}`
+  const summaryLine = `${instancePrefix(payloads[0] ?? {})}${countText} on ${hostCount} ${hostWord}${hostName}`
 
   const groups = groupDigest(payloads)
-  const findingLines = groups.slice(0, MAX_DIGEST_LINES).map(digestGroupLine)
+  const withHost = !sharesOneHost(payloads)
+  const findingLines = groups
+    .slice(0, MAX_DIGEST_LINES)
+    .map((g) => digestGroupLine(g, { withHost }))
   const overflow = groups
     .slice(MAX_DIGEST_LINES)
     .reduce((n, g) => n + g.payloads.length, 0)
@@ -223,4 +245,46 @@ export function summarizeDigest(
     hostCount,
     total: payloads.length,
   }
+}
+
+/** What a sweep changed in the open set, for a one-line update (#4246). */
+export interface DigestDelta {
+  added: { critical: number; warning: number }
+  resolved: number
+  /** Open findings after this sweep. */
+  open: number
+}
+
+/**
+ * `"+1 warning · 1 resolved · 60 open"`: the short update sent instead of a
+ * full digest when a sweep only adds findings of an already-open rule or only
+ * resolves. Parts with a zero count are left out; `open` always shows.
+ */
+export function digestDeltaLine(
+  delta: DigestDelta,
+  payload: Partial<AlertPayload> = {}
+): string {
+  const parts: string[] = []
+  if (delta.added.critical > 0) parts.push(`+${delta.added.critical} critical`)
+  if (delta.added.warning > 0) parts.push(`+${delta.added.warning} warning`)
+  if (delta.resolved > 0) parts.push(`${delta.resolved} resolved`)
+  parts.push(`${delta.open} open`)
+  return `${instancePrefix(payload)}${parts.join(' · ')}`
+}
+
+/** Count a delta from the payloads of one update (recovery = resolved). */
+export function digestDeltaOf(
+  payloads: readonly AlertPayload[],
+  open: number
+): DigestDelta {
+  const delta: DigestDelta = {
+    added: { critical: 0, warning: 0 },
+    resolved: 0,
+    open,
+  }
+  for (const p of payloads) {
+    if (p.severity === 'recovery') delta.resolved++
+    else delta.added[p.severity]++
+  }
+  return delta
 }

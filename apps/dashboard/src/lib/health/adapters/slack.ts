@@ -10,11 +10,14 @@
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
 import {
+  type DigestDelta,
   type DigestGroup,
+  digestDeltaLine,
   digestGroupExamples,
   groupDigest,
   incidentLine,
   MAX_DIGEST_LINES,
+  sharesOneHost,
   spanText,
   summarizeDigest,
 } from './digest'
@@ -91,7 +94,8 @@ function heading(severity: AlertSeverity): string {
 /** Plain pieces of the compact line, in order; callers escape and join. */
 function compactParts(
   payload: AlertPayload,
-  withPrefix: boolean
+  withPrefix: boolean,
+  withHost = true
 ): { lead: string; facts: string[] } {
   const thresholds = thresholdParts(payload)
   const value = thresholds.length
@@ -100,7 +104,11 @@ function compactParts(
   const incident = incidentLine(payload)
   return {
     lead: `${withPrefix ? instancePrefix(payload) : ''}${payload.title}`,
-    facts: [payload.hostLabel, value, ...(incident ? [incident] : [])],
+    facts: [
+      ...(withHost ? [payload.hostLabel] : []),
+      value,
+      ...(incident ? [incident] : []),
+    ],
   }
 }
 
@@ -111,9 +119,13 @@ function compactParts(
  */
 export function slackCompactLine(
   payload: AlertPayload,
-  options: { withPrefix?: boolean; withLink?: boolean } = {}
+  options: { withPrefix?: boolean; withLink?: boolean; withHost?: boolean } = {}
 ): string {
-  const { lead, facts } = compactParts(payload, options.withPrefix ?? true)
+  const { lead, facts } = compactParts(
+    payload,
+    options.withPrefix ?? true,
+    options.withHost ?? true
+  )
   const parts = [lead, ...facts].map(escapeSlackMrkdwn)
   if ((options.withLink ?? true) && payload.dashboardUrl) {
     parts.push(`<${slackLinkUrl(payload.dashboardUrl)}|Open>`)
@@ -127,11 +139,15 @@ export function slackCompactLine(
  * compact line; a larger group is the rule title, a count and a few names:
  * `🟠 *WARNING*  Source stopped sending rows · 34 (a, b, c, +31)`.
  */
-export function slackDigestGroupLine(group: DigestGroup): string {
+export function slackDigestGroupLine(
+  group: DigestGroup,
+  options: { withHost?: boolean } = {}
+): string {
   if (group.payloads.length === 1) {
     return slackCompactLine(group.payloads[0], {
       withPrefix: false,
       withLink: false,
+      withHost: options.withHost,
     })
   }
   const style = SEVERITY_STYLE[group.severity]
@@ -207,7 +223,8 @@ export function buildSlackDigestBody(
   // is within Slack's text limit. The header already carries the instance
   // prefix and the digest has one dashboard button.
   const groups = groupDigest(payloads).slice(0, MAX_DIGEST_LINES)
-  const lines = groups.map(slackDigestGroupLine)
+  const withHost = !sharesOneHost(payloads)
+  const lines = groups.map((g) => slackDigestGroupLine(g, { withHost }))
   const render = (kept: number): string => {
     const hidden =
       digest.overflow +
@@ -255,6 +272,18 @@ export function buildSlackDigestBody(
   return {
     text: summary,
     attachments: [{ color: style.color, blocks }],
+  }
+}
+
+/** Slack body for a sweep that only added to open rules or only resolved: one line (#4246). */
+export function buildSlackDeltaBody(
+  delta: DigestDelta,
+  payload: Partial<AlertPayload> = {}
+): SlackWebhookBody {
+  const line = digestDeltaLine(delta, payload)
+  return {
+    text: escapeSlackMrkdwn(line),
+    attachments: [],
   }
 }
 

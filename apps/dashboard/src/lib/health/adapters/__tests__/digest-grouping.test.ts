@@ -95,7 +95,7 @@ test('mixed rules get one row each, in first-seen order', () => {
   ]).findingLines
   expect(lines).toEqual([
     `[WARNING] ${TITLE} · 3 (db.events:source-1, db.events:source-2, db.events:source-3)`,
-    '[WARNING] Disk usage — 91% used (host node-1)',
+    '[WARNING] Disk usage — 91% used',
     `[CRITICAL] ${TITLE} · 2 (db.events:source-1, db.events:source-2)`,
   ])
 })
@@ -108,7 +108,7 @@ test('recoveries group apart from firing findings of the same rule', () => {
     `🟢 *RESOLVED*  ${TITLE} · 2 (db.events:source-1, db.events:source-2)`,
   ])
   expect(summarizeDigest(payloads).summaryLine).toBe(
-    '4 warning, 2 recovery on 1 host'
+    '4 warning, 2 recovery on 1 host (node-1)'
   )
 })
 
