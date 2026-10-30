@@ -113,9 +113,12 @@ export function renderMatrixDigest(payloads: readonly AlertPayload[]): {
     }
     html += '</ul>'
   }
-  if (summary.overflow > 0) {
-    textLines.push(`…and ${summary.overflow} more`)
-    html += `<i>…and ${summary.overflow} more</i>`
+  // Matrix groups by rule itself and lists each finding, so its overflow is
+  // findings past the cap, not the summary's grouped-row overflow.
+  const overflow = Math.max(0, payloads.length - MAX_DIGEST_LINES)
+  if (overflow > 0) {
+    textLines.push(`…and ${overflow} more`)
+    html += `<i>…and ${overflow} more</i>`
   }
   const link = digestDashboardUrl(payloads)
   if (link) {

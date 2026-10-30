@@ -155,7 +155,13 @@ const SINGLE: Channel[] = [
   },
 ]
 
-const OTHER_HOST: Partial<AlertPayload> = { hostId: 9, hostLabel: 'prod-eu-2' }
+// A second rule on another host: same-rule findings would group into one row
+// (#4246), and this suite checks what an ungrouped finding row carries.
+const OTHER_HOST: Partial<AlertPayload> = {
+  hostId: 9,
+  hostLabel: 'prod-eu-2',
+  metric: 'other-rule',
+}
 const pair = (p: AlertPayload) => [p, { ...p, ...OTHER_HOST }]
 
 const DIGEST: Channel[] = [

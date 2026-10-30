@@ -8,7 +8,12 @@
 
 import type { AlertBlock, AlertPayload, NotificationAdapter } from './types'
 
-import { digestFindingLine, incidentLine, summarizeDigest } from './digest'
+import {
+  digestGroupLine,
+  groupDigest,
+  incidentLine,
+  summarizeDigest,
+} from './digest'
 import { instancePrefix } from './identity'
 
 /** Normalized JSON body for generic webhook receivers. */
@@ -101,7 +106,7 @@ export interface GenericJsonDigestBody {
   count: number
   /** Every finding, each as the same normalized single-alert body. */
   alerts: GenericJsonBody[]
-  /** A ready-to-render multi-line summary (summary line + one line per finding). */
+  /** A ready-to-render multi-line summary (summary line + one line per rule group). */
   text: string
 }
 
@@ -116,7 +121,7 @@ export function buildGenericJsonDigestBody(
   const digest = summarizeDigest(payloads)
   const textLines = [
     `${digest.summaryLine} (${digest.total} alerts)`,
-    ...payloads.map(digestFindingLine),
+    ...groupDigest(payloads).map(digestGroupLine),
   ]
   return {
     digest: true,

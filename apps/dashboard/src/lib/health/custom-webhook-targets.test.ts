@@ -166,6 +166,8 @@ describe('slack custom target grouping (#4230)', () => {
       hostId: i,
       hostLabel: `host-${i}`,
       label: `finding number ${i}`,
+      // One rule per finding, so each is its own digest row (#4246 groups by rule).
+      metric: `rule-${i}`,
     }))
   type Digest = {
     text: string

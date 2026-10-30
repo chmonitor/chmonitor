@@ -49,7 +49,8 @@ describe('summarizeDigest', () => {
     expect(s.counts).toEqual({ critical: 3, warning: 2, recovery: 0 })
     expect(s.hostCount).toBe(4)
     expect(s.total).toBe(5)
-    expect(s.findingLines).toHaveLength(5)
+    // One rule at two severities: one row per (rule, severity) group (#4246).
+    expect(s.findingLines).toHaveLength(2)
   })
 
   test('singular host wording and a recovery in the mix', () => {
@@ -64,7 +65,7 @@ describe('summarizeDigest', () => {
 
   test('caps rendered lines and reports overflow', () => {
     const many = Array.from({ length: MAX_DIGEST_LINES + 5 }, (_, i) =>
-      payload({ hostId: i })
+      payload({ hostId: i, metric: `rule-${i}` })
     )
     const s = summarizeDigest(many)
     expect(s.findingLines).toHaveLength(MAX_DIGEST_LINES)
@@ -104,7 +105,7 @@ describe('buildSlackDigestBody', () => {
 
   test('renders a "…and N more" line past the cap', () => {
     const many = Array.from({ length: MAX_DIGEST_LINES + 3 }, (_, i) =>
-      payload({ hostId: i })
+      payload({ hostId: i, metric: `rule-${i}` })
     )
     const body = buildSlackDigestBody(many)
     expect(body.attachments[0].blocks[1].text?.text).toContain('…and 3 more')
