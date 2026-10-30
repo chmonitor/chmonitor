@@ -54,7 +54,7 @@ jobs:
             image=moby/buildkit:latest
 
       - name: Login to Container registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -102,7 +102,7 @@ jobs:
           ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
 
       - name: Login to Container registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -186,7 +186,7 @@ jobs:
           echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
 
       - name: Login to Container registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
