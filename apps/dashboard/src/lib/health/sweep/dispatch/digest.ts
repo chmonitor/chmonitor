@@ -42,7 +42,6 @@ import {
 import { recordAlertEvent } from './../../alert-history-store'
 import { alertStateKey, alertStateStore } from './../../alert-state-store'
 import { alertThreadKey } from './../../alert-thread-store'
-import { perRuleEnvBaseId } from './../../server-alert-config'
 import {
   buildCustomTargetBody,
   buildCustomTargetDigestBody,
@@ -52,6 +51,7 @@ import {
   buildMatrixTxnId,
   matrixTxnIdForPayload,
 } from './../../matrix-dispatch'
+import { perRuleEnvBaseId } from './../../server-alert-config'
 import { telegramSendMessageUrl } from './../../telegram-dispatch'
 import { SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
 import { buildAlertEventRecord, recordChannelEvent } from './alert-event-record'
@@ -642,10 +642,14 @@ export async function createDigestPipeline(
     // Open set after this pass: today's open findings, plus this pass's new
     // ones, minus its recoveries. Read before the commits at the end.
     const passDecisions = new Set<PendingDigestCommit>()
-    for (const e of webhookDigestEntries) if (e.pending) passDecisions.add(e.pending)
-    for (const e of telegramDigestEntries) if (e.pending) passDecisions.add(e.pending)
-    for (const e of customDigestEntries) if (e.pending) passDecisions.add(e.pending)
-    for (const e of matrixDigestEntries) if (e.pending) passDecisions.add(e.pending)
+    for (const e of webhookDigestEntries)
+      if (e.pending) passDecisions.add(e.pending)
+    for (const e of telegramDigestEntries)
+      if (e.pending) passDecisions.add(e.pending)
+    for (const e of customDigestEntries)
+      if (e.pending) passDecisions.add(e.pending)
+    for (const e of matrixDigestEntries)
+      if (e.pending) passDecisions.add(e.pending)
     let openAfterPass = openFindingCount()
     for (const p of passDecisions) {
       if (p.decision.kind === 'new') openAfterPass++

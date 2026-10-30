@@ -10,14 +10,14 @@
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
 import {
-  type DigestGroup,
   type DigestDelta,
+  type DigestGroup,
   digestDeltaLine,
   digestGroupExamples,
-  sharesOneHost,
   groupDigest,
   incidentLine,
   MAX_DIGEST_LINES,
+  sharesOneHost,
   spanText,
   summarizeDigest,
 } from './digest'
@@ -104,7 +104,11 @@ function compactParts(
   const incident = incidentLine(payload)
   return {
     lead: `${withPrefix ? instancePrefix(payload) : ''}${payload.title}`,
-    facts: [...(withHost ? [payload.hostLabel] : []), value, ...(incident ? [incident] : [])],
+    facts: [
+      ...(withHost ? [payload.hostLabel] : []),
+      value,
+      ...(incident ? [incident] : []),
+    ],
   }
 }
 

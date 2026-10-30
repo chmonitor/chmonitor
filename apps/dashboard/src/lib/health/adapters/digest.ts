@@ -110,7 +110,9 @@ export function digestFindingLine(
  * host: it has no other rows to repeat.
  */
 export function sharesOneHost(payloads: readonly AlertPayload[]): boolean {
-  return payloads.length > 1 && new Set(payloads.map((p) => p.hostId)).size === 1
+  return (
+    payloads.length > 1 && new Set(payloads.map((p) => p.hostId)).size === 1
+  )
 }
 
 /** Example names shown on a grouped digest row before the `+N` remainder. */

@@ -516,7 +516,13 @@ describe('delta-only updates (#4246)', () => {
     await settle('new', 'disk-usage', 3)
     expect(bodies()).toBe(0)
     expect(sent).toEqual([
-      { digest: 'delta', added: { critical: 0, warning: 1 }, resolved: 0, open: 3, text: '+1 warning · 3 open' },
+      {
+        digest: 'delta',
+        added: { critical: 0, warning: 1 },
+        resolved: 0,
+        open: 3,
+        text: '+1 warning · 3 open',
+      },
     ])
   })
 
@@ -525,7 +531,13 @@ describe('delta-only updates (#4246)', () => {
     open(2, 'disk-usage')
     await settle('recovery', 'disk-usage', 1, 'recovery')
     expect(sent).toEqual([
-      { digest: 'delta', added: { critical: 0, warning: 0 }, resolved: 1, open: 1, text: '1 resolved · 1 open' },
+      {
+        digest: 'delta',
+        added: { critical: 0, warning: 0 },
+        resolved: 1,
+        open: 1,
+        text: '1 resolved · 1 open',
+      },
     ])
   })
 

@@ -8,13 +8,13 @@
 
 import type { AlertPayload } from '../types'
 
+import { digestDeltaLine, digestDeltaOf } from '../digest'
 import {
-  buildWebhookDeltaDispatchBody,
-  buildSlackDigestBody,
   buildGenericJsonDigestBody,
+  buildSlackDigestBody,
+  buildWebhookDeltaDispatchBody,
   summarizeDigest,
 } from '../index'
-import { digestDeltaLine, digestDeltaOf } from '../digest'
 import { describe, expect, test } from 'bun:test'
 
 function finding(over: Partial<AlertPayload> = {}): AlertPayload {
@@ -60,7 +60,10 @@ describe('delta line', () => {
   test('generic JSON carries the counts and the same text', () => {
     const { body } = buildWebhookDeltaDispatchBody({
       url: GENERIC,
-      payloads: [finding({ severity: 'critical' }), finding({ severity: 'recovery' })],
+      payloads: [
+        finding({ severity: 'critical' }),
+        finding({ severity: 'recovery' }),
+      ],
       open: 3,
     })
     expect(body).toEqual({

@@ -9,12 +9,12 @@
 import type { AlertBlock, AlertPayload, NotificationAdapter } from './types'
 
 import {
-  digestGroupLine,
   type DigestDelta,
   digestDeltaLine,
+  digestGroupLine,
   groupDigest,
-  sharesOneHost,
   incidentLine,
+  sharesOneHost,
   summarizeDigest,
 } from './digest'
 import { instancePrefix } from './identity'

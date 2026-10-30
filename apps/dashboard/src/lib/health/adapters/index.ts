@@ -111,6 +111,7 @@ export {
 
 import type { AlertPayload, NotificationAdapter } from './types'
 
+import { digestDeltaOf } from './digest'
 import { buildDiscordBody, discordAdapter } from './discord'
 import { emailAdapter } from './email'
 import {
@@ -123,7 +124,6 @@ import { withDashboardLink } from './identity'
 import { buildMSTeamsBody, msTeamsAdapter } from './msteams'
 import { opsgenieAdapter } from './opsgenie'
 import { pagerDutyAdapter } from './pagerduty'
-import { digestDeltaOf } from './digest'
 import {
   buildSlackDeltaBody,
   buildSlackDigestBody,
