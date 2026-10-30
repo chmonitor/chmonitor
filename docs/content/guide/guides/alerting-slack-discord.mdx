@@ -95,7 +95,11 @@ colour bar, for example
 reads `🟢 RESOLVED  … · fired for 35 min · Open`. The instance prefix appears
 only when `instanceName` is set; runbook links and metadata go on one small
 second line when there are any. A grouped Slack digest uses the same line for
-each alert.
+an alert that is alone in its rule. Several alerts of one rule and severity
+share one row with the rule title, a count, and up to three example names, for
+example `🟠 WARNING  Source stopped sending rows · 34 (source-1, source-2,
+source-3, +31)`. Recoveries get their own row. The header still counts every
+alert.
 
 The form supports bounded `{{severity}}`, `{{title}}`, `{{label}}`, `{{host}}`,
 `{{value}}`, and `{{timestamp}}` templates plus safe `X-*` headers. **Preview**

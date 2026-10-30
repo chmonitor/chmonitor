@@ -10,6 +10,9 @@
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
 import {
+  type DigestGroup,
+  digestGroupExamples,
+  groupDigest,
   incidentLine,
   MAX_DIGEST_LINES,
   spanText,
@@ -120,6 +123,26 @@ export function slackCompactLine(
 }
 
 /**
+ * One digest row for a (rule, severity) group (#4246). A group of one is the
+ * compact line; a larger group is the rule title, a count and a few names:
+ * `🟠 *WARNING*  Source stopped sending rows · 34 (a, b, c, +31)`.
+ */
+export function slackDigestGroupLine(group: DigestGroup): string {
+  if (group.payloads.length === 1) {
+    return slackCompactLine(group.payloads[0], {
+      withPrefix: false,
+      withLink: false,
+    })
+  }
+  const style = SEVERITY_STYLE[group.severity]
+  const parts = [
+    group.title,
+    `${group.payloads.length} (${digestGroupExamples(group)})`,
+  ].map(escapeSlackMrkdwn)
+  return `${style.emoji} *${heading(group.severity)}*  ${parts.join(' · ')}`
+}
+
+/**
  * Build the Slack webhook body for a payload: one compact line beside the
  * severity colour bar, plus one small context line only when there are
  * runbooks or deployment metadata to show. The top-level `text` is the
@@ -179,15 +202,16 @@ export function buildSlackDigestBody(
   const style = SEVERITY_STYLE[digest.topSeverity]
   const summary = `Health digest: ${escapeSlackMrkdwn(digest.summaryLine)} (${digest.total} alerts)`
 
-  // Fit the list into one section: drop trailing lines (counted into the
-  // "…and N more" overflow line) until it is within Slack's text limit.
-  // Same compact line as a single alert; the header already carries the
-  // instance prefix and the digest has one dashboard button.
-  const lines = payloads
-    .slice(0, MAX_DIGEST_LINES)
-    .map((p) => slackCompactLine(p, { withPrefix: false, withLink: false }))
+  // One row per (rule, severity) group. Fit the list into one section: drop
+  // trailing rows (their findings counted into the "…and N more" line) until it
+  // is within Slack's text limit. The header already carries the instance
+  // prefix and the digest has one dashboard button.
+  const groups = groupDigest(payloads).slice(0, MAX_DIGEST_LINES)
+  const lines = groups.map(slackDigestGroupLine)
   const render = (kept: number): string => {
-    const hidden = digest.overflow + (lines.length - kept)
+    const hidden =
+      digest.overflow +
+      groups.slice(kept).reduce((n, g) => n + g.payloads.length, 0)
     const out = lines.slice(0, kept)
     if (hidden > 0) out.push(`…and ${hidden} more`)
     return out.join('\n')

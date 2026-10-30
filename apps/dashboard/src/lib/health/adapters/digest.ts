@@ -100,12 +100,70 @@ export function digestFindingLine(payload: AlertPayload): string {
   return `[${findingHeading(payload.severity)}] ${payload.title} — ${detail} (host ${payload.hostLabel})`
 }
 
+/** Example names shown on a grouped digest row before the `+N` remainder. */
+export const DIGEST_GROUP_EXAMPLES = 3
+
+/** Findings of one rule at one severity (recovery is its own group) (#4246). */
+export interface DigestGroup {
+  metric: string
+  severity: AlertSeverity
+  title: string
+  payloads: AlertPayload[]
+}
+
+/**
+ * Group findings by (rule, severity) in first-seen order, so 34 findings of one
+ * rule become one digest row instead of 34.
+ */
+export function groupDigest(payloads: readonly AlertPayload[]): DigestGroup[] {
+  const groups = new Map<string, DigestGroup>()
+  for (const p of payloads) {
+    const key = `${p.metric}\u0000${p.severity}`
+    const group = groups.get(key)
+    if (group) group.payloads.push(p)
+    else
+      groups.set(key, {
+        metric: p.metric,
+        severity: p.severity,
+        title: p.title,
+        payloads: [p],
+      })
+  }
+  return [...groups.values()]
+}
+
+/**
+ * `"source-1, source-2, source-3, +31"`: the names that tell a group's findings
+ * apart. Hosts when the group spans several hosts, otherwise each finding's label.
+ */
+export function digestGroupExamples(group: DigestGroup): string {
+  const hosts = new Set(group.payloads.map((p) => p.hostLabel))
+  const names = [
+    ...new Set(
+      group.payloads.map((p) => (hosts.size > 1 ? p.hostLabel : p.label))
+    ),
+  ].slice(0, DIGEST_GROUP_EXAMPLES)
+  const rest = group.payloads.length - names.length
+  return rest > 0 ? [...names, `+${rest}`].join(', ') : names.join(', ')
+}
+
+/**
+ * One digest row for a group. A group of one renders as
+ * {@link digestFindingLine}; a larger group uses the rule title, a count and a
+ * few example names, so truncation never hides the cause.
+ */
+export function digestGroupLine(group: DigestGroup): string {
+  const [first] = group.payloads
+  if (group.payloads.length === 1) return digestFindingLine(first)
+  return `[${findingHeading(group.severity)}] ${group.title} · ${group.payloads.length} (${digestGroupExamples(group)})`
+}
+
 export interface DigestSummary {
   /** Human summary, e.g. `"3 critical, 2 warning on 4 hosts"` (prefixed `[instance] ` when set). */
   summaryLine: string
-  /** One line per finding (severity-prefixed), already capped to {@link MAX_DIGEST_LINES}. */
+  /** One line per (rule, severity) group (severity-prefixed), capped to {@link MAX_DIGEST_LINES}. */
   findingLines: string[]
-  /** Findings beyond the cap (0 when nothing was truncated). */
+  /** Findings in the groups beyond the cap (0 when nothing was truncated). */
   overflow: number
   /** Highest severity present — drives the digest's colour/emoji. */
   topSeverity: AlertSeverity
@@ -150,10 +208,11 @@ export function summarizeDigest(
   // labels the whole group ('' when unset).
   const summaryLine = `${instancePrefix(payloads[0] ?? {})}${countText} on ${hostCount} ${hostWord}`
 
-  const findingLines = payloads
-    .slice(0, MAX_DIGEST_LINES)
-    .map(digestFindingLine)
-  const overflow = Math.max(0, payloads.length - MAX_DIGEST_LINES)
+  const groups = groupDigest(payloads)
+  const findingLines = groups.slice(0, MAX_DIGEST_LINES).map(digestGroupLine)
+  const overflow = groups
+    .slice(MAX_DIGEST_LINES)
+    .reduce((n, g) => n + g.payloads.length, 0)
 
   return {
     summaryLine,
