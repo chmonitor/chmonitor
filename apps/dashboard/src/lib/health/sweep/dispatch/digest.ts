@@ -273,7 +273,7 @@ export async function createDigestPipeline(
     finding,
     commit,
     anyDelivered,
-    groupableWebhookTargets,
+    groupableWebhookTargets: routedWebhookTargets,
     findingTelegramTargets,
     groupableCustomTargets = [],
     groupableMatrixTargets = [],
@@ -281,6 +281,13 @@ export async function createDigestPipeline(
     webhookPayload,
   }: SettleFindingParams): Promise<void> {
     const { hostId, ruleId, effective, isRecovery, decision, text } = finding
+
+    // A Slack / generic-webhook digest goes out only when the open set changed
+    // (#4246). A reminder means it did not, so it has nothing to deliver to
+    // these targets; like a `repeat: false` target it still commits below,
+    // restarting the cooldown clock.
+    const groupableWebhookTargets =
+      decision.kind === 'reminder' ? [] : routedWebhookTargets
 
     const groupableTargetCount =
       groupableWebhookTargets.length +

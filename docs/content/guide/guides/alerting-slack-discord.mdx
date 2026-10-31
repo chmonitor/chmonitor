@@ -232,6 +232,13 @@ single **reminder** at most once per `HEALTH_ALERT_COOLDOWN_MINUTES` (default 60
 `0` disables reminders). A **recovery** message always goes out when a condition
 clears, and reports how long the incident was firing.
 
+Slack and generic webhook URLs get a digest only when the set of open alerts
+changed. A sweep where nothing changed sends nothing, and these channels get no
+reminders. A new rule or a higher severity sends the full digest. When alerts
+only resolve, or an already-open rule fires on another host, the channel gets
+one short line such as `+1 warning · 1 resolved · 60 open`. Other channels keep
+their reminders.
+
 Two per-rule knobs tune this without touching the rest of your alerting:
 
 ```bash
