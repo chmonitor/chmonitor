@@ -284,6 +284,8 @@ describe('per-rule cooldown', () => {
     expect(d.counters.recoveries).toBe(1)
   })
 
+  // Reminder cadence is read off the inline custom target from here on: a
+  // groupable webhook gets no reminders at all (#4246).
   test('a rule with no override keeps the global reminder cooldown', async () => {
     const hostId = nextHostId++
     const ruleId = 'global-rule'
@@ -300,7 +302,7 @@ describe('per-rule cooldown', () => {
     await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
     setSystemTime(new Date(t0 + 61 * 60_000))
     await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
-    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(2)
+    expect(postsTo(CUSTOM_URL, ruleId)).toHaveLength(2)
   })
 })
 
@@ -319,15 +321,15 @@ describe('per-severity cooldown (#4049)', () => {
     await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
     setSystemTime(new Date(t0 + 125 * MIN))
     await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
-    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+    expect(postsTo(CUSTOM_URL, ruleId)).toHaveLength(1)
 
     // Escalation switches to the CURRENT severity's cooldown.
     setSystemTime(new Date(t0 + 126 * MIN))
     await sweep(ctx, [{ hostId, ruleId, severity: 'critical' }])
-    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(2)
+    expect(postsTo(CUSTOM_URL, ruleId)).toHaveLength(2)
     setSystemTime(new Date(t0 + 126 * MIN + 61 * MIN))
     await sweep(ctx, [{ hostId, ruleId, severity: 'critical' }])
-    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(3)
+    expect(postsTo(CUSTOM_URL, ruleId)).toHaveLength(3)
   })
 
   test('critical 10 min reminds sooner than the global cooldown; warning does not', async () => {
@@ -349,8 +351,8 @@ describe('per-severity cooldown (#4049)', () => {
     await sweep(ctx, [{ ...crit, severity: 'critical' }])
     await sweep(ctx, [{ ...warn, severity: 'warning' }])
 
-    expect(postsTo(WEBHOOK_URL, crit.ruleId)).toHaveLength(2)
-    expect(postsTo(WEBHOOK_URL, warn.ruleId)).toHaveLength(1)
+    expect(postsTo(CUSTOM_URL, crit.ruleId)).toHaveLength(2)
+    expect(postsTo(CUSTOM_URL, warn.ruleId)).toHaveLength(1)
   })
 
   test('a per-rule cooldown beats the per-severity one', async () => {
@@ -369,7 +371,7 @@ describe('per-severity cooldown (#4049)', () => {
     await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
     setSystemTime(new Date(t0 + 30 * MIN))
     await sweep(ctx, [{ hostId, ruleId, severity: 'warning' }])
-    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+    expect(postsTo(CUSTOM_URL, ruleId)).toHaveLength(1)
   })
 })
 
@@ -405,16 +407,16 @@ describe('repeat min delta (#4049)', () => {
 
     setSystemTime(new Date(t0))
     await sweepValue(ctx, hostId, ruleId, 90)
-    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+    expect(postsTo(CUSTOM_URL, ruleId)).toHaveLength(1)
 
     // Cooldown elapsed, value moved 2 < 5: no reminder.
     setSystemTime(new Date(t0 + 61 * 60_000))
     await sweepValue(ctx, hostId, ruleId, 92)
-    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(1)
+    expect(postsTo(CUSTOM_URL, ruleId)).toHaveLength(1)
 
     // Compared against the last SENT value (90), so 96 is a move of 6.
     setSystemTime(new Date(t0 + 62 * 60_000))
     await sweepValue(ctx, hostId, ruleId, 96)
-    expect(postsTo(WEBHOOK_URL, ruleId)).toHaveLength(2)
+    expect(postsTo(CUSTOM_URL, ruleId)).toHaveLength(2)
   })
 })
