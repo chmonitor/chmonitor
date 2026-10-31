@@ -88,27 +88,28 @@ describe('summarizeDigest', () => {
 })
 
 describe('buildSlackDigestBody', () => {
-  test('header carries the summary, section lists every finding', () => {
+  test('header carries the summary, a table lists one row per rule', () => {
     const body = buildSlackDigestBody([
       payload({ severity: 'critical', title: 'A', label: 'a' }),
       payload({ severity: 'warning', title: 'B', label: 'b' }),
     ])
-    expect(body.attachments[0].color).toBe('#dc2626') // top = critical
-    const header = body.attachments[0].blocks[0]
+    expect(body.attachments).toEqual([])
+    const [header, table] = body.blocks ?? []
     expect(header.type).toBe('header')
     expect(header.text?.text).toContain('1 critical, 1 warning on 1 host')
-    const section = body.attachments[0].blocks[1]
-    // #4241: the same compact line as a single alert, one per finding.
-    expect(section.text?.text).toContain('🔴 *CRITICAL*  A · ')
-    expect(section.text?.text).toContain('🟠 *WARNING*  B · ')
+    expect(table.type).toBe('table')
+    const rows = table.rows?.map((r) => r.map((c) => c.text))
+    expect(rows?.[1]).toEqual(['🔴 CRITICAL', 'A', 'a', 'new'])
+    expect(rows?.[2]).toEqual(['🟠 WARNING', 'B', 'b', 'new'])
   })
 
-  test('renders a "…and N more" line past the cap', () => {
+  test('renders a final "…and N more" row past the cap', () => {
     const many = Array.from({ length: MAX_DIGEST_LINES + 3 }, (_, i) =>
       payload({ hostId: i, metric: `rule-${i}` })
     )
-    const body = buildSlackDigestBody(many)
-    expect(body.attachments[0].blocks[1].text?.text).toContain('…and 3 more')
+    const rows = buildSlackDigestBody(many).blocks?.[1].rows ?? []
+    expect(rows).toHaveLength(MAX_DIGEST_LINES + 2) // header + rows + overflow
+    expect(rows.at(-1)?.[0].text).toBe('…and 3 more')
   })
 })
 

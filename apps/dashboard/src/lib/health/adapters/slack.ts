@@ -10,10 +10,10 @@
 import type { AlertPayload, AlertSeverity, NotificationAdapter } from './types'
 
 import {
+  DIGEST_GROUP_EXAMPLES,
   type DigestDelta,
   type DigestGroup,
   digestDeltaLine,
-  digestGroupExamples,
   groupDigest,
   incidentLine,
   MAX_DIGEST_LINES,
@@ -74,6 +74,8 @@ interface SlackBlock {
   text?: SlackTextObject
   fields?: SlackTextObject[]
   elements?: (SlackTextObject | SlackButtonElement)[]
+  column_settings?: { is_wrapped?: boolean }[]
+  rows?: SlackTableCell[][]
 }
 
 interface SlackAttachment {
@@ -84,6 +86,8 @@ interface SlackAttachment {
 /** Slack Incoming Webhook body: summary text + colour attachment with blocks. */
 export interface SlackWebhookBody {
   text: string
+  /** Top-level blocks: the digest table. Single alerts use the attachment. */
+  blocks?: SlackBlock[]
   attachments: SlackAttachment[]
 }
 
@@ -135,30 +139,6 @@ export function slackCompactLine(
 }
 
 /**
- * One digest row for a (rule, severity) group (#4246). A group of one is the
- * compact line; a larger group is the rule title, a count and a few names:
- * `🟠 *WARNING*  Source stopped sending rows · 34 (a, b, c, +31)`.
- */
-export function slackDigestGroupLine(
-  group: DigestGroup,
-  options: { withHost?: boolean } = {}
-): string {
-  if (group.payloads.length === 1) {
-    return slackCompactLine(group.payloads[0], {
-      withPrefix: false,
-      withLink: false,
-      withHost: options.withHost,
-    })
-  }
-  const style = SEVERITY_STYLE[group.severity]
-  const parts = [
-    group.title,
-    `${group.payloads.length} (${digestGroupExamples(group)})`,
-  ].map(escapeSlackMrkdwn)
-  return `${style.emoji} *${heading(group.severity)}*  ${parts.join(' · ')}`
-}
-
-/**
  * Build the Slack webhook body for a payload: one compact line beside the
  * severity colour bar, plus one small context line only when there are
  * runbooks or deployment metadata to show. The top-level `text` is the
@@ -204,12 +184,67 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
   }
 }
 
+/** Slack table block limits (docs.slack.dev/reference/block-kit/blocks/table-block). */
+export const SLACK_TABLE_ROWS_MAX = 100
+export const SLACK_TABLE_CHARS_MAX = 10_000
+
+interface SlackTableCell {
+  type: 'raw_text'
+  text: string
+}
+
+/** Up to {@link DIGEST_GROUP_EXAMPLES} distinct names, then `+N`. */
+function namesText(names: readonly string[]): string {
+  const unique = [...new Set(names)]
+  const shown = unique.slice(0, DIGEST_GROUP_EXAMPLES)
+  const rest = unique.length - shown.length
+  return rest > 0 ? [...shown, `+${rest}`].join(', ') : shown.join(', ')
+}
+
+/**
+ * The Since cell. A lone finding keeps its full incident line (`still open,
+ * 3 h (88.5 -> 97.25)`, `fired for 3 h`); a group shows its oldest finding's
+ * age. A finding with no timeline is new in this sweep.
+ */
+function sinceText(group: DigestGroup): string {
+  if (group.payloads.length === 1) {
+    return incidentLine(group.payloads[0]) || 'new'
+  }
+  const longest = (ms: (number | undefined)[]) =>
+    Math.max(...ms.filter((m): m is number => m !== undefined))
+  const open = longest(group.payloads.map((p) => p.stillOpenMs))
+  if (Number.isFinite(open)) return spanText(open)
+  const fired = longest(group.payloads.map((p) => p.firedForMs))
+  return Number.isFinite(fired) ? `fired for ${spanText(fired)}` : 'new'
+}
+
+/** One digest table row for a (rule, severity) group: Status, Problem, Where, Since. */
+export function slackDigestTableRow(
+  group: DigestGroup,
+  options: { withHost?: boolean } = {}
+): string[] {
+  const count = group.payloads.length
+  const where = namesText(group.payloads.map((p) => p.label))
+  const hosts = options.withHost
+    ? namesText(group.payloads.map((p) => p.hostLabel))
+    : ''
+  return [
+    `${SEVERITY_STYLE[group.severity].emoji} ${heading(group.severity)}`,
+    count > 1 ? `${group.title} (${count})` : group.title,
+    hosts ? `${where} · ${hosts}` : where,
+    sinceText(group),
+  ]
+}
+
+const DIGEST_TABLE_HEADER = ['Status', 'Problem', 'Where', 'Since']
+
 /**
  * Build ONE Slack Incoming-Webhook body for a group of findings bound for the
- * same channel (feat #2663). The header carries the summary line, a single
- * section lists every finding (capped, with a "…and N more" overflow line), and
- * the attachment colour tracks the group's highest severity. Pure — no
- * transport.
+ * same channel (feat #2663): a header with the summary line, a Block Kit
+ * `table` with one row per (rule, severity) group (capped, with a final
+ * "…and N more" row), and the dashboard button. Slack documents the table for
+ * top-level `blocks`, so the digest has no colour attachment. The top-level
+ * `text` is the notification and no-table-client fallback. Pure — no transport.
  */
 export function buildSlackDigestBody(
   payloads: readonly AlertPayload[]
@@ -218,24 +253,32 @@ export function buildSlackDigestBody(
   const style = SEVERITY_STYLE[digest.topSeverity]
   const summary = `Health digest: ${escapeSlackMrkdwn(digest.summaryLine)} (${digest.total} alerts)`
 
-  // One row per (rule, severity) group. Fit the list into one section: drop
-  // trailing rows (their findings counted into the "…and N more" line) until it
-  // is within Slack's text limit. The header already carries the instance
-  // prefix and the digest has one dashboard button.
-  const groups = groupDigest(payloads).slice(0, MAX_DIGEST_LINES)
+  // Header row + data rows + overflow row must fit Slack's row limit; drop
+  // trailing rows (counted into "…and N more") until the cells fit its
+  // character limit.
+  const groups = groupDigest(payloads).slice(
+    0,
+    Math.min(MAX_DIGEST_LINES, SLACK_TABLE_ROWS_MAX - 2)
+  )
   const withHost = !sharesOneHost(payloads)
-  const lines = groups.map((g) => slackDigestGroupLine(g, { withHost }))
-  const render = (kept: number): string => {
-    const hidden =
-      digest.overflow +
-      groups.slice(kept).reduce((n, g) => n + g.payloads.length, 0)
-    const out = lines.slice(0, kept)
-    if (hidden > 0) out.push(`…and ${hidden} more`)
-    return out.join('\n')
+  const rows = groups.map((g) =>
+    slackDigestTableRow(g, { withHost }).map((cell) =>
+      clip(escapeSlackMrkdwn(cell), 300)
+    )
+  )
+  const render = (kept: number): string[][] => {
+    const shown = groups
+      .slice(0, kept)
+      .reduce((n, g) => n + g.payloads.length, 0)
+    const hidden = digest.total - shown
+    const out = [DIGEST_TABLE_HEADER, ...rows.slice(0, kept)]
+    if (hidden > 0) out.push([`…and ${hidden} more`, '', '', ''])
+    return out
   }
-  let kept = lines.length
-  while (kept > 1 && render(kept).length > SLACK_SECTION_TEXT_MAX) kept--
-  const listText = clip(render(kept), SLACK_SECTION_TEXT_MAX)
+  const chars = (table: string[][]) =>
+    table.flat().reduce((n, cell) => n + cell.length, 0)
+  let kept = rows.length
+  while (kept > 1 && chars(render(kept)) > SLACK_TABLE_CHARS_MAX) kept--
 
   const blocks: SlackBlock[] = [
     {
@@ -250,8 +293,16 @@ export function buildSlackDigestBody(
       },
     },
     {
-      type: 'section',
-      text: { type: 'mrkdwn', text: listText },
+      type: 'table',
+      column_settings: [
+        { is_wrapped: false },
+        { is_wrapped: true },
+        { is_wrapped: true },
+        { is_wrapped: false },
+      ],
+      rows: render(kept).map((row) =>
+        row.map((text): SlackTableCell => ({ type: 'raw_text', text }))
+      ),
     },
   ]
 
@@ -269,12 +320,8 @@ export function buildSlackDigestBody(
     })
   }
 
-  return {
-    text: summary,
-    attachments: [{ color: style.color, blocks }],
-  }
+  return { text: summary, blocks, attachments: [] }
 }
-
 /** Slack body for a sweep that only added to open rules or only resolved: one line (#4246). */
 export function buildSlackDeltaBody(
   delta: DigestDelta,

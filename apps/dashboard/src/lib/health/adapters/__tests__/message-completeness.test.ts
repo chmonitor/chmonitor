@@ -168,10 +168,6 @@ const DIGEST: Channel[] = [
   {
     name: 'slack digest',
     render: (p) => flatten(buildSlackDigestBody(pair(p))),
-    exempt: {
-      label:
-        'same compact line as a single Slack alert (#4241): the label repeats the value',
-    },
   },
   {
     name: 'telegram digest',
