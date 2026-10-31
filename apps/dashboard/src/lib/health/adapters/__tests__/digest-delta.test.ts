@@ -34,6 +34,13 @@ function finding(over: Partial<AlertPayload> = {}): AlertPayload {
 const SLACK = 'https://hooks.slack.com/services/T/B/x'
 const GENERIC = 'https://hooks.example.com/alerts'
 
+/** Every cell of the Slack digest table, joined. */
+const slackTableText = (payloads: AlertPayload[]) =>
+  (buildSlackDigestBody(payloads).blocks?.[1].rows ?? [])
+    .flat()
+    .map((cell) => cell.text)
+    .join('\n')
+
 describe('delta line', () => {
   test('one more warning of an open rule, one resolved', () => {
     const delta = digestDeltaOf(
@@ -83,7 +90,7 @@ describe('columns shared by every row are left out', () => {
   ]
 
   test('rows on one host do not repeat the host', () => {
-    const text = buildSlackDigestBody(two).attachments[0].blocks[1].text?.text
+    const text = slackTableText(two)
     expect(text).not.toContain('node-1')
     expect(summarizeDigest(two).findingLines.join('\n')).not.toContain('node-1')
     expect(buildGenericJsonDigestBody(two).text).not.toContain('(host node-1)')
@@ -91,7 +98,7 @@ describe('columns shared by every row are left out', () => {
 
   test('rows on several hosts keep the host', () => {
     const mixed = [two[0], { ...two[1], hostId: 2, hostLabel: 'node-2' }]
-    const text = buildSlackDigestBody(mixed).attachments[0].blocks[1].text?.text
+    const text = slackTableText(mixed)
     expect(text).toContain('node-1')
     expect(text).toContain('node-2')
   })

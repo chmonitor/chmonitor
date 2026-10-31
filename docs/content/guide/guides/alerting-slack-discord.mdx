@@ -94,13 +94,18 @@ colour bar, for example
 `🔴 CRITICAL  Stuck Merges · node-2 · 4 (warn 1, crit 3) · Open`. A recovery
 reads `🟢 RESOLVED  … · fired for 35 min · Open`. The instance prefix appears
 only when `instanceName` is set; runbook links and metadata go on one small
-second line when there are any. A grouped Slack digest uses the same line for
-an alert that is alone in its rule. Several alerts of one rule and severity
-share one row with the rule title, a count, and up to three example names, for
-example `🟠 WARNING  Source stopped sending rows · 34 (source-1, source-2,
-source-3, +31)`. Recoveries get their own row. The header still counts every
-alert. When the rows share one host, the header names it and the rows leave it
-out. A sweep that only adds alerts of a rule that is already open, or only
+second line when there are any. A grouped Slack digest is a header, a Slack
+table with the columns **Status**, **Problem**, **Where** and **Since**, and an
+**Open dashboard** button. Several alerts of one rule and severity share one
+row: the rule title with a count, up to three names then `+N`, and the age of
+the oldest alert, for example `🟠 WARNING | Source stopped sending rows (34) |
+db.events:source-1, db.events:source-2, db.events:source-3, +31 | 3 h`. A lone
+alert shows its full timeline in **Since** (`still open, 3 h (88.5 -> 97.25)`,
+`fired for 35 min`), or `new`. Recoveries get their own row. The header still
+counts every alert. When the rows share one host, the header names it and the
+rows leave it out; otherwise **Where** adds the hosts. Past 25 rows the table
+ends with a `…and N more` row. Clients without table support show the
+notification text, the header and the summary line. A sweep that only adds alerts of a rule that is already open, or only
 resolves, posts one line instead of the table: `+1 warning · 1 resolved · 60
 open`.
 

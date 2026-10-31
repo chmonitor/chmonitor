@@ -1583,11 +1583,11 @@ describe('runHealthSweep — digest grouping (#2663)', () => {
         'https://hooks.slack.com/services/T000/B000/XXXX'
       )
 
-      // Slack digest body: header summary line + one section listing findings.
-      const attachments = posted[0].body?.attachments as
-        | { blocks: { type: string; text?: { text: string } }[] }[]
+      // Slack digest body: header summary line + a table listing findings.
+      const blocks = posted[0].body?.blocks as
+        | { type: string; text?: { text: string } }[]
         | undefined
-      const header = attachments?.[0].blocks[0]
+      const header = blocks?.[0]
       expect(header?.text?.text).toContain('5 critical on 1 host')
 
       // ONE 'digest' history row referencing all five findings.

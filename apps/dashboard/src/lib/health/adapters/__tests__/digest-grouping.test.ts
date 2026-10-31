@@ -16,7 +16,6 @@ import {
   digestFindingLine,
   summarizeDigest,
 } from '../index'
-import { slackCompactLine } from '../slack'
 import { describe, expect, test } from 'bun:test'
 
 const TITLE = 'Source stopped sending rows'
@@ -41,16 +40,25 @@ const sources = (n: number, over: Partial<AlertPayload> = {}) =>
     finding({ label: `db.events:source-${i + 1}`, ...over })
   )
 
-const slackList = (payloads: AlertPayload[]) =>
-  buildSlackDigestBody(payloads).attachments[0].blocks[1].text?.text ?? ''
+/** The Slack digest table's rows as plain cell text, header row first. */
+const slackTable = (payloads: AlertPayload[]) =>
+  (buildSlackDigestBody(payloads).blocks?.[1].rows ?? []).map((row) =>
+    row.map((cell) => cell.text)
+  )
 
 describe('34 findings of one rule', () => {
   const many = sources(34)
 
   test('render as one Slack row with a count and three example names', () => {
-    expect(slackList(many)).toBe(
-      `🟠 *WARNING*  ${TITLE} · 34 (db.events:source-1, db.events:source-2, db.events:source-3, +31)`
-    )
+    expect(slackTable(many)).toEqual([
+      ['Status', 'Problem', 'Where', 'Since'],
+      [
+        '🟠 WARNING',
+        `${TITLE} (34)`,
+        'db.events:source-1, db.events:source-2, db.events:source-3, +31',
+        'new',
+      ],
+    ])
   })
 
   test('render as one summary line for text channels', () => {
@@ -64,9 +72,7 @@ describe('34 findings of one rule', () => {
 
   test('the header counts findings, not groups', () => {
     const body = buildSlackDigestBody(many)
-    expect(body.attachments[0].blocks[0].text?.text).toContain(
-      '34 warning on 1 host'
-    )
+    expect(body.blocks?.[0].text?.text).toContain('34 warning on 1 host')
     expect(body.text).toContain('(34 alerts)')
     expect(summarizeDigest(many).total).toBe(34)
   })
@@ -82,9 +88,13 @@ describe('34 findings of one rule', () => {
 test('a group of one renders exactly as an ungrouped finding', () => {
   const one = finding({ label: 'db.events:source-7 silent over 48 h' })
   expect(summarizeDigest([one]).findingLines).toEqual([digestFindingLine(one)])
-  expect(slackList([one])).toBe(
-    slackCompactLine(one, { withPrefix: false, withLink: false })
-  )
+  expect(slackTable([one])[1]).toEqual([
+    '🟠 WARNING',
+    TITLE,
+    // A lone finding keeps its host: it has no other rows to repeat.
+    'db.events:source-7 silent over 48 h · node-1',
+    'new',
+  ])
 })
 
 test('mixed rules get one row each, in first-seen order', () => {
@@ -102,10 +112,19 @@ test('mixed rules get one row each, in first-seen order', () => {
 
 test('recoveries group apart from firing findings of the same rule', () => {
   const payloads = [...sources(4), ...sources(2, { severity: 'recovery' })]
-  const text = slackList(payloads)
-  expect(text.split('\n')).toEqual([
-    `🟠 *WARNING*  ${TITLE} · 4 (db.events:source-1, db.events:source-2, db.events:source-3, +1)`,
-    `🟢 *RESOLVED*  ${TITLE} · 2 (db.events:source-1, db.events:source-2)`,
+  expect(slackTable(payloads).slice(1)).toEqual([
+    [
+      '🟠 WARNING',
+      `${TITLE} (4)`,
+      'db.events:source-1, db.events:source-2, db.events:source-3, +1',
+      'new',
+    ],
+    [
+      '🟢 RESOLVED',
+      `${TITLE} (2)`,
+      'db.events:source-1, db.events:source-2',
+      'new',
+    ],
   ])
   expect(summarizeDigest(payloads).summaryLine).toBe(
     '4 warning, 2 recovery on 1 host (node-1)'
@@ -119,4 +138,22 @@ test('a rule firing on several hosts names the hosts', () => {
   expect(summarizeDigest(hosts).findingLines[0]).toBe(
     `[WARNING] ${TITLE} · 5 (node-0, node-1, node-2, +2)`
   )
+})
+
+test('Since is the oldest finding of the group; Where adds hosts when the digest spans hosts', () => {
+  const rows = slackTable([
+    finding({ label: 'db.events:source-1', stillOpenMs: 30 * 60_000 }),
+    finding({
+      hostId: 2,
+      hostLabel: 'node-2',
+      label: 'db.events:source-2',
+      stillOpenMs: 3 * 3_600_000,
+    }),
+  ])
+  expect(rows[1]).toEqual([
+    '🟠 WARNING',
+    `${TITLE} (2)`,
+    'db.events:source-1, db.events:source-2 · node-1, node-2',
+    '3 h',
+  ])
 })
