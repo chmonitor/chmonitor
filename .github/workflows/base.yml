@@ -72,9 +72,12 @@ jobs:
       matrix:
         clickhouse-version: ${{ fromJSON(inputs.clickhouse-versions) }}
 
+    # Only the "Test container" step talks to ClickHouse (docker job with
+    # test-container). An empty image skips the service, so lint/build/docker
+    # jobs do not pay the container start-up cost.
     services:
       clickhouse:
-        image: ghcr.io/duyet/docker-images:clickhouse_${{ matrix.clickhouse-version }}
+        image: ${{ (inputs.job-type == 'docker' && inputs.test-container) && format('ghcr.io/duyet/docker-images:clickhouse_{0}', matrix.clickhouse-version) || '' }}
         ports:
           - 8123:8123
           - 9000:9000
@@ -140,12 +143,7 @@ jobs:
             ${{ runner.os }}-turbo-
 
       # === Linting ===
-      - name: Lint
-        if: ${{ inputs.job-type == 'lint' }}
-        run: pnpm exec turbo run lint
-
-      # `turbo run lint` only covers packages that define a `lint` script, and
-      # today none of them do — so this step passed over ~2900 dashboard files.
+      # No package defines a `lint` script, so `turbo run lint` was a no-op.
       # The pre-push hook runs `biome check` (lint + format + assist), which is
       # the gate that actually matters; run the same command here so CI and the
       # hook cannot disagree. Without it, format/import-order drift lands on
