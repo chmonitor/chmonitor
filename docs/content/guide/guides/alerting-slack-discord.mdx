@@ -170,19 +170,21 @@ unchanged. Subscriptions carry it as `data.alert` on `alert.fired` and
   most one read-only ClickHouse query (top contributors) and one alert-history
   read per alert, shared by every opted-in destination.
 
-### Slack threads: details in the thread, edited on recovery
+### Slack app: one standing message, changes in its thread
 
 A plain webhook can only post new messages. If the chmonitor Slack app is
 installed in the same workspace, a webhook alert route can name a Slack
-channel id, and alerts for that route post through the app instead:
+channel id, and alerts for that route post through the app instead. The route
+keeps **one standing message** that is edited in place:
 
-- **Firing:** one compact line with the severity colour bar, then one reply in
-  its thread with the details (host, metric, value and thresholds, detail,
-  status, runbooks, diagnostics, deployment identity).
-- **Still firing:** the same line is edited, and the new details go in its
-  thread. No second top-level message.
-- **Recovery:** the line is edited to `✅ RESOLVED …` and the thread gets
-  `✅ resolved after N min`. No new top-level message.
+- **The message** shows the open counts, for example `🔴 3 open · 1 critical ·
+  2 warning`, and is edited every sweep that changes them.
+- **The thread** gets what changed: one finding's details (host, metric, value
+  and thresholds, runbooks, ack button), a `+1 warning · 3 open` line, or a
+  table when several new rules fire together.
+- **All clear:** when nothing is open, the message is edited to `✅ All clear`.
+  The next incident starts a fresh message.
+- If the stored message was deleted, a new one is posted and used from then on.
 
 To turn it on:
 
@@ -207,8 +209,7 @@ The app is matched by the workspace id in the webhook URL. The webhook stays
 the fallback: with no channel id, no installed app for that workspace, no
 metadata database (the edit needs the stored message id), or any Slack API
 error, the alert posts through the webhook exactly as before, and the error is
-logged. Grouped digests (several alerts for one channel in one sweep) also
-keep using the webhook.
+logged. Alerts held by the digest time window also keep using the webhook.
 
 ## 3. Test it
 

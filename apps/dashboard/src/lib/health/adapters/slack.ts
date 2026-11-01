@@ -343,55 +343,58 @@ export interface SlackBotMessage {
   attachments?: { color: string; fallback: string; blocks: SlackBlock[] }[]
 }
 
-/** Plain notification text for a payload (no mrkdwn). */
-function plainSummary(payload: AlertPayload, heading: string): string {
-  const { lead, facts } = compactParts(payload, true)
-  return `${heading}  ${[lead, ...facts].join(' · ')}`
+/** Open findings by severity: what the standing message shows. */
+export interface SlackOpenCounts {
+  critical: number
+  warning: number
 }
 
 /**
- * The thread parent: the compact line beside the severity colour bar.
- *
- * No top-level `text`: Slack shows top-level `text` as the message body when
- * there are no top-level `blocks`, so it would repeat the line above the
- * attachment. The attachment `fallback` is the notification text instead.
+ * The standing message (#4246): one colour-barred line with today's open
+ * counts, edited in place each sweep. With nothing open it reads `✅ All
+ * clear`, green. No top-level `text`: Slack would repeat it above the
+ * attachment, so the attachment `fallback` is the notification text.
  */
-export function buildSlackBotParent(payload: AlertPayload): SlackBotMessage {
-  const style = SEVERITY_STYLE[payload.severity]
+export function buildSlackBotStandingParent(
+  counts: SlackOpenCounts
+): SlackBotMessage {
+  const open = counts.critical + counts.warning
+  if (open === 0) {
+    return {
+      attachments: [
+        {
+          color: SEVERITY_STYLE.recovery.color,
+          fallback: '✅ All clear: no open alerts',
+          blocks: [
+            {
+              type: 'section',
+              text: { type: 'mrkdwn', text: '✅ *All clear* · no open alerts' },
+            },
+          ],
+        },
+      ],
+    }
+  }
+  const top: AlertSeverity = counts.critical > 0 ? 'critical' : 'warning'
+  const parts = [
+    counts.critical > 0 ? `${counts.critical} critical` : '',
+    counts.warning > 0 ? `${counts.warning} warning` : '',
+  ].filter(Boolean)
+  const style = SEVERITY_STYLE[top]
   return {
     attachments: [
       {
         color: style.color,
-        fallback: plainSummary(
-          payload,
-          `${style.emoji} ${heading(payload.severity)}`
-        ),
+        fallback: `${style.emoji} ${open} open: ${parts.join(', ')}`,
         blocks: [
           {
             type: 'section',
-            text: { type: 'mrkdwn', text: slackCompactLine(payload) },
+            text: {
+              type: 'mrkdwn',
+              text: `${style.emoji} *${open} open* · ${parts.join(' · ')}`,
+            },
           },
         ],
-      },
-    ],
-  }
-}
-
-/** The parent after recovery: `✅ *RESOLVED* …`, green bar. */
-export function buildSlackBotResolvedParent(
-  payload: AlertPayload
-): SlackBotMessage {
-  const recovered: AlertPayload = { ...payload, severity: 'recovery' }
-  const line = slackCompactLine(recovered).replace(
-    SEVERITY_STYLE.recovery.emoji,
-    '✅'
-  )
-  return {
-    attachments: [
-      {
-        color: SEVERITY_STYLE.recovery.color,
-        fallback: plainSummary(recovered, '✅ RESOLVED'),
-        blocks: [{ type: 'section', text: { type: 'mrkdwn', text: line } }],
       },
     ],
   }
@@ -481,17 +484,6 @@ export function buildSlackBotDetails(
     text: `Details: ${payload.title} on ${payload.hostLabel}`,
     blocks,
   }
-}
-
-/** The thread reply on recovery: `✅ resolved after N min`. */
-export function buildSlackBotResolvedReply(
-  payload: AlertPayload
-): SlackBotMessage {
-  const text =
-    payload.firedForMs !== undefined
-      ? `✅ resolved after ${spanText(payload.firedForMs)}`
-      : '✅ resolved'
-  return { text }
 }
 
 /** Slack adapter. `buildBody` returns the Incoming Webhook JSON body. */

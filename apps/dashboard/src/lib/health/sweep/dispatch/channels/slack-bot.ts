@@ -1,19 +1,19 @@
 /**
- * Slack bot delivery for a webhook route with a channel id (#4241).
+ * Slack bot delivery for a webhook route with a channel id (#4241, #4246).
  *
- * When a lone finding goes to a Slack incoming-webhook URL whose route names a
+ * When findings go to a Slack incoming-webhook URL whose route names a
  * `slackChannelId`, and the Slack app is installed in that webhook's workspace
- * (`slack_installations`, keyed by the team id in the URL), the alert posts
- * through `chat.postMessage` instead:
+ * (`slack_installations`, keyed by the team id in the URL), they post through
+ * the bot as ONE standing message per target:
  *
- *  - firing: one compact parent line, then one thread reply with the details;
- *  - a repeat while the incident is open: the parent is edited in place and
- *    the new details go in its thread;
- *  - recovery: the parent is edited to `✅ RESOLVED …` and the thread gets
- *    `✅ resolved after N min`; no new top-level message.
+ *  - the message shows the open counts and is edited in place every sweep;
+ *  - what changed this sweep (`+N new`, `N resolved`, a digest table, or one
+ *    finding's details) is a reply in its thread;
+ *  - when nothing is open any more it is edited to `✅ All clear`.
  *
- * The parent `ts` is the episode's thread root in `alert-thread-store`
- * (channel `'slack'`), so it needs the metadata DB, as the Slack app does.
+ * The standing message's `ts` is the thread root in `alert-thread-store`
+ * (channel `'slack'`), so it needs the metadata DB, as the Slack app does. If
+ * the stored message cannot be edited (say it was deleted) a new one is posted.
  * Returns `null` whenever the bot path does not apply or its first call fails:
  * the caller then posts through the webhook exactly as before.
  *
@@ -21,15 +21,9 @@
  * and failures log the Slack error code only.
  */
 
-import type { AlertPayload } from './../../../adapters'
-import type { AlertDecisionKind } from './../../../alert-state-store'
+import type { SlackOpenCounts } from './../../../adapters/slack'
 
-import {
-  buildSlackBotDetails,
-  buildSlackBotParent,
-  buildSlackBotResolvedParent,
-  buildSlackBotResolvedReply,
-} from './../../../adapters/slack'
+import { buildSlackBotStandingParent } from './../../../adapters/slack'
 import { ErrorLogger } from '@chm/logger'
 import { postChatMessage, updateChatMessage } from '@/lib/slack/api'
 import { slackWebhookTeamId } from '@/lib/slack/channel-id'
@@ -44,32 +38,35 @@ export interface SlackBotSendParams {
   /** The route's Slack incoming-webhook URL (only its team id is used). */
   url: string
   channelId: string
-  payload: AlertPayload
-  kind: AlertDecisionKind
-  /** The episode's parent `ts`, when one is stored. */
+  /** The standing message's `ts`, when one is stored. */
   rootTs: string | undefined
-  /** Extra blocks for the details reply (the ack button). */
-  detailBlocks?: readonly unknown[]
+  /** Open findings after this sweep. */
+  open: SlackOpenCounts
+  /** What changed this sweep, posted in the standing message's thread. */
+  change: Record<string, unknown>
 }
 
 export interface SlackBotSendResult {
   ok: true
-  /** The parent message `ts` (the thread root). */
+  /** The standing message `ts` (the thread root). */
   messageId: string
+  /** Nothing is open any more: the caller drops the stored root. */
+  cleared: boolean
 }
 
 /**
- * Deliver one finding through the Slack bot, or return `null` to fall back
- * to the webhook post. Never throws.
+ * Deliver one sweep's changes through the Slack bot, or return `null` to fall
+ * back to the webhook post. Never throws.
  */
-export async function sendSlackBotAlert(
+export async function sendSlackBotDigest(
   params: SlackBotSendParams
 ): Promise<SlackBotSendResult | null> {
-  const { url, channelId: channel, payload, kind, rootTs } = params
+  const { url, channelId: channel, rootTs, open, change } = params
   const teamId = slackWebhookTeamId(url)
   if (!teamId) return null
-  // A recovery with no bot parent has nothing to edit: post it as before.
-  if (kind === 'recovery' && !rootTs) return null
+  const cleared = open.critical + open.warning === 0
+  // Nothing open and no standing message to close: nothing to say here.
+  if (cleared && !rootTs) return null
 
   // The install is picked by the team id in the URL, with no ownership check.
   // Safe only because the sweep dispatches operator routes alone
@@ -87,55 +84,32 @@ export async function sendSlackBotAlert(
     return null
   }
 
-  if (kind === 'recovery' && rootTs) {
-    const updated = await updateChatMessage({
-      botToken,
-      channel,
-      ts: rootTs,
-      message: { ...buildSlackBotResolvedParent(payload) },
-    })
-    if (!updated.ok) return fallback('chat.update (resolve)', updated.error)
-    const reply = await postChatMessage({
-      botToken,
-      channel,
-      message: { ...buildSlackBotResolvedReply(payload), thread_ts: rootTs },
-    })
-    if (!reply.ok) warn(`resolved thread reply failed (${reply.error})`)
-    return { ok: true, messageId: rootTs }
-  }
-
-  // Firing: edit the open incident's parent, or post a new one.
+  const message = { ...buildSlackBotStandingParent(open) }
   let parentTs: string | undefined
   if (rootTs) {
     const updated = await updateChatMessage({
       botToken,
       channel,
       ts: rootTs,
-      message: { ...buildSlackBotParent(payload) },
+      message,
     })
     if (updated.ok) parentTs = rootTs
-    else warn(`chat.update (repeat) failed (${updated.error}); posting anew`)
+    else if (cleared) return fallback('chat.update (all clear)', updated.error)
+    else warn(`chat.update failed (${updated.error}); posting anew`)
   }
   if (!parentTs) {
-    const posted = await postChatMessage({
-      botToken,
-      channel,
-      message: { ...buildSlackBotParent(payload) },
-    })
+    const posted = await postChatMessage({ botToken, channel, message })
     if (!posted.ok || !posted.ts) {
       return fallback('chat.postMessage', posted.error ?? 'no ts')
     }
     parentTs = posted.ts
   }
 
-  const details = await postChatMessage({
+  const reply = await postChatMessage({
     botToken,
     channel,
-    message: {
-      ...buildSlackBotDetails(payload, params.detailBlocks),
-      thread_ts: parentTs,
-    },
+    message: { ...change, thread_ts: parentTs },
   })
-  if (!details.ok) warn(`details thread reply failed (${details.error})`)
-  return { ok: true, messageId: parentTs }
+  if (!reply.ok) warn(`thread reply failed (${reply.error})`)
+  return { ok: true, messageId: parentTs, cleared }
 }
