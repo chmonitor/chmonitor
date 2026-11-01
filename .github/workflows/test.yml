@@ -67,16 +67,19 @@ jobs:
         working-directory: apps/dashboard
         run: pnpm install --frozen-lockfile
 
-      - name: Run Bun tests with coverage
+      # Coverage is only collected on main (it feeds `coverage-upload`, which
+      # only runs there). Pull requests run the same files without the
+      # coverage overhead.
+      - name: Run Bun tests
         working-directory: apps/dashboard
         # Uses the lcov-only CI script (drops --coverage-reporter=text) — the
         # giant per-file text table appears to trip a large-stdout-write bug
         # in Bun's coverage reporter (`error: An internal error occurred
         # (WriteFailed)`) even on 1.3.14. lcov is all codecov-action needs.
-        run: pnpm run test:coverage:ci
+        run: pnpm run ${{ github.event_name == 'pull_request' && 'test' || 'test:coverage:ci' }}
 
-      - name: Run workspace package tests with coverage
-        run: pnpm run test:packages:ci
+      - name: Run workspace package tests
+        run: ${{ github.event_name == 'pull_request' && 'bun test packages --isolate' || 'pnpm run test:packages:ci' }}
 
       - name: Agent eval SSE parser
         run: bun test tests/agent --isolate
@@ -107,6 +110,7 @@ jobs:
       # Hand the reports over instead of uploading from here, so a Codecov
       # outage cannot fail the required gate.
       - name: Hand coverage reports to the upload job
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-reports
@@ -141,6 +145,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: unit-tests
+    if: github.event_name != 'pull_request'
     continue-on-error: true
 
     steps:
