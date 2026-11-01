@@ -467,7 +467,7 @@ export async function createDigestPipeline(
    * it falls back to a synthesized `'digest'` row. Best-effort — never throws.
    */
   async function recordDigestHistory(
-    entries: {
+    entries: readonly {
       payload: AlertPayload
       pending: PendingDigestCommit | null
     }[],
@@ -605,13 +605,11 @@ export async function createDigestPipeline(
     const only = entries[0]
     let change: Record<string, unknown>
     if (entries.every((e) => e.pending?.deltaOnly)) {
-      change = {
-        ...buildWebhookDeltaDispatchBody({
-          url,
-          payloads,
-          open: open.critical + open.warning,
-        }).body,
-      }
+      change = buildWebhookDeltaDispatchBody({
+        url,
+        payloads,
+        open: open.critical + open.warning,
+      }).body as Record<string, unknown>
     } else if (entries.length === 1) {
       const ack = only.slackAck
       const ackBlocks =
@@ -632,7 +630,10 @@ export async function createDigestPipeline(
           : []
       change = { ...buildSlackBotDetails(only.payload, ackBlocks) }
     } else {
-      change = { ...buildWebhookDigestDispatchBody({ url, payloads }).body }
+      change = buildWebhookDigestDispatchBody({ url, payloads }).body as Record<
+        string,
+        unknown
+      >
     }
     const sent = await sendSlackBotDigest({
       url,
