@@ -27,13 +27,9 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # build/lint run `turbo build` (vite + tsc) and `turbo lint` (biome) — neither
-  # connects to ClickHouse, but base.yml attaches a clickhouse_<ver> service per
-  # matrix leg. Pin them to a single, actively-used fixture tag (25.8 LTS, same as
-  # the docker jobs) instead of the default ["24.5","24.6"] matrix: this halves their
-  # CI time and avoids a flaky `manifest unknown` GHCR pull of the unused 24.5
-  # image gating the Docker `latest` publish. (Fully decoupling the DB service
-  # from non-docker job-types is a follow-up.)
+  # build/lint never connect to ClickHouse; base.yml starts its ClickHouse
+  # service only for docker jobs with test-container. Pin a single matrix leg
+  # (25.8 LTS) instead of the default ["24.5","24.6"] so each runs once.
   build:
     name: build
     uses: ./.github/workflows/base.yml
@@ -78,7 +74,6 @@ jobs:
   build-docker-pr:
     name: build-docker-pr
     if: github.event_name == 'pull_request'
-    needs: [build]
     uses: ./.github/workflows/base.yml
     with:
       job-type: docker
@@ -91,7 +86,6 @@ jobs:
   build-docker-amd64:
     name: build-docker-amd64
     if: github.event_name != 'pull_request'
-    needs: [build]
     uses: ./.github/workflows/base.yml
     with:
       job-type: docker
