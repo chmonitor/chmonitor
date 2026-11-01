@@ -40,6 +40,13 @@ export interface EpisodeThreads {
   ) => Promise<void>
   /** A digest carried this finding: a delivered recovery ends its thread. */
   afterDigestSend: (target: ThreadTarget, ok: boolean) => Promise<void>
+  /**
+   * Store or replace a target's standing Slack message `ts` (#4246). It is not
+   * tied to one host or rule: host -1 and rule `digest` mark it.
+   */
+  setRoot: (threadKey: string, rootId: string) => Promise<void>
+  /** Drop a stored root (nothing is open any more). */
+  forgetRoot: (threadKey: string) => Promise<void>
 }
 
 /**
@@ -83,6 +90,17 @@ export async function loadEpisodeThreads(): Promise<EpisodeThreads> {
     async afterDigestSend({ threadKey, kind }, ok) {
       if (ok && kind === 'recovery') await forget(threadKey)
     },
+
+    async setRoot(threadKey, rootId) {
+      roots.set(threadKey, rootId)
+      await saveThreadRoot(
+        SWEEP_ROUTING_OWNER_ID,
+        { threadKey, hostId: -1, ruleId: 'digest', rootId },
+        { replace: true }
+      )
+    },
+
+    forgetRoot: forget,
   }
 }
 

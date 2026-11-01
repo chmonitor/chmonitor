@@ -218,22 +218,25 @@ function makeCtx(slackChannelId: string | null): SweepContext {
   } as SweepContext
 }
 
+type Sev = 'warning' | 'critical' | 'ok'
+
 async function tick(
   ctx: SweepContext,
-  severity: 'warning' | 'critical' | 'ok',
+  severity: Sev | ((hostId: number) => Sev),
   hostIds: number[] = [1]
 ) {
   await new Promise((resolve) => setTimeout(resolve, 5))
   const dispatcher = await createDispatcher(ctx)
   for (const hostId of hostIds) {
+    const sev = typeof severity === 'function' ? severity(hostId) : severity
     await dispatcher.dispatchFinding({
       hostId,
       hostName: `ch-${hostId}`,
       ruleId: 'slack-test',
       ruleType: 'threshold',
       ruleTitle: 'Slack test',
-      severity,
-      value: severity === 'ok' ? 1 : 99,
+      severity: sev,
+      value: sev === 'ok' ? 1 : 99,
       label: 'too high',
     })
   }
@@ -251,43 +254,75 @@ const parentText = (s: Sent) =>
   )[0].blocks[0].text.text.toString()
 const rootRows = () =>
   sqlite?.query('SELECT root_id FROM alert_thread_roots').all() ?? []
+const threadTs = (s: Sent) => s.body.thread_ts
 
-describe('Slack bot delivery (#4241)', () => {
-  test('firing posts a compact parent and one threaded details reply', async () => {
-    const out = await tick(makeCtx(CHANNEL), 'critical')
+describe('Slack bot standing digest (#4246)', () => {
+  test('several findings post one standing parent and one threaded change', async () => {
+    const out = await tick(makeCtx(CHANNEL), 'critical', [1, 2])
     expect(out.map(method)).toEqual(['chat.postMessage', 'chat.postMessage'])
-    const [parent, details] = out
+    const [parent, change] = out
     expect(parent.body.channel).toBe(CHANNEL)
     expect(parent.auth).toBe(`Bearer ${BOT_TOKEN}`)
-    // No top-level text: it would render above the attachment as a duplicate.
     expect(parent.body.text).toBeUndefined()
-    expect(parentText(parent)).toContain('*CRITICAL*')
-    expect(parent.body.thread_ts).toBeUndefined()
-    expect(details.body.thread_ts).toBe('1.0001')
-    expect(JSON.stringify(details.body.blocks)).toContain('*Host:*')
+    expect(threadTs(parent)).toBeUndefined()
+    expect(parentText(parent)).toContain('2 critical')
+    expect(threadTs(change)).toBe('1.0001')
+    expect(
+      sqlite
+        ?.query('SELECT root_id, host_id, rule_id FROM alert_thread_roots')
+        .all()
+    ).toEqual([{ root_id: '1.0001', host_id: -1, rule_id: 'digest' }])
+  })
+
+  test('a lone finding also lands in the standing message, with details in the thread', async () => {
+    const out = await tick(makeCtx(CHANNEL), 'critical')
+    expect(out.map(method)).toEqual(['chat.postMessage', 'chat.postMessage'])
+    expect(parentText(out[0])).toContain('1 critical')
+    expect(threadTs(out[1])).toBe('1.0001')
+    expect(JSON.stringify(out[1].body.blocks)).toContain('*Host:*')
+  })
+
+  test('a later change edits the same message and replies in its thread', async () => {
+    const ctx = makeCtx(CHANNEL)
+    await tick(ctx, 'critical', [1, 2])
+    const out = await tick(ctx, (h) => (h === 1 ? 'ok' : 'critical'), [1, 2])
+    expect(out.map(method)).toEqual(['chat.update', 'chat.postMessage'])
+    expect(out[0].body.ts).toBe('1.0001')
+    expect(parentText(out[0])).toContain('1 critical')
+    expect(threadTs(out[1])).toBe('1.0001')
+    expect(out.some((s) => s.url === HOOK)).toBe(false)
     expect(rootRows()).toEqual([{ root_id: '1.0001' }])
   })
 
-  test('a repeat edits the same parent instead of posting a new one', async () => {
-    const ctx = makeCtx(CHANNEL)
-    await tick(ctx, 'warning')
-    const out = await tick(ctx, 'critical')
-    expect(out.map(method)).toEqual(['chat.update', 'chat.postMessage'])
-    expect(out[0].body.ts).toBe('1.0001')
-    expect(out[1].body.thread_ts).toBe('1.0001')
-  })
-
-  test('recovery edits the parent to RESOLVED, replies in the thread, clears the root', async () => {
+  test('the last recovery resolves the message and clears the root', async () => {
     const ctx = makeCtx(CHANNEL)
     await tick(ctx, 'critical')
     const out = await tick(ctx, 'ok')
     expect(out.map(method)).toEqual(['chat.update', 'chat.postMessage'])
     expect(out[0].body.ts).toBe('1.0001')
-    expect(parentText(out[0])).toContain('✅ *RESOLVED*')
-    expect(out[1].body.thread_ts).toBe('1.0001')
-    expect(String(out[1].body.text)).toMatch(/^✅ resolved/)
+    expect(parentText(out[0])).toContain('✅')
+    expect(threadTs(out[1])).toBe('1.0001')
     expect(out.some((s) => s.url === HOOK)).toBe(false)
     expect(rootRows()).toEqual([])
+    // The next incident starts a fresh standing message.
+    const next = await tick(ctx, 'critical')
+    expect(next.map(method)).toEqual(['chat.postMessage', 'chat.postMessage'])
+    expect(threadTs(next[0])).toBeUndefined()
+  })
+
+  test('a deleted standing message is replaced by a new one and the root follows', async () => {
+    const ctx = makeCtx(CHANNEL)
+    await tick(ctx, 'critical', [1, 2])
+    failing.add('chat.update')
+    const out = await tick(ctx, (h) => (h === 1 ? 'ok' : 'critical'), [1, 2])
+    expect(out.map(method)).toEqual([
+      'chat.update',
+      'chat.postMessage',
+      'chat.postMessage',
+    ])
+    expect(threadTs(out[1])).toBeUndefined()
+    expect(rootRows()).toEqual([{ root_id: '3.0001' }])
+    expect(threadTs(out[2])).toBe('3.0001')
   })
 
   test('without a channel id the webhook post is unchanged', async () => {
@@ -320,10 +355,5 @@ describe('Slack bot delivery (#4241)', () => {
       'https://slack.com/api/chat.update',
       HOOK,
     ])
-  })
-
-  test('a grouped digest keeps the webhook post', async () => {
-    const out = await tick(makeCtx(CHANNEL), 'critical', [1, 2])
-    expect(out.map((s) => s.url)).toEqual([HOOK])
   })
 })

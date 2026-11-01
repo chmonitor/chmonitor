@@ -14,6 +14,7 @@
  */
 
 import type { AlertPayload } from './../../adapters'
+import type { SlackOpenCounts } from './../../adapters/slack'
 import type { BufferedDigestEntry } from './../../alert-digest-buffer-store'
 import type { WebhookTarget } from './../../alert-routing'
 import type { AlertDecision } from './../../alert-state-store'
@@ -35,6 +36,7 @@ import {
   summarizeDigest,
 } from './../../adapters'
 import { buildMatrixBody, buildMatrixDigestBody } from './../../adapters/matrix'
+import { buildSlackBotDetails } from './../../adapters/slack'
 import {
   bufferDigestEntries,
   takeDueDigestEntries,
@@ -57,7 +59,7 @@ import { SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
 import { buildAlertEventRecord, recordChannelEvent } from './alert-event-record'
 import { sendCustomTarget } from './channels/custom-targets'
 import { matrixSendError, sendMatrixChannel } from './channels/matrix'
-import { sendSlackBotAlert } from './channels/slack-bot'
+import { sendSlackBotDigest } from './channels/slack-bot'
 import {
   loadEpisodeThreads,
   telegramMessageId,
@@ -104,13 +106,20 @@ function isDeltaOnly(
   return false
 }
 
-/** Open findings in the state store right now. */
-function openFindingCount(): number {
-  let open = 0
+/** Open findings in the state store right now, by severity. */
+function openCounts(): SlackOpenCounts {
+  const open = { critical: 0, warning: 0 }
   for (const [, record] of alertStateStore.entries()) {
-    if (record.severity !== 'ok') open++
+    if (record.severity === 'critical') open.critical++
+    else if (record.severity === 'warning') open.warning++
   }
   return open
+}
+
+/** Move one finding into or out of a severity tally (`ok` is not open). */
+function bump(open: SlackOpenCounts, severity: string, by: number): void {
+  if (severity === 'critical') open.critical += by
+  else if (severity === 'warning') open.warning += by
 }
 
 /** Deferred dedup-commit + dispatch accounting for one grouped finding. */
@@ -458,7 +467,7 @@ export async function createDigestPipeline(
    * it falls back to a synthesized `'digest'` row. Best-effort — never throws.
    */
   async function recordDigestHistory(
-    entries: {
+    entries: readonly {
       payload: AlertPayload
       pending: PendingDigestCommit | null
     }[],
@@ -562,69 +571,87 @@ export async function createDigestPipeline(
 
   let threads: Awaited<ReturnType<typeof loadEpisodeThreads>> | null = null
 
+  /** Every entry is an in-pass finding and the route has a Slack channel id. */
+  function isSlackBotBucket(entries: readonly WebhookDigestEntry[]): boolean {
+    return (
+      entries[0].slackChannelId !== undefined &&
+      entries.every((e) => e.pending !== null)
+    )
+  }
+
   /**
-   * Send one lone Slack finding through the bot (#4241) and settle its
-   * thread root. Returns false when the bot path did not deliver, so the
-   * caller posts through the webhook as before.
+   * Update one target's standing Slack message (#4246) and post what changed
+   * in its thread. Returns false when the bot path did not deliver, so the
+   * caller posts through the webhook as before. The standing message's `ts` is
+   * the thread root of the `digest` pseudo-rule (host -1, which no real host
+   * uses); it is dropped once nothing is open, so the next incident starts a
+   * fresh message.
    */
   async function deliverSlackBot(
-    entry: WebhookDigestEntry,
-    pending: PendingDigestCommit,
-    channelId: string
+    url: string,
+    entries: readonly WebhookDigestEntry[],
+    open: SlackOpenCounts
   ): Promise<boolean> {
-    const { payload } = entry
-    if (payload.hostId === undefined) return false
-    const kind = pending.decision.kind
+    const channelId = entries[0].slackChannelId
+    if (!channelId || !threads) return false
     const threadKey = await alertThreadKey({
-      hostId: payload.hostId,
-      ruleId: payload.metric,
+      hostId: undefined,
+      ruleId: 'digest',
       channel: 'slack',
-      destination: [entry.url, channelId],
+      destination: [url, channelId],
     })
-    const rootTs = threadRootFor(pending, threadKey)
-    const ackBlocks = entry.slackAck
-      ? buildAlertBlocksWithAck(
-          {
-            severity: entry.slackAck.severity,
-            hostLabel: payload.hostLabel,
-            hostId: payload.hostId,
-            metric: payload.metric,
-            value: payload.value,
-            title: payload.title,
-            label: payload.label,
-            timestamp: payload.timestamp,
-          },
-          entry.slackAck
-        ).filter((b) => b.type === 'actions')
-      : []
-    const sent = await sendSlackBotAlert({
-      url: entry.url,
+    const rootTs = threads.rootFor(threadKey)
+    const payloads = entries.map((e) => e.payload)
+    const only = entries[0]
+    let change: Record<string, unknown>
+    if (entries.every((e) => e.pending?.deltaOnly)) {
+      change = buildWebhookDeltaDispatchBody({
+        url,
+        payloads,
+        open: open.critical + open.warning,
+      }).body as Record<string, unknown>
+    } else if (entries.length === 1) {
+      const ack = only.slackAck
+      const ackBlocks =
+        ack && only.payload.hostId !== undefined
+          ? buildAlertBlocksWithAck(
+              {
+                severity: ack.severity,
+                hostLabel: only.payload.hostLabel,
+                hostId: only.payload.hostId,
+                metric: only.payload.metric,
+                value: only.payload.value,
+                title: only.payload.title,
+                label: only.payload.label,
+                timestamp: only.payload.timestamp,
+              },
+              ack
+            ).filter((b) => b.type === 'actions')
+          : []
+      change = { ...buildSlackBotDetails(only.payload, ackBlocks) }
+    } else {
+      change = buildWebhookDigestDispatchBody({ url, payloads }).body as Record<
+        string,
+        unknown
+      >
+    }
+    const sent = await sendSlackBotDigest({
+      url,
       channelId,
-      payload,
-      kind,
       rootTs,
-      detailBlocks: ackBlocks,
+      open,
+      change,
     })
     if (!sent) return false
-    pending.groupableDelivered = true
-    if (threads) {
-      const target = {
-        threadKey,
-        hostId: payload.hostId,
-        ruleId: payload.metric,
-        kind,
-      }
-      // A repeat whose parent could not be edited got a new parent: replace
-      // the stored root.
-      if (rootTs && sent.messageId !== rootTs) {
-        await threads.afterLoneSend(target, { ok: false, rejected: true })
-      }
-      await threads.afterLoneSend(target, {
-        ok: true,
-        messageId: sent.messageId,
-      })
+    for (const e of entries) {
+      if (e.pending) e.pending.groupableDelivered = true
     }
-    await recordDigestHistory([entry], 'slack', { ok: true })
+    if (sent.cleared) {
+      await threads.forgetRoot(threadKey)
+    } else if (sent.messageId !== rootTs) {
+      await threads.setRoot(threadKey, sent.messageId)
+    }
+    await recordDigestHistory(entries, 'slack', { ok: true })
     return true
   }
 
@@ -657,12 +684,17 @@ export async function createDigestPipeline(
       if (e.pending) passDecisions.add(e.pending)
     for (const e of matrixDigestEntries)
       if (e.pending) passDecisions.add(e.pending)
-    let openAfterPass = openFindingCount()
+    const openNow = openCounts()
+    let openAfterPass = openNow.critical + openNow.warning
     for (const p of passDecisions) {
       if (p.decision.kind === 'new') openAfterPass++
       else if (p.decision.kind === 'recovery') openAfterPass--
+      bump(openNow, p.decision.previousSeverity, -1)
+      bump(openNow, p.decision.severity, 1)
     }
     openAfterPass = Math.max(0, openAfterPass)
+    openNow.critical = Math.max(0, openNow.critical)
+    openNow.warning = Math.max(0, openNow.warning)
 
     // Webhook targets grouped by URL.
     const byUrl = new Map<string, WebhookDigestEntry[]>()
@@ -672,13 +704,8 @@ export async function createDigestPipeline(
       else byUrl.set(entry.url, [entry])
     }
     // Episode threads (#4049): loaded once, only when a threadable channel
-    // sends: Telegram, native Matrix, or a lone Slack bot candidate (#4241).
-    const slackBotCandidate = [...byUrl.values()].some(
-      (entries) =>
-        entries.length === 1 &&
-        entries[0].pending !== null &&
-        entries[0].slackChannelId !== undefined
-    )
+    // sends: Telegram, native Matrix, or a Slack bot standing message (#4246).
+    const slackBotCandidate = [...byUrl.values()].some(isSlackBotBucket)
     threads =
       telegramDigestEntries.length + matrixDigestEntries.length > 0 ||
       slackBotCandidate
@@ -686,22 +713,11 @@ export async function createDigestPipeline(
         : null
     for (const [url, entries] of byUrl) {
       const adapterId = detectAdapter(url).id
-      // Slack bot delivery (#4241): a lone in-pass finding on a route with a
-      // channel id. Grouped digests keep the webhook post. Any failure of the
-      // bot path falls through to the webhook below.
-      const only = entries[0]
-      if (
-        entries.length === 1 &&
-        adapterId === 'slack' &&
-        only.slackChannelId &&
-        only.pending
-      ) {
-        const sent = await deliverSlackBot(
-          only,
-          only.pending,
-          only.slackChannelId
-        )
-        if (sent) continue
+      // Slack bot delivery (#4246): in-pass findings on a route with a channel
+      // id update one standing message. Any failure of the bot path falls
+      // through to the webhook below.
+      if (adapterId === 'slack' && isSlackBotBucket(entries)) {
+        if (await deliverSlackBot(url, entries, openNow)) continue
       }
       let body: unknown
       if (entries.every((e) => e.pending?.deltaOnly)) {
