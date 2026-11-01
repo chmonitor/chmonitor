@@ -3,7 +3,7 @@ id: k8s-health-probes
 title: Kubernetes Health Probes — /healthz vs /api/healthz
 type: reference
 status: active
-updated: 2026-06-18
+updated: 2026-11-01
 tags:
   - kubernetes
   - healthz
@@ -24,7 +24,7 @@ them to the wrong kubelet probe is the #1 cause of chmonitor CrashLoopBackOff.
 | Endpoint | Route file | What it checks | Status when ClickHouse is down |
 |----------|------------|----------------|--------------------------------|
 | `GET /healthz` | `apps/dashboard/src/routes/healthz.ts` (+ `/heathz` typo alias) | **Process alive** — returns `200 OK` instantly, no I/O | **200** (process is still up) |
-| `GET /api/healthz` | `apps/dashboard/src/routes/api/healthz.ts` | **Ready to serve** — runs `SELECT 1` against every configured host | **503** (with `{ ok:false, hosts:[…] }`) |
+| `GET /api/healthz` | `apps/dashboard/src/routes/api/healthz.ts` | **Ready to serve** — runs `SELECT 1` against every configured host | **503** (with `{ ok:false, hosts:[…], cloudMode, timestamp }`; also 503 when no host is configured) |
 
 ## Probe mapping (the contract)
 
@@ -49,7 +49,10 @@ hang the readiness check past the kubelet timeout:
 abort_signal: AbortSignal.timeout(pingTimeoutMs) // default 3000ms
 ```
 
-Override with the `CHM_HEALTHZ_TIMEOUT_MS` env var. **Constraint:**
+Override with the `CHM_HEALTHZ_TIMEOUT_MS` env var. A non-numeric or non-positive
+value falls back to 3000ms (`AbortSignal.timeout(-1)` throws, which would mark
+every host down on a typo). Responses carry `Cache-Control: no-store`, so
+Cloudflare cannot replay a stale 200 while hosts are down. **Constraint:**
 `readinessProbe.timeoutSeconds` MUST be `> CHM_HEALTHZ_TIMEOUT_MS` (default
 10s probe > 3s ping). `AbortSignal.timeout()` is supported on both runtimes
 (Node ≥18 and workerd), so the route is runtime-agnostic — see
