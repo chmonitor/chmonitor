@@ -88,28 +88,78 @@ describe('summarizeDigest', () => {
 })
 
 describe('buildSlackDigestBody', () => {
-  test('header carries the summary, a table lists one row per rule', () => {
+  /** Section text lines, summary line first. */
+  const lines = (body: ReturnType<typeof buildSlackDigestBody>) =>
+    (body.blocks ?? [])
+      .filter((b) => b.type === 'section')
+      .flatMap((b) => b.text?.text?.split('\n') ?? [])
+
+  test('compact text: a bold summary line, then one line per rule', () => {
     const body = buildSlackDigestBody([
       payload({ severity: 'critical', title: 'A', label: 'a' }),
       payload({ severity: 'warning', title: 'B', label: 'b' }),
     ])
     expect(body.attachments).toEqual([])
-    const [header, table] = body.blocks ?? []
-    expect(header.type).toBe('header')
-    expect(header.text?.text).toContain('1 critical, 1 warning on 1 host')
-    expect(table.type).toBe('table')
-    const rows = table.rows?.map((r) => r.map((c) => c.text))
-    expect(rows?.[1]).toEqual(['🔴 CRITICAL', 'A', 'a', 'new'])
-    expect(rows?.[2]).toEqual(['🟠 WARNING', 'B', 'b', 'new'])
+    expect(body.blocks?.some((b) => b.type === 'table')).toBe(false)
+    expect(body.blocks?.some((b) => b.type === 'header')).toBe(false)
+    expect(lines(body)).toEqual([
+      '🔴 *1 critical, 1 warning on 1 host (prod-ch)*',
+      '🔴 *CRITICAL*  A · a · new',
+      '🟠 *WARNING*  B · b · new',
+    ])
   })
 
-  test('renders a final "…and N more" row past the cap', () => {
+  test('renders a final "…and N more" line past the cap', () => {
     const many = Array.from({ length: MAX_DIGEST_LINES + 3 }, (_, i) =>
       payload({ hostId: i, metric: `rule-${i}` })
     )
-    const rows = buildSlackDigestBody(many).blocks?.[1].rows ?? []
-    expect(rows).toHaveLength(MAX_DIGEST_LINES + 2) // header + rows + overflow
-    expect(rows.at(-1)?.[0].text).toBe('…and 3 more')
+    const out = lines(buildSlackDigestBody(many))
+    expect(out).toHaveLength(MAX_DIGEST_LINES + 2) // summary + rows + overflow
+    expect(out.at(-1)).toBe('_…and 3 more_')
+  })
+
+  test('footer is one small context line with links, identity and time', () => {
+    const body = buildSlackDigestBody([
+      payload({
+        dashboardUrl: 'https://chm.example.com/health?host=0',
+        runbookUrls: ['https://docs.example.com/disk'],
+        actions: [
+          {
+            id: 'disk-guide',
+            kind: 'runbook',
+            label: 'Disk guide',
+            url: 'https://docs.example.com/disk-guide',
+          },
+        ],
+        instanceName: 'prod-eu',
+        metadata: { team: 'db' },
+        timestamp: '2026-07-18T04:20:31.000Z',
+      }),
+      payload({
+        title: 'CPU',
+        metric: 'cpu',
+        runbookUrls: ['https://docs.example.com/disk'],
+        timestamp: '2026-07-18T04:19:00.000Z',
+      }),
+    ])
+    const footer = body.blocks?.at(-1)
+    expect(footer?.type).toBe('context')
+    expect(footer?.elements?.[0].text).toBe(
+      [
+        '<https://chm.example.com/health?host=0|Open dashboard>',
+        '<https://docs.example.com/disk|Runbook>',
+        '<https://docs.example.com/disk-guide|Disk guide>',
+        'instance prod-eu · team=db',
+        '2026-07-18 04:20 UTC',
+      ].join(' · ')
+    )
+    // Links moved to the footer: no button row.
+    expect(body.blocks?.some((b) => b.type === 'actions')).toBe(false)
+  })
+
+  test('footer without links still carries the time', () => {
+    const body = buildSlackDigestBody([payload(), payload({ metric: 'cpu' })])
+    expect(body.blocks?.at(-1)?.elements?.[0].text).toBe('2026-07-18 00:00 UTC')
   })
 })
 

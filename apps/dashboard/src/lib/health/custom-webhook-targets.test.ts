@@ -175,13 +175,14 @@ describe('slack custom target grouping (#4230)', () => {
     blocks: {
       type: string
       text?: { text: string }
-      rows?: { text: string }[][]
+      elements?: { text: string }[]
     }[]
   }
-  const tableRows = (b: Digest) =>
-    (b.blocks.find((x) => x.type === 'table')?.rows ?? []).map((row) =>
-      row.map((cell) => cell.text)
-    )
+  /** Every text line of the digest body sections, summary line first. */
+  const lines = (b: Digest) =>
+    b.blocks
+      .filter((x) => x.type === 'section')
+      .flatMap((x) => x.text?.text.split('\n') ?? [])
   const digest = (list: ReturnType<typeof mk>) =>
     buildCustomTargetDigestBody('slack', list).body as Digest
 
@@ -207,7 +208,7 @@ describe('slack custom target grouping (#4230)', () => {
     expect(b.text).toContain('Health digest:')
     expect(b.text).toContain('(3 alerts)')
     expect(b.attachments).toEqual([])
-    expect(tableRows(b).flat().join('\n')).toContain('host-2')
+    expect(lines(b).join('\n')).toContain('host-2')
   })
 
   test('header emoji follows the highest severity; recovery-only is green', () => {
@@ -221,21 +222,24 @@ describe('slack custom target grouping (#4230)', () => {
   test('60 findings stay inside Slack limits with an overflow line', () => {
     const b = digest(mk(60))
     expect(b.blocks.length).toBeLessThanOrEqual(50)
-    expect(b.blocks[0].text?.text.length).toBeLessThanOrEqual(150)
-    const rows = tableRows(b)
-    expect(rows.length).toBeLessThanOrEqual(100)
-    expect(rows.at(-1)?.[0]).toBe('…and 35 more')
+    expect(lines(b).at(-1)).toBe('_…and 35 more_')
   })
 
-  test('very long finding lines are dropped into the overflow count', () => {
+  test('very long finding lines are clipped and split across sections', () => {
     const long = mk(25).map((p) => ({
       ...p,
       title: 'x'.repeat(400),
       label: 'y'.repeat(400),
     }))
-    const rows = tableRows(digest(long))
-    expect(rows.flat().join('').length).toBeLessThanOrEqual(10_000)
-    expect(rows.at(-1)?.[0]).toMatch(/^…and \d+ more$/)
+    const b = digest(long)
+    const sections = b.blocks.filter((x) => x.type === 'section')
+    expect(sections.length).toBeGreaterThan(1)
+    for (const s of sections) {
+      expect(s.text?.text.length ?? 0).toBeLessThanOrEqual(3000)
+    }
+    // Summary + one line per finding: nothing dropped.
+    expect(lines(b)).toHaveLength(26)
+    for (const line of lines(b)) expect(line.length).toBeLessThan(500)
   })
 
   test('a templated slack target still renders one finding', () => {

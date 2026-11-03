@@ -94,19 +94,19 @@ colour bar, for example
 `🔴 CRITICAL  Stuck Merges · node-2 · 4 (warn 1, crit 3) · Open`. A recovery
 reads `🟢 RESOLVED  … · fired for 35 min · Open`. The instance prefix appears
 only when `instanceName` is set; runbook links and metadata go on one small
-second line when there are any. A grouped Slack digest is a header, a Slack
-table with the columns **Status**, **Problem**, **Where** and **Since**, and an
-**Open dashboard** button. Several alerts of one rule and severity share one
-row: the rule title with a count, up to three names then `+N`, and the age of
-the oldest alert, for example `🟠 WARNING | Source stopped sending rows (34) |
-db.events:source-1, db.events:source-2, db.events:source-3, +31 | 3 h`. A lone
-alert shows its full timeline in **Since** (`still open, 3 h (88.5 -> 97.25)`,
-`fired for 35 min`), or `new`. Recoveries get their own row. The header still
-counts every alert. When the rows share one host, the header names it and the
-rows leave it out; otherwise **Where** adds the hosts. Past 25 rows the table
-ends with a `…and N more` row. Clients without table support show the
-notification text, the header and the summary line. A sweep that only adds alerts of a rule that is already open, or only
-resolves, posts one line instead of the table: `+1 warning · 1 resolved · 60
+second line when there are any. A grouped Slack digest is compact text: a
+bold summary line, one line per rule in the same layout as a single alert, and
+a small gray footer. Several alerts of one rule and severity share one line:
+the rule title with a count, up to three names then `+N`, and the age of the
+oldest alert, for example `🟠 WARNING  Source stopped sending rows (34) ·
+db.events:source-1, db.events:source-2, db.events:source-3, +31 · 3 h`. A lone
+alert shows its full timeline (`still open, 3 h (88.5 -> 97.25)`, `fired for 35
+min`), or `new`. Recoveries get their own line. The summary line counts every
+alert. When the lines share one host, the summary names it and the lines leave
+it out; otherwise each line adds the hosts. Past 25 lines the digest ends with
+`…and N more`. The footer holds the **Open dashboard** link, up to three
+runbook links, the instance name and metadata, and the sweep time in UTC. A sweep that only adds alerts of a rule that is already open, or only
+resolves, posts one line instead of the digest: `+1 warning · 1 resolved · 60
 open`.
 
 The form supports bounded `{{severity}}`, `{{title}}`, `{{label}}`, `{{host}}`,
@@ -181,7 +181,7 @@ keeps **one standing message** that is edited in place:
   2 warning`, and is edited every sweep that changes them.
 - **The thread** gets what changed: one finding's details (host, metric, value
   and thresholds, runbooks, ack button), a `+1 warning · 3 open` line, or a
-  table when several new rules fire together.
+  digest when several new rules fire together.
 - **All clear:** when nothing is open, the message is edited to `✅ All clear`.
   The next incident starts a fresh message.
 - If the stored message was deleted, a new one is posted and used from then on.

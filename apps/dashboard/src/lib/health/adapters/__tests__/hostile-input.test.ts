@@ -63,6 +63,7 @@ function slackMrkdwn(body: ReturnType<typeof buildSlackBody>): string[] {
     }
   }
   walk(body.attachments)
+  walk(body.blocks)
   return out
 }
 
