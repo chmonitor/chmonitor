@@ -40,24 +40,19 @@ const sources = (n: number, over: Partial<AlertPayload> = {}) =>
     finding({ label: `db.events:source-${i + 1}`, ...over })
   )
 
-/** The Slack digest table's rows as plain cell text, header row first. */
+/** The Slack digest body lines, summary line first. */
 const slackTable = (payloads: AlertPayload[]) =>
-  (buildSlackDigestBody(payloads).blocks?.[1].rows ?? []).map((row) =>
-    row.map((cell) => cell.text)
-  )
+  (buildSlackDigestBody(payloads).blocks ?? [])
+    .filter((b) => b.type === 'section')
+    .flatMap((b) => b.text?.text.split('\n') ?? [])
 
 describe('34 findings of one rule', () => {
   const many = sources(34)
 
   test('render as one Slack row with a count and three example names', () => {
     expect(slackTable(many)).toEqual([
-      ['Status', 'Problem', 'Where', 'Since'],
-      [
-        '🟠 WARNING',
-        `${TITLE} (34)`,
-        'db.events:source-1, db.events:source-2, db.events:source-3, +31',
-        'new',
-      ],
+      '🟠 *34 warning on 1 host (node-1)*',
+      `🟠 *WARNING*  ${TITLE} (34) · db.events:source-1, db.events:source-2, db.events:source-3, +31 · new`,
     ])
   })
 
@@ -88,13 +83,10 @@ describe('34 findings of one rule', () => {
 test('a group of one renders exactly as an ungrouped finding', () => {
   const one = finding({ label: 'db.events:source-7 silent over 48 h' })
   expect(summarizeDigest([one]).findingLines).toEqual([digestFindingLine(one)])
-  expect(slackTable([one])[1]).toEqual([
-    '🟠 WARNING',
-    TITLE,
-    // A lone finding keeps its host: it has no other rows to repeat.
-    'db.events:source-7 silent over 48 h · node-1',
-    'new',
-  ])
+  // A lone finding keeps its host: it has no other rows to repeat.
+  expect(slackTable([one])[1]).toBe(
+    `🟠 *WARNING*  ${TITLE} · db.events:source-7 silent over 48 h · node-1 · new`
+  )
 })
 
 test('mixed rules get one row each, in first-seen order', () => {
@@ -113,18 +105,8 @@ test('mixed rules get one row each, in first-seen order', () => {
 test('recoveries group apart from firing findings of the same rule', () => {
   const payloads = [...sources(4), ...sources(2, { severity: 'recovery' })]
   expect(slackTable(payloads).slice(1)).toEqual([
-    [
-      '🟠 WARNING',
-      `${TITLE} (4)`,
-      'db.events:source-1, db.events:source-2, db.events:source-3, +1',
-      'new',
-    ],
-    [
-      '🟢 RESOLVED',
-      `${TITLE} (2)`,
-      'db.events:source-1, db.events:source-2',
-      'new',
-    ],
+    `🟠 *WARNING*  ${TITLE} (4) · db.events:source-1, db.events:source-2, db.events:source-3, +1 · new`,
+    `🟢 *RESOLVED*  ${TITLE} (2) · db.events:source-1, db.events:source-2 · new`,
   ])
   expect(summarizeDigest(payloads).summaryLine).toBe(
     '4 warning, 2 recovery on 1 host (node-1)'
@@ -150,10 +132,7 @@ test('Since is the oldest finding of the group; Where adds hosts when the digest
       stillOpenMs: 3 * 3_600_000,
     }),
   ])
-  expect(rows[1]).toEqual([
-    '🟠 WARNING',
-    `${TITLE} (2)`,
-    'db.events:source-1, db.events:source-2 · node-1, node-2',
-    '3 h',
-  ])
+  expect(rows[1]).toBe(
+    `🟠 *WARNING*  ${TITLE} (2) · db.events:source-1, db.events:source-2 · node-1, node-2 · 3 h`
+  )
 })

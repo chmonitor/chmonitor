@@ -34,11 +34,12 @@ function finding(over: Partial<AlertPayload> = {}): AlertPayload {
 const SLACK = 'https://hooks.slack.com/services/T/B/x'
 const GENERIC = 'https://hooks.example.com/alerts'
 
-/** Every cell of the Slack digest table, joined. */
+/** The Slack digest finding lines (no summary line or footer), joined. */
 const slackTableText = (payloads: AlertPayload[]) =>
-  (buildSlackDigestBody(payloads).blocks?.[1].rows ?? [])
-    .flat()
-    .map((cell) => cell.text)
+  (buildSlackDigestBody(payloads).blocks ?? [])
+    .filter((b) => b.type === 'section')
+    .flatMap((b) => b.text?.text?.split('\n') ?? [])
+    .slice(1)
     .join('\n')
 
 describe('delta line', () => {
