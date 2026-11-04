@@ -21,6 +21,7 @@ import {
   test,
 } from 'bun:test'
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
+import * as realLinkWithContext from '@/components/menu/link-with-context'
 import * as realSwr from '@/lib/swr'
 
 mock.module('@/components/menu/link-with-context', () => ({
@@ -52,6 +53,10 @@ beforeAll(() => {
 
 afterAll(async () => {
   await GlobalRegistrator.unregister()
+  mock.module('@/components/menu/link-with-context', () => ({
+    ...realLinkWithContext,
+  }))
+  mock.module('@/lib/swr', () => ({ ...realSwr }))
 })
 
 let unmount: (() => void) | undefined
