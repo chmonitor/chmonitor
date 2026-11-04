@@ -30,7 +30,7 @@ export const MenuGroup = function MenuGroup({
       <SidebarGroupLabel className="h-7 px-2 py-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </SidebarGroupLabel>
-      <SidebarMenu>
+      <SidebarMenu className="gap-0.5">
         {sectionItems.map((item) => (
           <MenuItem key={item.title} item={item} pathname={pathname} />
         ))}

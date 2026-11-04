@@ -161,7 +161,7 @@ export function NavFavorites({ items, pathname }: NavFavoritesProps) {
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           <FavoritesOrderProvider value={itemIds}>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {favoriteItems.map((item) => (
                 <SortableFavoriteItem
                   key={item.href}
