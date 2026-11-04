@@ -5,6 +5,18 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.11](https://github.com/chmonitor/chmonitor/compare/v0.3.10...v0.3.11) (2026-11-04)
+
+
+### ✨ Features
+
+* **nav:** list every group page on hubs and the hover flyout, with pins ([#4266](https://github.com/chmonitor/chmonitor/issues/4266)) ([6996440](https://github.com/chmonitor/chmonitor/commit/6996440f313a6089db3afa9b926abb8d98da2a31))
+
+
+### 🐛 Bug Fixes
+
+* **sidebar:** add a small gap between menu rows ([#4263](https://github.com/chmonitor/chmonitor/issues/4263)) ([c6c3524](https://github.com/chmonitor/chmonitor/commit/c6c3524441fb031795e9e0d45880c909bf2accf2))
+
 ## [0.3.10](https://github.com/chmonitor/chmonitor/compare/v0.3.9...v0.3.10) (2026-11-03)
 
 
