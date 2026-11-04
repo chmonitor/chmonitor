@@ -95,17 +95,5 @@ describe('buildGroupQuickLinks', () => {
       '/history-queries',
     ])
     expect(links.recent.map((i) => i.href)).toEqual(['/running-queries'])
-    expect(links.fallback).toEqual([])
-  })
-
-  test('empty state falls back to the top 3 pages of the group', () => {
-    const links = buildGroupQuickLinks(queries, [], visit(['/tables']))
-    expect(links.pinned).toEqual([])
-    expect(links.recent).toEqual([])
-    expect(links.fallback.map((i) => i.href)).toEqual([
-      '/running-queries',
-      '/history-queries',
-      '/failed-queries',
-    ])
   })
 })

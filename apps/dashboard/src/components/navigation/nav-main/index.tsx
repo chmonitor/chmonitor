@@ -12,7 +12,7 @@ export function NavMain({ items }: NavMainProps) {
 
   return (
     <>
-      <NavFavorites items={items} pathname={pathname} />
+      <NavFavorites pathname={pathname} />
       {sections.map((section) => (
         <MenuGroup
           key={section}
