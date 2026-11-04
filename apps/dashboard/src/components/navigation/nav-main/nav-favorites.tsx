@@ -30,12 +30,10 @@ import {
 } from '@/components/ui/sidebar'
 import { useFavoriteHrefs, useReorderFavorites } from '@/hooks/use-favorites'
 import { getFavoriteMenuItems } from '@/lib/menu/derive-favorites'
+import { usePaletteMenuItems } from '@/lib/menu/use-visible-menu-items'
 import { cn } from '@/lib/utils'
 
 interface NavFavoritesProps {
-  /** Full menu tree (all sections) — favorites are resolved by href across
-   * every section, including nested sub-items. */
-  items: MenuItemType[]
   pathname: string
 }
 
@@ -116,9 +114,14 @@ function SortableFavoriteItem({
  * route is dropped instead of rendering a broken link. Below `lg` there is no
  * drag: the row's "…" menu reorders via `FavoritesOrderProvider`.
  */
-export function NavFavorites({ items, pathname }: NavFavoritesProps) {
+export function NavFavorites({ pathname }: NavFavoritesProps) {
   const favoriteHrefs = useFavoriteHrefs()
-  const favoriteItems = getFavoriteMenuItems(items, favoriteHrefs)
+  // Every allowed page, not just the rail's: a page pinned from a hub or a
+  // group flyout while hidden from the sidebar still belongs at the top.
+  const favoriteItems = getFavoriteMenuItems(
+    usePaletteMenuItems(),
+    favoriteHrefs
+  )
   const reorderFavorites = useReorderFavorites()
   const { isMobile, state } = useSidebar()
   const dragEnabled = isMobile || state !== 'collapsed'

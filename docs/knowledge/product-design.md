@@ -3,7 +3,7 @@ id: product-design
 title: Product design system & UX conventions
 type: reference
 status: active
-updated: 2026-10-28
+updated: 2026-11-05
 tags:
   - design-system
   - ui
@@ -1159,16 +1159,29 @@ groups.
 **Footer**: About (next to the Settings gear; never hidden by a workspace
 preset).
 
-### Group quick links (hover a group for pinned + recent pages)
+### Group quick links (hover a group for recent + all pages)
 
-Hovering a top-level sidebar group opens a flyout listing that group's
-**Pinned** pages (pin order, from `lib/menu/favorites-store.ts`), then up to 5
-**Recent** pages (newest first, never repeating a pinned page), then a footer:
-"Open <Group> hub" (only when `getGroupHubHref()` in `lib/menu/group-hub.ts`
-returns a route) and "All N pages" (expands the group in place). With nothing
-pinned or visited it shows the group's first 3 pages instead.
+Hovering a top-level sidebar group opens a flyout listing up to 5 **Recent**
+pages of the group (newest first, never repeating a pinned page), then **All
+pages**: every page of the group, not only the ones in the sidebar. The
+footer is "Open <Group> hub" (only when `getGroupHubHref()` in
+`lib/menu/group-hub.ts` returns a route).
 
-- Logic is pure and tested in `lib/menu/recent-pages.ts`
+- **All pages order:** pinned pages first (pin order, from
+  `lib/menu/favorites-store.ts`), then pages in the sidebar, then pages hidden
+  from it, each in declaration order. Hidden pages are muted
+  (`text-muted-foreground`). The rule is the pure `buildGroupPageIndex` in
+  `lib/menu/group-page-index.ts` (tested).
+- **Pin marker:** each row has a pin toggle (`PagePinToggle`,
+  `components/menu/components/page-pin-toggle.tsx`), a sibling of the link so a
+  click neither navigates nor closes the flyout. A pinned page shows a filled
+  pin at all times; an unpinned row shows the outline pin on hover or focus.
+- **Source:** `menu-item.tsx` reads the group from the allowed catalog
+  (`useMenuWorkspaceCatalog().catalog`, deployment-gated), not the rail's
+  `item.items`, which the workspace hide list has already cut down. Pages the
+  *Unavailable pages: Hide* setting resolves to `hidden` are left out, the same
+  as the rail. The hub instead shows them dimmed with their reason.
+- Recent history is pure and tested in `lib/menu/recent-pages.ts`
   (`recordVisitIn`, `recentInGroup`, `buildGroupQuickLinks`). History is a
   capped (50) localStorage list `chm-recent-pages` of pathnames only; the host
   is re-applied by `HostPrefixedLink`, so links keep `?host=`.
@@ -1227,14 +1240,15 @@ the group is one click away and the key numbers need no click at all.
   link cards (icon, title, menu `description`, `CountBadge` when `countKey`).
   Sections come from `getHubSections` (`lib/menu/hub.ts`) — never keep a
   second page list. Deployment gates (permission, cloud-only, engine) apply
-  via `getAllowedMenuItems`. **Hubs follow the Hide settings**: pages the
-  user hid (workspace hidden hrefs, or the *Unavailable pages: Hide* setting)
-  are left out of the card grids; a subgroup with no cards left is omitted; if
-  any were left out one "Show N hidden pages" link at the bottom toggles them
-  in place (local state, not persisted), dimmed, with the reason for
-  unavailable ones. Unavailable pages that are not hidden stay dimmed with
-  their reason. Key charts are unaffected. The rule is the pure
-  `filterHubSections` in `lib/menu/hub-visibility.ts` (tested).
+  via `getAllowedMenuItems`. **A hub is the index of its group**: it lists
+  every page the deployment allows, including pages hidden from the sidebar,
+  which are shown like any other card (not dimmed). Only a page that is
+  unavailable on this host is dimmed, with its reason as the card text and
+  `title`. Each card has a pin toggle (`PagePinToggle`) in its top-right
+  corner, a sibling of the link: a pinned page always shows a filled pin, an
+  unpinned card shows the outline pin on hover or focus with a fine pointer
+  and always on touch (44px target). The link's right padding keeps
+  `CountBadge` clear of the pin.
 - **Sidebar + breadcrumb:** on a hub group the heading label is a link to the
   hub and the chevron is a separate sibling button that still expands
   (`group-expand-button`); groups without a hub keep the whole row as the

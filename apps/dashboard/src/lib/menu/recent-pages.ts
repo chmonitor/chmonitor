@@ -14,8 +14,6 @@ export const RECENT_PAGES_CAP = 50
 
 export const RECENT_PER_GROUP = 5
 
-export const FALLBACK_PER_GROUP = 3
-
 export interface RecentPage {
   path: string
   at: number
@@ -71,19 +69,18 @@ export function recentInGroup(
 export interface GroupQuickLinks {
   pinned: MenuItem[]
   recent: MenuItem[]
-  fallback: MenuItem[]
 }
 
 /**
- * Pure: the flyout sections for one group. Pinned first (in pin order), then
- * recent with anything already pinned removed, so a page is never listed
- * twice. With both empty, the group's first pages stand in.
+ * Pure: the quick-link sections for one group. Pinned first (in pin order),
+ * then recent with anything already pinned removed, so a page is never listed
+ * twice.
  */
 export function buildGroupQuickLinks(
   children: readonly MenuItem[],
   favoriteHrefs: readonly string[],
   entries: readonly RecentPage[],
-  limits: { recent?: number; fallback?: number } = {}
+  limits: { recent?: number } = {}
 ): GroupQuickLinks {
   const byHref = new Map(
     children.filter((c) => c.href).map((c) => [c.href, c] as const)
@@ -97,13 +94,7 @@ export function buildGroupQuickLinks(
     children.filter((c) => !pinnedSet.has(c)),
     limits.recent ?? RECENT_PER_GROUP
   )
-  const fallback =
-    pinned.length === 0 && recent.length === 0
-      ? children
-          .filter((c) => c.href)
-          .slice(0, limits.fallback ?? FALLBACK_PER_GROUP)
-      : []
-  return { pinned, recent, fallback }
+  return { pinned, recent }
 }
 
 let entries: readonly RecentPage[] = []

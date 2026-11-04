@@ -15,6 +15,7 @@ import { RowActionsMenu } from './row-actions-menu'
 import { lazy, Suspense, useEffect, useId, useState } from 'react'
 import {
   useGroupVisibility,
+  useUnavailableResolver,
   useUnavailableVisibility,
 } from '@/components/menu/hooks/use-unavailable-visibility'
 import { HostPrefixedLink } from '@/components/menu/link-with-context'
@@ -385,6 +386,15 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
   const hostId = useHostId()
   const isCollapsed = state === 'collapsed'
   const { resolution, visibleChildren } = useGroupVisibility(item, hostId)
+  const resolve = useUnavailableResolver(hostId)
+  const { catalog } = useMenuWorkspaceCatalog()
+  // `item.items` is already cut down by the workspace hide list; the flyout
+  // lists the whole group, so read it from the catalog.
+  const groupPages = (
+    catalog.find((group) => group.title === item.title)?.items ??
+    item.items ??
+    []
+  ).filter((child) => resolve(child).visibility !== 'hidden')
   const siblingHrefs = visibleChildren.map((child) => child.href)
   const activeChildHref = item.items?.find(
     (child) => child.href && isMenuItemActive(child.href, pathname)
@@ -453,11 +463,7 @@ const CollapsibleMenuItem = function CollapsibleMenuItem({
       className="group/collapsible"
       render={<SidebarMenuItem />}
     >
-      <GroupHoverFlyout
-        groupTitle={item.title}
-        visibleChildren={visibleChildren}
-        onShowAll={() => setOpen(true)}
-      >
+      <GroupHoverFlyout groupTitle={item.title} pages={groupPages}>
         {hubHref ? (
           <>
             <SidebarMenuButton
