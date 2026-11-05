@@ -5,6 +5,13 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.12](https://github.com/chmonitor/chmonitor/compare/v0.3.11...v0.3.12) (2026-11-05)
+
+
+### 🐛 Bug Fixes
+
+* **conversations:** parse JSONB messages returned as a string ([#4268](https://github.com/chmonitor/chmonitor/issues/4268)) ([83e0cf8](https://github.com/chmonitor/chmonitor/commit/83e0cf8bd6941416257831c27f54db2ef227080a))
+
 ## [0.3.11](https://github.com/chmonitor/chmonitor/compare/v0.3.10...v0.3.11) (2026-11-04)
 
 
