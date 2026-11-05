@@ -1,6 +1,5 @@
-import { describe, expect, test } from 'bun:test'
-
 import { PostgresStore } from './postgres-store'
+import { describe, expect, test } from 'bun:test'
 
 const MESSAGES = [
   { id: 'm1', role: 'user', parts: [{ type: 'text', text: 'hi' }] },
