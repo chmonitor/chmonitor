@@ -3,7 +3,7 @@ id: issue-desk
 title: Scheduled Herdr desk (external CLI)
 type: workflow
 status: active
-updated: 2026-10-14
+updated: 2026-11-06
 tags:
   - herdr
   - cron
@@ -438,6 +438,14 @@ Treating the Herdr rows as the whole problem is what let 16 `agent-*` checkouts
 records pointing at a deleted scratchpad. `.gitignore` already excludes
 `.claude/worktrees/`, so nothing surfaces them; #3470 is what it cost when one
 leaked a nested Biome config into the main checkout and blocked every push.
+
+A `desk-*` checkout whose Herdr Space is gone is the exception to "never remove
+by hand". The job then fails on every fire with `worktree_create_failed`, because
+`herdr worktree create --branch desk/<job>` finds the branch already checked out
+at that path. `local:docs` failed 200 fires in a row from 2026-11-03 this way and
+`desk status` showed it only in the `Fails` column. Confirm the checkout is clean
+and has no commits past `origin/main`, then `git worktree remove <path>` and
+`git branch -d desk/<job>`; the next fire recreates both.
 
 The full per-class recipe, including the stale-lock unlock order, is in
 `docs/herdr-desk/babysit-prs.md` § Worktree hygiene.
