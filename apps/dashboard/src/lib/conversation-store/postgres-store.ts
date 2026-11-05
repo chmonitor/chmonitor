@@ -26,10 +26,35 @@ interface PostgresConversationRow {
   id: string
   user_id: string
   title: string
-  messages: unknown // JSONB parsed by postgres package
+  messages: unknown // parsed array, or a JSON string on some servers
   message_count: number
   created_at: number
   updated_at: number
+}
+
+/**
+ * Normalize the JSONB `messages` column to a UIMessage array.
+ *
+ * The postgres package usually parses JSONB, but some servers (reported on
+ * Azure Postgres Flexible Server) return it as a JSON string. Accept both;
+ * anything else is a corrupt row and fails with a clear message.
+ */
+function parseStoredMessages(raw: unknown): UIMessage[] {
+  let value = raw
+  if (typeof raw === 'string') {
+    try {
+      value = JSON.parse(raw)
+    } catch {
+      throw new Error('messages column is not valid JSON')
+    }
+  }
+  if (!Array.isArray(value)) {
+    throw new Error('messages column is not a JSON array')
+  }
+  return value.filter(
+    (msg): msg is UIMessage =>
+      msg !== null && typeof msg === 'object' && 'id' in msg && 'role' in msg
+  )
 }
 
 /**
@@ -190,8 +215,9 @@ export class PostgresStore implements ConversationStore {
   /**
    * Get a single conversation with full messages.
    *
-   * Messages are returned as JavaScript objects (postgres package
-   * automatically parses JSONB columns).
+   * Messages are returned as JavaScript objects. The postgres package
+   * normally parses JSONB, but some servers return a JSON string, so both are
+   * accepted.
    *
    * @param userId - User ID to scope queries (security check)
    * @param conversationId - Conversation ID to retrieve
@@ -216,15 +242,7 @@ export class PostgresStore implements ConversationStore {
 
       const row = rows[0]
 
-      // postgres package automatically parses JSONB to JavaScript objects
-      // No need for JSON.parse
-      const messages = (row.messages as unknown[]).filter(
-        (msg): msg is UIMessage =>
-          msg !== null &&
-          typeof msg === 'object' &&
-          'id' in msg &&
-          'role' in msg
-      )
+      const messages = parseStoredMessages(row.messages)
 
       return {
         id: row.id,
