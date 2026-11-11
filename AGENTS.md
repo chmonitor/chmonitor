@@ -918,7 +918,7 @@ and **no `"use client"` directive** — not one file under
 
 **IMPORTANT**: ClickHouse system tables change between versions. See `docs/clickhouse-schemas/` for:
 
-- **Schema documentation** per version (`v23.8.md`, `v24.1.md`, etc.)
+- **Schema documentation** per version (`v24.1.md`, `v25.12.md`, `v26.6.md`, … — see `docs/clickhouse-schemas/index.md`)
 - **Column availability matrix** per table (`tables/query_log.md`, etc.)
 - **Version-aware query patterns** with `since` field
 

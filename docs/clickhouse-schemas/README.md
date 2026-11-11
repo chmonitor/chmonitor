@@ -17,11 +17,11 @@ docs/clickhouse-schemas/
 ├── README.md           # This file
 ├── AGENTS.md           # Instructions for AI agents
 ├── CLAUDE.md           # Stub that includes AGENTS.md
-├── index.md            # Version matrix overview
-├── v23.1.md            # Changes in version 23.1
-├── v23.8.md            # Changes in version 23.8 (LTS)
-├── v24.1.md            # Changes in version 24.1
-├── ...
+├── index.md            # Version matrix overview (the maintained index)
+├── v24.1.md            # Version notes (one file per release with deltas)
+├── v25.12.md           # …
+├── v26.6.md
+├── v26.10.md
 └── tables/
     ├── processes.md    # system.processes full history
     ├── query_log.md    # system.query_log full history
@@ -29,14 +29,17 @@ docs/clickhouse-schemas/
     └── ...
 ```
 
+The per-version files cover only releases that carry named deltas; older
+baseline versions (23.8 enterprise baseline and friends) are matrix rows in
+`index.md`, not files. `index.md` also tracks the `LTS_VERSIONS` pins.
+
 ## Key Version Boundaries
 
-| Version | Type | Notable Changes |
-|---------|------|-----------------|
-| 23.8 | LTS | Stable baseline for enterprise |
-| 24.1 | Regular | Added query_cache_usage, peak_threads_usage |
-| 24.3 | Regular | [Document changes] |
-| 24.8 | LTS | [Document changes] |
+See `index.md` — the Version Matrix there is the maintained list and matches
+`scripts/ch-schema/constants.ts` `LTS_VERSIONS`. The boundaries chmonitor
+query configs actually use: 23.8 (LTS, enterprise baseline and the `since`
+gate floor), 24.1 (`query_cache_usage`, `peak_threads_usage`), and the 26.x
+LTS lines.
 
 ## Updating This Documentation
 
@@ -55,6 +58,6 @@ bun run scripts/build-ch-schema-docs.ts --table query_log
 
 ## Related Files
 
-- Query configs: `lib/query-config/`
-- Version utilities: `lib/clickhouse-version.ts`
-- Type definitions: `types/query-config.ts`
+- Query configs: `apps/dashboard/src/lib/query-config/`
+- Version utilities: `packages/clickhouse-client/src/clickhouse-version.ts`
+- Type definitions: `apps/dashboard/src/types/query-config.ts`
