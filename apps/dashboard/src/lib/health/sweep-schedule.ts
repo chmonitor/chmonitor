@@ -18,20 +18,9 @@
  * Pure — pass any env getter (Worker binding, `process.env`, or a mock).
  */
 
-export type EnvGetter = (key: string) => string | undefined
+import { parseBool } from '@/lib/config/parse-bool'
 
-/**
- * Tri-state boolean parse (shared shape with lib/config/deployment-mode.ts):
- * returns `undefined` for unset/empty/unrecognized so callers can fall through
- * to a default.
- */
-function parseBool(value: string | undefined): boolean | undefined {
-  if (value === undefined || value === '') return undefined
-  const n = value.trim().toLowerCase()
-  if (['1', 'true', 'yes', 'on'].includes(n)) return true
-  if (['0', 'false', 'no', 'off'].includes(n)) return false
-  return undefined
-}
+export type EnvGetter = (key: string) => string | undefined
 
 /**
  * Whether the scheduled health-sweep is allowed to RUN. See module docstring

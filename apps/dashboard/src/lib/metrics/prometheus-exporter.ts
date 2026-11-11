@@ -27,6 +27,7 @@ import type { AlertStateStore } from '@/lib/health/alert-state-store'
 import { getClient } from '@chm/clickhouse-client'
 import { error as logError } from '@chm/logger'
 import { isCloudModeServer } from '@/lib/cloud/cloud-mode'
+import { parseBool } from '@/lib/config/parse-bool'
 import { alertStateStore } from '@/lib/health/alert-state-store'
 
 const CACHE_TTL_MS = 30_000
@@ -191,14 +192,6 @@ export function countFiringAlertsByHost(
   return counts
 }
 
-function parseBoolEnv(value: string | undefined): boolean | undefined {
-  if (value === undefined || value === '') return undefined
-  const normalized = value.trim().toLowerCase()
-  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
-  if (['0', 'false', 'no', 'off'].includes(normalized)) return false
-  return undefined
-}
-
 /**
  * Prometheus exporter feature gate. `CHM_FEATURE_PROMETHEUS_ENABLED` always
  * wins when set; otherwise defaults ON for self-hosted deployments and OFF in
@@ -209,7 +202,7 @@ function parseBoolEnv(value: string | undefined): boolean | undefined {
 export function isPrometheusExporterEnabled(
   bindings: Record<string, string | undefined>
 ): boolean {
-  const explicit = parseBoolEnv(bindings.CHM_FEATURE_PROMETHEUS_ENABLED)
+  const explicit = parseBool(bindings.CHM_FEATURE_PROMETHEUS_ENABLED)
   if (explicit !== undefined) return explicit
   return !isCloudModeServer(bindings)
 }
