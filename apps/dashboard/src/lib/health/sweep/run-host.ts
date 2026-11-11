@@ -32,15 +32,12 @@ import {
 } from '../batch-kpi'
 import { getExistingTables, getHostCapabilities } from '../capability-cache'
 import { ruleAppliesToHost } from '../replication-usage'
+import { queryHealthRule } from '../rule-query'
 import { isRuleEnabled, isSignalOnly } from './suppression'
 import { fetchData } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { debug } from '@chm/logger'
-import {
-  classifyValue,
-  parseAffectedNames,
-  ruleLabel,
-} from '@/lib/alerting/rule-registry'
+import { classifyValue, ruleLabel } from '@/lib/alerting/rule-registry'
 import { sweepInsightOptions } from '@/lib/insights/enrich-config'
 import { generateInsights } from '@/lib/insights/generate-insights'
 
@@ -80,48 +77,9 @@ export function hostLabel(config: ClickHouseConfig): string {
   return config.customName?.trim() || redactHostCredentials(config.host)
 }
 
-/** One rule's read: the numeric value and, for count-only rules, up to 5 affected names. */
-export interface RuleQueryResult {
-  value: number | null
-  affected: string[]
-}
+export type { RuleQueryResult } from '../rule-query'
 
-/**
- * Run a single rule's SQL on one host in read-only mode and read the numeric
- * value from the configured `valueKey` (and the names from `affectedKey`).
- * Mirrors the client read path (`readOnlyQuery`) so cron results match what
- * the Health dashboard shows.
- */
-export async function runRuleQuery(
-  sql: string,
-  valueKey: string,
-  hostId: number,
-  settings?: AlertRuleDef['clickhouseSettings'],
-  affectedKey?: string
-): Promise<RuleQueryResult> {
-  const result = await fetchData<Array<Record<string, unknown>>>({
-    query: sql,
-    hostId,
-    format: 'JSONEachRow',
-    clickhouse_settings: { ...settings, readonly: '1' },
-  })
-
-  if (result.error) {
-    throw new Error(result.error.message)
-  }
-
-  const rows = result.data
-  if (!Array.isArray(rows) || rows.length === 0)
-    return { value: 0, affected: [] }
-  const affected = affectedKey ? parseAffectedNames(rows[0]?.[affectedKey]) : []
-  const raw = rows[0]?.[valueKey]
-  // A NULL / missing value is *unknown*, not healthy: returning 0 here would
-  // classify as ok and send a false "resolved" for a firing alert.
-  if (raw === null || raw === undefined || raw === '')
-    return { value: null, affected }
-  const num = Number(raw)
-  return { value: Number.isFinite(num) ? num : null, affected }
-}
+export { runRuleQuery } from '../rule-query'
 
 /**
  * Best-effort set of `system.*` tables present on a host, used to honor each
@@ -320,13 +278,7 @@ export async function runHostSweep(
     if (!rule.sql) continue
     checksRun++
     try {
-      const { value, affected } = await runRuleQuery(
-        rule.sql,
-        rule.valueKey,
-        config.id,
-        rule.clickhouseSettings,
-        rule.affectedKey
-      )
+      const { value, affected } = await queryHealthRule(rule, config, 'observe')
       await evaluateRule(rule, value, affected)
     } catch (err) {
       errored++

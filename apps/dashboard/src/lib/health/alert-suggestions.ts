@@ -230,6 +230,9 @@ export function buildSuggestions(
     })
 
     for (const metric of Object.keys(METRIC_CATALOG) as MetricKey[]) {
+      // Duration is already a monitoring signal. A custom scalar alert would
+      // turn age into a page without observing progress.
+      if (metric === 'stuck-merges') continue
       if (host.existingRuleMetrics.has(metric)) continue
 
       const defaults = METRIC_SUGGESTION_DEFAULTS[metric]

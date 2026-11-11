@@ -6,6 +6,43 @@ icon: Timer
 
 `Code: 252. DB::Exception: Too many parts (N). Merges are processing significantly slower than inserts` is the same error as [Too many parts](/guide/guides/too-many-parts), but this page is for the other side of it: your **write rate has outpaced the background merge scheduler**, not that the insert pattern itself is wrong. If batching and partitioning already look sane, the bottleneck is merge capacity.
 
+## Long-running or stalled?
+
+A merge running for hours can still be healthy. **Long-running Merges**
+(stable rule id `stuck-merges`) counts merges older than 10 minutes and stays a
+warning signal. It sends no alert by default. **Stalled Merges**
+(`stalled-merges`) becomes critical when an active merge has unchanged work
+counters for `HEALTH_MERGE_STALL_SECONDS` (default 900 seconds).
+
+Compare rows read/written, uncompressed bytes read/written and columns written
+across observations of the same database, table and result part. An advancing
+counter is work even when progress is at or above 1, as happens while a
+vertical merge finishes columns. Progress changes also restart the flat window.
+A first sample, counter decrease, elapsed reset or a different inferred start
+time cannot establish a stall. Unchanged counters during a new observation
+window remain unknown until the stall timeout; confirmed work advancement or
+completion can resolve an existing alert.
+
+The rule needs shared D1 or Postgres metadata storage. Samples are isolated by
+endpoint and ClickHouse login, because permissions can hide other merges. Run sweeps at least
+every 10 minutes. A gap over 15 minutes (the scheduled cadence plus jitter)
+restarts the window. At that cadence, the default 15-minute stall becomes
+detectable at the 20-minute observation. A successful complete query removes
+finished merges. Missing storage, failed queries, malformed rows and failed
+snapshot writes return unknown and cannot generate a recovery. Opening Active
+Alerts or querying its findings through MCP only reads metadata; it never
+writes samples or creates the sample table.
+
+Run this read-only query twice and compare all work counters before treating
+merge duration as a fault:
+
+```sql
+SELECT database, table, result_part_name, elapsed, progress,
+       rows_read, rows_written, bytes_read_uncompressed,
+       bytes_written_uncompressed, columns_written
+FROM system.merges;
+```
+
 ## Why it happens
 
 <Mermaid chart={`flowchart TD

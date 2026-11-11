@@ -134,12 +134,18 @@ class PostgresHealthStatement implements HealthSqlStatement {
   constructor(
     private readonly db: PostgresHealthDb,
     readonly query: string,
-    readonly params: readonly unknown[] = []
+    readonly params: readonly unknown[] = [],
+    readonly bootstrap = true
   ) {}
 
   /** Returns a NEW statement — a prepared statement is reused across binds. */
   bind(...values: unknown[]): HealthSqlStatement {
-    return new PostgresHealthStatement(this.db, this.query, values)
+    return new PostgresHealthStatement(
+      this.db,
+      this.query,
+      values,
+      this.bootstrap
+    )
   }
 
   async all<T = Record<string, unknown>>(): Promise<HealthSqlResult<T>> {
@@ -178,6 +184,13 @@ export class PostgresHealthDb implements HealthSqlDb {
     return new PostgresHealthStatement(this, query)
   }
 
+  /** SELECT-only metadata reads must not bootstrap the schema. */
+  prepareReadOnly(query: string): HealthSqlStatement {
+    if (!/^\s*SELECT\b/i.test(query))
+      throw new TypeError('read-only health query must be SELECT')
+    return new PostgresHealthStatement(this, query, [], false)
+  }
+
   async batch(statements: HealthSqlStatement[]): Promise<unknown[]> {
     const client = await this.connect()
     return client.begin(async (tx) => {
@@ -191,6 +204,10 @@ export class PostgresHealthDb implements HealthSqlDb {
 
   /** @internal */
   async execute(stmt: PostgresHealthStatement) {
+    if (!stmt.bootstrap) {
+      if (!this.client) this.client = Promise.resolve(this.factory(this.url))
+      return stmt.runOn(await this.client)
+    }
     return stmt.runOn(await this.connect())
   }
 

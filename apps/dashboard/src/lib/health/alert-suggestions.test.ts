@@ -59,9 +59,11 @@ describe('buildSuggestions — near-threshold', () => {
 
   test('does NOT fire on a zero value (idle metric)', () => {
     const suggestions = buildSuggestions([
-      host({ metricValues: { 'stuck-merges': 0 } }),
+      host({ metricValues: { 'running-queries': 0 } }),
     ])
-    expect(suggestions.find((x) => x.metric === 'stuck-merges')).toBeUndefined()
+    expect(
+      suggestions.find((x) => x.metric === 'running-queries')
+    ).toBeUndefined()
   })
 })
 
@@ -147,13 +149,16 @@ describe('buildSuggestions — recurring findings', () => {
     const suggestions = buildSuggestions([
       host({
         recurringFindings: {
-          'stuck-merges': { count: 4, lastTitle: 'Merges piling up' },
+          'running-queries': {
+            count: 4,
+            lastTitle: 'Concurrent queries rising',
+          },
         },
       }),
     ])
-    const s = suggestions.find((x) => x.metric === 'stuck-merges')
+    const s = suggestions.find((x) => x.metric === 'running-queries')
     expect(s?.source).toBe('recurring-finding')
-    expect(s?.reason).toContain('Merges piling up')
+    expect(s?.reason).toContain('Concurrent queries rising')
   })
 })
 
@@ -190,18 +195,18 @@ describe('buildSuggestions — dedup & exclusion', () => {
 
   test('scopes keys per host', () => {
     const suggestions = buildSuggestions([
-      host({ hostId: 0, metricValues: { 'stuck-merges': 2 } }),
+      host({ hostId: 0, metricValues: { 'running-queries': 150 } }),
       host({
         hostId: 1,
         hostName: 'ch-1',
-        metricValues: { 'stuck-merges': 2 },
+        metricValues: { 'running-queries': 150 },
       }),
     ])
     const keys = suggestions
-      .filter((s) => s.metric === 'stuck-merges')
+      .filter((s) => s.metric === 'running-queries')
       .map((s) => s.key)
       .sort()
-    expect(keys).toEqual(['stuck-merges:host:0', 'stuck-merges:host:1'])
+    expect(keys).toEqual(['running-queries:host:0', 'running-queries:host:1'])
   })
 })
 
@@ -210,7 +215,7 @@ describe('buildSuggestions — invariants', () => {
     const suggestions = buildSuggestions([
       host({
         clusterShape: { replicatedTables: 5, disks: 3 },
-        metricValues: { 'stuck-merges': 5, 'failed-mutations': 2 },
+        metricValues: { 'running-queries': 5, 'failed-mutations': 2 },
       }),
     ])
     expect(suggestions.length).toBeGreaterThan(0)
@@ -228,7 +233,7 @@ describe('buildSuggestions — invariants', () => {
     const suggestions = buildSuggestions([
       host({
         clusterShape: { replicatedTables: 5, disks: 3 },
-        metricValues: { 'stuck-merges': 5 },
+        metricValues: { 'running-queries': 5 },
         baselines: {
           'running-queries': { mean: 300, stddev: 50, sampleCount: 200 },
         },
@@ -254,4 +259,16 @@ describe('buildSuggestions — invariants', () => {
       })
     }
   })
+})
+
+test('merge age never suggests a scalar paging rule', () => {
+  const suggestions = buildSuggestions([
+    host({
+      metricValues: { 'stuck-merges': 50 },
+      recurringFindings: {
+        'stuck-merges': { count: 4, lastTitle: 'Long-running merges' },
+      },
+    }),
+  ])
+  expect(suggestions.find((s) => s.metric === 'stuck-merges')).toBeUndefined()
 })

@@ -229,6 +229,13 @@ CREATE TABLE IF NOT EXISTS peerdb_alert_rules (
 CREATE INDEX IF NOT EXISTS idx_peerdb_alert_rules_owner
   ON peerdb_alert_rules (owner_id);
 
+CREATE TABLE IF NOT EXISTS merge_progress_snapshots (
+  host_key TEXT NOT NULL PRIMARY KEY,
+  version BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL,
+  snapshot_json TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS peerdb_throughput_samples (
   flow_slug   TEXT NOT NULL PRIMARY KEY,
   rows_synced BIGINT NOT NULL,

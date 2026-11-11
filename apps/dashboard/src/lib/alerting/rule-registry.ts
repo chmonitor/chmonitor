@@ -22,6 +22,7 @@ export type AlertRuleType =
   | 'replication-lag'
   | 'failed-mutations'
   | 'stuck-merges'
+  | 'stalled-merges'
   | 'disk-usage'
   | 'disk-time-to-full'
   | 'query-timeout'
@@ -87,6 +88,8 @@ export interface AlertRuleDef {
    * statement, never inside the batched sweep, so the settings are not lost.
    */
   clickhouseSettings?: Readonly<Record<string, string | number>>
+  /** Stateful query dispatch; never evaluated as a scalar KPI. */
+  observation?: 'merge-progress'
   /** Column name to read the numeric value from the SQL result row. */
   valueKey: string
   /**

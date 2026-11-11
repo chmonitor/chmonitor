@@ -79,6 +79,7 @@ export interface BatchedKpiRow {
 
 /** Rules the batch must not touch, because they nest badly or are too heavy. */
 export function isBatchableRule(rule: AlertRuleDef): boolean {
+  if (rule.observation) return false
   if (rule.id.startsWith('compound:')) return false
   if (BATCH_EXCLUDED_RULE_IDS.includes(rule.id)) return false
   // The batch is one request with one settings bag; per-rule settings would

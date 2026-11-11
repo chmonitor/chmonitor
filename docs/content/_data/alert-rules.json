@@ -10,7 +10,7 @@
     {
       "category": "compound",
       "depends": ["stuck-merges", "disk-usage"],
-      "description": "Stuck merges AND high disk usage both firing at once — merges are likely stalled fighting for disk headroom rather than transient load.",
+      "description": "Long-running merges AND high disk usage both firing at once — merges are competing for disk headroom; inspect work counters for evidence of a stall.",
       "id": "merge-pressure",
       "title": "Merge Pressure"
     },
@@ -209,36 +209,62 @@
         "Disk I/O saturation or slow storage",
         "Insufficient background_pool_size"
       ],
-      "description": "Merges running for more than 10 minutes. Stuck merges block table inserts and consume resources.",
+      "description": "Merges running for more than 10 minutes. Duration alone does not show a stall; large merges can keep making progress for hours.",
       "fix": [
         {
           "description": null,
           "id": "stuck-merges-runbook",
           "kind": "runbook",
-          "label": "Stuck merges runbook",
+          "label": "Merge progress runbook",
           "sql": null,
-          "url": "https://docs.chmonitor.dev/guide/guides/stuck-merges-runbook"
+          "url": "https://docs.chmonitor.dev/guide/guides/merges-slower-than-inserts"
         },
         {
           "description": "Merges running longer than 10 minutes, slowest first.",
           "id": "stuck-merges-detail",
           "kind": "diagnostic",
-          "label": "Get stuck merges",
+          "label": "Get long-running merges",
           "sql": "SELECT database, table, elapsed, progress, num_parts, total_size_bytes_compressed\nFROM system.merges\nWHERE elapsed > 600\nORDER BY elapsed DESC\nLIMIT 20",
           "url": null
         }
       ],
       "id": "stuck-merges",
-      "link": "https://docs.chmonitor.dev/guide/guides/stuck-merges-runbook",
+      "link": "https://docs.chmonitor.dev/guide/guides/merges-slower-than-inserts",
       "optional": true,
-      "sampleLabel": "1 stuck merge",
+      "sampleLabel": "1 long-running merge",
       "sql": "SELECT count() AS stuck_count,\n  groupArray(5)(concat(database, '.', table, ' ', result_part_name)) AS affected\nFROM system.merges\nWHERE elapsed > 600",
       "tableCheck": "system.merges",
       "thresholds": {
         "critical": 3,
         "warning": 1
       },
-      "title": "Stuck Merges"
+      "title": "Long-running Merges"
+    },
+    {
+      "category": "parts & merges",
+      "commonCauses": [],
+      "description": "Active merges with unchanged row, byte, column and progress counters across continuous health-sweep observations for HEALTH_MERGE_STALL_SECONDS (default 15 minutes). Requires shared D1 or Postgres metadata storage.",
+      "fix": [
+        {
+          "description": null,
+          "id": "merge-progress-runbook",
+          "kind": "runbook",
+          "label": "Merge progress runbook",
+          "sql": null,
+          "url": "https://docs.chmonitor.dev/guide/guides/merges-slower-than-inserts"
+        }
+      ],
+      "id": "stalled-merges",
+      "link": "https://docs.chmonitor.dev/guide/guides/merges-slower-than-inserts",
+      "optional": true,
+      "sampleLabel": "1 stalled merge",
+      "sql": "SELECT database, table, result_part_name,\n  elapsed, progress, rows_read, rows_written, bytes_read_uncompressed,\n  bytes_written_uncompressed, columns_written\nFROM system.merges",
+      "tableCheck": "system.merges",
+      "thresholds": {
+        "critical": 1,
+        "warning": 1
+      },
+      "title": "Stalled Merges"
     },
     {
       "category": "queries",

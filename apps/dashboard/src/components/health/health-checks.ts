@@ -39,6 +39,8 @@ export interface HealthCheckDef {
   chartName: string
   valueKey: string
   defaults: Thresholds
+  /** Some signals (merge age) have no evidence for critical severity. */
+  warningOnly?: boolean
   unit?: string
   formatLabel?: (value: number | null) => string
   formatValue?: (value: number | null) => string
@@ -587,16 +589,17 @@ FROM system.mutations`,
   },
   {
     id: 'stuck-merges',
-    title: 'Stuck Merges (>10m)',
+    title: 'Long-running Merges (>10m)',
     icon: Timer,
     chartName: 'health-stuck-merges',
     detailChartName: 'health-stuck-merges-detail',
     detailEmptyMessage: 'No merges have been running longer than 10 minutes.',
     valueKey: 'stuck_count',
     defaults: { warning: 1, critical: 3 },
-    formatLabel: fmtCount('stuck merge'),
+    formatLabel: fmtCount('long-running merge'),
+    warningOnly: true,
     description:
-      'Merges that have been running for more than 10 minutes. Stuck merges hold disk space, consume background threads, and can block inserts.',
+      'Merges running for more than 10 minutes. Check row, byte and column counters before treating a large merge as stalled; duration alone is a warning.',
     systemTables: ['system.merges'],
     commonCauses: [
       'Very large parts requiring many hours to merge',

@@ -13,6 +13,7 @@
 import type { CompoundRuleDef } from './compound-rules'
 import type { AlertRuleDef } from './rule-registry'
 
+import { MERGE_PROGRESS_SQL } from '../health/merge-progress'
 import {
   buildPartsPressurePercentSql,
   PARTS_PRESSURE_PERCENT_CRITICAL,
@@ -238,9 +239,9 @@ LIMIT 20`,
   {
     id: 'stuck-merges',
     type: 'stuck-merges',
-    title: 'Stuck Merges',
+    title: 'Long-running Merges',
     description:
-      'Merges running for more than 10 minutes. Stuck merges block table inserts and consume resources.',
+      'Merges running for more than 10 minutes. Duration alone does not show a stall; large merges can keep making progress for hours.',
     sql: `SELECT count() AS stuck_count,
   groupArray(5)(concat(database, '.', table, ' ', result_part_name)) AS affected
 FROM system.merges
@@ -248,19 +249,24 @@ WHERE elapsed > 600`,
     valueKey: 'stuck_count',
     affectedKey: 'affected',
     defaults: { warning: 1, critical: 3 },
-    formatLabel: fmtCount('stuck merge'),
+    formatLabel: fmtCount('long-running merge'),
+    signalOnly: true,
+    classify: (value, thresholds) =>
+      value !== null && Number.isFinite(value) && value >= thresholds.warning
+        ? 'warning'
+        : 'ok',
     optional: true,
     tableCheck: 'system.merges',
     remediationActions: [
       {
         id: 'stuck-merges-runbook',
-        label: 'Stuck merges runbook',
+        label: 'Merge progress runbook',
         kind: 'runbook',
-        url: 'https://docs.chmonitor.dev/guide/guides/stuck-merges-runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/merges-slower-than-inserts',
       },
       {
         id: 'stuck-merges-detail',
-        label: 'Get stuck merges',
+        label: 'Get long-running merges',
         kind: 'diagnostic',
         description: 'Merges running longer than 10 minutes, slowest first.',
         sql: `SELECT database, table, elapsed, progress, num_parts, total_size_bytes_compressed
@@ -268,6 +274,30 @@ FROM system.merges
 WHERE elapsed > 600
 ORDER BY elapsed DESC
 LIMIT 20`,
+      },
+    ],
+  },
+
+  {
+    id: 'stalled-merges',
+    type: 'stalled-merges',
+    title: 'Stalled Merges',
+    description:
+      'Active merges with unchanged row, byte, column and progress counters across continuous health-sweep observations for HEALTH_MERGE_STALL_SECONDS (default 15 minutes). Requires shared D1 or Postgres metadata storage.',
+    sql: MERGE_PROGRESS_SQL,
+    observation: 'merge-progress',
+    valueKey: 'stalled_count',
+    affectedKey: 'affected',
+    defaults: { warning: 1, critical: 1 },
+    formatLabel: fmtCount('stalled merge'),
+    optional: true,
+    tableCheck: 'system.merges',
+    remediationActions: [
+      {
+        id: 'merge-progress-runbook',
+        label: 'Merge progress runbook',
+        kind: 'runbook',
+        url: 'https://docs.chmonitor.dev/guide/guides/merges-slower-than-inserts',
       },
     ],
   },
@@ -888,8 +918,8 @@ export const BUILTIN_COMPOUND_RULES: readonly CompoundRuleDef[] = [
     id: 'merge-pressure',
     title: 'Merge Pressure',
     description:
-      'Stuck merges AND high disk usage both firing at once — merges are ' +
-      'likely stalled fighting for disk headroom rather than transient load.',
+      'Long-running merges AND high disk usage both firing at once — merges are ' +
+      'competing for disk headroom; inspect work counters for evidence of a stall.',
     depends: ['stuck-merges', 'disk-usage'],
     evaluate: (inputs) => {
       const merges = inputs['stuck-merges']
@@ -905,7 +935,7 @@ export const BUILTIN_COMPOUND_RULES: readonly CompoundRuleDef[] = [
     formatLabel: (inputs) => {
       const merges = inputs['stuck-merges']?.value ?? 0
       const disk = inputs['disk-usage']?.value ?? 0
-      return `${merges.toLocaleString()} stuck merge(s) + ${disk}% disk used`
+      return `${merges.toLocaleString()} long-running merge(s) + ${disk}% disk used`
     },
   },
 

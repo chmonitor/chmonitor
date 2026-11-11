@@ -7,25 +7,23 @@
  * (and its webhook fan-out). This module runs the SAME rule-evaluation logic
  * (rule registry + threshold classification) in a dry-run, read-only mode: no
  * dedup-state writes, no webhook, no insights generation, no alert-history
- * writes. Intentionally duplicates the small query/table-probe helpers from
- * `server-sweep.ts` rather than importing its internals, so this addition
- * doesn't widen the diff on that heavily-contended file.
+ * writes. Query dispatch is shared with the sweep; stateful rules read their
+ * persisted evidence without creating tables or saving observations.
  */
 
 import type { ClickHouseConfig } from '@chm/clickhouse-client'
-import type { AlertRuleDef } from '@/lib/alerting/rule-registry'
 
 import { getExistingTables, getHostCapabilities } from './capability-cache'
 import { resolveThresholdOverrides } from './declarative/thresholds'
 import { ruleAppliesToHost } from './replication-usage'
+import { queryHealthRule } from './rule-query'
 import { getServerEnabledRules } from './server-alert-config'
 import { isRuleEnabled } from './sweep/suppression'
-import { fetchData, getClickHouseConfigs } from '@chm/clickhouse-client'
+import { getClickHouseConfigs } from '@chm/clickhouse-client'
 import { redactHostCredentials } from '@chm/clickhouse-client/redact-host'
 import { registerBuiltinRules } from '@/lib/alerting/builtin-rules'
 import {
   classifyValue,
-  parseAffectedNames,
   ruleLabel,
   ruleRegistry,
 } from '@/lib/alerting/rule-registry'
@@ -46,31 +44,6 @@ export interface CurrentFinding {
 
 function hostLabel(config: ClickHouseConfig): string {
   return config.customName?.trim() || redactHostCredentials(config.host)
-}
-
-async function runRuleQuery(
-  sql: string,
-  valueKey: string,
-  hostId: number,
-  settings?: AlertRuleDef['clickhouseSettings'],
-  affectedKey?: string
-): Promise<{ value: number | null; affected: string[] }> {
-  const result = await fetchData<Array<Record<string, unknown>>>({
-    query: sql,
-    hostId,
-    format: 'JSONEachRow',
-    clickhouse_settings: { ...settings, readonly: '1' },
-  })
-  if (result.error) throw new Error(result.error.message)
-  const rows = result.data
-  if (!Array.isArray(rows) || rows.length === 0)
-    return { value: 0, affected: [] }
-  const affected = affectedKey ? parseAffectedNames(rows[0]?.[affectedKey]) : []
-  const raw = rows[0]?.[valueKey]
-  if (raw === null || raw === undefined || raw === '')
-    return { value: null, affected }
-  const num = Number(raw)
-  return { value: Number.isFinite(num) ? num : null, affected }
 }
 
 /**
@@ -120,20 +93,16 @@ export async function getCurrentFindings(options?: {
       }
 
       try {
-        const { value, affected } = await runRuleQuery(
-          rule.sql,
-          rule.valueKey,
-          config.id,
-          rule.clickhouseSettings,
-          rule.affectedKey
-        )
+        const { value, affected } = await queryHealthRule(rule, config, 'read')
         // Unknown (NULL / non-numeric) is not a finding.
         if (value === null) continue
         const thresholds = {
           ...rule.defaults,
           ...(thresholdOverrides[rule.id] ?? {}),
         }
-        const severity = classifyValue(value, thresholds)
+        const severity = rule.classify
+          ? rule.classify(value, thresholds)
+          : classifyValue(value, thresholds)
         if (severity === 'ok') continue
 
         findings.push({

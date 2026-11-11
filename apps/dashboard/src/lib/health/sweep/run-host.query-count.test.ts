@@ -110,7 +110,10 @@ const { BUILTIN_RULES: ALL_BUILTIN_RULES } = await import(
 const { isRuleEnabled } = await import('./suppression')
 // The rules a default deployment runs: rules shipped with
 // `defaultEnabled: false` are skipped (#4070), so they are not in the counts.
-const BUILTIN_RULES = ALL_BUILTIN_RULES.filter((r) => isRuleEnabled(r))
+// These counts cover scalar rules. Stateful merge observations have their own
+// shared metadata prerequisite and query-dispatch regression suite.
+const SCALAR_RULES = ALL_BUILTIN_RULES.filter((r) => !r.observation)
+const BUILTIN_RULES = SCALAR_RULES.filter((r) => isRuleEnabled(r))
 const { BATCH_EXCLUDED_RULE_IDS } = await import('@/lib/health/batch-kpi')
 const { resetHostCapabilities, setCapabilityCacheClock } = await import(
   '../capability-cache'
@@ -125,7 +128,7 @@ const config = { id: 0, host: 'test-host', user: 'default', password: '' }
 
 const sweepContext = {
   alertingEnabled: false,
-  rules: ALL_BUILTIN_RULES,
+  rules: SCALAR_RULES,
   thresholdOverrides: {},
   orderedCompoundRules: [],
 } as unknown as Parameters<typeof runHostSweep>[1]

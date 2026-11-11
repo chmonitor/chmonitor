@@ -933,6 +933,12 @@
     },
     {
       "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "HEALTH_MERGE_STALL_SECONDS",
+      "prefix": "HEALTH"
+    },
+    {
+      "exampleDefault": null,
       "inEnvExample": false,
       "name": "HEALTH_PEERDB_API_CRITICAL_AFTER_MINUTES",
       "prefix": "HEALTH"

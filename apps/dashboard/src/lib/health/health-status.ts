@@ -93,7 +93,11 @@ export function computeCheckStatus(
     value = raw === null || raw === undefined ? 0 : Number(raw)
     label = check.formatLabel ? check.formatLabel(value) : String(value)
     if (Number.isFinite(value)) {
-      status = classifyValue(value, thresholds)
+      status = check.warningOnly
+        ? value >= thresholds.warning
+          ? 'warning'
+          : 'ok'
+        : classifyValue(value, thresholds)
     } else {
       status = 'error'
       label = 'Invalid value'

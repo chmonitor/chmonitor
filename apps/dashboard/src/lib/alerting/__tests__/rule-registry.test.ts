@@ -311,8 +311,8 @@ describe('stuck-merges rule', () => {
     expect(classifyValue(1, rule.defaults)).toBe('warning')
   })
 
-  test('critical at 3 stuck merges', () => {
-    expect(classifyValue(3, rule.defaults)).toBe('critical')
+  test('age alone stays warning at 3 long-running merges', () => {
+    expect(rule.classify!(3, rule.defaults)).toBe('warning')
   })
 })
 

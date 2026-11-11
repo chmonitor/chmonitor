@@ -78,7 +78,7 @@ export const ALERT_TEMPLATES: readonly AlertTemplate[] = [
     id: 'ingestion',
     name: 'Ingestion focus',
     description:
-      'For write-heavy clusters — tight thresholds on parts, merges and insert throttling.',
+      'For write-heavy clusters — tight thresholds on parts and insert throttling, plus a warning for long-running merges.',
     icon: 'layers',
     minSeverity: 'warning',
     browserNotifications: true,
