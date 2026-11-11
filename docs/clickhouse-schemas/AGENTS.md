@@ -7,7 +7,7 @@ edit **this** file only.
 ## When to Read This
 
 Read this document when you are:
-- Adding or modifying queries in `lib/query-config/`
+- Adding or modifying queries in `apps/dashboard/src/lib/query-config/`
 - Debugging query failures on specific ClickHouse versions
 - Adding version-specific query variants
 - Working with system tables (`system.*`)
@@ -19,12 +19,12 @@ When adding or modifying a query config:
 1. Identify every `system.*` table in the SQL (`FROM`, `JOIN`, subqueries).
 2. Read `tables/{table}.md` for each of those tables.
 3. Check the **Version Compatibility Matrix** in each table file.
-4. If a column is not available on all versions from 23.8+, add a `variants`
-   array (or a versioned `sql: [{ since, sql }]` list) for each version
-   boundary.
+4. If a column is not available on all versions from 23.8+, use a versioned
+   `sql: [{ since, sql }]` list with one entry per version boundary.
 
-Then: follow existing patterns in `lib/query-config/`, write the config, add
-variants if needed, and verify with `pnpm run type-check`.
+Then: follow existing patterns in `apps/dashboard/src/lib/query-config/`, write
+the config, add since-gated entries if needed, and verify with
+`pnpm run type-check`.
 
 For fuller query-config patterns, use the `clickhouse-query-config` skill.
 
@@ -34,16 +34,16 @@ Before modifying any query configuration:
 
 1. [ ] Read `tables/{table}.md` for each system table in the query
 2. [ ] Check `v{version}.md` for breaking changes if targeting specific version
-3. [ ] Review existing patterns in `lib/query-config/`
+3. [ ] Review existing patterns in `apps/dashboard/src/lib/query-config/`
 
 ## Query Variant Decision Tree
 
 ```
 Does your query use system.* tables?
-├── No → No variants needed
+├── No → No version gates needed
 └── Yes → Check column availability
-    ├── All columns exist in v23.8+ → No variants needed
-    └── Some columns missing in older versions → Add variants
+    ├── All columns exist in v23.8+ → No version gates needed
+    └── Some columns missing in older versions → Add since-gated sql entries
 ```
 
 ## Adding a Version Variant
@@ -51,61 +51,62 @@ Does your query use system.* tables?
 When column availability differs across versions:
 
 ```typescript
-// In lib/query-config/queries/your-config.ts
+// In apps/dashboard/src/lib/query-config/queries/your-config.ts
 
 export const yourConfig: QueryConfig = {
   name: 'your-query',
 
-  // Default: query for LATEST ClickHouse versions
-  sql: `SELECT col1, col2, new_col FROM system.table`,
-
-  // Variants for older versions (first match wins)
-  variants: [
-    {
-      versions: '<24.1',  // Semver range
-      description: 'Pre-24.1: new_col not available',
-      sql: `SELECT col1, col2 FROM system.table`,
-    },
+  // Chronological, oldest → newest. `selectVersionedSql` picks the entry
+  // with the highest `since` that is <= the server version.
+  sql: [
+    { since: '23.8', sql: `SELECT col1, col2 FROM system.table` },
+    { since: '24.1', sql: `SELECT col1, col2, new_col FROM system.table` },
   ],
 
   columns: ['col1', 'col2', 'new_col'],
 }
 ```
 
-## Semver Range Quick Reference
+## How `since` Selection Works
 
-| Pattern | Matches | Does NOT Match |
-|---------|---------|----------------|
-| `<24.1` | 23.x, 24.0.x | 24.1+, 25.x |
-| `>=24.1` | 24.1+, 25.x | 23.x, 24.0.x |
-| `>=23.8 <24.1` | 23.8.x, 24.0.x | 23.7.x, 24.1+ |
+`selectVersionedSql` (`packages/clickhouse-client/src/clickhouse-version.ts`)
+compares the server version against each entry's `since` and takes the entry
+with the **highest `since` that is <= the server version**. There is no range
+string, no `<24.1` syntax, and no `variants` key on `QueryConfig` — write the
+array chronologically (oldest `since` first) and the picker does the rest.
+
+| Server version | Entries | Picked |
+|----------------|---------|--------|
+| 23.8.x         | `23.8`, `24.1` | `23.8` |
+| 24.0.x         | `23.8`, `24.1` | `23.8` |
+| 24.1+          | `23.8`, `24.1` | `24.1` |
 
 ## Key Version Boundaries
 
+See `docs/clickhouse-schemas/index.md` for the maintained Version Matrix
+(matched against `scripts/ch-schema/constants.ts` `LTS_VERSIONS`). The two
+boundaries chmonitor configs use most:
+
 ### v23.8 (LTS)
-- Stable baseline
-- Use as minimum version for enterprise support
+- Enterprise baseline; the `since` gate floor for versioned SQL
 
 ### v24.1
 - Added: `query_cache_usage` in system.query_log
 - Added: `peak_threads_usage` in system.processes
 
-### v24.8 (LTS)
-- [Document key changes when known]
-
 ## Common Mistakes to Avoid
 
 1. **Don't assume column exists** - Always check `tables/{table}.md`
-2. **Don't forget variants** - If column added in v24.1, add variant for <24.1
-3. **Don't hardcode versions** - Use semver ranges for flexibility
+2. **Don't forget `since` gates** - If a column was added in v24.1, add a `{ since: '23.8', … }` entry for the older shape
+3. **Don't hardcode versions** - Use `since` gates, never `if (version >= …)` in config SQL
 4. **Test on multiple versions** - Verify queries work on target versions
 
 ## File Locations
 
 | What | Where |
 |------|-------|
-| Table schemas | `docs/clickhouse-schemas/tables/*.md` |
-| Version changes | `docs/clickhouse-schemas/v*.md` |
-| Query configs | `lib/query-config/**/*.ts` |
-| Chart queries | `lib/api/charts/*.ts` |
-| Version utils | `lib/clickhouse-version.ts` |
+| Table schemas | `tables/*.md` |
+| Version changes | `v*.md` |
+| Query configs | `apps/dashboard/src/lib/query-config/**/*.ts` |
+| Chart queries | `apps/dashboard/src/lib/api/charts/*.ts` |
+| Version utils | `packages/clickhouse-client/src/clickhouse-version.ts` |
