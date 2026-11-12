@@ -11,3 +11,4 @@ onlyBuiltDependencies:
 overrides:
   sharp: ^0.35.5
   fast-xml-parser: ^5.12.0
+  'miniflare>undici': ^7.30.1
