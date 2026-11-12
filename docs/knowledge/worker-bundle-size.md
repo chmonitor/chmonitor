@@ -3,7 +3,7 @@ id: worker-bundle-size
 title: Cloudflare Worker Bundle Size
 type: decision
 status: active
-updated: 2026-10-28
+updated: 2026-11-12
 tags:
   - cloudflare-workers
   - bundle-size
@@ -19,13 +19,20 @@ related:
 
 The dashboard worker (`chmonitor-dash`) deploys with `no_bundle: true`, so `wrangler deploy` uploads **every** file under `dist/server/assets/*.js` against the size limit.
 
-## Current measurement (2026-08-07)
+## Current measurement (2026-11-11)
 
 ```
-Total Upload: ~11.9 MiB / gzip: ~2.78 MiB   (~660 modules)
+Total Upload: 14246.52 KiB / gzip: 3276.52 KiB   (809 modules)
 ```
 
-**Under the free-plan 3 MiB limit** with ~300 KiB headroom. Preview deploys fail hard with `code 10027` when gzip exceeds 3 MiB.
+~3.20 MiB gzip — **above both budgets** in `.github/workflows/bundle-size.yml`
+(2560 KiB warn / 3072 KiB hard), yet production deploys remain green. The gate
+had been silent since at least 2026-10-10 (CI run 38083377268, gzip 3133.06 KiB)
+because the parser expected `MiB` while wrangler prints KiB; fixed 2026-11-12.
+Source: bundle-size CI run 43002596042 on main @ a09aac51.
+
+History: the 2026-08-07 measurement was ~11.9 MiB / gzip ~2.78 MiB (~660 modules);
+the free-plan ceiling claim no longer holds.
 
 Re-measure after any change that adds server imports:
 
@@ -69,7 +76,7 @@ pnpm exec wrangler deploy --minify --dry-run 2>&1 | grep -iE "Total Upload|gzip:
 
 ## Residual risks / next cuts
 
-- **MCP in dashboard worker**: largest remaining win is routing `/api/mcp` only to `apps/mcp` and dropping `@chm/mcp-server/http` → `createMcpHandler` from the dashboard graph.
+- **MCP in dashboard worker**: largest remaining win is routing `/api/mcp` only to `apps/mcp` and dropping `@chm/mcp-server/http` → `createMcpHandler` from the dashboard graph. The MCP cut decision lives in [issue #4282](https://github.com/chmonitor/chmonitor/issues/4282).
 - **Clerk client bundle**: hard to stub without breaking auth UI SSR.
 - **CF free plan OTEL**: export packages are stubbed on Worker; set `CHM_OTEL_EXPORTER_URL` only works fully on Node/Docker until headroom allows un-stubbing.
 - **PDF**: Browser Rendering via `@cloudflare/puppeteer` is stubbed; use REST Browser Rendering later if PDF is required on CF free tier.

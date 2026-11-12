@@ -86,16 +86,17 @@ jobs:
           DRY_OUTPUT=$(pnpm exec wrangler deploy --minify --dry-run 2>&1)
           echo "$DRY_OUTPUT"
 
-          # Parse "gzip: X.XX MiB" from wrangler output.
-          # Example: "Total Upload: 8.5 MiB / gzip: 1.82 MiB   (440 modules)"
+          # Parse "gzip: <num> <KiB|MiB|GiB>" from wrangler output.
+          # Example: "Total Upload: 14246.52 KiB / gzip: 3276.52 KiB   (809 modules)"
           PARSED=$(echo "$DRY_OUTPUT" | python3 -c "
           import re, sys
           out = sys.stdin.read()
-          m = re.search(r'gzip:\s*([0-9]+\.[0-9]+)\s*MiB', out)
+          m = re.search(r'gzip:\s*([0-9]+(?:\.[0-9]+)?)\s*(KiB|MiB|GiB)', out)
           if m:
-              mib = float(m.group(1))
-              kib = int(mib * 1024)
-              print(f'{mib:.2f} {kib}')
+              val = float(m.group(1))
+              unit = m.group(2)
+              kib = val * {'KiB': 1, 'MiB': 1024, 'GiB': 1024 * 1024}[unit]
+              print(f'{kib / 1024:.2f} {int(kib)}')
           ")
 
           if [ -z "$PARSED" ]; then

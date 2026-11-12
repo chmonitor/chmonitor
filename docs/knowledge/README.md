@@ -32,7 +32,7 @@ Agents discover knowledge in this order:
 | **Operations** | [deployment.md](deployment.md) | reference | Docker and Cloudflare Workers dual deployment guide |
 | **Operations** | [install-sh-bot-fight.md](install-sh-bot-fight.md) | reference | curl install.sh 403 from Bot Fight Mode; GitHub raw workaround; `cf:allow-install-sh` |
 | **Design** | [release-screenshots.md](release-screenshots.md) | reference | Release images: privacy gate, one idea per image, branded frames, `render.mjs` to 2000x1250 WebP |
-| **Operations** | [worker-bundle-size.md](worker-bundle-size.md) | decision | Worker gzip 1.82 MiB (under limit); bundle breakdown; @opentelemetry/api probed = 6.5 KiB, NOT worth stubbing |
+| **Operations** | [worker-bundle-size.md](worker-bundle-size.md) | decision | Worker gzip ~3.20 MiB (over the 2.5/3.0 MiB budgets; gate was silent, fixed 2026-11-12); bundle breakdown; @opentelemetry/api probed = 6.5 KiB, NOT worth stubbing |
 | **Operations** | [monorepo-refactor.md](monorepo-refactor.md) | decision | COMPLETE 2026-07-05 — monorepo migration record: phase table, extraction methodology, live gotchas; layout block re-verified 2026-09-30 |
 | **Operations** | [ch-version-onboarding.md](ch-version-onboarding.md) | workflow | New ClickHouse release audit: binary `system.columns` diff, `EXPLAIN` every query config, one issue per broken config (`local:ch-version`) |
 | **Operations** | [core-memory.md](core-memory.md) | workflow | Automation core memory: code-smell scans, dead-code rules |
