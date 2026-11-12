@@ -3,7 +3,7 @@ id: conventions
 title: Development Conventions
 type: workflow
 status: active
-updated: 2026-10-13
+updated: 2026-11-13
 tags:
   - conventions
   - patterns
@@ -109,8 +109,8 @@ warn('Cache miss', { key: 'hosts' })
 
 - `error(msg, err?, context?)` — always prints to `console.error`. An `Error`
   becomes `err: { name, message, stack }`; the stack is kept only when
-  `NODE_ENV=development`. `context` (`ErrorContext`: `hostId`, `component`,
-  `action`, `userId`, any extra key) is merged into the top-level object.
+  `NODE_ENV=development`. `context` (an object; `hostId`, `component`,
+  `action`, `userId`, and any extra key) is merged into the top-level object.
 - `warn(msg, data?)` — always prints.
 - `debug` / `log` — print only in development or with `DEBUG=true`. Guard
   expensive payload work with `isDebugEnabled()`.

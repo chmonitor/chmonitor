@@ -65,7 +65,7 @@ const RAW_CLICKHOUSE_ERROR =
  * the client's `ClickHouseError.type` or, for unparsed text, from the raw
  * `Code: N. DB::Exception: ... (TYPE)` message.
  */
-export function clickHouseErrorType(err: unknown): string | undefined {
+function clickHouseErrorType(err: unknown): string | undefined {
   if (err instanceof Error && 'type' in err && typeof err.type === 'string') {
     return err.type
   }

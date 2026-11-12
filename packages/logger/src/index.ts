@@ -28,7 +28,7 @@ const debugEnabled =
  */
 export const isDebugEnabled = (): boolean => isDevelopment || debugEnabled
 
-export interface ErrorContext {
+interface ErrorContext {
   digest?: string
   component?: string
   action?: string

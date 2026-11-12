@@ -111,7 +111,7 @@ function rateLimitResponse(retryAfterSec: number): Response {
   )
 }
 
-export interface IpRateLimitOptions {
+interface IpRateLimitOptions {
   /**
    * Name of a Cloudflare rate-limit binding on `globalThis` (e.g.
    * "CHM_RATE_LIMIT_MCP"). When present it is authoritative; omit or absent →

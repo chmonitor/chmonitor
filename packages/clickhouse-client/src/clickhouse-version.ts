@@ -61,7 +61,7 @@ const inFlightVersions = new Map<number, Promise<ClickHouseVersion | null>>()
  * wires it up), this is a pure no-op and `getClickHouseVersion` behaves
  * exactly as before — L1-memory-only.
  */
-export interface VersionCacheL2 {
+interface VersionCacheL2 {
   get(hostId: number): Promise<ClickHouseVersion | null>
   set(
     hostId: number,
@@ -269,7 +269,7 @@ export async function checkTableHasData(
   }
 }
 
-export interface TableAvailability {
+interface TableAvailability {
   exists: boolean
   hasData: boolean
   /**
@@ -431,7 +431,7 @@ export function versionMatchesRange(
   return true
 }
 
-export interface SemverRangeBounds {
+interface SemverRangeBounds {
   min?: ClickHouseVersion
   max?: ClickHouseVersion
   minInclusive: boolean
