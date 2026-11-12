@@ -6,7 +6,7 @@ settings:
 
 overrides:
   sharp: ^0.35.5
-  undici: ^7.29.1
+  undici: ^7.30.1
   ws: ^8.21.3
 
 importers:
@@ -3005,8 +3005,8 @@ packages:
   undici-types@8.3.0:
     resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
 
-  undici@7.30.0:
-    resolution: {integrity: sha512-dkrQXeHSaoamnItlYbmzG0wFYrM0ZwDxCIg0A7aKjTyyhh9svRzCNFEzV+Vm05/yehjCzjDZ31KXfGEjYSztDQ==}
+  undici@7.30.2:
+    resolution: {integrity: sha512-mLyPQnHwUxaM/rideoK/+KL8DaAJLRl4aBCfmX444aCSLnIaomqPLtNRe2jdCYcsk5wZzXrDIQC8ZeYNRAYyIA==}
     engines: {node: '>=20.18.1'}
 
   unenv@2.0.0-rc.24:
@@ -5997,7 +5997,7 @@ snapshots:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.35.5(@types/node@26.1.0)
-      undici: 7.30.0
+      undici: 7.30.2
       workerd: 1.20260601.1
       ws: 8.21.3
       youch: 4.1.0-beta.10
@@ -6010,7 +6010,7 @@ snapshots:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.35.5(@types/node@26.1.0)
-      undici: 7.30.0
+      undici: 7.30.2
       workerd: 1.20260926.1
       ws: 8.21.3
       youch: 4.1.0-beta.10
@@ -6418,7 +6418,7 @@ snapshots:
 
   undici-types@8.3.0: {}
 
-  undici@7.30.0: {}
+  undici@7.30.2: {}
 
   unenv@2.0.0-rc.24:
     dependencies:
