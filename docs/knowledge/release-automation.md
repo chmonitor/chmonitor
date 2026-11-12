@@ -3,7 +3,7 @@ id: release-automation
 title: Release Automation Pipeline
 type: workflow
 status: active
-updated: 2026-10-28
+updated: 2026-11-12
 tags:
   - release
   - ci
@@ -77,10 +77,19 @@ When GitHub is unreachable, the Worker serves a **build-time airgap snapshot**
 gitignored generated file; a small committed fixture covers tests. Do not
 fetch `CHANGELOG.md` at runtime.
 `pnpm --filter dashboard whats-new:snapshot` regenerates the snapshot.
-After a dashboard release, `release.yml` job `whats-new` drafts
-`docs/whats-new/vX.Y.Z.md` from the detailed `release-notes.md` plus any
-`## [Unreleased] ### Highlights`, using the same Copilot → GitHub Models
-tiers. It never replaces the GitHub Release body.
+**The `whats-new` job does not work.** It is supposed to draft
+`docs/whats-new/vX.Y.Z.md` after each dashboard release from `release-notes.md`
+plus any `## [Unreleased] ### Highlights`. Its final step pushes directly to
+the protected `main` branch and is rejected (`GH006`) on every release run
+checked (Aug–Nov 2026, v0.3.4–v0.3.11), so no file has ever landed from CI;
+friendly notes exist only through v0.3.4, committed by hand. The job's AI
+steps are also broken since `actions/ai-inference@v3` (`#3202`): `github-models`
+is rejected by v3 and the copilot path needs a Copilot CLI that is not
+installed, so only the deterministic fallback runs — and the push fails
+anyway. Both UIs fall back to the stripped release-body parser until this is
+fixed. The workflow mechanism is a maintainer decision (#4284); until it lands,
+generate the file locally (`bun scripts/write-whats-new.ts --tag vX.Y.Z`) and
+commit it by hand. It never replaces the GitHub Release body.
 `bun scripts/write-whats-new.ts --tag vX.Y.Z --release-notes release-notes.md`
 does the same locally. Screenshot files live in `assets/whats-new/` (served
 as `/assets/whats-new/…` after `scripts/sync-shared-assets.mjs`).

@@ -45,10 +45,16 @@ Features / Fixes / Perf (and drop recap / Docker / shoutouts).
 
 ## After a dashboard release
 
-`release.yml` generates or updates `docs/whats-new/vX.Y.Z.md` from the detailed
-release notes plus any `## [Unreleased] ### Highlights` in `CHANGELOG.md`. It
-does not replace the GitHub Release body. You can also run:
+`release.yml`'s `whats-new` job is supposed to generate or update
+`docs/whats-new/vX.Y.Z.md` from the detailed release notes plus any
+`## [Unreleased] ### Highlights` in `CHANGELOG.md`. It never has: the final
+step pushes directly to the protected `main` branch and is rejected (`GH006`)
+on every release run since the job shipped. No CI-generated friendly file has
+landed since v0.3.4; the workflow fix is tracked in
+[#4284](https://github.com/chmonitor/chmonitor/issues/4284). Until it lands,
+generate the file locally and commit it in a PR (it does not replace the
+GitHub Release body):
 
 ```bash
-bun scripts/write-whats-new.ts --tag v0.3.4
+bun scripts/write-whats-new.ts --tag vX.Y.Z
 ```
