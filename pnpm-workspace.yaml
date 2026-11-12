@@ -34,6 +34,7 @@ overrides:
   mermaid: ^11.16.1
   nanoid: ^3.3.18
   path-to-regexp: ^8.4.2
+  fflate: ^0.7.5
   picomatch: ^4.0.3
   postcss: ^8.5.23
   protobufjs: ^8.7.2
