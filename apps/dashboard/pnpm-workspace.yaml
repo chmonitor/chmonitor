@@ -27,6 +27,6 @@ overrides:
   nanoid: ^3.3.18
   postcss: ^8.5.23
   protobufjs: ^8.7.2
-  undici: ^7.29.1
+  undici: ^7.30.1
   source-map-js: ^1.2.2
   ws: ^8.21.3
