@@ -27,14 +27,14 @@ export type FeatureIconKey =
   | 'peerdb'
   | 'postgres'
 
-export interface NavItem {
+interface NavItem {
   label: string
   href: string
   description?: string
   badge?: string
 }
 
-export interface FeatureNavItem extends NavItem {
+interface FeatureNavItem extends NavItem {
   icon: FeatureIconKey
 }
 

@@ -12,7 +12,7 @@ import { debug, error, warn } from '@chm/logger'
 
 type ErrorHalf = Pick<FetchDataResult<never>, 'metadata' | 'error'>
 
-export type HostResolution =
+type HostResolution =
   | { ok: true; clientConfig: ClickHouseConfig }
   | { ok: false; failure: ErrorHalf }
 

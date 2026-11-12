@@ -25,7 +25,7 @@ const cache = new LRUCache<string, boolean>({
  * no provider is registered (self-hosted Node/Docker path), this is a pure
  * no-op and `checkTableExists` behaves exactly as before — L1-LRU-only.
  */
-export interface TableExistenceCacheL2 {
+interface TableExistenceCacheL2 {
   get(key: string): Promise<boolean | null>
   set(key: string, exists: boolean, ttlSeconds: number): Promise<void>
   /** Remove one entry. Used by `invalidateTable` so L2 cannot re-arm L1. */
@@ -53,7 +53,7 @@ export function setTableExistenceL2Provider(
  *   every server has. The user's view of `system` is filtered by grants, so
  *   "not listed" may mean "not granted" (#3895). Only reported for `system.*`.
  */
-export type TableExistsResult = boolean | 'unknown' | 'hidden'
+type TableExistsResult = boolean | 'unknown' | 'hidden'
 
 /**
  * Present on every server. Missing from this user's `system.tables` means

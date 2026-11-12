@@ -16,12 +16,12 @@ import { getAllSqlStrings } from '@chm/sql-builder'
  * - `probe_failed`: the probe itself errored (network/timeout/auth) —
  *   existence is unknown, NOT confirmed missing. See issue #2505.
  */
-export type TableValidationReason =
+type TableValidationReason =
   | 'table_missing'
   | 'column_missing'
   | 'probe_failed'
 
-export type TableValidationResult = {
+type TableValidationResult = {
   shouldProceed: boolean
   missingTables: string[]
   missingColumns?: string[]

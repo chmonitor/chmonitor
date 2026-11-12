@@ -3,7 +3,7 @@ id: core-memory
 title: Automation Core Memory
 type: workflow
 status: active
-updated: 2026-11-11
+updated: 2026-11-13
 tags:
   - automation
   - code-smell
@@ -59,3 +59,4 @@ Durable code-smell/dead-code automation memory. Do not create dated files under 
 - 2026-05-29: from the `2026-05-28T06:13:19.122Z` window, fixed `lib/peerdb/peerdb-config.ts` so invalid `PEERDB_CACHE_TTL_MS` / `PEERDB_CACHE_MAX_ENTRIES` env values fall back to safe defaults instead of disabling TTL/cap logic, and hardened `.github/workflows/release.yml` so rerunning the release workflow for the same tag does not prepend duplicate generated notes to an existing GitHub release.
 - 2026-06-01: from the `2026-05-30T06:48:11.063Z` window, fixed a data-table header regression in `apps/dashboard/src/components/data-table/components/data-table-header.tsx` where the advanced-filter picker excluded `actions` but the synthetic menu column id is `action`; this caused a non-data action column to appear as a filter target after the 2026-05-31 data-table header rewrite. Added a component test in `data-table-header.cy.tsx` to keep `action` out of advanced-filter options. Broader repo verification remained blocked in the detached automation worktree by existing environment issues (`bun run test:unit` module-resolution errors, `bun run build` Turbo bun.lock parse failure, Cypress via Bun tempdir `PermissionDenied`).
 - 2026-11-11: dead-weight scan — removed zero-reference useFilterState hook; deduped boolean env parsers in sweep-schedule.ts and prometheus-exporter.ts to lib/config/parse-bool
+- 2026-11-13: export-level sweep across packages/* — deleted symbols with zero references anywhere (`PartialBy`, `ArrayElement`, `DeployMeta`, `LICENSE_PURCHASE_PATH`); unexported symbols with zero external references but internal uses (`ErrorContext` in logger, `LICENSE_IDS` in pricing, `D1PreparedLike`/`D1BoundLike`, `HostResolution`, `clickHouseErrorType`, `SemverRangeBounds`/`TableAvailability`/`VersionCacheL2`, `TableExistenceCacheL2`/`TableExistsResult`, `TableValidationReason`/`TableValidationResult`, `Authenticator`/`RateLimitCheck`/`McpServerInfoResponse`, `IpRateLimitOptions`, `NavItem`/`FeatureNavItem`); no runtime behaviour change

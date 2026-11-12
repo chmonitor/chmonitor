@@ -81,7 +81,7 @@ async function anyApiKeyValid(
 }
 
 /** Returns a Response (denied) or null (allowed), so authenticators compose. */
-export type Authenticator = (req: Request) => Promise<Response | null>
+type Authenticator = (req: Request) => Promise<Response | null>
 
 /** Allows everything when CHM_API_KEY_SECRET is unset. */
 export const apiKeyAuthenticator: Authenticator = async (req) => {
@@ -141,7 +141,7 @@ export const defaultAuthenticator: Authenticator = async (req) => {
  * Returns a Response (rate limited) or null (allowed). Injected because
  * dependency-cruiser `no-packages-to-apps` forbids importing an app's limiter.
  */
-export type RateLimitCheck = (req: Request) => Promise<Response | null>
+type RateLimitCheck = (req: Request) => Promise<Response | null>
 
 interface HandleMcpOptions {
   authenticate?: Authenticator
@@ -192,7 +192,7 @@ interface McpToolSummary {
   params: McpToolParam[]
 }
 
-export interface McpServerInfoResponse {
+interface McpServerInfoResponse {
   name: string
   version: string
   description: string

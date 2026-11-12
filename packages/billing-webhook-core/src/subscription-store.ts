@@ -35,10 +35,10 @@ export type OwnerType = 'user' | 'org'
 export interface D1Like {
   prepare(sql: string): D1PreparedLike
 }
-export interface D1PreparedLike {
+interface D1PreparedLike {
   bind(...values: unknown[]): D1BoundLike
 }
-export interface D1BoundLike {
+interface D1BoundLike {
   run(): Promise<unknown>
   first<T = unknown>(): Promise<T | null>
 }

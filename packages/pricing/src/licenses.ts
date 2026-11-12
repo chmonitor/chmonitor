@@ -7,7 +7,7 @@
  * Lifetime ≈ 3× yearly.
  */
 
-export const LICENSE_IDS = ['personal', 'team', 'unlimited'] as const
+const LICENSE_IDS = ['personal', 'team', 'unlimited'] as const
 export type LicenseId = (typeof LICENSE_IDS)[number]
 export type LicenseTerm = 'yearly' | 'lifetime'
 
@@ -102,7 +102,6 @@ export function lifetimeMultiple(sku: LicenseSku): number | null {
 }
 
 export const LICENSE_SALES_EMAIL = 'hello@chmonitor.dev'
-export const LICENSE_PURCHASE_PATH = '/license/register'
 export const PERSONAL_SELFHOST_HREF =
   'https://docs.chmonitor.dev/operate/deploy/self-host'
 
