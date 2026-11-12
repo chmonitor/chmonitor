@@ -5,6 +5,22 @@ entries are generated automatically by [release-please](.github/workflows/releas
 from conventional commits; the `## [Unreleased]` section (when present) is a
 human-curated preview of the next release.
 
+## [0.3.12](https://github.com/chmonitor/chmonitor/compare/v0.3.11...v0.3.12) (2026-11-12)
+
+
+### 🐛 Bug Fixes
+
+* **blog:** override fast-xml-parser to ^5.12.0 ([#4281](https://github.com/chmonitor/chmonitor/issues/4281)) ([577304c](https://github.com/chmonitor/chmonitor/commit/577304c9d204edab939a028dc18a5a2561b3c9c2))
+* **blog:** scope undici override to miniflare at ^7.30.1 ([#4289](https://github.com/chmonitor/chmonitor/issues/4289)) ([0b62624](https://github.com/chmonitor/chmonitor/commit/0b626244992e3dc872f75d88862b6be071668918))
+* **bug-handler:** scope undici override to miniflare at ^7.30.1 ([#4290](https://github.com/chmonitor/chmonitor/issues/4290)) ([2fbe187](https://github.com/chmonitor/chmonitor/commit/2fbe18725c90ee52baca22871a1cec4313d5fc5f))
+* **ci:** parse wrangler KiB/MiB/GiB gzip output in bundle-size gate ([#4283](https://github.com/chmonitor/chmonitor/issues/4283)) ([86307ac](https://github.com/chmonitor/chmonitor/commit/86307ac546e5912feee2de642a20b24d75e9496b))
+* **cloud-hooks:** scope undici override to miniflare at ^7.30.1 ([#4291](https://github.com/chmonitor/chmonitor/issues/4291)) ([4a02b99](https://github.com/chmonitor/chmonitor/commit/4a02b99230819a1f6d25db8088685077b4d9b177))
+* **conversations:** parse JSONB messages returned as a string ([#4268](https://github.com/chmonitor/chmonitor/issues/4268)) ([83e0cf8](https://github.com/chmonitor/chmonitor/commit/83e0cf8bd6941416257831c27f54db2ef227080a))
+* **dashboard:** refresh lockfile past fixable advisories ([#4288](https://github.com/chmonitor/chmonitor/issues/4288)) ([c0a750d](https://github.com/chmonitor/chmonitor/commit/c0a750d7c041f3f1d39aae899014784772986739)), closes [#4280](https://github.com/chmonitor/chmonitor/issues/4280)
+* **deepsec:** bump body-parser and @hono/node-server past advisories ([#4286](https://github.com/chmonitor/chmonitor/issues/4286)) ([101db63](https://github.com/chmonitor/chmonitor/commit/101db63a8da162792fef30b8d614976686970ca7))
+* **deps:** override fflate to ^0.7.5 ([#4292](https://github.com/chmonitor/chmonitor/issues/4292)) ([b0dede6](https://github.com/chmonitor/chmonitor/commit/b0dede60762bbe32870b3174f7a21d24a5e407e3))
+* **docs:** raise undici override to ^7.30.1 ([#4287](https://github.com/chmonitor/chmonitor/issues/4287)) ([b9626ed](https://github.com/chmonitor/chmonitor/commit/b9626edbd4e97f223f1749afb63e819d72f3ea1f))
+
 ## [0.3.11](https://github.com/chmonitor/chmonitor/compare/v0.3.10...v0.3.11) (2026-11-04)
 
 
