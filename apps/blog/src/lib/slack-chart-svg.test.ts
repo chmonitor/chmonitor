@@ -68,10 +68,9 @@ describe('chartHtml, line chart with warn and crit series', () => {
       '09:47',
     ])
     expect(texts(narrow, 'slack-chart-tick slack-chart-x')).toEqual([
-      '08:27',
-      '08:47',
-      '09:07',
-      '09:27',
+      '08:32',
+      '08:57',
+      '09:22',
       '09:47',
     ])
   })

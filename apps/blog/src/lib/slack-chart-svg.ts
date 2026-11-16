@@ -23,7 +23,7 @@ interface Box {
 }
 
 /** Two drawings, because SVG text scales with the box and gets too small on a phone. */
-const WIDTHS = { wide: 560, narrow: 320 }
+const WIDTHS = { wide: 560, narrow: 280 }
 /** Width of one character of the 11px monospace tick text, plus the gap between ticks. */
 const CHAR_W = 6.6
 const TICK_GAP = 8
