@@ -210,3 +210,121 @@
   font-size: 13px;
   line-height: 1.5;
 }
+
+/* A data_visualization block. Slack draws its own native chart; this draws
+   the same JSON with the dashboard chart tokens: blue series, yellow and red
+   for the warn and crit thresholds. Labels carry the meaning in text. */
+.slack-chart {
+  --slack-chart-series: hsl(217 91% 60%);
+  --slack-chart-warn: hsl(45 100% 60%);
+  --slack-chart-crit: hsl(0 84% 60%);
+  container-type: inline-size;
+  max-width: 600px;
+  margin: 6px 0;
+}
+.slack-chart-title {
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+.slack-chart-plot {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.slack-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.slack-chart-narrow {
+  display: none;
+}
+@container (max-width: 440px) {
+  .slack-chart-wide {
+    display: none;
+  }
+  .slack-chart-narrow {
+    display: block;
+  }
+}
+.slack-chart-pie {
+  max-width: 160px;
+  margin: 0 auto;
+}
+.slack-chart-grid {
+  stroke: var(--hairline-soft);
+}
+.slack-chart-base {
+  stroke: var(--hairline-strong);
+}
+.slack-chart-line {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.slack-chart-line.slack-chart-dashed {
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+.slack-chart-area {
+  fill: var(--c);
+  fill-opacity: 0.12;
+}
+.slack-chart-dot {
+  fill: var(--c);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.slack-chart-bar {
+  fill: var(--c);
+}
+.slack-chart-slice {
+  fill: var(--c);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.slack-chart-tick,
+.slack-chart-threshold,
+.slack-chart-value {
+  fill: var(--muted-foreground);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+.slack-chart-value {
+  fill: var(--foreground);
+  font-weight: 600;
+}
+.slack-chart-axis-title {
+  fill: var(--muted-foreground);
+  font-size: 11px;
+}
+.slack-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.slack-chart-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.slack-chart-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--c);
+}
+.slack-chart-swatch.slack-chart-dashed {
+  height: 0;
+  border-top: 2px dashed var(--c);
+  border-radius: 0;
+  background: none;
+}

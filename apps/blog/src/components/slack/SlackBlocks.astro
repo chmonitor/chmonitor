@@ -1,4 +1,5 @@
 ---
+import { chartHtml } from '../../lib/slack-chart-svg'
 import type { SlackBlock, SlackTextObject } from '../../lib/slack-fixtures'
 import { mrkdwnToHtml, plainToHtml } from '../../lib/slack-mrkdwn'
 
@@ -37,6 +38,8 @@ const html = (t: SlackTextObject) =>
         )
       case 'divider':
         return <hr class="slack-divider" />
+      case 'data_visualization':
+        return <Fragment set:html={chartHtml(block)} />
     }
   })
 }

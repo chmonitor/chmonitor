@@ -6,6 +6,10 @@
  */
 
 import raw from '../data/slack-fixtures.json'
+import {
+  type DataVisualizationBlock,
+  validateDataVisualization,
+} from './slack-chart-block'
 
 export interface SlackTextObject {
   type: 'mrkdwn' | 'plain_text'
@@ -25,6 +29,7 @@ export type SlackBlock =
   | { type: 'context'; elements: SlackTextObject[] }
   | { type: 'actions'; elements: SlackButton[] }
   | { type: 'divider' }
+  | DataVisualizationBlock
 
 export interface SlackAttachment {
   color: string
@@ -80,7 +85,10 @@ const BLOCK_FIELDS: Record<string, string[]> = {
   context: ['type', 'elements', 'block_id'],
   actions: ['type', 'elements', 'block_id'],
   divider: ['type', 'block_id'],
+  data_visualization: ['type', 'title', 'chart', 'block_id'],
 }
+/** Slack's limit on data_visualization blocks in one message. */
+const MAX_CHARTS = 2
 const ATTACHMENT_FIELDS = ['color', 'fallback', 'blocks']
 
 function unknownFields(value: object, known: string[]): string[] {
@@ -136,6 +144,13 @@ export function parseSlackDemo(data: unknown): SlackDemo {
       ) {
         throw new Error('Slack demo: actions blocks may only hold buttons')
       }
+      if (block.type === 'data_visualization') validateDataVisualization(block)
+    }
+    const charts = blocks.filter((b) => b.type === 'data_visualization').length
+    if (charts > MAX_CHARTS) {
+      throw new Error(
+        `Slack demo: a message has ${charts} data_visualization blocks, Slack allows ${MAX_CHARTS}`
+      )
     }
   }
   return demo
