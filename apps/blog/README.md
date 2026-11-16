@@ -90,6 +90,13 @@ via `<figure>` / `<figcaption>`. Pin 2–4 columns with `data-cols="3"`; below
 - **RSS**: `src/pages/rss.xml.ts` (via `@astrojs/rss`) builds `/rss.xml` from
   the same content collection as the post list; linked from `Base.astro`'s
   `<head>` and the footer.
+- **Slack alert demo**: `/demo/slack-alerts/` (`src/pages/demo/slack-alerts.astro`)
+  draws real Slack messages with the components in `src/components/slack/`.
+  Its data, `src/data/slack-fixtures.json`, is written by
+  `bun apps/dashboard/scripts/gen-slack-fixtures.ts` (run from the repo root)
+  from the dashboard's own Slack builders. Never edit the JSON by hand:
+  `tests/repo/slack-fixtures-sync.test.ts` fails when it drifts from the
+  builders, and the build fails on a block type the components cannot draw.
 - **Release → draft post**: `pnpm run release-to-post <tag>` (fetches via `gh
   release view`, or `-- --from-file <json>` for offline/CI use) scaffolds a
   `draft: true` post from `templates/release-post.md`. It never publishes —

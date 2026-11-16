@@ -1,0 +1,69 @@
+---
+import type { DemoMessage, SlackDemo } from '../../lib/slack-fixtures'
+import { emojiChar, mrkdwnToHtml } from '../../lib/slack-mrkdwn'
+import SlackBlocks from './SlackBlocks.astro'
+
+interface Props {
+  message: DemoMessage
+  demo: SlackDemo
+}
+
+const { message, demo } = Astro.props
+const author = demo.authors[message.author]
+const { body } = message
+const time = new Date(message.ts).toLocaleTimeString('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'UTC',
+})
+const icon = author.iconEmoji ? emojiChar(author.iconEmoji) : undefined
+---
+<article class="slack-message" aria-label={`${author.name} at ${time} UTC`}>
+  <div class="slack-avatar" aria-hidden="true">
+    {
+      icon ? (
+        <span>{icon}</span>
+      ) : (
+        <img src="/brand/logo-chmonitor-avatar-64.png" alt="" width="36" height="36" />
+      )
+    }
+  </div>
+  <div class="slack-body">
+    <div class="slack-meta">
+      <strong class="slack-name">{author.name}</strong>
+      <span class="slack-app">App</span>
+      <time datetime={message.ts}>{time}</time>
+      {message.edited && <span class="slack-edited">(edited)</span>}
+    </div>
+    {
+      body.blocks ? (
+        <SlackBlocks blocks={body.blocks} users={demo.users} />
+      ) : (
+        body.text && (
+          <div class="slack-section" set:html={mrkdwnToHtml(body.text, demo.users)} />
+        )
+      )
+    }
+    {
+      body.attachments?.map((a) => (
+        <div class="slack-attachment" style={`--slack-bar: ${a.color}`}>
+          <SlackBlocks blocks={a.blocks} users={demo.users} />
+        </div>
+      ))
+    }
+    {
+      message.reactions && (
+        <ul class="slack-reactions" aria-label="Reactions">
+          {message.reactions.map((r) => (
+            <li title={`:${r.name}:`}>
+              <span aria-hidden="true">{emojiChar(r.name) ?? `:${r.name}:`}</span>
+              <span class="slack-sr">{r.name.replaceAll('_', ' ')} reaction,</span>
+              {r.count}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <slot />
+  </div>
+</article>

@@ -1,0 +1,183 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/Nav.astro'
+import Footer from '../../components/Footer.astro'
+import SlackThread from '../../components/slack/SlackThread.astro'
+import TrendChart from '../../components/slack/TrendChart.astro'
+import { slackDemo as demo } from '../../lib/slack-fixtures'
+
+const title = 'Slack alerts, message by message'
+const description =
+  'One disk alert from first warning to resolved, as chmonitor sends it to Slack through an incoming webhook and through a bot token. Every message is the real Block Kit JSON, drawn as HTML.'
+const GUIDE = '/slack-alerts-threads-reactions/'
+const { webhook, newAlert, escalation, ack, resolved } = demo.threads
+const warningReply = newAlert.replies.at(-1)
+const criticalReply = escalation.replies.at(-1)
+const fullSeries = criticalReply?.trend?.series ?? []
+const host = 'Disk usage on prod-ch-1'
+---
+<Base title={`${title} — chmonitor blog`} description={description}>
+  <Nav />
+  <main>
+    <article class="slack-demo">
+      <header class="slack-demo-head">
+        <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Demo</p>
+        <h1 class="mt-3 text-balance font-normal text-[clamp(1.5rem,4.4vw,2.75rem)] leading-[1.06] tracking-tight text-foreground">
+          {title}
+        </h1>
+        <p class="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">{description}</p>
+        <p class="slack-demo-intro">
+          The alert is on a fake host, prod-ch-1.
+          Its worst disk fills from {fullSeries[0]}% to {Math.max(...fullSeries)}%, a teammate picks it up, and it clears. A test rebuilds the JSON for
+          this page from chmonitor's alert code, so the page cannot show a message
+          chmonitor no longer sends. To turn this on for your own Slack, read <a href={GUIDE}>the setup guide</a>.
+        </p>
+      </header>
+
+      <section>
+        <div class="slack-demo-text">
+          <h2>Webhook or bot token</h2>
+          <p>
+            An incoming webhook can only post. Every alert is a new message in the
+            channel. A bot token lets chmonitor keep one standing message per
+            route that counts what is open, and put the details in its thread.
+          </p>
+        </div>
+        <div class="slack-demo-pair">
+          <SlackThread
+            thread={webhook}
+            demo={demo}
+            caption="Incoming webhook. A new message for every alert, warning, critical and resolved alike."
+          />
+          <SlackThread
+            thread={newAlert}
+            demo={demo}
+            collapsed
+            caption="Bot token. One message for the route, posted under the bot name and icon you set."
+          />
+        </div>
+      </section>
+
+      <section class="slack-demo-text">
+        <h2>A new alert</h2>
+        <p>
+          The standing message says one warning is open. The thread reply has the
+          rest: the value against both thresholds, what was measured, a sparkline
+          of recent readings and an Acknowledge button. The runbook, rule id, team,
+          region and time sit in a small gray footer.
+        </p>
+        <SlackThread thread={newAlert} demo={demo} caption="The first warning, opened in its thread." />
+        {
+          warningReply?.trend && (
+            <TrendChart trend={warningReply.trend} end={warningReply.ts} label={host} id="trend-warning">
+              The {warningReply.trend.series.length} readings the sparkline in the
+              reply is drawn from, one per sweep. Block Kit has no chart block, so
+              Slack gets the sparkline text. This chart is drawn on this page from
+              the same values.
+            </TrendChart>
+          )
+        }
+      </section>
+
+      <section class="slack-demo-text">
+        <h2>It gets worse</h2>
+        <p>
+          When the disk passes the critical threshold, the standing message is
+          edited in place and turns red. The new details go in the same thread, so
+          the channel gets no second message.
+        </p>
+        <SlackThread thread={escalation} demo={demo} caption="The same thread after the alert turns critical." />
+        {
+          criticalReply?.trend && (
+            <TrendChart trend={criticalReply.trend} end={criticalReply.ts} label={host} id="trend-critical">
+              All {criticalReply.trend.series.length} readings up to the critical
+              reply, with both thresholds.
+            </TrendChart>
+          )
+        }
+      </section>
+
+      <section class="slack-demo-text">
+        <h2>Someone is on it</h2>
+        <p>
+          When a teammate clicks Acknowledge, the button becomes a line that names
+          them and the bot adds 👀 to the alert. Anyone who opens the thread can
+          see that the alert has an owner.
+        </p>
+        <SlackThread thread={ack} demo={demo} caption="The critical alert after it was acknowledged." />
+      </section>
+
+      <section class="slack-demo-text">
+        <h2>Resolved</h2>
+        <p>
+          When the disk drops back, the standing message turns green and reads All
+          clear. The thread gets a resolved reply that says how long the alert
+          lasted and its peak, and quotes the alert as it first fired. The bot
+          reacts ✅ on that first alert. The next incident starts a new standing
+          message.
+        </p>
+        <SlackThread thread={resolved} demo={demo} caption="The whole incident in one thread." />
+      </section>
+
+      <section class="slack-demo-text">
+        <h2>Set it up</h2>
+        <p>
+          The bot needs a Slack app with the chat:write, chat:write.customize and
+          reactions:write scopes, its token in SLACK_BOT_TOKEN, and a channel id
+          on the alert route. <a href={GUIDE}>The setup guide</a> walks through
+          it. The reference is the <a href="https://docs.chmonitor.dev/guide/guides/alerting-slack-discord#slack-bot-one-standing-message-changes-in-its-thread">alerting docs</a>.
+        </p>
+      </section>
+    </article>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .slack-demo {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+  .slack-demo section {
+    margin-top: 56px;
+  }
+  .slack-demo-head,
+  .slack-demo-text {
+    max-width: var(--maxw-prose);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .slack-demo-text > :global(* + *) {
+    margin-top: 20px;
+  }
+  .slack-demo h2 {
+    color: var(--foreground);
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .slack-demo-intro,
+  .slack-demo-text > p {
+    color: var(--muted-foreground);
+    font-size: 16.5px;
+    line-height: 1.75;
+  }
+  .slack-demo-intro {
+    margin-top: 20px;
+  }
+  .slack-demo-intro a,
+  .slack-demo-text > p a {
+    color: var(--brand-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .slack-demo-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+    gap: 16px;
+    align-items: start;
+    margin-top: 24px;
+  }
+</style>

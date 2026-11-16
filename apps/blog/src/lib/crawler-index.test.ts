@@ -45,6 +45,7 @@ describe('blog crawler index', () => {
     expect(xml).toContain('https://blog.chmonitor.dev/')
     expect(xml).toContain('https://blog.chmonitor.dev/v0.3/')
     expect(xml).toContain('https://blog.chmonitor.dev/watch/v0-3/')
+    expect(xml).toContain('https://blog.chmonitor.dev/demo/slack-alerts/')
     expect(xml).toContain('https://blog.chmonitor.dev/too-many-parts/')
     expect(xml).toContain(
       'https://blog.chmonitor.dev/category/5-min-of-clickhouse/'
@@ -57,6 +58,7 @@ describe('blog crawler index', () => {
     expect(txt).toContain('# chmonitor blog')
     expect(txt).toContain('[v0.3]')
     expect(txt).toContain('## Categories')
+    expect(txt).toContain('(https://blog.chmonitor.dev/demo/slack-alerts/)')
     expect(txt).toContain('https://docs.chmonitor.dev/llms.txt')
     expect(txt).not.toContain('[Future]')
   })

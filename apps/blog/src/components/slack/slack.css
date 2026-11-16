@@ -1,0 +1,212 @@
+/* Slack-like message chrome for the alert demo. Global on purpose: message
+   text is injected with set:html, which scoped styles do not reach. */
+.slack-frame {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 15px;
+  line-height: 1.46;
+  overflow: hidden;
+}
+.slack-bar {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 700;
+}
+.slack-bar-sub {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.slack-message {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 16px;
+}
+.slack-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--muted);
+  font-size: 20px;
+}
+.slack-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+.slack-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+.slack-name {
+  font-weight: 700;
+}
+.slack-app {
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.slack-meta time,
+.slack-edited {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.slack-section,
+.slack-header {
+  margin: 2px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.slack-header {
+  font-size: 17px;
+  font-weight: 700;
+}
+.slack-frame strong {
+  font-weight: 700;
+}
+.slack-frame a {
+  color: var(--accent-link);
+}
+.slack-frame a:hover {
+  text-decoration: underline;
+}
+.slack-frame code {
+  padding: 1px 3px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--muted);
+  color: var(--destructive);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+.slack-frame blockquote {
+  margin: 4px 0;
+  padding-left: 12px;
+  border-left: 4px solid var(--hairline-strong);
+}
+.slack-mention {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--accent-link) 14%, transparent);
+  color: var(--accent-link);
+}
+.slack-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.slack-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.slack-button {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+/* Slack's own button colours, so the demo reads like Slack in both themes. */
+.slack-button.primary {
+  border-color: #007a5a;
+  background: #007a5a;
+  color: #fff;
+}
+.slack-button.danger {
+  border-color: #e01e5a;
+  background: #e01e5a;
+  color: #fff;
+}
+.slack-divider {
+  margin: 8px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.slack-attachment {
+  margin: 4px 0;
+  padding-left: 12px;
+  border-left: 4px solid var(--slack-bar);
+  border-radius: 4px 0 0 4px;
+}
+.slack-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.slack-reactions li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.slack-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.slack-reply-count {
+  margin-top: 6px;
+  color: var(--accent-link);
+  font-size: 13px;
+  font-weight: 700;
+}
+.slack-thread {
+  padding-bottom: 8px;
+  border-top: 1px solid var(--border);
+}
+.slack-thread-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 2px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.slack-thread-rule::after {
+  flex: 1;
+  border-top: 1px solid var(--border);
+  content: '';
+}
+.slack-frame figcaption {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--canvas-soft);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}

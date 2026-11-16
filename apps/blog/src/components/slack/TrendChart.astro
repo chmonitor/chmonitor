@@ -1,0 +1,138 @@
+---
+import type { DemoTrend } from '../../lib/slack-fixtures'
+import { trendLayout } from '../../lib/trend-chart'
+
+interface Props {
+  trend: DemoTrend
+  /** ISO time of the last reading. */
+  end: string
+  /** What the values measure, e.g. "Disk usage on prod-ch-1". */
+  label: string
+  id: string
+}
+
+const { trend, end, label, id } = Astro.props
+/** Two drawings, because SVG text scales with the box and gets too small on a phone. */
+const boxes = [
+  { name: 'wide', width: 640, height: 200, top: 14, right: 72, bottom: 28, left: 40 },
+  { name: 'narrow', width: 340, height: 180, top: 14, right: 62, bottom: 28, left: 36 },
+].map((box) => ({ ...box, layout: trendLayout(trend, box) }))
+const n = trend.series.length
+const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16)
+const endMs = Date.parse(end)
+const startMs = endMs - (n - 1) * trend.stepMinutes * 60_000
+const u = trend.unit
+const first = trend.series[0]
+const peak = Math.max(...trend.series)
+const last = trend.series[n - 1]
+const summary = `${n} readings, one every ${trend.stepMinutes} minutes from ${hhmm(startMs)} to ${hhmm(endMs)} UTC. Goes from ${first}${u} to ${last}${u}, peak ${peak}${u}. Warning threshold ${trend.warn}${u}, critical ${trend.crit}${u}.`
+---
+<figure class="trend-chart">
+  {
+    boxes.map(({ name, layout, ...box }) => {
+      const right = box.width - box.right
+      return (
+        <svg
+          class={name}
+          viewBox={`0 0 ${box.width} ${box.height}`}
+          role="img"
+          aria-labelledby={`${id}-${name}-title ${id}-${name}-desc`}
+        >
+          <title id={`${id}-${name}-title`}>{label}</title>
+          <desc id={`${id}-${name}-desc`}>{summary}</desc>
+          <line class="axis" x1={box.left} x2={right} y1={layout.base} y2={layout.base} />
+          <text class="tick" x={box.left - 6} y={layout.hiY + 4} text-anchor="end">{layout.hi}{u}</text>
+          <text class="tick" x={box.left - 6} y={layout.loY} text-anchor="end">{layout.lo}{u}</text>
+          <line class="crit" x1={box.left} x2={right} y1={layout.critY} y2={layout.critY} />
+          <text class="tick" x={right + 6} y={layout.critY + 4}>crit {trend.crit}{u}</text>
+          <line class="warn" x1={box.left} x2={right} y1={layout.warnY} y2={layout.warnY} />
+          <text class="tick" x={right + 6} y={layout.warnY + 4}>warn {trend.warn}{u}</text>
+          <path class="area" d={layout.area} />
+          <path class="line" d={layout.line} />
+          <circle class="dot" cx={layout.last.x} cy={layout.last.y} r="3.5" />
+          <text class="value" x={layout.last.x - 8} y={layout.last.y - 8} text-anchor="end">{layout.last.value}{u}</text>
+          <text class="tick" x={box.left} y={box.height - 8}>{hhmm(startMs)}</text>
+          <text class="tick" x={right} y={box.height - 8} text-anchor="end">{hhmm(endMs)} UTC</text>
+        </svg>
+      )
+    })
+  }
+  <figcaption><slot /></figcaption>
+</figure>
+
+<style>
+  /* Dashboard chart tokens: --chart-blue for the series, --chart-yellow and
+     --chart-red for the thresholds. Labels carry the meaning in text. */
+  .trend-chart {
+    --series: hsl(217 91% 60%);
+    --warn: hsl(45 100% 60%);
+    --crit: hsl(0 84% 60%);
+    margin: 0;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 4px);
+    background: var(--card);
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .narrow {
+    display: none;
+  }
+  @media (max-width: 560px) {
+    .wide {
+      display: none;
+    }
+    .narrow {
+      display: block;
+    }
+  }
+  .axis {
+    stroke: var(--hairline-strong);
+  }
+  .warn,
+  .crit {
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+  }
+  .warn {
+    stroke: var(--warn);
+  }
+  .crit {
+    stroke: var(--crit);
+  }
+  .area {
+    fill: var(--series);
+    fill-opacity: 0.12;
+  }
+  .line {
+    fill: none;
+    stroke: var(--series);
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+  .dot {
+    fill: var(--series);
+    stroke: var(--card);
+    stroke-width: 2;
+  }
+  .tick,
+  .value {
+    fill: var(--muted-foreground);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .value {
+    fill: var(--foreground);
+    font-weight: 600;
+  }
+  figcaption {
+    margin-top: 8px;
+    color: var(--muted-foreground);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+</style>

@@ -1,0 +1,38 @@
+---
+import type { DemoThread, SlackDemo } from '../../lib/slack-fixtures'
+import SlackMessage from './SlackMessage.astro'
+import './slack.css'
+
+interface Props {
+  thread: DemoThread
+  demo: SlackDemo
+  caption: string
+  /** Show only the channel view: the parent and its reply count. */
+  collapsed?: boolean
+}
+
+const { thread, demo, caption, collapsed = false } = Astro.props
+const count = thread.replies.length
+const replies = `${count} ${count === 1 ? 'reply' : 'replies'}`
+---
+<figure class="slack-frame">
+  <div class="slack-bar">
+    {collapsed || count === 0 ? <span>#{demo.channel}</span> : <span>Thread <span class="slack-bar-sub">#{demo.channel}</span></span>}
+  </div>
+  <SlackMessage message={thread.parent} demo={demo}>
+    {collapsed && count > 0 && <p class="slack-reply-count">{replies}</p>}
+  </SlackMessage>
+  {
+    !collapsed && count > 0 && (
+      <div class="slack-thread">
+        <p class="slack-thread-rule">
+          <span>{replies}</span>
+        </p>
+        {thread.replies.map((reply) => (
+          <SlackMessage message={reply} demo={demo} />
+        ))}
+      </div>
+    )
+  }
+  <figcaption>{caption}</figcaption>
+</figure>

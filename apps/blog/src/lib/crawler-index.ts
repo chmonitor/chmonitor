@@ -23,6 +23,7 @@ export function buildSitemapXml(
   const locs = [
     `${origin}/`,
     `${origin}/watch/v0-3/`,
+    `${origin}/demo/slack-alerts/`,
     ...publishedPosts(posts).map((p) => `${origin}/${postSlug(p)}/`),
     ...categoryPaths(posts).map((path) => `${origin}${path}`),
   ]
@@ -55,6 +56,10 @@ export function buildLlmsTxt(
     '## Watch',
     '',
     `- [chmonitor v0.3 launch film](${origin}/watch/v0-3/): 28-second launch film for the v0.3 rebuild.`,
+    '',
+    '## Demos',
+    '',
+    `- [Slack alerts, message by message](${origin}/demo/slack-alerts/): one disk alert from warning to resolved, as the real Slack messages.`,
     '',
     '## Posts',
     '',
