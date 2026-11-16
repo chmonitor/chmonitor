@@ -1,0 +1,144 @@
+/**
+ * The Slack demo scenes (src/data/slack-fixtures.json). The JSON is written by
+ * apps/dashboard/scripts/gen-slack-fixtures.ts from the real alert builders;
+ * tests/repo/slack-fixtures-sync.test.ts keeps it current. Edit the generator,
+ * never the JSON.
+ */
+
+import raw from '../data/slack-fixtures.json'
+
+export interface SlackTextObject {
+  type: 'mrkdwn' | 'plain_text'
+  text: string
+  emoji?: boolean
+}
+
+export interface SlackButton {
+  type: 'button'
+  text: SlackTextObject
+  style?: 'primary' | 'danger'
+}
+
+export type SlackBlock =
+  | { type: 'section'; text: SlackTextObject }
+  | { type: 'header'; text: SlackTextObject }
+  | { type: 'context'; elements: SlackTextObject[] }
+  | { type: 'actions'; elements: SlackButton[] }
+  | { type: 'divider' }
+
+export interface SlackAttachment {
+  color: string
+  fallback?: string
+  blocks: SlackBlock[]
+}
+
+export interface SlackMessageBody {
+  text?: string
+  blocks?: SlackBlock[]
+  attachments?: SlackAttachment[]
+}
+
+/** The values a sparkline in the message was drawn from. */
+export interface DemoTrend {
+  series: number[]
+  warn: number
+  crit: number
+  unit: string
+  stepMinutes: number
+}
+
+export interface DemoMessage {
+  author: 'webhook' | 'bot'
+  ts: string
+  edited?: boolean
+  body: SlackMessageBody
+  reactions?: { name: string; count: number }[]
+  trend?: DemoTrend
+}
+
+export interface DemoThread {
+  parent: DemoMessage
+  replies: DemoMessage[]
+}
+
+export type DemoAuthor = { name: string; iconEmoji?: string }
+
+export interface SlackDemo {
+  channel: string
+  authors: Record<DemoMessage['author'], DemoAuthor>
+  users: Record<string, string>
+  threads: Record<
+    'webhook' | 'newAlert' | 'escalation' | 'ack' | 'resolved',
+    DemoThread
+  >
+}
+
+/** Each block type the components draw, with every field they read. */
+const BLOCK_FIELDS: Record<string, string[]> = {
+  section: ['type', 'text', 'block_id'],
+  header: ['type', 'text', 'block_id'],
+  context: ['type', 'elements', 'block_id'],
+  actions: ['type', 'elements', 'block_id'],
+  divider: ['type', 'block_id'],
+}
+const ATTACHMENT_FIELDS = ['color', 'fallback', 'blocks']
+
+function unknownFields(value: object, known: string[]): string[] {
+  return Object.keys(value).filter((k) => !known.includes(k))
+}
+
+/**
+ * Check the scenes against what the Slack components can draw, so a block
+ * type or field the builders start sending fails the build instead of
+ * vanishing from the page.
+ */
+export function parseSlackDemo(data: unknown): SlackDemo {
+  const demo = data as SlackDemo
+  const messages = Object.values(demo.threads).flatMap((t) => [
+    t.parent,
+    ...t.replies,
+  ])
+  for (const { body } of messages) {
+    const attachments = body.attachments ?? []
+    for (const a of attachments) {
+      const extra = unknownFields(a, ATTACHMENT_FIELDS)
+      if (extra.length > 0) {
+        throw new Error(
+          `Slack demo: attachment field "${extra[0]}" is not drawn`
+        )
+      }
+      if (!/^#[0-9a-f]{6}$/i.test(a.color)) {
+        throw new Error(
+          `Slack demo: attachment colour "${a.color}" is not #rrggbb`
+        )
+      }
+    }
+    const blocks = [
+      ...(body.blocks ?? []),
+      ...attachments.flatMap((a) => a.blocks),
+    ]
+    for (const block of blocks) {
+      const fields = BLOCK_FIELDS[block.type]
+      if (!fields) {
+        throw new Error(
+          `Slack demo: no renderer for block type "${block.type}"`
+        )
+      }
+      const extra = unknownFields(block, fields)
+      if (extra.length > 0) {
+        throw new Error(
+          `Slack demo: ${block.type} field "${extra[0]}" is not drawn`
+        )
+      }
+      if (
+        block.type === 'actions' &&
+        block.elements.some((e) => e.type !== 'button')
+      ) {
+        throw new Error('Slack demo: actions blocks may only hold buttons')
+      }
+    }
+  }
+  return demo
+}
+
+export const slackDemo = parseSlackDemo(raw)

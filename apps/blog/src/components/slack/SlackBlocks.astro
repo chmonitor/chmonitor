@@ -1,0 +1,42 @@
+---
+import type { SlackBlock, SlackTextObject } from '../../lib/slack-fixtures'
+import { mrkdwnToHtml, plainToHtml } from '../../lib/slack-mrkdwn'
+
+interface Props {
+  blocks: SlackBlock[]
+  users: Record<string, string>
+}
+
+const { blocks, users } = Astro.props
+const html = (t: SlackTextObject) =>
+  t.type === 'mrkdwn' ? mrkdwnToHtml(t.text, users) : plainToHtml(t.text)
+---
+{
+  blocks.map((block) => {
+    switch (block.type) {
+      case 'section':
+        return <div class="slack-section" set:html={html(block.text)} />
+      case 'header':
+        return <div class="slack-header" set:html={html(block.text)} />
+      case 'context':
+        return (
+          <div class="slack-context">
+            {block.elements.map((el) => <span set:html={html(el)} />)}
+          </div>
+        )
+      case 'actions':
+        return (
+          <div class="slack-actions">
+            {block.elements.map((button) => (
+              <span
+                class:list={['slack-button', button.style]}
+                set:html={plainToHtml(button.text.text)}
+              />
+            ))}
+          </div>
+        )
+      case 'divider':
+        return <hr class="slack-divider" />
+    }
+  })
+}

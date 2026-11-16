@@ -1,0 +1,541 @@
+{
+  "generatedBy": "apps/dashboard/scripts/gen-slack-fixtures.ts",
+  "channel": "alerts-prod",
+  "authors": {
+    "webhook": {
+      "name": "chmonitor"
+    },
+    "bot": {
+      "name": "chmonitor prod-eu",
+      "iconEmoji": ":rotating_light:"
+    }
+  },
+  "users": {
+    "U0DEMO1": "mai"
+  },
+  "threads": {
+    "webhook": {
+      "parent": {
+        "author": "webhook",
+        "ts": "2026-11-16T09:12:00.000Z",
+        "body": {
+          "text": "🟠 WARNING  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95)",
+          "attachments": [
+            {
+              "color": "#f59e0b",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "<https://docs.chmonitor.dev/guide/guides/disk-usage-runbook|Runbook> · team=data · region=eu"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "replies": []
+    },
+    "newAlert": {
+      "parent": {
+        "author": "bot",
+        "ts": "2026-11-16T09:12:00.000Z",
+        "body": {
+          "attachments": [
+            {
+              "color": "#f59e0b",
+              "fallback": "🟠 1 open: 1 warning",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🟠 *1 open* · 1 warning"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "replies": [
+        {
+          "author": "bot",
+          "ts": "2026-11-16T09:12:00.000Z",
+          "body": {
+            "text": "Details: Disk Usage on prod-ch-1",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)\n`▁▁▂▂▂▂▃▃▃▄▄▄▅▅▆█ 70 → 84 (warn 80, crit 95)`"
+                }
+              },
+              {
+                "type": "actions",
+                "block_id": "chmonitor_ack",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Acknowledge",
+                      "emoji": true
+                    },
+                    "style": "primary",
+                    "action_id": "chmonitor_ack_alert",
+                    "value": "{\"h\":0,\"r\":\"disk-usage\",\"s\":\"warning\"}"
+                  }
+                ]
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<https://docs.chmonitor.dev/guide/guides/disk-usage-runbook|Runbook> · disk-usage · team=data · region=eu · 2026-11-16 09:12 UTC"
+                  }
+                ]
+              }
+            ]
+          },
+          "trend": {
+            "series": [
+              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84
+            ],
+            "warn": 80,
+            "crit": 95,
+            "unit": "%",
+            "stepMinutes": 5
+          }
+        }
+      ]
+    },
+    "escalation": {
+      "parent": {
+        "author": "bot",
+        "ts": "2026-11-16T09:12:00.000Z",
+        "edited": true,
+        "body": {
+          "attachments": [
+            {
+              "color": "#dc2626",
+              "fallback": "🔴 1 open: 1 critical",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🔴 *1 open* · 1 critical"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "replies": [
+        {
+          "author": "bot",
+          "ts": "2026-11-16T09:12:00.000Z",
+          "body": {
+            "text": "Details: Disk Usage on prod-ch-1",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)\n`▁▁▂▂▂▂▃▃▃▄▄▄▅▅▆█ 70 → 84 (warn 80, crit 95)`"
+                }
+              },
+              {
+                "type": "actions",
+                "block_id": "chmonitor_ack",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Acknowledge",
+                      "emoji": true
+                    },
+                    "style": "primary",
+                    "action_id": "chmonitor_ack_alert",
+                    "value": "{\"h\":0,\"r\":\"disk-usage\",\"s\":\"warning\"}"
+                  }
+                ]
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<https://docs.chmonitor.dev/guide/guides/disk-usage-runbook|Runbook> · disk-usage · team=data · region=eu · 2026-11-16 09:12 UTC"
+                  }
+                ]
+              }
+            ]
+          },
+          "trend": {
+            "series": [
+              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84
+            ],
+            "warn": 80,
+            "crit": 95,
+            "unit": "%",
+            "stepMinutes": 5
+          }
+        },
+        {
+          "author": "bot",
+          "ts": "2026-11-16T09:47:00.000Z",
+          "body": {
+            "text": "Details: Disk Usage on prod-ch-1",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🔴 *CRITICAL*  [prod-eu] Disk Usage · prod-ch-1 · 96 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n96% used (worst disk)\n`▁▁▁▁▂▂▂▂▂▂▂▃▃▃▃▅▅▅▆▆▇▇█ 70 → 96 (warn 80, crit 95)`"
+                }
+              },
+              {
+                "type": "actions",
+                "block_id": "chmonitor_ack",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Acknowledge",
+                      "emoji": true
+                    },
+                    "style": "primary",
+                    "action_id": "chmonitor_ack_alert",
+                    "value": "{\"h\":0,\"r\":\"disk-usage\",\"s\":\"critical\"}"
+                  }
+                ]
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<https://docs.chmonitor.dev/guide/guides/disk-usage-runbook|Runbook> · disk-usage · team=data · region=eu · 2026-11-16 09:47 UTC"
+                  }
+                ]
+              }
+            ]
+          },
+          "trend": {
+            "series": [
+              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84,
+              85, 86, 88, 90, 92, 94, 96
+            ],
+            "warn": 80,
+            "crit": 95,
+            "unit": "%",
+            "stepMinutes": 5
+          }
+        }
+      ]
+    },
+    "ack": {
+      "parent": {
+        "author": "bot",
+        "ts": "2026-11-16T09:12:00.000Z",
+        "edited": true,
+        "body": {
+          "attachments": [
+            {
+              "color": "#dc2626",
+              "fallback": "🔴 1 open: 1 critical",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🔴 *1 open* · 1 critical"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "replies": [
+        {
+          "author": "bot",
+          "ts": "2026-11-16T09:12:00.000Z",
+          "body": {
+            "text": "Details: Disk Usage on prod-ch-1",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)\n`▁▁▂▂▂▂▃▃▃▄▄▄▅▅▆█ 70 → 84 (warn 80, crit 95)`"
+                }
+              },
+              {
+                "type": "actions",
+                "block_id": "chmonitor_ack",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Acknowledge",
+                      "emoji": true
+                    },
+                    "style": "primary",
+                    "action_id": "chmonitor_ack_alert",
+                    "value": "{\"h\":0,\"r\":\"disk-usage\",\"s\":\"warning\"}"
+                  }
+                ]
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<https://docs.chmonitor.dev/guide/guides/disk-usage-runbook|Runbook> · disk-usage · team=data · region=eu · 2026-11-16 09:12 UTC"
+                  }
+                ]
+              }
+            ]
+          },
+          "trend": {
+            "series": [
+              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84
+            ],
+            "warn": 80,
+            "crit": 95,
+            "unit": "%",
+            "stepMinutes": 5
+          }
+        },
+        {
+          "author": "bot",
+          "ts": "2026-11-16T09:47:00.000Z",
+          "body": {
+            "text": "Details: Disk Usage on prod-ch-1",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🔴 *CRITICAL*  [prod-eu] Disk Usage · prod-ch-1 · 96 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n96% used (worst disk)\n`▁▁▁▁▂▂▂▂▂▂▂▃▃▃▃▅▅▅▆▆▇▇█ 70 → 96 (warn 80, crit 95)`"
+                }
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<https://docs.chmonitor.dev/guide/guides/disk-usage-runbook|Runbook> · disk-usage · team=data · region=eu · 2026-11-16 09:47 UTC"
+                  }
+                ]
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "✅ Acknowledged by <@U0DEMO1> · 2026-11-16T09:52:00.000Z"
+                  }
+                ]
+              }
+            ]
+          },
+          "trend": {
+            "series": [
+              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84,
+              85, 86, 88, 90, 92, 94, 96
+            ],
+            "warn": 80,
+            "crit": 95,
+            "unit": "%",
+            "stepMinutes": 5
+          },
+          "reactions": [
+            {
+              "name": "eyes",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    "resolved": {
+      "parent": {
+        "author": "bot",
+        "ts": "2026-11-16T09:12:00.000Z",
+        "edited": true,
+        "body": {
+          "attachments": [
+            {
+              "color": "#16a34a",
+              "fallback": "✅ All clear: no open alerts",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "✅ *All clear* · no open alerts"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "replies": [
+        {
+          "author": "bot",
+          "ts": "2026-11-16T09:12:00.000Z",
+          "body": {
+            "text": "Details: Disk Usage on prod-ch-1",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)\n`▁▁▂▂▂▂▃▃▃▄▄▄▅▅▆█ 70 → 84 (warn 80, crit 95)`"
+                }
+              },
+              {
+                "type": "actions",
+                "block_id": "chmonitor_ack",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Acknowledge",
+                      "emoji": true
+                    },
+                    "style": "primary",
+                    "action_id": "chmonitor_ack_alert",
+                    "value": "{\"h\":0,\"r\":\"disk-usage\",\"s\":\"warning\"}"
+                  }
+                ]
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<https://docs.chmonitor.dev/guide/guides/disk-usage-runbook|Runbook> · disk-usage · team=data · region=eu · 2026-11-16 09:12 UTC"
+                  }
+                ]
+              }
+            ]
+          },
+          "trend": {
+            "series": [
+              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84
+            ],
+            "warn": 80,
+            "crit": 95,
+            "unit": "%",
+            "stepMinutes": 5
+          },
+          "reactions": [
+            {
+              "name": "white_check_mark",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "author": "bot",
+          "ts": "2026-11-16T09:47:00.000Z",
+          "body": {
+            "text": "Details: Disk Usage on prod-ch-1",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🔴 *CRITICAL*  [prod-eu] Disk Usage · prod-ch-1 · 96 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n96% used (worst disk)\n`▁▁▁▁▂▂▂▂▂▂▂▃▃▃▃▅▅▅▆▆▇▇█ 70 → 96 (warn 80, crit 95)`"
+                }
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<https://docs.chmonitor.dev/guide/guides/disk-usage-runbook|Runbook> · disk-usage · team=data · region=eu · 2026-11-16 09:47 UTC"
+                  }
+                ]
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "✅ Acknowledged by <@U0DEMO1> · 2026-11-16T09:52:00.000Z"
+                  }
+                ]
+              }
+            ]
+          },
+          "trend": {
+            "series": [
+              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84,
+              85, 86, 88, 90, 92, 94, 96
+            ],
+            "warn": 80,
+            "crit": 95,
+            "unit": "%",
+            "stepMinutes": 5
+          },
+          "reactions": [
+            {
+              "name": "eyes",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "author": "bot",
+          "ts": "2026-11-16T10:31:00.000Z",
+          "body": {
+            "text": "Resolved: Disk Usage on prod-ch-1",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🟢 *RESOLVED*  [prod-eu] Disk Usage · prod-ch-1 · resolved after 1 h · peak 96 · last 62 · <https://chmonitor.example.com/health?host=0|Open>\n> 🟠 *WARNING*  Disk Usage · prod-ch-1 · 84 · fired 2026-11-16 09:12 UTC"
+                }
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<https://docs.chmonitor.dev/guide/guides/disk-usage-runbook|Runbook> · disk-usage · team=data · region=eu · 2026-11-16 10:31 UTC"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
