@@ -5,13 +5,14 @@
  * is stale, so the blog never shows a message the builders no longer send.
  */
 
+import type { SlackDataVisualizationBlock } from '../../apps/dashboard/src/lib/health/adapters/slack-chart'
+
 import {
   FIXTURES_PATH,
   type FixtureMessage,
   fixturesJson,
   generateSlackFixtures,
 } from '../../apps/dashboard/scripts/gen-slack-fixtures'
-import { buildSlackSparkline } from '../../apps/dashboard/src/lib/health/adapters/slack-chart'
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 
@@ -44,6 +45,13 @@ function sectionText(message: FixtureMessage): string {
   return block?.text?.text ?? ''
 }
 
+function charts(message: FixtureMessage): SlackDataVisualizationBlock[] {
+  return (message.body.blocks ?? []).filter(
+    (b): b is SlackDataVisualizationBlock =>
+      (b as { type?: string }).type === 'data_visualization'
+  )
+}
+
 describe('blog Slack demo fixtures match the alert builders', () => {
   test('committed JSON is up to date', () => {
     if (isStale(asWritten, readCommitted())) {
@@ -62,23 +70,75 @@ describe('blog Slack demo fixtures match the alert builders', () => {
     expect(generateSlackFixtures()).toEqual(generated)
   })
 
-  test('every trend chart series is the one its sparkline was drawn from', () => {
-    const withTrend = Object.values(threads)
-      .flatMap((t) => t.replies)
-      .filter((m) => m.trend)
-    expect(withTrend.length).toBeGreaterThan(0)
-    for (const m of withTrend) {
-      const { series, warn, crit } = m.trend!
-      expect(sectionText(m)).toContain(
-        buildSlackSparkline(series, { warn, crit })
-      )
-    }
+  test('the first warning has no trend, as a new episode has no history', () => {
+    const [reply] = threads.newAlert.replies
+    expect(sectionText(reply).split('\n')).toEqual([
+      '🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>',
+      '84% used (worst disk)',
+    ])
+    expect(charts(reply)).toEqual([])
+  })
+
+  test('the escalation draws 23 sweeps as a 20-point line chart', () => {
+    const [chart] = charts(threads.escalation.replies.at(-1)!)
+    if (chart.chart.type !== 'line') throw new Error('expected a line chart')
+    expect(chart.chart.axis_config.categories).toEqual([
+      '07:57',
+      '08:02',
+      '08:07',
+      '08:12',
+      '08:17',
+      '08:22',
+      '08:32',
+      '08:37',
+      '08:42',
+      '08:47',
+      '08:52',
+      '08:57',
+      '09:02',
+      '09:12',
+      '09:17',
+      '09:22',
+      '09:27',
+      '09:32',
+      '09:37',
+      '09:47',
+    ])
+    expect(
+      chart.chart.series.map((s) => [s.name, s.data.map((p) => p.value)])
+    ).toEqual([
+      [
+        'disk-usage',
+        [
+          70, 70, 71, 71, 72, 72, 73, 74, 75, 75, 76, 77, 78, 84, 85, 86, 88,
+          90, 92, 96,
+        ],
+      ],
+      ['warn', Array(20).fill(80)],
+      ['crit', Array(20).fill(95)],
+    ])
+  })
+
+  test('the chart rides along on every later copy of the critical reply', () => {
+    const counts = Object.fromEntries(
+      Object.entries(threads).map(([name, t]) => [
+        name,
+        [t.parent, ...t.replies].flatMap(charts).length,
+      ])
+    )
+    expect(counts).toEqual({
+      webhook: 0,
+      newAlert: 0,
+      escalation: 1,
+      ack: 1,
+      resolved: 1,
+    })
   })
 
   test('the ack replaces the button with who acked it', () => {
     const acked = threads.ack.replies.at(-1)!
     expect(acked.body.blocks?.map((b) => (b as { type: string }).type)).toEqual(
-      ['section', 'context', 'context']
+      ['section', 'data_visualization', 'context', 'context']
     )
     expect(acked.body.blocks?.at(-1)).toEqual({
       type: 'context',

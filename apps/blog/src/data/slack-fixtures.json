@@ -80,7 +80,7 @@
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)\n`▁▁▂▂▂▂▃▃▃▄▄▄▅▅▆█ 70 → 84 (warn 80, crit 95)`"
+                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)"
                 }
               },
               {
@@ -110,15 +110,6 @@
                 ]
               }
             ]
-          },
-          "trend": {
-            "series": [
-              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84
-            ],
-            "warn": 80,
-            "crit": 95,
-            "unit": "%",
-            "stepMinutes": 5
           }
         }
       ]
@@ -157,7 +148,7 @@
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)\n`▁▁▂▂▂▂▃▃▃▄▄▄▅▅▆█ 70 → 84 (warn 80, crit 95)`"
+                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)"
                 }
               },
               {
@@ -187,15 +178,6 @@
                 ]
               }
             ]
-          },
-          "trend": {
-            "series": [
-              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84
-            ],
-            "warn": 80,
-            "crit": 95,
-            "unit": "%",
-            "stepMinutes": 5
           }
         },
         {
@@ -208,7 +190,297 @@
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "🔴 *CRITICAL*  [prod-eu] Disk Usage · prod-ch-1 · 96 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n96% used (worst disk)\n`▁▁▁▁▂▂▂▂▂▂▂▃▃▃▃▅▅▅▆▆▇▇█ 70 → 96 (warn 80, crit 95)`"
+                  "text": "🔴 *CRITICAL*  [prod-eu] Disk Usage · prod-ch-1 · 96 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n96% used (worst disk)"
+                }
+              },
+              {
+                "type": "data_visualization",
+                "title": "Disk Usage",
+                "chart": {
+                  "type": "line",
+                  "series": [
+                    {
+                      "name": "disk-usage",
+                      "data": [
+                        {
+                          "label": "07:57",
+                          "value": 70
+                        },
+                        {
+                          "label": "08:02",
+                          "value": 70
+                        },
+                        {
+                          "label": "08:07",
+                          "value": 71
+                        },
+                        {
+                          "label": "08:12",
+                          "value": 71
+                        },
+                        {
+                          "label": "08:17",
+                          "value": 72
+                        },
+                        {
+                          "label": "08:22",
+                          "value": 72
+                        },
+                        {
+                          "label": "08:32",
+                          "value": 73
+                        },
+                        {
+                          "label": "08:37",
+                          "value": 74
+                        },
+                        {
+                          "label": "08:42",
+                          "value": 75
+                        },
+                        {
+                          "label": "08:47",
+                          "value": 75
+                        },
+                        {
+                          "label": "08:52",
+                          "value": 76
+                        },
+                        {
+                          "label": "08:57",
+                          "value": 77
+                        },
+                        {
+                          "label": "09:02",
+                          "value": 78
+                        },
+                        {
+                          "label": "09:12",
+                          "value": 84
+                        },
+                        {
+                          "label": "09:17",
+                          "value": 85
+                        },
+                        {
+                          "label": "09:22",
+                          "value": 86
+                        },
+                        {
+                          "label": "09:27",
+                          "value": 88
+                        },
+                        {
+                          "label": "09:32",
+                          "value": 90
+                        },
+                        {
+                          "label": "09:37",
+                          "value": 92
+                        },
+                        {
+                          "label": "09:47",
+                          "value": 96
+                        }
+                      ]
+                    },
+                    {
+                      "name": "warn",
+                      "data": [
+                        {
+                          "label": "07:57",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:02",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:07",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:12",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:17",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:22",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:32",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:37",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:42",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:47",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:52",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:57",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:02",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:12",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:17",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:22",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:27",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:32",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:37",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:47",
+                          "value": 80
+                        }
+                      ]
+                    },
+                    {
+                      "name": "crit",
+                      "data": [
+                        {
+                          "label": "07:57",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:02",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:07",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:12",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:17",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:22",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:32",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:37",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:42",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:47",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:52",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:57",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:02",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:12",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:17",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:22",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:27",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:32",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:37",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:47",
+                          "value": 95
+                        }
+                      ]
+                    }
+                  ],
+                  "axis_config": {
+                    "categories": [
+                      "07:57",
+                      "08:02",
+                      "08:07",
+                      "08:12",
+                      "08:17",
+                      "08:22",
+                      "08:32",
+                      "08:37",
+                      "08:42",
+                      "08:47",
+                      "08:52",
+                      "08:57",
+                      "09:02",
+                      "09:12",
+                      "09:17",
+                      "09:22",
+                      "09:27",
+                      "09:32",
+                      "09:37",
+                      "09:47"
+                    ],
+                    "x_label": "UTC",
+                    "y_label": "disk-usage"
+                  }
                 }
               },
               {
@@ -238,16 +510,6 @@
                 ]
               }
             ]
-          },
-          "trend": {
-            "series": [
-              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84,
-              85, 86, 88, 90, 92, 94, 96
-            ],
-            "warn": 80,
-            "crit": 95,
-            "unit": "%",
-            "stepMinutes": 5
           }
         }
       ]
@@ -286,7 +548,7 @@
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)\n`▁▁▂▂▂▂▃▃▃▄▄▄▅▅▆█ 70 → 84 (warn 80, crit 95)`"
+                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)"
                 }
               },
               {
@@ -316,15 +578,6 @@
                 ]
               }
             ]
-          },
-          "trend": {
-            "series": [
-              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84
-            ],
-            "warn": 80,
-            "crit": 95,
-            "unit": "%",
-            "stepMinutes": 5
           }
         },
         {
@@ -337,7 +590,297 @@
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "🔴 *CRITICAL*  [prod-eu] Disk Usage · prod-ch-1 · 96 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n96% used (worst disk)\n`▁▁▁▁▂▂▂▂▂▂▂▃▃▃▃▅▅▅▆▆▇▇█ 70 → 96 (warn 80, crit 95)`"
+                  "text": "🔴 *CRITICAL*  [prod-eu] Disk Usage · prod-ch-1 · 96 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n96% used (worst disk)"
+                }
+              },
+              {
+                "type": "data_visualization",
+                "title": "Disk Usage",
+                "chart": {
+                  "type": "line",
+                  "series": [
+                    {
+                      "name": "disk-usage",
+                      "data": [
+                        {
+                          "label": "07:57",
+                          "value": 70
+                        },
+                        {
+                          "label": "08:02",
+                          "value": 70
+                        },
+                        {
+                          "label": "08:07",
+                          "value": 71
+                        },
+                        {
+                          "label": "08:12",
+                          "value": 71
+                        },
+                        {
+                          "label": "08:17",
+                          "value": 72
+                        },
+                        {
+                          "label": "08:22",
+                          "value": 72
+                        },
+                        {
+                          "label": "08:32",
+                          "value": 73
+                        },
+                        {
+                          "label": "08:37",
+                          "value": 74
+                        },
+                        {
+                          "label": "08:42",
+                          "value": 75
+                        },
+                        {
+                          "label": "08:47",
+                          "value": 75
+                        },
+                        {
+                          "label": "08:52",
+                          "value": 76
+                        },
+                        {
+                          "label": "08:57",
+                          "value": 77
+                        },
+                        {
+                          "label": "09:02",
+                          "value": 78
+                        },
+                        {
+                          "label": "09:12",
+                          "value": 84
+                        },
+                        {
+                          "label": "09:17",
+                          "value": 85
+                        },
+                        {
+                          "label": "09:22",
+                          "value": 86
+                        },
+                        {
+                          "label": "09:27",
+                          "value": 88
+                        },
+                        {
+                          "label": "09:32",
+                          "value": 90
+                        },
+                        {
+                          "label": "09:37",
+                          "value": 92
+                        },
+                        {
+                          "label": "09:47",
+                          "value": 96
+                        }
+                      ]
+                    },
+                    {
+                      "name": "warn",
+                      "data": [
+                        {
+                          "label": "07:57",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:02",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:07",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:12",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:17",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:22",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:32",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:37",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:42",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:47",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:52",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:57",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:02",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:12",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:17",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:22",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:27",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:32",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:37",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:47",
+                          "value": 80
+                        }
+                      ]
+                    },
+                    {
+                      "name": "crit",
+                      "data": [
+                        {
+                          "label": "07:57",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:02",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:07",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:12",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:17",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:22",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:32",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:37",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:42",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:47",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:52",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:57",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:02",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:12",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:17",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:22",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:27",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:32",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:37",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:47",
+                          "value": 95
+                        }
+                      ]
+                    }
+                  ],
+                  "axis_config": {
+                    "categories": [
+                      "07:57",
+                      "08:02",
+                      "08:07",
+                      "08:12",
+                      "08:17",
+                      "08:22",
+                      "08:32",
+                      "08:37",
+                      "08:42",
+                      "08:47",
+                      "08:52",
+                      "08:57",
+                      "09:02",
+                      "09:12",
+                      "09:17",
+                      "09:22",
+                      "09:27",
+                      "09:32",
+                      "09:37",
+                      "09:47"
+                    ],
+                    "x_label": "UTC",
+                    "y_label": "disk-usage"
+                  }
                 }
               },
               {
@@ -359,16 +902,6 @@
                 ]
               }
             ]
-          },
-          "trend": {
-            "series": [
-              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84,
-              85, 86, 88, 90, 92, 94, 96
-            ],
-            "warn": 80,
-            "crit": 95,
-            "unit": "%",
-            "stepMinutes": 5
           },
           "reactions": [
             {
@@ -413,7 +946,7 @@
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)\n`▁▁▂▂▂▂▃▃▃▄▄▄▅▅▆█ 70 → 84 (warn 80, crit 95)`"
+                  "text": "🟠 *WARNING*  [prod-eu] Disk Usage · prod-ch-1 · 84 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n84% used (worst disk)"
                 }
               },
               {
@@ -444,15 +977,6 @@
               }
             ]
           },
-          "trend": {
-            "series": [
-              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84
-            ],
-            "warn": 80,
-            "crit": 95,
-            "unit": "%",
-            "stepMinutes": 5
-          },
           "reactions": [
             {
               "name": "white_check_mark",
@@ -470,7 +994,297 @@
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "🔴 *CRITICAL*  [prod-eu] Disk Usage · prod-ch-1 · 96 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n96% used (worst disk)\n`▁▁▁▁▂▂▂▂▂▂▂▃▃▃▃▅▅▅▆▆▇▇█ 70 → 96 (warn 80, crit 95)`"
+                  "text": "🔴 *CRITICAL*  [prod-eu] Disk Usage · prod-ch-1 · 96 (warn 80, crit 95) · <https://chmonitor.example.com/health?host=0|Open>\n96% used (worst disk)"
+                }
+              },
+              {
+                "type": "data_visualization",
+                "title": "Disk Usage",
+                "chart": {
+                  "type": "line",
+                  "series": [
+                    {
+                      "name": "disk-usage",
+                      "data": [
+                        {
+                          "label": "07:57",
+                          "value": 70
+                        },
+                        {
+                          "label": "08:02",
+                          "value": 70
+                        },
+                        {
+                          "label": "08:07",
+                          "value": 71
+                        },
+                        {
+                          "label": "08:12",
+                          "value": 71
+                        },
+                        {
+                          "label": "08:17",
+                          "value": 72
+                        },
+                        {
+                          "label": "08:22",
+                          "value": 72
+                        },
+                        {
+                          "label": "08:32",
+                          "value": 73
+                        },
+                        {
+                          "label": "08:37",
+                          "value": 74
+                        },
+                        {
+                          "label": "08:42",
+                          "value": 75
+                        },
+                        {
+                          "label": "08:47",
+                          "value": 75
+                        },
+                        {
+                          "label": "08:52",
+                          "value": 76
+                        },
+                        {
+                          "label": "08:57",
+                          "value": 77
+                        },
+                        {
+                          "label": "09:02",
+                          "value": 78
+                        },
+                        {
+                          "label": "09:12",
+                          "value": 84
+                        },
+                        {
+                          "label": "09:17",
+                          "value": 85
+                        },
+                        {
+                          "label": "09:22",
+                          "value": 86
+                        },
+                        {
+                          "label": "09:27",
+                          "value": 88
+                        },
+                        {
+                          "label": "09:32",
+                          "value": 90
+                        },
+                        {
+                          "label": "09:37",
+                          "value": 92
+                        },
+                        {
+                          "label": "09:47",
+                          "value": 96
+                        }
+                      ]
+                    },
+                    {
+                      "name": "warn",
+                      "data": [
+                        {
+                          "label": "07:57",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:02",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:07",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:12",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:17",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:22",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:32",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:37",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:42",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:47",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:52",
+                          "value": 80
+                        },
+                        {
+                          "label": "08:57",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:02",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:12",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:17",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:22",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:27",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:32",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:37",
+                          "value": 80
+                        },
+                        {
+                          "label": "09:47",
+                          "value": 80
+                        }
+                      ]
+                    },
+                    {
+                      "name": "crit",
+                      "data": [
+                        {
+                          "label": "07:57",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:02",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:07",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:12",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:17",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:22",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:32",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:37",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:42",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:47",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:52",
+                          "value": 95
+                        },
+                        {
+                          "label": "08:57",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:02",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:12",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:17",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:22",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:27",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:32",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:37",
+                          "value": 95
+                        },
+                        {
+                          "label": "09:47",
+                          "value": 95
+                        }
+                      ]
+                    }
+                  ],
+                  "axis_config": {
+                    "categories": [
+                      "07:57",
+                      "08:02",
+                      "08:07",
+                      "08:12",
+                      "08:17",
+                      "08:22",
+                      "08:32",
+                      "08:37",
+                      "08:42",
+                      "08:47",
+                      "08:52",
+                      "08:57",
+                      "09:02",
+                      "09:12",
+                      "09:17",
+                      "09:22",
+                      "09:27",
+                      "09:32",
+                      "09:37",
+                      "09:47"
+                    ],
+                    "x_label": "UTC",
+                    "y_label": "disk-usage"
+                  }
                 }
               },
               {
@@ -492,16 +1306,6 @@
                 ]
               }
             ]
-          },
-          "trend": {
-            "series": [
-              70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84,
-              85, 86, 88, 90, 92, 94, 96
-            ],
-            "warn": 80,
-            "crit": 95,
-            "unit": "%",
-            "stepMinutes": 5
           },
           "reactions": [
             {

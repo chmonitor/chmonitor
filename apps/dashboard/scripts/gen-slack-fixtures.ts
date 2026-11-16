@@ -10,6 +10,7 @@
  * chmonitor.example.com.
  */
 
+import type { SlackChartPoint } from '@/lib/health/adapters/slack-chart'
 import type { AlertPayload, AlertSeverity } from '@/lib/health/adapters/types'
 import type { AckKey } from '@/lib/slack/blocks'
 
@@ -21,6 +22,7 @@ import {
   buildSlackBotStandingParent,
   buildSlackBotTrend,
   type SlackBotMessage,
+  type SlackWebhookBody,
 } from '@/lib/health/adapters/slack'
 import {
   buildAckedMessageBlocks,
@@ -55,11 +57,14 @@ const RESOLVED_AT = '2026-11-16T10:31:00.000Z'
 const WARN = 80
 const CRIT = 95
 
-/** Worst-disk usage (%) per sweep, oldest first, up to each message. */
-const SERIES_AT_FIRE = [
-  70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84,
+/**
+ * Worst-disk usage (%) per sweep, oldest first, the last one at ESCALATED_AT.
+ * The 16th reading, 84, is the one that fires the warning at FIRED_AT.
+ */
+const READINGS = [
+  70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84, 85, 86, 88,
+  90, 92, 94, 96,
 ]
-const SERIES_AT_ESCALATION = [...SERIES_AT_FIRE, 85, 86, 88, 90, 92, 94, 96]
 
 const DISK_USAGE: Omit<
   AlertPayload,
@@ -105,22 +110,12 @@ function ackButton(payload: AlertPayload): SlackBlock[] {
   )
 }
 
-export interface FixtureTrend {
-  series: number[]
-  warn: number
-  crit: number
-  unit: string
-  stepMinutes: number
-}
-
 export interface FixtureMessage {
   author: 'webhook' | 'bot'
   ts: string
   edited?: boolean
-  body: SlackBotMessage
+  body: SlackBotMessage | SlackWebhookBody
   reactions?: { name: string; count: number }[]
-  /** The values a sparkline in `body` was drawn from. */
-  trend?: FixtureTrend
 }
 
 export interface FixtureThread {
@@ -145,18 +140,27 @@ export interface SlackFixtures {
   }
 }
 
-function trendReply(payload: AlertPayload, series: number[]): FixtureMessage {
+/** `values` one sweep apart, the last one at `end`. */
+function sweepPoints(
+  values: readonly number[],
+  end: string
+): SlackChartPoint[] {
+  const endMs = Date.parse(end)
+  const stepMs = SCENE.sweepMinutes * 60_000
+  return values.map((value, i) => ({
+    at: new Date(endMs - (values.length - 1 - i) * stepMs).toISOString(),
+    value,
+  }))
+}
+
+function detailsReply(
+  payload: AlertPayload,
+  series: readonly SlackChartPoint[]
+): FixtureMessage & { body: SlackBotMessage } {
   return {
     author: 'bot',
     ts: payload.timestamp,
     body: buildSlackBotTrend(payload, series, ackButton(payload)),
-    trend: {
-      series,
-      warn: WARN,
-      crit: CRIT,
-      unit: '%',
-      stepMinutes: SCENE.sweepMinutes,
-    },
   }
 }
 
@@ -182,8 +186,12 @@ export function generateSlackFixtures(): SlackFixtures {
     body: buildSlackBotStandingParent(open),
   })
 
-  const warningReply = trendReply(warning, SERIES_AT_FIRE)
-  const criticalReply = trendReply(critical, SERIES_AT_ESCALATION)
+  // A new episode has no recorded values, so its details carry no trend.
+  const warningReply = detailsReply(warning, [])
+  const criticalReply = detailsReply(
+    critical,
+    sweepPoints(READINGS, ESCALATED_AT)
+  )
   const ackedReply: FixtureMessage = {
     ...criticalReply,
     body: {
@@ -205,7 +213,7 @@ export function generateSlackFixtures(): SlackFixtures {
       firstFiredAt: FIRED_AT,
       value: warning.value,
       severity: 'warning',
-      peak: Math.max(...SERIES_AT_ESCALATION),
+      peak: Math.max(...READINGS),
     }),
   }
 
