@@ -83,7 +83,9 @@ let sqlite: Database | null = null
 installHealthPlatformMock(() => (sqlite ? sqliteD1(sqlite) : null))
 
 const { createDispatcher } = await import('./index')
-const { alertStateStore } = await import('../../alert-state-store')
+const { alertStateKey, alertStateStore } = await import(
+  '../../alert-state-store'
+)
 const { ErrorLogger } = await import('@chm/logger')
 const { computeSlackSignature } = await import(
   '../../../slack/verify-signature'
@@ -695,4 +697,107 @@ describe('the resolved reply', () => {
     expect(text).toContain('🟢 *RESOLVED*  Slack test · ch-1')
     expect(text).not.toContain('fired ')
   })
+})
+
+const BARS = /[▁▂▃▄▅▆▇█]/
+
+describe('the trend line', () => {
+  test('an escalation draws the episode so far in its details reply', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'warning', 85)
+    const [, details] = await tick(ctx, 'critical', 97)
+    expect(textOf(details)).toContain('`▁█ 85 → 97 (warn 80, crit 90)`')
+  })
+
+  test('a new alert has no history yet, so no trend', async () => {
+    const [, details] = await tick(makeCtx(), 'critical', 97)
+    expect(textOf(details)).toContain('Slack test')
+    expect(textOf(details)).not.toMatch(BARS)
+  })
+
+  test('without alert history the escalation still posts its details, with no trend', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'warning', 85)
+    sqlite?.run('DROP TABLE alert_events')
+    const out = await tick(ctx, 'critical', 97)
+    expect(posts(out)).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+    ])
+    expect(textOf(out[1])).toContain('Slack test')
+    expect(textOf(out[1])).not.toMatch(BARS)
+  })
+})
+
+const LIFECYCLE_TARGETS = [
+  {
+    name: 'SLACK_BOT_TOKEN with SLACK_ALERT_CHANNEL_ID and no webhook',
+    channel: ENV_CHANNEL,
+    token: ENV_TOKEN,
+    ctx: () => makeCtx(),
+  },
+  {
+    name: 'a webhook route with a channel id and the OAuth install',
+    channel: ROUTE_CHANNEL,
+    token: INSTALL_TOKEN,
+    ctx: () => {
+      delete process.env.SLACK_BOT_TOKEN
+      installed = true
+      return makeCtx([route(ROUTE_CHANNEL)])
+    },
+  },
+]
+
+describe('the whole thread lifecycle', () => {
+  for (const target of LIFECYCLE_TARGETS) {
+    test(`new, reminder, escalation, ack, recovery: ${target.name}`, async () => {
+      configureSlackApp()
+      const ctx = target.ctx()
+      const ch = target.channel
+
+      const fired = await tick(ctx, 'warning', 85)
+      expect(lines(fired)).toEqual([
+        `post ${ch}`,
+        `post ${ch} in 1.0001`,
+        'react+ large_orange_circle 2.0001',
+      ])
+      expect(JSON.stringify(fired[0].body)).toContain('*1 open* · 1 warning')
+
+      const notifiedAt = () =>
+        alertStateStore.get(alertStateKey(1, 'slack-test'))?.notifiedAt
+      const beforeReminder = notifiedAt()
+      expect(lines(await tick(ctx, 'warning', 86))).toEqual([])
+      expect(notifiedAt()).toBeGreaterThan(beforeReminder ?? Infinity)
+
+      const escalated = await tick(ctx, 'critical', 97)
+      expect(lines(escalated)).toEqual([
+        `update ${ch} 1.0001`,
+        `post ${ch} in 1.0001`,
+        'react+ red_circle 2.0001',
+        'react- large_orange_circle 2.0001',
+      ])
+      expect(textOf(escalated[1])).toContain('`▁█ 85 → 97 (warn 80, crit 90)`')
+
+      expect(lines(await clickAck(fired[1]))).toEqual(['react+ eyes 2.0001'])
+
+      const resolved = await tick(ctx, 'ok', 10)
+      expect(lines(resolved)).toEqual([
+        `update ${ch} 1.0001`,
+        `post ${ch} in 1.0001`,
+        'react+ white_check_mark 2.0001',
+        'react- red_circle 2.0001',
+        'react- large_orange_circle 2.0001',
+      ])
+      expect(JSON.stringify(resolved[0].body)).toContain('All clear')
+      const quote = textOf(resolved[1])
+      expect(quote).toContain('peak 97 · last 10')
+      expect(quote).toContain('> 🟠 *WARNING*  Slack test · ch-1 · 85 · fired ')
+
+      const slackCalls = [...fired, ...escalated, ...resolved]
+      expect(new Set(slackCalls.map((c) => c.auth))).toEqual(
+        new Set([`Bearer ${target.token}`])
+      )
+      expect(rootRows()).toEqual([])
+    })
+  }
 })

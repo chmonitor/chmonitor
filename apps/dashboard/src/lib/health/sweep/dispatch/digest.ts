@@ -43,8 +43,8 @@ import {
 import { digestDeltaOf } from './../../adapters/digest'
 import { buildMatrixBody, buildMatrixDigestBody } from './../../adapters/matrix'
 import {
-  buildSlackBotDetails,
   buildSlackBotResolved,
+  buildSlackBotTrend,
   buildSlackDeltaBody,
   buildSlackDigestBody,
 } from './../../adapters/slack'
@@ -635,10 +635,34 @@ export async function createDigestPipeline(
 
   let threads: Awaited<ReturnType<typeof loadEpisodeThreads>> | null = null
 
-  /** A lone finding's details reply, with its ack button when it has one. */
-  function slackBotDetails(
+  /**
+   * The episode's recorded values plus this alert's, for the details reply's
+   * trend line. A new episode has no history to read, and fewer than two
+   * points draw nothing, so no history (no metadata DB, a failed read) just
+   * leaves the line out.
+   */
+  async function slackTrendSeries(
     entry: SlackBotDigestEntry
-  ): Record<string, unknown> {
+  ): Promise<number[]> {
+    const { payload, finding } = entry
+    if (finding.decision.kind === 'new') return []
+    const episode = await queryEpisodeValues(
+      finding.hostId,
+      finding.ruleId,
+      payload.timestamp
+    )
+    const values = [
+      ...(episode?.series ?? []),
+      ...(payload.value === null ? [] : [payload.value]),
+    ]
+    const points = values.filter((v, i) => i === 0 || v !== values[i - 1])
+    return points.length >= 2 ? points : []
+  }
+
+  /** A lone finding's details reply, with its ack button when it has one. */
+  async function slackBotDetails(
+    entry: SlackBotDigestEntry
+  ): Promise<Record<string, unknown>> {
     const { payload, slackAck: ack } = entry
     const ackBlocks =
       ack && payload.hostId !== undefined
@@ -656,7 +680,9 @@ export async function createDigestPipeline(
             ack
           ).filter((b) => b.type === 'actions')
         : []
-    return { ...buildSlackBotDetails(payload, ackBlocks) }
+    return {
+      ...buildSlackBotTrend(payload, await slackTrendSeries(entry), ackBlocks),
+    }
   }
 
   /**
@@ -764,7 +790,7 @@ export async function createDigestPipeline(
     // A lone recovery quotes the alert it closes; its reactions then mark
     // the stored details message, when there is one.
     const change = postsDetails
-      ? slackBotDetails(only)
+      ? await slackBotDetails(only)
       : lone
         ? {
             ...buildSlackBotResolved(
