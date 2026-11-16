@@ -14,7 +14,7 @@ An incoming webhook can only post new messages. One busy disk then means a warni
 
 - **One standing message.** It shows what is open, for example `🔴 1 open · 1 critical`, and chmonitor edits it on every sweep that changes the counts. When nothing is open it reads `✅ All clear`, and the next incident starts a new message.
 - **Details in the thread.** The value against both thresholds, what was measured, the runbook link and an **Acknowledge** button. The rule id, your metadata and the time go in a small gray footer line, not in a table.
-- **A trend line.** The reply carries a line chart of recent readings with the warn and crit levels. It is Slack's native chart block, `data_visualization`, so Slack draws the chart itself. Slack's [block reference](https://docs.slack.dev/reference/block-kit/blocks/data-visualization-block/) does not say whether incoming webhooks or older app installs can post it, and we have not yet tried it against a live workspace.
+- **A trend line.** The reply carries a chart of recent readings. It is Slack's native chart block, `data_visualization`, so Slack draws the chart itself. Slack's [block reference](https://docs.slack.dev/reference/block-kit/blocks/data-visualization-block/) does not say whether incoming webhooks or older app installs can post it, and we have not yet tried it against a live workspace.
 - **Reactions.** The bot adds 👀 to an alert when someone acknowledges it and ✅ when it resolves.
 - **A resolved reply.** It says how long the alert lasted and its peak, then quotes the alert as it first fired.
 - **Your name and icon.** Posts carry the name in `SLACK_BOT_NAME`, which defaults to the instance name, and the icon in `SLACK_BOT_ICON_EMOJI`.

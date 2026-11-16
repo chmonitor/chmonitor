@@ -69,8 +69,8 @@ const host = 'Disk usage on prod-ch-1'
         <p>
           The chart is Slack's own chart block, <code>data_visualization</code>. Slack draws it
           in the message itself, no image upload. This page draws the same block
-          JSON as SVG, so the look is ours. Slack draws the warn and crit series as
-          plain lines, and this page dashes them. Slack's reference does not say
+          JSON as SVG, so the look is ours. Series named warn and crit are dashed
+          here, and Slack draws them like any other series. Slack's reference does not say
           whether incoming webhooks or older app installs can post the block, and
           we have not yet tried it against a live workspace. The webhook message
           has no chart.
