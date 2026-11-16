@@ -176,9 +176,10 @@ interface WebhookDigestEntry {
 
 /**
  * A Slack bot target (#4241): a webhook route with a channel id, or the
- * `SLACK_ALERT_CHANNEL_ID` channel. In-pass only and never held by the time
- * window (no D1 buffer row can name it): the standing message already folds
- * a sweep's changes into one edit and one reply.
+ * `SLACK_ALERT_CHANNEL_ID` channel. Never held by the time window: the
+ * standing message already folds a sweep's changes into one edit and one
+ * reply. Only a failed post of a finding the window already committed, with
+ * no webhook to fall back to, is parked again for the next sweep.
  */
 interface SlackBotDigestEntry {
   route: SlackBotRoute
@@ -310,12 +311,22 @@ export async function createDigestPipeline(
         slackAck: entry.slackAck,
         pending: null,
       })
-    } else {
+    } else if (entry.kind === 'telegram') {
       telegramDigestEntries.push({
         botToken: entry.botToken,
         chatId: entry.chatId,
         payload: entry.payload,
         pending: null,
+      })
+    } else {
+      slackBotDigestEntries.push({
+        route: entry.route,
+        finding: entry.finding,
+        payload: entry.payload,
+        deltaOnly: entry.deltaOnly,
+        slackAck: entry.slackAck,
+        pending: null,
+        bufferedCount: null,
       })
     }
     counters.digestFlushed++
@@ -910,7 +921,20 @@ export async function createDigestPipeline(
     for (const entries of byBotTarget.values()) {
       if (await deliverSlackBot(entries, openNow)) continue
       const { fallbackUrl } = entries[0].route.target
-      if (!fallbackUrl) continue
+      if (!fallbackUrl) {
+        for (const e of entries) {
+          if (e.pending) continue
+          failedBuffered.push({
+            kind: 'slack-bot',
+            route: e.route,
+            finding: e.finding,
+            payload: e.payload,
+            deltaOnly: e.deltaOnly,
+            ...(e.slackAck ? { slackAck: e.slackAck } : {}),
+          })
+        }
+        continue
+      }
       for (const e of entries) {
         webhookDigestEntries.push({
           url: fallbackUrl,

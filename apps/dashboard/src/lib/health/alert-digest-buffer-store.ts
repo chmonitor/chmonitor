@@ -20,6 +20,8 @@
 
 import type { AlertPayload } from './adapters/types'
 import type { HealthSqlDb } from './sql-db'
+import type { SlackBotRoute } from './sweep/dispatch/channels/slack-bot'
+import type { FindingContext } from './sweep/dispatch/finding-context'
 
 import { getHealthDb } from './resolve-store'
 import { ErrorLogger } from '@chm/logger'
@@ -62,7 +64,24 @@ export interface BufferedTelegramEntry {
   payload: AlertPayload
 }
 
-export type BufferedDigestEntry = BufferedWebhookEntry | BufferedTelegramEntry
+/**
+ * A Slack bot post with no webhook to fall back to, parked again after it
+ * failed so the next sweep retries it. The route names the token source,
+ * never the token.
+ */
+export interface BufferedSlackBotEntry {
+  kind: 'slack-bot'
+  route: SlackBotRoute
+  finding: FindingContext
+  payload: AlertPayload
+  deltaOnly: boolean
+  slackAck?: BufferedWebhookEntry['slackAck']
+}
+
+export type BufferedDigestEntry =
+  | BufferedWebhookEntry
+  | BufferedTelegramEntry
+  | BufferedSlackBotEntry
 
 interface D1BufferRow {
   entry_json: string
@@ -75,7 +94,7 @@ function getDb(): HealthSqlDb | null {
 function isBufferedEntry(v: unknown): v is BufferedDigestEntry {
   if (!v || typeof v !== 'object') return false
   const kind = (v as { kind?: unknown }).kind
-  return kind === 'webhook' || kind === 'telegram'
+  return kind === 'webhook' || kind === 'telegram' || kind === 'slack-bot'
 }
 
 /**

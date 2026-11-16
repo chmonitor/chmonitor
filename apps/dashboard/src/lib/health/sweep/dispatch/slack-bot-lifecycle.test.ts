@@ -76,6 +76,11 @@ function sqliteD1(db: Database) {
         },
       }
     },
+    async batch(statements: { run(): Promise<unknown> }[]) {
+      const results: unknown[] = []
+      for (const statement of statements) results.push(await statement.run())
+      return results
+    },
   }
 }
 
@@ -225,7 +230,7 @@ function route(slackChannelId: string | null): AlertRoute & {
 
 function makeCtx(
   routes: AlertRoute[] = [],
-  options: { digestWindowMs?: number } = {}
+  options: { digestWindowMs?: number; webhookUrl?: string } = {}
 ): SweepContext {
   return {
     settings: {
@@ -238,7 +243,7 @@ function makeCtx(
     routes,
     pagerDutyFallbackKey: '',
     channels: {
-      webhookUrl: '',
+      webhookUrl: options.webhookUrl ?? '',
       webhookUrlTrusted: true,
       healthchecksUrl: '',
       opsgenie: null,
@@ -516,6 +521,24 @@ describe('Slack bot channel with no webhook URL', () => {
     expect(posts(recovery)).toEqual([`post ${ENV_CHANNEL}`])
     expect(textOf(recovery[0])).toContain('resolved')
     expect(posts(await tick(ctx, 'ok'))).toEqual([])
+  })
+
+  test('a failed post of an alert the time window holds elsewhere is parked and sent exactly once next sweep', async () => {
+    const ctx = makeCtx([], {
+      digestWindowMs: 60_000,
+      webhookUrl: 'https://example.com/hook',
+    })
+    slackError = (method) =>
+      method === 'chat.postMessage' ? 'not_in_channel' : undefined
+    expect(posts(await tick(ctx, 'warning', 85))).toEqual([
+      `post ${ENV_CHANNEL}`,
+    ])
+    slackError = () => undefined
+    expect(posts(await tick(ctx, 'warning', 85))).toEqual([
+      `post ${ENV_CHANNEL}`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+    ])
+    expect(posts(await tick(ctx, 'warning', 85))).toEqual([])
   })
 
   test('the digest time window never holds a bot alert', async () => {
