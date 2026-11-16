@@ -10,6 +10,9 @@
 #   SLACK_SIGNING_SECRET                  (Basic Information → App Credentials)
 # Then install via <your-origin>/api/v1/slack/install (the OAuth start route).
 #
+# Alerts only, no OAuth: click "Install to Workspace" in the app settings and
+# set SLACK_BOT_TOKEN to the Bot User OAuth Token (xoxb-…) instead.
+#
 # Keep the bot scopes here IN SYNC with SLACK_BOT_SCOPES in
 # apps/dashboard/src/lib/slack/config.ts.
 
@@ -38,10 +41,14 @@ oauth_config:
     - https://dash.chmonitor.dev/api/v1/slack/oauth
   scopes:
     bot:
-      # commands   — receive the /chmonitor slash command
-      # chat:write — post/update alert messages (the Acknowledge edit)
+      # commands             — receive the /chmonitor slash command
+      # chat:write           — post/update alert messages (the Acknowledge edit)
+      # chat:write.customize — post alerts under a custom name and icon
+      # reactions:write      — react to alert messages
       - commands
       - chat:write
+      - chat:write.customize
+      - reactions:write
 
 settings:
   event_subscriptions:

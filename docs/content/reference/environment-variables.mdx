@@ -819,6 +819,16 @@ and its routes return "not configured". Set the secrets as Worker secrets or in
 | `SLACK_OAUTH_REDIRECT_URL` | request origin + `/api/v1/slack/oauth` | OAuth redirect URI. Set it to match the URL registered in the Slack app exactly. |
 | `SLACK_TOKEN_ENCRYPTION_KEY` | derived from `SLACK_SIGNING_SECRET` | **Secret.** Optional dedicated 32-byte base64 key for encrypting stored bot tokens, so it can rotate separately from the signing secret. Any other length is rejected. |
 
+Health alerts can post through a Slack bot without the OAuth install. Set
+`SLACK_BOT_TOKEN` and give a Slack webhook alert route a channel id; see
+[Slack bot delivery](/guide/guides/alerting-slack-discord#slack-bot-one-standing-message-changes-in-its-thread).
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SLACK_BOT_TOKEN` | — | **Secret.** Bot User OAuth Token (`xoxb-…`) of a Slack app you installed by hand. Alert routes with a Slack channel id post through it, and it wins over an OAuth install for the same workspace. Any other value (a user `xoxp-` token, a URL) is ignored with a warning. |
+| `SLACK_BOT_NAME` | `HEALTH_ALERT_INSTANCE_NAME` | Name bot alerts post under, at most 80 characters. Needs the `chat:write.customize` scope; without it alerts post under the app's own name. |
+| `SLACK_BOT_ICON_EMOJI` | — | Emoji icon for bot alerts, such as `:rotating_light:`. Same scope as `SLACK_BOT_NAME`. |
+
 ## GitHub deployment webhook
 
 | Variable | Default | Purpose |

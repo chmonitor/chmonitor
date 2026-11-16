@@ -455,6 +455,15 @@ queryAttribution:
 #       secretKeyRef:
 #         name: chmonitor-alert-secrets
 #         key: CHM_ROUTE_PAGERDUTY_KEY
+#   # Slack bot token (xoxb-) for alert routes with a Slack channel id, no
+#   # OAuth install needed. Optional name/icon need chat:write.customize.
+#   - name: SLACK_BOT_TOKEN
+#     valueFrom:
+#       secretKeyRef:
+#         name: chmonitor-alert-secrets
+#         key: slack-bot-token
+#   - name: SLACK_BOT_ICON_EMOJI
+#     value: ":rotating_light:"
 extraEnv: []
 
 nodeSelector: {}

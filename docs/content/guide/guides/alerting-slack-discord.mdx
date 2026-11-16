@@ -170,12 +170,11 @@ unchanged. Subscriptions carry it as `data.alert` on `alert.fired` and
   most one read-only ClickHouse query (top contributors) and one alert-history
   read per alert, shared by every opted-in destination.
 
-### Slack app: one standing message, changes in its thread
+### Slack bot: one standing message, changes in its thread
 
-A plain webhook can only post new messages. If the chmonitor Slack app is
-installed in the same workspace, a webhook alert route can name a Slack
-channel id, and alerts for that route post through the app instead. The route
-keeps **one standing message** that is edited in place:
+A plain webhook can only post new messages. A webhook alert route that also
+names a Slack channel id posts through a Slack bot instead. The route keeps
+**one standing message** that is edited in place:
 
 - **The message** shows the open counts, for example `🔴 3 open · 1 critical ·
   2 warning`, and is edited every sweep that changes them.
@@ -186,12 +185,27 @@ keeps **one standing message** that is edited in place:
   The next incident starts a fresh message.
 - If the stored message was deleted, a new one is posted and used from then on.
 
+The bot token comes from one of two places:
+
+- **`SLACK_BOT_TOKEN`, no OAuth needed.** Create a Slack app from
+  [`docs/slack/manifest.yml`](https://github.com/chmonitor/chmonitor/blob/main/docs/slack/manifest.yml),
+  click **Install to Workspace** in its settings, and set `SLACK_BOT_TOKEN` to
+  the **Bot User OAuth Token** (`xoxb-…`). It is a secret: a Worker secret
+  (`bun scripts/set-secrets.ts`), `.env.local`, or a Kubernetes Secret. When it
+  is set, every route with a channel id posts through it, so keep those routes
+  in its workspace.
+- **The [Slack app](/guide/guides/slack-app) OAuth install**, used when
+  `SLACK_BOT_TOKEN` is not set. It is matched by the workspace id in the
+  route's webhook URL.
+
 To turn it on:
 
-1. Install the Slack app (it requests the `chat:write` scope) and invite it to
-   the channel: `/invite @chmonitor`.
+1. Set `SLACK_BOT_TOKEN` or install the Slack app, then invite the bot to the
+   channel: `/invite @chmonitor`. Without the invite Slack answers
+   `not_in_channel` and the alert goes out through the webhook.
 2. Copy the channel id: open the channel details in Slack; the id at the
-   bottom looks like `C0123456789`.
+   bottom looks like `C0123456789`. A channel name such as `#alerts` is not
+   accepted.
 3. Add a route with the channel's incoming-webhook URL and the channel id. In
    the UI, the **Slack channel id** field shows once the URL is a
    `hooks.slack.com` URL. In `routing.yaml`:
@@ -205,11 +219,17 @@ routes:
       slackChannelId: C0123456789
 ```
 
-The app is matched by the workspace id in the webhook URL. The webhook stays
-the fallback: with no channel id, no installed app for that workspace, no
-metadata database (the edit needs the stored message id), or any Slack API
-error, the alert posts through the webhook exactly as before, and the error is
-logged. Alerts held by the digest time window also keep using the webhook.
+Bot alerts post under the name in `SLACK_BOT_NAME` (default
+`HEALTH_ALERT_INSTANCE_NAME`) with the icon in `SLACK_BOT_ICON_EMOJI`, for
+example `:rotating_light:`. Both need the `chat:write.customize` scope. A
+token without it still delivers, under the app's own name. An app installed
+before this scope was added keeps its old scopes until you reinstall it.
+
+The webhook stays the fallback: with no channel id, no bot token (no
+`SLACK_BOT_TOKEN` and no installed app for that workspace), no metadata
+database (the edit needs the stored message id), or any Slack API error, the
+alert posts through the webhook exactly as before, and the error is logged.
+Alerts held by the digest time window also keep using the webhook.
 
 ## 3. Test it
 
@@ -344,6 +364,18 @@ extraEnv:
     value: "warning"
 ```
 
+A Slack bot token for [bot delivery](#slack-bot-one-standing-message-changes-in-its-thread)
+goes the same way:
+
+```yaml
+extraEnv:
+  - name: SLACK_BOT_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: chmonitor-alert-secrets
+        key: slack-bot-token
+```
+
 ## Disable or pause alerts
 
 Pick the narrowest switch that does the job.
@@ -373,7 +405,7 @@ You can also tag every message from a deployment with these variables:
 
 | Variable | Effect |
 |---|---|
-| `HEALTH_ALERT_INSTANCE_NAME` | Adds a `[prod-eu]` prefix to the title. With Hookshot, it becomes the `username`. |
+| `HEALTH_ALERT_INSTANCE_NAME` | Adds a `[prod-eu]` prefix to the title. With Hookshot, it becomes the `username`. With a Slack bot, it is the bot name unless `SLACK_BOT_NAME` is set. |
 | `HEALTH_ALERT_DASHBOARD_URL` | Adds an "Open dashboard" link to `/health?host=N`. |
 | `HEALTH_ALERT_METADATA` | `key=value` pairs, for example `team=data,region=eu`. At most 10 pairs. They show in the Slack context line and as JSON fields. |
 

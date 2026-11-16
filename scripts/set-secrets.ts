@@ -85,6 +85,9 @@ const DASHBOARD_SECRET_KEYS = [
   // Polar license product ids live in apps/cloud-hooks/.env.production, not dashboard.
   'POLAR_ACCESS_TOKEN',
   'POLAR_WEBHOOK_SECRET',
+  // Slack bot token (xoxb-) for health alerts without the OAuth install. In
+  // preview the value comes from SLACK_BOT_TOKEN_TEST (see resolveValue).
+  'SLACK_BOT_TOKEN',
   'CLICKHOUSE_EXCLUDE_USER_DEFAULT',
   'NEXT_QUERY_CACHE_TTL',
 ] as const
@@ -205,6 +208,11 @@ function resolveValue(
   }
   if (key === 'POLAR_WEBHOOK_SECRET' && isPreview) {
     return src.POLAR_WEBHOOK_SECRET_TEST ?? ''
+  }
+  // A PR preview must not post alerts as the production Slack bot. With no
+  // SLACK_BOT_TOKEN_TEST the secret is skipped and preview has no bot token.
+  if (key === 'SLACK_BOT_TOKEN' && isPreview) {
+    return src.SLACK_BOT_TOKEN_TEST ?? ''
   }
   return src[key] ?? DEFAULTS[key] ?? ''
 }

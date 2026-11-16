@@ -48,7 +48,11 @@ and OSS deployments are unaffected.
    | Events | `https://<your-host>/api/v1/slack/events` |
    | OAuth redirect | `https://<your-host>/api/v1/slack/oauth` |
 
-The bot requests only two scopes: `commands` and `chat:write`.
+The bot requests four scopes: `commands`, `chat:write`, `chat:write.customize`
+(alerts under a custom name and icon) and `reactions:write` (reactions on alert
+messages). An app installed before the last two were added keeps its old scopes
+until you reinstall it. Its alerts still post, under the app's own name and
+without reactions.
 
 ## 2. Configure the environment
 
@@ -79,6 +83,17 @@ Visit `https://<your-host>/api/v1/slack/install` and approve the app. chmonitor
 redirects you to Slack, exchanges the code for a bot token, encrypts it, and
 stores it. You can now use `/chmonitor` in that workspace.
 
+## Alerts without the OAuth install
+
+For health alerts alone you can skip the OAuth setup. Create the app from the
+manifest, click **Install to Workspace** in its settings, and set
+`SLACK_BOT_TOKEN` to the **Bot User OAuth Token** (`xoxb-…`) as a secret. No
+`SLACK_CLIENT_*` or signing secret and no D1 install store are needed for
+posting; the standing alert message still needs the metadata database. Alert
+routes that name a Slack channel id then post through this bot;
+see [Slack bot delivery](/guide/guides/alerting-slack-discord#slack-bot-one-standing-message-changes-in-its-thread).
+The slash command, Home tab and **Acknowledge** clicks still need step 2.
+
 ## Acknowledge buttons
 
 When your health-alert webhook points at a **Slack incoming webhook** *and* the
@@ -94,9 +109,9 @@ the message**. So the **Acknowledge** button only reaches
 `HEALTH_ALERT_WEBHOOK_URL` belongs to **this** chmonitor Slack app (the one whose
 interactivity URL you set in step 1). If the webhook was created by a different
 or legacy Slack app, the button still renders but the click is routed elsewhere
-and the acknowledgement is never recorded. A future release will post alerts via
-the stored bot token to a chosen channel so ACK works regardless of which app
-owns the webhook.
+and the acknowledgement is never recorded. To avoid this, give the alert route a
+Slack channel id so alerts post through this app's bot (see
+[Slack bot delivery](/guide/guides/alerting-slack-discord#slack-bot-one-standing-message-changes-in-its-thread)).
 </Callout>
 
 ## Security notes
@@ -107,6 +122,13 @@ owns the webhook.
   routes never require sign-in.
 - The OAuth `state` parameter is HMAC-signed (CSRF) and short-lived.
 - Bot tokens are AES-256-GCM encrypted at rest and never logged.
+  `SLACK_BOT_TOKEN` is read from the environment only and never logged either.
+- Alert routes reach a bot token with no per-route ownership check. The
+  install is picked by the workspace id in the webhook URL. `SLACK_BOT_TOKEN`
+  belongs to the operator and ignores that workspace id, so any route with a
+  channel id can make it post into any channel the bot is in, private ones
+  included. This is safe because the alert sweep sends only
+  operator-configured routes.
 - `/chmonitor query` is read-only (`readonly=2` — write queries blocked while
   per-query caps still apply — plus SELECT-only validation) and row/time capped,
   so it can never mutate your cluster.

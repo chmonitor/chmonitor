@@ -11,9 +11,11 @@
  * All values are read from `process.env`, which the Worker populates from its
  * vars/secrets via the `nodejs_compat_populate_process_env` compat flag (see
  * wrangler.toml) — the same source lib/deployments/config.ts reads. Secrets
- * (`SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`) must be provided as Worker
- * secrets / `.env.local` and NEVER committed.
+ * (`SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`, `SLACK_BOT_TOKEN`) must be
+ * provided as Worker secrets / `.env.local` and NEVER committed.
  */
+
+import { ErrorLogger } from '@chm/logger'
 
 function readEnv(key: string): string | undefined {
   const v = typeof process !== 'undefined' ? process.env?.[key] : undefined
@@ -60,13 +62,75 @@ export function isSlackAppConfigured(): boolean {
 }
 
 /**
- * OAuth scopes requested at install. Kept in sync with docs/slack/manifest.yml.
- * Only scopes the app actually uses:
- *  - commands       : receive the /chmonitor slash command
- *  - chat:write     : post/update alert messages (ACK edit)
+ * OAuth scopes requested at install. Kept in sync with docs/slack/manifest.yml
+ * (config.test.ts checks it). An install keeps the scopes it was granted until
+ * it is reinstalled, so every call that needs a newer scope degrades on
+ * `missing_scope` instead of failing the alert.
+ *  - commands             : receive the /chmonitor slash command
+ *  - chat:write           : post/update alert messages (ACK edit)
+ *  - chat:write.customize : post alerts under a custom bot name and icon
+ *  - reactions:write      : add/remove reactions on alert messages
  *  - app_mentions:read + the Home tab (`app_home`) come via event subscriptions
  */
-export const SLACK_BOT_SCOPES = ['commands', 'chat:write'] as const
+export const SLACK_BOT_SCOPES = [
+  'commands',
+  'chat:write',
+  'chat:write.customize',
+  'reactions:write',
+] as const
+
+let warnedBotToken = false
+
+/**
+ * Bot token for alerts with no OAuth install (SECRET, `SLACK_BOT_TOKEN`): the
+ * `xoxb-` token of a Slack app the operator created and installed by hand.
+ * Anything else (a user `xoxp-` token, a webhook URL) is ignored, so alerts
+ * never post as a person.
+ */
+export function getSlackBotToken(): string | undefined {
+  const token = readEnv('SLACK_BOT_TOKEN')?.trim()
+  if (!token) return undefined
+  if (token.startsWith('xoxb-')) return token
+  if (!warnedBotToken) {
+    warnedBotToken = true
+    ErrorLogger.logWarning(
+      '[slack-config] SLACK_BOT_TOKEN is not a bot token (xoxb-); ignoring it',
+      { component: 'slack-config' }
+    )
+  }
+  return undefined
+}
+
+/** Display name and icon a bot alert posts under (needs `chat:write.customize`). */
+export interface SlackBotIdentity {
+  username?: string
+  /** Emoji shortcode with colons, e.g. `:rotating_light:`. */
+  iconEmoji?: string
+}
+
+const MAX_SLACK_BOT_NAME_LENGTH = 80
+const SLACK_EMOJI_NAME_RE = /^[a-z0-9_+'-]+$/
+
+/**
+ * Optional `SLACK_BOT_NAME` and `SLACK_BOT_ICON_EMOJI`. A multi-line or
+ * over-long name and an icon that is not an emoji shortcode are dropped.
+ */
+export function getSlackBotIdentity(): SlackBotIdentity {
+  const identity: SlackBotIdentity = {}
+  const name = readEnv('SLACK_BOT_NAME')?.trim()
+  if (
+    name &&
+    name.length <= MAX_SLACK_BOT_NAME_LENGTH &&
+    !/[\r\n]/.test(name)
+  ) {
+    identity.username = name
+  }
+  const icon = readEnv('SLACK_BOT_ICON_EMOJI')
+    ?.trim()
+    .replace(/^:(.*):$/, '$1')
+  if (icon && SLACK_EMOJI_NAME_RE.test(icon)) identity.iconEmoji = `:${icon}:`
+  return identity
+}
 
 /** Slack API base — a fixed, first-party host (not derived from any payload). */
 export const SLACK_API_BASE = 'https://slack.com/api'

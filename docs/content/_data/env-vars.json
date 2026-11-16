@@ -1179,6 +1179,24 @@
     },
     {
       "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "SLACK_BOT_ICON_EMOJI",
+      "prefix": "SLACK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "SLACK_BOT_NAME",
+      "prefix": "SLACK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
+      "name": "SLACK_BOT_TOKEN",
+      "prefix": "SLACK"
+    },
+    {
+      "exampleDefault": null,
       "inEnvExample": false,
       "name": "SLACK_CLIENT_ID",
       "prefix": "SLACK"

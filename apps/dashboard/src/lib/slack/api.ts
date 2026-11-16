@@ -3,7 +3,8 @@
  *
  * The only outbound calls the Slack app makes. Two classes of destination:
  *  - FIXED first-party hosts we construct ourselves (`slack.com/api/*`) for the
- *    OAuth token exchange and `views.publish` — not attacker-influenced.
+ *    OAuth token exchange and the bot's `views.*`, `chat.*` and
+ *    `reactions.*` calls — not attacker-influenced.
  *  - The `response_url` carried IN a Slack interaction payload. That URL is
  *    attacker-influenceable, so before fetching it we (1) require its host to be
  *    Slack-owned (`hooks.slack.com`) and (2) additionally run it through the
@@ -15,6 +16,7 @@
  */
 
 import type { SlackBlock, SlackHomeView } from './blocks'
+import type { SlackBotIdentity } from './config'
 
 import { SLACK_API_BASE } from './config'
 import { error as logError } from '@chm/logger'
@@ -116,7 +118,7 @@ export async function publishHomeView(params: {
   }
 }
 
-/** Result of a `chat.postMessage` / `chat.update` call. Never carries the token. */
+/** Result of a Slack Web API call made with the bot token. Never carries the token. */
 export interface SlackChatResult {
   ok: boolean
   /** Message timestamp (Slack's message id) on success. */
@@ -125,8 +127,12 @@ export interface SlackChatResult {
   error?: string
 }
 
-async function callChatMethod(
-  method: 'chat.postMessage' | 'chat.update',
+async function callSlackMethod(
+  method:
+    | 'chat.postMessage'
+    | 'chat.update'
+    | 'reactions.add'
+    | 'reactions.remove',
   botToken: string,
   body: Record<string, unknown>
 ): Promise<SlackChatResult> {
@@ -155,17 +161,33 @@ async function callChatMethod(
 
 /**
  * Post a message as the bot (`chat.postMessage`, needs `chat:write`). Put
- * `thread_ts` in `message` to reply in a thread. Never throws, never logs.
+ * `thread_ts` in `message` to reply in a thread. `identity` sets the bot's
+ * name and icon (needs `chat:write.customize`); a token without that scope
+ * gets `missing_scope`, and the message is posted once more without them.
+ * Never throws, never logs.
  */
-export function postChatMessage(params: {
+export async function postChatMessage(params: {
   botToken: string
   channel: string
   message: Record<string, unknown>
+  identity?: SlackBotIdentity
 }): Promise<SlackChatResult> {
-  return callChatMethod('chat.postMessage', params.botToken, {
-    ...params.message,
-    channel: params.channel,
+  const { botToken, channel, message, identity } = params
+  const custom = {
+    ...(identity?.username ? { username: identity.username } : {}),
+    ...(identity?.iconEmoji ? { icon_emoji: identity.iconEmoji } : {}),
+  }
+  const plain = { ...message, channel }
+  if (Object.keys(custom).length === 0) {
+    return callSlackMethod('chat.postMessage', botToken, plain)
+  }
+  const first = await callSlackMethod('chat.postMessage', botToken, {
+    ...message,
+    ...custom,
+    channel,
   })
+  if (first.error !== 'missing_scope') return first
+  return callSlackMethod('chat.postMessage', botToken, plain)
 }
 
 /** Edit a bot message in place (`chat.update`). Never throws, never logs. */
@@ -175,11 +197,66 @@ export function updateChatMessage(params: {
   ts: string
   message: Record<string, unknown>
 }): Promise<SlackChatResult> {
-  return callChatMethod('chat.update', params.botToken, {
+  return callSlackMethod('chat.update', params.botToken, {
     ...params.message,
     channel: params.channel,
     ts: params.ts,
   })
+}
+
+/**
+ * Outcome of a reaction call. `skipped` is not an error: the reaction was
+ * already in the wanted state, or the token lacks `reactions:write` (an
+ * install made before the scope was added).
+ */
+export type SlackReactionResult =
+  | { status: 'done' }
+  | { status: 'skipped'; reason: string }
+  | { status: 'failed'; error: string }
+
+const SKIPPED_REACTION_ERRORS = new Set([
+  'already_reacted',
+  'no_reaction',
+  'missing_scope',
+])
+
+async function callReaction(
+  method: 'reactions.add' | 'reactions.remove',
+  params: { botToken: string; channel: string; ts: string; name: string }
+): Promise<SlackReactionResult> {
+  const res = await callSlackMethod(method, params.botToken, {
+    channel: params.channel,
+    timestamp: params.ts,
+    name: params.name,
+  })
+  if (res.ok) return { status: 'done' }
+  const error = res.error ?? 'unknown'
+  return SKIPPED_REACTION_ERRORS.has(error)
+    ? { status: 'skipped', reason: error }
+    : { status: 'failed', error }
+}
+
+/**
+ * React to a message (`reactions.add`). `name` is the emoji name without
+ * colons, e.g. `white_check_mark`. Never throws, never logs.
+ */
+export function addReaction(params: {
+  botToken: string
+  channel: string
+  ts: string
+  name: string
+}): Promise<SlackReactionResult> {
+  return callReaction('reactions.add', params)
+}
+
+/** Remove the bot's reaction (`reactions.remove`). Never throws, never logs. */
+export function removeReaction(params: {
+  botToken: string
+  channel: string
+  ts: string
+  name: string
+}): Promise<SlackReactionResult> {
+  return callReaction('reactions.remove', params)
 }
 
 /**
