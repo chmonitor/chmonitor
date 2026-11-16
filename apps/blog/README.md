@@ -97,6 +97,9 @@ via `<figure>` / `<figcaption>`. Pin 2–4 columns with `data-cols="3"`; below
   from the dashboard's own Slack builders. Never edit the JSON by hand:
   `tests/repo/slack-fixtures-sync.test.ts` fails when it drifts from the
   builders, and the build fails on a block type the components cannot draw.
+  A `data_visualization` (chart) block is drawn as SVG by
+  `src/lib/slack-chart-svg.ts`, and the build fails when one breaks a limit
+  in Slack's block reference (`src/lib/slack-chart-block.ts`).
 - **Release → draft post**: `pnpm run release-to-post <tag>` (fetches via `gh
   release view`, or `-- --from-file <json>` for offline/CI use) scaffolds a
   `draft: true` post from `templates/release-post.md`. It never publishes —

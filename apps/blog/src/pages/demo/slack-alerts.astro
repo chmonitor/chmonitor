@@ -62,18 +62,25 @@ const host = 'Disk usage on prod-ch-1'
         <h2>A new alert</h2>
         <p>
           The standing message says one warning is open. The thread reply has the
-          rest: the value against both thresholds, what was measured, a sparkline
-          of recent readings and an Acknowledge button. The runbook, rule id, team,
+          rest: the value against both thresholds, what was measured, a chart of
+          recent readings and an Acknowledge button. The runbook, rule id, team,
           region and time sit in a small gray footer.
+        </p>
+        <p>
+          The chart is Slack's own chart block, <code>data_visualization</code>. Slack draws it
+          in the message itself, no image upload. This page draws the same block
+          JSON as SVG, so the look is ours. Slack draws the warn and crit series as
+          plain lines, and this page dashes them. Slack's reference does not say
+          whether incoming webhooks or older app installs can post the block, and
+          we have not yet tried it against a live workspace. The webhook message
+          has no chart.
         </p>
         <SlackThread thread={newAlert} demo={demo} caption="The first warning, opened in its thread." />
         {
           warningReply?.trend && (
             <TrendChart trend={warningReply.trend} end={warningReply.ts} label={host} id="trend-warning">
-              The {warningReply.trend.series.length} readings the sparkline in the
-              reply is drawn from, one per sweep. Block Kit has no chart block, so
-              Slack gets the sparkline text. This chart is drawn on this page from
-              the same values.
+              The {warningReply.trend.series.length} readings behind the chart in
+              the reply, one per sweep, drawn larger here with both thresholds.
             </TrendChart>
           )
         }

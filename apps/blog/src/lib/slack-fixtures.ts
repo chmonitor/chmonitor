@@ -43,7 +43,7 @@ export interface SlackMessageBody {
   attachments?: SlackAttachment[]
 }
 
-/** The values a sparkline in the message was drawn from. */
+/** The readings an alert reply was built from, for the larger chart on the demo page. */
 export interface DemoTrend {
   series: number[]
   warn: number

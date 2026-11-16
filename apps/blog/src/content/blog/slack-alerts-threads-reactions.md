@@ -8,13 +8,13 @@ author: duyetbot
 
 An incoming webhook can only post new messages. One busy disk then means a warning, a critical and a resolved message, each on its own in the channel. With a Slack bot token, chmonitor keeps one message per alert route and edits it. Everything else about the incident goes in that message's thread.
 
-**See it first.** [The Slack alert demo](/demo/slack-alerts/) follows one disk alert from the first warning to resolved. Every message on that page is the Block Kit JSON chmonitor sends, drawn as HTML. A test rebuilds that JSON from the alert code, so the demo stays true to what Slack receives.
+**See it first.** [The Slack alert demo](/demo/slack-alerts/) follows one disk alert from the first warning to resolved. Every message on that page is the Block Kit JSON chmonitor sends, drawn as HTML, and the chart is drawn as SVG from the same chart block Slack gets. A test rebuilds that JSON from the alert code, so the demo stays true to what Slack receives.
 
 ## What the bot adds
 
 - **One standing message.** It shows what is open, for example `🔴 1 open · 1 critical`, and chmonitor edits it on every sweep that changes the counts. When nothing is open it reads `✅ All clear`, and the next incident starts a new message.
 - **Details in the thread.** The value against both thresholds, what was measured, the runbook link and an **Acknowledge** button. The rule id, your metadata and the time go in a small gray footer line, not in a table.
-- **A trend line.** Block Kit has no chart block, so the reply carries a sparkline of recent readings in a code span, such as `▁▁▂▂▂▂▃▃▃▄▄▄▅▅▆█ 70 → 84 (warn 80, crit 95)`.
+- **A trend line.** The reply carries a line chart of recent readings with the warn and crit levels. It is Slack's native chart block, `data_visualization`, so Slack draws the chart itself. Slack's [block reference](https://docs.slack.dev/reference/block-kit/blocks/data-visualization-block/) does not say whether incoming webhooks or older app installs can post it, and we have not yet tried it against a live workspace.
 - **Reactions.** The bot adds 👀 to an alert when someone acknowledges it and ✅ when it resolves.
 - **A resolved reply.** It says how long the alert lasted and its peak, then quotes the alert as it first fired.
 - **Your name and icon.** Posts carry the name in `SLACK_BOT_NAME`, which defaults to the instance name, and the icon in `SLACK_BOT_ICON_EMOJI`.
@@ -78,7 +78,7 @@ When Slack refuses one of the extras, chmonitor drops that extra and still sends
 - **No `chat:write.customize`.** Alerts still post, under the app's own name and icon.
 - **No `reactions:write`.** chmonitor skips the reaction and still posts the message.
 - **An older install.** An app installed before these scopes were added keeps its old scopes until you reinstall it.
-- **No token, no metadata database, or a Slack API error.** The alert goes through the webhook exactly as before, and chmonitor logs the error.
+- **No token, no metadata database, or a Slack API error.** The alert goes through the webhook exactly as before, and chmonitor logs the error. The webhook message has no chart.
 
 ## Verifying it worked
 
