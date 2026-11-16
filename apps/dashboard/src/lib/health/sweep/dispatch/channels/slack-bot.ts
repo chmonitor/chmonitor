@@ -28,11 +28,17 @@
 import type { SlackBotIdentity } from '@/lib/slack/config'
 import type { SlackBotTarget, SlackBotTokenSource } from '@/lib/slack/target'
 import type { SlackOpenCounts } from './../../../adapters/slack'
+import type { AlertDecision } from './../../../alert-state-store'
 
 import { buildSlackBotStandingParent } from './../../../adapters/slack'
 import { getServerAlertIdentity } from './../../../server-alert-config'
 import { ErrorLogger } from '@chm/logger'
-import { postChatMessage, updateChatMessage } from '@/lib/slack/api'
+import {
+  addReaction,
+  postChatMessage,
+  removeReaction,
+  updateChatMessage,
+} from '@/lib/slack/api'
 import { getSlackBotIdentity, getSlackBotToken } from '@/lib/slack/config'
 import { getInstallation } from '@/lib/slack/install-store'
 
@@ -184,5 +190,76 @@ export async function sendSlackBot(
     ok: true,
     rootTs: cleared ? undefined : parentTs,
     replyTs: reply.ok ? reply.ts : undefined,
+  }
+}
+
+/** Slack emoji names (no colons) for a firing alert, by severity. */
+const FIRING_REACTIONS = {
+  critical: 'red_circle',
+  warning: 'large_orange_circle',
+} as const
+
+const RESOLVED_REACTION = 'white_check_mark'
+
+/** Added to the message whose Acknowledge button was clicked. */
+export const ACK_REACTION = 'eyes'
+
+/** A reaction change on one message: `add` first, then each of `remove`. */
+export interface SlackReactionStep {
+  ts: string
+  add: string
+  remove: readonly string[]
+}
+
+/**
+ * The reaction one decision sets on its episode's details message: the
+ * severity while it fires, a check mark once resolved. On a message that
+ * already shows a state (`onStored`) every other firing reaction is removed,
+ * so it converges whatever it showed before: a de-escalation sends nothing
+ * and leaves 🔴, which the recovery still clears. Null when the decision has
+ * no state to show.
+ */
+export function slackReactionStep(
+  decision: Pick<AlertDecision, 'kind' | 'severity'>,
+  ts: string,
+  onStored: boolean
+): SlackReactionStep | null {
+  const add =
+    decision.kind === 'recovery'
+      ? RESOLVED_REACTION
+      : decision.severity === 'critical' || decision.severity === 'warning'
+        ? FIRING_REACTIONS[decision.severity]
+        : null
+  if (!add) return null
+  const remove = onStored
+    ? Object.values(FIRING_REACTIONS).filter((name) => name !== add)
+    : []
+  return { ts, add, remove }
+}
+
+/**
+ * Set reactions on a bot target's messages. Reactions only decorate an alert
+ * that was already delivered: `skipped` (already set, already gone, or a
+ * token without `reactions:write`) is silent, a failure logs its Slack code,
+ * and nothing here fails or re-sends the alert. Never throws.
+ */
+export async function reactSlackBot(
+  target: SlackBotTarget,
+  steps: readonly SlackReactionStep[]
+): Promise<void> {
+  if (steps.length === 0) return
+  const botToken = await loadBotToken(target.token)
+  if (!botToken) return
+  const { channel } = target
+  for (const { ts, add, remove } of steps) {
+    const results = [await addReaction({ botToken, channel, ts, name: add })]
+    for (const name of remove) {
+      results.push(await removeReaction({ botToken, channel, ts, name }))
+    }
+    for (const result of results) {
+      if (result.status === 'failed') {
+        warn(`reaction failed for ${describeTarget(target)} (${result.error})`)
+      }
+    }
   }
 }

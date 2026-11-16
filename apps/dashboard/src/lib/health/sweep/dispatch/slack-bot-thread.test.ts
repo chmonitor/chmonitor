@@ -242,7 +242,8 @@ async function tick(
   }
   await dispatcher.flushDigests()
   await dispatcher.flushBusEvents()
-  const out = sent
+  // Reactions have their own suite (slack-bot-lifecycle.test.ts).
+  const out = sent.filter((s) => !s.url.includes('/api/reactions.'))
   sent = []
   return out
 }

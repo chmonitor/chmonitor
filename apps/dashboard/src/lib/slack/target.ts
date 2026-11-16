@@ -27,6 +27,14 @@ export type SlackTarget =
 
 export type SlackBotTarget = Extract<SlackTarget, { kind: 'bot' }>
 
+/** The env token when the operator set one, else the workspace's install. */
+export function slackBotTokenSource(
+  teamId: string,
+  env: { botToken: boolean }
+): SlackBotTokenSource {
+  return env.botToken ? { source: 'env' } : { source: 'install', teamId }
+}
+
 /**
  * The Slack target for a destination: a webhook URL, a channel id, or both.
  * A webhook with a channel id posts through the bot (the env token when set,
@@ -49,7 +57,7 @@ export function resolveSlackTarget(
   if (!channelId) return { kind: 'webhook', url }
   return {
     kind: 'bot',
-    token: env.botToken ? { source: 'env' } : { source: 'install', teamId },
+    token: slackBotTokenSource(teamId, env),
     channel: channelId,
     fallbackUrl: url,
   }

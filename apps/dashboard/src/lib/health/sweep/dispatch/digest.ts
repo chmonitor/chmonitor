@@ -66,7 +66,12 @@ import { SWEEP_ROUTING_OWNER_ID } from './../resolve-config'
 import { buildAlertEventRecord, recordChannelEvent } from './alert-event-record'
 import { sendCustomTarget } from './channels/custom-targets'
 import { matrixSendError, sendMatrixChannel } from './channels/matrix'
-import { sendSlackBot, slackThreadDestination } from './channels/slack-bot'
+import {
+  reactSlackBot,
+  sendSlackBot,
+  slackReactionStep,
+  slackThreadDestination,
+} from './channels/slack-bot'
 import {
   loadEpisodeThreads,
   telegramMessageId,
@@ -647,19 +652,12 @@ export async function createDigestPipeline(
     return { ...buildSlackBotDetails(payload, ackBlocks) }
   }
 
-  /**
-   * What one sweep posts in a bot target's thread. A lone alert always gets
-   * its own details reply, even for a rule that is already open elsewhere:
-   * that reply is the episode's message, the one its recovery reacts to.
-   */
+  /** The thread reply for a sweep that is not one firing alert. */
   function slackBotChange(
     entries: readonly SlackBotDigestEntry[],
     open: SlackOpenCounts
   ): Record<string, unknown> {
     const payloads = entries.map((e) => e.payload)
-    if (entries.length === 1 && !entries[0].finding.isRecovery) {
-      return slackBotDetails(entries[0])
-    }
     if (entries.every((e) => e.deltaOnly)) {
       return {
         ...buildSlackDeltaBody(
@@ -723,10 +721,19 @@ export async function createDigestPipeline(
         kind: e.finding.decision.kind,
       }))
     )
+    const episodes = threads
+    const stored = details.map((d) => episodes.rootFor(d.threadKey))
+    // A lone firing alert always gets its own details reply, even for a rule
+    // already open elsewhere: that reply is the episode's message, the one
+    // its reactions and its recovery point at.
+    const [only] = entries
+    const postsDetails = entries.length === 1 && !only.finding.isRecovery
     const sent = await sendSlackBot(target, {
       rootTs,
       open,
-      change: slackBotChange(entries, open),
+      change: postsDetails
+        ? slackBotDetails(only)
+        : slackBotChange(entries, open),
     })
     if (!sent.ok) {
       // With a webhook the fallback post records the outcome; without one
@@ -748,6 +755,14 @@ export async function createDigestPipeline(
     } else if (sent.rootTs !== rootTs) {
       await threads.setRoot(standingKey, sent.rootTs)
     }
+    const reactions = entries.flatMap((e, i) => {
+      const ts = stored[i] ?? (postsDetails ? sent.replyTs : undefined)
+      const step = ts
+        ? slackReactionStep(e.finding.decision, ts, stored[i] !== undefined)
+        : null
+      return step ? [step] : []
+    })
+    await reactSlackBot(target, reactions)
     // After the post: a recovery drops its episode's message only once the
     // reply that closes it went out.
     for (const detail of details) {

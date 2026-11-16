@@ -17,6 +17,7 @@ import {
   describe,
   expect,
   mock,
+  spyOn,
   test,
 } from 'bun:test'
 import { readFileSync } from 'node:fs'
@@ -83,6 +84,14 @@ installHealthPlatformMock(() => (sqlite ? sqliteD1(sqlite) : null))
 
 const { createDispatcher } = await import('./index')
 const { alertStateStore } = await import('../../alert-state-store')
+const { ErrorLogger } = await import('@chm/logger')
+const { computeSlackSignature } = await import(
+  '../../../slack/verify-signature'
+)
+const { ACK_ACTION_ID } = await import('../../../slack/blocks')
+const { __handlePostForTests: handleInteraction } = await import(
+  '../../../../routes/api/v1/slack/interactions'
+)
 
 const MIGRATIONS = [
   '0010_alert_events.sql',
@@ -115,6 +124,8 @@ interface Call {
   url: string
   auth: string | null
   body: Record<string, unknown>
+  /** The ts Slack answered a chat.postMessage with. */
+  ts?: string
 }
 
 const realFetch = globalThis.fetch
@@ -148,17 +159,19 @@ beforeEach(() => {
     } catch {
       body = { raw }
     }
-    calls.push({
+    const call: Call = {
       url,
       auth: new Headers(init?.headers).get('authorization'),
       body,
-    })
+    }
+    calls.push(call)
     if (!url.startsWith(SLACK_API)) return new Response('ok', { status: 200 })
     const method = url.slice(SLACK_API.length)
     const error = slackError(method, body)
     if (error) return Response.json({ ok: false, error })
     if (method === 'chat.postMessage') {
-      return Response.json({ ok: true, ts: `${nextTs++}.0001` })
+      call.ts = `${nextTs++}.0001`
+      return Response.json({ ok: true, ts: call.ts })
     }
     if (method === 'chat.update')
       return Response.json({ ok: true, ts: body.ts })
@@ -313,6 +326,9 @@ function line(c: Call): string {
 
 const lines = (out: Call[]) => out.map(line)
 
+/** The calls that post or edit messages, without reactions. */
+const posts = (out: Call[]) => lines(out).filter((l) => !l.startsWith('react'))
+
 /** The mrkdwn text a call posted, flattened. */
 const textOf = (c: Call) => JSON.stringify(c.body.blocks ?? c.body.text ?? '')
 
@@ -330,22 +346,91 @@ const historyRows = () =>
     )
     .all() ?? []
 
+const SIGNING_SECRET = 'lifecycle-signing-secret'
+
+/** Configure the Slack app, so alerts carry an Acknowledge button. */
+function configureSlackApp() {
+  process.env.SLACK_CLIENT_ID = 'client-id'
+  process.env.SLACK_CLIENT_SECRET = 'client-secret'
+  process.env.SLACK_SIGNING_SECRET = SIGNING_SECRET
+}
+
+/** Click the Acknowledge button on a posted message, as Slack would send it. */
+async function clickAck(message: Call): Promise<Call[]> {
+  const blocks = (message.body.blocks ?? []) as {
+    type: string
+    elements?: { action_id?: string; value?: string }[]
+  }[]
+  const button = blocks
+    .flatMap((b) => b.elements ?? [])
+    .find((e) => e.action_id === ACK_ACTION_ID)
+  if (!button) throw new Error('the message has no Acknowledge button')
+  const raw = new URLSearchParams({
+    payload: JSON.stringify({
+      type: 'block_actions',
+      user: { id: 'U0ALICE', name: 'alice' },
+      team: { id: TEAM },
+      channel: { id: message.body.channel },
+      container: {
+        type: 'message',
+        message_ts: message.ts,
+        channel_id: message.body.channel,
+      },
+      message: { ts: message.ts, blocks },
+      actions: [{ action_id: ACK_ACTION_ID, value: button.value }],
+    }),
+  }).toString()
+  const ts = String(Math.floor(Date.now() / 1000))
+  const res = await handleInteraction(
+    new Request('https://dash.example.dev/api/v1/slack/interactions', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'x-slack-signature': await computeSlackSignature(
+          SIGNING_SECRET,
+          ts,
+          raw
+        ),
+        'x-slack-request-timestamp': ts,
+      },
+      body: raw,
+    })
+  )
+  expect(res.status).toBe(200)
+  return takeCalls()
+}
+
+/** Warnings logged while `fn` runs. */
+async function captureWarnings(fn: () => Promise<unknown>): Promise<string> {
+  const logged: unknown[] = []
+  const spy = spyOn(ErrorLogger, 'logWarning').mockImplementation(
+    (...args: unknown[]) => {
+      logged.push(...args)
+    }
+  )
+  try {
+    await fn()
+  } finally {
+    spy.mockRestore()
+  }
+  return JSON.stringify(logged)
+}
+
 describe('Slack bot channel with no webhook URL', () => {
   test('an alert no route matched posts through the env bot to SLACK_ALERT_CHANNEL_ID', async () => {
     const out = await tick(makeCtx(), 'critical')
-    expect(lines(out)).toEqual([
+    expect(posts(out)).toEqual([
       `post ${ENV_CHANNEL}`,
       `post ${ENV_CHANNEL} in 1.0001`,
     ])
-    expect(out.map((c) => c.auth)).toEqual([
-      `Bearer ${ENV_TOKEN}`,
+    expect([...new Set(out.map((c) => c.auth))]).toEqual([
       `Bearer ${ENV_TOKEN}`,
     ])
   })
 
   test('without SLACK_BOT_TOKEN the channel id alone sends nothing', async () => {
     delete process.env.SLACK_BOT_TOKEN
-    expect(lines(await tick(makeCtx(), 'critical'))).toEqual([])
+    expect(posts(await tick(makeCtx(), 'critical'))).toEqual([])
   })
 
   test('the standing message is keyed by the channel, not the token: a rotated token edits it', async () => {
@@ -353,7 +438,7 @@ describe('Slack bot channel with no webhook URL', () => {
     await tick(ctx, 'critical')
     process.env.SLACK_BOT_TOKEN = 'xoxb-rotated-secret-token'
     const out = await tick(ctx, 'ok')
-    expect(lines(out)).toEqual([
+    expect(posts(out)).toEqual([
       `update ${ENV_CHANNEL} 1.0001`,
       `post ${ENV_CHANNEL} in 1.0001`,
     ])
@@ -365,7 +450,7 @@ describe('Slack bot channel with no webhook URL', () => {
     const ctx = makeCtx()
     slackError = (method) =>
       method === 'chat.postMessage' ? 'not_in_channel' : undefined
-    expect(lines(await tick(ctx, 'critical'))).toEqual([`post ${ENV_CHANNEL}`])
+    expect(posts(await tick(ctx, 'critical'))).toEqual([`post ${ENV_CHANNEL}`])
     expect(historyRows()).toEqual([
       {
         decision_kind: 'new',
@@ -375,7 +460,7 @@ describe('Slack bot channel with no webhook URL', () => {
       },
     ])
     slackError = () => undefined
-    expect(lines(await tick(ctx, 'critical'))).toEqual([
+    expect(posts(await tick(ctx, 'critical'))).toEqual([
       `post ${ENV_CHANNEL}`,
       `post ${ENV_CHANNEL} in 1.0001`,
     ])
@@ -383,7 +468,7 @@ describe('Slack bot channel with no webhook URL', () => {
 
   test("a route's own channel id wins over SLACK_ALERT_CHANNEL_ID", async () => {
     const out = await tick(makeCtx([route(ROUTE_CHANNEL)]), 'critical')
-    expect(lines(out)).toEqual([
+    expect(posts(out)).toEqual([
       `post ${ROUTE_CHANNEL}`,
       `post ${ROUTE_CHANNEL} in 1.0001`,
     ])
@@ -391,25 +476,25 @@ describe('Slack bot channel with no webhook URL', () => {
 
   test('a matched route suppresses the env channel, like the legacy webhook', async () => {
     const out = await tick(makeCtx([route(null)]), 'critical')
-    expect(lines(out)).toEqual([`webhook ${HOOK}`])
+    expect(posts(out)).toEqual([`webhook ${HOOK}`])
   })
 
   test('with no metadata DB the recovery still reaches the channel and commits', async () => {
     sqlite = null
     const ctx = makeCtx()
-    expect(lines(await tick(ctx, 'critical'))).toEqual([
+    expect(posts(await tick(ctx, 'critical'))).toEqual([
       `post ${ENV_CHANNEL}`,
       `post ${ENV_CHANNEL} in 1.0001`,
     ])
     const recovery = await tick(ctx, 'ok')
-    expect(lines(recovery)).toEqual([`post ${ENV_CHANNEL}`])
+    expect(posts(recovery)).toEqual([`post ${ENV_CHANNEL}`])
     expect(textOf(recovery[0])).toContain('resolved')
-    expect(lines(await tick(ctx, 'ok'))).toEqual([])
+    expect(posts(await tick(ctx, 'ok'))).toEqual([])
   })
 
   test('the digest time window never holds a bot alert', async () => {
     const out = await tick(makeCtx([], { digestWindowMs: 60_000 }), 'warning')
-    expect(lines(out)).toEqual([
+    expect(posts(out)).toEqual([
       `post ${ENV_CHANNEL}`,
       `post ${ENV_CHANNEL} in 1.0001`,
     ])
@@ -437,7 +522,7 @@ describe('the episode details message', () => {
     const ctx = makeCtx()
     await tick(ctx, 'warning', 85)
     const out = await tick(ctx, 'critical', 97)
-    expect(lines(out)).toEqual([
+    expect(posts(out)).toEqual([
       `update ${ENV_CHANNEL} 1.0001`,
       `post ${ENV_CHANNEL} in 1.0001`,
     ])
@@ -463,7 +548,7 @@ describe('the episode details message', () => {
     const ctx = makeCtx()
     await tick(ctx, 'critical', 99, [1])
     const out = await tick(ctx, 'critical', 99, [1, 2])
-    expect(lines(out)).toEqual([
+    expect(posts(out)).toEqual([
       `update ${ENV_CHANNEL} 1.0001`,
       `post ${ENV_CHANNEL} in 1.0001`,
     ])
@@ -478,5 +563,90 @@ describe('the episode details message', () => {
   test('alerts that share one digest reply store no details message', async () => {
     await tick(makeCtx(), 'critical', 99, [1, 2])
     expect(rootRows()).toEqual([standing('1.0001')])
+  })
+})
+
+describe('reactions as alert state', () => {
+  test('a new alert marks its details message with its severity', async () => {
+    expect(lines(await tick(makeCtx(), 'warning', 85))).toEqual([
+      `post ${ENV_CHANNEL}`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+      'react+ large_orange_circle 2.0001',
+    ])
+  })
+
+  test('an escalation swaps the reaction on the first details message', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'warning', 85)
+    expect(lines(await tick(ctx, 'critical', 97))).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+      'react+ red_circle 2.0001',
+      'react- large_orange_circle 2.0001',
+    ])
+  })
+
+  test('a recovery marks it resolved and clears every firing reaction', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'critical')
+    expect(lines(await tick(ctx, 'ok', 10))).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+      'react+ white_check_mark 2.0001',
+      'react- red_circle 2.0001',
+      'react- large_orange_circle 2.0001',
+    ])
+  })
+
+  test('an episode with no stored details message gets no reaction', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'critical')
+    sqlite?.run('DELETE FROM alert_thread_roots WHERE host_id = 1')
+    expect(lines(await tick(ctx, 'ok', 10))).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+    ])
+  })
+
+  test('an Acknowledge click adds eyes to the clicked message', async () => {
+    configureSlackApp()
+    const [, details] = await tick(makeCtx(), 'critical')
+    const out = await clickAck(details)
+    expect(lines(out)).toEqual(['react+ eyes 2.0001'])
+    expect(out[0].body.channel).toBe(ENV_CHANNEL)
+    expect(out[0].auth).toBe(`Bearer ${ENV_TOKEN}`)
+  })
+
+  test('a token without reactions:write still delivers, silently, and is not sent again', async () => {
+    const ctx = makeCtx()
+    slackError = (method) =>
+      method.startsWith('reactions.') ? 'missing_scope' : undefined
+    let out: Call[] = []
+    const warnings = await captureWarnings(async () => {
+      out = await tick(ctx, 'critical')
+    })
+    expect(lines(out)).toEqual([
+      `post ${ENV_CHANNEL}`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+      'react+ red_circle 2.0001',
+    ])
+    expect(warnings).not.toContain('reaction')
+    expect(historyRows()).toEqual([
+      { decision_kind: 'new', delivered: 1, error: null, channel: 'slack' },
+    ])
+    expect(lines(await tick(ctx, 'critical'))).toEqual([])
+  })
+
+  test('a failed reaction is logged by its code and never fails or re-sends the alert', async () => {
+    const ctx = makeCtx()
+    slackError = (method) =>
+      method === 'reactions.add' ? 'ratelimited' : undefined
+    const warnings = await captureWarnings(() => tick(ctx, 'critical'))
+    expect(warnings).toContain('ratelimited')
+    expect(warnings).not.toContain(ENV_TOKEN)
+    expect(historyRows()).toEqual([
+      { decision_kind: 'new', delivered: 1, error: null, channel: 'slack' },
+    ])
+    expect(lines(await tick(ctx, 'critical'))).toEqual([])
   })
 })

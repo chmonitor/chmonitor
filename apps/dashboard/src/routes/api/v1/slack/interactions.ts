@@ -4,7 +4,9 @@
  * Handles the "Acknowledge" button on pushed alert messages: verify the Slack
  * signature over the RAW body → decode the button `value` (the alert dedup key)
  * → write an ACK to the alert-ack store (actor = the Slack user) → edit the
- * original message via its `response_url` to show "Acknowledged by @user".
+ * original message via its `response_url` to show "Acknowledged by @user",
+ * and react 👀 on it with the bot (the same alert state the sweep shows in
+ * reactions; a token without `reactions:write` just skips it).
  *
  * The ACK feeds into the same `alert-ack-store` the health sweep reads (plan
  * 29's `isAcked`/`listActiveAcks`), so acking from Slack suppresses the sweep's
@@ -26,6 +28,10 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { error as logError } from '@chm/logger'
 import { ackAlert } from '@/lib/health/alert-ack-store'
+import {
+  ACK_REACTION,
+  reactSlackBot,
+} from '@/lib/health/sweep/dispatch/channels/slack-bot'
 import { postToResponseUrl } from '@/lib/slack/api'
 import {
   ACK_ACTION_ID,
@@ -33,7 +39,9 @@ import {
   decodeAckValue,
   type SlackBlock,
 } from '@/lib/slack/blocks'
+import { getSlackBotToken } from '@/lib/slack/config'
 import { readAndVerifySlackRequest } from '@/lib/slack/inbound'
+import { slackBotTokenSource } from '@/lib/slack/target'
 
 interface SlackAction {
   action_id?: string
@@ -44,9 +52,26 @@ interface SlackAction {
 interface SlackInteractionPayload {
   type?: string
   user?: { id?: string; username?: string; name?: string }
+  team?: { id?: string }
+  channel?: { id?: string }
+  container?: { message_ts?: string; channel_id?: string }
   response_url?: string
-  message?: { blocks?: SlackBlock[] }
+  message?: { ts?: string; blocks?: SlackBlock[] }
   actions?: SlackAction[]
+}
+
+/** 👀 on the clicked message, posted with the bot the alerts use. */
+function reactToAck(payload: SlackInteractionPayload): Promise<void> {
+  const teamId = payload.team?.id
+  const channel = payload.container?.channel_id ?? payload.channel?.id
+  const ts = payload.container?.message_ts ?? payload.message?.ts
+  if (!teamId || !channel || !ts) return Promise.resolve()
+  const token = slackBotTokenSource(teamId, {
+    botToken: getSlackBotToken() !== undefined,
+  })
+  return reactSlackBot({ kind: 'bot', token, channel }, [
+    { ts, add: ACK_REACTION, remove: [] },
+  ])
 }
 
 /** Empty 200 — acknowledges the interaction without posting a new message. */
@@ -108,14 +133,20 @@ async function handlePost(request: Request): Promise<Response> {
     )
   }
 
-  // Edit the original message: drop the button, append an "acked by" line.
+  // Edit the original message (drop the button, append an "acked by" line)
+  // and react to it. Slack wants the 200 within 3 s and there is no
+  // waitUntil, so both run at once.
   const originalBlocks = payload.message?.blocks ?? []
-  if (payload.response_url) {
-    await postToResponseUrl(payload.response_url, {
-      replace_original: true,
-      blocks: buildAckedMessageBlocks(originalBlocks, userId, nowIso),
-    })
-  }
+  const responseUrl = payload.response_url
+  await Promise.all([
+    responseUrl
+      ? postToResponseUrl(responseUrl, {
+          replace_original: true,
+          blocks: buildAckedMessageBlocks(originalBlocks, userId, nowIso),
+        })
+      : undefined,
+    reactToAck(payload),
+  ])
 
   return OK
 }
