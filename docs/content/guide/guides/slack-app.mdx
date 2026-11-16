@@ -54,6 +54,13 @@ messages). An app installed before the last two were added keeps its old scopes
 until you reinstall it. Its alerts still post, under the app's own name and
 without reactions.
 
+An alert's details in the thread can carry a native line chart of its recent
+values (Slack's `data_visualization` block). Slack's reference for that block
+names no scope, so the manifest asks for none. If Slack rejects the block, the
+details go out with a one-line text sparkline instead. This has not been tried
+against a real Slack workspace yet; see
+[the trend](/guide/guides/alerting-slack-discord#slack-bot-one-standing-message-changes-in-its-thread).
+
 ## 2. Configure the environment
 
 From the app's **Basic Information → App Credentials**, set these on your

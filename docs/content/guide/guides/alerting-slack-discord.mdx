@@ -182,10 +182,25 @@ is edited in place:
   every open alert of the deployment, not only the ones routed to this
   channel.
 - **The thread** gets what changed: one alert's details (host, metric, value
-  and thresholds, runbooks, ack button, and on an escalation a trend of the
-  episode's recorded values), a resolved reply that quotes the alert it
-  closes (when it fired, its first value, the peak), a `+1 warning · 3 open`
-  line, or a digest when several rules fire together.
+  and thresholds, runbooks, ack button, and on an escalation the trend
+  below), a resolved reply that quotes the alert it closes (when it fired,
+  its first value, the peak), a `+1 warning · 3 open` line, or a digest when
+  several rules fire together.
+- **The trend** in an escalation's details is a native Slack line chart of
+  the episode's recorded values over UTC time, with flat warn and crit lines,
+  once those values span at least 3 different minutes. Alert history keeps
+  one value per notification a channel sent. The Slack bot and Slack or
+  generic webhooks send nothing for a reminder, so with only those channels
+  the first escalation of an episode has two values and shows them as a
+  one-line text sparkline, and the chart appears from the next escalation
+  on. A channel that does send reminders, such as Telegram or a Discord
+  webhook, adds its values, so the chart can show sooner. The chart is Slack's
+  `data_visualization` block. Slack's reference names no scope for it and
+  does not say whether incoming webhooks take it, so webhook messages, the
+  standing message and digests carry no chart. When Slack rejects the block
+  (`invalid_blocks`), the details are posted once more with the sparkline in
+  its place and the error code is logged. The chart has not been tried
+  against a real Slack workspace yet.
 - **Reactions** show each alert's state on its details message: 🟠 warning,
   🔴 critical, ✅ resolved, 👀 acknowledged. They need the `reactions:write`
   scope; a token without it posts alerts with no reactions. An alert that
