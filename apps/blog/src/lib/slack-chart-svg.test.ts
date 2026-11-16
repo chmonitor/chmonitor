@@ -236,3 +236,75 @@ test('text from the block is escaped', () => {
   )
   expect(legend(html)).toEqual(['&lt;b&gt; 100%'])
 })
+
+describe('chartHtml, line smoothing', () => {
+  const lineChart = (values: number[]): DataVisualizationBlock => {
+    const categories = values.map((_, i) => `t${i}`)
+    return {
+      type: 'data_visualization',
+      title: 'Smooth',
+      chart: {
+        type: 'line',
+        series: [
+          {
+            name: 'v',
+            data: categories.map((label, i) => ({ label, value: values[i] })),
+          },
+        ],
+        axis_config: { categories },
+      },
+    }
+  }
+  const paths = (markup: string, cls: string) =>
+    [
+      ...markup.matchAll(new RegExp(`<path class="${cls}" d="([^"]*)"`, 'g')),
+    ].map((m) => m[1])
+  const ys = (d: string) =>
+    [...d.matchAll(/-?[\d.]+ (-?[\d.]+)/g)].map((m) => Number(m[1]))
+
+  test('a line is a monotone cubic through each point, flat at the peak', () => {
+    const wide = svg(chartHtml(lineChart([1, 5, 1])), 'slack-chart-wide')
+    expect(paths(wide, 'slack-chart-line')).toEqual([
+      'M40 176 C124.7 120.7 209.3 10 294 10 C378.7 10 463.3 120.7 548 176',
+    ])
+  })
+
+  test('no curve bends past the points at either end of its segment', () => {
+    const wide = svg(
+      chartHtml(lineChart([3, 9, 2, 2, 8, 7, 1, 6])),
+      'slack-chart-wide'
+    )
+    const [d] = paths(wide, 'slack-chart-line')
+    const segments = [...d.matchAll(/C([^C]*)/g)].map((m) =>
+      m[1].trim().split(' ').map(Number)
+    )
+    expect(segments).toHaveLength(7)
+    let start = ys(d)[0]
+    for (const [, c1, , c2, , end] of segments) {
+      const [lo, hi] = [Math.min(start, end), Math.max(start, end)]
+      for (const c of [c1, c2]) {
+        expect(c).toBeGreaterThanOrEqual(lo)
+        expect(c).toBeLessThanOrEqual(hi)
+      }
+      start = end
+    }
+  })
+
+  test('the warn and crit lines stay straight and level', () => {
+    const wide = svg(chartHtml(LINE_WITH_THRESHOLDS), 'slack-chart-wide')
+    const dashed = paths(wide, 'slack-chart-line slack-chart-dashed')
+    expect(dashed.map((d) => [...new Set(ys(d))])).toEqual([[108.7], [34.7]])
+  })
+
+  test('area charts keep straight segments', () => {
+    const block = lineChart([1, 5, 1])
+    const area = { ...block, chart: { ...block.chart, type: 'area' } }
+    const wide = svg(
+      chartHtml(area as DataVisualizationBlock),
+      'slack-chart-wide'
+    )
+    expect(paths(wide, 'slack-chart-line')).toEqual([
+      'M40 148.3 L294 37.7 L548 148.3',
+    ])
+  })
+})

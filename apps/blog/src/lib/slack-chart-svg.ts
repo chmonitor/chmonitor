@@ -79,6 +79,46 @@ function thinned(categories: string[], spacing: number): number[] {
   return out
 }
 
+interface Point {
+  x: number
+  y: number
+}
+
+const straightPath = (points: Point[]) =>
+  `M${points.map((p) => `${p.x} ${p.y}`).join(' L')}`
+
+/**
+ * A monotone cubic through the points, as Slack draws line charts smooth.
+ * Each tangent is at most twice either neighbouring slope and is flat at a
+ * peak, a dip or a flat run, so no curve goes past the points at its ends. A
+ * flat threshold stays straight and a peak is drawn at its value.
+ */
+function smoothPath(points: Point[]): string {
+  if (points.length < 2) return straightPath(points)
+  const slopes = points
+    .slice(1)
+    .map((p, i) => (p.y - points[i].y) / (p.x - points[i].x))
+  const tangents = points.map((_, i) => {
+    const before = slopes[i - 1] ?? slopes[i]
+    const after = slopes[i] ?? slopes[i - 1]
+    if (before * after <= 0) return 0
+    return (
+      Math.sign(after) *
+      Math.min(
+        2 * Math.abs(before),
+        2 * Math.abs(after),
+        Math.abs(before + after) / 2
+      )
+    )
+  })
+  const curves = points.slice(1).map((p, i) => {
+    const from = points[i]
+    const third = (p.x - from.x) / 3
+    return `C${round(from.x + third)} ${round(from.y + tangents[i] * third)} ${round(p.x - third)} ${round(p.y - tangents[i + 1] * third)} ${p.x} ${p.y}`
+  })
+  return `M${points[0].x} ${points[0].y} ${curves.join(' ')}`
+}
+
 /** A series' values in category order; the validator made every category present. */
 function valuesOf(series: ChartSeries, categories: string[]): number[] {
   const byLabel = new Map(series.data.map((p) => [p.label, p.value]))
@@ -203,8 +243,9 @@ function axisSvg(
       }
       continue
     }
-    const points = vs.map((v, i) => `${x(i)} ${y(v)}`)
-    const path = `M${points.join(' L')}`
+    const points = vs.map((v, i) => ({ x: x(i), y: y(v) }))
+    const path =
+      chart.type === 'line' ? smoothPath(points) : straightPath(points)
     const last = { x: x(n - 1), y: y(vs[n - 1]), value: vs[n - 1] }
     if (isThreshold(s)) {
       out.push(
