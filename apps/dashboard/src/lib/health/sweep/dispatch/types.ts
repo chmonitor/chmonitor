@@ -47,5 +47,11 @@ export interface Dispatcher {
   flushDigests: () => Promise<void>
   /** Await every in-flight webhook-subscriptions bus delivery started this tick. Never rejects. */
   flushBusEvents: () => Promise<void>
+  /**
+   * Best-effort Slack reactions for this tick's bot deliveries. Call it after
+   * the alert state is saved: a sweep killed here must not send again. Never
+   * rejects.
+   */
+  flushSlackReactions: () => Promise<void>
   counters: DispatchCounters
 }

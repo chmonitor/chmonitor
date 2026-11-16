@@ -116,8 +116,13 @@ export interface SweepSummary {
 export async function runHealthSweep(): Promise<SweepSummary> {
   const ranAt = new Date().toISOString()
   const ctx = await resolveSweepContext()
-  const { dispatchFinding, flushDigests, flushBusEvents, counters } =
-    await createDispatcher(ctx)
+  const {
+    dispatchFinding,
+    flushDigests,
+    flushBusEvents,
+    flushSlackReactions,
+    counters,
+  } = await createDispatcher(ctx)
 
   const hosts: SweepHostSummary[] = []
   const findings: SweepFinding[] = []
@@ -159,6 +164,8 @@ export async function runHealthSweep(): Promise<SweepSummary> {
   // next tick (even after a restart) resumes streaks + incident timers. Runs
   // after flushDigests so deferred commits are already applied. Best-effort.
   if (ctx.alertingEnabled) await flushAlertState(alertStateStore)
+  // Reactions only decorate alerts already delivered and saved above.
+  await flushSlackReactions()
 
   // Same loader the dispatcher fans out to, so the summary matches delivery.
   const activeTargets = (await loadSweepCustomTargets()).filter(

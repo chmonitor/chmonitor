@@ -25,7 +25,7 @@ import type { AlertDecision } from './../../alert-state-store'
 import type { EffectiveCustomWebhookTarget } from './../../custom-webhook-config'
 import type { SweepContext } from './../resolve-config'
 import type { MatrixChannelEntry } from './channels/matrix'
-import type { SlackBotRoute } from './channels/slack-bot'
+import type { SlackBotRoute, SlackReactionStep } from './channels/slack-bot'
 import type { TelegramChannelEntry } from './channels/telegram'
 import type { FindingContext } from './finding-context'
 import type { DispatchCounters } from './types'
@@ -265,6 +265,7 @@ export interface SettleFindingParams {
 export interface DigestPipeline {
   settleFinding: (params: SettleFindingParams) => Promise<void>
   flushDigests: () => Promise<void>
+  flushSlackReactions: () => Promise<void>
 }
 
 /**
@@ -281,6 +282,11 @@ export async function createDigestPipeline(
   const customDigestEntries: CustomDigestEntry[] = []
   const matrixDigestEntries: MatrixDigestEntry[] = []
   const slackBotDigestEntries: SlackBotDigestEntry[] = []
+  /** Reactions this tick's bot deliveries earned, set by flushSlackReactions. */
+  const slackReactions: {
+    target: SlackBotTarget
+    steps: SlackReactionStep[]
+  }[] = []
 
   const countBuffered = (record: BufferedCount | null | undefined) => {
     if (!record || record.counted) return
@@ -820,14 +826,14 @@ export async function createDigestPipeline(
     } else if (sent.rootTs !== rootTs) {
       await threads.setRoot(standingKey, sent.rootTs)
     }
-    const reactions = entries.flatMap((e, i) => {
+    const steps = entries.flatMap((e, i) => {
       const ts = stored[i] ?? (postsDetails ? sent.replyTs : undefined)
       const step = ts
         ? slackReactionStep(e.finding.decision, ts, stored[i] !== undefined)
         : null
       return step ? [step] : []
     })
-    await reactSlackBot(target, reactions)
+    if (steps.length > 0) slackReactions.push({ target, steps })
     // After the post: a recovery drops its episode's message only once the
     // reply that closes it went out.
     for (const detail of details) {
@@ -1188,5 +1194,16 @@ export async function createDigestPipeline(
     }
   }
 
-  return { settleFinding, flushDigests }
+  /**
+   * Set the reactions this tick's bot deliveries earned. The sweep calls it
+   * after it saved the alert state, so a sweep killed here has recorded every
+   * delivery and never sends an alert again. Never rejects.
+   */
+  async function flushSlackReactions(): Promise<void> {
+    for (const { target, steps } of slackReactions.splice(0)) {
+      await reactSlackBot(target, steps)
+    }
+  }
+
+  return { settleFinding, flushDigests, flushSlackReactions }
 }

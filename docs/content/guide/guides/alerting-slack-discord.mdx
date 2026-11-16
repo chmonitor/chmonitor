@@ -188,7 +188,10 @@ is edited in place:
   🔴 critical, ✅ resolved, 👀 acknowledged. They need the `reactions:write`
   scope; a token without it posts alerts with no reactions. An alert that
   fired before this release has no stored details message, so its resolved
-  reply comes with no reaction.
+  reply comes with no reaction. A recovery removes the reaction of the
+  severity the alert last had: an alert that dropped from critical to warning
+  before it resolved keeps its 🔴 next to the ✅, because the drop sends
+  nothing.
 - **All clear:** when nothing is open, the message is edited to `✅ All clear`.
   The next incident starts a fresh message.
 - If the stored message was deleted, a new one is posted and used from then on.

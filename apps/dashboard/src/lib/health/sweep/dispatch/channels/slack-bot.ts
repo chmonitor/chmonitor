@@ -43,6 +43,7 @@ import {
 } from '@/lib/slack/api'
 import { getSlackBotIdentity, getSlackBotToken } from '@/lib/slack/config'
 import { getInstallation } from '@/lib/slack/install-store'
+import { mapWithConcurrency } from '@/lib/utils/map-with-concurrency'
 
 const warn = (msg: string) =>
   ErrorLogger.logWarning(`[slack-bot-alert] ${msg}`, {
@@ -226,31 +227,40 @@ export interface SlackReactionStep {
   remove: readonly string[]
 }
 
+function firingReaction(severity: string): string | null {
+  return severity === 'critical' || severity === 'warning'
+    ? FIRING_REACTIONS[severity]
+    : null
+}
+
 /**
  * The reaction one decision sets on its episode's details message: the
  * severity while it fires, a check mark once resolved. On a message that
- * already shows a state (`onStored`) every other firing reaction is removed,
- * so it converges whatever it showed before: a de-escalation sends nothing
- * and leaves 🔴, which the recovery still clears. Null when the decision has
- * no state to show.
+ * already shows a state (`onStored`) an escalation removes the other
+ * severity, and a recovery removes the one its last known severity set. A
+ * de-escalation sends nothing, so an alert that dropped from critical to
+ * warning before it resolved keeps its 🔴 next to the check mark. Null when
+ * the decision has no state to show.
  */
 export function slackReactionStep(
-  decision: Pick<AlertDecision, 'kind' | 'severity'>,
+  decision: Pick<AlertDecision, 'kind' | 'severity' | 'previousSeverity'>,
   ts: string,
   onStored: boolean
 ): SlackReactionStep | null {
-  const add =
-    decision.kind === 'recovery'
-      ? RESOLVED_REACTION
-      : decision.severity === 'critical' || decision.severity === 'warning'
-        ? FIRING_REACTIONS[decision.severity]
-        : null
+  if (decision.kind === 'recovery') {
+    const shown = onStored ? firingReaction(decision.previousSeverity) : null
+    return { ts, add: RESOLVED_REACTION, remove: shown ? [shown] : [] }
+  }
+  const add = firingReaction(decision.severity)
   if (!add) return null
   const remove = onStored
     ? Object.values(FIRING_REACTIONS).filter((name) => name !== add)
     : []
   return { ts, add, remove }
 }
+
+/** Reaction calls in flight at once, so a mass recovery stays under Slack's rate limits. */
+const REACTION_CONCURRENCY = 4
 
 /**
  * Set reactions on a bot target's messages. Reactions only decorate an alert
@@ -266,15 +276,21 @@ export async function reactSlackBot(
   const botToken = await loadBotToken(target.token)
   if (!botToken) return
   const { channel } = target
-  for (const { ts, add, remove } of steps) {
-    const results = [await addReaction({ botToken, channel, ts, name: add })]
-    for (const name of remove) {
-      results.push(await removeReaction({ botToken, channel, ts, name }))
-    }
-    for (const result of results) {
-      if (result.status === 'failed') {
-        warn(`reaction failed for ${describeTarget(target)} (${result.error})`)
+  await mapWithConcurrency(
+    steps,
+    REACTION_CONCURRENCY,
+    async ({ ts, add, remove }) => {
+      const results = [await addReaction({ botToken, channel, ts, name: add })]
+      for (const name of remove) {
+        results.push(await removeReaction({ botToken, channel, ts, name }))
+      }
+      for (const result of results) {
+        if (result.status === 'failed') {
+          warn(
+            `reaction failed for ${describeTarget(target)} (${result.error})`
+          )
+        }
       }
     }
-  }
+  )
 }

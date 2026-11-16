@@ -134,6 +134,8 @@ const realFetch = globalThis.fetch
 let savedEnv: Record<string, string | undefined> = {}
 let calls: Call[] = []
 let nextTs = 1
+/** Awaited inside every reactions.* call, to observe reactions in flight. */
+let onReaction: (() => Promise<void>) | null = null
 /** The Slack `error` a Web API call answers with, or undefined for ok. */
 let slackError: (
   method: string,
@@ -149,6 +151,7 @@ beforeEach(() => {
   calls = []
   nextTs = 1
   slackError = () => undefined
+  onReaction = null
   alertStateStore.clear()
   sqlite = new Database(':memory:')
   for (const sql of MIGRATIONS) sqlite.run(sql)
@@ -170,6 +173,7 @@ beforeEach(() => {
     if (!url.startsWith(SLACK_API)) return new Response('ok', { status: 200 })
     const method = url.slice(SLACK_API.length)
     const error = slackError(method, body)
+    if (method.startsWith('reactions.') && onReaction) await onReaction()
     if (error) return Response.json({ ok: false, error })
     if (method === 'chat.postMessage') {
       call.ts = `${nextTs++}.0001`
@@ -296,6 +300,7 @@ async function tick(
   }
   await dispatcher.flushDigests()
   await dispatcher.flushBusEvents()
+  await dispatcher.flushSlackReactions()
   return takeCalls()
 }
 
@@ -618,16 +623,67 @@ describe('reactions as alert state', () => {
     ])
   })
 
-  test('a recovery marks it resolved and clears every firing reaction', async () => {
-    const ctx = makeCtx()
-    await tick(ctx, 'critical')
-    expect(lines(await tick(ctx, 'ok', 10))).toEqual([
-      `update ${ENV_CHANNEL} 1.0001`,
-      `post ${ENV_CHANNEL} in 1.0001`,
-      'react+ white_check_mark 2.0001',
-      'react- red_circle 2.0001',
-      'react- large_orange_circle 2.0001',
+  for (const [severity, reaction] of [
+    ['critical', 'red_circle'],
+    ['warning', 'large_orange_circle'],
+  ] as const) {
+    test(`a ${severity} recovery marks it resolved and removes only ${reaction}`, async () => {
+      const ctx = makeCtx()
+      await tick(ctx, severity, 85)
+      expect(lines(await tick(ctx, 'ok', 10))).toEqual([
+        `update ${ENV_CHANNEL} 1.0001`,
+        `post ${ENV_CHANNEL} in 1.0001`,
+        'react+ white_check_mark 2.0001',
+        `react- ${reaction} 2.0001`,
+      ])
+    })
+  }
+
+  test('reactions go out after the delivery is recorded and committed', async () => {
+    let historyAtReaction: unknown[] = []
+    let stateAtReaction: string | undefined
+    slackError = (method) => {
+      if (method === 'reactions.add') {
+        historyAtReaction = historyRows()
+        stateAtReaction = alertStateStore.get(
+          alertStateKey(1, 'slack-test')
+        )?.severity
+      }
+      return undefined
+    }
+    await tick(makeCtx(), 'critical')
+    expect(historyAtReaction).toEqual([
+      { decision_kind: 'new', delivered: 1, error: null, channel: 'slack' },
     ])
+    expect(stateAtReaction).toBe('critical')
+  })
+
+  test('a sweep sets at most 4 reactions at once', async () => {
+    const hostIds = [1, 2, 3, 4, 5, 6]
+    const ctx = makeCtx()
+    for (const hostId of hostIds) await tick(ctx, 'critical', 99, [hostId])
+    let inFlight = 0
+    let most = 0
+    onReaction = async () => {
+      inFlight++
+      most = Math.max(most, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      inFlight--
+    }
+    const out = await tick(ctx, 'ok', 10, hostIds)
+    expect(most).toBe(4)
+    expect(
+      lines(out)
+        .filter((l) => l.startsWith('react'))
+        .sort()
+    ).toEqual(
+      hostIds
+        .flatMap((h) => [
+          `react+ white_check_mark ${h + 1}.0001`,
+          `react- red_circle ${h + 1}.0001`,
+        ])
+        .sort()
+    )
   })
 
   test('an episode with no stored details message gets no reaction', async () => {
@@ -694,7 +750,6 @@ describe('the resolved reply', () => {
       `post ${ENV_CHANNEL} in 1.0001`,
       'react+ white_check_mark 2.0001',
       'react- red_circle 2.0001',
-      'react- large_orange_circle 2.0001',
     ])
     const text = textOf(out[1])
     expect(text).toContain('🟢 *RESOLVED*  Slack test · ch-1 · resolved after')
@@ -816,7 +871,6 @@ describe('the whole thread lifecycle', () => {
         `post ${ch} in 1.0001`,
         'react+ white_check_mark 2.0001',
         'react- red_circle 2.0001',
-        'react- large_orange_circle 2.0001',
       ])
       expect(JSON.stringify(resolved[0].body)).toContain('All clear')
       const quote = textOf(resolved[1])

@@ -850,6 +850,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       await longFiring.flush()
     },
     flushBusEvents,
+    flushSlackReactions: digest.flushSlackReactions,
     counters,
   }
 }
