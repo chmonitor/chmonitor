@@ -107,7 +107,14 @@ const CASES: Case[] = [
   },
   {
     name: 'slack app trend',
-    fields: () => slackMrkdwn(buildSlackBotTrend(PAYLOAD, [1, 2, 3])),
+    fields: () =>
+      slackMrkdwn(
+        buildSlackBotTrend(PAYLOAD, [
+          { at: '2026-07-02T09:50:00.000Z', value: 1 },
+          { at: '2026-07-02T09:55:00.000Z', value: 2 },
+          { at: '2026-07-02T10:00:00.000Z', value: 3 },
+        ])
+      ),
   },
   {
     name: 'slack app resolved',

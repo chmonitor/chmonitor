@@ -28,7 +28,11 @@ import {
   instancePrefix,
   metadataPairs,
 } from './identity'
-import { buildSlackSparkline } from './slack-chart'
+import {
+  buildSlackLineChart,
+  buildSlackSparkline,
+  type SlackChartPoint,
+} from './slack-chart'
 
 /** Escape operator-controlled text before putting it in Slack mrkdwn. */
 export function escapeSlackMrkdwn(raw: string): string {
@@ -500,24 +504,46 @@ export function buildSlackBotDetails(
 }
 
 /**
- * {@link buildSlackBotDetails} plus the episode's values drawn as a
- * sparkline (see {@link buildSlackSparkline}). `series` is oldest first;
- * nulls are skipped, and a series with no number adds nothing.
+ * {@link buildSlackBotDetails} plus the episode's timed values: a native
+ * line chart under the text (see {@link buildSlackLineChart}), or, when
+ * there are too few values for one or `chart` is false, a sparkline line
+ * (see {@link buildSlackSparkline}). Nulls are skipped, and a series with no
+ * number adds nothing. The chart title, legend and axis are plain strings,
+ * not mrkdwn, so they are not escaped.
  */
 export function buildSlackBotTrend(
   payload: AlertPayload,
-  series: readonly (number | null | undefined)[],
-  extraBlocks: readonly unknown[] = []
+  series: readonly SlackChartPoint[],
+  extraBlocks: readonly unknown[] = [],
+  options: { chart?: boolean } = {}
 ): SlackBotMessage {
-  const trend = buildSlackSparkline(series, {
+  const thresholds = {
     warn: payload.warnThreshold,
     crit: payload.critThreshold,
-  })
+  }
+  const chart =
+    options.chart === false
+      ? null
+      : buildSlackLineChart({
+          title: payload.title,
+          metric: payload.metric,
+          points: series,
+          ...thresholds,
+        })
   return {
     text: escapeSlackMrkdwn(
       `Details: ${payload.title} on ${payload.hostLabel}`
     ),
-    blocks: slackAlertBlocks(payload, extraBlocks, trend),
+    blocks: chart
+      ? slackAlertBlocks(payload, [chart, ...extraBlocks])
+      : slackAlertBlocks(
+          payload,
+          extraBlocks,
+          buildSlackSparkline(
+            series.map((p) => p.value),
+            thresholds
+          )
+        ),
   }
 }
 

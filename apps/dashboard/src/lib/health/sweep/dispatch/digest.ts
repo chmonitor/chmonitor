@@ -19,6 +19,7 @@ import type {
   SlackOpenCounts,
   SlackOriginalAlert,
 } from './../../adapters/slack'
+import type { SlackChartPoint } from './../../adapters/slack-chart'
 import type { BufferedDigestEntry } from './../../alert-digest-buffer-store'
 import type { WebhookTarget } from './../../alert-routing'
 import type { AlertDecision } from './../../alert-state-store'
@@ -653,14 +654,14 @@ export async function createDigestPipeline(
   let threads: Awaited<ReturnType<typeof loadEpisodeThreads>> | null = null
 
   /**
-   * The episode's recorded values plus this alert's, for the details reply's
-   * trend line. A new episode has no history to read, and fewer than two
-   * points draw nothing, so no history (no metadata DB, a failed read) just
-   * leaves the line out.
+   * The episode's recorded values plus this alert's, with their times, for
+   * the details reply's trend. A new episode has no history to read, and
+   * fewer than two points draw nothing, so no history (no metadata DB, a
+   * failed read) just leaves the trend out.
    */
   async function slackTrendSeries(
     entry: SlackBotDigestEntry
-  ): Promise<number[]> {
+  ): Promise<SlackChartPoint[]> {
     const { payload, finding } = entry
     if (finding.decision.kind === 'new') return []
     const episode = await queryEpisodeValues(
@@ -668,11 +669,15 @@ export async function createDigestPipeline(
       finding.ruleId,
       payload.timestamp
     )
-    const values = [
-      ...(episode?.series ?? []).map((p) => p.value),
-      ...(payload.value === null ? [] : [payload.value]),
+    const series = [
+      ...(episode?.series ?? []),
+      ...(payload.value === null
+        ? []
+        : [{ at: payload.timestamp, value: payload.value }]),
     ]
-    const points = values.filter((v, i) => i === 0 || v !== values[i - 1])
+    const points = series.filter(
+      (p, i) => i === 0 || p.value !== series[i - 1].value
+    )
     return points.length >= 2 ? points : []
   }
 

@@ -17,6 +17,7 @@ import {
   describe,
   expect,
   mock,
+  setSystemTime,
   spyOn,
   test,
 } from 'bun:test'
@@ -191,6 +192,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  setSystemTime()
   globalThis.fetch = realFetch
   sqlite = null
   for (const [k, v] of Object.entries(savedEnv)) {
@@ -343,6 +345,31 @@ const posts = (out: Call[]) => lines(out).filter((l) => !l.startsWith('react'))
 
 /** The mrkdwn text a call posted, flattened. */
 const textOf = (c: Call) => JSON.stringify(c.body.blocks ?? c.body.text ?? '')
+
+/** The native charts a call posted, as title, x axis and values per line. */
+function chartsIn(c: Call) {
+  const blocks = (c.body.blocks ?? []) as {
+    type: string
+    title?: string
+    chart?: {
+      series: { name: string; data: { value: number }[] }[]
+      axis_config: { categories: string[] }
+    }
+  }[]
+  return blocks.flatMap((b) =>
+    b.type === 'data_visualization' && b.chart
+      ? [
+          {
+            title: b.title,
+            categories: b.chart.axis_config.categories,
+            series: Object.fromEntries(
+              b.chart.series.map((s) => [s.name, s.data.map((p) => p.value)])
+            ),
+          },
+        ]
+      : []
+  )
+}
 
 const rootRows = () =>
   sqlite
@@ -844,6 +871,34 @@ describe('the trend line', () => {
     await tick(ctx, 'warning', 85)
     const [, details] = await tick(ctx, 'critical', 97)
     expect(textOf(details)).toContain('`▁█ 85 → 97 (warn 80, crit 90)`')
+  })
+
+  test('from three recorded values on, the details reply carries a native line chart', async () => {
+    const ctx = makeCtx()
+    const sweepAt = (hhmm: string) =>
+      setSystemTime(new Date(`2026-11-16T${hhmm}:00.000Z`))
+    sweepAt('09:00')
+    await tick(ctx, 'warning', 85)
+    sweepAt('09:05')
+    const [, first] = await tick(ctx, 'critical', 97)
+    expect(chartsIn(first)).toEqual([])
+    sweepAt('09:10')
+    // A de-escalation sends and records nothing.
+    expect(lines(await tick(ctx, 'warning', 86))).toEqual([])
+    sweepAt('09:15')
+    const [, details] = await tick(ctx, 'critical', 99)
+    expect(chartsIn(details)).toEqual([
+      {
+        title: 'Slack test',
+        categories: ['09:00', '09:05', '09:15'],
+        series: {
+          'slack-test': [85, 97, 99],
+          warn: [80, 80, 80],
+          crit: [90, 90, 90],
+        },
+      },
+    ])
+    expect(textOf(details)).not.toMatch(BARS)
   })
 
   test('a new alert has no history yet, so no trend', async () => {
