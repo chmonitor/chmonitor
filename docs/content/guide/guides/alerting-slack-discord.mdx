@@ -189,6 +189,8 @@ The bot token comes from one of two places:
 
 - **`SLACK_BOT_TOKEN`, no OAuth needed.** Create a Slack app from
   [`docs/slack/manifest.yml`](https://github.com/chmonitor/chmonitor/blob/main/docs/slack/manifest.yml),
+  replace every `dash.chmonitor.dev` in it with your own host (or delete the
+  slash command, events and interactivity sections if you only need alerts),
   click **Install to Workspace** in its settings, and set `SLACK_BOT_TOKEN` to
   the **Bot User OAuth Token** (`xoxb-…`). It is a secret: a Worker secret
   (`bun scripts/set-secrets.ts`), `.env.local`, or a Kubernetes Secret. When it

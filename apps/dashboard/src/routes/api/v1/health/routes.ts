@@ -104,7 +104,7 @@ function toPublicRoute(
       ? maskRoutingKey(route.matrixAccessToken)
       : null,
     // Slack bot delivery (#4241): a channel id, not a secret. The bot token
-    // lives only in `slack_installations` and is never part of a route.
+    // lives only in `slack_installations` or `SLACK_BOT_TOKEN`, never in a route.
     slackChannelId: route.slackChannelId,
     // Per-route severity floor (#2661): `null` = inherit the channel/global
     // gate. Not a secret — returned as-is so the UI can show/edit it.
