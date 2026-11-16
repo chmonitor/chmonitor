@@ -748,6 +748,15 @@ describe('reactions as alert state', () => {
     expect(out[0].auth).toBe(`Bearer ${ENV_TOKEN}`)
   })
 
+  test("a slow reaction never holds the click's response past Slack's 3 s", async () => {
+    configureSlackApp()
+    const [, details] = await tick(makeCtx(), 'critical')
+    onReaction = () => new Promise(() => {})
+    const started = Date.now()
+    await clickAck(details)
+    expect(Date.now() - started).toBeLessThan(2_900)
+  })
+
   test('a token without reactions:write still delivers, silently, and is not sent again', async () => {
     const ctx = makeCtx()
     slackError = (method) =>

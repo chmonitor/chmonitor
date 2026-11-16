@@ -74,6 +74,24 @@ function reactToAck(payload: SlackInteractionPayload): Promise<void> {
   ])
 }
 
+/** Slack wants the response within 3 s; the 👀 reaction gets at most this. */
+const ACK_REACTION_BUDGET_MS = 2_000
+
+/** Wait for `work`, but no longer than `ms`. */
+async function within(work: Promise<void>, ms: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      work,
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, ms)
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /** Empty 200 — acknowledges the interaction without posting a new message. */
 const OK = new Response(null, { status: 200 })
 
@@ -135,7 +153,7 @@ async function handlePost(request: Request): Promise<Response> {
 
   // Edit the original message (drop the button, append an "acked by" line)
   // and react to it. Slack wants the 200 within 3 s and there is no
-  // waitUntil, so both run at once.
+  // waitUntil, so both run at once and a slow reaction is not waited for.
   const originalBlocks = payload.message?.blocks ?? []
   const responseUrl = payload.response_url
   await Promise.all([
@@ -145,7 +163,7 @@ async function handlePost(request: Request): Promise<Response> {
           blocks: buildAckedMessageBlocks(originalBlocks, userId, nowIso),
         })
       : undefined,
-    reactToAck(payload),
+    within(reactToAck(payload), ACK_REACTION_BUDGET_MS),
   ])
 
   return OK
