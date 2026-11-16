@@ -178,7 +178,9 @@ through a Slack bot instead. Each target keeps **one standing message** that
 is edited in place:
 
 - **The message** shows the open counts, for example `🔴 3 open · 1 critical ·
-  2 warning`, and is edited every sweep that changes them.
+  2 warning`, and is edited every sweep that changes them. The counts cover
+  every open alert of the deployment, not only the ones routed to this
+  channel.
 - **The thread** gets what changed: one alert's details (host, metric, value
   and thresholds, runbooks, ack button, and on an escalation a trend of the
   episode's recorded values), a resolved reply that quotes the alert it
@@ -252,7 +254,10 @@ no bot token (no `SLACK_BOT_TOKEN` and no installed app for that workspace),
 or when the bot cannot post at all, the alert posts through the webhook
 exactly as before, and the error is logged. The `SLACK_ALERT_CHANNEL_ID`
 channel has no webhook: when Slack refuses the post, the alert is recorded as
-not delivered and tried again on the next sweep.
+not delivered and tried again on the next sweep, unless another channel
+delivered it in the same sweep. Bot posts are at least once:
+a call that times out after Slack already posted is sent again, so a rare
+duplicate is possible.
 
 The standing message needs the metadata database to remember which message
 to edit. Without it, each change posts a new message. Bot alerts are never
