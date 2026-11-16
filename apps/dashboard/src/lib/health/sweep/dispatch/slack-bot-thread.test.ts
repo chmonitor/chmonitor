@@ -279,7 +279,9 @@ describe('Slack bot standing digest (#4246)', () => {
     expect(out.map(method)).toEqual(['chat.postMessage', 'chat.postMessage'])
     expect(parentText(out[0])).toContain('1 critical')
     expect(threadTs(out[1])).toBe('1.0001')
-    expect(JSON.stringify(out[1].body.blocks)).toContain('*Host:*')
+    expect(JSON.stringify(out[1].body.blocks)).toContain(
+      '🔴 *CRITICAL*  Slack test · ch-1 · 99'
+    )
   })
 
   test('a later change edits the same message and replies in its thread', async () => {

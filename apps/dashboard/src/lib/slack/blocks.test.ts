@@ -22,6 +22,7 @@ import {
   encodeAckValue,
 } from './blocks'
 import { describe, expect, test } from 'bun:test'
+import { expectBlockKit } from '@/lib/health/adapters/__tests__/slack-block-kit'
 
 /** Every block must at minimum have a string `type`, and be JSON-serializable. */
 function assertWellFormed(blocks: unknown[]): void {
@@ -86,18 +87,41 @@ describe('encode/decodeAckValue', () => {
 })
 
 describe('buildStatusBlocks', () => {
-  test('renders a well-formed status summary', () => {
+  test('renders a bold lead, one line of facts and the capture time', () => {
     const blocks = buildStatusBlocks('prod-1', SNAPSHOT)
-    assertWellFormed(blocks)
-    const json = JSON.stringify(blocks)
-    expect(json).toContain('prod-1')
-    expect(json).toContain('42.5%')
-    expect(json).toContain('stuck')
+    expect(blocks).toEqual([
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '📊 *Cluster status*  prod-1\nMemory 42.5% · Disk 71.3% · Running queries 0 · Active merges 2 (1 stuck) · Replication lag 3s',
+        },
+      },
+      {
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: 'Captured 2026-07-04 00:00 UTC' }],
+      },
+    ])
+    expectBlockKit(blocks)
+  })
+
+  test('a failed probe reads n/a and the host label is escaped', () => {
+    const blocks = buildStatusBlocks('<!channel>', {
+      ...SNAPSHOT,
+      topQueries: null,
+      merges: null,
+      memoryUsagePct: null,
+      diskUsagePct: null,
+      replicationLagSeconds: null,
+    })
+    expect(blocks[0].text?.text).toBe(
+      '📊 *Cluster status*  &lt;!channel&gt;\nMemory n/a · Disk n/a · Running queries n/a · Active merges n/a · Replication lag n/a'
+    )
   })
 })
 
 describe('buildQueryResultBlocks', () => {
-  test('renders a table for rows', () => {
+  test('renders one line per row, first column bold, the rest as facts', () => {
     const blocks = buildQueryResultBlocks(
       'SELECT name, total FROM t',
       [
@@ -106,16 +130,75 @@ describe('buildQueryResultBlocks', () => {
       ],
       { rowCap: 20, durationMs: 12 }
     )
-    assertWellFormed(blocks)
-    const json = JSON.stringify(blocks)
-    expect(json).toContain('name')
-    expect(json).toContain('2 row(s)')
+    expect(blocks).toEqual([
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '🔎 *Query result*  2 rows · 12 ms\n*a* · total 1\n*b* · total 2',
+        },
+      },
+      {
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: '`SELECT name, total FROM t`' }],
+      },
+    ])
   })
 
   test('handles an empty result set', () => {
     const blocks = buildQueryResultBlocks('SELECT 1', [], { rowCap: 20 })
-    assertWellFormed(blocks)
-    expect(JSON.stringify(blocks)).toContain('No rows')
+    expect(blocks[0].text?.text).toBe(
+      '🔎 *Query result*  0 rows\n_No rows returned._'
+    )
+  })
+
+  test('cells are escaped now that no code block protects them', () => {
+    const blocks = buildQueryResultBlocks(
+      'SELECT 1',
+      [{ name: '<!channel>', note: 'a & b', missing: null }],
+      { rowCap: 20, truncated: true }
+    )
+    expect(blocks[0].text?.text).toBe(
+      '🔎 *Query result*  1 row · result capped\n*&lt;!channel&gt;* · note a &amp; b · missing ∅'
+    )
+  })
+
+  test('a multi-line cell stays on its row line', () => {
+    const blocks = buildQueryResultBlocks(
+      'SELECT query FROM system.query_log',
+      [{ query: 'SELECT 1\nFROM t\n\tWHERE x' }],
+      { rowCap: 20 }
+    )
+    expect(blocks[0].text?.text).toBe(
+      '🔎 *Query result*  1 row\n*SELECT 1 FROM t WHERE x*'
+    )
+  })
+
+  test('a wide row shows eight columns and counts the rest', () => {
+    const row = Object.fromEntries(
+      Array.from({ length: 10 }, (_, i) => [`c${i}`, i])
+    )
+    const blocks = buildQueryResultBlocks('SELECT *', [row], { rowCap: 20 })
+    expect(blocks[0].text?.text?.split('\n')[1]).toBe(
+      '*0* · c1 1 · c2 2 · c3 3 · c4 4 · c5 5 · c6 6 · c7 7 · +2 columns'
+    )
+  })
+
+  test('stays inside Block Kit limits for wide, hostile rows', () => {
+    const rows = Array.from({ length: 20 }, () =>
+      Object.fromEntries(
+        Array.from({ length: 12 }, (_, i) => [
+          `${'&'.repeat(80)}${i}`,
+          '&'.repeat(200),
+        ])
+      )
+    )
+    expectBlockKit(
+      buildQueryResultBlocks(`SELECT ${'x'.repeat(5000)}`, rows, {
+        rowCap: 20,
+        durationMs: 5,
+      })
+    )
   })
 })
 
@@ -153,6 +236,7 @@ describe('buildAlertBlocksWithAck', () => {
     }
     const blocks = buildAlertBlocksWithAck(ALERT, key)
     assertWellFormed(blocks)
+    expectBlockKit(blocks)
 
     const actions = blocks.find((b) => b.type === 'actions')
     expect(actions).toBeDefined()
@@ -163,6 +247,22 @@ describe('buildAlertBlocksWithAck', () => {
     expect(button?.text?.text).toBe('Acknowledge')
     // The button value decodes back to the same alert identity.
     expect(decodeAckValue(button?.value)).toEqual(key)
+  })
+
+  test('reads as one compact line, the detail, then a small footer', () => {
+    const blocks = buildAlertBlocksWithAck(ALERT, {
+      hostId: 0,
+      ruleId: 'failed-mutations',
+      severity: 'critical',
+    })
+    expect(blocks.map((b) => b.type)).toEqual(['section', 'actions', 'context'])
+    expect(blocks[0].text?.text).toBe(
+      '🔴 *CRITICAL*  Failed mutations · prod-1 · 3\n3 failed mutations'
+    )
+    expect(blocks[2].elements?.[0]).toEqual({
+      type: 'mrkdwn',
+      text: 'failed-mutations · 2026-07-04 00:00 UTC',
+    })
   })
 
   test('recovery alert has no Acknowledge button', () => {

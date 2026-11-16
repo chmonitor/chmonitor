@@ -28,6 +28,7 @@ import {
   instancePrefix,
   metadataPairs,
 } from './identity'
+import { buildSlackSparkline } from './slack-chart'
 
 /** Escape operator-controlled text before putting it in Slack mrkdwn. */
 export function escapeSlackMrkdwn(raw: string): string {
@@ -64,7 +65,6 @@ interface SlackTextObject {
 interface SlackBlock {
   type: string
   text?: SlackTextObject
-  fields?: SlackTextObject[]
   elements?: SlackTextObject[]
 }
 
@@ -83,6 +83,59 @@ export interface SlackWebhookBody {
 
 function heading(severity: AlertSeverity): string {
   return severity === 'recovery' ? 'RESOLVED' : severity.toUpperCase()
+}
+
+function mrkdwnSection(text: string): SlackBlock {
+  return { type: 'section', text: { type: 'mrkdwn', text } }
+}
+
+function mrkdwnContext(text: string): SlackBlock {
+  return { type: 'context', elements: [{ type: 'mrkdwn', text }] }
+}
+
+/**
+ * Pack mrkdwn lines into as few `section` blocks as Slack's text limit
+ * allows. A line longer than the limit is clipped on its own.
+ */
+export function slackSections(lines: readonly string[]): SlackBlock[] {
+  const blocks: SlackBlock[] = []
+  let chunk = ''
+  for (const raw of lines) {
+    const line = clip(raw, SLACK_SECTION_TEXT_MAX)
+    if (chunk && chunk.length + 1 + line.length > SLACK_SECTION_TEXT_MAX) {
+      blocks.push(mrkdwnSection(chunk))
+      chunk = ''
+    }
+    chunk = chunk ? `${chunk}\n${line}` : line
+  }
+  if (chunk) blocks.push(mrkdwnSection(chunk))
+  return blocks
+}
+
+/**
+ * Join parts with middots, skipping any whole part that would push the text
+ * past Slack's limit. Slicing the joined text could cut a `<url|label>` link.
+ */
+function joinWithin(parts: readonly string[]): string {
+  let out = ''
+  for (const part of parts) {
+    const next = out ? `${out} · ${part}` : part
+    if (next.length <= SLACK_SECTION_TEXT_MAX) out = next
+  }
+  return out
+}
+
+/** Runbook URLs and runbook actions as Slack links. */
+function runbookLinks(payload: AlertPayload): string[] {
+  return [
+    ...(payload.runbookUrls ?? []).map((u) => `<${slackLinkUrl(u)}|Runbook>`),
+    ...(payload.actions ?? [])
+      .filter((a) => a.kind === 'runbook' && a.url)
+      .map(
+        (a) =>
+          `<${slackLinkUrl(a.url as string)}|${escapeSlackMrkdwn(a.label)}>`
+      ),
+  ]
 }
 
 /** Plain pieces of the compact line, in order; callers escape and join. */
@@ -148,17 +201,8 @@ export function buildSlackBody(payload: AlertPayload): SlackWebhookBody {
     },
   ]
 
-  const links = [
-    ...(payload.runbookUrls ?? []).map((u) => `<${slackLinkUrl(u)}|Runbook>`),
-    ...(payload.actions ?? [])
-      .filter((a) => a.kind === 'runbook' && a.url)
-      .map(
-        (a) =>
-          `<${slackLinkUrl(a.url as string)}|${escapeSlackMrkdwn(a.label)}>`
-      ),
-  ]
   const context = [
-    ...links,
+    ...runbookLinks(payload),
     ...metadataPairs(payload).map(escapeSlackMrkdwn),
   ].join(' · ')
   if (context) {
@@ -247,7 +291,7 @@ function slackDigestLine(row: SlackDigestRow): string {
 const DIGEST_FOOTER_RUNBOOKS = 3
 
 /** `2026-07-18 04:20 UTC` from an ISO timestamp, or the input when unparsable. */
-function utcMinute(iso: string): string {
+export function utcMinute(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
   return `${d.toISOString().slice(0, 16).replace('T', ' ')} UTC`
@@ -316,26 +360,9 @@ export function buildSlackDigestBody(
     .reduce((n, g) => n + g.payloads.length, 0)
   if (hidden > 0) lines.push(`_…and ${hidden} more_`)
 
-  const blocks: SlackBlock[] = []
-  let chunk = ''
-  for (const line of lines) {
-    if (chunk && chunk.length + 1 + line.length > SLACK_SECTION_TEXT_MAX) {
-      blocks.push({ type: 'section', text: { type: 'mrkdwn', text: chunk } })
-      chunk = ''
-    }
-    chunk = chunk ? `${chunk}\n${line}` : line
-  }
-  if (chunk) {
-    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: chunk } })
-  }
-
+  const blocks = slackSections(lines)
   const footer = slackDigestFooter(payloads)
-  if (footer) {
-    blocks.push({
-      type: 'context',
-      elements: [{ type: 'mrkdwn', text: footer }],
-    })
-  }
+  if (footer) blocks.push(mrkdwnContext(footer))
 
   return { text: summary, blocks, attachments: [] }
 }
@@ -418,89 +445,158 @@ export function buildSlackBotStandingParent(
   }
 }
 
+/** Most raw characters of an alert label the app messages show. */
+const LABEL_MAX = 500
+
+/** The small gray line under an app alert: runbooks, rule, metadata, time. */
+function slackAlertFooter(payload: AlertPayload): SlackBlock {
+  return mrkdwnContext(
+    joinWithin([
+      ...runbookLinks(payload),
+      ...[
+        payload.metric,
+        ...metadataPairs(payload),
+        utcMinute(payload.timestamp),
+      ].map(escapeSlackMrkdwn),
+    ])
+  )
+}
+
 /**
- * The thread reply with the details the parent leaves out: host, metric,
- * value and thresholds, detail, status, runbooks, diagnostics, identity.
- * `extraBlocks` (the ack button) are appended before the timestamp.
+ * One alert as the Slack app shows it, with no fields grid (Slack lays fields
+ * out as a two-column table): the compact line, the detail, an optional
+ * trend line and the dashboard diagnostics, then `extraBlocks` (the ack
+ * button) and the footer.
+ */
+export function slackAlertBlocks<B>(
+  payload: AlertPayload,
+  extraBlocks: readonly B[] = [],
+  trend = ''
+): (SlackBlock | B)[] {
+  const diagnostics = (payload.actions ?? [])
+    .filter((a) => a.kind === 'diagnostic')
+    .map((a) => escapeSlackMrkdwn(a.label))
+  const lines = [
+    slackCompactLine(payload),
+    escapeSlackMrkdwn(clip(payload.label, LABEL_MAX)),
+    trend,
+    diagnostics.length
+      ? `Diagnostics in the dashboard: ${diagnostics.join(' · ')}`
+      : '',
+  ].filter(Boolean)
+  return [...slackSections(lines), ...extraBlocks, slackAlertFooter(payload)]
+}
+
+/**
+ * The thread reply with the details the parent leaves out: value and
+ * thresholds, detail, diagnostics, runbooks, rule and metadata.
+ * `extraBlocks` (the ack button) go between the text and the footer.
  */
 export function buildSlackBotDetails(
   payload: AlertPayload,
   extraBlocks: readonly unknown[] = []
 ): SlackBotMessage {
-  const thresholds = thresholdParts(payload)
-  const field = (label: string, value: string) => ({
-    type: 'mrkdwn' as const,
-    text: clip(`*${label}:*\n${escapeSlackMrkdwn(value)}`, 2000),
-  })
-  const blocks: unknown[] = [
-    {
-      type: 'section',
-      fields: [
-        field('Host', `${payload.hostLabel} (id ${payload.hostId})`),
-        field('Metric', payload.metric),
-        field(
-          'Value',
-          thresholds.length
-            ? `${valueText(payload)} (${thresholds.join(', ')})`
-            : valueText(payload)
-        ),
-        field('Detail', payload.label),
-      ],
-    },
-  ]
-  const status = incidentLine(payload)
-  if (status) {
-    blocks.push({
-      type: 'context',
-      elements: [
-        { type: 'mrkdwn', text: `*Status:* ${escapeSlackMrkdwn(status)}` },
-      ],
-    })
-  }
-  const runbooks = [
-    ...(payload.runbookUrls ?? []).map((u) => `<${slackLinkUrl(u)}|Runbook>`),
-    ...(payload.actions ?? [])
-      .filter((a) => a.kind === 'runbook' && a.url)
-      .map(
-        (a) =>
-          `<${slackLinkUrl(a.url as string)}|${escapeSlackMrkdwn(a.label)}>`
-      ),
-  ]
-  if (runbooks.length) {
-    blocks.push({
-      type: 'context',
-      elements: [{ type: 'mrkdwn', text: runbooks.join(' · ') }],
-    })
-  }
-  const diagnostics = (payload.actions ?? [])
-    .filter((a) => a.kind === 'diagnostic')
-    .map((a) => escapeSlackMrkdwn(a.label))
-  if (diagnostics.length) {
-    blocks.push({
-      type: 'context',
-      elements: [
-        {
-          type: 'mrkdwn',
-          text: `*Diagnostics in the dashboard:* ${diagnostics.join(' · ')}`,
-        },
-      ],
-    })
-  }
-  const identity = identityLine(payload)
-  if (identity) {
-    blocks.push({
-      type: 'context',
-      elements: [{ type: 'mrkdwn', text: escapeSlackMrkdwn(identity) }],
-    })
-  }
-  blocks.push(...extraBlocks)
-  blocks.push({
-    type: 'context',
-    elements: [{ type: 'mrkdwn', text: escapeSlackMrkdwn(payload.timestamp) }],
+  return buildSlackBotTrend(payload, [], extraBlocks)
+}
+
+/**
+ * {@link buildSlackBotDetails} plus the episode's values drawn as a
+ * sparkline (see {@link buildSlackSparkline}). `series` is oldest first;
+ * nulls are skipped, and a series with no number adds nothing.
+ */
+export function buildSlackBotTrend(
+  payload: AlertPayload,
+  series: readonly (number | null | undefined)[],
+  extraBlocks: readonly unknown[] = []
+): SlackBotMessage {
+  const trend = buildSlackSparkline(series, {
+    warn: payload.warnThreshold,
+    crit: payload.critThreshold,
   })
   return {
-    text: `Details: ${payload.title} on ${payload.hostLabel}`,
-    blocks,
+    text: escapeSlackMrkdwn(
+      `Details: ${payload.title} on ${payload.hostLabel}`
+    ),
+    blocks: slackAlertBlocks(payload, extraBlocks, trend),
+  }
+}
+
+/** The alert a resolution closes, as it first fired. */
+export interface SlackOriginalAlert {
+  title: string
+  hostLabel: string
+  /** ISO-8601 time the episode first fired. */
+  firstFiredAt: string
+  /** Value the alert fired with. */
+  value: number | null
+  /** Severity the alert fired with; the quote shows it when set. */
+  severity?: 'warning' | 'critical'
+  /** Highest value of the episode, when the caller knows it. */
+  peak?: number | null
+}
+
+/** How long the incident fired, or undefined when unknown or impossible. */
+function resolvedAfterMs(
+  payload: AlertPayload,
+  original: SlackOriginalAlert | undefined
+): number | undefined {
+  if (payload.firedForMs !== undefined) return payload.firedForMs
+  if (!original) return undefined
+  const ms = Date.parse(payload.timestamp) - Date.parse(original.firstFiredAt)
+  return Number.isFinite(ms) && ms >= 0 ? ms : undefined
+}
+
+/** The original alert as a Slack blockquote, one `> ` per line. */
+function quoteLines(original: SlackOriginalAlert): string[] {
+  const lead = original.severity
+    ? `${SEVERITY_STYLE[original.severity].emoji} *${heading(original.severity)}*  `
+    : ''
+  const body = [
+    original.title,
+    original.hostLabel,
+    valueText(original),
+    `fired ${utcMinute(original.firstFiredAt)}`,
+  ]
+    .map(escapeSlackMrkdwn)
+    .join(' · ')
+  // Escaping first turns any `>` in the text into `&gt;`, so only these
+  // prefixes open the quote; a newline in the text stays inside it.
+  return `${lead}${body}`.split('\n').map((line) => `> ${line}`)
+}
+
+/**
+ * The thread reply when an alert resolves: one RESOLVED line with how long it
+ * fired, the peak (when known) and the last value, then the original alert
+ * quoted so the reader sees what ended, then the footer. Without
+ * `original` it is the RESOLVED line and the footer.
+ */
+export function buildSlackBotResolved(
+  payload: AlertPayload,
+  original?: SlackOriginalAlert
+): SlackBotMessage {
+  const firedForMs = resolvedAfterMs(payload, original)
+  const peak = original?.peak
+  const parts = [
+    `${instancePrefix(payload)}${payload.title}`,
+    payload.hostLabel,
+    firedForMs === undefined ? '' : `resolved after ${spanText(firedForMs)}`,
+    typeof peak === 'number' && Number.isFinite(peak) ? `peak ${peak}` : '',
+    payload.value === null ? '' : `last ${payload.value}`,
+  ]
+    .filter(Boolean)
+    .map(escapeSlackMrkdwn)
+  if (payload.dashboardUrl) {
+    parts.push(`<${slackLinkUrl(payload.dashboardUrl)}|Open>`)
+  }
+  const lines = [
+    `${SEVERITY_STYLE.recovery.emoji} *${heading('recovery')}*  ${parts.join(' · ')}`,
+    ...(original ? quoteLines(original) : []),
+  ]
+  return {
+    text: escapeSlackMrkdwn(
+      `Resolved: ${payload.title} on ${payload.hostLabel}`
+    ),
+    blocks: [...slackSections(lines), slackAlertFooter(payload)],
   }
 }
 

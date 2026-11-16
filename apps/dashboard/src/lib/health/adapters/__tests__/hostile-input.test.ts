@@ -16,9 +16,20 @@ import { buildGoogleChatBody } from '../google-chat'
 import { buildHookshotBody, buildHookshotDigestBody } from '../hookshot'
 import { buildMatrixBody, buildMatrixDigestBody } from '../matrix'
 import { buildMSTeamsBody } from '../msteams'
-import { buildSlackBody, buildSlackDigestBody } from '../slack'
+import {
+  buildSlackBody,
+  buildSlackBotDetails,
+  buildSlackBotResolved,
+  buildSlackBotTrend,
+  buildSlackDigestBody,
+} from '../slack'
 import { buildTelegramDigestText, buildTelegramText } from '../telegram'
 import { describe, expect, test } from 'bun:test'
+import {
+  buildAlertBlocksWithAck,
+  buildQueryResultBlocks,
+  buildStatusBlocks,
+} from '@/lib/slack/blocks'
 
 const HOSTILE = '<!channel> <script>alert(1)</script> *bold* | > "'
 const HOSTILE_URL =
@@ -52,8 +63,9 @@ function strings(node: unknown, skip: string[] = []): string[] {
 }
 
 /** Slack parses only `mrkdwn` text objects and the top-level `text`. */
-function slackMrkdwn(body: ReturnType<typeof buildSlackBody>): string[] {
-  const out = [body.text]
+function slackMrkdwn(body: unknown): string[] {
+  const top = (body as { text?: unknown }).text
+  const out = typeof top === 'string' ? [top] : []
   const walk = (node: unknown) => {
     if (Array.isArray(node)) node.forEach(walk)
     else if (node && typeof node === 'object') {
@@ -62,8 +74,7 @@ function slackMrkdwn(body: ReturnType<typeof buildSlackBody>): string[] {
       Object.values(o).forEach(walk)
     }
   }
-  walk(body.attachments)
-  walk(body.blocks)
+  walk(body)
   return out
 }
 
@@ -76,11 +87,66 @@ interface Case {
 
 const PAIR = [PAYLOAD, { ...PAYLOAD, hostId: 2 }]
 
+const RESOLVED: AlertPayload = { ...PAYLOAD, severity: 'recovery' }
+const ORIGINAL = {
+  title: HOSTILE,
+  hostLabel: HOSTILE,
+  firstFiredAt: HOSTILE,
+  value: 1,
+}
+
 const CASES: Case[] = [
   { name: 'slack', fields: () => slackMrkdwn(buildSlackBody(PAYLOAD)) },
   {
     name: 'slack digest',
     fields: () => slackMrkdwn(buildSlackDigestBody(PAIR)),
+  },
+  {
+    name: 'slack app details',
+    fields: () => slackMrkdwn(buildSlackBotDetails(PAYLOAD)),
+  },
+  {
+    name: 'slack app trend',
+    fields: () => slackMrkdwn(buildSlackBotTrend(PAYLOAD, [1, 2, 3])),
+  },
+  {
+    name: 'slack app resolved',
+    fields: () => slackMrkdwn(buildSlackBotResolved(RESOLVED, ORIGINAL)),
+  },
+  {
+    name: 'slack app ack message',
+    fields: () =>
+      slackMrkdwn(
+        buildAlertBlocksWithAck(PAYLOAD, {
+          hostId: 1,
+          ruleId: 'r',
+          severity: 'critical',
+        })
+      ),
+  },
+  {
+    name: 'slack app query result',
+    fields: () =>
+      slackMrkdwn(
+        buildQueryResultBlocks(HOSTILE, [{ [HOSTILE]: HOSTILE, x: HOSTILE }], {
+          rowCap: 20,
+        })
+      ),
+  },
+  {
+    name: 'slack app status',
+    fields: () =>
+      slackMrkdwn(
+        buildStatusBlocks(HOSTILE, {
+          hostId: 1,
+          capturedAt: HOSTILE,
+          topQueries: null,
+          merges: null,
+          memoryUsagePct: null,
+          diskUsagePct: null,
+          replicationLagSeconds: null,
+        })
+      ),
   },
   {
     name: 'google-chat',
@@ -139,7 +205,12 @@ describe('hostile operator text never reaches a markup field raw', () => {
   }
 
   test('a Slack link token cannot be closed or split by the URL', () => {
-    const links = slackMrkdwn(buildSlackBody(PAYLOAD))
+    const links = [
+      buildSlackBody(PAYLOAD),
+      buildSlackBotDetails(PAYLOAD),
+      buildSlackBotResolved(RESOLVED, ORIGINAL),
+    ]
+      .flatMap(slackMrkdwn)
       .join('\n')
       .match(/<https?:[^\n]*>/g)
     expect(links?.length).toBeGreaterThan(0)

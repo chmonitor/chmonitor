@@ -14,7 +14,12 @@ import type { AlertPayload, AlertSeverity } from '@/lib/health/adapters/types'
 import type { AlertEventRecord } from '@/lib/health/alert-history-store'
 import type { IncidentSnapshot } from '@/lib/health/incident-snapshot'
 
-import { escapeSlackMrkdwn } from '@/lib/health/adapters/slack'
+import {
+  escapeSlackMrkdwn,
+  slackAlertBlocks,
+  slackSections,
+  utcMinute,
+} from '@/lib/health/adapters/slack'
 
 export interface SlackTextObject {
   type: 'plain_text' | 'mrkdwn'
@@ -34,7 +39,6 @@ export interface SlackButtonElement {
 export interface SlackBlock {
   type: string
   text?: SlackTextObject
-  fields?: SlackTextObject[]
   elements?: (SlackTextObject | SlackButtonElement)[]
   block_id?: string
 }
@@ -136,43 +140,40 @@ function pct(value: number | null): string {
 
 /**
  * Cluster status summary blocks from an incident snapshot (running queries,
- * merges, memory/disk pressure, replication lag). Individual fields may be
- * null when their query failed — rendered as "n/a" rather than omitted.
+ * merges, memory/disk pressure, replication lag): a bold lead, one line of
+ * facts and the capture time. A fact whose query failed reads "n/a" rather
+ * than being omitted.
  */
 export function buildStatusBlocks(
   hostLabel: string,
   snapshot: IncidentSnapshot
 ): SlackBlock[] {
   const merges = snapshot.merges
-  const fields: SlackTextObject[] = [
-    { type: 'mrkdwn', text: `*Memory:*\n${pct(snapshot.memoryUsagePct)}` },
-    { type: 'mrkdwn', text: `*Disk:*\n${pct(snapshot.diskUsagePct)}` },
-    {
-      type: 'mrkdwn',
-      text: `*Running queries:*\n${snapshot.topQueries?.length ?? 'n/a'}`,
-    },
-    {
-      type: 'mrkdwn',
-      text: `*Active merges:*\n${merges ? `${merges.active}${merges.stuck > 0 ? ` (${merges.stuck} stuck)` : ''}` : 'n/a'}`,
-    },
-    {
-      type: 'mrkdwn',
-      text: `*Replication lag:*\n${snapshot.replicationLagSeconds === null ? 'n/a' : `${snapshot.replicationLagSeconds}s`}`,
-    },
+  const facts = [
+    `Memory ${pct(snapshot.memoryUsagePct)}`,
+    `Disk ${pct(snapshot.diskUsagePct)}`,
+    `Running queries ${snapshot.topQueries?.length ?? 'n/a'}`,
+    `Active merges ${merges ? `${merges.active}${merges.stuck > 0 ? ` (${merges.stuck} stuck)` : ''}` : 'n/a'}`,
+    `Replication lag ${snapshot.replicationLagSeconds === null ? 'n/a' : `${snapshot.replicationLagSeconds}s`}`,
   ]
 
   return [
-    header(`📊 Cluster status — ${hostLabel}`),
-    { type: 'section', fields },
-    context(`Captured ${snapshot.capturedAt}`),
+    section(
+      `📊 *Cluster status*  ${escapeSlackMrkdwn(hostLabel)}\n${facts.join(' · ')}`
+    ),
+    context(`Captured ${escapeSlackMrkdwn(utcMinute(snapshot.capturedAt))}`),
   ]
 }
 
+/** Columns a result row shows before the rest are only counted. */
+const MAX_RESULT_COLUMNS = 8
+
 /**
- * Render a capped result set as a fenced code block (a real Block Kit table
- * type does not exist; a monospace preview is the idiomatic representation).
- * The caller enforces the row/time caps at query time; `rowCap` here only
- * controls how many are shown and whether a "+N more" note is appended.
+ * Render a capped result set as compact lines, one per row: the first column
+ * bold as the row's lead, the other columns as `name value` facts, and the
+ * SQL in the footer. Cells come from the cluster, so each is escaped. The
+ * caller enforces the row/time caps at query time; `rowCap` here only
+ * controls how many are shown.
  */
 export function buildQueryResultBlocks(
   sql: string,
@@ -183,35 +184,41 @@ export function buildQueryResultBlocks(
 ): SlackBlock[] {
   const shown = rows.slice(0, opts.rowCap)
   const sqlPreview = sql.length > 150 ? `${sql.slice(0, 150)}…` : sql
-  const blocks: SlackBlock[] = [
-    header('🔎 Query result'),
-    context(`\`${sqlPreview}\``),
+  const summary = [`${shown.length} ${shown.length === 1 ? 'row' : 'rows'}`]
+  if (opts.truncated) summary.push('result capped')
+  if (opts.durationMs !== undefined) summary.push(`${opts.durationMs} ms`)
+
+  const lines = [
+    `🔎 *Query result*  ${summary.join(' · ')}`,
+    ...(shown.length === 0 ? ['_No rows returned._'] : shown.map(resultLine)),
   ]
+  return [
+    ...slackSections(lines),
+    context(`\`${escapeSlackMrkdwn(sqlPreview)}\``),
+  ]
+}
 
-  if (shown.length === 0) {
-    blocks.push(section('_No rows returned._'))
-  } else {
-    const columns = Object.keys(shown[0])
-    const lines = shown.map((row) =>
-      columns.map((c) => formatCell(row[c])).join(' | ')
-    )
-    const table = [columns.join(' | '), ...lines].join('\n')
-    // Guard against Slack's 3000-char section text limit.
-    const body = table.length > 2800 ? `${table.slice(0, 2800)}\n…` : table
-    const fence = '```'
-    blocks.push(section(`${fence}${body}${fence}`))
-  }
-
-  const noteParts: string[] = [`${shown.length} row(s)`]
-  if (opts.truncated) noteParts.push('result capped')
-  if (opts.durationMs !== undefined) noteParts.push(`${opts.durationMs}ms`)
-  blocks.push(context(noteParts.join(' · ')))
-  return blocks
+function resultLine(row: Record<string, unknown>): string {
+  const columns = Object.keys(row)
+  const [lead, ...rest] = columns.slice(0, MAX_RESULT_COLUMNS)
+  const parts = [
+    `*${escapeSlackMrkdwn(formatCell(row[lead]))}*`,
+    ...rest.map(
+      (c) =>
+        `${escapeSlackMrkdwn(formatCell(c))} ${escapeSlackMrkdwn(formatCell(row[c]))}`
+    ),
+  ]
+  const hidden = columns.length - MAX_RESULT_COLUMNS
+  if (hidden > 0) parts.push(`+${hidden} columns`)
+  return parts.join(' · ')
 }
 
 function formatCell(value: unknown): string {
   if (value === null || value === undefined) return '∅'
-  const s = typeof value === 'object' ? JSON.stringify(value) : String(value)
+  // One row is one Slack line, so a multi-line cell (SQL text) is flattened.
+  const s = (
+    typeof value === 'object' ? JSON.stringify(value) : String(value)
+  ).replace(/\s+/g, ' ')
   return s.length > 60 ? `${s.slice(0, 57)}…` : s
 }
 
@@ -241,63 +248,35 @@ export function buildAlertListBlocks(events: AlertEventRecord[]): SlackBlock[] {
 }
 
 /**
- * Build a rich alert message that carries an "Acknowledge" button. This is the
- * ACK-enabled variant of lib/health/adapters/slack.ts's `buildSlackBody`: the
- * `action_id` is {@link ACK_ACTION_ID} and the button `value` encodes the
- * alert's dedup key so the interactions route can write the ACK + edit this
- * message.
+ * Build an alert message that carries an "Acknowledge" button, laid out like
+ * the app's thread details ({@link slackAlertBlocks}): the `action_id` is
+ * {@link ACK_ACTION_ID} and the button `value` encodes the alert's dedup key
+ * so the interactions route can write the ACK + edit this message.
  */
 export function buildAlertBlocksWithAck(
   payload: AlertPayload,
   ackKey: AckKey
 ): SlackBlock[] {
-  const emoji = SEVERITY_EMOJI[payload.severity] ?? '⚪'
-  const heading =
-    payload.severity === 'recovery'
-      ? 'RECOVERY'
-      : payload.severity.toUpperCase()
-
-  const blocks: SlackBlock[] = [
-    header(`${emoji} ${heading}: ${payload.title}`),
-    {
-      type: 'section',
-      fields: [
-        {
-          type: 'mrkdwn',
-          text: `*Host:*\n${payload.hostLabel} (id ${payload.hostId})`,
-        },
-        { type: 'mrkdwn', text: `*Metric:*\n${payload.metric}` },
-        {
-          type: 'mrkdwn',
-          text: `*Value:*\n${payload.value === null ? 'n/a' : payload.value}`,
-        },
-        {
-          type: 'mrkdwn',
-          text: `*Detail:*\n${escapeSlackMrkdwn(payload.label)}`,
-        },
-      ],
-    },
-  ]
-
   // Recovery messages don't need an ACK button — nothing to acknowledge.
-  if (payload.severity !== 'recovery') {
-    blocks.push({
-      type: 'actions',
-      block_id: 'chmonitor_ack',
-      elements: [
-        {
-          type: 'button',
-          text: { type: 'plain_text', text: 'Acknowledge', emoji: true },
-          style: 'primary',
-          action_id: ACK_ACTION_ID,
-          value: encodeAckValue(ackKey),
-        },
-      ],
-    })
-  }
-
-  blocks.push(context(payload.timestamp))
-  return blocks
+  const ack: SlackBlock[] =
+    payload.severity === 'recovery'
+      ? []
+      : [
+          {
+            type: 'actions',
+            block_id: 'chmonitor_ack',
+            elements: [
+              {
+                type: 'button',
+                text: { type: 'plain_text', text: 'Acknowledge', emoji: true },
+                style: 'primary',
+                action_id: ACK_ACTION_ID,
+                value: encodeAckValue(ackKey),
+              },
+            ],
+          },
+        ]
+  return slackAlertBlocks(payload, ack)
 }
 
 /**
