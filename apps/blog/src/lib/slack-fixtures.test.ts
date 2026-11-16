@@ -1,5 +1,5 @@
 import { GROUPED_BAR, LINE_WITH_THRESHOLDS, PIE } from './slack-chart-samples'
-import { parseSlackDemo } from './slack-fixtures'
+import { firstChartSeries, parseSlackDemo } from './slack-fixtures'
 import { describe, expect, test } from 'bun:test'
 
 function demoWith(
@@ -77,6 +77,30 @@ describe('parseSlackDemo', () => {
       )
     ).toThrow(
       'Slack demo: a message has 3 data_visualization blocks, Slack allows 2'
+    )
+  })
+})
+
+describe('firstChartSeries', () => {
+  const message = (blocks: unknown[]) =>
+    ({
+      author: 'bot',
+      ts: '2026-11-16T09:47:00.000Z',
+      body: { blocks },
+    }) as Parameters<typeof firstChartSeries>[0]
+
+  test('reads the first series of the chart, not the thresholds', () => {
+    expect(
+      firstChartSeries(message([{ type: 'divider' }, LINE_WITH_THRESHOLDS]))
+    ).toEqual([
+      71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84, 85, 86, 88, 90, 92,
+      94, 96,
+    ])
+  })
+
+  test('a message with no axis chart fails the build', () => {
+    expect(() => firstChartSeries(message([PIE]))).toThrow(
+      'Slack demo: the message has no line, area or bar chart'
     )
   })
 })

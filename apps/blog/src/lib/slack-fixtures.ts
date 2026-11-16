@@ -43,22 +43,12 @@ export interface SlackMessageBody {
   attachments?: SlackAttachment[]
 }
 
-/** The readings an alert reply was built from, for the larger chart on the demo page. */
-export interface DemoTrend {
-  series: number[]
-  warn: number
-  crit: number
-  unit: string
-  stepMinutes: number
-}
-
 export interface DemoMessage {
   author: 'webhook' | 'bot'
   ts: string
   edited?: boolean
   body: SlackMessageBody
   reactions?: { name: string; count: number }[]
-  trend?: DemoTrend
 }
 
 export interface DemoThread {
@@ -154,6 +144,21 @@ export function parseSlackDemo(data: unknown): SlackDemo {
     }
   }
   return demo
+}
+
+/**
+ * The first series of the message's first line, area or bar chart. Throws
+ * when there is none, so a page that quotes the chart cannot build without it.
+ */
+export function firstChartSeries(message: DemoMessage): number[] {
+  const { blocks = [], attachments = [] } = message.body
+  const chart = [...blocks, ...attachments.flatMap((a) => a.blocks)].find(
+    (b): b is DataVisualizationBlock => b.type === 'data_visualization'
+  )?.chart
+  if (!chart || chart.type === 'pie') {
+    throw new Error('Slack demo: the message has no line, area or bar chart')
+  }
+  return chart.series[0].data.map((p) => p.value)
 }
 
 export const slackDemo = parseSlackDemo(raw)
