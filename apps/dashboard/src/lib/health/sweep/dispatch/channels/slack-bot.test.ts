@@ -46,8 +46,20 @@ afterAll(() => {
   }))
 })
 
-const { sendSlackBot, sendSlackBotDigest } = await import('./slack-bot')
+const { sendSlackBot } = await import('./slack-bot')
 const { ErrorLogger } = await import('@chm/logger')
+const { resolveSlackTarget } = await import('../../../../slack/target')
+const { getSlackBotToken } = await import('../../../../slack/config')
+
+/** The webhook route with a channel id, resolved as the sweep does. */
+function routeTarget() {
+  const target = resolveSlackTarget(
+    { url: HOOK, channelId: CHANNEL },
+    { botToken: getSlackBotToken() !== undefined }
+  )
+  if (target?.kind !== 'bot') throw new Error('expected a bot target')
+  return target
+}
 
 interface Sent {
   method: string
@@ -130,12 +142,8 @@ async function captureLogs(fn: () => Promise<unknown>) {
 describe('Slack bot token sources', () => {
   test('the env token posts for a webhook route with no OAuth install', async () => {
     process.env.SLACK_BOT_TOKEN = ENV_TOKEN
-    const res = await sendSlackBotDigest({
-      url: HOOK,
-      channelId: CHANNEL,
-      ...firing,
-    })
-    expect(res).toEqual({ ok: true, messageId: '1.0001', cleared: false })
+    const res = await sendSlackBot(routeTarget(), firing)
+    expect(res).toEqual({ ok: true, rootTs: '1.0001' })
     expect(
       sent.map((s) => [s.method, s.auth, s.body.channel, s.body.thread_ts])
     ).toEqual([
@@ -147,7 +155,7 @@ describe('Slack bot token sources', () => {
   test('the env token wins over an install for the same workspace', async () => {
     process.env.SLACK_BOT_TOKEN = ENV_TOKEN
     installed = true
-    await sendSlackBotDigest({ url: HOOK, channelId: CHANNEL, ...firing })
+    await sendSlackBot(routeTarget(), firing)
     expect(sent.map((s) => s.auth)).toEqual([
       `Bearer ${ENV_TOKEN}`,
       `Bearer ${ENV_TOKEN}`,
@@ -156,18 +164,20 @@ describe('Slack bot token sources', () => {
 
   test('without an env token the install posts; without either nothing is sent', async () => {
     installed = true
-    expect(
-      await sendSlackBotDigest({ url: HOOK, channelId: CHANNEL, ...firing })
-    ).toEqual({ ok: true, messageId: '1.0001', cleared: false })
+    expect(await sendSlackBot(routeTarget(), firing)).toEqual({
+      ok: true,
+      rootTs: '1.0001',
+    })
     expect(sent.map((s) => s.auth)).toEqual([
       `Bearer ${INSTALL_TOKEN}`,
       `Bearer ${INSTALL_TOKEN}`,
     ])
     installed = false
     sent = []
-    expect(
-      await sendSlackBotDigest({ url: HOOK, channelId: CHANNEL, ...firing })
-    ).toBeNull()
+    expect(await sendSlackBot(routeTarget(), firing)).toEqual({
+      ok: false,
+      error: 'no_bot_token',
+    })
     expect(sent).toEqual([])
   })
 
@@ -175,7 +185,7 @@ describe('Slack bot token sources', () => {
     process.env.SLACK_BOT_TOKEN = 'xoxp-user-secret-token'
     installed = true
     const { logs } = await captureLogs(() =>
-      sendSlackBotDigest({ url: HOOK, channelId: CHANNEL, ...firing })
+      sendSlackBot(routeTarget(), firing)
     )
     expect(sent.map((s) => s.auth)).toEqual([
       `Bearer ${INSTALL_TOKEN}`,
@@ -190,7 +200,7 @@ describe('Slack bot token sources', () => {
       { kind: 'bot', token: { source: 'env' }, channel: CHANNEL },
       firing
     )
-    expect(res).toEqual({ ok: true, messageId: '1.0001', cleared: false })
+    expect(res).toEqual({ ok: true, rootTs: '1.0001' })
     expect(sent.map((s) => [s.method, s.auth, s.body.channel])).toEqual([
       ['chat.postMessage', `Bearer ${ENV_TOKEN}`, CHANNEL],
       ['chat.postMessage', `Bearer ${ENV_TOKEN}`, CHANNEL],
@@ -203,13 +213,8 @@ describe('Slack bot name and icon', () => {
     process.env.SLACK_BOT_TOKEN = ENV_TOKEN
     process.env.HEALTH_ALERT_INSTANCE_NAME = 'prod-eu'
     process.env.SLACK_BOT_ICON_EMOJI = ':rotating_light:'
-    await sendSlackBotDigest({ url: HOOK, channelId: CHANNEL, ...firing })
-    await sendSlackBotDigest({
-      url: HOOK,
-      channelId: CHANNEL,
-      ...firing,
-      rootTs: '1.0001',
-    })
+    await sendSlackBot(routeTarget(), firing)
+    await sendSlackBot(routeTarget(), { ...firing, rootTs: '1.0001' })
     expect(
       sent.map((s) => [s.method, s.body.username, s.body.icon_emoji])
     ).toEqual([
@@ -224,7 +229,7 @@ describe('Slack bot name and icon', () => {
     process.env.SLACK_BOT_TOKEN = ENV_TOKEN
     process.env.HEALTH_ALERT_INSTANCE_NAME = 'prod-eu'
     process.env.SLACK_BOT_NAME = 'chmonitor alerts'
-    await sendSlackBotDigest({ url: HOOK, channelId: CHANNEL, ...firing })
+    await sendSlackBot(routeTarget(), firing)
     expect(sent.map((s) => s.body.username)).toEqual([
       'chmonitor alerts',
       'chmonitor alerts',
@@ -236,12 +241,8 @@ describe('Slack bot name and icon', () => {
     process.env.HEALTH_ALERT_INSTANCE_NAME = 'prod-eu'
     answer = (s) =>
       s.body.username ? { ok: false, error: 'missing_scope' } : { ok: true }
-    const res = await sendSlackBotDigest({
-      url: HOOK,
-      channelId: CHANNEL,
-      ...firing,
-    })
-    expect(res).toEqual({ ok: true, messageId: '2.0001', cleared: false })
+    const res = await sendSlackBot(routeTarget(), firing)
+    expect(res).toEqual({ ok: true, rootTs: '2.0001' })
     expect(sent.map((s) => [s.body.username, s.body.thread_ts])).toEqual([
       ['prod-eu', undefined],
       [undefined, undefined],
@@ -256,9 +257,9 @@ describe('Slack bot token safety', () => {
     process.env.SLACK_BOT_TOKEN = ENV_TOKEN
     answer = () => ({ ok: false, error: 'channel_not_found' })
     const { result, logs } = await captureLogs(() =>
-      sendSlackBotDigest({ url: HOOK, channelId: CHANNEL, ...firing })
+      sendSlackBot(routeTarget(), firing)
     )
-    expect(result).toBeNull()
+    expect(result).toEqual({ ok: false, error: 'channel_not_found' })
     expect(logs).toContain('channel_not_found')
     expect(logs).not.toContain(ENV_TOKEN)
   })
@@ -272,7 +273,7 @@ describe('Slack bot token safety', () => {
         firing
       )
     )
-    expect(result).toBeNull()
+    expect(result).toEqual({ ok: false, error: 'network' })
     expect(logs).toContain('network')
     expect(logs).not.toContain(ENV_TOKEN)
   })

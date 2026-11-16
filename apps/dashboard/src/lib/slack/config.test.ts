@@ -3,10 +3,19 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { parse as parseYaml } from 'yaml'
 
-const { SLACK_BOT_SCOPES, getSlackBotIdentity, getSlackBotToken } =
-  await import('./config')
+const {
+  SLACK_BOT_SCOPES,
+  getSlackAlertChannelId,
+  getSlackBotIdentity,
+  getSlackBotToken,
+} = await import('./config')
 
-const KEYS = ['SLACK_BOT_TOKEN', 'SLACK_BOT_NAME', 'SLACK_BOT_ICON_EMOJI']
+const KEYS = [
+  'SLACK_BOT_TOKEN',
+  'SLACK_BOT_NAME',
+  'SLACK_BOT_ICON_EMOJI',
+  'SLACK_ALERT_CHANNEL_ID',
+]
 let saved: Record<string, string | undefined> = {}
 
 beforeEach(() => {
@@ -36,6 +45,16 @@ describe('getSlackBotToken', () => {
     process.env.SLACK_BOT_TOKEN =
       'https://hooks.slack.com/services/T0TEAM/B0HOOK/secret'
     expect(getSlackBotToken()).toBeUndefined()
+  })
+})
+
+describe('getSlackAlertChannelId', () => {
+  test('reads a channel id, trimmed, and ignores a channel name', () => {
+    expect(getSlackAlertChannelId()).toBeUndefined()
+    process.env.SLACK_ALERT_CHANNEL_ID = ' C0123ABC '
+    expect(getSlackAlertChannelId()).toBe('C0123ABC')
+    process.env.SLACK_ALERT_CHANNEL_ID = '#alerts'
+    expect(getSlackAlertChannelId()).toBeUndefined()
   })
 })
 

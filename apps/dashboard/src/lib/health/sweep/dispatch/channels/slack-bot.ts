@@ -1,11 +1,12 @@
 /**
  * Slack bot delivery (#4241, #4246): one standing message per target.
  *
- * A webhook alert route that names a `slackChannelId` posts through a bot
- * instead of the webhook, as ONE standing message per target:
+ * A bot target (a webhook route with a `slackChannelId`, or the
+ * `SLACK_ALERT_CHANNEL_ID` channel with no webhook at all) posts as ONE
+ * standing message per target:
  *
  *  - the message shows the open counts and is edited in place every sweep;
- *  - what changed this sweep (`+N new`, `N resolved`, a digest table, or one
+ *  - what changed this sweep (`+N new`, `N resolved`, a digest, or one
  *    finding's details) is a reply in its thread;
  *  - when nothing is open any more it is edited to `✅ All clear`.
  *
@@ -15,10 +16,10 @@
  * `HEALTH_ALERT_INSTANCE_NAME` and `SLACK_BOT_ICON_EMOJI`.
  *
  * The standing message's `ts` is the thread root in `alert-thread-store`
- * (channel `'slack'`), so it needs the metadata DB. If the stored message
- * cannot be edited (say it was deleted) a new one is posted. Returns `null`
- * whenever the bot path does not apply or its first call fails: the caller
- * then posts through the webhook exactly as before.
+ * (channel `'slack'`), so it needs the metadata DB; without one every change
+ * posts a new message. If the stored message cannot be edited (say it was
+ * deleted) a new one is posted. A send whose first call fails reports the
+ * error: the caller then posts through the target's webhook, when it has one.
  *
  * SECURITY: the bot token is read or decrypted in memory only; nothing here
  * logs it, and failures log the Slack error code only.
@@ -34,12 +35,26 @@ import { ErrorLogger } from '@chm/logger'
 import { postChatMessage, updateChatMessage } from '@/lib/slack/api'
 import { getSlackBotIdentity, getSlackBotToken } from '@/lib/slack/config'
 import { getInstallation } from '@/lib/slack/install-store'
-import { resolveSlackTarget } from '@/lib/slack/target'
 
 const warn = (msg: string) =>
   ErrorLogger.logWarning(`[slack-bot-alert] ${msg}`, {
     component: 'slack-bot-alert',
   })
+
+/** A bot target as the sweep resolved it; `trusted` covers its fallback URL. */
+export interface SlackBotRoute {
+  target: SlackBotTarget
+  trusted: boolean
+}
+
+/**
+ * What tells two targets' standing messages apart: the webhook URL (it names
+ * the workspace) or the token source, plus the channel. Never the token, so a
+ * rotated `SLACK_BOT_TOKEN` keeps editing the same message.
+ */
+export function slackThreadDestination(target: SlackBotTarget): string[] {
+  return [target.fallbackUrl ?? `bot:${target.token.source}`, target.channel]
+}
 
 /** One sweep's change for a target's standing message. */
 export interface SlackBotChange {
@@ -51,19 +66,13 @@ export interface SlackBotChange {
   change: Record<string, unknown>
 }
 
-export interface SlackBotSendParams extends SlackBotChange {
-  /** The route's Slack incoming-webhook URL. */
-  url: string
-  channelId: string
-}
-
-export interface SlackBotSendResult {
-  ok: true
-  /** The standing message `ts` (the thread root). */
-  messageId: string
-  /** Nothing is open any more: the caller drops the stored root. */
-  cleared: boolean
-}
+export type SlackBotSendResult =
+  | {
+      ok: true
+      /** The standing message to keep; undefined once nothing is open. */
+      rootTs: string | undefined
+    }
+  | { ok: false; error: string }
 
 /**
  * Read the bot token a target names. Neither source checks who owns the
@@ -102,46 +111,27 @@ function describeTarget(target: SlackBotTarget): string {
 }
 
 /**
- * Deliver one sweep's changes for a webhook route with a channel id, or
- * return `null` to fall back to the webhook post. Never throws.
- */
-export function sendSlackBotDigest(
-  params: SlackBotSendParams
-): Promise<SlackBotSendResult | null> {
-  const target = resolveSlackTarget(
-    { url: params.url, channelId: params.channelId },
-    { botToken: getSlackBotToken() !== undefined }
-  )
-  return target?.kind === 'bot'
-    ? sendSlackBot(target, params)
-    : Promise.resolve(null)
-}
-
-/**
- * Deliver one sweep's changes to a bot target, or return `null` when there
- * is no token or the first call fails. Never throws.
+ * Deliver one sweep's changes to a bot target. `ok: false` means nothing
+ * reached Slack: there is no token, or the first call failed. Never throws.
  */
 export async function sendSlackBot(
   target: SlackBotTarget,
   params: SlackBotChange
-): Promise<SlackBotSendResult | null> {
+): Promise<SlackBotSendResult> {
   const { rootTs, open, change } = params
   const { channel } = target
   const cleared = open.critical + open.warning === 0
-  // Nothing open and no standing message to close: nothing to say here.
-  if (cleared && !rootTs) return null
+
+  const fail = (step: string, error: string | undefined) => {
+    const next = target.fallbackUrl ? '; posting through the webhook' : ''
+    const code = error ?? 'unknown'
+    warn(`${step} failed for ${describeTarget(target)} (${code})${next}`)
+    return { ok: false as const, error: code }
+  }
 
   const botToken = await loadBotToken(target.token)
-  if (!botToken) return null
+  if (!botToken) return { ok: false, error: 'no_bot_token' }
   const identity = botIdentity()
-
-  const fallback = (step: string, error: string | undefined) => {
-    const next = target.fallbackUrl ? '; posting through the webhook' : ''
-    warn(
-      `${step} failed for ${describeTarget(target)} (${error ?? 'unknown'})${next}`
-    )
-    return null
-  }
 
   const message = { ...buildSlackBotStandingParent(open) }
   let parentTs: string | undefined
@@ -153,8 +143,20 @@ export async function sendSlackBot(
       message,
     })
     if (updated.ok) parentTs = rootTs
-    else if (cleared) return fallback('chat.update (all clear)', updated.error)
     else warn(`chat.update failed (${updated.error}); posting anew`)
+  }
+  // Nothing is open and no standing message is left to close (no metadata
+  // DB, the stored one is gone, or the alert went out another way): the
+  // change goes out on its own instead of opening a new standing message.
+  if (cleared && !parentTs) {
+    const posted = await postChatMessage({
+      botToken,
+      channel,
+      message: change,
+      identity,
+    })
+    if (!posted.ok) return fail('chat.postMessage', posted.error)
+    return { ok: true, rootTs: undefined }
   }
   if (!parentTs) {
     const posted = await postChatMessage({
@@ -164,7 +166,7 @@ export async function sendSlackBot(
       identity,
     })
     if (!posted.ok || !posted.ts) {
-      return fallback('chat.postMessage', posted.error ?? 'no ts')
+      return fail('chat.postMessage', posted.error ?? 'no ts')
     }
     parentTs = posted.ts
   }
@@ -176,5 +178,5 @@ export async function sendSlackBot(
     identity,
   })
   if (!reply.ok) warn(`thread reply failed (${reply.error})`)
-  return { ok: true, messageId: parentTs, cleared }
+  return { ok: true, rootTs: cleared ? undefined : parentTs }
 }

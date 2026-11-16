@@ -348,13 +348,28 @@ describe('Slack bot standing digest (#4246)', () => {
     expect(rootRows()).toEqual([])
   })
 
-  test('a failing chat.update on recovery falls back to the webhook', async () => {
+  test('a failing chat.update on recovery posts the change on its own', async () => {
     const ctx = makeCtx(CHANNEL)
     await tick(ctx, 'critical')
     failing.add('chat.update')
     const out = await tick(ctx, 'ok')
     expect(out.map((s) => s.url)).toEqual([
       'https://slack.com/api/chat.update',
+      'https://slack.com/api/chat.postMessage',
+    ])
+    expect(threadTs(out[1])).toBeUndefined()
+    expect(rootRows()).toEqual([])
+  })
+
+  test('when the bot cannot post the recovery either, the webhook does', async () => {
+    const ctx = makeCtx(CHANNEL)
+    await tick(ctx, 'critical')
+    failing.add('chat.update')
+    failing.add('chat.postMessage')
+    const out = await tick(ctx, 'ok')
+    expect(out.map((s) => s.url)).toEqual([
+      'https://slack.com/api/chat.update',
+      'https://slack.com/api/chat.postMessage',
       HOOK,
     ])
   })

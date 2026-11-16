@@ -34,6 +34,7 @@ import type {
 } from './../../alert-routing'
 import type { ServerAlertIdentity } from './../../server-alert-config'
 import type { SweepContext } from './../resolve-config'
+import type { SlackBotRoute } from './channels/slack-bot'
 import type { FindingContext } from './finding-context'
 import type {
   DispatchCounters,
@@ -45,6 +46,7 @@ import { clearAck } from './../../alert-ack-store'
 import { resolveChannelDelivery } from './../../alert-channel-settings'
 import { recordAlertEvent } from './../../alert-history-store'
 import {
+  matchRoutes,
   resolveMatrixTargets,
   resolveNtfyTargets,
   resolvePagerDutyTargets,
@@ -101,10 +103,13 @@ import { dispatchTwilioChannel } from './channels/twilio'
 import {
   dispatchWebhookFanoutChannel,
   partitionWebhookTargets,
+  splitSlackBotTargets,
 } from './channels/webhook-fanout'
 import { createDigestPipeline } from './digest'
 import { createLongFiringDigest } from './long-firing'
 import { debug } from '@chm/logger'
+import { getSlackAlertChannelId, getSlackBotToken } from '@/lib/slack/config'
+import { resolveSlackTarget } from '@/lib/slack/target'
 import { formatDuration } from '@/lib/utils'
 
 export type {
@@ -161,6 +166,14 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
   const pushoverFallback = ctx.channels.pushover
   const matrixFallback = ctx.channels.matrix
   const healthchecksUrl = ctx.channels.healthchecksUrl
+  // Slack bot targets (#4241): a webhook route with a channel id posts through
+  // the bot. With SLACK_BOT_TOKEN and SLACK_ALERT_CHANNEL_ID, alerts no route
+  // matched also go to that channel, with no webhook URL at all.
+  const slackEnv = { botToken: getSlackBotToken() !== undefined }
+  const slackFallback = resolveSlackTarget(
+    { channelId: getSlackAlertChannelId() },
+    slackEnv
+  )
 
   const counters: DispatchCounters = {
     alertsDispatched: 0,
@@ -689,10 +702,22 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
 
     // Digest partition (#2663): the digest-capable URLs (Slack / generic
     // webhooks) are grouped and flushed later; the rest send inline now.
-    const {
-      immediate: immediateWebhookTargets,
-      groupable: groupableWebhookTargets,
-    } = partitionWebhookTargets(targets)
+    const { immediate: immediateWebhookTargets, groupable } =
+      partitionWebhookTargets(targets)
+    const { webhooks: groupableWebhookTargets, slackBot } =
+      splitSlackBotTargets(groupable, slackEnv)
+    // The env bot channel is a catch-all like the legacy webhook: a matched
+    // route of any provider suppresses it.
+    const slackBotTargets: SlackBotRoute[] =
+      slackFallback?.kind === 'bot' &&
+      channelPasses('webhook') &&
+      matchRoutes(
+        routes,
+        { ruleId, ruleType, hostId, hostName: name },
+        matchOptions
+      ).length === 0
+        ? [...slackBot, { target: slackFallback, trusted: true }]
+        : slackBot
 
     // Per-channel fan-out. The ORDER below is behaviour: it is the historical
     // inline order, and each channel's own `anyDelivered` contribution feeds
@@ -805,6 +830,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
       commit,
       anyDelivered,
       groupableWebhookTargets,
+      slackBotTargets,
       findingTelegramTargets,
       groupableCustomTargets,
       groupableMatrixTargets,

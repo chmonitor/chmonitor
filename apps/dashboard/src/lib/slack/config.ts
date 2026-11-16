@@ -15,6 +15,7 @@
  * provided as Worker secrets / `.env.local` and NEVER committed.
  */
 
+import { parseSlackChannelId } from './channel-id'
 import { ErrorLogger } from '@chm/logger'
 
 function readEnv(key: string): string | undefined {
@@ -95,6 +96,27 @@ export function getSlackBotToken(): string | undefined {
     warnedBotToken = true
     ErrorLogger.logWarning(
       '[slack-config] SLACK_BOT_TOKEN is not a bot token (xoxb-); ignoring it',
+      { component: 'slack-config' }
+    )
+  }
+  return undefined
+}
+
+let warnedAlertChannel = false
+
+/**
+ * Channel the bot posts alerts to when no alert route matched
+ * (`SLACK_ALERT_CHANNEL_ID`, such as `C0123456789`). Used only with
+ * `SLACK_BOT_TOKEN`; a route's own channel id always wins. Anything that is not
+ * a channel id (a `#name`, a URL) is ignored with one warning.
+ */
+export function getSlackAlertChannelId(): string | undefined {
+  const id = parseSlackChannelId(readEnv('SLACK_ALERT_CHANNEL_ID'))
+  if (id !== 'invalid') return id ?? undefined
+  if (!warnedAlertChannel) {
+    warnedAlertChannel = true
+    ErrorLogger.logWarning(
+      '[slack-config] SLACK_ALERT_CHANNEL_ID is not a channel id (C…, G… or D…); ignoring it',
       { component: 'slack-config' }
     )
   }

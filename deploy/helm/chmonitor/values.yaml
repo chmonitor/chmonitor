@@ -464,6 +464,9 @@ queryAttribution:
 #         key: slack-bot-token
 #   - name: SLACK_BOT_ICON_EMOJI
 #     value: ":rotating_light:"
+#   # Channel for alerts no route matched; needs SLACK_BOT_TOKEN, no webhook.
+#   - name: SLACK_ALERT_CHANNEL_ID
+#     value: "C0123456789"
 extraEnv: []
 
 nodeSelector: {}

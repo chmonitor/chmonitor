@@ -9,6 +9,7 @@
 import type { AlertPayload } from './../../../adapters'
 import type { WebhookTarget } from './../../../alert-routing'
 import type { FindingContext } from './../finding-context'
+import type { SlackBotRoute } from './slack-bot'
 
 import {
   buildWebhookDispatchBody,
@@ -17,6 +18,7 @@ import {
 } from './../../../adapters'
 import { recordChannelEvent } from './../alert-event-record'
 import { postWebhookTarget } from './../webhook-post'
+import { resolveSlackTarget } from '@/lib/slack/target'
 
 /**
  * Digest partition (#2663): Slack / generic-webhook URLs are grouped and
@@ -35,6 +37,33 @@ export function partitionWebhookTargets(targets: readonly WebhookTarget[]): {
     else immediate.push(target)
   }
   return { immediate, groupable }
+}
+
+/**
+ * Split the groupable targets into plain webhooks and Slack bot targets: a
+ * Slack webhook route with a channel id posts through the bot (#4241) and
+ * keeps its webhook as the fallback.
+ */
+export function splitSlackBotTargets(
+  groupable: readonly WebhookTarget[],
+  env: { botToken: boolean }
+): { webhooks: WebhookTarget[]; slackBot: SlackBotRoute[] } {
+  const webhooks: WebhookTarget[] = []
+  const slackBot: SlackBotRoute[] = []
+  for (const target of groupable) {
+    const slack = target.slackChannelId
+      ? resolveSlackTarget(
+          { url: target.url, channelId: target.slackChannelId },
+          env
+        )
+      : null
+    if (slack?.kind === 'bot') {
+      slackBot.push({ target: slack, trusted: target.trusted })
+    } else {
+      webhooks.push(target)
+    }
+  }
+  return { webhooks, slackBot }
 }
 
 /**

@@ -1180,6 +1180,12 @@
     {
       "exampleDefault": null,
       "inEnvExample": true,
+      "name": "SLACK_ALERT_CHANNEL_ID",
+      "prefix": "SLACK"
+    },
+    {
+      "exampleDefault": null,
+      "inEnvExample": true,
       "name": "SLACK_BOT_ICON_EMOJI",
       "prefix": "SLACK"
     },
