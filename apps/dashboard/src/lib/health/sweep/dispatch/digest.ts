@@ -15,7 +15,10 @@
 
 import type { SlackBotTarget } from '@/lib/slack/target'
 import type { AlertPayload } from './../../adapters'
-import type { SlackOpenCounts } from './../../adapters/slack'
+import type {
+  SlackOpenCounts,
+  SlackOriginalAlert,
+} from './../../adapters/slack'
 import type { BufferedDigestEntry } from './../../alert-digest-buffer-store'
 import type { WebhookTarget } from './../../alert-routing'
 import type { AlertDecision } from './../../alert-state-store'
@@ -41,6 +44,7 @@ import { digestDeltaOf } from './../../adapters/digest'
 import { buildMatrixBody, buildMatrixDigestBody } from './../../adapters/matrix'
 import {
   buildSlackBotDetails,
+  buildSlackBotResolved,
   buildSlackDeltaBody,
   buildSlackDigestBody,
 } from './../../adapters/slack'
@@ -48,7 +52,10 @@ import {
   bufferDigestEntries,
   takeDueDigestEntries,
 } from './../../alert-digest-buffer-store'
-import { recordAlertEvent } from './../../alert-history-store'
+import {
+  queryEpisodeValues,
+  recordAlertEvent,
+} from './../../alert-history-store'
 import { alertStateKey, alertStateStore } from './../../alert-state-store'
 import { alertThreadKey } from './../../alert-thread-store'
 import {
@@ -652,6 +659,31 @@ export async function createDigestPipeline(
     return { ...buildSlackBotDetails(payload, ackBlocks) }
   }
 
+  /**
+   * The alert a lone recovery closes, as alert history recorded its episode:
+   * first time, value and severity, and the peak. Undefined with no history
+   * (no metadata DB, or a failed read): the reply then says RESOLVED alone.
+   */
+  async function slackOriginalAlert(
+    entry: SlackBotDigestEntry
+  ): Promise<SlackOriginalAlert | undefined> {
+    const { payload, finding } = entry
+    const episode = await queryEpisodeValues(
+      finding.hostId,
+      finding.ruleId,
+      payload.timestamp
+    )
+    if (!episode) return undefined
+    return {
+      title: payload.title,
+      hostLabel: payload.hostLabel,
+      firstFiredAt: payload.incidentStartedAt ?? episode.firstSeenAt,
+      value: episode.firstValue,
+      ...(episode.firstSeverity ? { severity: episode.firstSeverity } : {}),
+      peak: episode.peak,
+    }
+  }
+
   /** The thread reply for a sweep that is not one firing alert. */
   function slackBotChange(
     entries: readonly SlackBotDigestEntry[],
@@ -727,14 +759,21 @@ export async function createDigestPipeline(
     // already open elsewhere: that reply is the episode's message, the one
     // its reactions and its recovery point at.
     const [only] = entries
-    const postsDetails = entries.length === 1 && !only.finding.isRecovery
-    const sent = await sendSlackBot(target, {
-      rootTs,
-      open,
-      change: postsDetails
-        ? slackBotDetails(only)
-        : slackBotChange(entries, open),
-    })
+    const lone = entries.length === 1
+    const postsDetails = lone && !only.finding.isRecovery
+    // A lone recovery quotes the alert it closes; its reactions then mark
+    // the stored details message, when there is one.
+    const change = postsDetails
+      ? slackBotDetails(only)
+      : lone
+        ? {
+            ...buildSlackBotResolved(
+              only.payload,
+              await slackOriginalAlert(only)
+            ),
+          }
+        : slackBotChange(entries, open)
+    const sent = await sendSlackBot(target, { rootTs, open, change })
     if (!sent.ok) {
       // With a webhook the fallback post records the outcome; without one
       // this is the only record that the alert did not go out.
@@ -766,7 +805,7 @@ export async function createDigestPipeline(
     // After the post: a recovery drops its episode's message only once the
     // reply that closes it went out.
     for (const detail of details) {
-      if (entries.length === 1) {
+      if (lone) {
         await threads.afterLoneSend(detail, {
           ok: true,
           messageId: sent.replyTs,

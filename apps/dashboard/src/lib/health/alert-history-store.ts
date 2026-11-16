@@ -231,6 +231,92 @@ export const FIRST_SEEN_IN_EPISODE_SQL = `SELECT MIN(event_time) AS first_seen
        '')`
 
 /**
+ * The current episode's recorded values for `(hostId, rule)`, newest first,
+ * at most `?4` rows: rows after the pair's latest recovery and strictly
+ * before `?3` (the current dispatch's time, so the rows this dispatch writes
+ * never count). Every row also carries the whole episode's first time, value
+ * and severity and its peak, which the newest rows alone may miss. Rows with
+ * no value are left out. `alert_events` has no owner column: host and rule
+ * scope it, like {@link FIRST_SEEN_IN_EPISODE_SQL}. Exported so the SQL runs
+ * against real SQLite. Binds: host_id, rule, before, limit.
+ */
+export const EPISODE_VALUES_SQL = `SELECT value,
+     MIN(event_time) OVER () AS first_seen,
+     FIRST_VALUE(value) OVER (ORDER BY event_time) AS first_value,
+     FIRST_VALUE(severity) OVER (ORDER BY event_time) AS first_severity,
+     MAX(value) OVER () AS peak
+   FROM ${TABLE}
+   WHERE host_id = ?1 AND rule = ?2
+     AND severity <> 'recovery'
+     AND value IS NOT NULL
+     AND event_time < ?3
+     AND event_time > COALESCE(
+       (SELECT MAX(event_time) FROM ${TABLE}
+        WHERE host_id = ?1 AND rule = ?2 AND severity = 'recovery'
+          AND event_time < ?3),
+       '')
+   ORDER BY event_time DESC
+   LIMIT ?4`
+
+/** The current episode of one host and rule, as alert history recorded it. */
+export interface EpisodeValues {
+  /** Recorded values, oldest first, the newest rows only. */
+  series: number[]
+  firstSeenAt: string
+  firstValue: number
+  firstSeverity: 'warning' | 'critical' | null
+  peak: number
+}
+
+/** Newest rows read for a trend: one Slack-thread line of bars. */
+const EPISODE_VALUES_LIMIT = 24
+
+/**
+ * The current episode's values for this host and rule, counting only rows
+ * before `before` (ISO), or `null` when there are none or no history store.
+ * Every channel records its own row for one notification, so equal
+ * neighbours are folded into one point. Never throws.
+ */
+export async function queryEpisodeValues(
+  hostId: number,
+  rule: string,
+  before: string
+): Promise<EpisodeValues | null> {
+  try {
+    const db = getDb()
+    if (!db) return null
+    const result = await db
+      .prepare(EPISODE_VALUES_SQL)
+      .bind(hostId, rule, before, EPISODE_VALUES_LIMIT)
+      .all<{
+        value: number
+        first_seen: string
+        first_value: number
+        first_severity: string
+        peak: number
+      }>()
+    const rows = (result.results ?? []).reverse()
+    const first = rows[0]
+    if (!first) return null
+    const values = rows.map((r) => Number(r.value))
+    return {
+      series: values.filter((v, i) => i === 0 || v !== values[i - 1]),
+      firstSeenAt: first.first_seen,
+      firstValue: Number(first.first_value),
+      firstSeverity:
+        first.first_severity === 'warning' ||
+        first.first_severity === 'critical'
+          ? first.first_severity
+          : null,
+      peak: Number(first.peak),
+    }
+  } catch (err) {
+    warn(`failed to query episode values: ${err}`)
+    return null
+  }
+}
+
+/**
  * Known limit: SQLite `LIKE` is case-insensitive, so a digest ref differing
  * only in case can match. Rule ids are lowercase and no function both
  * dialects share (`instr` vs `strpos`) makes it exact, so a stray match can

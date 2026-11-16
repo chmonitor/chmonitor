@@ -650,3 +650,49 @@ describe('reactions as alert state', () => {
     expect(lines(await tick(ctx, 'critical'))).toEqual([])
   })
 })
+
+describe('the resolved reply', () => {
+  test('quotes the alert it closes in the standing thread, then reacts', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'warning', 85)
+    await tick(ctx, 'critical', 97)
+    const out = await tick(ctx, 'ok', 10)
+    expect(lines(out)).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+      'react+ white_check_mark 2.0001',
+      'react- red_circle 2.0001',
+      'react- large_orange_circle 2.0001',
+    ])
+    const text = textOf(out[1])
+    expect(text).toContain('🟢 *RESOLVED*  Slack test · ch-1 · resolved after')
+    expect(text).toContain('peak 97 · last 10')
+    expect(text).toContain('> 🟠 *WARNING*  Slack test · ch-1 · 85 · fired ')
+  })
+
+  test('an older episode with no stored details message still gets the quote, with no reaction', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'critical', 97)
+    sqlite?.run('DELETE FROM alert_thread_roots WHERE host_id = 1')
+    const out = await tick(ctx, 'ok', 10)
+    expect(lines(out)).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+    ])
+    expect(textOf(out[1])).toContain('> 🔴 *CRITICAL*  Slack test · ch-1 · 97')
+  })
+
+  test('without alert history the reply says RESOLVED with no quote', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'critical', 97)
+    sqlite?.run('DROP TABLE alert_events')
+    const out = await tick(ctx, 'ok', 10)
+    expect(posts(out)).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+    ])
+    const text = textOf(out[1])
+    expect(text).toContain('🟢 *RESOLVED*  Slack test · ch-1')
+    expect(text).not.toContain('fired ')
+  })
+})
