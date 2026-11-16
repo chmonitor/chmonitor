@@ -88,6 +88,8 @@ export type SlackBotSendResult =
       rootTs: string | undefined
       /** The change this sweep posted, when Slack accepted it. */
       replyTs: string | undefined
+      /** Whether Slack accepted the change; the standing edit alone is `ok`. */
+      replied: boolean
     }
   | { ok: false; error: string }
 
@@ -176,7 +178,7 @@ export async function sendSlackBot(
       identity,
     })
     if (!posted.ok) return fail('chat.postMessage', posted.error)
-    return { ok: true, rootTs: undefined, replyTs: posted.ts }
+    return { ok: true, rootTs: undefined, replyTs: posted.ts, replied: true }
   }
   if (!parentTs) {
     const posted = await postChatMessage({
@@ -202,6 +204,7 @@ export async function sendSlackBot(
     ok: true,
     rootTs: cleared ? undefined : parentTs,
     replyTs: reply.ok ? reply.ts : undefined,
+    replied: reply.ok,
   }
 }
 

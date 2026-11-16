@@ -833,11 +833,11 @@ export async function createDigestPipeline(
     for (const detail of details) {
       if (lone) {
         await threads.afterLoneSend(detail, {
-          ok: true,
+          ok: sent.replied,
           messageId: sent.replyTs,
         })
       } else {
-        await threads.afterDigestSend(detail, true)
+        await threads.afterDigestSend(detail, sent.replied)
       }
     }
     await recordDigestHistory(entries, 'slack', { ok: true })

@@ -143,7 +143,12 @@ describe('Slack bot token sources', () => {
   test('the env token posts for a webhook route with no OAuth install', async () => {
     process.env.SLACK_BOT_TOKEN = ENV_TOKEN
     const res = await sendSlackBot(routeTarget(), firing)
-    expect(res).toEqual({ ok: true, rootTs: '1.0001', replyTs: '2.0001' })
+    expect(res).toEqual({
+      ok: true,
+      rootTs: '1.0001',
+      replyTs: '2.0001',
+      replied: true,
+    })
     expect(
       sent.map((s) => [s.method, s.auth, s.body.channel, s.body.thread_ts])
     ).toEqual([
@@ -168,6 +173,7 @@ describe('Slack bot token sources', () => {
       ok: true,
       rootTs: '1.0001',
       replyTs: '2.0001',
+      replied: true,
     })
     expect(sent.map((s) => s.auth)).toEqual([
       `Bearer ${INSTALL_TOKEN}`,
@@ -201,7 +207,12 @@ describe('Slack bot token sources', () => {
       { kind: 'bot', token: { source: 'env' }, channel: CHANNEL },
       firing
     )
-    expect(res).toEqual({ ok: true, rootTs: '1.0001', replyTs: '2.0001' })
+    expect(res).toEqual({
+      ok: true,
+      rootTs: '1.0001',
+      replyTs: '2.0001',
+      replied: true,
+    })
     expect(sent.map((s) => [s.method, s.auth, s.body.channel])).toEqual([
       ['chat.postMessage', `Bearer ${ENV_TOKEN}`, CHANNEL],
       ['chat.postMessage', `Bearer ${ENV_TOKEN}`, CHANNEL],
@@ -243,7 +254,12 @@ describe('Slack bot name and icon', () => {
     answer = (s) =>
       s.body.username ? { ok: false, error: 'missing_scope' } : { ok: true }
     const res = await sendSlackBot(routeTarget(), firing)
-    expect(res).toEqual({ ok: true, rootTs: '2.0001', replyTs: '4.0001' })
+    expect(res).toEqual({
+      ok: true,
+      rootTs: '2.0001',
+      replyTs: '4.0001',
+      replied: true,
+    })
     expect(sent.map((s) => [s.body.username, s.body.thread_ts])).toEqual([
       ['prod-eu', undefined],
       [undefined, undefined],
@@ -285,6 +301,7 @@ describe('a failed edit of the standing message', () => {
       ok: true,
       rootTs: '2.0001',
       replyTs: '3.0001',
+      replied: true,
     })
     expect(sent.map((s) => [s.method, s.body.thread_ts])).toEqual([
       ['chat.update', undefined],

@@ -581,6 +581,17 @@ describe('the episode details message', () => {
     ])
   })
 
+  test('a recovery whose closing reply failed keeps its details message', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'critical')
+    slackError = (method, body) =>
+      method === 'chat.postMessage' && body.thread_ts
+        ? 'ratelimited'
+        : undefined
+    await tick(ctx, 'ok', 10)
+    expect(rootRows()).toEqual([detail(1, '2.0001')])
+  })
+
   test('alerts that share one digest reply store no details message', async () => {
     await tick(makeCtx(), 'critical', 99, [1, 2])
     expect(rootRows()).toEqual([standing('1.0001')])
