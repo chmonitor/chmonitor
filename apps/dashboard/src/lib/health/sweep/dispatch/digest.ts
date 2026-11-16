@@ -19,14 +19,17 @@ import type {
   SlackOpenCounts,
   SlackOriginalAlert,
 } from './../../adapters/slack'
-import type { SlackChartPoint } from './../../adapters/slack-chart'
 import type { BufferedDigestEntry } from './../../alert-digest-buffer-store'
 import type { WebhookTarget } from './../../alert-routing'
 import type { AlertDecision } from './../../alert-state-store'
 import type { EffectiveCustomWebhookTarget } from './../../custom-webhook-config'
 import type { SweepContext } from './../resolve-config'
 import type { MatrixChannelEntry } from './channels/matrix'
-import type { SlackBotRoute, SlackReactionStep } from './channels/slack-bot'
+import type {
+  SlackBotChange,
+  SlackBotRoute,
+  SlackReactionStep,
+} from './channels/slack-bot'
 import type { TelegramChannelEntry } from './channels/telegram'
 import type { FindingContext } from './finding-context'
 import type { DispatchCounters } from './types'
@@ -49,6 +52,10 @@ import {
   buildSlackDeltaBody,
   buildSlackDigestBody,
 } from './../../adapters/slack'
+import {
+  isSlackChartBlock,
+  type SlackChartPoint,
+} from './../../adapters/slack-chart'
 import {
   bufferDigestEntries,
   takeDueDigestEntries,
@@ -681,10 +688,13 @@ export async function createDigestPipeline(
     return points.length >= 2 ? points : []
   }
 
-  /** A lone finding's details reply, with its ack button when it has one. */
+  /**
+   * A lone finding's details reply, with its ack button when it has one, and
+   * the same reply with its chart drawn as text when it has a chart.
+   */
   async function slackBotDetails(
     entry: SlackBotDigestEntry
-  ): Promise<Record<string, unknown>> {
+  ): Promise<Pick<SlackBotChange, 'change' | 'withoutChart'>> {
     const { payload, slackAck: ack } = entry
     const ackBlocks =
       ack && payload.hostId !== undefined
@@ -702,8 +712,15 @@ export async function createDigestPipeline(
             ack
           ).filter((b) => b.type === 'actions')
         : []
+    const series = await slackTrendSeries(entry)
+    const change = buildSlackBotTrend(payload, series, ackBlocks)
+    if (!change.blocks?.some(isSlackChartBlock))
+      return { change: { ...change } }
     return {
-      ...buildSlackBotTrend(payload, await slackTrendSeries(entry), ackBlocks),
+      change: { ...change },
+      withoutChart: {
+        ...buildSlackBotTrend(payload, series, ackBlocks, { chart: false }),
+      },
     }
   }
 
@@ -811,17 +828,19 @@ export async function createDigestPipeline(
     const postsDetails = lone && !only.finding.isRecovery
     // A lone recovery quotes the alert it closes; its reactions then mark
     // the stored details message, when there is one.
-    const change = postsDetails
+    const reply = postsDetails
       ? await slackBotDetails(only)
-      : lone
-        ? {
-            ...buildSlackBotResolved(
-              only.payload,
-              await slackOriginalAlert(only)
-            ),
-          }
-        : slackBotChange(entries, open)
-    const sent = await sendSlackBot(target, { rootTs, open, change })
+      : {
+          change: lone
+            ? {
+                ...buildSlackBotResolved(
+                  only.payload,
+                  await slackOriginalAlert(only)
+                ),
+              }
+            : slackBotChange(entries, open),
+        }
+    const sent = await sendSlackBot(target, { rootTs, open, ...reply })
     if (!sent.ok) {
       // With a webhook the fallback post records the outcome; without one
       // this is the only record that the alert did not go out.

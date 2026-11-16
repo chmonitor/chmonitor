@@ -207,6 +207,17 @@ export function validateDataVisualization(
   return problems
 }
 
+/** Whether a Block Kit block is a native chart. */
+export function isSlackChartBlock(
+  block: unknown
+): block is SlackDataVisualizationBlock {
+  return (
+    typeof block === 'object' &&
+    block !== null &&
+    (block as { type?: unknown }).type === 'data_visualization'
+  )
+}
+
 /** One recorded value at an ISO time. A null or non-finite value is a gap. */
 export interface SlackChartPoint {
   at: string

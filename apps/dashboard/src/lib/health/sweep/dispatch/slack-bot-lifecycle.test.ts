@@ -873,32 +873,104 @@ describe('the trend line', () => {
     expect(textOf(details)).toContain('`▁█ 85 → 97 (warn 80, crit 90)`')
   })
 
+  /**
+   * Warning at 85, critical at 97, back to warning at 86 (which sends and
+   * records nothing), each five minutes apart from 09:00 UTC. The clock is
+   * left at 09:15 for the next tick, the second escalation.
+   */
+  async function episodeWithHistory(ctx: SweepContext): Promise<void> {
+    const sweeps: [string, Sev, number][] = [
+      ['09:00', 'warning', 85],
+      ['09:05', 'critical', 97],
+      ['09:10', 'warning', 86],
+    ]
+    for (const [hhmm, severity, value] of sweeps) {
+      setSystemTime(new Date(`2026-11-16T${hhmm}:00.000Z`))
+      await tick(ctx, severity, value)
+    }
+    setSystemTime(new Date('2026-11-16T09:15:00.000Z'))
+  }
+
+  const CHART = {
+    title: 'Slack test',
+    categories: ['09:00', '09:05', '09:15'],
+    series: {
+      'slack-test': [85, 97, 99],
+      warn: [80, 80, 80],
+      crit: [90, 90, 90],
+    },
+  }
+
+  /** The block types a call posted. */
+  const blockTypes = (c: Call) =>
+    ((c.body.blocks ?? []) as { type: string }[]).map((b) => b.type)
+
   test('from three recorded values on, the details reply carries a native line chart', async () => {
     const ctx = makeCtx()
-    const sweepAt = (hhmm: string) =>
-      setSystemTime(new Date(`2026-11-16T${hhmm}:00.000Z`))
-    sweepAt('09:00')
-    await tick(ctx, 'warning', 85)
-    sweepAt('09:05')
-    const [, first] = await tick(ctx, 'critical', 97)
-    expect(chartsIn(first)).toEqual([])
-    sweepAt('09:10')
-    // A de-escalation sends and records nothing.
-    expect(lines(await tick(ctx, 'warning', 86))).toEqual([])
-    sweepAt('09:15')
-    const [, details] = await tick(ctx, 'critical', 99)
-    expect(chartsIn(details)).toEqual([
+    await episodeWithHistory(ctx)
+    const out = await tick(ctx, 'critical', 99)
+    expect(lines(out)).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+      'react+ red_circle 2.0001',
+      'react- large_orange_circle 2.0001',
+    ])
+    expect(chartsIn(out[1])).toEqual([CHART])
+    expect(blockTypes(out[1])).toEqual([
+      'section',
+      'data_visualization',
+      'context',
+    ])
+    expect(textOf(out[1])).not.toMatch(BARS)
+  })
+
+  test('when Slack rejects the chart block, the details go out once more as text', async () => {
+    const ctx = makeCtx()
+    await episodeWithHistory(ctx)
+    slackError = (method, body) =>
+      method === 'chat.postMessage' &&
+      JSON.stringify(body.blocks ?? []).includes('data_visualization')
+        ? 'invalid_blocks'
+        : undefined
+    let out: Call[] = []
+    const warnings = await captureWarnings(async () => {
+      out = await tick(ctx, 'critical', 99)
+    })
+    expect(lines(out)).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+      'react+ red_circle 2.0001',
+      'react- large_orange_circle 2.0001',
+    ])
+    expect(chartsIn(out[1])).toEqual([CHART])
+    expect(out[1].ts).toBeUndefined()
+    expect(blockTypes(out[2])).toEqual(['section', 'context'])
+    expect(textOf(out[2])).toContain('`▁▇█ 85 → 99 (warn 80, crit 90)`')
+    expect(out[2].ts).toBe('4.0001')
+    expect(warnings).toContain('invalid_blocks')
+    expect(historyRows().slice(-1)).toEqual([
       {
-        title: 'Slack test',
-        categories: ['09:00', '09:05', '09:15'],
-        series: {
-          'slack-test': [85, 97, 99],
-          warn: [80, 80, 80],
-          crit: [90, 90, 90],
-        },
+        decision_kind: 'escalated',
+        delivered: 1,
+        error: null,
+        channel: 'slack',
       },
     ])
-    expect(textOf(details)).not.toMatch(BARS)
+    expect(lines(await tick(ctx, 'critical', 99))).toEqual([])
+  })
+
+  test('any other error on the chart reply is not retried', async () => {
+    const ctx = makeCtx()
+    await episodeWithHistory(ctx)
+    slackError = (method, body) =>
+      method === 'chat.postMessage' && body.thread_ts
+        ? 'ratelimited'
+        : undefined
+    expect(posts(await tick(ctx, 'critical', 99))).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+    ])
   })
 
   test('a new alert has no history yet, so no trend', async () => {

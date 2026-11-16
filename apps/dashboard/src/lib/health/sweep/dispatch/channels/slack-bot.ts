@@ -80,7 +80,20 @@ export interface SlackBotChange {
   open: SlackOpenCounts
   /** What changed this sweep, posted in the standing message's thread. */
   change: Record<string, unknown>
+  /**
+   * `change` with its chart drawn as text, posted once in its place when
+   * Slack rejects a block. Set only when `change` has a chart.
+   */
+  withoutChart?: Record<string, unknown>
 }
+
+/**
+ * Slack errors that reject a message's blocks (`invalid_blocks`,
+ * `invalid_blocks_format`), so nothing was posted and a retry cannot
+ * duplicate it. A chart block may be refused where Slack does not support
+ * it; the reference does not say where that is.
+ */
+const REJECTED_BLOCKS = /block/
 
 export type SlackBotSendResult =
   | {
@@ -138,7 +151,7 @@ export async function sendSlackBot(
   target: SlackBotTarget,
   params: SlackBotChange
 ): Promise<SlackBotSendResult> {
-  const { rootTs, open, change } = params
+  const { rootTs, open, change, withoutChart } = params
   const { channel } = target
   const cleared = open.critical + open.warning === 0
 
@@ -152,6 +165,32 @@ export async function sendSlackBot(
   const botToken = await loadBotToken(target.token)
   if (!botToken) return { ok: false, error: 'no_bot_token' }
   const identity = botIdentity()
+
+  /** Post the change; when Slack rejects its blocks, once more without the chart. */
+  const postChange = async (thread: { thread_ts?: string }) => {
+    const posted = await postChatMessage({
+      botToken,
+      channel,
+      message: { ...change, ...thread },
+      identity,
+    })
+    if (
+      posted.ok ||
+      !withoutChart ||
+      !REJECTED_BLOCKS.test(posted.error ?? '')
+    ) {
+      return posted
+    }
+    warn(
+      `Slack rejected the chart for ${describeTarget(target)} (${posted.error}); posting it as text`
+    )
+    return postChatMessage({
+      botToken,
+      channel,
+      message: { ...withoutChart, ...thread },
+      identity,
+    })
+  }
 
   const message = { ...buildSlackBotStandingParent(open) }
   let parentTs: string | undefined
@@ -172,12 +211,7 @@ export async function sendSlackBot(
   // DB, the stored one is gone, or the alert went out another way): the
   // change goes out on its own instead of opening a new standing message.
   if (cleared && !parentTs) {
-    const posted = await postChatMessage({
-      botToken,
-      channel,
-      message: change,
-      identity,
-    })
+    const posted = await postChange({})
     if (!posted.ok) return fail('chat.postMessage', posted.error)
     return { ok: true, rootTs: undefined, replyTs: posted.ts, replied: true }
   }
@@ -194,12 +228,7 @@ export async function sendSlackBot(
     parentTs = posted.ts
   }
 
-  const reply = await postChatMessage({
-    botToken,
-    channel,
-    message: { ...change, thread_ts: parentTs },
-    identity,
-  })
+  const reply = await postChange({ thread_ts: parentTs })
   if (!reply.ok) warn(`thread reply failed (${reply.error})`)
   return {
     ok: true,
