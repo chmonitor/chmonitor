@@ -79,43 +79,25 @@ describe('blog Slack demo fixtures match the alert builders', () => {
     expect(charts(reply)).toEqual([])
   })
 
-  test('the escalation draws 23 sweeps as a 20-point line chart', () => {
+  test('the escalation charts the readings recorded since the alert fired', () => {
     const [chart] = charts(threads.escalation.replies.at(-1)!)
     if (chart.chart.type !== 'line') throw new Error('expected a line chart')
     expect(chart.chart.axis_config.categories).toEqual([
-      '07:57',
-      '08:02',
-      '08:07',
-      '08:12',
-      '08:17',
-      '08:22',
-      '08:32',
-      '08:37',
-      '08:42',
-      '08:47',
-      '08:52',
-      '08:57',
-      '09:02',
       '09:12',
       '09:17',
       '09:22',
       '09:27',
       '09:32',
       '09:37',
+      '09:42',
       '09:47',
     ])
     expect(
       chart.chart.series.map((s) => [s.name, s.data.map((p) => p.value)])
     ).toEqual([
-      [
-        'disk-usage',
-        [
-          70, 70, 71, 71, 72, 72, 73, 74, 75, 75, 76, 77, 78, 84, 85, 86, 88,
-          90, 92, 96,
-        ],
-      ],
-      ['warn', Array(20).fill(80)],
-      ['crit', Array(20).fill(95)],
+      ['disk-usage', [84, 85, 86, 88, 90, 92, 94, 96]],
+      ['warn', Array(8).fill(80)],
+      ['crit', Array(8).fill(95)],
     ])
   })
 

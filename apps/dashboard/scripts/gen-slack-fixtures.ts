@@ -59,8 +59,12 @@ const CRIT = 95
 
 /**
  * Worst-disk usage (%) per sweep, oldest first, the last one at ESCALATED_AT.
- * The 16th reading, 84, is the one that fires the warning at FIRED_AT.
+ * The 16th reading, 84, is the one that fires the warning at FIRED_AT. History
+ * only holds readings from FIRING_FROM on, because nothing is recorded before
+ * an alert fires.
  */
+const FIRING_FROM = 15
+
 const READINGS = [
   70, 70, 71, 71, 72, 72, 73, 73, 74, 75, 75, 76, 77, 78, 79, 84, 85, 86, 88,
   90, 92, 94, 96,
@@ -190,7 +194,7 @@ export function generateSlackFixtures(): SlackFixtures {
   const warningReply = detailsReply(warning, [])
   const criticalReply = detailsReply(
     critical,
-    sweepPoints(READINGS, ESCALATED_AT)
+    sweepPoints(READINGS.slice(FIRING_FROM), ESCALATED_AT)
   )
   const ackedReply: FixtureMessage = {
     ...criticalReply,
