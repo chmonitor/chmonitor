@@ -669,7 +669,7 @@ export async function createDigestPipeline(
       payload.timestamp
     )
     const values = [
-      ...(episode?.series ?? []),
+      ...(episode?.series ?? []).map((p) => p.value),
       ...(payload.value === null ? [] : [payload.value]),
     ]
     const points = values.filter((v, i) => i === 0 || v !== values[i - 1])

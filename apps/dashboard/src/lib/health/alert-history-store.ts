@@ -231,16 +231,16 @@ export const FIRST_SEEN_IN_EPISODE_SQL = `SELECT MIN(event_time) AS first_seen
        '')`
 
 /**
- * The current episode's recorded values for `(hostId, rule)`, newest first,
- * at most `?4` rows: rows after the pair's latest recovery and strictly
- * before `?3` (the current dispatch's time, so the rows this dispatch writes
- * never count). Every row also carries the whole episode's first time, value
+ * The current episode's recorded values and their times for
+ * `(hostId, rule)`, newest first, at most `?4` rows: rows after the pair's
+ * latest recovery and strictly before `?3` (the current dispatch's time, so
+ * the rows this dispatch writes never count). Every row also carries the whole episode's first time, value
  * and severity and its peak, which the newest rows alone may miss. Rows with
  * no value are left out. `alert_events` has no owner column: host and rule
  * scope it, like {@link FIRST_SEEN_IN_EPISODE_SQL}. Exported so the SQL runs
  * against real SQLite. Binds: host_id, rule, before, limit.
  */
-export const EPISODE_VALUES_SQL = `SELECT value,
+export const EPISODE_VALUES_SQL = `SELECT event_time, value,
      MIN(event_time) OVER () AS first_seen,
      FIRST_VALUE(value) OVER (ORDER BY event_time) AS first_value,
      FIRST_VALUE(severity) OVER (ORDER BY event_time) AS first_severity,
@@ -260,8 +260,8 @@ export const EPISODE_VALUES_SQL = `SELECT value,
 
 /** The current episode of one host and rule, as alert history recorded it. */
 export interface EpisodeValues {
-  /** Recorded values, oldest first, the newest rows only. */
-  series: number[]
+  /** Recorded values with their ISO times, oldest first, the newest rows only. */
+  series: { at: string; value: number }[]
   firstSeenAt: string
   firstValue: number
   firstSeverity: 'warning' | 'critical' | null
@@ -275,7 +275,7 @@ const EPISODE_VALUES_LIMIT = 24
  * The current episode's values for this host and rule, counting only rows
  * before `before` (ISO), or `null` when there are none or no history store.
  * Every channel records its own row for one notification, so equal
- * neighbours are folded into one point. Never throws.
+ * neighbours are folded into one point at the first one's time. Never throws.
  */
 export async function queryEpisodeValues(
   hostId: number,
@@ -289,6 +289,7 @@ export async function queryEpisodeValues(
       .prepare(EPISODE_VALUES_SQL)
       .bind(hostId, rule, before, EPISODE_VALUES_LIMIT)
       .all<{
+        event_time: string
         value: number
         first_seen: string
         first_value: number
@@ -298,9 +299,14 @@ export async function queryEpisodeValues(
     const rows = (result.results ?? []).reverse()
     const first = rows[0]
     if (!first) return null
-    const values = rows.map((r) => Number(r.value))
+    const series = rows.map((r) => ({
+      at: r.event_time,
+      value: Number(r.value),
+    }))
     return {
-      series: values.filter((v, i) => i === 0 || v !== values[i - 1]),
+      series: series.filter(
+        (p, i) => i === 0 || p.value !== series[i - 1].value
+      ),
       firstSeenAt: first.first_seen,
       firstValue: Number(first.first_value),
       firstSeverity:

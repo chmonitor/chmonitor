@@ -140,6 +140,7 @@ describe('EPISODE_VALUES_SQL', () => {
     ])
     expect(d.query(EPISODE_VALUES_SQL).all(1, 'disk-usage', NOW, 2)).toEqual([
       {
+        event_time: '2026-01-02T03:00:00Z',
         value: 91,
         first_seen: '2026-01-02T00:00:00Z',
         first_value: 85,
@@ -147,6 +148,7 @@ describe('EPISODE_VALUES_SQL', () => {
         peak: 99,
       },
       {
+        event_time: '2026-01-02T02:00:00Z',
         value: 92,
         first_seen: '2026-01-02T00:00:00Z',
         first_value: 85,
@@ -183,7 +185,11 @@ describe('queryEpisodeValues', () => {
     installHealthPlatformMock(() => d1(d))
     try {
       expect(await queryEpisodeValues(1, 'disk-usage', NOW)).toEqual({
-        series: [85, 97, 92],
+        series: [
+          { at: '2026-01-02T00:00:00.000Z', value: 85 },
+          { at: '2026-01-02T01:00:00.000Z', value: 97 },
+          { at: '2026-01-02T02:00:00.000Z', value: 92 },
+        ],
         firstSeenAt: '2026-01-02T00:00:00.000Z',
         firstValue: 85,
         firstSeverity: 'warning',
