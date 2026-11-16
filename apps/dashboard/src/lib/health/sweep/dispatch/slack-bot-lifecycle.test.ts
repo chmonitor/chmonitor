@@ -468,6 +468,25 @@ describe('Slack bot channel with no webhook URL', () => {
     ])
   })
 
+  test('a rate-limited edit keeps the standing message and the recovery retries next sweep', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'critical')
+    slackError = (method) =>
+      method === 'chat.update' ? 'ratelimited' : undefined
+    expect(lines(await tick(ctx, 'ok', 10))).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+    ])
+    expect(rootRows()).toEqual([
+      { host_id: -1, rule_id: 'digest', root_id: '1.0001' },
+      { host_id: 1, rule_id: 'slack-test', root_id: '2.0001' },
+    ])
+    slackError = () => undefined
+    expect(posts(await tick(ctx, 'ok', 10))).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+    ])
+  })
+
   test("a route's own channel id wins over SLACK_ALERT_CHANNEL_ID", async () => {
     const out = await tick(makeCtx([route(ROUTE_CHANNEL)]), 'critical')
     expect(posts(out)).toEqual([

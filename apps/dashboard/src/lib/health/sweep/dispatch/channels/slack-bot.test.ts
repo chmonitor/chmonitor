@@ -253,6 +253,47 @@ describe('Slack bot name and icon', () => {
   })
 })
 
+describe('a failed edit of the standing message', () => {
+  const open = { rootTs: '1.0001', open: { critical: 1, warning: 0 }, change }
+  const allClear = {
+    rootTs: '1.0001',
+    open: { critical: 0, warning: 0 },
+    change,
+  }
+  const updateFails = (error: string) => {
+    answer = (s) =>
+      s.method === 'chat.update' ? { ok: false, error } : { ok: true }
+  }
+
+  test('a rate limit keeps the message: nothing new is posted and the error is reported', async () => {
+    process.env.SLACK_BOT_TOKEN = ENV_TOKEN
+    updateFails('ratelimited')
+    for (const params of [open, allClear]) {
+      sent = []
+      expect(await sendSlackBot(routeTarget(), params)).toEqual({
+        ok: false,
+        error: 'ratelimited',
+      })
+      expect(sent.map((s) => s.method)).toEqual(['chat.update'])
+    }
+  })
+
+  test('a deleted message is replaced while alerts are open', async () => {
+    process.env.SLACK_BOT_TOKEN = ENV_TOKEN
+    updateFails('message_not_found')
+    expect(await sendSlackBot(routeTarget(), open)).toEqual({
+      ok: true,
+      rootTs: '2.0001',
+      replyTs: '3.0001',
+    })
+    expect(sent.map((s) => [s.method, s.body.thread_ts])).toEqual([
+      ['chat.update', undefined],
+      ['chat.postMessage', undefined],
+      ['chat.postMessage', '2.0001'],
+    ])
+  })
+})
+
 describe('Slack bot token safety', () => {
   test('a Slack error falls back and logs the code, never the token', async () => {
     process.env.SLACK_BOT_TOKEN = ENV_TOKEN

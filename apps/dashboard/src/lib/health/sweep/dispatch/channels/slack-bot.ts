@@ -17,9 +17,11 @@
  *
  * The standing message's `ts` is the thread root in `alert-thread-store`
  * (channel `'slack'`), so it needs the metadata DB; without one every change
- * posts a new message. If the stored message cannot be edited (say it was
- * deleted) a new one is posted. A send whose first call fails reports the
- * error: the caller then posts through the target's webhook, when it has one.
+ * posts a new message. If the stored message is gone (deleted, or its channel
+ * is) a new one is posted. A send whose first call fails reports the error,
+ * and so does any other failed edit (a rate limit, the network), which keeps
+ * the stored message: the caller then posts through the target's webhook,
+ * when it has one.
  *
  * SECURITY: the bot token is read or decrypted in memory only; nothing here
  * logs it, and failures log the Slack error code only.
@@ -61,6 +63,13 @@ export interface SlackBotRoute {
 export function slackThreadDestination(target: SlackBotTarget): string[] {
   return [target.fallbackUrl ?? `bot:${target.token.source}`, target.channel]
 }
+
+/** chat.update errors that mean the standing message can never be edited. */
+const GONE_MESSAGE_ERRORS = new Set([
+  'message_not_found',
+  'cant_update_message',
+  'channel_not_found',
+])
 
 /** One sweep's change for a target's standing message. */
 export interface SlackBotChange {
@@ -150,6 +159,9 @@ export async function sendSlackBot(
       ts: rootTs,
       message,
     })
+    if (!updated.ok && !GONE_MESSAGE_ERRORS.has(updated.error ?? '')) {
+      return fail('chat.update', updated.error)
+    }
     if (updated.ok) parentTs = rootTs
     else warn(`chat.update failed (${updated.error}); posting anew`)
   }

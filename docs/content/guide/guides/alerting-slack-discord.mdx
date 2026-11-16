@@ -192,6 +192,8 @@ is edited in place:
 - **All clear:** when nothing is open, the message is edited to `✅ All clear`.
   The next incident starts a fresh message.
 - If the stored message was deleted, a new one is posted and used from then on.
+  Any other failed edit, such as a rate limit, keeps the message, and the
+  change goes out the way it does when the bot cannot post at all (below).
 
 The bot token comes from one of two places:
 
