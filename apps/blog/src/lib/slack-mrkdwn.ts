@@ -21,7 +21,8 @@ function decode(s: string): string {
   return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
 }
 
-function esc(s: string): string {
+/** Escape text for HTML or SVG text content. */
+export function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
