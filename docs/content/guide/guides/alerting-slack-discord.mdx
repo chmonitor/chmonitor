@@ -215,7 +215,10 @@ The bot token comes from one of two places:
 names a channel for every alert no route matched, the way
 `HEALTH_ALERT_WEBHOOK_URL` does for a webhook. No webhook URL is needed. A
 matched route of any provider still wins, and a route's own channel id always
-beats `SLACK_ALERT_CHANNEL_ID`. Invite the bot to that channel first.
+beats `SLACK_ALERT_CHANNEL_ID`. Invite the bot to that channel first. With
+`HEALTH_ALERT_WEBHOOK_URL` set too, those alerts go to both. A Slack webhook
+URL does not name its channel, so when both are one channel each alert shows
+up twice; the sweep logs a warning, and you should unset one of them.
 
 To turn it on:
 

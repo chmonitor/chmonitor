@@ -22,6 +22,7 @@
  * finding guaranteeing it commits exactly once.
  */
 
+import type { SlackTarget } from '@/lib/slack/target'
 import type { AlertPayload } from './../../adapters'
 import type {
   AlertChannelId,
@@ -107,7 +108,8 @@ import {
 } from './channels/webhook-fanout'
 import { createDigestPipeline } from './digest'
 import { createLongFiringDigest } from './long-firing'
-import { debug } from '@chm/logger'
+import { debug, ErrorLogger } from '@chm/logger'
+import { slackWebhookTeamId } from '@/lib/slack/channel-id'
 import { getSlackAlertChannelId, getSlackBotToken } from '@/lib/slack/config'
 import { resolveSlackTarget } from '@/lib/slack/target'
 import { formatDuration } from '@/lib/utils'
@@ -147,6 +149,27 @@ function buildFindingIdentity(
   return Object.keys(out).length > 0 ? out : undefined
 }
 
+let warnedSlackCatchAllPair = false
+
+/**
+ * An alert no route matched goes to both catch-alls: the global webhook and
+ * the `SLACK_ALERT_CHANNEL_ID` channel. A Slack webhook URL does not name its
+ * channel, so the sweep cannot tell whether both are one channel (each alert
+ * then shows twice); it says so once instead of dropping either.
+ */
+function warnSlackCatchAllPair(
+  webhookUrl: string,
+  slackFallback: SlackTarget | null
+): void {
+  if (warnedSlackCatchAllPair || slackFallback?.kind !== 'bot') return
+  if (!slackWebhookTeamId(webhookUrl)) return
+  warnedSlackCatchAllPair = true
+  ErrorLogger.logWarning(
+    '[health-sweep] the global alert webhook is a Slack webhook and SLACK_ALERT_CHANNEL_ID is set: alerts no route matched post to both. If they are the same channel, unset one.',
+    { component: 'health-sweep' }
+  )
+}
+
 /**
  * Build the sweep's dispatcher for one tick. Seeds the digest buckets with any
  * time-window-buffered entries whose window has closed (a destructive read —
@@ -174,6 +197,7 @@ export async function createDispatcher(ctx: SweepContext): Promise<Dispatcher> {
     { channelId: getSlackAlertChannelId() },
     slackEnv
   )
+  warnSlackCatchAllPair(ctx.channels.webhookUrl, slackFallback)
 
   const counters: DispatchCounters = {
     alertsDispatched: 0,

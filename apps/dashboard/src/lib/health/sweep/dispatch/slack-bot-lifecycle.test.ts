@@ -541,6 +541,26 @@ describe('Slack bot channel with no webhook URL', () => {
     expect(posts(await tick(ctx, 'warning', 85))).toEqual([])
   })
 
+  test('a Slack catch-all webhook next to SLACK_ALERT_CHANNEL_ID still gets the alert, with one warning', async () => {
+    const generic = await captureWarnings(() =>
+      tick(makeCtx([], { webhookUrl: 'https://example.com/hook' }), 'critical')
+    )
+    expect(generic).not.toContain('SLACK_ALERT_CHANNEL_ID')
+    let first: Call[] = []
+    const slack = await captureWarnings(async () => {
+      first = await tick(makeCtx([], { webhookUrl: HOOK }), 'critical', 99, [2])
+      await tick(makeCtx([], { webhookUrl: HOOK }), 'critical', 99, [3])
+    })
+    expect(posts(first)).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+      `webhook ${HOOK}`,
+    ])
+    expect(slack.match(/SLACK_ALERT_CHANNEL_ID/g)).toEqual([
+      'SLACK_ALERT_CHANNEL_ID',
+    ])
+  })
+
   test('the digest time window never holds a bot alert', async () => {
     const out = await tick(makeCtx([], { digestWindowMs: 60_000 }), 'warning')
     expect(posts(out)).toEqual([

@@ -829,7 +829,7 @@ alert route a channel id; see
 | `SLACK_BOT_TOKEN` | — | **Secret.** Bot User OAuth Token (`xoxb-…`) of a Slack app you installed by hand. Alert routes with a Slack channel id post through it, and it wins over an OAuth install for the same workspace. Any other value (a user `xoxp-` token, a URL) is ignored with a warning. |
 | `SLACK_BOT_NAME` | `HEALTH_ALERT_INSTANCE_NAME` | Name bot alerts post under, at most 80 characters. Needs the `chat:write.customize` scope; without it alerts post under the app's own name. |
 | `SLACK_BOT_ICON_EMOJI` | — | Emoji icon for bot alerts, such as `:rotating_light:`. Same scope as `SLACK_BOT_NAME`. |
-| `SLACK_ALERT_CHANNEL_ID` | — | Channel id (`C0123456789`) the bot posts alerts to when no alert route matched, with no webhook URL. Needs `SLACK_BOT_TOKEN`. A route's own channel id always wins. A channel name such as `#alerts` is ignored with a warning. |
+| `SLACK_ALERT_CHANNEL_ID` | — | Channel id (`C0123456789`) the bot posts alerts to when no alert route matched, with no webhook URL. Needs `SLACK_BOT_TOKEN`. A route's own channel id always wins. A channel name such as `#alerts` is ignored with a warning. With `HEALTH_ALERT_WEBHOOK_URL` set too, those alerts go to both, and a Slack webhook there logs a warning. |
 
 ## GitHub deployment webhook
 
