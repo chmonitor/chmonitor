@@ -71,6 +71,8 @@ export type SlackBotSendResult =
       ok: true
       /** The standing message to keep; undefined once nothing is open. */
       rootTs: string | undefined
+      /** The change this sweep posted, when Slack accepted it. */
+      replyTs: string | undefined
     }
   | { ok: false; error: string }
 
@@ -156,7 +158,7 @@ export async function sendSlackBot(
       identity,
     })
     if (!posted.ok) return fail('chat.postMessage', posted.error)
-    return { ok: true, rootTs: undefined }
+    return { ok: true, rootTs: undefined, replyTs: posted.ts }
   }
   if (!parentTs) {
     const posted = await postChatMessage({
@@ -178,5 +180,9 @@ export async function sendSlackBot(
     identity,
   })
   if (!reply.ok) warn(`thread reply failed (${reply.error})`)
-  return { ok: true, rootTs: cleared ? undefined : parentTs }
+  return {
+    ok: true,
+    rootTs: cleared ? undefined : parentTs,
+    replyTs: reply.ok ? reply.ts : undefined,
+  }
 }

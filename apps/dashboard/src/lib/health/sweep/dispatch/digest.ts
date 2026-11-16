@@ -13,6 +13,7 @@
  * path it had before this feature.
  */
 
+import type { SlackBotTarget } from '@/lib/slack/target'
 import type { AlertPayload } from './../../adapters'
 import type { SlackOpenCounts } from './../../adapters/slack'
 import type { BufferedDigestEntry } from './../../alert-digest-buffer-store'
@@ -646,12 +647,19 @@ export async function createDigestPipeline(
     return { ...buildSlackBotDetails(payload, ackBlocks) }
   }
 
-  /** What one sweep posts in a bot target's thread. */
+  /**
+   * What one sweep posts in a bot target's thread. A lone alert always gets
+   * its own details reply, even for a rule that is already open elsewhere:
+   * that reply is the episode's message, the one its recovery reacts to.
+   */
   function slackBotChange(
     entries: readonly SlackBotDigestEntry[],
     open: SlackOpenCounts
   ): Record<string, unknown> {
     const payloads = entries.map((e) => e.payload)
+    if (entries.length === 1 && !entries[0].finding.isRecovery) {
+      return slackBotDetails(entries[0])
+    }
     if (entries.every((e) => e.deltaOnly)) {
       return {
         ...buildSlackDeltaBody(
@@ -660,8 +668,26 @@ export async function createDigestPipeline(
         ),
       }
     }
-    if (entries.length === 1) return slackBotDetails(entries[0])
     return { ...buildSlackDigestBody(payloads) }
+  }
+
+  /**
+   * The key of one episode's details message on a bot target. It holds the
+   * real host and rule, so a new episode drops it with the other channels'
+   * roots, and the `detail` part keeps it apart from the standing message
+   * (host -1, rule `digest`).
+   */
+  function slackDetailKey(
+    target: SlackBotTarget,
+    hostId: number,
+    ruleId: string
+  ): Promise<string> {
+    return alertThreadKey({
+      hostId,
+      ruleId,
+      channel: 'slack',
+      destination: [...slackThreadDestination(target), 'detail'],
+    })
   }
 
   /**
@@ -685,6 +711,18 @@ export async function createDigestPipeline(
       destination: slackThreadDestination(target),
     })
     const rootTs = threads.rootFor(standingKey)
+    const details = await Promise.all(
+      entries.map(async (e) => ({
+        threadKey: await slackDetailKey(
+          target,
+          e.finding.hostId,
+          e.finding.ruleId
+        ),
+        hostId: e.finding.hostId,
+        ruleId: e.finding.ruleId,
+        kind: e.finding.decision.kind,
+      }))
+    )
     const sent = await sendSlackBot(target, {
       rootTs,
       open,
@@ -709,6 +747,18 @@ export async function createDigestPipeline(
       await threads.forgetRoot(standingKey)
     } else if (sent.rootTs !== rootTs) {
       await threads.setRoot(standingKey, sent.rootTs)
+    }
+    // After the post: a recovery drops its episode's message only once the
+    // reply that closes it went out.
+    for (const detail of details) {
+      if (entries.length === 1) {
+        await threads.afterLoneSend(detail, {
+          ok: true,
+          messageId: sent.replyTs,
+        })
+      } else {
+        await threads.afterDigestSend(detail, true)
+      }
     }
     await recordDigestHistory(entries, 'slack', { ok: true })
     return true

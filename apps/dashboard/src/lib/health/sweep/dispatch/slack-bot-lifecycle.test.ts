@@ -256,22 +256,29 @@ function makeCtx(
 
 type Sev = 'warning' | 'critical' | 'ok'
 
-/** One sweep with one finding on host 1; returns the requests it made. */
-async function tick(ctx: SweepContext, severity: Sev, value = 99) {
+/** One sweep with one finding per host; returns the requests it made. */
+async function tick(
+  ctx: SweepContext,
+  severity: Sev,
+  value = 99,
+  hostIds: number[] = [1]
+) {
   await new Promise((resolve) => setTimeout(resolve, 5))
   const dispatcher = await createDispatcher(ctx)
-  await dispatcher.dispatchFinding({
-    hostId: 1,
-    hostName: 'ch-1',
-    ruleId: 'slack-test',
-    ruleType: 'threshold',
-    ruleTitle: 'Slack test',
-    severity,
-    value,
-    label: 'too high',
-    warnThreshold: 80,
-    critThreshold: 90,
-  })
+  for (const hostId of hostIds) {
+    await dispatcher.dispatchFinding({
+      hostId,
+      hostName: `ch-${hostId}`,
+      ruleId: 'slack-test',
+      ruleType: 'threshold',
+      ruleTitle: 'Slack test',
+      severity,
+      value,
+      label: 'too high',
+      warnThreshold: 80,
+      critThreshold: 90,
+    })
+  }
   await dispatcher.flushDigests()
   await dispatcher.flushBusEvents()
   return takeCalls()
@@ -406,5 +413,70 @@ describe('Slack bot channel with no webhook URL', () => {
       `post ${ENV_CHANNEL}`,
       `post ${ENV_CHANNEL} in 1.0001`,
     ])
+  })
+})
+
+describe('the episode details message', () => {
+  const standing = (rootId: string) => ({
+    host_id: -1,
+    rule_id: 'digest',
+    root_id: rootId,
+  })
+  const detail = (hostId: number, rootId: string) => ({
+    host_id: hostId,
+    rule_id: 'slack-test',
+    root_id: rootId,
+  })
+
+  test('a lone alert stores its details reply apart from the standing message', async () => {
+    await tick(makeCtx(), 'critical')
+    expect(rootRows()).toEqual([standing('1.0001'), detail(1, '2.0001')])
+  })
+
+  test('an escalation keeps the first details message', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'warning', 85)
+    const out = await tick(ctx, 'critical', 97)
+    expect(lines(out)).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+    ])
+    expect(rootRows()).toEqual([standing('1.0001'), detail(1, '2.0001')])
+  })
+
+  test('the recovery drops it only after the reply that closes it went out', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'critical')
+    let rowsAtReply: unknown[] = []
+    slackError = (method, body) => {
+      if (method === 'chat.postMessage' && body.thread_ts) {
+        rowsAtReply = rootRows()
+      }
+      return undefined
+    }
+    await tick(ctx, 'ok')
+    expect(rowsAtReply).toEqual([standing('1.0001'), detail(1, '2.0001')])
+    expect(rootRows()).toEqual([])
+  })
+
+  test('a new alert of a rule already open on another host gets its own details message', async () => {
+    const ctx = makeCtx()
+    await tick(ctx, 'critical', 99, [1])
+    const out = await tick(ctx, 'critical', 99, [1, 2])
+    expect(lines(out)).toEqual([
+      `update ${ENV_CHANNEL} 1.0001`,
+      `post ${ENV_CHANNEL} in 1.0001`,
+    ])
+    expect(textOf(out[1])).toContain('ch-2')
+    expect(rootRows()).toEqual([
+      standing('1.0001'),
+      detail(1, '2.0001'),
+      detail(2, '3.0001'),
+    ])
+  })
+
+  test('alerts that share one digest reply store no details message', async () => {
+    await tick(makeCtx(), 'critical', 99, [1, 2])
+    expect(rootRows()).toEqual([standing('1.0001')])
   })
 })
