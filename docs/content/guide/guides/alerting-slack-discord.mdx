@@ -179,9 +179,16 @@ is edited in place:
 
 - **The message** shows the open counts, for example `🔴 3 open · 1 critical ·
   2 warning`, and is edited every sweep that changes them.
-- **The thread** gets what changed: one finding's details (host, metric, value
-  and thresholds, runbooks, ack button), a `+1 warning · 3 open` line, or a
-  digest when several new rules fire together.
+- **The thread** gets what changed: one alert's details (host, metric, value
+  and thresholds, runbooks, ack button, and on an escalation a trend of the
+  episode's recorded values), a resolved reply that quotes the alert it
+  closes (when it fired, its first value, the peak), a `+1 warning · 3 open`
+  line, or a digest when several rules fire together.
+- **Reactions** show each alert's state on its details message: 🟠 warning,
+  🔴 critical, ✅ resolved, 👀 acknowledged. They need the `reactions:write`
+  scope; a token without it posts alerts with no reactions. An alert that
+  fired before this release has no stored details message, so its resolved
+  reply comes with no reaction.
 - **All clear:** when nothing is open, the message is edited to `✅ All clear`.
   The next incident starts a fresh message.
 - If the stored message was deleted, a new one is posted and used from then on.

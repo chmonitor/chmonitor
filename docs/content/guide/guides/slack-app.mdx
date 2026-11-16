@@ -90,7 +90,9 @@ manifest, click **Install to Workspace** in its settings, and set
 `SLACK_BOT_TOKEN` to the **Bot User OAuth Token** (`xoxb-…`) as a secret. No
 `SLACK_CLIENT_*` or signing secret and no D1 install store are needed for
 posting; the standing alert message still needs the metadata database. Alert
-routes that name a Slack channel id then post through this bot;
+routes that name a Slack channel id then post through this bot. Set
+`SLACK_ALERT_CHANNEL_ID` too and every alert no route matched posts to that
+channel, with no webhook at all;
 see [Slack bot delivery](/guide/guides/alerting-slack-discord#slack-bot-one-standing-message-changes-in-its-thread).
 The slash command, Home tab and **Acknowledge** clicks still need step 2.
 
@@ -100,7 +102,10 @@ When your health-alert webhook points at a **Slack incoming webhook** *and* the
 Slack app is configured, alert messages are posted as rich blocks with an
 **Acknowledge** button. Clicking it records the acknowledgement (who and when)
 and edits the message in place. Without the Slack app, alerts remain plain-text —
-nothing changes for existing setups.
+nothing changes for existing setups. The click also adds an 👀 reaction to the
+message, posted by the bot (`SLACK_BOT_TOKEN`, else the workspace install). A
+token without `reactions:write` skips the reaction; the acknowledgement is
+still recorded.
 
 <Callout type="warn">
 Slack delivers a button click to the **interactivity URL of the app that owns

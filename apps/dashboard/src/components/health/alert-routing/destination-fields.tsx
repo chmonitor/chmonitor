@@ -366,10 +366,10 @@ export function WebhookFields({
             id="route-slack-channel-help"
             className="text-xs text-muted-foreground"
           >
-            With the chmonitor Slack app installed in this workspace and invited
-            to the channel, alerts post as one line with details in a thread,
-            and the line is edited when the alert resolves. Leave empty to post
-            through the webhook only.
+            With a Slack bot for this workspace (SLACK_BOT_TOKEN or the
+            chmonitor app) invited to the channel, alerts keep one message with
+            the open count, details in its thread, and reactions for each
+            alert's state. Leave empty to post through the webhook only.
           </p>
         </>
       )}

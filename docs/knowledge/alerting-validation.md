@@ -3,7 +3,7 @@ id: alerting-validation
 title: Alerting validation lever
 type: workflow
 status: active
-updated: 2026-10-23
+updated: 2026-11-16
 tags:
   - alerting
   - health
@@ -73,6 +73,19 @@ How the delivery step reaches the capture server:
 targets) appends the dashboard link through `withDashboardLink`. The script
 fails any send without it, and `adapters/__tests__/wrapper-completeness.test.ts`
 covers the wrapper next to #4141's `message-completeness.test.ts`.
+
+**Slack bot path.** The delivery step reaches Slack only through
+incoming-webhook URLs; it has no capture for the Slack Web API, and
+`SLACK_API_BASE` is a fixed `https://slack.com/api`. The bot path (bot token,
+standing message, threads, reactions, the resolved quote and the trend) is
+covered by `src/lib/health/sweep/dispatch/slack-bot-lifecycle.test.ts`
+instead: the real dispatcher, real SQLite `alert_thread_roots` and
+`alert_events` tables, the real interactions handler for the ACK click, and a
+fake Web API that records every call. It asserts the exact ordered calls for
+new, reminder, escalation, ACK and recovery, both for the
+`SLACK_ALERT_CHANNEL_ID` channel and for a webhook route on the OAuth install.
+A run against a real workspace (granted scopes, emoji names, how the thread
+renders) is still manual.
 
 ## Rules that go with it
 
