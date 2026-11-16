@@ -58,18 +58,10 @@ const readings = firstChartSeries(escalation.replies[escalation.replies.length -
         <h2>A new alert</h2>
         <p>
           The standing message says one warning is open. The thread reply has the
-          rest: the value against both thresholds, what was measured, a chart of
-          recent readings and an Acknowledge button. The runbook, rule id, team,
-          region and time sit in a small gray footer.
-        </p>
-        <p>
-          The chart is Slack's own chart block, <code>data_visualization</code>. Slack draws it
-          in the message itself, no image upload. This page draws the same block
-          JSON as SVG, so the look is ours. Series named warn and crit are dashed
-          here, and Slack draws them like any other series. Slack's reference does not say
-          whether incoming webhooks or older app installs can post the block, and
-          we have not yet tried it against a live workspace. The webhook message
-          has no chart.
+          rest: the value against both thresholds, what was measured and an
+          Acknowledge button. The runbook, rule id, team, region and time sit in a
+          small gray footer. There is no trend yet, because the alert has no
+          history before this first message.
         </p>
         <SlackThread thread={newAlert} demo={demo} caption="The first warning, opened in its thread." />
       </section>
@@ -81,7 +73,30 @@ const readings = firstChartSeries(escalation.replies[escalation.replies.length -
           edited in place and turns red. The new details go in the same thread, so
           the channel gets no second message.
         </p>
-        <SlackThread thread={escalation} demo={demo} caption="The same thread after the alert turns critical." />
+        <p>
+          This reply carries a chart of the alert's recorded values. The chart
+          shows once the alert's history has 3 or more of them. With only the
+          bot, those are the first alert and each escalation, so the first
+          escalation gets a one-line text sparkline and the chart comes with the
+          next one. A channel that sends reminders, such as Telegram, records
+          more values, so the chart can show sooner. When Slack rejects the chart,
+          chmonitor posts the details again with the sparkline. The webhook
+          message has no chart.
+        </p>
+        <p>
+          The chart is Slack's own chart block, <code>data_visualization</code>. Slack draws it
+          in the message itself, no image upload. This page draws the same block
+          JSON as SVG, with smooth lines as Slack draws them, but the look is
+          ours. Series named warn and crit are dashed here, and Slack draws them
+          like any other series. Slack's reference does not say whether older app
+          installs can post the block, and we have not yet tried it against a
+          live workspace.
+        </p>
+        <SlackThread
+          thread={escalation}
+          demo={demo}
+          caption="The same thread after the alert turns critical. For the demo, the chart covers every sweep, from before the alert fired. A real alert's chart starts at its first alert."
+        />
       </section>
 
       <section class="slack-demo-text">
