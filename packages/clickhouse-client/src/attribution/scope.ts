@@ -23,7 +23,7 @@ import {
 } from './record'
 import { createScopeStorage, type ScopeStorage } from '#attribution-storage'
 
-export interface AttributionPrincipal {
+interface AttributionPrincipal {
   readonly subject: string
   readonly email?: string
 }
@@ -39,7 +39,7 @@ export interface AttributionScope {
   readonly page?: string
 }
 
-export interface AttributionConfig {
+interface AttributionConfig {
   readonly enabled: boolean
   readonly sqlComment: boolean
   readonly includeEmail: boolean
@@ -83,7 +83,7 @@ export function setAttributionVersion(version: string | null): void {
 }
 
 /** Read per call: env is bridged onto `process.env` after module load on Workers. */
-export function getAttributionConfig(): AttributionConfig {
+function getAttributionConfig(): AttributionConfig {
   const env = process.env
   return {
     enabled: envBool(env.CHM_QUERY_ATTRIBUTION, true),
@@ -113,7 +113,7 @@ export function isEnvHostDemo(): boolean {
   }
 }
 
-export interface AttributionOptions {
+interface AttributionOptions {
   /**
    * True when the target host is a public demo. Its `system.query_log` is
    * readable by every visitor, so the record leaves out `user` and `email`.
@@ -121,7 +121,7 @@ export interface AttributionOptions {
   readonly anonymous?: () => boolean
 }
 
-export async function resolveAttributionRecord(
+async function resolveAttributionRecord(
   host: string | null,
   config: AttributionConfig = getAttributionConfig(),
   options: AttributionOptions = {}
@@ -156,7 +156,7 @@ type QueryLikeParams = {
  * whose profile is `readonly = 1`: that level refuses every changed setting,
  * `log_comment` included (measured on ClickHouse 23.8 and 26.5).
  */
-export type AttributionCarriers = 'configured' | 'sqlCommentOnly'
+type AttributionCarriers = 'configured' | 'sqlCommentOnly'
 
 /**
  * Leading minimal `QUERY_COMMENT`s, with any whitespace around them. Call
@@ -174,7 +174,7 @@ function usesQueryCache(
   return value === 1 || value === true || value === '1' || value === 'true'
 }
 
-export function stripQueryComment(query: string): string {
+function stripQueryComment(query: string): string {
   return query.replace(LEADING_QUERY_COMMENTS, '')
 }
 
@@ -272,7 +272,7 @@ const READONLY_CODE = '164'
  * alone is not enough, because a query can raise any text it likes
  * (`throwIf(1, 'Cannot modify ''log_comment''...')`).
  */
-export function isLogCommentRefused(err: unknown): boolean {
+function isLogCommentRefused(err: unknown): boolean {
   if (err === null || typeof err !== 'object') return false
   const { code, message } = err as { code?: unknown; message?: unknown }
   return (
